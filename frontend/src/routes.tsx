@@ -1,16 +1,19 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
+import Login from './pages/Login';
 
 export const router = createBrowserRouter([
   {
-    path: "/",
-    element: (
-      <div className="flex h-screen items-center justify-center">
-        <h1 className="text-2xl font-bold text-[#3b2063]">Lucky Boba POS Dashboard</h1>
-      </div>
-    ),
+    path: "/login",
+    element: <Login />,
   },
   {
-    path: "/login",
-    element: <div>Login Page Placeholder</div>,
+    path: "/",
+    // This automatically sends users to /login if they land on the root
+    element: <Navigate to="/login" replace />,
   },
+  {
+    // Catch-all: If they type a random URL, send them to login
+    path: "*",
+    element: <Navigate to="/login" replace />,
+  }
 ]);

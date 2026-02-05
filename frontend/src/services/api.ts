@@ -1,31 +1,48 @@
-import axios from 'axios';
+/**
+ * MOCK API SERVICE
+ * Satisfies ESLint by avoiding 'any'
+ */
 
-const api = axios.create({
-    baseURL: 'http://localhost:8000/api',
-    withCredentials: true, 
-    headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
+const SIMULATED_DELAY = 1000;
+
+const api = {
+  get: async (url: string) => {
+    console.log(`[Mock GET]: ${url}`);
+    await new Promise((resolve) => setTimeout(resolve, SIMULATED_DELAY));
+
+    if (url.includes('/users')) {
+      return {
+        data: [
+          { id: 1, name: 'Bina', email: 'admin@luckyboba.com', role: 'superadmin', status: 'ACTIVE' },
+          { id: 2, name: 'Staff Member', email: 'staff@luckyboba.com', role: 'manager', status: 'ACTIVE' },
+        ],
+      };
     }
-});
+    return { data: [] };
+  },
 
-api.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        // If the internet is down (no response at all)
-        if (!error.response) {
-            console.error("Network Error: Is the Laravel server running?");
-        }
+  // Changed 'any' to 'Record<string, unknown>'
+  post: async (url: string, body: Record<string, unknown>) => {
+    console.log(`[Mock POST]: ${url}`, body);
+    await new Promise((resolve) => setTimeout(resolve, SIMULATED_DELAY));
 
-        if (error.response?.status === 401) {
-            // Only redirect if we aren't already on the login page
-            if (!window.location.pathname.includes('/login')) {
-                window.location.href = '/login';
-            }
-        }
-        
-        return Promise.reject(error);
-    }
-);
+    return {
+      data: { ...body, id: Math.floor(Math.random() * 1000), status: 'OPEN' },
+    };
+  },
+
+  // Changed 'any' to 'Record<string, unknown>'
+  patch: async (url: string, body: Record<string, unknown>) => {
+    console.log(`[Mock PATCH]: ${url}`, body);
+    await new Promise((resolve) => setTimeout(resolve, SIMULATED_DELAY));
+    return { data: { ...body } };
+  },
+
+  delete: async (url: string) => {
+    console.log(`[Mock DELETE]: ${url}`);
+    await new Promise((resolve) => setTimeout(resolve, SIMULATED_DELAY));
+    return { data: { success: true } };
+  },
+};
 
 export default api;
