@@ -2,26 +2,40 @@ name: Lucky Boba CI
 
 on:
   push:
-    # Trigger CI when pushing to any of your 3 core branches
-    branches: [ main, master, staging, development ]
+    branches: [ main, staging, development ]
   pull_request:
-    # Trigger CI when someone opens a PR to merge into these branches
-    branches: [ main, master, staging, development ]
+    branches: [ main, staging, development ]
 
 jobs:
   laravel-backend:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
           extensions: mbstring, dom, curl, libxml, mysql
+
       - name: Install Dependencies
         run: cd backend && composer install --prefer-dist --no-progress
+
+      - name: Prepare Laravel Environment
+        run: |
+          cd backend
+          cp .env.example .env
+          php artisan key:generate
+          mkdir -p database
+          touch database/database.sqlite
+
       - name: Run Backend Tests
-        run: cd backend && php artisan test
+        run: |
+          cd backend
+          php artisan test
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: database/database.sqlite
 
   react-frontend:
     runs-on: ubuntu-latest
