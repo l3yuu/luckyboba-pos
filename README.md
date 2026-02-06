@@ -1,10 +1,10 @@
-# 🧋 Lucky Boba POS System
+# Lucky Boba POS System
 
 A professional, full-stack Point of Sale (POS) solution designed for retail efficiency. This system leverages a modern decoupled architecture to provide a fast, secure, and scalable experience for both staff and management.
 
 ---
 
-## 🚀 Tech Stack
+## Tech Stack
 
 ### **Frontend**
 * **Core:** React 18 (Vite) & TypeScript
@@ -25,7 +25,7 @@ A professional, full-stack Point of Sale (POS) solution designed for retail effi
 
 ---
 
-## 🏗️ Architecture & Workflow
+## Architecture & Workflow
 
 We utilize a strict **Git Flow** to ensure code quality and system stability. No code reaches the `main` branch without passing through our automated CI/CD pipeline.
 
@@ -38,7 +38,7 @@ We utilize a strict **Git Flow** to ensure code quality and system stability. No
 
 ---
 
-## 🛠️ Installation & Setup
+## Installation & Setup
 
 ### **Prerequisites**
 * PHP 8.3 & Composer
@@ -61,7 +61,7 @@ We utilize a strict **Git Flow** to ensure code quality and system stability. No
 
 ---
 
-## 🔒 Security & Data Integrity
+## Security & Data Integrity
 
 * **Protected Routes:** React Router guards ensure that only authenticated users can access the POS Dashboard.
 * **CI/CD Safety:** GitHub Actions automatically run PHPUnit tests and Vite build checks on every Pull Request.
