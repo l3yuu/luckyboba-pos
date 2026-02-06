@@ -15,6 +15,8 @@ export const useAuth = () => {
 
     // Simple check
     if (email === 'admin@luckyboba.com' && pass === 'password123') {
+      localStorage.setItem('auth_token', 'mock-boba-token-123'); 
+      
       setIsSuccess(true);
       setIsLoading(false);
       return true;
@@ -25,5 +27,11 @@ export const useAuth = () => {
     }
   };
 
-  return { login, isLoading, error, isSuccess };
+  // --- ADD A LOGOUT FUNCTION ---
+  const logout = () => {
+    localStorage.removeItem('auth_token');
+    window.location.href = '/login'; 
+  };
+
+  return { login, logout, isLoading, error, isSuccess };
 };
