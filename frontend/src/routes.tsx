@@ -1,19 +1,25 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import { ProtectedRoute } from './components/ProtectedRoute'; 
 
 export const router = createBrowserRouter([
   {
-    path: "/login",
+    path: '/login',
     element: <Login />,
   },
   {
-    path: "/",
-    // This automatically sends users to /login if they land on the root
-    element: <Navigate to="/login" replace />,
+    // The Guard: Only users with a token can see what's inside 'children'
+    element: <ProtectedRoute />,
+    children: [
+      {
+        path: '/dashboard',
+        element: <Dashboard />,
+      },
+    ],
   },
   {
-    // Catch-all: If they type a random URL, send them to login
-    path: "*",
-    element: <Navigate to="/login" replace />,
-  }
+    path: '/',
+    element: <Navigate to="/dashboard" replace />,
+  },
 ]);
