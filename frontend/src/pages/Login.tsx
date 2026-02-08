@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import type { LoginCredentials } from '../types/user';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -10,7 +11,10 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = await login(email, password);
+    
+    const credentials: LoginCredentials = { email, password };
+    
+    const success = await login(credentials); 
     
     if (success) {
       navigate('/dashboard', { replace: true });

@@ -10,24 +10,26 @@ class AuthenticationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_users_can_authenticate_using_the_login_screen(): void
-    {
-        $user = User::factory()->create();
+public function test_users_can_authenticate_using_the_login_screen(): void
+{
+    $user = User::factory()->create();
 
-        $response = $this->post('/login', [
+    // Disable ONLY CSRF for this specific call
+    $response = $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class)
+        ->postJson('/login', [
             'email' => $user->email,
             'password' => 'password',
         ]);
 
-        $this->assertAuthenticated();
-        $response->assertNoContent();
-    }
+    $response->assertNoContent();
+    $this->assertAuthenticatedAs($user);
+}
 
     public function test_users_can_not_authenticate_with_invalid_password(): void
     {
         $user = User::factory()->create();
 
-        $this->post('/login', [
+        $this->postJson('/login', [
             'email' => $user->email,
             'password' => 'wrong-password',
         ]);
@@ -35,13 +37,16 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_users_can_logout(): void
-    {
-        $user = User::factory()->create();
+public function test_users_can_logout(): void
+{
+    $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->post('/logout');
+    // actingAs needs the session middleware to be ACTIVE (which is why we don't use global WithoutMiddleware)
+    $response = $this->actingAs($user, 'web')
+        ->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class)
+        ->postJson('/logout');
 
-        $this->assertGuest();
-        $response->assertNoContent();
-    }
+    $this->assertGuest('web');
+    $response->assertNoContent();
+}
 }

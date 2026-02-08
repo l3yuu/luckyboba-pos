@@ -1,37 +1,65 @@
-import { useState } from 'react';
+// src/hooks/useAuth.ts
+import api from '../services/api';
+import { useState, useEffect, useCallback } from 'react'; // Added useEffect and useCallback
+import axios from 'axios'; 
+import type { LoginCredentials, User } from '../types/user'; 
 
 export const useAuth = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isSuccess, setIsSuccess] = useState(false);
+    const [isLoading, setIsLoading] = useState<boolean>(true); // Start as true for the initial check
+    const [error, setError] = useState<string | null>(null);
+    const [user, setUser] = useState<User | null>(null);
 
-  const login = async (email: string, pass: string) => {
-    setIsLoading(true);
-    setError(null);
-    setIsSuccess(false);
+    // Function to check if a session cookie already exists and is valid
+    const checkAuth = useCallback(async () => {
+        try {
+            const response = await api.get('/api/user');
+            setUser(response.data);
+            return true;
+        } catch {
+            setUser(null);
+            return false;
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
 
-    // Mock network delay (1.5s)
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    // Run the check on initial mount (page refresh)
+    useEffect(() => {
+        checkAuth();
+    }, [checkAuth]);
 
-    // Simple check
-    if (email === 'admin@luckyboba.com' && pass === 'password123') {
-      localStorage.setItem('auth_token', 'mock-boba-token-123'); 
-      
-      setIsSuccess(true);
-      setIsLoading(false);
-      return true;
-    } else {
-      setError('Invalid credentials. Try admin@luckyboba.com / password123');
-      setIsLoading(false);
-      return false;
-    }
-  };
+    const login = async (credentials: LoginCredentials): Promise<boolean> => {
+        setIsLoading(true);
+        setError(null);
+        
+        try {
+            await api.get('/sanctum/csrf-cookie');
+            await api.post('/login', credentials);
+            
+            // After successful login, fetch the full user object
+            const success = await checkAuth();
+            return success; 
+        } catch (err: unknown) { 
+            if (axios.isAxiosError(err)) {
+                setError(err.response?.data?.message || 'Invalid credentials.');
+            } else {
+                setError('An unexpected error occurred');
+            }
+            setIsLoading(false); // Manually set false here since checkAuth won't run on error
+            return false;
+        }
+    };
 
-  // --- ADD A LOGOUT FUNCTION ---
-  const logout = () => {
-    localStorage.removeItem('auth_token');
-    window.location.href = '/login'; 
-  };
+    const logout = async (): Promise<boolean> => {
+        try {
+            await api.post('/logout');
+            setUser(null);
+            return true;
+        } catch (err) {
+            console.error("Logout failed", err);
+            return false;
+        }
+    };
 
-  return { login, logout, isLoading, error, isSuccess };
+    return { login, logout, isLoading, error, user };
 };
