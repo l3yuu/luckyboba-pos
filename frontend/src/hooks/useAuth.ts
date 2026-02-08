@@ -1,21 +1,26 @@
 // src/hooks/useAuth.ts
 import api from '../services/api';
-import { useState, useEffect, useCallback } from 'react'; // Added useEffect and useCallback
-import axios from 'axios'; 
+import { useState, useEffect, useCallback } from 'react'; 
+import axios from 'axios'; // Add this back for the isAxiosError check
 import type { LoginCredentials, User } from '../types/user'; 
 
 export const useAuth = () => {
-    const [isLoading, setIsLoading] = useState<boolean>(true); // Start as true for the initial check
+    const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [user, setUser] = useState<User | null>(null);
 
-    // Function to check if a session cookie already exists and is valid
     const checkAuth = useCallback(async () => {
+        if (localStorage.getItem('lucky_boba_authenticated') !== 'true') {
+            setIsLoading(false);
+            return false;
+        }
+
         try {
             const response = await api.get('/api/user');
             setUser(response.data);
             return true;
         } catch {
+            localStorage.removeItem('lucky_boba_authenticated');
             setUser(null);
             return false;
         } finally {
@@ -23,7 +28,6 @@ export const useAuth = () => {
         }
     }, []);
 
-    // Run the check on initial mount (page refresh)
     useEffect(() => {
         checkAuth();
     }, [checkAuth]);
@@ -36,7 +40,8 @@ export const useAuth = () => {
             await api.get('/sanctum/csrf-cookie');
             await api.post('/login', credentials);
             
-            // After successful login, fetch the full user object
+            localStorage.setItem('lucky_boba_authenticated', 'true');
+            
             const success = await checkAuth();
             return success; 
         } catch (err: unknown) { 
@@ -45,7 +50,7 @@ export const useAuth = () => {
             } else {
                 setError('An unexpected error occurred');
             }
-            setIsLoading(false); // Manually set false here since checkAuth won't run on error
+            setIsLoading(false);
             return false;
         }
     };
@@ -53,10 +58,10 @@ export const useAuth = () => {
     const logout = async (): Promise<boolean> => {
         try {
             await api.post('/logout');
+            localStorage.removeItem('lucky_boba_authenticated');
             setUser(null);
             return true;
-        } catch (err) {
-            console.error("Logout failed", err);
+        } catch {
             return false;
         }
     };

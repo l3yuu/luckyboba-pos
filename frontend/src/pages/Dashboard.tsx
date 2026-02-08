@@ -1,18 +1,24 @@
+import { useState } from 'react'; // Added useState
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
 const Dashboard = () => {
-  const { user, logout, isLoading } = useAuth(); // Added isLoading
+  const { user, logout, isLoading } = useAuth();
+  const [isLoggingOut, setIsLoggingOut] = useState(false); // Local state for logout
   const navigate = useNavigate();
 
   const handleLogout = async () => {
+    setIsLoggingOut(true); // Start logout loading
     const success = await logout();
+    
     if (success) {
       navigate('/login', { replace: true });
+    } else {
+      setIsLoggingOut(false); // If logout fails, let user try again
     }
   };
 
-  // If we are still checking the session, show a clean spinner or blank state
+  // If checking initial session
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-zinc-50">
@@ -25,6 +31,7 @@ const Dashboard = () => {
     <div className="flex flex-col items-center justify-center h-screen bg-zinc-50 p-6">
       <div className="bg-white p-10 rounded-3xl shadow-xl text-center max-w-md w-full">
         <h1 className="text-4xl font-black text-[#3b2063]">Lucky Boba</h1>
+        
         <div className="mt-6 p-4 bg-purple-50 rounded-2xl">
           <p className="text-zinc-600 font-medium">Welcome back,</p>
           <h2 className="text-2xl font-bold text-[#3b2063]">{user?.name || 'Staff Member'}</h2>
@@ -35,11 +42,24 @@ const Dashboard = () => {
 
         <div className="mt-8 space-y-3">
           <p className="text-zinc-500 text-sm">Point of Sale System</p>
+          
           <button 
             onClick={handleLogout}
-            className="w-full py-3 text-red-500 font-bold border-2 border-red-100 rounded-xl hover:bg-red-50 transition-colors"
+            disabled={isLoggingOut} // Disable button while loading
+            className={`w-full py-3 font-bold border-2 rounded-xl transition-all flex items-center justify-center gap-2
+              ${isLoggingOut 
+                ? 'bg-zinc-100 border-zinc-200 text-zinc-400 cursor-not-allowed' 
+                : 'text-red-500 border-red-100 hover:bg-red-50'
+              }`}
           >
-            Sign Out
+            {isLoggingOut ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-zinc-400"></div>
+                Signing Out...
+              </>
+            ) : (
+              'Sign Out'
+            )}
           </button>
         </div>
       </div>
