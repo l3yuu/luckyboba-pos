@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
+import type { LoginCredentials } from '../types/user'; // Import the type
 // Asset Imports
 import logo from '../assets/logo.png';
 import backgroundImage from '../assets/background_image.png'; 
@@ -13,8 +14,15 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = await login(email, password);
-    if (success) navigate('/dashboard', { replace: true });
+    
+    // FIX: Pass as a single object to match your useAuth logic
+    const credentials: LoginCredentials = { email, password };
+    const user = await login(credentials); 
+    
+    // If user is returned, it means login was successful
+    if (user) {
+      navigate('/dashboard', { replace: true });
+    }
   };
 
   return (
@@ -22,12 +30,12 @@ const Login: React.FC = () => {
       className="min-h-screen flex items-center justify-center p-6 bg-cover bg-center bg-no-repeat"
       style={{ backgroundImage: `url(${backgroundImage})` }}
     >
-      {/* Login Card - Darker Taro Purple for maximum logo visibility */}
+      {/* Login Card - Darker Taro Purple Background */}
       <div className="max-w-md w-full z-10 overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#D4C8F0] shadow-2xl">
         
         {/* Header Section */}
         <div className="flex flex-col items-center p-8 pb-4 text-center">
-          {/* Logo - Large size */}
+          {/* Logo */}
           <div className="flex justify-center mb-0">
             <img 
               src={logo} 
@@ -36,7 +44,7 @@ const Login: React.FC = () => {
             />
           </div>
           
-          {/* Subtitle - Tightened to the logo */}
+          {/* Subtitle */}
           <div className="text-[#3b2063] font-black uppercase text-[11px] tracking-[0.25em] -mt-10 opacity-70">
             Point of Sale System
           </div>

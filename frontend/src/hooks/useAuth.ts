@@ -1,7 +1,7 @@
 // src/hooks/useAuth.ts
 import api from '../services/api';
 import { useState, useEffect, useCallback } from 'react'; 
-import axios from 'axios'; // Add this back for the isAxiosError check
+import axios from 'axios'; 
 import type { LoginCredentials, User } from '../types/user'; 
 
 export const useAuth = () => {
@@ -9,20 +9,21 @@ export const useAuth = () => {
     const [error, setError] = useState<string | null>(null);
     const [user, setUser] = useState<User | null>(null);
 
-    const checkAuth = useCallback(async () => {
+    const checkAuth = useCallback(async (): Promise<User | null> => {
         if (localStorage.getItem('lucky_boba_authenticated') !== 'true') {
             setIsLoading(false);
-            return false;
+            return null;
         }
 
         try {
             const response = await api.get('/api/user');
-            setUser(response.data);
-            return true;
+            const userData = response.data;
+            setUser(userData);
+            return userData;
         } catch {
             localStorage.removeItem('lucky_boba_authenticated');
             setUser(null);
-            return false;
+            return null;
         } finally {
             setIsLoading(false);
         }
@@ -32,7 +33,7 @@ export const useAuth = () => {
         checkAuth();
     }, [checkAuth]);
 
-    const login = async (credentials: LoginCredentials): Promise<boolean> => {
+    const login = async (credentials: LoginCredentials): Promise<User | null> => {
         setIsLoading(true);
         setError(null);
         
@@ -42,8 +43,9 @@ export const useAuth = () => {
             
             localStorage.setItem('lucky_boba_authenticated', 'true');
             
-            const success = await checkAuth();
-            return success; 
+            // Fetch the user so we can return the object to Login.tsx
+            const authenticatedUser = await checkAuth();
+            return authenticatedUser; 
         } catch (err: unknown) { 
             if (axios.isAxiosError(err)) {
                 setError(err.response?.data?.message || 'Invalid credentials.');
@@ -51,7 +53,7 @@ export const useAuth = () => {
                 setError('An unexpected error occurred');
             }
             setIsLoading(false);
-            return false;
+            return null;
         }
     };
 
