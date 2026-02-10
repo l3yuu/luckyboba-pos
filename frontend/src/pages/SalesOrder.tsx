@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 // 1. IMPORT DATA
 import { AddOnsList, type ItemData } from '../components/Menu/AddOns';
 import { AffordaBowlsList } from '../components/Menu/AffordaBowls';
+import { YogurtSeriesList } from '../components/Menu/YogurtSeries';
+import { YakultSeriesList } from '../components/Menu/YakultSeries';
 
 const CATEGORIES = [
   "Add Ons Sinkers", "AFFORDA-BOWLS", "ALA CARTE SNACKS", "ALL DAY MEALS", "CARD",
@@ -18,6 +20,8 @@ const CATEGORIES = [
 const CATEGORY_ITEMS: Record<string, ItemData[]> = {
   "Add Ons Sinkers": AddOnsList,
   "AFFORDA-BOWLS": AffordaBowlsList,
+  "YOGURT SERIES": YogurtSeriesList,
+  "YAKULT SERIES": YakultSeriesList,
 };
 
 // Item Type Definition
@@ -47,10 +51,18 @@ const getItemsForCategory = (category: string): MenuItem[] => {
       let barcode = `GEN${i + 1}`; 
       
       if (category === "Add Ons Sinkers") {
-        barcode = `AO${i + 1}`; 
+        barcode = `AO${i + 1}`;
       } else if (category === "AFFORDA-BOWLS") {
         barcode = `AB${i + 1}`; // AB1, AB2...
       }
+        else if (category === "YOGURT SERIES") {
+        barcode = `YS${i + 1}`;
+      }
+      else if (category === "YAKULT SERIES") {
+        barcode = `YK${i + 1}`;
+      }
+      
+
 
       return {
         id: `${category}-${i}`,
