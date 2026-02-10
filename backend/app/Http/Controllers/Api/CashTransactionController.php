@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\CashierService;
+use App\Models\CashTransaction; 
+use Illuminate\Support\Facades\Auth; 
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -43,5 +45,27 @@ class CashTransactionController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
+
+    public function index(Request $request) 
+    {
+        // Added a check to make sure the user is actually logged in
+        $userId = Auth::id();
+        
+        if (!$userId) {
+            return response()->json(['error' => 'Unauthorized'], 401);
+        }
+
+        $query = CashTransaction::where('user_id', $userId);
+
+        if ($request->has('type')) {
+            $query->where('type', $request->type);
+        }
+
+        if ($request->has('date')) {
+            $query->whereDate('created_at', $request->date);
+        }
+
+        return response()->json($query->orderBy('created_at', 'desc')->get());
     }
 }

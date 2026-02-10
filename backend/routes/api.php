@@ -23,3 +23,5 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/cash-transactions', [CashTransactionController::class, 'store']);
 });
+
+Route::middleware('auth:sanctum')->get('/cash-transactions', [CashTransactionController::class, 'index']);

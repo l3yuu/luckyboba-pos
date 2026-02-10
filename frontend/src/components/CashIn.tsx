@@ -1,26 +1,24 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Keyboard from 'react-simple-keyboard';
 import 'react-simple-keyboard/build/css/index.css';
-import type { AxiosError } from 'axios'; // Fixed: Type-only import to satisfy verbatimModuleSyntax
+import type { AxiosError } from 'axios'; 
 import api from '../services/api';
+import type { KeyboardRef, CashInProps, ReceiptData } from '../types/transactions';
 
-// Fixed: Proper Type-only interface for the keyboard reference
-interface KeyboardRef {
-  setInput: (input: string) => void;
-}
-
-const CashIn = () => {
+const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
   const [amount, setAmount] = useState('');
   const [isNotifOpen, setNotifOpen] = useState(false);
   const [showKeyboard, setShowKeyboard] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isLoading, setIsLoading] = useState(false); 
-  const [receiptData, setReceiptData] = useState({ date: '', time: '' });
+  
+  // Use the ReceiptData interface here
+  const [receiptData, setReceiptData] = useState<ReceiptData>({ date: '', time: '' });
   
   const notifRef = useRef<HTMLDivElement>(null);
   const keyboardRef = useRef<KeyboardRef | null>(null);
 
-  const getCurrentDateTime = () => {
+  const getCurrentDateTime = (): ReceiptData => {
     const now = new Date();
     return {
       date: now.toLocaleDateString(),
@@ -43,11 +41,12 @@ const CashIn = () => {
         setReceiptData(getCurrentDateTime());
         setIsFlipped(true); 
         setShowKeyboard(false);
+
+        if (onSuccess) onSuccess(); 
       }
     } catch (error: unknown) {
       const err = error as AxiosError<{ message?: string }>;
-      console.error("Submission Error:", err.response?.data || err.message);
-      alert(err.response?.data?.message || "Failed to record Cash In. Please check your connection.");
+      alert(err.response?.data?.message || "Failed to record Cash In.");
     } finally {
       setIsLoading(false);
     }
@@ -163,11 +162,7 @@ const CashIn = () => {
                 transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)' 
               }}
             >
-              {/* FRONT FACE */}
-              <div 
-                className="absolute w-full h-full bg-white rounded-[3rem] shadow-xl border border-zinc-100 p-10 flex flex-col items-center overflow-hidden" 
-                style={{ backfaceVisibility: 'hidden' }}
-              >
+              <div className="absolute w-full h-full bg-white rounded-[3rem] shadow-xl border border-zinc-100 p-10 flex flex-col items-center overflow-hidden" style={{ backfaceVisibility: 'hidden' }}>
                 <div className="absolute top-0 left-0 w-full h-3 bg-[#3b2063] opacity-10"></div>
                 <h2 className="text-[#3b2063] font-black text-base tracking-[0.4em] uppercase mb-6 mt-2">Terminal 01</h2>
 
@@ -185,7 +180,7 @@ const CashIn = () => {
                         type="text" 
                         value={amount}
                         onChange={handleAmountChange} 
-                        // REMOVED: onFocus={() => setShowKeyboard(true)}
+                        onFocus={() => setShowKeyboard(true)}
                         placeholder="0.00"
                         className="w-full bg-white text-[#3b2063] font-black text-3xl px-8 pl-14 py-5 rounded-3xl border-2 border-zinc-100 focus:border-[#3b2063] focus:outline-none focus:ring-4 focus:ring-[#f0ebff] transition-all"
                       />
@@ -202,25 +197,19 @@ const CashIn = () => {
                 </div>
               </div>
 
-              {/* BACK FACE */}
-              <div 
-                className="printable-receipt absolute w-full h-full bg-white rounded-[3rem] shadow-xl border border-zinc-100 p-10 flex flex-col overflow-hidden"
-                style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
-              >
+              <div className="printable-receipt absolute w-full h-full bg-white rounded-[3rem] shadow-xl border border-zinc-100 p-10 flex flex-col overflow-hidden" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
                 <div className="receipt-header border-b border-zinc-100 pb-4 mb-4">
                    <h2 className="text-[#3b2063] font-black text-xl uppercase">Cash In Receipt</h2>
                    <div className="flex flex-col items-center mt-2">
                       <p className="text-xs font-bold text-zinc-500">{receiptData.date} - {receiptData.time}</p>
                    </div>
                 </div>
-
                 <div className="space-y-2 mb-6 w-full">
                    <div className="flex justify-between items-center bg-[#f8f6ff] p-5 rounded-xl mt-2">
                       <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Amount</span>
                       <span className="text-2xl font-black text-[#3b2063]">₱ {amount}</span>
                    </div>
                 </div>
-
                 <button onClick={handleNewTransaction} className="no-print w-full bg-zinc-100 hover:bg-zinc-200 text-zinc-600 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all">
                   New Transaction
                 </button>
