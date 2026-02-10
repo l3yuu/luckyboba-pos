@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 // 1. IMPORT DATA
 import { AddOnsList, type ItemData } from '../components/Menu/AddOns';
 import { AffordaBowlsList } from '../components/Menu/AffordaBowls';
+import { YogurtSeriesList } from '../components/Menu/YogurtSeries';
+import { YakultSeriesList } from '../components/Menu/YakultSeries';
 import { AlaCarteList } from '../components/Menu/AlaCarte';
 import { AllDayList } from '../components/Menu/AllDay';
 import { LuckyCardList } from '../components/Menu/LuckyCard';
@@ -30,6 +32,8 @@ const DRINK_CATEGORIES = [
 const CATEGORY_ITEMS: Record<string, ItemData[]> = {
   "Add Ons Sinkers": AddOnsList,
   "AFFORDA-BOWLS": AffordaBowlsList,
+  "YOGURT SERIES": YogurtSeriesList,
+  "YAKULT SERIES": YakultSeriesList,
   "ALA CARTE SNACKS": AlaCarteList,
   "ALL DAY MEALS": AllDayList,
   "CARD": LuckyCardList,
@@ -71,6 +75,14 @@ const getItemsForCategory = (category: string): MenuItem[] => {
         }
         else if (category === "ALL DAY MEALS") barcode = `ADM${i + 1}`;
       }
+        else if (category === "YOGURT SERIES") {
+        barcode = `YS${i + 1}`;
+      }
+      else if (category === "YAKULT SERIES") {
+        barcode = `YK${i + 1}`;
+      }
+      
+
 
       return {
         id: `${category}-${i}`,
