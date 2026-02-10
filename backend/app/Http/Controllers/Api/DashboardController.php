@@ -18,8 +18,9 @@ class DashboardController extends Controller
 
     public function index(): JsonResponse
     {
-        // Controller only handles the "response"
-        $stats = $this->dashboardService->getDailyStats();
+        // Fix: Change getDailyStats() to getHomeStats()
+        $stats = $this->dashboardService->getHomeStats();
+        
         return response()->json($stats);
     }
 }

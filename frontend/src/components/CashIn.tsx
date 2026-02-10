@@ -1,25 +1,24 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Keyboard from 'react-simple-keyboard';
 import 'react-simple-keyboard/build/css/index.css';
+import type { AxiosError } from 'axios'; // Fixed: Type-only import to satisfy verbatimModuleSyntax
+import api from '../services/api';
 
-// 1. Define a type for the Keyboard to fix the "any" error
+// Fixed: Proper Type-only interface for the keyboard reference
 interface KeyboardRef {
   setInput: (input: string) => void;
-  // Add other methods if needed, but setInput is what we use
 }
 
 const CashIn = () => {
   const [amount, setAmount] = useState('');
   const [isNotifOpen, setNotifOpen] = useState(false);
   const [showKeyboard, setShowKeyboard] = useState(false);
-  
   const [isFlipped, setIsFlipped] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); 
   const [receiptData, setReceiptData] = useState({ date: '', time: '' });
   
   const notifRef = useRef<HTMLDivElement>(null);
-  
-  // 2. Apply the interface here
-  const keyboardRef = useRef<KeyboardRef>(null);
+  const keyboardRef = useRef<KeyboardRef | null>(null);
 
   const getCurrentDateTime = () => {
     const now = new Date();
@@ -29,11 +28,29 @@ const CashIn = () => {
     };
   };
 
-  const handleSubmit = () => {
-    if (!amount) return; 
-    setReceiptData(getCurrentDateTime());
-    setIsFlipped(true); 
-    setShowKeyboard(false); 
+  const handleSubmit = async () => {
+    if (!amount || parseFloat(amount) <= 0) return; 
+
+    setIsLoading(true);
+    try {
+      const response = await api.post('/api/cash-transactions', {
+        type: 'cash_in',
+        amount: parseFloat(amount),
+        note: 'Initial drawer cash-in'
+      });
+
+      if (response.data.success) {
+        setReceiptData(getCurrentDateTime());
+        setIsFlipped(true); 
+        setShowKeyboard(false);
+      }
+    } catch (error: unknown) {
+      const err = error as AxiosError<{ message?: string }>;
+      console.error("Submission Error:", err.response?.data || err.message);
+      alert(err.response?.data?.message || "Failed to record Cash In. Please check your connection.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleNewTransaction = () => {
@@ -54,10 +71,12 @@ const CashIn = () => {
   };
 
   const onKeyPress = (button: string) => {
-    if (button === "{enter}") setShowKeyboard(false);
+    if (button === "{enter}") {
+        setShowKeyboard(false);
+        if (amount) handleSubmit();
+    }
   };
 
-  // 3. Wrap handlePrint in useCallback to fix the dependency warning
   const handlePrint = useCallback(() => {
     if (!isFlipped) return;
     window.print();
@@ -73,7 +92,6 @@ const CashIn = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // 4. Add handlePrint to dependency array
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (isFlipped && event.altKey && (event.key === 'p' || event.key === 'P')) {
@@ -90,35 +108,20 @@ const CashIn = () => {
       <style>
         {`
           @media print {
-            @page {
-              size: 80mm auto;
-              margin: 0;
-            }
-            body { margin: 0; padding: 0; }
+            @page { size: 80mm auto; margin: 0; }
             body * { visibility: hidden; }
             .printable-receipt, .printable-receipt * { visibility: visible; }
             .printable-receipt {
-              position: absolute; left: 0; top: 0; width: 72mm !important; margin: 0 auto; padding: 5mm 2mm !important; 
-              background: white !important; box-shadow: none !important; border: none !important; border-radius: 0 !important;
-              color: black !important; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.2;
+              position: absolute; left: 0; top: 0; width: 72mm !important; margin: 0; padding: 5mm !important; 
+              background: white; color: black; font-family: 'Courier New', monospace;
             }
-            .print-hidden { display: none !important; }
-            .text-zinc-400, .text-[#3b2063], .text-emerald-500, .text-zinc-500 { color: black !important; }
-            h2 { font-size: 16px !important; text-align: center; margin-bottom: 10px; }
-            .amount-text { font-size: 20px !important; font-weight: bold !important; }
             .no-print { display: none !important; }
-            .bg-[#f8f6ff] { background-color: transparent !important; border-top: 1px dashed black !important; border-bottom: 1px dashed black !important; border-radius: 0 !important; }
-            .border-zinc-100 { border-color: black !important; }
-            .receipt-header { text-align: center; margin-bottom: 15px; }
-            .grid-cols-2 { display: flex; justify-content: space-between; gap: 10px; margin-top: 20px; }
-            .text-center { text-align: center; width: 45%; }
           }
         `}
       </style>
 
       <div className="flex flex-col h-full w-full bg-[#f8f6ff] animate-in fade-in zoom-in duration-300 relative overflow-hidden">
         
-        {/* --- Top Navbar --- */}
         <header className="flex-none bg-white border-b border-zinc-200 px-8 py-4 flex items-center justify-between shadow-sm z-20">
           <div className="flex items-center gap-6">
             <div className="flex flex-col">
@@ -141,21 +144,18 @@ const CashIn = () => {
             {isNotifOpen && (
               <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-zinc-100 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                 <div className="bg-[#3b2063] px-4 py-3"><p className="text-white text-[10px] font-bold uppercase tracking-widest">Notifications</p></div>
-                <div className="max-h-64 overflow-y-auto">
-                  <div className="p-4 border-b border-zinc-50 hover:bg-purple-50 transition-colors cursor-pointer">
-                    <p className="text-[#3b2063] font-bold text-xs mb-1">Low Stock Alert</p>
-                    <p className="text-zinc-400 text-[10px]">Tapioca Pearls are running low.</p>
-                  </div>
+                <div className="max-h-64 overflow-y-auto p-4 border-b border-zinc-50 hover:bg-purple-50 transition-colors cursor-pointer">
+                  <p className="text-[#3b2063] font-bold text-xs mb-1">Low Stock Alert</p>
+                  <p className="text-zinc-400 text-[10px]">Tapioca Pearls are running low.</p>
                 </div>
               </div>
             )}
           </div>
         </header>
 
-        {/* --- Main Content Area --- */}
-        <div className={`flex-1 flex flex-col xl:flex-row items-center justify-center p-6 gap-6 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-[300px]' : ''}`}>
+        <div className={`flex-1 flex flex-col xl:flex-row items-center justify-center p-6 gap-6 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-75' : ''}`}>
           
-          <div className="relative w-full max-w-2xl h-[500px]" style={{ perspective: '1000px' }}>
+          <div className="relative w-full max-w-2xl h-125" style={{ perspective: '1000px' }}>
             <div 
               className="relative w-full h-full transition-transform duration-700 ease-in-out"
               style={{ 
@@ -163,7 +163,7 @@ const CashIn = () => {
                 transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)' 
               }}
             >
-              {/* --- FRONT FACE (Input Form) --- */}
+              {/* FRONT FACE */}
               <div 
                 className="absolute w-full h-full bg-white rounded-[3rem] shadow-xl border border-zinc-100 p-10 flex flex-col items-center overflow-hidden" 
                 style={{ backfaceVisibility: 'hidden' }}
@@ -187,61 +187,37 @@ const CashIn = () => {
                         onChange={handleAmountChange} 
                         onFocus={() => setShowKeyboard(true)}
                         placeholder="0.00"
-                        className="w-full bg-white text-[#3b2063] font-black text-3xl px-8 pl-14 py-5 rounded-3xl border-2 border-zinc-100 focus:border-[#3b2063] focus:outline-none focus:ring-4 focus:ring-[#f0ebff] transition-all placeholder:text-zinc-300"
+                        className="w-full bg-white text-[#3b2063] font-black text-3xl px-8 pl-14 py-5 rounded-3xl border-2 border-zinc-100 focus:border-[#3b2063] focus:outline-none focus:ring-4 focus:ring-[#f0ebff] transition-all"
                       />
                     </div>
-                    <p className="text-xs font-black text-red-500 uppercase tracking-widest text-right pr-4 mt-1">Numbers Only</p>
                   </div>
 
                   <button 
                     onClick={handleSubmit} 
-                    disabled={!amount}
-                    className="w-full mt-2 bg-[#3b2063] hover:bg-[#2a1647] disabled:bg-zinc-200 disabled:text-zinc-400 disabled:cursor-not-allowed text-white py-5 rounded-3xl font-black text-sm uppercase tracking-[0.25em] shadow-lg shadow-purple-900/20 active:scale-95 transition-all duration-200"
+                    disabled={!amount || isLoading}
+                    className="w-full mt-2 bg-[#3b2063] hover:bg-[#2a1647] disabled:bg-zinc-200 text-white py-5 rounded-3xl font-black text-sm uppercase tracking-[0.25em] shadow-lg active:scale-95 transition-all duration-200"
                   >
-                    Submit Cash In
+                    {isLoading ? "Processing..." : "Submit Cash In"}
                   </button>
                 </div>
               </div>
 
-              {/* --- BACK FACE (Receipt View) --- */}
+              {/* BACK FACE */}
               <div 
-                className="printable-receipt absolute w-full h-full bg-white rounded-[3rem] shadow-xl border border-zinc-100 p-10 flex flex-col relative overflow-hidden"
+                className="printable-receipt absolute w-full h-full bg-white rounded-[3rem] shadow-xl border border-zinc-100 p-10 flex flex-col overflow-hidden"
                 style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
               >
-                <div className="absolute top-0 left-0 w-full h-3 bg-emerald-500 opacity-20 print-hidden"></div>
                 <div className="receipt-header border-b border-zinc-100 pb-4 mb-4">
-                   <h2 className="text-[#3b2063] font-black text-xl tracking-tight uppercase">Cash In Receipt</h2>
-                   <p className="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mt-1 print-hidden">Transaction Successful</p>
+                   <h2 className="text-[#3b2063] font-black text-xl uppercase">Cash In Receipt</h2>
                    <div className="flex flex-col items-center mt-2">
                       <p className="text-xs font-bold text-zinc-500">{receiptData.date} - {receiptData.time}</p>
                    </div>
                 </div>
 
                 <div className="space-y-2 mb-6 w-full">
-                   <div className="flex justify-between">
-                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Terminal</span>
-                      <span className="text-sm font-bold text-[#3b2063]">01</span>
-                   </div>
-                   <div className="flex justify-between">
-                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Cashier</span>
-                      <span className="text-sm font-bold text-[#3b2063]">ADMIN</span>
-                   </div>
-                   <div className="flex justify-between items-center bg-[#f8f6ff] p-3 rounded-xl mt-2">
+                   <div className="flex justify-between items-center bg-[#f8f6ff] p-5 rounded-xl mt-2">
                       <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Amount</span>
-                      <span className="text-xl font-black text-[#3b2063] amount-text">₱ {amount}</span>
-                   </div>
-                </div>
-
-                <div className="flex-1 grid grid-cols-2 gap-4 items-end mb-4 w-full">
-                   <div className="text-center">
-                      <div className="border-b border-zinc-300 mb-2 w-full mx-auto border-black"></div>
-                      <p className="text-[#3b2063] font-bold text-xs uppercase">Admin</p>
-                      <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Prepared By</p>
-                   </div>
-                   <div className="text-center">
-                      <div className="border-b border-zinc-300 mb-2 w-full mx-auto border-black"></div>
-                      <p className="text-[#3b2063] font-bold text-xs uppercase">Authorized Rep</p>
-                      <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Checked By</p>
+                      <span className="text-2xl font-black text-[#3b2063]">₱ {amount}</span>
                    </div>
                 </div>
 
@@ -252,44 +228,29 @@ const CashIn = () => {
             </div>
           </div>
 
-          {/* === RECEIPT PRINTER CARD === */}
-          <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-xl shadow-purple-900/5 border border-zinc-100 p-8 flex flex-col items-center text-center relative overflow-hidden h-fit flex-shrink-0">
-            <div className={`absolute top-0 left-0 w-full h-2 ${isFlipped ? 'bg-emerald-500 opacity-20' : 'bg-zinc-300 opacity-20'}`}></div>
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 transition-colors ${isFlipped ? 'bg-emerald-50' : 'bg-zinc-50'}`}>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke={isFlipped ? "#10b981" : "#a1a1aa"} className="w-8 h-8">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5Zm-3 0h.008v.008H15V10.5Z" />
-              </svg>
-            </div>
+          <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-xl border border-zinc-100 p-8 flex flex-col items-center text-center h-fit">
             <h3 className={`font-black text-xs uppercase tracking-[0.2em] mb-2 ${isFlipped ? 'text-[#3b2063]' : 'text-zinc-400'}`}>Receipt Printer</h3>
-            <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-8">
-              {isFlipped ? "Ready to Print" : "Waiting for Transaction..."}
-            </p>
             <button 
               onClick={handlePrint} 
               disabled={!isFlipped}
-              className={`w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all duration-200 flex items-center justify-center gap-2 group
-                ${isFlipped 
-                  ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-900/20 active:scale-95 cursor-pointer' 
-                  : 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
-                }`}
+              className={`w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2
+                ${isFlipped ? 'bg-emerald-500 text-white shadow-lg active:scale-95' : 'bg-zinc-100 text-zinc-400'}`}
             >
               Print (ALT + P)
             </button>
           </div>
         </div>
 
-        {/* --- Virtual Keyboard --- */}
-        <div className={`fixed bottom-0 left-0 right-0 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.1)] transition-transform duration-300 z-50 ${showKeyboard ? 'translate-y-0' : 'translate-y-full'}`}>
-          <div className="flex items-center justify-between px-4 py-2 bg-zinc-50 border-b border-zinc-200">
+        <div className={`fixed bottom-0 left-0 right-0 bg-white shadow-2xl transition-transform duration-300 z-50 ${showKeyboard ? 'translate-y-0' : 'translate-y-full'}`}>
+          <div className="flex items-center justify-between px-4 py-2 bg-zinc-50 border-b">
              <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Numpad</span>
-             <button onClick={() => setShowKeyboard(false)} className="text-xs font-black text-[#3b2063] uppercase tracking-widest hover:text-red-500 px-4 py-2">Close</button>
+             <button onClick={() => setShowKeyboard(false)} className="text-xs font-black text-[#3b2063] uppercase p-2">Close</button>
           </div>
-          <div className="p-2 text-zinc-800">
+          <div className="p-2">
             <Keyboard
-              keyboardRef={r => (keyboardRef.current = r)}
+              keyboardRef={r => { if(r) keyboardRef.current = r; }}
               onChange={onKeyboardChange}
               onKeyPress={onKeyPress}
-              inputName="amount"
               layout={{ default: ["1 2 3", "4 5 6", "7 8 9", ". 0 {bksp}", "{enter}"] }}
               display={{ "{bksp}": "⌫", "{enter}": "DONE" }}
             />

@@ -46,11 +46,11 @@ const Sidebar: React.FC<SidebarProps> = ({
         fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-zinc-200 
         transform transition-transform duration-300 ease-in-out
         md:relative md:translate-x-0 flex flex-col justify-between
-        rounded-r-[2rem] md:rounded-r-[1.5rem] overflow-hidden
+        rounded-r-4xl md:rounded-r-3xl overflow-hidden
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="px-6 pt-10 flex flex-col items-center overflow-y-auto no-scrollbar">
-          <img src={logo} alt="Lucky Boba Logo" className="w-55 h-auto object-contain mb-2 hidden md:block" />
+          <img src={logo} alt="Lucky Boba Logo" className="w-55 h-auto object-contain mb-2 block" />
           <div className="text-[#3b2063] font-black uppercase text-[9px] tracking-[0.3em] opacity-60 mb-8">POS System</div>
           
           <nav className="w-full space-y-2">
