@@ -74,9 +74,6 @@ const getItemsForCategory = (category: string): MenuItem[] => {
       else if (category === "YAKULT SERIES") {
         barcode = `YK${i + 1}`;
       }
-      
-
-
       return {
         id: `${category}-${i}`,
         name: item.name,
@@ -111,7 +108,7 @@ const SalesOrder = () => {
 
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  const SUGAR_LEVELS = ['25%', '50%', '75%', '100%'];
+  const SUGAR_LEVELS = ['0%', '25%', '50%', '75%', '100%'];
   const SIZES = ['M', 'L']; // <--- NEW: Size Options
   const EXTRA_OPTIONS = ['NO ICE', '-ICE', '+ICE', 'WARM', 'NO PRL', 'W/ PRL', 'R NAT'];
 
