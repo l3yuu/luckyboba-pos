@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import Sidebar from "../components/Sidebar";
 import logo from '../assets/logo.png';
-import SalesOrder from '../components/SalesOrder';
 import CashIn from '../components/CashIn'; 
 import CashDrop from '../components/CashDrop';
 import SearchReceipts from '../components/SearchReceipts';
@@ -11,25 +10,23 @@ const Dashboard = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'dashboard':
-        return <DashboardStats />;
-      case 'sales': 
-      case 'menu':  
-        return <SalesOrder />;
-      case 'cash-in':
-        return <CashIn />;
-      case 'cash-drop':
-        return <CashDrop />;
-      case 'search-receipts':
-        return <SearchReceipts />;
-      case 'cash-count':
-        return <CashCount />;
-      default:
-        return <DashboardStats />;
-    }
-  };
+ const renderContent = () => {
+  switch (activeTab) {
+    case 'dashboard':
+      return <DashboardStats />;
+    // REMOVED 'sales' and 'menu' cases here
+    case 'cash-in':
+      return <CashIn />;
+    case 'cash-drop':
+      return <CashDrop />;
+    case 'search-receipts':
+      return <SearchReceipts />;
+    case 'cash-count':
+      return <CashCount />;
+    default:
+      return <DashboardStats />;
+  }
+};
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-[#f8f6ff] text-zinc-900 font-sans overflow-hidden">
