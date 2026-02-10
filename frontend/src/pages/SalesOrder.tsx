@@ -10,7 +10,7 @@ import { LuckyCardList } from '../components/Menu/LuckyCard';
 import { CheeseCakeList } from '../components/Menu/CheeseCake';
 import { ChickenWingsList } from '../components/Menu/ChickenWings';
 import { ClassicMilkteaList } from '../components/Menu/ClassicMilktea';
-import { CoffeeFrappeList } from '../components/Menu/CoffeeFrappe'; // <--- Import
+import { CoffeeFrappeList } from '../components/Menu/CoffeeFrappe';
 
 const CATEGORIES = [
   "Add Ons Sinkers", "AFFORDA-BOWLS", "ALA CARTE SNACKS", "ALL DAY MEALS", "CARD",
@@ -40,7 +40,7 @@ const CATEGORY_ITEMS: Record<string, ItemData[]> = {
   "CHEESECAKE MILK TEA": CheeseCakeList,
   "CHICKEN WINGS": ChickenWingsList,
   "CLASSIC MILKTEA": ClassicMilkteaList,
-  "COFFEE FRAPPE": CoffeeFrappeList, // <--- Register
+  "COFFEE FRAPPE": CoffeeFrappeList,
 };
 
 interface MenuItem {
@@ -81,7 +81,7 @@ const SalesOrder = () => {
 
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  const SUGAR_LEVELS = ['0%','25%', '50%', '75%', '100%'];
+  const SUGAR_LEVELS = ['25%', '50%', '75%', '100%'];
   const EXTRA_OPTIONS = ['NO ICE', '-ICE', '+ICE', 'WARM', 'NO PRL', 'W/ PRL', 'R NAT'];
 
   // Logic flags
@@ -256,7 +256,7 @@ const SalesOrder = () => {
 
   const getDisplayBarcode = () => {
     if (!selectedItem) return "";
-    let code = selectedItem.barcode;
+    const code = selectedItem.barcode; // FIX: Changed 'let' to 'const'
     if (isDrink && size === 'L') {
       if (code.startsWith('CCMM')) return code.replace('CCMM', 'CCML');
       if (code.startsWith('CMM')) return code.replace('CMM', 'CML');
