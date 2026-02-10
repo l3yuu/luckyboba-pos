@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
+// 1. FIX: Ensure this interface is defined and exported
 interface SidebarProps {
   isSidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
@@ -8,6 +10,7 @@ interface SidebarProps {
   setCurrentTab: (tab: string) => void;
 }
 
+// 2. FIX: Apply the interface to the component
 const Sidebar: React.FC<SidebarProps> = ({ 
   isSidebarOpen, 
   setSidebarOpen, 
@@ -15,7 +18,24 @@ const Sidebar: React.FC<SidebarProps> = ({
   currentTab, 
   setCurrentTab 
 }) => {
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  
+  // 3. FIX: Add the missing Date/Time state and helpers
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentDate(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  };
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  };
   
   const posMenuItems = [
     { id: 'cash-in', label: 'Cash In' },
@@ -25,7 +45,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'cash-count', label: 'Cash Count EOD' },
   ];
 
-  // FIX: Initialize state based on prop, remove the useEffect that caused the error
   const [isPosDropdownOpen, setPosDropdownOpen] = useState(() => 
     posMenuItems.some(item => item.id === currentTab)
   );
@@ -64,7 +83,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               }`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 mr-3">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
               </svg>
               Dashboard
             </button>
@@ -94,7 +113,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                     <button
                       key={item.id}
                       onClick={() => {
-                        setCurrentTab(item.id);
+                        if (item.id === 'menu') {
+                          navigate('/pos');
+                        } else {
+                          setCurrentTab(item.id);
+                        }
                         if (window.innerWidth < 768) setSidebarOpen(false);
                       }}
                       className={`text-left px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-colors ${
@@ -108,6 +131,13 @@ const Sidebar: React.FC<SidebarProps> = ({
               </div>
             </div>
           </nav>
+        </div>
+
+        <div className="px-8 pb-4">
+           <div className="text-center mb-4">
+             <div className="text-[10px] font-bold uppercase text-[#3b2063]">{formatDate(currentDate)}</div>
+             <div className="text-xs font-black text-zinc-400">{formatTime(currentDate)}</div>
+           </div>
         </div>
 
         <div className="px-8 pb-8 flex flex-col gap-6 bg-white pt-4 z-10">
