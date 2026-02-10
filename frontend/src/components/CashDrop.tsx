@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import Keyboard from 'react-simple-keyboard';
 import 'react-simple-keyboard/build/css/index.css';
 
-// 1. Define Keyboard Type
+
 interface KeyboardRef {
   setInput: (input: string) => void;
 }
