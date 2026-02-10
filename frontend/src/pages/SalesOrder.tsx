@@ -9,6 +9,11 @@ import { AllDayList } from '../components/Menu/AllDay';
 import { LuckyCardList } from '../components/Menu/LuckyCard';
 import { CheeseCakeList } from '../components/Menu/CheeseCake';
 import { ChickenWingsList } from '../components/Menu/ChickenWings';
+import { YakultSeriesList } from '../components/Menu/YakultSeries';
+import { YogurtSeriesList } from '../components/Menu/YogurtSeries';
+import { WafflesList } from '../components/Menu/Waffles';
+import { RocksaltCheeseList } from '../components/Menu/Rocksalt&Cheese';
+import { PumpkinSpiceList } from '../components/Menu/PumpkinSpice';
 
 const CATEGORIES = [
   "Add Ons Sinkers", "AFFORDA-BOWLS", "ALA CARTE SNACKS", "ALL DAY MEALS", "CARD",
@@ -16,7 +21,7 @@ const CATEGORIES = [
   "CREAM CHEESE M. TEA", "FLAVORED MILK TEA", "FP COFFEE BUNDLES", "FP/GF FET2 CLASSIC", "FRAPPE SERIES",
   "FREEBIES", "FRUIT SODA SERIES", "GF DUO BUNDLES", "GRAND OPENING PROMO", "GREEN TEA SERIES",
   "HOT COFFEE", "HOT DRINKS", "ICED COFFEE", "NOVA SERIES", "OKINAWA BROWN SUGAR",
-  "PROMOS", "PUMPKIN SPICE ROCK SALT & CHEESE", "WAFFLE", "YAKULT SERIES", "YOGURT SERIES"
+  "PROMOS", "PUMPKIN SPICE", "ROCK SALT & CHEESE", "WAFFLE", "YAKULT SERIES", "YOGURT SERIES"
 ];
 
 // Categories that require a Size/Quantity selection BEFORE showing items
@@ -25,7 +30,7 @@ const DRINK_CATEGORIES = [
   "CREAM CHEESE M. TEA", "FLAVORED MILK TEA", "FRAPPE SERIES", 
   "FRUIT SODA SERIES", "GREEN TEA SERIES", "HOT COFFEE", "HOT DRINKS", 
   "ICED COFFEE", "NOVA SERIES", "OKINAWA BROWN SUGAR", 
-  "PUMPKIN SPICE ROCK SALT & CHEESE", "YAKULT SERIES", "YOGURT SERIES"
+ "ROCK SALT & CHEESE", "YAKULT SERIES", "YOGURT SERIES"
 ];
 
 // 2. REGISTER DATA
@@ -37,6 +42,11 @@ const CATEGORY_ITEMS: Record<string, ItemData[]> = {
   "CARD": LuckyCardList,
   "CHEESECAKE MILK TEA": CheeseCakeList,
   "CHICKEN WINGS": ChickenWingsList,
+  "YAKULT SERIES": YakultSeriesList, 
+  "YOGURT SERIES": YogurtSeriesList,
+  "WAFFLE": WafflesList,
+  "ROCK SALT & CHEESE": RocksaltCheeseList,
+  "PUMPKIN SPICE": PumpkinSpiceList
 };
 
 interface MenuItem {
