@@ -122,13 +122,8 @@ const SalesOrder = () => {
 
   const [cart, setCart] = useState<CartItem[]>([]);
 
-<<<<<<< HEAD
-  const SUGAR_LEVELS = ['0%', '25%', '50%', '75%', '100%'];
-  const SIZES = ['M', 'L']; // <--- NEW: Size Options
-=======
   const SUGAR_LEVELS = ['0%','25%', '50%', '75%', '100%'];
   const SIZES = ['M', 'L']; 
->>>>>>> 8267b6f89b5d71b6fb423d178297a750ce0340cc
   const EXTRA_OPTIONS = ['NO ICE', '-ICE', '+ICE', 'WARM', 'NO PRL', 'W/ PRL', 'R NAT'];
 
   // Check if current category is a drink
