@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Keyboard from 'react-simple-keyboard';
 import 'react-simple-keyboard/build/css/index.css';
 import type { AxiosError } from 'axios'; // Fixed: Type-only import to satisfy verbatimModuleSyntax
@@ -185,7 +185,7 @@ const CashIn = () => {
                         type="text" 
                         value={amount}
                         onChange={handleAmountChange} 
-                        onFocus={() => setShowKeyboard(true)}
+                        // REMOVED: onFocus={() => setShowKeyboard(true)}
                         placeholder="0.00"
                         className="w-full bg-white text-[#3b2063] font-black text-3xl px-8 pl-14 py-5 rounded-3xl border-2 border-zinc-100 focus:border-[#3b2063] focus:outline-none focus:ring-4 focus:ring-[#f0ebff] transition-all"
                       />

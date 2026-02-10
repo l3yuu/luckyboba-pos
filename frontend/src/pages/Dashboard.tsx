@@ -5,6 +5,8 @@ import SalesOrder from '../components/SalesOrder';
 import CashIn from '../components/CashIn';
 import api from '../services/api'; // Import your existing api service
 import type { DashboardData, TopSeller } from '../types/dashboard';
+import CashDrop from '../components/CashDrop';
+import SearchReceipts from '../components/SearchReceipts';
 
 const Dashboard = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -43,7 +45,9 @@ const Dashboard = () => {
       case 'cash-in':
         return <CashIn />;
       case 'cash-drop':
+        return <CashDrop />;
       case 'search-receipts':
+        return <SearchReceipts />;
       case 'cash-count':
         return <PlaceholderPage title={activeTab.replace('-', ' ')} />;
       default:
