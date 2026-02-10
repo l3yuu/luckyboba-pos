@@ -1,6 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Keyboard from 'react-simple-keyboard';
 import 'react-simple-keyboard/build/css/index.css';
+
+// 1. Define a type for the Keyboard to fix the "any" error
+interface KeyboardRef {
+  setInput: (input: string) => void;
+  // Add other methods if needed, but setInput is what we use
+}
 
 const CashIn = () => {
   const [amount, setAmount] = useState('');
@@ -11,9 +17,10 @@ const CashIn = () => {
   const [receiptData, setReceiptData] = useState({ date: '', time: '' });
   
   const notifRef = useRef<HTMLDivElement>(null);
-  const keyboardRef = useRef<any>(null);
+  
+  // 2. Apply the interface here
+  const keyboardRef = useRef<KeyboardRef>(null);
 
-  // --- Helper Functions ---
   const getCurrentDateTime = () => {
     const now = new Date();
     return {
@@ -50,10 +57,11 @@ const CashIn = () => {
     if (button === "{enter}") setShowKeyboard(false);
   };
 
-  const handlePrint = () => {
+  // 3. Wrap handlePrint in useCallback to fix the dependency warning
+  const handlePrint = useCallback(() => {
     if (!isFlipped) return;
     window.print();
-  };
+  }, [isFlipped]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -65,6 +73,7 @@ const CashIn = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // 4. Add handlePrint to dependency array
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (isFlipped && event.altKey && (event.key === 'p' || event.key === 'P')) {
@@ -74,109 +83,35 @@ const CashIn = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isFlipped]); 
+  }, [isFlipped, handlePrint]); 
 
   return (
     <>
       <style>
         {`
           @media print {
-            /* XP-80C Configuration */
             @page {
-              size: 80mm auto; /* 80mm width, auto height for continuous roll */
-              margin: 0;       /* No browser margins, let printer handle it */
-            }
-            
-            body {
+              size: 80mm auto;
               margin: 0;
-              padding: 0;
             }
-
-            body * {
-              visibility: hidden; /* Hide everything else */
-            }
-
-            /* --- RECEIPT CONTAINER --- */
-            .printable-receipt, .printable-receipt * {
-              visibility: visible;
-            }
-            
+            body { margin: 0; padding: 0; }
+            body * { visibility: hidden; }
+            .printable-receipt, .printable-receipt * { visibility: visible; }
             .printable-receipt {
-              position: absolute;
-              left: 0;
-              top: 0;
-              width: 72mm !important; /* Printable area for 80mm paper (leaving margin) */
-              margin: 0 auto;
-              padding: 5mm 2mm !important; 
-              
-              /* Reset Styling for Thermal Print */
-              background: white !important;
-              box-shadow: none !important;
-              border: none !important;
-              border-radius: 0 !important;
-              color: black !important;
-              font-family: 'Courier New', monospace; /* Monospace aligns better on receipts */
-              font-size: 12px;
-              line-height: 1.2;
+              position: absolute; left: 0; top: 0; width: 72mm !important; margin: 0 auto; padding: 5mm 2mm !important; 
+              background: white !important; box-shadow: none !important; border: none !important; border-radius: 0 !important;
+              color: black !important; font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.2;
             }
-
-            /* --- ELEMENT ADJUSTMENTS --- */
-            .print-hidden {
-              display: none !important;
-            }
-
-            /* Force black text */
-            .text-zinc-400, .text-[#3b2063], .text-emerald-500, .text-zinc-500 {
-              color: black !important;
-            }
-
-            /* Header adjustments */
-            h2 { 
-              font-size: 16px !important; 
-              text-align: center;
-              margin-bottom: 10px;
-            }
-            
-            /* Amount Text Big */
-            .amount-text { 
-              font-size: 20px !important; 
-              font-weight: bold !important; 
-            }
-
-            /* Hide Buttons */
-            .no-print {
-              display: none !important;
-            }
-            
-            /* Remove fancy borders/backgrounds */
-            .bg-[#f8f6ff] {
-              background-color: transparent !important;
-              border-top: 1px dashed black !important;
-              border-bottom: 1px dashed black !important;
-              border-radius: 0 !important;
-            }
-            
-            .border-zinc-100 {
-              border-color: black !important;
-            }
-
-            /* Centered Layout */
-            .receipt-header {
-              text-align: center;
-              margin-bottom: 15px;
-            }
-            
-            /* Layout Grid Fix for Print */
-            .grid-cols-2 {
-              display: flex;
-              justify-content: space-between;
-              gap: 10px;
-              margin-top: 20px;
-            }
-            .text-center {
-              text-align: center;
-              width: 45%;
-            }
+            .print-hidden { display: none !important; }
+            .text-zinc-400, .text-[#3b2063], .text-emerald-500, .text-zinc-500 { color: black !important; }
+            h2 { font-size: 16px !important; text-align: center; margin-bottom: 10px; }
+            .amount-text { font-size: 20px !important; font-weight: bold !important; }
+            .no-print { display: none !important; }
+            .bg-[#f8f6ff] { background-color: transparent !important; border-top: 1px dashed black !important; border-bottom: 1px dashed black !important; border-radius: 0 !important; }
+            .border-zinc-100 { border-color: black !important; }
+            .receipt-header { text-align: center; margin-bottom: 15px; }
+            .grid-cols-2 { display: flex; justify-content: space-between; gap: 10px; margin-top: 20px; }
+            .text-center { text-align: center; width: 45%; }
           }
         `}
       </style>
@@ -274,19 +209,14 @@ const CashIn = () => {
                 style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
               >
                 <div className="absolute top-0 left-0 w-full h-3 bg-emerald-500 opacity-20 print-hidden"></div>
-                
-                {/* Receipt Header */}
                 <div className="receipt-header border-b border-zinc-100 pb-4 mb-4">
                    <h2 className="text-[#3b2063] font-black text-xl tracking-tight uppercase">Cash In Receipt</h2>
                    <p className="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mt-1 print-hidden">Transaction Successful</p>
-                   
-                   {/* Date/Time Row for Print */}
                    <div className="flex flex-col items-center mt-2">
                       <p className="text-xs font-bold text-zinc-500">{receiptData.date} - {receiptData.time}</p>
                    </div>
                 </div>
 
-                {/* Receipt Details */}
                 <div className="space-y-2 mb-6 w-full">
                    <div className="flex justify-between">
                       <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Terminal</span>
@@ -302,8 +232,7 @@ const CashIn = () => {
                    </div>
                 </div>
 
-                {/* Signatures Area */}
-                <div className="grid grid-cols-2 gap-4 items-end mb-4 w-full">
+                <div className="flex-1 grid grid-cols-2 gap-4 items-end mb-4 w-full">
                    <div className="text-center">
                       <div className="border-b border-zinc-300 mb-2 w-full mx-auto border-black"></div>
                       <p className="text-[#3b2063] font-bold text-xs uppercase">Admin</p>
