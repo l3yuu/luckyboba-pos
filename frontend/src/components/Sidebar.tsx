@@ -133,11 +133,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           </nav>
         </div>
 
-        {/* If you pasted the Date/Time code here previously, 
-           it will now work because formatDate/formatTime are defined above.
-        */}
         <div className="px-8 pb-4">
-           {/* Example placement if you want Date/Time in sidebar */}
            <div className="text-center mb-4">
              <div className="text-[10px] font-bold uppercase text-[#3b2063]">{formatDate(currentDate)}</div>
              <div className="text-xs font-black text-zinc-400">{formatTime(currentDate)}</div>

@@ -4,6 +4,10 @@ import { useNavigate } from 'react-router-dom';
 // 1. IMPORT DATA
 import { AddOnsList, type ItemData } from '../components/Menu/AddOns';
 import { AffordaBowlsList } from '../components/Menu/AffordaBowls';
+import { AlaCarteList } from '../components/Menu/AlaCarte';
+import { AllDayList } from '../components/Menu/AllDay';
+import { LuckyCardList } from '../components/Menu/LuckyCard';
+import { CheeseCakeList } from '../components/Menu/CheeseCake';
 
 const CATEGORIES = [
   "Add Ons Sinkers", "AFFORDA-BOWLS", "ALA CARTE SNACKS", "ALL DAY MEALS", "CARD",
@@ -14,13 +18,16 @@ const CATEGORIES = [
   "PROMOS", "PUMPKIN SPICE ROCK SALT & CHEESE", "WAFFLE", "YAKULT SERIES", "YOGURT SERIES"
 ];
 
-// 2. REGISTER DATA TO CATEGORY
+// 2. REGISTER DATA
 const CATEGORY_ITEMS: Record<string, ItemData[]> = {
   "Add Ons Sinkers": AddOnsList,
   "AFFORDA-BOWLS": AffordaBowlsList,
+  "ALA CARTE SNACKS": AlaCarteList,
+  "ALL DAY MEALS": AllDayList,
+  "CARD": LuckyCardList,
+  "CHEESECAKE MILK TEA": CheeseCakeList,
 };
 
-// Item Type Definition
 interface MenuItem {
   id: string;
   name: string;
@@ -28,11 +35,14 @@ interface MenuItem {
   barcode: string;
 }
 
-// Cart Item Type
+// Updated Cart Item
 interface CartItem extends MenuItem {
   qty: number;
   remarks: string;
   charges: { grab: boolean; panda: boolean };
+  sugarLevel: string;
+  size: string; // <--- NEW: Size property
+  options: string[];
   finalPrice: number;
 }
 
@@ -42,14 +52,17 @@ const getItemsForCategory = (category: string): MenuItem[] => {
   
   if (specificItems) {
     return specificItems.map((item, i) => {
+      let barcode = item.barcode || `GEN${i + 1}`; 
       
-      // 3. CUSTOM BARCODE LOGIC
-      let barcode = `GEN${i + 1}`; 
-      
-      if (category === "Add Ons Sinkers") {
-        barcode = `AO${i + 1}`; 
-      } else if (category === "AFFORDA-BOWLS") {
-        barcode = `AB${i + 1}`; // AB1, AB2...
+      if (!item.barcode) {
+        if (category === "Add Ons Sinkers") barcode = `AO${i + 1}`; 
+        else if (category === "AFFORDA-BOWLS") barcode = `AB${i + 1}`;
+        else if (category === "ALA CARTE SNACKS") {
+          if (item.name === "Bottled Mineral Water") barcode = "BTL1";
+          else if (item.name === "Rice") barcode = "RCE";
+          else barcode = `ACS${i + 1}`;
+        }
+        else if (category === "ALL DAY MEALS") barcode = `ADM${i + 1}`;
       }
 
       return {
@@ -60,7 +73,6 @@ const getItemsForCategory = (category: string): MenuItem[] => {
       };
     });
   } else {
-    // Fallback for categories we haven't filled yet
     return Array.from({ length: 8 }).map((_, i) => ({
       id: `${category}-mock-${i}`,
       name: `${category} Item ${i + 1}`,
@@ -79,7 +91,17 @@ const SalesOrder = () => {
   const [qty, setQty] = useState(1);
   const [remarks, setRemarks] = useState('');
   const [charges, setCharges] = useState({ grab: false, panda: false });
+  
+  // Modifiers
+  const [sugarLevel, setSugarLevel] = useState('100%');
+  const [size, setSize] = useState('M'); // <--- NEW: Size State (Default Medium)
+  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+
   const [cart, setCart] = useState<CartItem[]>([]);
+
+  const SUGAR_LEVELS = ['25%', '50%', '75%', '100%'];
+  const SIZES = ['M', 'L']; // <--- NEW: Size Options
+  const EXTRA_OPTIONS = ['NO ICE', '-ICE', '+ICE', 'WARM', 'NO PRL', 'W/ PRL', 'R NAT'];
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentDate(new Date()), 1000);
@@ -103,6 +125,10 @@ const SalesOrder = () => {
     setQty(1);
     setRemarks('');
     setCharges({ grab: false, panda: false });
+    // Reset modifiers
+    setSugarLevel('100%');
+    setSize('M'); // Reset to Medium
+    setSelectedOptions([]);
   };
 
   const closeModal = () => {
@@ -114,10 +140,13 @@ const SalesOrder = () => {
   };
 
   const toggleCharge = (type: 'grab' | 'panda') => {
-    setCharges(prev => ({
-      ...prev,
-      [type]: !prev[type]
-    }));
+    setCharges(prev => ({ ...prev, [type]: !prev[type] }));
+  };
+
+  const toggleOption = (opt: string) => {
+    setSelectedOptions(prev => 
+      prev.includes(opt) ? prev.filter(o => o !== opt) : [...prev, opt]
+    );
   };
 
   const addToOrder = () => {
@@ -126,12 +155,18 @@ const SalesOrder = () => {
     let extraCost = 0;
     if (charges.grab) extraCost += 10;
     if (charges.panda) extraCost += 10;
+    
+    // Size Upcharge Logic (Example: +15 for Large)
+    if (size === 'L') extraCost += 20;
 
     const newItem: CartItem = {
       ...selectedItem,
       qty,
       remarks,
       charges,
+      sugarLevel,
+      size, 
+      options: selectedOptions,
       finalPrice: (selectedItem.price + extraCost) * qty
     };
 
@@ -148,17 +183,19 @@ const SalesOrder = () => {
       {/* === MODAL POPUP === */}
       {selectedItem && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200 p-4">
-          <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
-            <div className="bg-[#3b2063] p-6 text-white text-center relative">
+          <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 max-h-[90vh]">
+            
+            {/* Header */}
+            <div className="bg-[#3b2063] p-5 text-white text-center relative shrink-0">
               <h2 className="text-lg font-black uppercase tracking-wider">{selectedItem.name}</h2>
-              <button onClick={closeModal} className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-                </svg>
+              <button onClick={closeModal} className="absolute top-5 right-6 text-white/50 hover:text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
               </button>
             </div>
 
-            <div className="p-8 space-y-6">
+            <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
+              
+              {/* Info Row */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-zinc-50 p-3 rounded-2xl border border-zinc-100">
                   <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block mb-1">Barcode</span>
@@ -170,40 +207,94 @@ const SalesOrder = () => {
                 </div>
               </div>
 
+              {/* Quantity */}
+              <div className="flex items-center justify-between bg-zinc-50 rounded-2xl p-2 border border-zinc-100">
+                <button onClick={() => adjustQty(-1)} className="w-12 h-12 bg-white rounded-xl shadow-sm border border-zinc-200 text-[#3b2063] hover:bg-red-50 hover:text-red-500 transition-colors flex items-center justify-center active:scale-95">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" /></svg>
+                </button>
+                <input type="text" value={qty} readOnly className="bg-transparent text-center font-black text-2xl text-[#3b2063] w-20 outline-none" />
+                <button onClick={() => adjustQty(1)} className="w-12 h-12 bg-[#3b2063] rounded-xl shadow-lg shadow-purple-900/20 text-white hover:bg-[#2a1647] transition-colors flex items-center justify-center active:scale-95">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                </button>
+              </div>
+
+              {/* SIZE SELECTION - NEW */}
               <div>
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2 mb-2 block">Quantity</label>
-                <div className="flex items-center justify-between bg-zinc-50 rounded-2xl p-2 border border-zinc-100">
-                  <button onClick={() => adjustQty(-1)} className="w-12 h-12 bg-white rounded-xl shadow-sm border border-zinc-200 text-[#3b2063] hover:bg-red-50 hover:text-red-500 transition-colors flex items-center justify-center active:scale-95">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" /></svg>
-                  </button>
-                  <input type="text" value={qty} readOnly className="bg-transparent text-center font-black text-2xl text-[#3b2063] w-20 outline-none" />
-                  <button onClick={() => adjustQty(1)} className="w-12 h-12 bg-[#3b2063] rounded-xl shadow-lg shadow-purple-900/20 text-white hover:bg-[#2a1647] transition-colors flex items-center justify-center active:scale-95">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                  </button>
+                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2 mb-2 block">Size</label>
+                <div className="flex gap-3">
+                  {SIZES.map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setSize(s)}
+                      className={`flex-1 py-3 rounded-xl text-xs font-black transition-all border-2 ${
+                        size === s 
+                        ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-md' 
+                        : 'bg-white text-zinc-400 border-zinc-100 hover:border-zinc-200'
+                      }`}
+                    >
+                      {s === 'M' ? 'MEDIUM' : 'LARGE (+20)'}
+                    </button>
+                  ))}
                 </div>
               </div>
 
+              {/* SUGAR LEVEL */}
+              <div>
+                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
+                <div className="flex gap-2">
+                  {SUGAR_LEVELS.map((level) => (
+                    <button
+                      key={level}
+                      onClick={() => setSugarLevel(level)}
+                      className={`flex-1 py-2 rounded-xl text-[10px] font-black transition-all ${
+                        sugarLevel === level 
+                        ? 'bg-[#3b2063] text-white shadow-md' 
+                        : 'bg-zinc-50 text-zinc-400 border border-zinc-100 hover:bg-zinc-100'
+                      }`}
+                    >
+                      {level}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* OPTIONS / ICE */}
+              <div>
+                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2 mb-2 block">Options</label>
+                <div className="flex flex-wrap gap-2">
+                  {EXTRA_OPTIONS.map((opt) => (
+                    <button
+                      key={opt}
+                      onClick={() => toggleOption(opt)}
+                      className={`px-3 py-2 rounded-xl text-[10px] font-bold uppercase transition-all ${
+                        selectedOptions.includes(opt)
+                        ? 'bg-[#3b2063] text-white shadow-md'
+                        : 'bg-zinc-50 text-zinc-400 border border-zinc-100 hover:bg-zinc-100'
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Charges */}
               <div>
                 <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2 mb-2 block">Charges (+10.00)</label>
                 <div className="grid grid-cols-2 gap-3">
                   <button onClick={() => toggleCharge('grab')} className={`p-3 rounded-2xl border-2 transition-all flex items-center justify-center gap-2 ${charges.grab ? 'border-green-500 bg-green-50 text-green-700' : 'border-zinc-100 bg-zinc-50 text-zinc-400 hover:border-green-200'}`}>
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${charges.grab ? 'border-green-500 bg-green-500' : 'border-zinc-300'}`}>
-                      {charges.grab && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
-                    </div>
                     <span className="font-bold text-xs uppercase">Grab Food</span>
                   </button>
                   <button onClick={() => toggleCharge('panda')} className={`p-3 rounded-2xl border-2 transition-all flex items-center justify-center gap-2 ${charges.panda ? 'border-pink-500 bg-pink-50 text-pink-700' : 'border-zinc-100 bg-zinc-50 text-zinc-400 hover:border-pink-200'}`}>
-                    <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${charges.panda ? 'border-pink-500 bg-pink-500' : 'border-zinc-300'}`}>
-                      {charges.panda && <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={4}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
-                    </div>
                     <span className="font-bold text-xs uppercase">Food Panda</span>
                   </button>
                 </div>
               </div>
 
+              {/* Remarks */}
               <div>
                 <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2 mb-2 block">Remarks</label>
-                <textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="....." className="w-full p-4 bg-zinc-50 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] resize-none h-24 outline-none focus:ring-2 focus:ring-[#f0ebff] focus:border-[#3b2063] transition-all" />
+                <textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Additional notes..." className="w-full p-4 bg-zinc-50 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] resize-none h-16 outline-none focus:ring-2 focus:ring-[#f0ebff] focus:border-[#3b2063] transition-all" />
               </div>
 
               <button onClick={addToOrder} className="w-full bg-[#3b2063] text-white py-4 rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-lg shadow-purple-900/20 active:scale-95 transition-all hover:bg-[#2a1647]">Add Order</button>
@@ -212,7 +303,7 @@ const SalesOrder = () => {
         </div>
       )}
 
-      {/* === MAIN UI === */}
+      {/* === TOP HEADER SECTION === */}
       <div className="flex gap-4 p-4 border-b border-zinc-200 bg-white items-stretch h-24 shrink-0 shadow-sm z-20 relative">
         <div className="flex gap-2">
           {['Home', 'Cat', 'Kit', 'Bar', 'Bill'].map((label) => (
@@ -292,6 +383,18 @@ const SalesOrder = () => {
                   <div key={index} className="flex justify-between items-start bg-zinc-50 p-3 rounded-xl border border-zinc-100">
                     <div className="flex-1">
                       <p className="font-bold text-xs text-[#3b2063]">{item.name}</p>
+                      
+                      {/* DISPLAY MODIFIERS IN RECEIPT */}
+                      <div className="flex flex-wrap gap-1 mt-1.5">
+                        <span className="bg-purple-100 text-purple-700 text-[9px] px-1.5 py-0.5 rounded font-bold">{item.size === 'M' ? 'MEDIUM' : 'LARGE'}</span>
+                        {item.sugarLevel !== '100%' && (
+                          <span className="bg-orange-100 text-orange-700 text-[9px] px-1.5 py-0.5 rounded font-bold">{item.sugarLevel} Sugar</span>
+                        )}
+                        {item.options.map(opt => (
+                          <span key={opt} className="bg-blue-100 text-blue-700 text-[9px] px-1.5 py-0.5 rounded font-bold">{opt}</span>
+                        ))}
+                      </div>
+
                       {(item.charges.grab || item.charges.panda) && (
                         <div className="flex gap-1 mt-1">
                           {item.charges.grab && <span className="bg-green-100 text-green-700 text-[9px] px-1.5 py-0.5 rounded font-bold">GRAB</span>}
