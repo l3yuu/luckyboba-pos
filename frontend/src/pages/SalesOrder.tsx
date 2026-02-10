@@ -9,6 +9,8 @@ import { AllDayList } from '../components/Menu/AllDay';
 import { LuckyCardList } from '../components/Menu/LuckyCard';
 import { CheeseCakeList } from '../components/Menu/CheeseCake';
 import { ChickenWingsList } from '../components/Menu/ChickenWings';
+import { ClassicMilkteaList } from '../components/Menu/ClassicMilktea';
+import { CoffeeFrappeList } from '../components/Menu/CoffeeFrappe'; // <--- Import
 
 const CATEGORIES = [
   "Add Ons Sinkers", "AFFORDA-BOWLS", "ALA CARTE SNACKS", "ALL DAY MEALS", "CARD",
@@ -37,6 +39,8 @@ const CATEGORY_ITEMS: Record<string, ItemData[]> = {
   "CARD": LuckyCardList,
   "CHEESECAKE MILK TEA": CheeseCakeList,
   "CHICKEN WINGS": ChickenWingsList,
+  "CLASSIC MILKTEA": ClassicMilkteaList,
+  "COFFEE FRAPPE": CoffeeFrappeList, // <--- Register
 };
 
 interface MenuItem {
@@ -77,8 +81,7 @@ const SalesOrder = () => {
 
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  const SUGAR_LEVELS = ['25%', '50%', '75%', '100%'];
-
+  const SUGAR_LEVELS = ['0%','25%', '50%', '75%', '100%'];
   const EXTRA_OPTIONS = ['NO ICE', '-ICE', '+ICE', 'WARM', 'NO PRL', 'W/ PRL', 'R NAT'];
 
   // Logic flags
@@ -205,11 +208,23 @@ const SalesOrder = () => {
       extraCost += 20; 
     }
 
-    // Barcode switching for Drinks (CCMM -> CCML)
+    // --- BARCODE SWITCHING LOGIC ---
     let finalBarcode = selectedItem.barcode;
-    if (isDrink && finalBarcode.startsWith("CCMM") && size === 'L') {
-      finalBarcode = finalBarcode.replace("CCMM", "CCML");
+    if (isDrink && size === 'L') {
+      // Cheesecake: CCMM -> CCML
+      if (finalBarcode.startsWith("CCMM")) {
+        finalBarcode = finalBarcode.replace("CCMM", "CCML");
+      }
+      // Classic Milktea: CMM -> CML
+      else if (finalBarcode.startsWith("CMM")) {
+        finalBarcode = finalBarcode.replace("CMM", "CML");
+      }
+      // Coffee Frappe: CFM -> CFL
+      else if (finalBarcode.startsWith("CFM")) {
+        finalBarcode = finalBarcode.replace("CFM", "CFL");
+      }
     }
+    // -------------------------------
 
     const newItem: CartItem = {
       ...selectedItem,
@@ -230,16 +245,24 @@ const SalesOrder = () => {
   const subtotal = cart.reduce((acc, item) => acc + item.finalPrice, 0);
   const totalCount = cart.reduce((acc, item) => acc + item.qty, 0);
 
-  // --- Dynamic Price Display Calculation ---
-  // Calculates the price to show in the modal (Base + Size Upcharge)
   const getDisplayPrice = () => {
-    if (!selectedItem) return 0;
+    if (!selectedItem) return "0.00";
     let price = selectedItem.price;
-    // If it's a drink and Large is selected, show price + 20
     if (isDrink && size === 'L') {
       price += 20;
     }
     return price.toFixed(2);
+  };
+
+  const getDisplayBarcode = () => {
+    if (!selectedItem) return "";
+    let code = selectedItem.barcode;
+    if (isDrink && size === 'L') {
+      if (code.startsWith('CCMM')) return code.replace('CCMM', 'CCML');
+      if (code.startsWith('CMM')) return code.replace('CMM', 'CML');
+      if (code.startsWith('CFM')) return code.replace('CFM', 'CFL');
+    }
+    return code;
   };
 
   return (
@@ -263,14 +286,11 @@ const SalesOrder = () => {
                 <div className="bg-zinc-50 p-3 rounded-2xl border border-zinc-100">
                   <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block mb-1">Barcode</span>
                   <span className="text-sm font-black text-[#3b2063]">
-                    {isDrink && size === 'L' && selectedItem.barcode.startsWith('CCMM') 
-                      ? selectedItem.barcode.replace('CCMM', 'CCML') 
-                      : selectedItem.barcode}
+                    {getDisplayBarcode()}
                   </span>
                 </div>
                 <div className="bg-zinc-50 p-3 rounded-2xl border border-zinc-100">
                   <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block mb-1">Unit Price</span>
-                  {/* UPDATED: Shows adjusted price if Large */}
                   <span className="text-sm font-black text-[#3b2063]">₱ {getDisplayPrice()}</span>
                 </div>
               </div>
@@ -288,8 +308,6 @@ const SalesOrder = () => {
               {/* --- ONLY SHOW MODIFIERS FOR DRINKS --- */}
               {isDrink && (
                 <>
-                  {/* NOTE: Size Buttons removed from here as requested */}
-
                   <div className="animate-in fade-in duration-300 delay-75">
                     <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
                     <div className="flex gap-2">
