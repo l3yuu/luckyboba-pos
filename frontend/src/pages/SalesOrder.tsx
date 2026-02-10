@@ -4,12 +4,11 @@ import { useNavigate } from 'react-router-dom';
 // 1. IMPORT DATA
 import { AddOnsList, type ItemData } from '../components/Menu/AddOns';
 import { AffordaBowlsList } from '../components/Menu/AffordaBowls';
-import { YogurtSeriesList } from '../components/Menu/YogurtSeries';
-import { YakultSeriesList } from '../components/Menu/YakultSeries';
 import { AlaCarteList } from '../components/Menu/AlaCarte';
 import { AllDayList } from '../components/Menu/AllDay';
 import { LuckyCardList } from '../components/Menu/LuckyCard';
 import { CheeseCakeList } from '../components/Menu/CheeseCake';
+import { ChickenWingsList } from '../components/Menu/ChickenWings';
 
 const CATEGORIES = [
   "Add Ons Sinkers", "AFFORDA-BOWLS", "ALA CARTE SNACKS", "ALL DAY MEALS", "CARD",
@@ -20,7 +19,7 @@ const CATEGORIES = [
   "PROMOS", "PUMPKIN SPICE ROCK SALT & CHEESE", "WAFFLE", "YAKULT SERIES", "YOGURT SERIES"
 ];
 
-// --- DEFINE DRINK CATEGORIES ---
+// Categories that require a Size/Quantity selection BEFORE showing items
 const DRINK_CATEGORIES = [
   "CHEESECAKE MILK TEA", "CLASSIC MILKTEA", "COFFEE FRAPPE", 
   "CREAM CHEESE M. TEA", "FLAVORED MILK TEA", "FRAPPE SERIES", 
@@ -29,15 +28,15 @@ const DRINK_CATEGORIES = [
   "PUMPKIN SPICE ROCK SALT & CHEESE", "YAKULT SERIES", "YOGURT SERIES"
 ];
 
+// 2. REGISTER DATA
 const CATEGORY_ITEMS: Record<string, ItemData[]> = {
   "Add Ons Sinkers": AddOnsList,
   "AFFORDA-BOWLS": AffordaBowlsList,
-  "YOGURT SERIES": YogurtSeriesList,
-  "YAKULT SERIES": YakultSeriesList,
   "ALA CARTE SNACKS": AlaCarteList,
   "ALL DAY MEALS": AllDayList,
   "CARD": LuckyCardList,
   "CHEESECAKE MILK TEA": CheeseCakeList,
+  "CHICKEN WINGS": ChickenWingsList,
 };
 
 interface MenuItem {
@@ -57,82 +56,86 @@ interface CartItem extends MenuItem {
   finalPrice: number;
 }
 
-// --- Helper to get items ---
-const getItemsForCategory = (category: string): MenuItem[] => {
-  const specificItems = CATEGORY_ITEMS[category];
-  
-  if (specificItems) {
-    return specificItems.map((item, i) => {
-      let barcode = item.barcode || `GEN${i + 1}`; 
-      
-      if (!item.barcode) {
-        if (category === "Add Ons Sinkers") barcode = `AO${i + 1}`; 
-        else if (category === "AFFORDA-BOWLS") barcode = `AB${i + 1}`;
-        else if (category === "ALA CARTE SNACKS") {
-          if (item.name === "Bottled Mineral Water") barcode = "BTL1";
-          else if (item.name === "Rice") barcode = "RCE";
-          else barcode = `ACS${i + 1}`;
-        }
-        else if (category === "ALL DAY MEALS") barcode = `ADM${i + 1}`;
-      }
-        else if (category === "YOGURT SERIES") {
-        barcode = `YS${i + 1}`;
-      }
-      else if (category === "YAKULT SERIES") {
-        barcode = `YK${i + 1}`;
-      }
-      return {
-        id: `${category}-${i}`,
-        name: item.name,
-        price: item.price,
-        barcode: barcode
-      };
-    });
-  } else {
-    return Array.from({ length: 8 }).map((_, i) => ({
-      id: `${category}-mock-${i}`,
-      name: `${category} Item ${i + 1}`,
-      price: 0, 
-      barcode: `9900${i}`
-    }));
-  }
-};
-
 const SalesOrder = () => {
   const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());
   
-  // Navigation State
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   
-  // --- NEW: Category Flow State ---
-  // If null, user hasn't picked a size yet (for drinks)
-  const [categorySize, setCategorySize] = useState<'M' | 'L' | null>(null);
+  // Stores 'M'/'L' for drinks, OR '3pc'/'4pc'/'6pc'/'12pc' for wings
+  const [categorySize, setCategorySize] = useState<string | null>(null);
 
-  // Modal State
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [qty, setQty] = useState(1);
   const [remarks, setRemarks] = useState('');
   const [charges, setCharges] = useState({ grab: false, panda: false });
   
-  // Item Modifiers
+  // Modifiers
   const [sugarLevel, setSugarLevel] = useState('100%');
   const [size, setSize] = useState('M'); 
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
 
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  const SUGAR_LEVELS = ['0%','25%', '50%', '75%', '100%'];
-  const SIZES = ['M', 'L']; 
+  const SUGAR_LEVELS = ['25%', '50%', '75%', '100%'];
+
   const EXTRA_OPTIONS = ['NO ICE', '-ICE', '+ICE', 'WARM', 'NO PRL', 'W/ PRL', 'R NAT'];
 
-  // Check if current category is a drink
+  // Logic flags
   const isDrink = selectedCategory && DRINK_CATEGORIES.includes(selectedCategory);
+  const isWings = selectedCategory === "CHICKEN WINGS";
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentDate(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // --- Helper to get items DYNAMICALLY based on selections ---
+  const getItemsForCategory = (category: string): MenuItem[] => {
+    const specificItems = CATEGORY_ITEMS[category];
+    
+    if (specificItems) {
+      return specificItems.map((item, i) => {
+        
+        let barcode = item.barcode || `GEN${i + 1}`; 
+        let price = item.price;
+        let name = item.name;
+
+        // --- Custom Logic: BARCODES & PRICES ---
+        if (category === "Add Ons Sinkers") barcode = `AO${i + 1}`; 
+        else if (category === "AFFORDA-BOWLS") barcode = `AB${i + 1}`;
+        else if (category === "ALL DAY MEALS") barcode = `ADM${i + 1}`;
+        else if (category === "ALA CARTE SNACKS") {
+          if (item.name === "Bottled Mineral Water") barcode = "BTL1";
+          else if (item.name === "Rice") barcode = "RCE";
+          else barcode = `ACS${i + 1}`;
+        }
+        else if (category === "CHICKEN WINGS" && categorySize) {
+          name = `${item.name} (${categorySize})`;
+          if (categorySize === '3pc') price = 100;
+          if (categorySize === '4pc') price = 120;
+          if (categorySize === '6pc') price = 195;
+          if (categorySize === '12pc') price = 390; 
+          const prefix = categorySize.replace('pc', '');
+          barcode = `${prefix}CW${i + 1}`;
+        }
+
+        return {
+          id: `${category}-${i}`,
+          name: name,
+          price: price,
+          barcode: barcode
+        };
+      });
+    } else {
+      return Array.from({ length: 8 }).map((_, i) => ({
+        id: `${category}-mock-${i}`,
+        name: `${category} Item ${i + 1}`,
+        price: 0, 
+        barcode: `9900${i}`
+      }));
+    }
+  };
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -146,35 +149,29 @@ const SalesOrder = () => {
     if (label === 'Home') navigate('/');
   };
 
-  // --- 1. HANDLE CATEGORY SELECTION ---
   const handleCategoryClick = (cat: string) => {
     setSelectedCategory(cat);
-    // Always reset size when entering a category
     setCategorySize(null);
   };
 
-  // --- 2. HANDLE BACK BUTTON ---
   const handleBack = () => {
-    if (isDrink && categorySize) {
-      // If inside a drink category and size is selected, go back to size selection
+    if ((isDrink || isWings) && categorySize) {
       setCategorySize(null);
     } else {
-      // Otherwise go back to main categories
       setSelectedCategory(null);
     }
   };
 
-  // --- 3. HANDLE ITEM CLICK (OPEN MODAL) ---
   const handleItemClick = (item: MenuItem) => {
     setSelectedItem(item);
     setQty(1);
     setRemarks('');
     setCharges({ grab: false, panda: false });
-    
-    // Default modifiers
     setSugarLevel('100%');
-    // IMPORTANT: Set initial size to what they picked in the category flow
-    setSize(categorySize || 'M'); 
+    
+    // Set size based on previous screen selection
+    // Only applied for drinks; Wings price is already baked into item.price
+    setSize(isDrink && categorySize === 'L' ? 'L' : 'M'); 
     setSelectedOptions([]);
   };
 
@@ -203,10 +200,12 @@ const SalesOrder = () => {
     if (charges.grab) extraCost += 10;
     if (charges.panda) extraCost += 10;
     
+    // Size Upcharge Logic: Add 20 if Large Drink
     if (isDrink && size === 'L') {
-      extraCost += 20;
+      extraCost += 20; 
     }
 
+    // Barcode switching for Drinks (CCMM -> CCML)
     let finalBarcode = selectedItem.barcode;
     if (isDrink && finalBarcode.startsWith("CCMM") && size === 'L') {
       finalBarcode = finalBarcode.replace("CCMM", "CCML");
@@ -230,6 +229,18 @@ const SalesOrder = () => {
 
   const subtotal = cart.reduce((acc, item) => acc + item.finalPrice, 0);
   const totalCount = cart.reduce((acc, item) => acc + item.qty, 0);
+
+  // --- Dynamic Price Display Calculation ---
+  // Calculates the price to show in the modal (Base + Size Upcharge)
+  const getDisplayPrice = () => {
+    if (!selectedItem) return 0;
+    let price = selectedItem.price;
+    // If it's a drink and Large is selected, show price + 20
+    if (isDrink && size === 'L') {
+      price += 20;
+    }
+    return price.toFixed(2);
+  };
 
   return (
     <div className="flex flex-col h-screen w-screen bg-[#f8f6ff] relative overflow-hidden font-sans">
@@ -259,7 +270,8 @@ const SalesOrder = () => {
                 </div>
                 <div className="bg-zinc-50 p-3 rounded-2xl border border-zinc-100">
                   <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block mb-1">Unit Price</span>
-                  <span className="text-sm font-black text-[#3b2063]">₱ {selectedItem.price.toFixed(2)}</span>
+                  {/* UPDATED: Shows adjusted price if Large */}
+                  <span className="text-sm font-black text-[#3b2063]">₱ {getDisplayPrice()}</span>
                 </div>
               </div>
 
@@ -273,26 +285,10 @@ const SalesOrder = () => {
                 </button>
               </div>
 
+              {/* --- ONLY SHOW MODIFIERS FOR DRINKS --- */}
               {isDrink && (
                 <>
-                  <div className="animate-in fade-in duration-300">
-                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2 mb-2 block">Size</label>
-                    <div className="flex gap-3">
-                      {SIZES.map((s) => (
-                        <button
-                          key={s}
-                          onClick={() => setSize(s)}
-                          className={`flex-1 py-3 rounded-xl text-xs font-black transition-all border-2 ${
-                            size === s 
-                            ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-md' 
-                            : 'bg-white text-zinc-400 border-zinc-100 hover:border-zinc-200'
-                          }`}
-                        >
-                          {s === 'M' ? 'MEDIUM' : 'LARGE (+20)'}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  {/* NOTE: Size Buttons removed from here as requested */}
 
                   <div className="animate-in fade-in duration-300 delay-75">
                     <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
@@ -402,37 +398,54 @@ const SalesOrder = () => {
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
                 </button>
                 <h2 className="text-[#3b2063] font-black text-xl uppercase tracking-wide">
-                  {/* Show Breadcrumb: Category > Size (if selected) */}
                   {selectedCategory} 
-                  {categorySize && <span className="opacity-50"> &bull; {categorySize === 'M' ? 'MEDIUM' : 'LARGE'}</span>}
+                  {categorySize && <span className="opacity-50"> &bull; {isWings ? categorySize : (categorySize === 'M' ? 'MEDIUM' : 'LARGE')}</span>}
                 </h2>
               </div>
 
-              {/* --- VIEW LOGIC: IF DRINK & NO SIZE SELECTED -> SHOW SIZE SELECTOR --- */}
+              {/* --- 1. DRINK SIZE SELECTION --- */}
               {isDrink && !categorySize ? (
                 <div className="flex flex-col items-center justify-center h-full max-h-[50vh] gap-6 animate-in zoom-in duration-300">
                   <h3 className="text-xl font-bold text-zinc-400 uppercase tracking-widest">Select Size</h3>
                   <div className="flex gap-6 w-full max-w-lg">
-                    <button 
-                      onClick={() => setCategorySize('M')}
-                      className="flex-1 h-48 bg-white rounded-3xl shadow-lg border-2 border-transparent hover:border-[#3b2063] hover:bg-[#f0ebff] transition-all flex flex-col items-center justify-center group"
-                    >
+                    <button onClick={() => setCategorySize('M')} className="flex-1 h-48 bg-white rounded-3xl shadow-lg border-2 border-transparent hover:border-[#3b2063] hover:bg-[#f0ebff] transition-all flex flex-col items-center justify-center group">
                       <div className="text-4xl mb-2 group-hover:scale-110 transition-transform">🥤</div>
                       <span className="text-xl font-black text-[#3b2063] uppercase tracking-wider">Medium</span>
                     </button>
-                    
-                    <button 
-                      onClick={() => setCategorySize('L')}
-                      className="flex-1 h-48 bg-[#3b2063] text-white rounded-3xl shadow-xl shadow-purple-900/30 hover:bg-[#2a1647] hover:scale-105 transition-all flex flex-col items-center justify-center"
-                    >
+                    <button onClick={() => setCategorySize('L')} className="flex-1 h-48 bg-[#3b2063] text-white rounded-3xl shadow-xl shadow-purple-900/30 hover:bg-[#2a1647] hover:scale-105 transition-all flex flex-col items-center justify-center">
                       <div className="text-5xl mb-2">🥤</div>
                       <span className="text-xl font-black uppercase tracking-wider">Large</span>
                       <span className="text-xs font-bold bg-white/20 px-2 py-1 rounded-full mt-2">+ ₱20.00</span>
                     </button>
                   </div>
                 </div>
-              ) : (
-                /* --- VIEW LOGIC: SHOW ITEMS (For Food OR after Size Selected) --- */
+              ) 
+              /* --- 2. CHICKEN WINGS QUANTITY SELECTION --- */
+              : isWings && !categorySize ? (
+                <div className="flex flex-col items-center justify-center h-full max-h-[60vh] gap-6 animate-in zoom-in duration-300">
+                  <h3 className="text-xl font-bold text-zinc-400 uppercase tracking-widest">Select Quantity</h3>
+                  <div className="grid grid-cols-2 gap-4 w-full max-w-2xl">
+                    <button onClick={() => setCategorySize('3pc')} className="h-40 bg-white rounded-3xl shadow-md border-2 border-transparent hover:border-[#3b2063] hover:bg-[#f0ebff] transition-all flex flex-col items-center justify-center">
+                      <span className="text-2xl font-black text-[#3b2063]">3 pcs</span>
+                      <span className="text-sm font-bold text-zinc-400">₱ 100.00</span>
+                    </button>
+                    <button onClick={() => setCategorySize('4pc')} className="h-40 bg-white rounded-3xl shadow-md border-2 border-transparent hover:border-[#3b2063] hover:bg-[#f0ebff] transition-all flex flex-col items-center justify-center">
+                      <span className="text-2xl font-black text-[#3b2063]">4 pcs</span>
+                      <span className="text-sm font-bold text-zinc-400">₱ 120.00</span>
+                    </button>
+                    <button onClick={() => setCategorySize('6pc')} className="h-40 bg-white rounded-3xl shadow-md border-2 border-transparent hover:border-[#3b2063] hover:bg-[#f0ebff] transition-all flex flex-col items-center justify-center">
+                      <span className="text-2xl font-black text-[#3b2063]">6 pcs</span>
+                      <span className="text-sm font-bold text-zinc-400">₱ 195.00</span>
+                    </button>
+                    <button onClick={() => setCategorySize('12pc')} className="h-40 bg-[#3b2063] text-white rounded-3xl shadow-xl hover:bg-[#2a1647] transition-all flex flex-col items-center justify-center">
+                      <span className="text-2xl font-black">12 pcs</span>
+                      <span className="text-sm font-bold opacity-70">₱ 390.00</span>
+                    </button>
+                  </div>
+                </div>
+              )
+              /* --- 3. ITEMS LIST (Standard) --- */
+              : (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-300">
                   {getItemsForCategory(selectedCategory).map((item) => (
                     <button key={item.id} onClick={() => handleItemClick(item)} className="bg-white hover:bg-[#3b2063] hover:text-white text-[#3b2063] p-4 rounded-2xl shadow-sm hover:shadow-lg border border-zinc-100 active:scale-95 transition-all flex flex-col items-center justify-center text-center gap-2 group h-24">
@@ -476,7 +489,7 @@ const SalesOrder = () => {
                       
                       <div className="flex flex-wrap gap-1 mt-1.5">
                         {item.size && (
-                          <span className="bg-purple-100 text-purple-700 text-[9px] px-1.5 py-0.5 rounded font-bold">{item.size === 'M' ? 'MEDIUM' : 'LARGE'}</span>
+                          <span className="bg-purple-100 text-purple-700 text-[9px] px-1.5 py-0.5 rounded font-bold">{item.size === 'M' ? 'MEDIUM' : (item.size === 'L' ? 'LARGE' : item.size)}</span>
                         )}
                         {item.sugarLevel && item.sugarLevel !== '100%' && (
                           <span className="bg-orange-100 text-orange-700 text-[9px] px-1.5 py-0.5 rounded font-bold">{item.sugarLevel} Sugar</span>
