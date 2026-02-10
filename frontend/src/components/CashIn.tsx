@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Keyboard from 'react-simple-keyboard';
 import 'react-simple-keyboard/build/css/index.css';
 
 // 1. Define a type for the Keyboard to fix the "any" error
 interface KeyboardRef {
   setInput: (input: string) => void;
-  // Add other methods if needed, but setInput is what we use
 }
 
 const CashIn = () => {
@@ -185,7 +184,7 @@ const CashIn = () => {
                         type="text" 
                         value={amount}
                         onChange={handleAmountChange} 
-                        onFocus={() => setShowKeyboard(true)}
+                        // REMOVED: onFocus={() => setShowKeyboard(true)}
                         placeholder="0.00"
                         className="w-full bg-white text-[#3b2063] font-black text-3xl px-8 pl-14 py-5 rounded-3xl border-2 border-zinc-100 focus:border-[#3b2063] focus:outline-none focus:ring-4 focus:ring-[#f0ebff] transition-all placeholder:text-zinc-300"
                       />
@@ -277,6 +276,18 @@ const CashIn = () => {
             </button>
           </div>
         </div>
+
+        {/* --- Floating Keyboard Button --- */}
+        <button 
+          onClick={() => setShowKeyboard(!showKeyboard)}
+          className={`fixed bottom-8 right-8 z-[60] p-4 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 ${showKeyboard ? 'bg-red-500 text-white' : 'bg-[#3b2063] text-white'}`}
+        >
+          {showKeyboard ? (
+             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+          ) : (
+             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 5.25h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5" /></svg>
+          )}
+        </button>
 
         {/* --- Virtual Keyboard --- */}
         <div className={`fixed bottom-0 left-0 right-0 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.1)] transition-transform duration-300 z-50 ${showKeyboard ? 'translate-y-0' : 'translate-y-full'}`}>
