@@ -18,7 +18,15 @@ const CATEGORIES = [
   "PROMOS", "PUMPKIN SPICE ROCK SALT & CHEESE", "WAFFLE", "YAKULT SERIES", "YOGURT SERIES"
 ];
 
-// 2. REGISTER DATA
+// --- DEFINE DRINK CATEGORIES ---
+const DRINK_CATEGORIES = [
+  "CHEESECAKE MILK TEA", "CLASSIC MILKTEA", "COFFEE FRAPPE", 
+  "CREAM CHEESE M. TEA", "FLAVORED MILK TEA", "FRAPPE SERIES", 
+  "FRUIT SODA SERIES", "GREEN TEA SERIES", "HOT COFFEE", "HOT DRINKS", 
+  "ICED COFFEE", "NOVA SERIES", "OKINAWA BROWN SUGAR", 
+  "PUMPKIN SPICE ROCK SALT & CHEESE", "YAKULT SERIES", "YOGURT SERIES"
+];
+
 const CATEGORY_ITEMS: Record<string, ItemData[]> = {
   "Add Ons Sinkers": AddOnsList,
   "AFFORDA-BOWLS": AffordaBowlsList,
@@ -35,14 +43,13 @@ interface MenuItem {
   barcode: string;
 }
 
-// Updated Cart Item
 interface CartItem extends MenuItem {
   qty: number;
   remarks: string;
   charges: { grab: boolean; panda: boolean };
-  sugarLevel: string;
-  size: string; // <--- NEW: Size property
-  options: string[];
+  sugarLevel?: string;
+  size?: string;
+  options?: string[];
   finalPrice: number;
 }
 
@@ -86,22 +93,32 @@ const SalesOrder = () => {
   const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());
   
+  // Navigation State
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  
+  // --- NEW: Category Flow State ---
+  // If null, user hasn't picked a size yet (for drinks)
+  const [categorySize, setCategorySize] = useState<'M' | 'L' | null>(null);
+
+  // Modal State
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [qty, setQty] = useState(1);
   const [remarks, setRemarks] = useState('');
   const [charges, setCharges] = useState({ grab: false, panda: false });
   
-  // Modifiers
+  // Item Modifiers
   const [sugarLevel, setSugarLevel] = useState('100%');
-  const [size, setSize] = useState('M'); // <--- NEW: Size State (Default Medium)
+  const [size, setSize] = useState('M'); 
   const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
 
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  const SUGAR_LEVELS = ['25%', '50%', '75%', '100%'];
-  const SIZES = ['M', 'L']; // <--- NEW: Size Options
+  const SUGAR_LEVELS = ['0%','25%', '50%', '75%', '100%'];
+  const SIZES = ['M', 'L']; 
   const EXTRA_OPTIONS = ['NO ICE', '-ICE', '+ICE', 'WARM', 'NO PRL', 'W/ PRL', 'R NAT'];
+
+  // Check if current category is a drink
+  const isDrink = selectedCategory && DRINK_CATEGORIES.includes(selectedCategory);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentDate(new Date()), 1000);
@@ -120,14 +137,35 @@ const SalesOrder = () => {
     if (label === 'Home') navigate('/');
   };
 
+  // --- 1. HANDLE CATEGORY SELECTION ---
+  const handleCategoryClick = (cat: string) => {
+    setSelectedCategory(cat);
+    // Always reset size when entering a category
+    setCategorySize(null);
+  };
+
+  // --- 2. HANDLE BACK BUTTON ---
+  const handleBack = () => {
+    if (isDrink && categorySize) {
+      // If inside a drink category and size is selected, go back to size selection
+      setCategorySize(null);
+    } else {
+      // Otherwise go back to main categories
+      setSelectedCategory(null);
+    }
+  };
+
+  // --- 3. HANDLE ITEM CLICK (OPEN MODAL) ---
   const handleItemClick = (item: MenuItem) => {
     setSelectedItem(item);
     setQty(1);
     setRemarks('');
     setCharges({ grab: false, panda: false });
-    // Reset modifiers
+    
+    // Default modifiers
     setSugarLevel('100%');
-    setSize('M'); // Reset to Medium
+    // IMPORTANT: Set initial size to what they picked in the category flow
+    setSize(categorySize || 'M'); 
     setSelectedOptions([]);
   };
 
@@ -156,17 +194,24 @@ const SalesOrder = () => {
     if (charges.grab) extraCost += 10;
     if (charges.panda) extraCost += 10;
     
-    // Size Upcharge Logic (Example: +15 for Large)
-    if (size === 'L') extraCost += 20;
+    if (isDrink && size === 'L') {
+      extraCost += 20;
+    }
+
+    let finalBarcode = selectedItem.barcode;
+    if (isDrink && finalBarcode.startsWith("CCMM") && size === 'L') {
+      finalBarcode = finalBarcode.replace("CCMM", "CCML");
+    }
 
     const newItem: CartItem = {
       ...selectedItem,
+      barcode: finalBarcode, 
       qty,
       remarks,
       charges,
-      sugarLevel,
-      size, 
-      options: selectedOptions,
+      sugarLevel: isDrink ? sugarLevel : undefined,
+      size: isDrink ? size : undefined,
+      options: isDrink ? selectedOptions : undefined,
       finalPrice: (selectedItem.price + extraCost) * qty
     };
 
@@ -185,7 +230,6 @@ const SalesOrder = () => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200 p-4">
           <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 max-h-[90vh]">
             
-            {/* Header */}
             <div className="bg-[#3b2063] p-5 text-white text-center relative shrink-0">
               <h2 className="text-lg font-black uppercase tracking-wider">{selectedItem.name}</h2>
               <button onClick={closeModal} className="absolute top-5 right-6 text-white/50 hover:text-white transition-colors">
@@ -195,11 +239,14 @@ const SalesOrder = () => {
 
             <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
               
-              {/* Info Row */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-zinc-50 p-3 rounded-2xl border border-zinc-100">
                   <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block mb-1">Barcode</span>
-                  <span className="text-sm font-black text-[#3b2063]">{selectedItem.barcode}</span>
+                  <span className="text-sm font-black text-[#3b2063]">
+                    {isDrink && size === 'L' && selectedItem.barcode.startsWith('CCMM') 
+                      ? selectedItem.barcode.replace('CCMM', 'CCML') 
+                      : selectedItem.barcode}
+                  </span>
                 </div>
                 <div className="bg-zinc-50 p-3 rounded-2xl border border-zinc-100">
                   <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block mb-1">Unit Price</span>
@@ -207,7 +254,6 @@ const SalesOrder = () => {
                 </div>
               </div>
 
-              {/* Quantity */}
               <div className="flex items-center justify-between bg-zinc-50 rounded-2xl p-2 border border-zinc-100">
                 <button onClick={() => adjustQty(-1)} className="w-12 h-12 bg-white rounded-xl shadow-sm border border-zinc-200 text-[#3b2063] hover:bg-red-50 hover:text-red-500 transition-colors flex items-center justify-center active:scale-95">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" /></svg>
@@ -218,67 +264,67 @@ const SalesOrder = () => {
                 </button>
               </div>
 
-              {/* SIZE SELECTION - NEW */}
-              <div>
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2 mb-2 block">Size</label>
-                <div className="flex gap-3">
-                  {SIZES.map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => setSize(s)}
-                      className={`flex-1 py-3 rounded-xl text-xs font-black transition-all border-2 ${
-                        size === s 
-                        ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-md' 
-                        : 'bg-white text-zinc-400 border-zinc-100 hover:border-zinc-200'
-                      }`}
-                    >
-                      {s === 'M' ? 'MEDIUM' : 'LARGE (+20)'}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {isDrink && (
+                <>
+                  <div className="animate-in fade-in duration-300">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2 mb-2 block">Size</label>
+                    <div className="flex gap-3">
+                      {SIZES.map((s) => (
+                        <button
+                          key={s}
+                          onClick={() => setSize(s)}
+                          className={`flex-1 py-3 rounded-xl text-xs font-black transition-all border-2 ${
+                            size === s 
+                            ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-md' 
+                            : 'bg-white text-zinc-400 border-zinc-100 hover:border-zinc-200'
+                          }`}
+                        >
+                          {s === 'M' ? 'MEDIUM' : 'LARGE (+20)'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-              {/* SUGAR LEVEL */}
-              <div>
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
-                <div className="flex gap-2">
-                  {SUGAR_LEVELS.map((level) => (
-                    <button
-                      key={level}
-                      onClick={() => setSugarLevel(level)}
-                      className={`flex-1 py-2 rounded-xl text-[10px] font-black transition-all ${
-                        sugarLevel === level 
-                        ? 'bg-[#3b2063] text-white shadow-md' 
-                        : 'bg-zinc-50 text-zinc-400 border border-zinc-100 hover:bg-zinc-100'
-                      }`}
-                    >
-                      {level}
-                    </button>
-                  ))}
-                </div>
-              </div>
+                  <div className="animate-in fade-in duration-300 delay-75">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
+                    <div className="flex gap-2">
+                      {SUGAR_LEVELS.map((level) => (
+                        <button
+                          key={level}
+                          onClick={() => setSugarLevel(level)}
+                          className={`flex-1 py-2 rounded-xl text-[10px] font-black transition-all ${
+                            sugarLevel === level 
+                            ? 'bg-[#3b2063] text-white shadow-md' 
+                            : 'bg-zinc-50 text-zinc-400 border border-zinc-100 hover:bg-zinc-100'
+                          }`}
+                        >
+                          {level}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-              {/* OPTIONS / ICE */}
-              <div>
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2 mb-2 block">Options</label>
-                <div className="flex flex-wrap gap-2">
-                  {EXTRA_OPTIONS.map((opt) => (
-                    <button
-                      key={opt}
-                      onClick={() => toggleOption(opt)}
-                      className={`px-3 py-2 rounded-xl text-[10px] font-bold uppercase transition-all ${
-                        selectedOptions.includes(opt)
-                        ? 'bg-[#3b2063] text-white shadow-md'
-                        : 'bg-zinc-50 text-zinc-400 border border-zinc-100 hover:bg-zinc-100'
-                      }`}
-                    >
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-              </div>
+                  <div className="animate-in fade-in duration-300 delay-100">
+                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2 mb-2 block">Options</label>
+                    <div className="flex flex-wrap gap-2">
+                      {EXTRA_OPTIONS.map((opt) => (
+                        <button
+                          key={opt}
+                          onClick={() => toggleOption(opt)}
+                          className={`px-3 py-2 rounded-xl text-[10px] font-bold uppercase transition-all ${
+                            selectedOptions.includes(opt)
+                            ? 'bg-[#3b2063] text-white shadow-md'
+                            : 'bg-zinc-50 text-zinc-400 border border-zinc-100 hover:bg-zinc-100'
+                          }`}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
 
-              {/* Charges */}
               <div>
                 <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2 mb-2 block">Charges (+10.00)</label>
                 <div className="grid grid-cols-2 gap-3">
@@ -291,7 +337,6 @@ const SalesOrder = () => {
                 </div>
               </div>
 
-              {/* Remarks */}
               <div>
                 <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2 mb-2 block">Remarks</label>
                 <textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Additional notes..." className="w-full p-4 bg-zinc-50 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] resize-none h-16 outline-none focus:ring-2 focus:ring-[#f0ebff] focus:border-[#3b2063] transition-all" />
@@ -338,26 +383,62 @@ const SalesOrder = () => {
 
       <div className="flex flex-1 overflow-hidden relative z-10">
         <div className="flex-1 overflow-y-auto p-6 bg-[#f8f6ff]">
+          
           {selectedCategory ? (
             <div className="flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-300">
+              
+              {/* --- HEADER WITH BACK BUTTON --- */}
               <div className="flex items-center gap-4 mb-6 sticky top-0 z-10 bg-[#f8f6ff] py-2">
-                <button onClick={() => setSelectedCategory(null)} className="bg-white p-3 rounded-xl shadow-sm border border-zinc-200 hover:bg-zinc-50 text-[#3b2063] transition-colors">
+                <button onClick={handleBack} className="bg-white p-3 rounded-xl shadow-sm border border-zinc-200 hover:bg-zinc-50 text-[#3b2063] transition-colors">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
                 </button>
-                <h2 className="text-[#3b2063] font-black text-xl uppercase tracking-wide">{selectedCategory}</h2>
+                <h2 className="text-[#3b2063] font-black text-xl uppercase tracking-wide">
+                  {/* Show Breadcrumb: Category > Size (if selected) */}
+                  {selectedCategory} 
+                  {categorySize && <span className="opacity-50"> &bull; {categorySize === 'M' ? 'MEDIUM' : 'LARGE'}</span>}
+                </h2>
               </div>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 pb-20">
-                {getItemsForCategory(selectedCategory).map((item) => (
-                  <button key={item.id} onClick={() => handleItemClick(item)} className="bg-white hover:bg-[#3b2063] hover:text-white text-[#3b2063] p-4 rounded-2xl shadow-sm hover:shadow-lg border border-zinc-100 active:scale-95 transition-all flex flex-col items-center justify-center text-center gap-2 group h-24">
-                    <span className="font-bold text-xs uppercase leading-tight line-clamp-2">{item.name}</span>
-                  </button>
-                ))}
-              </div>
+
+              {/* --- VIEW LOGIC: IF DRINK & NO SIZE SELECTED -> SHOW SIZE SELECTOR --- */}
+              {isDrink && !categorySize ? (
+                <div className="flex flex-col items-center justify-center h-full max-h-[50vh] gap-6 animate-in zoom-in duration-300">
+                  <h3 className="text-xl font-bold text-zinc-400 uppercase tracking-widest">Select Size</h3>
+                  <div className="flex gap-6 w-full max-w-lg">
+                    <button 
+                      onClick={() => setCategorySize('M')}
+                      className="flex-1 h-48 bg-white rounded-3xl shadow-lg border-2 border-transparent hover:border-[#3b2063] hover:bg-[#f0ebff] transition-all flex flex-col items-center justify-center group"
+                    >
+                      <div className="text-4xl mb-2 group-hover:scale-110 transition-transform">🥤</div>
+                      <span className="text-xl font-black text-[#3b2063] uppercase tracking-wider">Medium</span>
+                    </button>
+                    
+                    <button 
+                      onClick={() => setCategorySize('L')}
+                      className="flex-1 h-48 bg-[#3b2063] text-white rounded-3xl shadow-xl shadow-purple-900/30 hover:bg-[#2a1647] hover:scale-105 transition-all flex flex-col items-center justify-center"
+                    >
+                      <div className="text-5xl mb-2">🥤</div>
+                      <span className="text-xl font-black uppercase tracking-wider">Large</span>
+                      <span className="text-xs font-bold bg-white/20 px-2 py-1 rounded-full mt-2">+ ₱20.00</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* --- VIEW LOGIC: SHOW ITEMS (For Food OR after Size Selected) --- */
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                  {getItemsForCategory(selectedCategory).map((item) => (
+                    <button key={item.id} onClick={() => handleItemClick(item)} className="bg-white hover:bg-[#3b2063] hover:text-white text-[#3b2063] p-4 rounded-2xl shadow-sm hover:shadow-lg border border-zinc-100 active:scale-95 transition-all flex flex-col items-center justify-center text-center gap-2 group h-24">
+                      <span className="font-bold text-xs uppercase leading-tight line-clamp-2">{item.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
             </div>
           ) : (
+            // --- MAIN CATEGORY LIST ---
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 pb-20 animate-in fade-in zoom-in duration-300">
               {CATEGORIES.map((cat, index) => (
-                <button key={index} onClick={() => setSelectedCategory(cat)} className="bg-white hover:bg-[#3b2063] hover:text-white text-[#3b2063] font-bold text-[10px] uppercase p-3 rounded-2xl h-24 shadow-sm hover:shadow-lg border border-zinc-100 active:scale-95 transition-all flex items-center justify-center text-center break-words leading-tight group">
+                <button key={index} onClick={() => handleCategoryClick(cat)} className="bg-white hover:bg-[#3b2063] hover:text-white text-[#3b2063] font-bold text-[10px] uppercase p-3 rounded-2xl h-24 shadow-sm hover:shadow-lg border border-zinc-100 active:scale-95 transition-all flex items-center justify-center text-center break-words leading-tight group">
                   <span className="group-hover:translate-y-0 transition-transform">{cat}</span>
                 </button>
               ))}
@@ -384,13 +465,14 @@ const SalesOrder = () => {
                     <div className="flex-1">
                       <p className="font-bold text-xs text-[#3b2063]">{item.name}</p>
                       
-                      {/* DISPLAY MODIFIERS IN RECEIPT */}
                       <div className="flex flex-wrap gap-1 mt-1.5">
-                        <span className="bg-purple-100 text-purple-700 text-[9px] px-1.5 py-0.5 rounded font-bold">{item.size === 'M' ? 'MEDIUM' : 'LARGE'}</span>
-                        {item.sugarLevel !== '100%' && (
+                        {item.size && (
+                          <span className="bg-purple-100 text-purple-700 text-[9px] px-1.5 py-0.5 rounded font-bold">{item.size === 'M' ? 'MEDIUM' : 'LARGE'}</span>
+                        )}
+                        {item.sugarLevel && item.sugarLevel !== '100%' && (
                           <span className="bg-orange-100 text-orange-700 text-[9px] px-1.5 py-0.5 rounded font-bold">{item.sugarLevel} Sugar</span>
                         )}
-                        {item.options.map(opt => (
+                        {item.options && item.options.map(opt => (
                           <span key={opt} className="bg-blue-100 text-blue-700 text-[9px] px-1.5 py-0.5 rounded font-bold">{opt}</span>
                         ))}
                       </div>
