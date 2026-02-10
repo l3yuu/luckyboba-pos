@@ -78,6 +78,7 @@ const SalesOrder = () => {
   const [cart, setCart] = useState<CartItem[]>([]);
 
   const SUGAR_LEVELS = ['25%', '50%', '75%', '100%'];
+
   const EXTRA_OPTIONS = ['NO ICE', '-ICE', '+ICE', 'WARM', 'NO PRL', 'W/ PRL', 'R NAT'];
 
   // Logic flags
