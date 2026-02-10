@@ -1,8 +1,13 @@
-import React, { useState, useRef } from 'react';
+import { useState, useRef } from 'react';
 import Keyboard from 'react-simple-keyboard';
 import 'react-simple-keyboard/build/css/index.css';
 
-// 1. Mock Data Interface
+// 1. Define Keyboard Type
+interface KeyboardRef {
+  setInput: (input: string) => void;
+}
+
+// Data Interface
 interface Receipt {
   id: number;
   siNumber: string;
@@ -14,8 +19,8 @@ interface Receipt {
   time: string;
 }
 
-// 2. Sample Data
-const MOCK_DATA: Receipt[] = [
+// Hidden "Database"
+const RECEIPT_DATABASE: Receipt[] = [
   { id: 1, siNumber: '00234', terminal: '01', items: 3, cashier: 'ADMIN', total: 500.00, date: '10/02/2026', time: '10:30 AM' },
   { id: 2, siNumber: '00235', terminal: '01', items: 1, cashier: 'ADMIN', total: 120.00, date: '10/02/2026', time: '10:45 AM' },
   { id: 3, siNumber: '00236', terminal: '01', items: 5, cashier: 'JANE', total: 850.50, date: '10/02/2026', time: '11:15 AM' },
@@ -27,25 +32,31 @@ const MOCK_DATA: Receipt[] = [
 
 const SearchReceipts = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredData, setFilteredData] = useState(MOCK_DATA);
+  
+  const [searchResults, setSearchResults] = useState<Receipt[]>([]); 
+  const [hasSearched, setHasSearched] = useState(false); 
+  
   const [showKeyboard, setShowKeyboard] = useState(false);
-  const keyboardRef = useRef<any>(null);
+  
+  // 2. Fix 'any' by using the interface
+  const keyboardRef = useRef<KeyboardRef>(null);
 
   // --- Search Logic ---
   const handleSearch = () => {
-    if (!searchQuery) {
-      setFilteredData(MOCK_DATA);
-      return;
-    }
+    if (!searchQuery.trim()) return;
+
+    setHasSearched(true);
     
     const lowerQuery = searchQuery.toLowerCase();
-    const filtered = MOCK_DATA.filter(item => 
+    
+    const filtered = RECEIPT_DATABASE.filter(item => 
       item.siNumber.toLowerCase().includes(lowerQuery) ||
       item.cashier.toLowerCase().includes(lowerQuery) ||
       item.terminal.toLowerCase().includes(lowerQuery)
     );
-    setFilteredData(filtered);
-    setShowKeyboard(false); // Hide keyboard on search
+    
+    setSearchResults(filtered);
+    setShowKeyboard(false); 
   };
 
   // --- Input Handlers ---
@@ -68,7 +79,6 @@ const SearchReceipts = () => {
   return (
     <div className="flex flex-col h-full w-full bg-[#f8f6ff] animate-in fade-in zoom-in duration-300 relative overflow-hidden">
       
-      {/* --- Top Navbar --- */}
       <header className="flex-none bg-white border-b border-zinc-200 px-8 py-4 flex items-center justify-between shadow-sm z-20">
         <div className="flex items-center gap-6">
           <div className="flex flex-col">
@@ -83,7 +93,6 @@ const SearchReceipts = () => {
         </div>
       </header>
 
-      {/* --- Main Content Area --- */}
       <div className={`flex-1 flex flex-col items-center justify-start p-6 gap-6 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-[350px]' : ''}`}>
         
         {/* --- Search Section --- */}
@@ -127,14 +136,25 @@ const SearchReceipts = () => {
                  </tr>
                </thead>
                <tbody className="divide-y divide-zinc-50">
-                 {filteredData.length === 0 ? (
+                 {!hasSearched ? (
+                   <tr>
+                     <td colSpan={5} className="px-6 py-20 text-center">
+                       <div className="flex flex-col items-center justify-center opacity-30">
+                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-16 h-16 mb-4">
+                           <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+                         </svg>
+                         <p className="text-sm font-bold uppercase tracking-widest">Enter details to search</p>
+                       </div>
+                     </td>
+                   </tr>
+                 ) : searchResults.length === 0 ? (
                    <tr>
                      <td colSpan={5} className="px-6 py-12 text-center text-zinc-300 text-xs font-bold uppercase tracking-widest">
-                       No receipts found
+                       No matching receipts found
                      </td>
                    </tr>
                  ) : (
-                   filteredData.map((item) => (
+                   searchResults.map((item) => (
                      <tr key={item.id} className="hover:bg-[#f8f6ff] transition-colors cursor-pointer group">
                        <td className="px-6 py-4">
                          <span className="font-black text-[#3b2063] text-sm group-hover:text-purple-600">#{item.siNumber}</span>
@@ -158,7 +178,6 @@ const SearchReceipts = () => {
 
       </div>
 
-      {/* --- Floating Keyboard Toggle --- */}
       <button 
         onClick={() => setShowKeyboard(!showKeyboard)}
         className={`fixed bottom-8 right-8 z-[60] p-4 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 ${showKeyboard ? 'bg-red-500 text-white' : 'bg-[#3b2063] text-white'}`}
@@ -170,7 +189,6 @@ const SearchReceipts = () => {
         )}
       </button>
 
-      {/* --- Virtual Keyboard --- */}
       <div className={`fixed bottom-0 left-0 right-0 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.1)] transition-transform duration-300 z-50 ${showKeyboard ? 'translate-y-0' : 'translate-y-full'}`}>
         <div className="flex items-center justify-between px-4 py-2 bg-zinc-50 border-b border-zinc-200">
            <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Keyboard</span>

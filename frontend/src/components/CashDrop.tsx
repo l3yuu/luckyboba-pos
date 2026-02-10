@@ -2,35 +2,36 @@ import { useState, useRef } from 'react';
 import Keyboard from 'react-simple-keyboard';
 import 'react-simple-keyboard/build/css/index.css';
 
-// 1. Define Transaction Interface
+// 1. Define Keyboard Type
+interface KeyboardRef {
+  setInput: (input: string) => void;
+}
+
 interface Transaction {
   id: number;
   time: string;
   date: string;
   total: number;
   remarks: string;
-  breakdown: { [key: number]: string }; // Store counts for re-printing
+  breakdown: { [key: number]: string }; 
 }
 
 const CashDrop = () => {
   const denominations = [1000, 500, 200, 100, 50, 20, 10, 5, 1, 0.25];
 
-  // State
   const [counts, setCounts] = useState<{ [key: number]: string }>({});
   const [remarks, setRemarks] = useState('');
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   
-  // Printing State
   const [printData, setPrintData] = useState<Transaction | null>(null);
 
-  // Inputs & Keyboard
   const [activeInput, setActiveInput] = useState<{ type: 'count' | 'remarks', id?: number } | null>(null);
   const [layoutName, setLayoutName] = useState('numpad');
   const [showKeyboard, setShowKeyboard] = useState(false);
   
-  const keyboardRef = useRef<any>(null);
+  // 2. Fix 'any'
+  const keyboardRef = useRef<KeyboardRef>(null);
 
-  // --- Helper: Calculate Grand Total ---
   const getGrandTotal = (currentCounts: { [key: number]: string }) => {
     return denominations.reduce((total, denom) => {
       const qty = parseFloat(currentCounts[denom] || '0');
@@ -38,7 +39,6 @@ const CashDrop = () => {
     }, 0);
   };
 
-  // --- Handlers ---
   const handleCountFocus = (denom: number) => {
     setActiveInput({ type: 'count', id: denom });
     setLayoutName('numpad');
@@ -78,42 +78,38 @@ const CashDrop = () => {
     if (button === "{enter}") setShowKeyboard(false);
   };
 
-  // --- Submit Handler ---
   const handleSubmit = () => {
     const total = getGrandTotal(counts);
-    if (total <= 0) return; // Don't submit empty drops
+    if (total <= 0) return; 
 
     const now = new Date();
     const newTx: Transaction = {
-      id: Date.now(),
+      // 3. Fix Impure function error
+      id: now.getTime(),
       date: now.toLocaleDateString(),
       time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       total: total,
       remarks: remarks || '-',
-      breakdown: { ...counts } // Save current counts for printing later
+      breakdown: { ...counts } 
     };
 
-    setTransactions([newTx, ...transactions]); // Add to top of list
+    setTransactions([newTx, ...transactions]); 
     
-    // Clear Form
     setCounts({});
     setRemarks('');
     if (keyboardRef.current) keyboardRef.current.setInput("");
   };
 
-  // --- Print Handler ---
   const handlePrint = (tx: Transaction) => {
     setPrintData(tx);
-    // Wait for state to update then print
     setTimeout(() => {
       window.print();
-      setPrintData(null); // Clear after print
+      setPrintData(null); 
     }, 100);
   };
 
   return (
     <>
-      {/* --- PRINT STYLES (Hidden from view, visible on print) --- */}
       <style>
         {`
           @media print {
@@ -135,7 +131,6 @@ const CashDrop = () => {
         `}
       </style>
 
-      {/* --- Hidden Receipt Element for Printing --- */}
       {printData && (
         <div className="printable-receipt">
           <div className="receipt-header">
@@ -180,7 +175,6 @@ const CashDrop = () => {
 
       <div className="flex flex-col h-full w-full bg-[#f8f6ff] animate-in fade-in zoom-in duration-300 relative overflow-hidden">
         
-        {/* --- Top Navbar --- */}
         <header className="flex-none bg-white border-b border-zinc-200 px-8 py-4 flex items-center justify-between shadow-sm z-20">
           <div className="flex items-center gap-6">
             <div className="flex flex-col">
@@ -195,12 +189,8 @@ const CashDrop = () => {
           </div>
         </header>
 
-        {/* --- Main Content Area (TWO CARDS SIDE-BY-SIDE) --- */}
-        {/* Changed flex-col to flex-row for side-by-side layout */}
         <div className={`flex-1 flex flex-row items-start justify-center p-6 gap-6 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-[350px]' : ''}`}>
           
-          {/* === CARD 1: Input Form (Left Side) === */}
-          {/* Removed max-h constraint to let it grow naturally, set width to flex-1 */}
           <div className="bg-white w-full flex-1 rounded-[2.5rem] shadow-xl shadow-purple-900/5 border border-zinc-100 flex flex-col relative overflow-hidden shrink-0 h-full">
             <div className="absolute top-0 left-0 w-full h-3 bg-[#3b2063] opacity-10 z-10"></div>
             
@@ -269,13 +259,10 @@ const CashDrop = () => {
             </div>
           </div>
 
-          {/* === CARD 2: Transaction History Table (Right Side) === */}
-          {/* Set width to flex-1 to take up remaining space */}
           <div className="w-full flex-1 bg-white rounded-[2rem] shadow-sm border border-zinc-200 overflow-hidden shrink-0 h-full flex flex-col">
              <div className="px-8 py-5 border-b border-zinc-100 bg-zinc-50 flex-none">
                <h3 className="text-[#3b2063] font-black text-xs uppercase tracking-[0.2em]">Transaction History</h3>
              </div>
-             {/* Made table container scrollable */}
              <div className="flex-1 overflow-auto">
                <table className="w-full text-left relative">
                  <thead className="sticky top-0 bg-white z-10">
@@ -319,16 +306,14 @@ const CashDrop = () => {
 
         </div>
 
-        {/* --- Floating Toggle Button --- */}
         <button onClick={() => setShowKeyboard(!showKeyboard)} className={`fixed bottom-8 right-8 z-[60] p-4 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 ${showKeyboard ? 'bg-red-500 text-white' : 'bg-[#3b2063] text-white'}`}>
           {showKeyboard ? (
              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
           ) : (
-             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 5.25h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5" /></svg>
+             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 5.25h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5" /></svg>
           )}
         </button>
 
-        {/* --- Virtual Keyboard --- */}
         <div className={`fixed bottom-0 left-0 right-0 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.1)] transition-transform duration-300 z-50 ${showKeyboard ? 'translate-y-0' : 'translate-y-full'}`}>
           <div className="flex items-center justify-between px-4 py-2 bg-zinc-50 border-b border-zinc-200">
              <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">{layoutName === 'numpad' ? 'Numpad' : 'Keyboard'}</span>
