@@ -10,12 +10,14 @@ export const useAuth = () => {
     const [user, setUser] = useState<User | null>(null);
 
     const checkAuth = useCallback(async (): Promise<User | null> => {
+        // If no local flag exists, don't bother the server
         if (localStorage.getItem('lucky_boba_authenticated') !== 'true') {
             setIsLoading(false);
             return null;
         }
 
         try {
+            // Protected route /api/user
             const response = await api.get('/api/user');
             const userData = response.data;
             setUser(userData);
@@ -38,12 +40,16 @@ export const useAuth = () => {
         setError(null);
         
         try {
+            // 1. Get the CSRF Cookie (Fixes 419)
             await api.get('/sanctum/csrf-cookie');
-            await api.post('/login', credentials);
             
+            // 2. Perform Login with /api prefix (Fixes 404)
+            await api.post('/api/login', credentials);
+            
+            // Set the flag for persistence
             localStorage.setItem('lucky_boba_authenticated', 'true');
             
-            // Fetch the user so we can return the object to Login.tsx
+            // 3. Fetch the actual user data
             const authenticatedUser = await checkAuth();
             return authenticatedUser; 
         } catch (err: unknown) { 
@@ -59,7 +65,8 @@ export const useAuth = () => {
 
     const logout = async (): Promise<boolean> => {
         try {
-            await api.post('/logout');
+            // Added /api prefix to match route file
+            await api.post('/api/logout');
             localStorage.removeItem('lucky_boba_authenticated');
             setUser(null);
             return true;

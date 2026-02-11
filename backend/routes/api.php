@@ -6,7 +6,21 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\CashTransactionController;
 use App\Http\Controllers\Api\ReceiptController;
-use App\Http\Controllers\Api\CashCountController; // Added the new controller
+use App\Http\Controllers\Api\CashCountController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
+
+/*
+|--------------------------------------------------------------------------
+| Public API Routes
+|--------------------------------------------------------------------------
+*/
+
+// Public Login (This becomes /api/login)
+Route::post('/login', [AuthenticatedSessionController::class, 'store']);
+
+Route::get('/users', function () {
+    return User::all();
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -20,6 +34,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
         return $request->user();
     });
 
+    // Logout (This becomes /api/logout)
+    Route::post('/logout', [AuthenticatedSessionController::class, 'destroy']);
+
     // Dashboard
     Route::get('/dashboard/stats', [DashboardController::class, 'index']);
 
@@ -32,13 +49,4 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Cash Counts (EOD)
     Route::post('/cash-counts', [CashCountController::class, 'store']);
-});
-
-/*
-|--------------------------------------------------------------------------
-| Public API Routes
-|--------------------------------------------------------------------------
-*/
-Route::get('/users', function () {
-    return User::all();
 });
