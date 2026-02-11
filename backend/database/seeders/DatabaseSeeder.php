@@ -6,13 +6,16 @@ use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
+    /**
+     * Seed the application's database.
+     */
     public function run(): void
     {
         // Create at least one user so the transactions have an owner
         $user = \App\Models\User::factory()->create([
             'name' => 'Cashier Ichigo',
             'email' => 'cashier@luckyboba.com',
-            'role' => 'cashier' // Based on your previous role setup
+            'role' => 'cashier' 
         ]);
 
         // 1. Create 10 Cash Transactions
@@ -27,5 +30,11 @@ class DatabaseSeeder extends Seeder
                 'created_at' => $sale->created_at,
             ]);
         });
+
+        // 3. Add the Cash Count Seeder here
+        // This will populate the cash_counts table you just created
+        $this->call([
+            CashCountSeeder::class,
+        ]);
     }
 }

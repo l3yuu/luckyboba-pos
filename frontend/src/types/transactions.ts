@@ -1,18 +1,16 @@
 /**
  * DATABASE / API TYPES
- * These reflect your Backend models.
  */
 export interface BackendTransaction {
   id: number;
-  amount: string; // Backend sends decimal as string for precision
+  amount: string; 
   note: string | null;
   created_at: string;
-  type: 'cash_in' | 'cash_drop' | 'cash_out'; // Use Literal Types for safety
+  type: 'cash_in' | 'cash_drop' | 'cash_out';
 }
 
 /**
  * DOMAIN / UI DATA TYPES
- * Transformed data used for display in the frontend.
  */
 export interface Transaction {
   id: number;
@@ -23,31 +21,34 @@ export interface Transaction {
   breakdown: Record<number, string>;
 }
 
-/**
- * COMPONENT PROP TYPES
- * Standardized props for your transaction-related components.
- */
-export interface CashComponentProps {
-  onSuccess?: () => void;
+export interface Receipt {
+  id: number;
+  si_number: string; 
+  terminal: string;
+  items_count: number;
+  cashier_name: string;
+  total_amount: number;
+  created_at: string; 
 }
 
-// You can alias them if you prefer specific names
-export type CashInProps = CashComponentProps;
-export type CashDropProps = CashComponentProps;
-
 /**
- * SHARED UI TYPES
- * Types for the virtual keyboard and input tracking.
+ * SHARED UI & COMPONENT TYPES
  */
 export interface KeyboardRef {
   setInput: (input: string) => void;
 }
 
+export interface CashComponentProps {
+  onSuccess?: () => void;
+}
+
+export type CashInProps = CashComponentProps;
+export type CashDropProps = CashComponentProps;
 export type InputType = 'count' | 'remarks' | 'amount';
 
 export interface ActiveInput {
   type: InputType;
-  id?: number; // Used for denomination ID in cash counting
+  id?: number; 
 }
 
 export interface ReceiptData {

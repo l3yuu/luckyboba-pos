@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // Added for navigation
+import { useAuth } from '../hooks/useAuth'; // Import your auth hook
 
 interface SidebarProps {
   isSidebarOpen: boolean;
@@ -15,7 +17,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   currentTab, 
   setCurrentTab 
 }) => {
-  const [isLoading, setIsLoading] = useState(false);
+  const { logout } = useAuth(); // Destructure logout from your hook
+  const navigate = useNavigate();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   
   const posMenuItems = [
     { id: 'cash-in', label: 'Cash In' },
@@ -25,17 +29,21 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'cash-count', label: 'Cash Count EOD' },
   ];
 
-  // FIX: Initialize state based on prop, remove the useEffect that caused the error
   const [isPosDropdownOpen, setPosDropdownOpen] = useState(() => 
     posMenuItems.some(item => item.id === currentTab)
   );
 
-  const handleLogout = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      localStorage.removeItem('auth_token');
-      window.location.reload();
-    }, 800);
+  // FIXED: Integrated useAuth logout and navigation
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout(); // Triggers the API call and clears user state
+      navigate('/login', { replace: true }); // Redirects to login page
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   const hoverClasses = 'hover:bg-[#f0ebff] hover:text-[#3b2063]';
@@ -111,8 +119,12 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         <div className="px-8 pb-8 flex flex-col gap-6 bg-white pt-4 z-10">
-          <button onClick={handleLogout} disabled={isLoading} className="flex items-center justify-center w-full px-6 py-4 rounded-2xl bg-[#be2525] hover:bg-[#a11f1f] text-white text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-200 shadow-md shadow-red-900/10 disabled:opacity-70 disabled:cursor-not-allowed group">
-            {isLoading ? (
+          <button 
+            onClick={handleLogout} 
+            disabled={isLoggingOut} 
+            className="flex items-center justify-center w-full px-6 py-4 rounded-2xl bg-[#be2525] hover:bg-[#a11f1f] text-white text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-200 shadow-md shadow-red-900/10 disabled:opacity-70 disabled:cursor-not-allowed group"
+          >
+            {isLoggingOut ? (
               <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>

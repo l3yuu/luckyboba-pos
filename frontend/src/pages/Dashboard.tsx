@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 import Sidebar from "../components/Sidebar";
 import logo from '../assets/logo.png';
 import SalesOrder from '../components/SalesOrder';
@@ -7,14 +9,27 @@ import api from '../services/api';
 import type { DashboardData, TopSeller } from '../types/dashboard';
 import CashDrop from '../components/CashDrop';
 import SearchReceipts from '../components/SearchReceipts';
+// 1. Import your CashCount component
+import CashCount from '../components/CashCount'; 
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+  const { user, isLoading: authLoading } = useAuth();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   const [stats, setStats] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/login', { replace: true });
+    }
+  }, [user, authLoading, navigate]);
+
   const fetchStats = useCallback(async (isManual = false) => {
-    if (!stats || isManual) setLoading(true);
+    if (isManual || !stats) {
+      setLoading(true);
+    }
     
     try {
       const response = await api.get('/api/dashboard/stats'); 
@@ -24,14 +39,16 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, [stats]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); 
 
-  // Sync stats when switching back to dashboard tab
   useEffect(() => {
     if (activeTab === 'dashboard') {
       fetchStats();
     }
   }, [activeTab, fetchStats]);
+
+  if (authLoading) return null;
 
   const renderContent = () => {
     switch (activeTab) {
@@ -41,15 +58,14 @@ const Dashboard = () => {
       case 'menu':   
         return <SalesOrder />;
       case 'cash-in':
-        // Refreshes dashboard in background after successful cash-in
         return <CashIn onSuccess={() => fetchStats(true)} />;
       case 'cash-drop':
-        // Refreshes dashboard in background after successful cash-drop
         return <CashDrop onSuccess={() => fetchStats(true)} />;
       case 'search-receipts':
         return <SearchReceipts />;
+      // 2. Add the case for Cash Count EOD
       case 'cash-count':
-        return <PlaceholderPage title={activeTab.replace('-', ' ')} />;
+        return <CashCount />;
       default:
         return <DashboardStats stats={stats} loading={loading} />;
     }
@@ -57,7 +73,6 @@ const Dashboard = () => {
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-[#f8f6ff] text-zinc-900 font-sans overflow-hidden">
-      {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-zinc-200">
         <img src={logo} alt="Logo" className="h-8 w-auto object-contain" />
         <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-2 text-[#3b2063]">
@@ -83,7 +98,6 @@ const Dashboard = () => {
               <p className="text-zinc-400 font-bold text-[9px] md:text-[10px] uppercase tracking-[0.2em] mt-1">Performance Summary</p>
             </div>
             
-            {/* Manual Refresh Button */}
             <button 
                 onClick={() => fetchStats(true)} 
                 disabled={loading}
@@ -108,8 +122,7 @@ const Dashboard = () => {
   );
 };
 
-// --- Sub-components (Stats Cards) ---
-
+// --- Sub-components (DashboardStats, TopSellerCard) remain identical to your previous version ---
 const DashboardStats = ({ stats, loading }: { stats: DashboardData | null, loading: boolean }) => {
   const cards = [
     { label: "Cash in today", value: stats?.cash_in_today ?? 0 },
@@ -151,13 +164,6 @@ const TopSellerCard = ({ title, seller, loading }: { title: string, seller: TopS
         <p className="text-zinc-300 font-bold uppercase tracking-widest mt-2">Data unavailable</p>
       )}
     </div>
-  </div>
-);
-
-const PlaceholderPage = ({ title }: { title: string }) => (
-  <div className="flex-1 flex flex-col items-center justify-center p-10 text-center animate-in fade-in">
-    <h2 className="text-2xl font-black text-[#3b2063] uppercase mb-2">{title}</h2>
-    <p className="text-zinc-400 text-xs font-bold uppercase">Module under construction</p>
   </div>
 );
 

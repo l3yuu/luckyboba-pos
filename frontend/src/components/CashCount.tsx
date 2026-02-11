@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import Keyboard from 'react-simple-keyboard';
 import 'react-simple-keyboard/build/css/index.css';
 import type { KeyboardRef, Transaction, ActiveInput } from '../types/cash-count';
+import api from '../services/api';
 
 const CashCount = () => {
   const denominations = [1000, 500, 200, 100, 50, 20, 10, 5, 1, 0.25];
@@ -11,13 +12,13 @@ const CashCount = () => {
   const [remarks, setRemarks] = useState('');
   const [latestTx, setLatestTx] = useState<Transaction | null>(null);
   const [printData, setPrintData] = useState<Transaction | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Keyboard & Input State
   const [activeInput, setActiveInput] = useState<ActiveInput | null>(null);
   const [layoutName, setLayoutName] = useState('numpad');
   const [showKeyboard, setShowKeyboard] = useState(false);
   
-  // Ref for the virtual keyboard
   const keyboardRef = useRef<KeyboardRef | null>(null);
 
   // --- Helper: Calculate Grand Total ---
@@ -36,6 +37,7 @@ const CashCount = () => {
     if (keyboardRef.current) keyboardRef.current.setInput(counts[denom] || '');
   };
 
+  // Added: Fix for Remarks Keyboard switching
   const handleRemarksFocus = () => {
     setActiveInput({ type: 'remarks' });
     setLayoutName('default');
@@ -70,22 +72,48 @@ const CashCount = () => {
     if (button === "{enter}") setShowKeyboard(false);
   };
 
-  const handleSubmit = () => {
+  // --- Database Submission ---
+  const handleSubmit = async () => {
     const total = getGrandTotal(counts);
-    if (total <= 0) return; 
+    if (total <= 0) {
+      alert("Please enter a valid cash count.");
+      return;
+    }
 
-    const now = new Date();
-    const newTx: Transaction = {
-      id: now.getTime(),
-      date: now.toLocaleDateString(),
-      time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      total: total,
-      remarks: remarks || '-',
-      breakdown: { ...counts }
-    };
+    setIsLoading(true);
 
-    setLatestTx(newTx); 
-    setShowKeyboard(false);
+    // Added: Auto-generate Day for remarks
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const currentDay = days[new Date().getDay()];
+    const finalRemarks = `${currentDay} EOD${remarks ? ' - ' + remarks : ''}`;
+
+    try {
+      const response = await api.post('/api/cash-counts', {
+        total: total,
+        breakdown: counts,
+        remarks: finalRemarks, // Sends the Day + Remarks
+      });
+
+      if (response.status === 201) {
+        const now = new Date();
+        const newTx: Transaction = {
+          id: response.data.id,
+          date: now.toLocaleDateString(),
+          time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          total: total,
+          remarks: finalRemarks,
+          breakdown: { ...counts }
+        };
+
+        setLatestTx(newTx); 
+        setShowKeyboard(false);
+      }
+    } catch (error) {
+      console.error("Submission failed:", error);
+      alert("Failed to save to database. Ensure you are logged in.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handlePrint = () => {
@@ -132,60 +160,35 @@ const CashCount = () => {
         <div className="printable-receipt">
           <div className="receipt-header">
             <h2>EOD CASH COUNT</h2>
-            <p>Main Branch - QC</p>
+            <p>Lucky Boba - QC</p>
             <p>{printData.date} - {printData.time}</p>
           </div>
-          <div>
-            <p><strong>Cashier:</strong> ADMIN | <strong>Terminal:</strong> 01</p>
-          </div>
-          <div style={{ marginTop: '10px' }}>
-            <p style={{ fontWeight: 'bold', borderBottom: '1px solid black' }}>Count Details:</p>
-            {denominations.map(denom => {
-              const qty = parseFloat(printData.breakdown[denom] || '0');
-              const rowTotal = qty * denom;
-              const label = denom < 1 ? denom.toString().replace('0.', '.') : denom.toLocaleString();
-              return (
-                <div key={denom} className="breakdown-row">
-                  <span>{label} x {qty}</span>
-                  <span>{rowTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                </div>
-              );
-            })}
-          </div>
           <div className="total-row breakdown-row">
-             <span>TOTAL COUNT:</span>
+             <span>TOTAL:</span>
              <span>₱ {printData.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
           </div>
-          <div><p><strong>Remarks:</strong> {printData.remarks}</p></div>
           <div className="signatures">
-            <div className="signature-line">Counted By</div>
-            <div className="signature-line">Verified By</div>
+            <div className="signature-line">Cashier</div>
+            <div className="signature-line">Manager</div>
           </div>
         </div>
       )}
 
-      {/* --- Main UI --- */}
       <div className="flex flex-col h-full w-full bg-[#f8f6ff] animate-in fade-in zoom-in duration-300 relative overflow-hidden">
         <header className="flex-none bg-white border-b border-zinc-200 px-8 py-4 flex items-center justify-between shadow-sm z-20">
           <div className="flex items-center gap-6">
-            <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Branch</span>
-                <span className="text-[#3b2063] font-black text-xs uppercase tracking-wider">Main Branch - QC</span>
-            </div>
-            <div className="h-8 w-px bg-zinc-100"></div>
-            <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Cashier</span>
-                <span className="text-[#3b2063] font-black text-xs uppercase tracking-wider">Admin User</span>
+            <div className="flex flex-col text-[#3b2063]">
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Status</span>
+                <span className="font-black text-xs uppercase">{latestTx ? 'Completed' : 'Pending Count'}</span>
             </div>
           </div>
         </header>
 
         <div className={`flex-1 flex flex-row items-start justify-center p-6 gap-6 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-80' : ''}`}>
-          {/* Entry Form */}
           <div className="bg-white w-full flex-1 rounded-[2.5rem] shadow-xl border border-zinc-100 flex flex-col relative overflow-hidden h-full">
-            <div className="absolute top-0 left-0 w-full h-3 bg-[#3b2063] opacity-10"></div>
-            <div className="flex-1 overflow-y-auto p-8">
-              <h2 className="text-[#3b2063] font-black text-base uppercase mb-8 text-center tracking-[0.2em]">Terminal 01 (EOD)</h2>
+            <div className="flex-1 overflow-y-auto p-8 no-scrollbar">
+              <h2 className="text-[#3b2063] font-black text-base uppercase mb-8 text-center tracking-[0.2em]">EOD Denominations</h2>
+              
               <div className="w-full space-y-2 mb-8">
                 {denominations.map((denom) => {
                   const qty = counts[denom] || '';
@@ -203,7 +206,7 @@ const CashCount = () => {
                         onFocus={() => handleCountFocus(denom)}
                         onChange={(e) => handleInputChange(e.target.value)}
                         placeholder="0"
-                        disabled={latestTx !== null}
+                        disabled={latestTx !== null || isLoading}
                         className={`w-full text-center font-bold text-lg py-2 rounded-xl border-2 transition-all outline-none 
                           ${latestTx ? 'bg-zinc-100 text-zinc-400 border-zinc-200' : 'border-zinc-100 bg-[#f8f6ff] focus:border-[#3b2063]'}`}
                       />
@@ -220,20 +223,22 @@ const CashCount = () => {
                    <span className="text-xs font-bold text-zinc-500 uppercase">Grand Total :</span>
                    <span className="text-2xl font-black text-[#3b2063]">₱ {getGrandTotal(counts).toLocaleString()}</span>
                 </div>
+
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2">Remarks</label>
                   <textarea 
                     value={remarks}
-                    onFocus={handleRemarksFocus}
+                    onFocus={handleRemarksFocus} // Attached the alphabet layout trigger
                     onChange={(e) => handleInputChange(e.target.value)}
                     placeholder="Enter notes..."
-                    disabled={latestTx !== null}
+                    disabled={latestTx !== null || isLoading}
                     className="w-full p-4 rounded-2xl border-2 border-zinc-100 bg-[#f8f6ff] focus:border-[#3b2063] resize-none h-16 outline-none"
                   />
                 </div>
+
                 {!latestTx ? (
-                  <button onClick={handleSubmit} className="w-full bg-[#3b2063] text-white py-5 rounded-3xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-transform">
-                    Submit EOD Count
+                  <button onClick={handleSubmit} disabled={isLoading} className="w-full bg-[#3b2063] text-white py-5 rounded-3xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-transform disabled:bg-zinc-300">
+                    {isLoading ? 'Saving...' : 'Submit EOD Count'}
                   </button>
                 ) : (
                   <button onClick={handleNewCount} className="w-full bg-zinc-100 text-zinc-600 py-5 rounded-3xl font-black uppercase tracking-widest active:scale-95 transition-transform">
@@ -244,7 +249,6 @@ const CashCount = () => {
             </div>
           </div>
 
-          {/* Printer Sidebar */}
           <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-xl border border-zinc-100 p-8 flex flex-col items-center text-center h-fit shrink-0">
              <div className={`w-16 h-16 rounded-full flex items-center justify-center mb-6 ${latestTx ? 'bg-emerald-50' : 'bg-zinc-50'}`}>
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke={latestTx ? "#10b981" : "#a1a1aa"} className="w-8 h-8">
@@ -252,12 +256,7 @@ const CashCount = () => {
                 </svg>
              </div>
              <h3 className="font-black text-xs uppercase tracking-widest mb-2 text-[#3b2063]">Receipt Printer</h3>
-             <p className="text-[10px] text-zinc-400 font-bold uppercase mb-6">{latestTx ? "Ready to Print" : "Submit to Print"}</p>
-             <button 
-                onClick={handlePrint} 
-                disabled={!latestTx}
-                className={`w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${latestTx ? 'bg-emerald-500 text-white shadow-lg active:scale-95' : 'bg-zinc-100 text-zinc-400'}`}
-             >
+             <button onClick={handlePrint} disabled={!latestTx} className={`w-full py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all ${latestTx ? 'bg-emerald-500 text-white shadow-lg active:scale-95' : 'bg-zinc-100 text-zinc-400'}`}>
                 Print Receipt
              </button>
           </div>
@@ -283,7 +282,6 @@ const CashCount = () => {
             />
           </div>
         </div>
-
       </div>
     </>
   );
