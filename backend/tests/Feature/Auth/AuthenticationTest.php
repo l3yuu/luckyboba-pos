@@ -10,20 +10,18 @@ class AuthenticationTest extends TestCase
 {
     use RefreshDatabase;
 
-public function test_users_can_authenticate_using_the_login_screen(): void
-{
-    $user = User::factory()->create();
+    public function test_users_can_authenticate_using_the_login_screen(): void
+    {
+        $user = User::factory()->create();
 
-    // Disable ONLY CSRF for this specific call
-    $response = $this->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class)
-        ->postJson('/login', [
+        $response = $this->post('/login', [
             'email' => $user->email,
             'password' => 'password',
         ]);
 
-    $response->assertNoContent();
-    $this->assertAuthenticatedAs($user);
-}
+        $response->assertOk();         
+        $this->assertAuthenticatedAs($user);
+    }
 
     public function test_users_can_not_authenticate_with_invalid_password(): void
     {
