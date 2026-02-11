@@ -26,16 +26,14 @@ const CATEGORIES = [
   "PROMOS", "PUMPKIN SPICE", "ROCK SALT & CHEESE", "WAFFLE", "YAKULT SERIES", "YOGURT SERIES"
 ];
 
-// Categories that require a Size/Quantity selection BEFORE showing items
 const DRINK_CATEGORIES = [
   "CHEESECAKE MILK TEA", "CLASSIC MILKTEA", "COFFEE FRAPPE", 
   "CREAM CHEESE M. TEA", "FLAVORED MILK TEA", "FRAPPE SERIES", 
   "FRUIT SODA SERIES", "GREEN TEA SERIES", "HOT COFFEE", "HOT DRINKS", 
   "ICED COFFEE", "NOVA SERIES", "OKINAWA BROWN SUGAR", 
- "ROCK SALT & CHEESE", "YAKULT SERIES", "YOGURT SERIES"
+  "ROCK SALT & CHEESE", "YAKULT SERIES", "YOGURT SERIES"
 ];
 
-// 2. REGISTER DATA
 const CATEGORY_ITEMS: Record<string, ItemData[]> = {
   "Add Ons Sinkers": AddOnsList,
   "AFFORDA-BOWLS": AffordaBowlsList,
@@ -80,6 +78,7 @@ const SalesOrder = () => {
 
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [isAddOnModalOpen, setIsAddOnModalOpen] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
   const [qty, setQty] = useState(1);
   const [remarks, setRemarks] = useState('');
@@ -255,6 +254,7 @@ const SalesOrder = () => {
 
   const handlePrint = () => {
     window.print();
+    setIsConfirmModalOpen(false); 
   };
 
   const subtotal = cart.reduce((acc, item) => acc + item.finalPrice, 0);
@@ -284,18 +284,110 @@ const SalesOrder = () => {
     return code;
   };
 
-  // --- SORTING CART FOR RECEIPT ---
   const mediumDrinks = cart.filter(item => item.size === 'M');
   const largeDrinks = cart.filter(item => item.size === 'L');
   const otherItems = cart.filter(item => !item.size);
 
   return (
     <>
+      <style>
+        {`
+          @media print {
+            @page { 
+              size: 60mm auto; 
+              margin: 0; 
+            }
+            
+            html, body {
+              width: 60mm;
+              margin: 0;
+              padding: 0;
+            }
+
+            body * { visibility: hidden; }
+            
+            .printable-receipt-container, .printable-receipt-container * { 
+              visibility: visible; 
+            }
+
+            .printable-receipt-container {
+              position: absolute; 
+              left: 0; top: 0; 
+              width: 100%; 
+              margin: 0; 
+              /* CHANGED: Increased side padding to 4mm (approx 15px) for visible margins */
+              padding: 5mm 4mm; 
+              box-sizing: border-box; 
+              
+              background: white; 
+              color: black; 
+              font-family: 'Courier New', Courier, monospace; 
+              font-size: 11px; 
+              font-weight: 600;
+              line-height: 1.2;
+            }
+
+            .receipt-header { 
+              text-align: center; 
+              margin-bottom: 8px; 
+              border-bottom: 1px dashed black;
+              padding-bottom: 5px;
+            }
+            .receipt-header h1 { font-size: 16px; margin: 0; font-weight: 800; }
+            .receipt-header p { margin: 0; font-size: 10px; }
+
+            .group-header { 
+              font-weight: 800; 
+              border-bottom: 1px solid black; 
+              margin: 8px 0 2px 0; 
+              font-size: 10px; 
+              text-transform: uppercase; 
+            }
+
+            .item-row { 
+              display: flex; 
+              justify-content: space-between; 
+              margin-bottom: 2px; 
+              font-weight: 700;
+            }
+
+            .modifier-row { 
+              display: flex; 
+              justify-content: space-between; 
+              font-size: 10px; 
+              padding-left: 8px; 
+              color: #000;
+              font-weight: normal;
+            }
+
+            .total-section { 
+              border-top: 2px dashed black; 
+              margin-top: 10px; 
+              padding-top: 5px; 
+              font-weight: 900; 
+              font-size: 14px; 
+            }
+            .total-section .item-row {
+              margin-bottom: 0;
+            }
+
+            .footer-text { 
+              text-align: center; 
+              font-size: 9px; 
+              margin-top: 15px; 
+              padding-top: 5px;
+              border-top: 1px dashed black;
+              font-style: italic; 
+            }
+          }
+        `}
+      </style>
+
       {/* === 1. VISIBLE UI (Hidden on Print) === */}
       <div className="flex flex-col h-screen w-screen bg-[#f8f6ff] relative overflow-hidden font-sans print:hidden">
         
-        {/* ... (Modal Section) ... */}
-        {selectedItem && !isAddOnModalOpen && (
+        {/* ... (Existing Modal Logic) ... */}
+        {selectedItem && !isAddOnModalOpen && !isConfirmModalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm animate-in fade-in duration-200 p-4">
             <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 max-h-[90vh]">
               
@@ -331,7 +423,6 @@ const SalesOrder = () => {
                   </button>
                 </div>
 
-                {/* --- DRINK MODIFIERS --- */}
                 {isDrink && (
                   <>
                     <div className="animate-in fade-in duration-300 delay-75">
@@ -368,13 +459,6 @@ const SalesOrder = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
                         </svg>
                       </button>
-                      {selectedAddOns.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {selectedAddOns.map(addon => (
-                            <span key={addon} className="text-[9px] font-bold bg-[#3b2063] text-white px-2 py-1 rounded-md">{addon}</span>
-                          ))}
-                        </div>
-                      )}
                     </div>
 
                     <div className="animate-in fade-in duration-300 delay-150">
@@ -421,7 +505,7 @@ const SalesOrder = () => {
           </div>
         )}
 
-        {/* === SECONDARY MODAL: ADD ONS SELECTION === */}
+        {/* ... (Existing Add-Ons Modal) ... */}
         {isAddOnModalOpen && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 backdrop-blur-md animate-in fade-in duration-200 p-4">
             <div className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl flex flex-col h-[80vh] animate-in zoom-in-95 duration-200">
@@ -475,7 +559,65 @@ const SalesOrder = () => {
           </div>
         )}
 
-        {/* === TOP HEADER SECTION === */}
+        {/* === CONFIRM ORDER MODAL === */}
+        {isConfirmModalOpen && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-md animate-in fade-in duration-200 p-4">
+            <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+              
+              <div className="bg-[#3b2063] p-6 text-white text-center">
+                <h2 className="text-xl font-black uppercase tracking-widest">Confirm Order</h2>
+                <p className="text-xs font-medium opacity-80 mt-1">Review items before printing</p>
+              </div>
+
+              <div className="p-6 flex-1 overflow-y-auto max-h-[60vh] custom-scrollbar bg-zinc-50">
+                {cart.length === 0 ? (
+                  <p className="text-center text-zinc-400 font-bold text-sm py-8">Cart is empty.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Items List for Confirmation */}
+                    {cart.map((item, i) => (
+                      <div key={i} className="flex justify-between items-start border-b border-zinc-200 pb-3 last:border-0">
+                        <div className="flex-1">
+                          <p className="font-bold text-sm text-[#3b2063]">{item.qty}x {item.name}</p>
+                          <div className="text-[10px] text-zinc-500 mt-1 space-y-0.5 ml-2">
+                            {item.size && <p>• Size: {item.size === 'M' ? 'Medium' : 'Large'}</p>}
+                            {item.sugarLevel && <p>• Sugar: {item.sugarLevel}</p>}
+                            {item.options?.map(o => <p key={o}>• {o}</p>)}
+                            {item.addOns?.map(a => <p key={a}>• + {a}</p>)}
+                          </div>
+                        </div>
+                        <p className="font-black text-sm">₱ {item.finalPrice.toFixed(2)}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="p-6 bg-white border-t border-zinc-100 space-y-3">
+                <div className="flex justify-between items-end mb-4">
+                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Total Amount</span>
+                  <span className="text-3xl font-black text-[#3b2063]">₱ {subtotal.toFixed(2)}</span>
+                </div>
+                
+                <button 
+                  onClick={handlePrint}
+                  disabled={cart.length === 0}
+                  className="w-full bg-[#3b2063] hover:bg-[#2a1647] disabled:bg-zinc-300 disabled:cursor-not-allowed text-white py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg shadow-purple-900/20 active:scale-95 transition-all"
+                >
+                  Print Receipt
+                </button>
+                <button 
+                  onClick={() => setIsConfirmModalOpen(false)}
+                  className="w-full bg-white border-2 border-zinc-100 hover:bg-zinc-50 text-zinc-500 py-4 rounded-xl font-bold text-xs uppercase tracking-widest transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ... (Existing Top Header) ... */}
         <div className="flex gap-4 p-4 border-b border-zinc-200 bg-white items-stretch h-24 shrink-0 shadow-sm z-20 relative">
           <div className="flex gap-2">
             {['Home', 'Cat', 'Kit', 'Bar', 'Bill'].map((label) => (
@@ -510,11 +652,8 @@ const SalesOrder = () => {
 
         <div className="flex flex-1 overflow-hidden relative z-10">
           <div className="flex-1 overflow-y-auto p-6 bg-[#f8f6ff]">
-            
             {selectedCategory ? (
               <div className="flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-300">
-                
-                {/* --- HEADER WITH BACK BUTTON --- */}
                 <div className="flex items-center gap-4 mb-6 sticky top-0 z-10 bg-[#f8f6ff] py-2">
                   <button onClick={handleBack} className="bg-white p-3 rounded-xl shadow-sm border border-zinc-200 hover:bg-zinc-50 text-[#3b2063] transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
@@ -524,8 +663,7 @@ const SalesOrder = () => {
                     {categorySize && <span className="opacity-50"> &bull; {isWings ? categorySize : (categorySize === 'M' ? 'MEDIUM' : 'LARGE')}</span>}
                   </h2>
                 </div>
-
-                {/* --- 1. DRINK SIZE SELECTION --- */}
+                {/* ... (Drinks/Wings/Items logic) ... */}
                 {isDrink && !categorySize ? (
                   <div className="flex flex-col items-center justify-center h-full max-h-[50vh] gap-6 animate-in zoom-in duration-300">
                     <h3 className="text-xl font-bold text-zinc-400 uppercase tracking-widest">Select Size</h3>
@@ -541,9 +679,7 @@ const SalesOrder = () => {
                       </button>
                     </div>
                   </div>
-                ) 
-                /* --- 2. CHICKEN WINGS QUANTITY SELECTION --- */
-                : isWings && !categorySize ? (
+                ) : isWings && !categorySize ? (
                   <div className="flex flex-col items-center justify-center h-full max-h-[60vh] gap-6 animate-in zoom-in duration-300">
                     <h3 className="text-xl font-bold text-zinc-400 uppercase tracking-widest">Select Quantity</h3>
                     <div className="grid grid-cols-2 gap-4 w-full max-w-2xl">
@@ -565,31 +701,28 @@ const SalesOrder = () => {
                       </button>
                     </div>
                   </div>
-                )
-                /* --- 3. ITEMS LIST (Standard) --- */
-                : (
+                ) : (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-300">
                     {getItemsForCategory(selectedCategory).map((item) => (
-                      <button key={item.id} onClick={() => handleItemClick(item)} className="bg-white hover:bg-[#3b2063] hover:text-white text-[#3b2063] p-4 rounded-2xl shadow-sm hover:shadow-lg border border-zinc-100 active:scale-95 transition-all flex flex-col items-center justify-center text-center gap-2 group h-24">
-                        <span className="font-bold text-xs uppercase leading-tight line-clamp-2">{item.name}</span>
+                      <button key={item.id} onClick={() => handleItemClick(item)} className="bg-white hover:bg-[#3b2063] hover:text-white text-[#3b2063] p-4 rounded-2xl shadow-sm hover:shadow-lg border border-zinc-100 active:scale-95 transition-all flex flex-col items-center justify-center text-center gap-2 group h-24 text-xs uppercase break-words leading-tight font-bold border-zinc-100">
+                        {item.name}
                       </button>
                     ))}
                   </div>
                 )}
-
               </div>
             ) : (
-              // --- MAIN CATEGORY LIST ---
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 pb-20 animate-in fade-in zoom-in duration-300">
                 {CATEGORIES.map((cat, index) => (
-                  <button key={index} onClick={() => handleCategoryClick(cat)} className="bg-white hover:bg-[#3b2063] hover:text-white text-[#3b2063] font-bold text-[10px] uppercase p-3 rounded-2xl h-24 shadow-sm hover:shadow-lg border border-zinc-100 active:scale-95 transition-all flex items-center justify-center text-center break-words leading-tight group">
-                    <span className="group-hover:translate-y-0 transition-transform">{cat}</span>
+                  <button key={index} onClick={() => handleCategoryClick(cat)} className="bg-white hover:bg-[#3b2063] hover:text-white text-[#3b2063] font-bold text-[10px] uppercase p-3 rounded-2xl h-24 shadow-sm hover:shadow-lg border border-zinc-100 active:scale-95 transition-all flex items-center justify-center text-center break-words leading-tight group border-zinc-100">
+                    {cat}
                   </button>
                 ))}
               </div>
             )}
           </div>
 
+          {/* Sidebar Cart */}
           <div className="w-96 bg-white border-l border-zinc-200 flex flex-col shrink-0 shadow-2xl z-30">
             <div className="bg-zinc-50 border-b border-zinc-200 p-4 text-center">
               <h2 className="text-[#3b2063] font-black uppercase tracking-[0.2em] text-xs">Current Order</h2>
@@ -597,9 +730,7 @@ const SalesOrder = () => {
             <div className="flex-1 overflow-y-auto p-4 bg-white relative">
               {cart.length === 0 ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-zinc-200 pointer-events-none">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-16 h-16 mb-2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" />
-                  </svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1} stroke="currentColor" className="w-16 h-16 mb-2"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 0 0-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 0 0-16.536-1.84M7.5 14.25 5.106 5.272M6 20.25a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Zm12.75 0a.75.75 0 1 1-1.5 0 .75.75 0 0 1 1.5 0Z" /></svg>
                   <p className="font-bold text-[10px] uppercase tracking-[0.2em]">No Items Added</p>
                 </div>
               ) : (
@@ -608,22 +739,12 @@ const SalesOrder = () => {
                     <div key={index} className="flex justify-between items-start bg-zinc-50 p-3 rounded-xl border border-zinc-100">
                       <div className="flex-1">
                         <p className="font-bold text-xs text-[#3b2063]">{item.name}</p>
-                        
                         <div className="flex flex-wrap gap-1 mt-1.5">
-                          {item.size && (
-                            <span className="bg-purple-100 text-purple-700 text-[9px] px-1.5 py-0.5 rounded font-bold">{item.size === 'M' ? 'MEDIUM' : (item.size === 'L' ? 'LARGE' : item.size)}</span>
-                          )}
-                          {item.sugarLevel && item.sugarLevel !== '100%' && (
-                            <span className="bg-orange-100 text-orange-700 text-[9px] px-1.5 py-0.5 rounded font-bold">{item.sugarLevel} Sugar</span>
-                          )}
-                          {item.options && item.options.map(opt => (
-                            <span key={opt} className="bg-blue-100 text-blue-700 text-[9px] px-1.5 py-0.5 rounded font-bold">{opt}</span>
-                          ))}
-                          {item.addOns && item.addOns.map(addon => (
-                            <span key={addon} className="bg-yellow-100 text-yellow-700 text-[9px] px-1.5 py-0.5 rounded font-bold">{addon}</span>
-                          ))}
+                          {item.size && <span className="bg-purple-100 text-purple-700 text-[9px] px-1.5 py-0.5 rounded font-bold">{item.size === 'M' ? 'MEDIUM' : 'LARGE'}</span>}
+                          {item.sugarLevel && item.sugarLevel !== '100%' && <span className="bg-orange-100 text-orange-700 text-[9px] px-1.5 py-0.5 rounded font-bold">{item.sugarLevel} Sugar</span>}
+                          {item.options?.map(opt => <span key={opt} className="bg-blue-100 text-blue-700 text-[9px] px-1.5 py-0.5 rounded font-bold">{opt}</span>)}
+                          {item.addOns?.map(addon => <span key={addon} className="bg-yellow-100 text-yellow-700 text-[9px] px-1.5 py-0.5 rounded font-bold">{addon}</span>)}
                         </div>
-
                         {(item.charges.grab || item.charges.panda) && (
                           <div className="flex gap-1 mt-1">
                             {item.charges.grab && <span className="bg-green-100 text-green-700 text-[9px] px-1.5 py-0.5 rounded font-bold">GRAB</span>}
@@ -641,35 +762,36 @@ const SalesOrder = () => {
                 </div>
               )}
             </div>
-            <div className="bg-[#3b2063] text-white p-6 rounded-t-[2rem] shadow-[0_-10px_40px_rgba(59,32,99,0.3)] relative overflow-hidden">
-              <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/5 rounded-full blur-2xl pointer-events-none"></div>
-              <div className="space-y-4 relative z-10">
-                <div className="flex justify-between items-end border-b border-white/10 pb-4">
-                  <span className="text-[10px] font-bold uppercase tracking-widest opacity-70">Subtotal</span>
-                  <span className="text-3xl font-black tracking-tight">₱ {subtotal.toFixed(2)}</span>
+            <div className="bg-[#3b2063] text-white p-6 rounded-t-[2rem] shadow-[0_-10px_40px_rgba(59,32,99,0.3)]">
+              <div className="flex justify-between items-end border-b border-white/10 pb-4">
+                <span className="text-[10px] font-bold uppercase tracking-widest opacity-70">Subtotal</span>
+                <span className="text-3xl font-black tracking-tight">₱ {subtotal.toFixed(2)}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div className="bg-white/10 rounded-xl p-2 px-3">
+                   <span className="text-[9px] font-bold uppercase opacity-60 block tracking-wider">Count</span>
+                   <span className="text-lg font-bold">{totalCount}</span>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-white/10 rounded-xl p-2 px-3">
-                     <span className="text-[9px] font-bold uppercase opacity-60 block tracking-wider">Count</span>
-                     <span className="text-lg font-bold">{totalCount}</span>
-                  </div>
-                  <div className="bg-white/10 rounded-xl p-2 px-3">
-                     <span className="text-[9px] font-bold uppercase opacity-60 block tracking-wider">Pax</span>
-                     <span className="text-lg font-bold">1</span>
-                  </div>
+                <div className="bg-white/10 rounded-xl p-2 px-3">
+                   <span className="text-[9px] font-bold uppercase opacity-60 block tracking-wider">Pax</span>
+                   <span className="text-lg font-bold">1</span>
                 </div>
-                <div className="pt-2 flex justify-between items-center">
-                  <button 
-                    onClick={handlePrint}
-                    className="text-xs font-bold uppercase tracking-wider bg-white/20 hover:bg-white/30 px-4 py-2 rounded-full transition-colors flex items-center gap-2"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.198-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5Zm-3 0h.008v.008H15V10.5Z" />
-                    </svg>
-                    Print Receipt
-                  </button>
-                  <span className="text-xs font-bold uppercase tracking-wider opacity-60">Admin User</span>
-                </div>
+              </div>
+              <div className="pt-2 flex justify-between items-center mt-2">
+                
+                {/* --- NEW BUTTON: CONFIRM ORDER --- */}
+                <button 
+                  onClick={() => setIsConfirmModalOpen(true)}
+                  disabled={cart.length === 0}
+                  className="text-xs font-bold uppercase tracking-wider bg-white text-[#3b2063] hover:bg-zinc-100 px-4 py-2 rounded-full transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                  </svg>
+                  Confirm Order
+                </button>
+
+                <span className="text-xs font-bold uppercase tracking-wider opacity-60">Admin User</span>
               </div>
             </div>
           </div>
@@ -677,109 +799,91 @@ const SalesOrder = () => {
       </div>
 
       {/* === 2. PRINTABLE RECEIPT (Hidden on Screen, Visible on Print) === */}
-      <div className="hidden print:block fixed inset-0 bg-white z-[9999] p-8 overflow-hidden text-black font-mono">
-        <div className="text-center mb-6">
-          <h1 className="font-bold text-2xl mb-1">LUCKY BOBA</h1>
-          <p className="text-sm text-gray-500">Main Branch - Quezon City</p>
-          <p className="text-xs text-gray-400 mt-2">{formatDate(currentDate)} - {formatTime(currentDate)}</p>
+      <div className="printable-receipt-container hidden print:block">
+        <div className="receipt-header">
+          <h1>LUCKY BOBA</h1>
+          <p>Main Branch - Quezon City</p>
+          <p>{formatDate(currentDate)} | {formatTime(currentDate)}</p>
+          <p>Cashier: ADMIN | Terminal: 01</p>
         </div>
 
-        <div className="border-b-2 border-black/10 mb-4 pb-2 text-xs font-bold flex justify-between uppercase tracking-wider">
-          <span>Item</span>
-          <span>Price</span>
-        </div>
-
-        <div className="space-y-6">
-          {/* GROUP 1: MEDIUM DRINKS */}
+        <div className="receipt-body">
           {mediumDrinks.length > 0 && (
             <div>
-              <h3 className="font-bold text-sm mb-2 border-b border-black/10 pb-1">MEDIUM DRINKS</h3>
+              <div className="group-header">Medium Drinks</div>
               {mediumDrinks.map((item, i) => (
-                <div key={i} className="mb-3 text-sm">
-                  <div className="flex justify-between font-bold">
+                <div key={i} style={{ marginBottom: '4px' }}>
+                  <div className="item-row">
                     <span>{item.qty}x {item.name}</span>
                     <span>{item.finalPrice.toFixed(2)}</span>
                   </div>
-                  {/* Modifiers List */}
-                  <div className="pl-4 text-xs text-gray-600 mt-1 space-y-0.5">
-                    {item.sugarLevel && <div>• Sugar: {item.sugarLevel}</div>}
-                    {item.options?.map(o => <div key={o}>• {o}</div>)}
-                    
-                    {/* ADD-ON PRICES DISPLAYED HERE */}
-                    {item.addOns?.map(addonName => {
-                      const addon = AddOnsList.find(a => a.name === addonName);
-                      return (
-                        <div key={addonName} className="font-semibold text-black flex justify-between">
-                          <span>• + {addonName}</span>
-                          <span>{addon ? addon.price.toFixed(2) : '0.00'}</span>
-                        </div>
-                      );
-                    })}
-                    
-                    {item.remarks && <div className="italic">Note: "{item.remarks}"</div>}
-                  </div>
+                  {item.sugarLevel && <div className="modifier-row">• Sugar: {item.sugarLevel}</div>}
+                  {item.options?.map(o => <div key={o} className="modifier-row">• {o}</div>)}
+                  {item.addOns?.map(addonName => {
+                    const addon = AddOnsList.find(a => a.name === addonName);
+                    return (
+                      <div key={addonName} className="modifier-row">
+                        <span>+ {addonName}</span>
+                        <span>{addon?.price.toFixed(2)}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
             </div>
           )}
 
-          {/* GROUP 2: LARGE DRINKS */}
           {largeDrinks.length > 0 && (
             <div>
-              <h3 className="font-bold text-sm mb-2 border-b border-black/10 pb-1">LARGE DRINKS</h3>
+              <div className="group-header">Large Drinks</div>
               {largeDrinks.map((item, i) => (
-                <div key={i} className="mb-3 text-sm">
-                  <div className="flex justify-between font-bold">
+                <div key={i} style={{ marginBottom: '4px' }}>
+                  <div className="item-row">
                     <span>{item.qty}x {item.name}</span>
                     <span>{item.finalPrice.toFixed(2)}</span>
                   </div>
-                  <div className="pl-4 text-xs text-gray-600 mt-1 space-y-0.5">
-                    {item.sugarLevel && <div>• Sugar: {item.sugarLevel}</div>}
-                    {item.options?.map(o => <div key={o}>• {o}</div>)}
-                    
-                    {/* ADD-ON PRICES DISPLAYED HERE */}
-                    {item.addOns?.map(addonName => {
-                      const addon = AddOnsList.find(a => a.name === addonName);
-                      return (
-                        <div key={addonName} className="font-semibold text-black flex justify-between">
-                          <span>• + {addonName}</span>
-                          <span>{addon ? addon.price.toFixed(2) : '0.00'}</span>
-                        </div>
-                      );
-                    })}
-
-                    {item.remarks && <div className="italic">Note: "{item.remarks}"</div>}
-                  </div>
+                  {item.sugarLevel && <div className="modifier-row">• Sugar: {item.sugarLevel}</div>}
+                  {item.options?.map(o => <div key={o} className="modifier-row">• {o}</div>)}
+                  {item.addOns?.map(addonName => {
+                    const addon = AddOnsList.find(a => a.name === addonName);
+                    return (
+                      <div key={addonName} className="modifier-row">
+                        <span>+ {addonName}</span>
+                        <span>{addon?.price.toFixed(2)}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
             </div>
           )}
 
-          {/* GROUP 3: FOOD / OTHERS */}
           {otherItems.length > 0 && (
             <div>
-              <h3 className="font-bold text-sm mb-2 border-b border-black/10 pb-1">FOOD & OTHERS</h3>
+              <div className="group-header">Food & Others</div>
               {otherItems.map((item, i) => (
-                <div key={i} className="mb-3 text-sm">
-                  <div className="flex justify-between font-bold">
+                <div key={i} style={{ marginBottom: '4px' }}>
+                  <div className="item-row">
                     <span>{item.qty}x {item.name}</span>
                     <span>{item.finalPrice.toFixed(2)}</span>
                   </div>
-                  {item.remarks && <div className="pl-4 text-xs italic text-gray-600">Note: "{item.remarks}"</div>}
+                  {item.remarks && <div className="modifier-row" style={{fontStyle:'italic'}}>Note: {item.remarks}</div>}
                 </div>
               ))}
             </div>
           )}
         </div>
 
-        <div className="border-t-2 border-black/10 mt-6 pt-4">
-          <div className="flex justify-between text-xl font-black">
+        <div className="total-section">
+          <div className="item-row">
             <span>TOTAL</span>
             <span>₱ {subtotal.toFixed(2)}</span>
           </div>
-          <div className="text-center text-xs text-gray-400 mt-8">
-            Thank you for ordering at Lucky Boba!
-          </div>
+        </div>
+
+        <div className="footer-text">
+          Thank you for ordering!<br />
+          Follow us on Social Media @LuckyBoba
         </div>
       </div>
     </>

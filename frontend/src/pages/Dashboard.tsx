@@ -1,32 +1,70 @@
 import { useState } from 'react';
 import Sidebar from "../components/Sidebar";
 import logo from '../assets/logo.png';
+
+// --- Import POS Components ---
 import CashIn from '../components/CashIn'; 
 import CashDrop from '../components/CashDrop';
 import SearchReceipts from '../components/SearchReceipts';
 import CashCount from '../components/CashCount';
 
+// --- Import Sales Report Components ---
+import SalesDashboard from '../components/SalesDashboard';
+import ItemsReport from '../components/ItemsReport';
+import XReading from '../components/XReading';
+import ZReading from '../components/ZReading';
+import MallAccredReport from '../components/MallAccredReport';
+
+// --- Import New Menu Management Components ---
+import MenuList from '../components/MenuList';
+import CategoryList from '../components/CategoryList';
+import SubCategoryList from '../components/Sub-CategoryList'; // Assuming file is named "Sub-CategoryList.tsx"
+
 const Dashboard = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
 
- const renderContent = () => {
-  switch (activeTab) {
-    case 'dashboard':
-      return <DashboardStats />;
-    // REMOVED 'sales' and 'menu' cases here
-    case 'cash-in':
-      return <CashIn />;
-    case 'cash-drop':
-      return <CashDrop />;
-    case 'search-receipts':
-      return <SearchReceipts />;
-    case 'cash-count':
-      return <CashCount />;
-    default:
-      return <DashboardStats />;
-  }
-};
+  const renderContent = () => {
+    switch (activeTab) {
+      // --- MAIN DASHBOARD (Default) ---
+      case 'dashboard':
+        return <DashboardStats />;
+
+      // --- POS TABS ---
+      case 'cash-in':
+        return <CashIn />;
+      case 'cash-drop':
+        return <CashDrop />;
+      case 'search-receipts':
+        return <SearchReceipts />;
+      case 'cash-count':
+        return <CashCount />;
+
+      // --- SALES REPORT TABS ---
+      case 'sales-dashboard':
+        return <SalesDashboard />;
+      case 'items-report':
+        return <ItemsReport />;
+      case 'x-reading':
+        return <XReading />;
+      case 'z-reading':
+        return <ZReading />;
+      case 'mall-accred':
+        return <MallAccredReport />;
+
+      // --- MENU ITEMS TABS (New) ---
+      case 'menu-list':
+        return <MenuList />;
+      case 'category-list':
+        return <CategoryList />;
+      case 'sub-category-list':
+        return <SubCategoryList />;
+
+      // --- FALLBACK ---
+      default:
+        return <DashboardStats />;
+    }
+  };
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-[#f8f6ff] text-zinc-900 font-sans overflow-hidden">
@@ -55,7 +93,7 @@ const Dashboard = () => {
 
       {/* --- Main Content Area --- */}
       <main className="flex-1 flex flex-col overflow-hidden">
-        {/* Only show the Dashboard Header if we are actually on the Dashboard */}
+        {/* Only show the Header for the MAIN Dashboard view */}
         {activeTab === 'dashboard' && (
           <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-6 md:px-10 py-6 md:py-8 gap-4">
             <div>

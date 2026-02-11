@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import Keyboard from 'react-simple-keyboard';
 import 'react-simple-keyboard/build/css/index.css';
-
+import TopNavbar from './TopNavbar'; // Import Navbar
 
 interface KeyboardRef {
   setInput: (input: string) => void;
@@ -29,7 +29,6 @@ const CashDrop = () => {
   const [layoutName, setLayoutName] = useState('numpad');
   const [showKeyboard, setShowKeyboard] = useState(false);
   
-  // 2. Fix 'any'
   const keyboardRef = useRef<KeyboardRef>(null);
 
   const getGrandTotal = (currentCounts: { [key: number]: string }) => {
@@ -84,7 +83,6 @@ const CashDrop = () => {
 
     const now = new Date();
     const newTx: Transaction = {
-      // 3. Fix Impure function error
       id: now.getTime(),
       date: now.toLocaleDateString(),
       time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -158,8 +156,8 @@ const CashDrop = () => {
           </div>
 
           <div className="total-row breakdown-row">
-             <span>TOTAL DROP:</span>
-             <span>₱ {printData.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              <span>TOTAL DROP:</span>
+              <span>₱ {printData.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
           </div>
           
           <div>
@@ -175,19 +173,8 @@ const CashDrop = () => {
 
       <div className="flex flex-col h-full w-full bg-[#f8f6ff] animate-in fade-in zoom-in duration-300 relative overflow-hidden">
         
-        <header className="flex-none bg-white border-b border-zinc-200 px-8 py-4 flex items-center justify-between shadow-sm z-20">
-          <div className="flex items-center gap-6">
-            <div className="flex flex-col">
-               <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Branch</span>
-               <span className="text-[#3b2063] font-black text-xs uppercase tracking-wider">Main Branch - QC</span>
-            </div>
-            <div className="h-8 w-px bg-zinc-100"></div>
-            <div className="flex flex-col">
-               <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Cashier</span>
-               <span className="text-[#3b2063] font-black text-xs uppercase tracking-wider">Admin User</span>
-            </div>
-          </div>
-        </header>
+        {/* --- REPLACED HEADER WITH SHARED COMPONENT --- */}
+        <TopNavbar />
 
         <div className={`flex-1 flex flex-row items-start justify-center p-6 gap-6 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-[350px]' : ''}`}>
           
@@ -310,7 +297,7 @@ const CashDrop = () => {
           {showKeyboard ? (
              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
           ) : (
-             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 5.25h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5" /></svg>
+             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 5.25h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5" /></svg>
           )}
         </button>
 

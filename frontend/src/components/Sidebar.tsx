@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-// 1. FIX: Ensure this interface is defined and exported
 interface SidebarProps {
   isSidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
@@ -10,7 +9,6 @@ interface SidebarProps {
   setCurrentTab: (tab: string) => void;
 }
 
-// 2. FIX: Apply the interface to the component
 const Sidebar: React.FC<SidebarProps> = ({ 
   isSidebarOpen, 
   setSidebarOpen, 
@@ -21,7 +19,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   
-  // 3. FIX: Add the missing Date/Time state and helpers
   const [currentDate, setCurrentDate] = useState(new Date());
 
   useEffect(() => {
@@ -37,6 +34,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   };
   
+  // --- MENU DATA ---
   const posMenuItems = [
     { id: 'cash-in', label: 'Cash In' },
     { id: 'cash-drop', label: 'Cash Drop' },
@@ -45,8 +43,31 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'cash-count', label: 'Cash Count EOD' },
   ];
 
+  const salesReportItems = [
+    { id: 'sales-dashboard', label: 'Dashboard' },
+    { id: 'items-report', label: 'Items Report' },
+    { id: 'x-reading', label: 'X Reading' },
+    { id: 'z-reading', label: 'Z Reading' },
+    { id: 'mall-accred', label: 'Mall Accred Report' },
+  ];
+
+  const menuManagementItems = [
+    { id: 'menu-list', label: 'Menu List' },
+    { id: 'category-list', label: 'Category List' },
+    { id: 'sub-category-list', label: 'Sub-Category List' },
+  ];
+
+  // --- DROPDOWN STATES ---
   const [isPosDropdownOpen, setPosDropdownOpen] = useState(() => 
     posMenuItems.some(item => item.id === currentTab)
+  );
+
+  const [isSalesReportDropdownOpen, setSalesReportDropdownOpen] = useState(() => 
+    salesReportItems.some(item => item.id === currentTab)
+  );
+
+  const [isMenuItemsDropdownOpen, setMenuItemsDropdownOpen] = useState(() => 
+    menuManagementItems.some(item => item.id === currentTab)
   );
 
   const handleLogout = () => {
@@ -73,6 +94,8 @@ const Sidebar: React.FC<SidebarProps> = ({
           <div className="text-[#3b2063] font-black uppercase text-[9px] tracking-[0.3em] opacity-60 mb-8">POS System</div>
           
           <nav className="w-full space-y-2">
+            
+            {/* 1. DASHBOARD */}
             <button
               onClick={() => {
                 setCurrentTab('dashboard');
@@ -83,11 +106,12 @@ const Sidebar: React.FC<SidebarProps> = ({
               }`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 mr-3">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
               </svg>
               Dashboard
             </button>
 
+            {/* 2. POINT OF SALE */}
             <div className="w-full">
               <button
                 onClick={() => setPosDropdownOpen(!isPosDropdownOpen)}
@@ -130,6 +154,87 @@ const Sidebar: React.FC<SidebarProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* 3. SALES REPORT (Swapped to be 3rd) */}
+            <div className="w-full">
+              <button
+                onClick={() => setSalesReportDropdownOpen(!isSalesReportDropdownOpen)}
+                className={`w-full px-5 py-3 rounded-2xl font-black text-[13px] uppercase tracking-wider flex items-center justify-between transition-all duration-200 ${
+                  isSalesReportDropdownOpen || salesReportItems.some(i => i.id === currentTab)
+                    ? 'text-[#3b2063] bg-[#f0ebff]' : `text-zinc-400 ${hoverClasses}`
+                }`}
+              >
+                <div className="flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 mr-3">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+                  </svg>
+                  Sales Report
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={`w-3 h-3 transition-transform duration-300 ${isSalesReportDropdownOpen ? 'rotate-180' : 'rotate-0'}`}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                </svg>
+              </button>
+
+              <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isSalesReportDropdownOpen ? 'max-h-64 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
+                <div className="flex flex-col space-y-1 pl-4 border-l-2 border-[#f0ebff] ml-5">
+                  {salesReportItems.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        setCurrentTab(item.id);
+                        if (window.innerWidth < 768) setSidebarOpen(false);
+                      }}
+                      className={`text-left px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-colors ${
+                        currentTab === item.id ? 'text-[#3b2063] bg-[#f0ebff]' : `text-zinc-400 ${hoverClasses}`
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* 4. MENU ITEMS (Swapped to be 4th) */}
+            <div className="w-full">
+              <button
+                onClick={() => setMenuItemsDropdownOpen(!isMenuItemsDropdownOpen)}
+                className={`w-full px-5 py-3 rounded-2xl font-black text-[13px] uppercase tracking-wider flex items-center justify-between transition-all duration-200 ${
+                  isMenuItemsDropdownOpen || menuManagementItems.some(i => i.id === currentTab)
+                    ? 'text-[#3b2063] bg-[#f0ebff]' : `text-zinc-400 ${hoverClasses}`
+                }`}
+              >
+                <div className="flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 mr-3">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+                  </svg>
+                  Menu Items
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={`w-3 h-3 transition-transform duration-300 ${isMenuItemsDropdownOpen ? 'rotate-180' : 'rotate-0'}`}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                </svg>
+              </button>
+
+              <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isMenuItemsDropdownOpen ? 'max-h-64 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
+                <div className="flex flex-col space-y-1 pl-4 border-l-2 border-[#f0ebff] ml-5">
+                  {menuManagementItems.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        setCurrentTab(item.id);
+                        if (window.innerWidth < 768) setSidebarOpen(false);
+                      }}
+                      className={`text-left px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-colors ${
+                        currentTab === item.id ? 'text-[#3b2063] bg-[#f0ebff]' : `text-zinc-400 ${hoverClasses}`
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
           </nav>
         </div>
 
