@@ -14,8 +14,25 @@ import { YogurtSeriesList } from '../components/Menu/YogurtSeries';
 import { WafflesList } from '../components/Menu/Waffles';
 import { RocksaltCheeseList } from '../components/Menu/Rocksalt&Cheese';
 import { PumpkinSpiceList } from '../components/Menu/PumpkinSpice';
+import { PromosList } from '../components/Menu/Promos';
 import { ClassicMilkteaList } from '../components/Menu/ClassicMilktea';
 import { CoffeeFrappeList } from '../components/Menu/CoffeeFrappe';
+import { OkinawaBrownSugarList } from '../components/Menu/OkinawaBrownSugar';
+import { NovaSeriesList } from '../components/Menu/NovaSeries';
+import { IceCoffeeList } from '../components/Menu/IceCoffee';
+import { HotDrinksList } from '../components/Menu/HotDrinks';
+import { HotCoffeeList } from '../components/Menu/HotCoffee';
+import { GreenTeaList } from '../components/Menu/GreenTea';
+import { GrandOpeningPromoList } from '../components/Menu/GrandOpeningPromo';
+import { GfDuoPromosList } from '../components/Menu/GfDuoBundles';
+import { FruitSodaSeriesList } from '../components/Menu/FruitSodaSeries';
+import { FreebiesList } from '../components/Menu/Freebies';
+import { FrappeSeriesList } from '../components/Menu/FrappeSeries';
+import { GfGet2ClassicList } from '../components/Menu/GfGet2Classic';
+import { FpCoffeeBundlesList } from '../components/Menu/FpCoffeeBundles';
+import { CreamCheeseMteaList } from '../components/Menu/CreamCheeseMtea';
+import { ComboMealsList } from '../components/Menu/ComboMeals';
+
 
 const CATEGORIES = [
   "Add Ons Sinkers", "AFFORDA-BOWLS", "ALA CARTE SNACKS", "ALL DAY MEALS", "CARD",
@@ -30,10 +47,14 @@ const CATEGORIES = [
 const DRINK_CATEGORIES = [
   "CHEESECAKE MILK TEA", "CLASSIC MILKTEA", "COFFEE FRAPPE", 
   "CREAM CHEESE M. TEA", "FLAVORED MILK TEA", "FRAPPE SERIES", 
-  "FRUIT SODA SERIES", "GREEN TEA SERIES", "HOT COFFEE", "HOT DRINKS", 
-  "ICED COFFEE", "NOVA SERIES", "OKINAWA BROWN SUGAR", 
- "ROCK SALT & CHEESE", "YAKULT SERIES", "YOGURT SERIES"
+  "GREEN TEA SERIES", 
+  "ICED COFFEE",  "OKINAWA BROWN SUGAR", 
+  "ROCK SALT & CHEESE", "YAKULT SERIES"
 ];
+
+const OZ_CATEGORIES = [
+  "HOT DRINKS" , "HOT COFFEE" 
+]
 
 // 2. REGISTER DATA
 const CATEGORY_ITEMS: Record<string, ItemData[]> = {
@@ -49,9 +70,26 @@ const CATEGORY_ITEMS: Record<string, ItemData[]> = {
   "WAFFLE": WafflesList,
   "ROCK SALT & CHEESE": RocksaltCheeseList,
   "PUMPKIN SPICE": PumpkinSpiceList,
+  "PROMOS": PromosList,
   "CLASSIC MILKTEA": ClassicMilkteaList,
   "COFFEE FRAPPE": CoffeeFrappeList,
+  "OKINAWA BROWN SUGAR": OkinawaBrownSugarList,
+  "NOVA SERIES": NovaSeriesList,
+  "ICED COFFEE": IceCoffeeList,
+  "HOT DRINKS": HotDrinksList,
+  "HOT COFFEE": HotCoffeeList,
+  "GREEN TEA SERIES": GreenTeaList,
+  "GRAND OPENING PROMO": GrandOpeningPromoList,
+  "GF DUO BUNDLES": GfDuoPromosList,
+  "FRUIT SODA SERIES": FruitSodaSeriesList,
+  "FREEBIES": FreebiesList,
+  "FRAPPE SERIES": FrappeSeriesList,
+  "FP/GF FET2 CLASSIC": GfGet2ClassicList,
+  "FP COFFEE BUNDLES": FpCoffeeBundlesList,
+  "CREAM CHEESE M. TEA": CreamCheeseMteaList,
+  "COMBO MEALS": ComboMealsList,
 };
+
 
 interface MenuItem {
   id: string;
@@ -97,7 +135,7 @@ const SalesOrder = () => {
 
   const isDrink = selectedCategory && DRINK_CATEGORIES.includes(selectedCategory);
   const isWings = selectedCategory === "CHICKEN WINGS";
-
+  const isOz = selectedCategory && OZ_CATEGORIES.includes(selectedCategory);
   useEffect(() => {
     const timer = setInterval(() => setCurrentDate(new Date()), 1000);
     return () => clearInterval(timer);
@@ -165,7 +203,7 @@ const SalesOrder = () => {
   };
 
   const handleBack = () => {
-    if ((isDrink || isWings) && categorySize) {
+    if ((isDrink || isWings || isOz) && categorySize) {
       setCategorySize(null);
     } else {
       setSelectedCategory(null);
@@ -234,6 +272,7 @@ const SalesOrder = () => {
       if (finalBarcode.startsWith("CCMM")) finalBarcode = finalBarcode.replace("CCMM", "CCML");
       else if (finalBarcode.startsWith("CMM")) finalBarcode = finalBarcode.replace("CMM", "CML");
       else if (finalBarcode.startsWith("CFM")) finalBarcode = finalBarcode.replace("CFM", "CFL");
+      else if (finalBarcode.startsWith("YSM")) finalBarcode = finalBarcode.replace("YSM", "YSL");
     }
 
     const newItem: CartItem = {
@@ -542,6 +581,8 @@ const SalesOrder = () => {
                     </div>
                   </div>
                 ) 
+                  
+                
                 /* --- 2. CHICKEN WINGS QUANTITY SELECTION --- */
                 : isWings && !categorySize ? (
                   <div className="flex flex-col items-center justify-center h-full max-h-[60vh] gap-6 animate-in zoom-in duration-300">
@@ -562,6 +603,23 @@ const SalesOrder = () => {
                       <button onClick={() => setCategorySize('12pc')} className="h-40 bg-[#3b2063] text-white rounded-3xl shadow-xl hover:bg-[#2a1647] transition-all flex flex-col items-center justify-center">
                         <span className="text-2xl font-black">12 pcs</span>
                         <span className="text-sm font-bold opacity-70">₱ 390.00</span>
+                      </button>
+                    </div>
+                  </div>
+                  )
+                    /*-- For Oz selection --*/
+                  : isOz && !categorySize ? (
+                  <div className="flex flex-col items-center justify-center h-full max-h-[50vh] gap-6 animate-in zoom-in duration-300">
+                    <h3 className="text-xl font-bold text-zinc-400 uppercase tracking-widest">Select Size</h3>
+                    <div className="flex gap-6 w-full max-w-lg">
+                      <button onClick={() => setCategorySize('M')} className="flex-1 h-48 bg-white rounded-3xl shadow-lg border-2 border-transparent hover:border-[#3b2063] hover:bg-[#f0ebff] transition-all flex flex-col items-center justify-center group">
+                        <div className="text-4xl mb-2 group-hover:scale-110 transition-transform">🥤</div>
+                        <span className="text-xl font-black text-[#3b2063] uppercase tracking-wider">8oz</span>
+                      </button>
+                      <button onClick={() => setCategorySize('L')} className="flex-1 h-48 bg-[#3b2063] text-white rounded-3xl shadow-xl shadow-purple-900/30 hover:bg-[#2a1647] hover:scale-105 transition-all flex flex-col items-center justify-center">
+                        <div className="text-5xl mb-2">🥤</div>
+                        <span className="text-xl font-black uppercase tracking-wider">12oz</span>
+                        <span className="text-xs font-bold bg-white/20 px-2 py-1 rounded-full mt-2">+ ₱20.00</span>
                       </button>
                     </div>
                   </div>
