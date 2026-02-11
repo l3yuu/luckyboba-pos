@@ -136,24 +136,52 @@ const DashboardStats = () => (
       ))}
     </div>
 
-    <div className="mt-6 md:mt-8 grid gap-4 md:gap-6 grid-cols-1 xl:grid-cols-2">
-      {[
-        { title: "Top seller for today" },
-        { title: "Top seller all time" }
-      ].map((card, i) => (
-        <div key={i} className="rounded-[1.5rem] md:rounded-[2.5rem] border border-zinc-100 bg-white shadow-sm p-6 md:p-8 min-h-[180px] md:min-h-[220px] flex flex-col">
-          <p className="text-[12px] md:text-[15px] font-black uppercase tracking-[0.25em] text-zinc-400 mb-4 md:mb-6">
-            {card.title}
+<div className="mt-6 md:mt-8 grid gap-4 md:gap-6 grid-cols-1 xl:grid-cols-2">
+  
+  {/* TOP SELLER TODAY */}
+  <div className="rounded-[1.5rem] md:rounded-[2.5rem] border border-zinc-100 bg-white shadow-sm p-6 md:p-8 min-h-[180px] md:min-h-[220px] flex flex-col">
+    <p className="text-[12px] md:text-[15px] font-black uppercase tracking-[0.25em] text-zinc-400 mb-4 md:mb-6">
+      Top seller for today
+    </p>
+
+    <div className="flex-1 flex flex-col justify-center gap-3">
+      {[1, 2, 3, 4, 5].map((rank) => (
+        <div
+          key={rank}
+          className="flex items-center justify-between border-b border-zinc-100 pb-2"
+        >
+          <p className="font-bold text-zinc-500">#{rank}</p>
+          <p className="text-zinc-300 font-semibold">
+            Data unavailable
           </p>
-          <div className="flex-1 flex flex-col justify-center">
-            <p className="text-2xl md:text-3xl font-black text-zinc-100">—</p>
-            <p className="text-[10px] md:text-[11px] font-bold text-zinc-300 uppercase tracking-widest mt-2">
-              Data currently unavailable
-            </p>
-          </div>
         </div>
       ))}
     </div>
+  </div>
+
+  {/* TOP SELLER ALL TIME */}
+  <div className="rounded-[1.5rem] md:rounded-[2.5rem] border border-zinc-100 bg-white shadow-sm p-6 md:p-8 min-h-[180px] md:min-h-[220px] flex flex-col">
+    <p className="text-[12px] md:text-[15px] font-black uppercase tracking-[0.25em] text-zinc-400 mb-4 md:mb-6">
+      Top seller all time
+    </p>
+
+        
+      <div className="flex-1 flex flex-col justify-center gap-3">
+      {[1, 2, 3, 4, 5].map((rank) => (
+        <div
+          key={rank}
+          className="flex items-center justify-between border-b border-zinc-100 pb-2"
+        >
+          <p className="font-bold text-zinc-500">#{rank}</p>
+          <p className="text-zinc-300 font-semibold">
+            Data unavailable
+          </p>
+        </div>
+      ))}
+    </div>
+  </div>
+</div>
+
   </section>
 );
 
