@@ -8,12 +8,11 @@ export const CheeseCakeList: ItemData[] = [
   { name: "SALTED CARAMEL M. TEA + C.CAKE", price: 115.00, barcode: "CCMM4" },
   { name: "VANILLA M. TEA + C.CAKE", price: 115.00, barcode: "CCMM5" },
   { name: "TARO M. TEA + C.CAKE", price: 115.00, barcode: "CCMM6" },
-  { name: "VANILLA M. TEA + C.CAKE", price: 115.00, barcode: "CCMM7" }, 
-  { name: "MANGO M. TEA + C.CAKE", price: 115.00, barcode: "CCMM8" },
-  { name: "BBERRY M. TEA + C.CAKE", price: 115.00, barcode: "CCMM9" },
-  { name: "MATCHA M. TEA + C.CAKE", price: 115.00, barcode: "CCMM10" },
-  { name: "COOKIES & CREAM M. TEA + C.CAKE", price: 115.00, barcode: "CCMM11" },
-  { name: "BELGIAN M. TEA + C.CAKE", price: 115.00, barcode: "CCMM12" }
+  { name: "MANGO M. TEA + C.CAKE", price: 115.00, barcode: "CCMM7" },
+  { name: "BBERRY M. TEA + C.CAKE", price: 115.00, barcode: "CCMM8" },
+  { name: "MATCHA M. TEA + C.CAKE", price: 115.00, barcode: "CCMM9" },
+  { name: "COOKIES & CREAM M. TEA + C.CAKE", price: 115.00, barcode: "CCMM10" },
+  { name: "BELGIAN M. TEA + C.CAKE", price: 115.00, barcode: "CCMM11" }
 
   
 ];
