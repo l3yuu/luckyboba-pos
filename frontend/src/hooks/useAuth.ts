@@ -1,37 +1,72 @@
-import { useState } from 'react';
+// src/hooks/useAuth.ts
+import api from '../services/api';
+import { useState, useEffect, useCallback } from 'react'; 
+import axios from 'axios'; 
+import type { LoginCredentials, User } from '../types/user'; 
 
 export const useAuth = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isSuccess, setIsSuccess] = useState(false);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+    const [user, setUser] = useState<User | null>(null);
 
-  const login = async (email: string, pass: string) => {
-    setIsLoading(true);
-    setError(null);
-    setIsSuccess(false);
+    const checkAuth = useCallback(async (): Promise<User | null> => {
+        if (localStorage.getItem('lucky_boba_authenticated') !== 'true') {
+            setIsLoading(false);
+            return null;
+        }
 
-    // Mock network delay (1.5s)
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+        try {
+            const response = await api.get('/api/user');
+            const userData = response.data;
+            setUser(userData);
+            return userData;
+        } catch {
+            localStorage.removeItem('lucky_boba_authenticated');
+            setUser(null);
+            return null;
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
 
-    // Simple check
-    if (email === 'admin@luckyboba.com' && pass === 'password123') {
-      localStorage.setItem('auth_token', 'mock-boba-token-123'); 
-      
-      setIsSuccess(true);
-      setIsLoading(false);
-      return true;
-    } else {
-      setError('Invalid credentials. Try admin@luckyboba.com / password123');
-      setIsLoading(false);
-      return false;
-    }
-  };
+    useEffect(() => {
+        checkAuth();
+    }, [checkAuth]);
 
-  // --- ADD A LOGOUT FUNCTION ---
-  const logout = () => {
-    localStorage.removeItem('auth_token');
-    window.location.href = '/login'; 
-  };
+    const login = async (credentials: LoginCredentials): Promise<User | null> => {
+        setIsLoading(true);
+        setError(null);
+        
+        try {
+            await api.get('/sanctum/csrf-cookie');
+            await api.post('/login', credentials);
+            
+            localStorage.setItem('lucky_boba_authenticated', 'true');
+            
+            // Fetch the user so we can return the object to Login.tsx
+            const authenticatedUser = await checkAuth();
+            return authenticatedUser; 
+        } catch (err: unknown) { 
+            if (axios.isAxiosError(err)) {
+                setError(err.response?.data?.message || 'Invalid credentials.');
+            } else {
+                setError('An unexpected error occurred');
+            }
+            setIsLoading(false);
+            return null;
+        }
+    };
 
-  return { login, logout, isLoading, error, isSuccess };
+    const logout = async (): Promise<boolean> => {
+        try {
+            await api.post('/logout');
+            localStorage.removeItem('lucky_boba_authenticated');
+            setUser(null);
+            return true;
+        } catch {
+            return false;
+        }
+    };
+
+    return { login, logout, isLoading, error, user };
 };

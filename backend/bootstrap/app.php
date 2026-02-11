@@ -11,17 +11,14 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
-    ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->api(prepend: [
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-        ]);
+    ->withMiddleware(function (Middleware $middleware) {
+        $middleware->statefulApi(); // This handles everything for Sanctum + React
 
         $middleware->alias([
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
         ]);
-
-        //
     })
+
     ->withExceptions(function (Exceptions $exceptions): void {
         //
     })->create();
