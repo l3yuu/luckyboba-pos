@@ -1,12 +1,9 @@
 
-export interface ItemData {
-  name: string;
-  price: number;
-}
+import type { ItemData } from './AddOns';
 
 export const YogurtSeriesList: ItemData[] = [
-    { name: "Yogurt Plain", price: 105.00 },
-    { name: "Yogurt + Sticky Rice", price: 125.00 },
-    { name: "Yogurt Blueberry", price: 135.00 },
-    { name: "Yogurt Strawberry", price: 135.00 },
+    { name: "YOGURT PLAIN", price: 105.00, barcode:"YGOP" },
+    { name: "YOGURT + STICKY RICE", price: 125.00, barcode:"YOGST" },
+    { name: "YOGURT BLUEBERRY", price: 135.00, barcode:"YOGBRY" },
+    { name: "YOGURT STRAWBERRY", price: 135.00, barcode:"YOGSTRY" },
 ];
