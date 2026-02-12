@@ -32,7 +32,7 @@ const Dashboard = () => {
     }
     
     try {
-      const response = await api.get('/api/dashboard/stats'); 
+      const response = await api.get('/dashboard/stats');
       setStats(response.data);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
