@@ -12,13 +12,16 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Essential for Sanctum SPA
+        // 1. Essential for Sanctum SPA
         $middleware->statefulApi(); 
 
-        // Ensure API group can handle sessions and cookies
+        // 2. Ensure API group can handle sessions, cookies, and CSRF
         $middleware->api(prepend: [
             \Illuminate\Cookie\Middleware\EncryptCookies::class,
+            \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
             \Illuminate\Session\Middleware\StartSession::class,
+            \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+            \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class, // CRITICAL FIX
         ]);
 
         $middleware->alias([
