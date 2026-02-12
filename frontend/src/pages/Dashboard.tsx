@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import Sidebar from "../components/Sidebar";
 import logo from '../assets/logo.png';
-import SalesOrder from '../components/SalesOrder';
+import SalesOrder from '../pages/SalesOrder';
 import CashIn from '../components/CashIn';
 import api from '../services/api'; 
 import type { DashboardData, TopSeller } from '../types/dashboard';
