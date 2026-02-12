@@ -1,13 +1,12 @@
 import { useState, useRef } from 'react';
 import Keyboard from 'react-simple-keyboard';
 import 'react-simple-keyboard/build/css/index.css';
+import TopNavbar from '../TopNavbar'; 
 
-// 1. Define Keyboard Type
 interface KeyboardRef {
   setInput: (input: string) => void;
 }
 
-// Data Interface
 interface Receipt {
   id: number;
   siNumber: string;
@@ -19,7 +18,6 @@ interface Receipt {
   time: string;
 }
 
-// Hidden "Database"
 const RECEIPT_DATABASE: Receipt[] = [
   { id: 1, siNumber: '00234', terminal: '01', items: 3, cashier: 'ADMIN', total: 500.00, date: '10/02/2026', time: '10:30 AM' },
   { id: 2, siNumber: '00235', terminal: '01', items: 1, cashier: 'ADMIN', total: 120.00, date: '10/02/2026', time: '10:45 AM' },
@@ -32,21 +30,16 @@ const RECEIPT_DATABASE: Receipt[] = [
 
 const SearchReceipts = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  
   const [searchResults, setSearchResults] = useState<Receipt[]>([]); 
   const [hasSearched, setHasSearched] = useState(false); 
-  
   const [showKeyboard, setShowKeyboard] = useState(false);
   
-  // 2. Fix 'any' by using the interface
   const keyboardRef = useRef<KeyboardRef>(null);
 
-  // --- Search Logic ---
   const handleSearch = () => {
     if (!searchQuery.trim()) return;
 
     setHasSearched(true);
-    
     const lowerQuery = searchQuery.toLowerCase();
     
     const filtered = RECEIPT_DATABASE.filter(item => 
@@ -59,7 +52,6 @@ const SearchReceipts = () => {
     setShowKeyboard(false); 
   };
 
-  // --- Input Handlers ---
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setSearchQuery(val);
@@ -79,19 +71,8 @@ const SearchReceipts = () => {
   return (
     <div className="flex flex-col h-full w-full bg-[#f8f6ff] animate-in fade-in zoom-in duration-300 relative overflow-hidden">
       
-      <header className="flex-none bg-white border-b border-zinc-200 px-8 py-4 flex items-center justify-between shadow-sm z-20">
-        <div className="flex items-center gap-6">
-          <div className="flex flex-col">
-             <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Branch</span>
-             <span className="text-[#3b2063] font-black text-xs uppercase tracking-wider">Main Branch - QC</span>
-          </div>
-          <div className="h-8 w-px bg-zinc-100"></div>
-          <div className="flex flex-col">
-             <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Cashier</span>
-             <span className="text-[#3b2063] font-black text-xs uppercase tracking-wider">Admin User</span>
-          </div>
-        </div>
-      </header>
+      {/* --- REPLACED HEADER WITH SHARED COMPONENT --- */}
+      <TopNavbar />
 
       <div className={`flex-1 flex flex-col items-center justify-start p-6 gap-6 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-[350px]' : ''}`}>
         
