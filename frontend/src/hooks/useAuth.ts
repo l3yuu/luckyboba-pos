@@ -10,15 +10,14 @@ export const useAuth = () => {
     const [user, setUser] = useState<User | null>(null);
 
     const checkAuth = useCallback(async (): Promise<User | null> => {
-        // If no local flag exists, don't bother the server
         if (localStorage.getItem('lucky_boba_authenticated') !== 'true') {
             setIsLoading(false);
             return null;
         }
 
         try {
-            // Protected route /api/user
-            const response = await api.get('/api/user');
+            // baseURL is already .../api, so we just use '/user'
+            const response = await api.get('/user');
             const userData = response.data;
             setUser(userData);
             return userData;
@@ -40,13 +39,14 @@ export const useAuth = () => {
         setError(null);
         
         try {
-            // 1. Get the CSRF Cookie (Fixes 419)
-            await api.get('/sanctum/csrf-cookie');
+            // 1. Get the CSRF Cookie 
+            // '../' moves up from .../api to the root .../sanctum/csrf-cookie
+            await api.get('../sanctum/csrf-cookie');
             
-            // 2. Perform Login with /api prefix (Fixes 404)
-            await api.post('/api/login', credentials);
+            // 2. Perform Login 
+            // Removed the extra '/api' because it's already in your baseURL
+            await api.post('/login', credentials);
             
-            // Set the flag for persistence
             localStorage.setItem('lucky_boba_authenticated', 'true');
             
             // 3. Fetch the actual user data
@@ -65,8 +65,8 @@ export const useAuth = () => {
 
     const logout = async (): Promise<boolean> => {
         try {
-            // Added /api prefix to match route file
-            await api.post('/api/logout');
+            // Removed the extra '/api' to prevent .../api/api/logout
+            await api.post('/logout');
             localStorage.removeItem('lucky_boba_authenticated');
             setUser(null);
             return true;
