@@ -12,16 +12,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
 ->withMiddleware(function (Middleware $middleware) {
-        // This MUST be called first
+        // Essential: Mark the incoming request as stateful for Sanctum
         $middleware->statefulApi(); 
 
-        // We manually order these to ensure the session is ready 
-        // BEFORE Laravel checks the CSRF token.
         $middleware->api(prepend: [
             \Illuminate\Cookie\Middleware\EncryptCookies::class,
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
-            \Illuminate\Session\Middleware\StartSession::class, // Session first!
-            \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class, // CSRF second!
+            \Illuminate\Session\Middleware\StartSession::class, 
+            \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+            \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class, 
         ]);
 
         $middleware->alias([
