@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import logo from '../../assets/logo.png';
-// Import Lucide Icons
 import { Pencil, ArrowLeft, Check, X, Save } from 'lucide-react';
 
 interface SalesSettingsProps {
@@ -8,10 +7,25 @@ interface SalesSettingsProps {
   onClose: () => void;
 }
 
+// --- HELPER COMPONENTS (Moved Outside) ---
+
+const RedCross = () => (
+  <div className="w-4 h-4 rounded-full bg-red-100 flex items-center justify-center">
+    <X size={12} className="text-red-500" strokeWidth={3} />
+  </div>
+);
+
+const GreenCheck = () => (
+  <div className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center">
+    <Check size={12} className="text-emerald-600" strokeWidth={3} />
+  </div>
+);
+
+// --- MAIN COMPONENT ---
+
 const SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
   const [isEditing, setIsEditing] = useState(false);
 
-  // Form State (Mock data for the edit mode)
   const [formData, setFormData] = useState({
     bcode: '123456789',
     posType: 'RESTO',
@@ -28,25 +42,11 @@ const SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
 
   if (!isOpen) return null;
 
-  // Helper for the red 'X' icon using Lucide
-  const RedCross = () => (
-    <div className="w-4 h-4 rounded-full bg-red-100 flex items-center justify-center">
-      <X size={12} className="text-red-500" strokeWidth={3} />
-    </div>
-  );
-
-  // Helper for the green Check icon using Lucide
-  const GreenCheck = () => (
-    <div className="w-4 h-4 rounded-full bg-emerald-100 flex items-center justify-center">
-      <Check size={12} className="text-emerald-600" strokeWidth={3} />
-    </div>
-  );
-
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-4xl rounded-xl shadow-2xl overflow-hidden flex flex-col md:flex-row h-[90vh] md:h-auto animate-in zoom-in-95 duration-200">
         
-        {/* === LEFT COLUMN: Sales Configuration (Flippable Area) === */}
+        {/* === LEFT COLUMN: Sales Configuration === */}
         <div className="flex-1 bg-zinc-50/50 p-8 border-r border-zinc-200 flex flex-col relative overflow-hidden">
           
           {isEditing ? (
@@ -62,7 +62,7 @@ const SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
                   <input type="text" value={formData.bcode} onChange={(e) => setFormData({...formData, bcode: e.target.value})} className="w-full px-3 py-2 bg-white border border-zinc-300 rounded text-xs font-bold text-slate-700 outline-none focus:border-blue-500" />
                 </div>
 
-                {/* POS TYPE (Read Only) */}
+                {/* POS TYPE */}
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">POS Type</label>
                   <input type="text" value="RESTO" disabled className="w-full px-3 py-2 bg-zinc-100 border border-zinc-200 rounded text-xs font-black text-slate-400 cursor-not-allowed" />
@@ -127,7 +127,7 @@ const SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
                 <button 
                   onClick={() => {
                     console.log("Saving...", formData);
-                    setIsEditing(false); // Flip back after save
+                    setIsEditing(false); 
                   }} 
                   className="flex-1 px-4 py-3 bg-[#10b981] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#059669] flex items-center justify-center gap-2 shadow-md transition-all"
                 >
