@@ -8,18 +8,12 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'paths' => [
-        'api/*', 
-        'sanctum/csrf-cookie', 
-        'login', 
-        'logout',
-        'register'
-    ],
+    'paths' => ['api/*', 'sanctum/csrf-cookie', '*'],
 
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
-        // 1. Added your new Railway frontend URL
+        
         'https://luckyboba-pos-frontend.up.railway.app', 
         
         // 2. Keep these for local development
