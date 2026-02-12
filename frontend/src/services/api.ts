@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
+    // Make sure this is: https://luckyboba-pos-production.up.railway.app/api
     baseURL: import.meta.env.VITE_API_BASE_URL,
     withCredentials: true,
     withXSRFToken: true,
@@ -18,7 +19,7 @@ api.interceptors.request.use((config) => {
     
     let token = "";
     for (let i = 0; i < ca.length; i++) {
-        const c = ca[i].trim(); // Fixed: Use 'const' to satisfy ESLint
+        const c = ca[i].trim();
         if (c.indexOf(name) === 0) {
             token = c.substring(name.length, c.length);
         }
@@ -26,6 +27,9 @@ api.interceptors.request.use((config) => {
 
     if (token) {
         config.headers['X-XSRF-TOKEN'] = token;
+        console.log("Found XSRF Token, attaching to header.");
+    } else {
+        console.warn("XSRF Token NOT FOUND in cookies. Login might fail with 419.");
     }
     
     return config;
