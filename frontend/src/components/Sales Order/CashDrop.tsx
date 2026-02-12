@@ -2,13 +2,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import Keyboard from 'react-simple-keyboard';
 import 'react-simple-keyboard/build/css/index.css';
 import type { AxiosError } from 'axios';
-import api from '../services/api';
+import api from '../../services/api';
 import type { 
   BackendTransaction, 
   Transaction, 
   KeyboardRef, 
   CashDropProps 
-} from '../types/transactions';
+} from '../../types/transactions';
+import TopNavbar from '../TopNavbar';
 
 let cashDropCache: Transaction[] | null = null;
 
@@ -99,7 +100,6 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
     const total = getGrandTotal(counts);
     if (total <= 0 || isLoading) return; 
 
-    setIsLoading(true);
 
     const breakdownString = denominations
       .filter(d => counts[d] && parseFloat(counts[d]) > 0)
@@ -177,19 +177,62 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
             <h2 className="font-black text-lg">CASH DROP RECEIPT</h2>
             <p className="text-[10px]">{printData.date} - {printData.time}</p>
           </div>
-          <div className="mb-4 text-[11px]">
-            <p><strong>Cashier:</strong> ADMIN</p>
-            <p><strong>Total:</strong> ₱ {printData.total.toLocaleString()}</p>
+          <div>
+            <p><strong>Cashier:</strong> ADMIN | <strong>Terminal:</strong> 01</p>
+          </div>
+
+          <div style={{ marginTop: '10px' }}>
+            <p style={{ fontWeight: 'bold', borderBottom: '1px solid black' }}>Details:</p>
+            {denominations.map(denom => {
+              const qty = parseFloat(printData.breakdown[denom] || '0');
+              const rowTotal = qty * denom;
+              const label = denom < 1 ? denom.toString().replace('0.', '.') : denom.toLocaleString();
+              return (
+                <div key={denom} className="breakdown-row">
+                  <span>{label} x {qty}</span>
+                  <span>{rowTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="total-row breakdown-row">
+              <span>TOTAL DROP:</span>
+              <span>₱ {printData.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+          </div>
+          
+          <div>
+            <p><strong>Remarks:</strong> {printData.remarks}</p>
+          </div>
+
+          <div className="signatures">
+            <div className="signature-line">Prepared By (Admin)</div>
+            <div className="signature-line">Received By</div>
           </div>
         </div>
       )}
 
       <div className="flex flex-col h-full w-full bg-[#f8f6ff] animate-in fade-in zoom-in duration-300 relative overflow-hidden">
-        <div className={`flex-1 flex flex-row items-start justify-center p-6 gap-6 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-80' : ''}`}>
-          <div className="bg-white w-full flex-1 rounded-[2.5rem] shadow-xl border border-zinc-100 flex flex-col relative overflow-hidden h-full">
-            <div className="absolute top-0 left-0 w-full h-3 bg-[#3b2063] opacity-10"></div>
-            <div className="flex-1 overflow-y-auto p-8">
-              <h2 className="text-[#3b2063] font-black text-base uppercase mb-8 text-center">Cash Drop Entry</h2>
+        
+        {/* --- REPLACED HEADER WITH SHARED COMPONENT --- */}
+        <TopNavbar />
+
+        <div className={`flex-1 flex flex-row items-start justify-center p-6 gap-6 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-87.5' : ''}`}>
+          
+          <div className="bg-white w-full flex-1 rounded-[2.5rem] shadow-xl shadow-purple-900/5 border border-zinc-100 flex flex-col relative overflow-hidden shrink-0 h-full">
+            <div className="absolute top-0 left-0 w-full h-3 bg-[#3b2063] opacity-10 z-10"></div>
+            
+            <div className="flex-1 overflow-y-auto p-8 w-full scroll-smooth">
+              <h2 className="text-[#3b2063] font-black text-base tracking-[0.4em] uppercase mb-2 text-center">Terminal 01</h2>
+              <p className="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-8 text-center">Cashier: Admin</p>
+
+              <div className="grid grid-cols-4 gap-4 w-full mb-4 px-4 sticky top-0 bg-white z-10 py-2 border-b border-zinc-50">
+                <div className="text-center text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Bill/Coin</div>
+                <div className="text-center text-[10px] font-bold text-zinc-400 uppercase tracking-widest"></div>
+                <div className="text-center text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Qty</div>
+                <div className="text-center text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Total</div>
+              </div>
+
               <div className="w-full space-y-2 mb-8">
                 {denominations.map((denom) => {
                   const qty = counts[denom] || '';
@@ -274,11 +317,12 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
           </div>
         </div>
 
-        <button 
-          onClick={() => setShowKeyboard(!showKeyboard)} 
-          className={`fixed bottom-8 right-8 z-60 p-4 rounded-full shadow-2xl transition-all ${showKeyboard ? 'bg-red-500 text-white rotate-90' : 'bg-[#3b2063] text-white'}`}
-        >
-           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 5.25h16.5m-16.5 4.5h16.5" /></svg>
+        <button onClick={() => setShowKeyboard(!showKeyboard)} className={`fixed bottom-8 right-8 z-60 p-4 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 ${showKeyboard ? 'bg-red-500 text-white' : 'bg-[#3b2063] text-white'}`}>
+          {showKeyboard ? (
+             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+          ) : (
+             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 5.25h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5" /></svg>
+          )}
         </button>
 
         <div className={`fixed bottom-0 left-0 right-0 bg-white shadow-2xl transition-transform duration-300 z-50 ${showKeyboard ? 'translate-y-0' : 'translate-y-full'}`}>

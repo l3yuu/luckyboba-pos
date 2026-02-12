@@ -3,13 +3,43 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import Sidebar from "../components/Sidebar";
 import logo from '../assets/logo.png';
-import SalesOrder from '../pages/SalesOrder';
-import CashIn from '../components/CashIn';
 import api from '../services/api'; 
 import type { DashboardData, TopSeller } from '../types/dashboard';
-import CashDrop from '../components/CashDrop';
-import SearchReceipts from '../components/SearchReceipts';
-import CashCount from '../components/CashCount'; 
+
+// --- Import POS Components ---
+import CashIn from '../components/Sales Order/CashIn'; 
+import CashDrop from '../components/Sales Order/CashDrop';
+import SearchReceipts from '../components/Sales Order/SearchReceipts';
+import CashCount from '../components/Sales Order/CashCount';
+
+// --- Import Sales Report Components ---
+import SalesDashboard from '../components/Sales Report/SalesDashboard';
+import ItemsReport from '../components/Sales Report/ItemsReport';
+import XReading from '../components/Sales Report/XReading';
+import ZReading from '../components/Sales Report/ZReading';
+import MallAccredReport from '../components/Sales Report/MallAccredReport';
+
+// --- Import Menu Management Components ---
+import MenuList from '../components/Menu Items/MenuList';
+import CategoryList from '../components/Menu Items/CategoryList';
+import SubCategoryList from '../components/Menu Items/Sub-CategoryList';
+
+// --- Import Expense Component ---
+import Expense from '../components/Expense';
+
+// --- Import Inventory Components ---
+import InventoryDashboard from '../components/Inventory/InventoryDashboard';
+import InventoryCategoryList from '../components/Inventory/InventoryCategoryList';
+import InventoryList from '../components/Inventory/InventoryList';
+import InventoryReport from '../components/Inventory/InventoryReport';
+import ItemChecker from '../components/Inventory/ItemChecker';
+import ItemSerials from '../components/Inventory/ItemSerials';
+import PurchaseOrder from '../components/Inventory/PurchaseOrder';
+import StockTransfer from '../components/Inventory/StockTransfer';
+import Supplier from '../components/Inventory/Supplier';
+
+// --- Import Settings Component (New) ---
+import Settings from '../components/Settings';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -63,7 +93,11 @@ const Dashboard = () => {
         return <DashboardStats stats={stats} loading={loading} />;
       case 'sales': 
       case 'menu':   
-        return <SalesOrder />;
+        return (
+          <div className="flex flex-col items-center justify-center h-full text-zinc-400">
+            <p className="font-bold uppercase tracking-widest text-sm">Feature Coming Soon</p>
+          </div>
+        );
       case 'cash-in':
         return <CashIn onSuccess={() => fetchStats(true)} />;
       case 'cash-drop':
@@ -72,6 +106,56 @@ const Dashboard = () => {
         return <SearchReceipts />;
       case 'cash-count':
         return <CashCount />;
+
+      // --- SALES REPORT TABS ---
+      case 'sales-dashboard':
+        return <SalesDashboard />;
+      case 'items-report':
+        return <ItemsReport />;
+      case 'x-reading':
+        return <XReading />;
+      case 'z-reading':
+        return <ZReading />;
+      case 'mall-accred':
+        return <MallAccredReport />;
+
+      // --- MENU ITEMS TABS ---
+      case 'menu-list':
+        return <MenuList />;
+      case 'category-list':
+        return <CategoryList />;
+      case 'sub-category-list':
+        return <SubCategoryList />;
+
+      // --- EXPENSE TAB ---
+      case 'expense':
+        return <Expense />;
+
+      // --- INVENTORY TABS ---
+      case 'inventory-dashboard':
+        return <InventoryDashboard />;
+      case 'inventory-list':
+        return <InventoryList />;
+      case 'inventory-category':
+        return <InventoryCategoryList />;
+      case 'supplier':
+        return <Supplier />;
+      case 'item-checker':
+        return <ItemChecker />;
+      case 'item-serials':
+        return <ItemSerials />;
+      case 'purchase-order':
+        return <PurchaseOrder />;
+      case 'stock-transfer':
+        return <StockTransfer />;
+      case 'inventory-report':
+        return <InventoryReport />;
+
+      // --- SETTINGS TAB (New) ---
+      case 'settings':
+        return <Settings />;
+
+      // --- FALLBACK ---
       default:
         return <DashboardStats stats={stats} loading={loading} />;
     }

@@ -1,32 +1,25 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import 'react-simple-keyboard/build/css/index.css';
-import type { KeyboardRef, Receipt } from '../types/transactions';
-import api from '../services/api'; 
+import TopNavbar from '../TopNavbar'; 
+import type { KeyboardRef, Receipt } from '../../types/transactions';
+import api from '../../services/api'; 
 
 const CACHE_KEY = 'lucky_boba_receipt_cache';
 
 const SearchReceipts = () => {
-  // Initialize state from Cache if it exists
-  const [searchQuery, setSearchQuery] = useState(() => {
-    const cached = sessionStorage.getItem(`${CACHE_KEY}_query`);
-    return cached || '';
-  });
-
-  const [searchResults, setSearchResults] = useState<Receipt[]>(() => {
-    const cached = sessionStorage.getItem(`${CACHE_KEY}_results`);
-    return cached ? JSON.parse(cached) : [];
-  });
-
-  const [hasSearched, setHasSearched] = useState(() => {
-    return sessionStorage.getItem(`${CACHE_KEY}_results`) !== null;
-  });
-
-  const [isLoading, setIsLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Receipt[]>([]); 
+  const [hasSearched, setHasSearched] = useState(false); 
   const [showKeyboard, setShowKeyboard] = useState(false);
-  const keyboardRef = useRef<KeyboardRef | null>(null);
+  // FIX 1: Added missing isLoading state
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const keyboardRef = useRef<KeyboardRef>(null);
 
+  // FIX 2: Wrapped in useCallback correctly and added async
   const handleSearch = useCallback(async (queryOverride?: string) => {
-    const activeQuery = queryOverride !== undefined ? queryOverride : searchQuery;
+    // Determine which query to use (the state or the override)
+    const activeQuery = typeof queryOverride === 'string' ? queryOverride : searchQuery;
 
     setIsLoading(true);
     setHasSearched(true);
@@ -50,14 +43,21 @@ const SearchReceipts = () => {
       setIsLoading(false);
       setShowKeyboard(false);
     }
-  }, [searchQuery]);
+  }, [searchQuery]); 
 
-  // INITIAL FETCH: Only run if we don't have cached results
+// INITIAL FETCH: Load from cache or fetch all on mount
   useEffect(() => {
-    if (searchResults.length === 0 && !hasSearched) {
+    const cachedQuery = sessionStorage.getItem(`${CACHE_KEY}_query`);
+    const cachedResults = sessionStorage.getItem(`${CACHE_KEY}_results`);
+
+    if (cachedResults) {
+      setSearchResults(JSON.parse(cachedResults));
+      setSearchQuery(cachedQuery || '');
+      setHasSearched(true);
+    } else {
       handleSearch(''); 
     }
-  }, [handleSearch, searchResults.length, hasSearched]);
+  }, [handleSearch]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -67,6 +67,8 @@ const SearchReceipts = () => {
 
   return (
     <div className="flex flex-col h-full w-full bg-[#f8f6ff] animate-in fade-in zoom-in duration-300 relative overflow-hidden">
+      <TopNavbar />
+
       <div className={`flex-1 flex flex-col items-center justify-start p-6 gap-6 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-87.5' : ''}`}>
         
         <div className="w-full max-w-5xl flex gap-4">
@@ -89,7 +91,6 @@ const SearchReceipts = () => {
             {isLoading ? 'Searching...' : 'Search'}
           </button>
           
-          {/* OPTIONAL: Clear Cache Button */}
           <button 
             onClick={() => {
                 sessionStorage.removeItem(`${CACHE_KEY}_query`);
@@ -111,7 +112,7 @@ const SearchReceipts = () => {
              <div className="flex items-center gap-3">
                 <h3 className="text-[#3b2063] font-black text-xs uppercase tracking-[0.2em]">Receipts List</h3>
                 {hasSearched && !isLoading && (
-                    <span className="text-[9px] bg-emerald-50 text-emerald-600 font-bold px-2 py-0.5 rounded-md uppercase">Cached</span>
+                    <span className="text-[9px] bg-emerald-50 text-emerald-600 font-bold px-2 py-0.5 rounded-md uppercase">Live Data</span>
                 )}
              </div>
              <span className="text-[10px] font-bold text-zinc-400 uppercase bg-zinc-100 px-3 py-1 rounded-full">
@@ -133,7 +134,7 @@ const SearchReceipts = () => {
                <tbody className="divide-y divide-zinc-50">
                  {isLoading && searchResults.length === 0 ? (
                    <tr>
-                     <td colSpan={5} className="px-6 py-12 text-center text-zinc-400">Loading results...</td>
+                     <td colSpan={5} className="px-6 py-12 text-center text-zinc-400 italic">Loading results...</td>
                    </tr>
                  ) : searchResults.length > 0 ? (
                    searchResults.map((item) => (
@@ -141,7 +142,7 @@ const SearchReceipts = () => {
                       <td className="px-6 py-4">
                         <span className="font-black text-[#3b2063] text-sm group-hover:text-purple-600">#{item.si_number}</span>
                         <p className="text-[10px] text-zinc-400 font-medium">
-                          {new Date(item.created_at).toLocaleDateString()}
+                          {item.created_at ? new Date(item.created_at).toLocaleDateString() : 'N/A'}
                         </p>
                       </td>
                       <td className="px-6 py-4 text-center font-bold text-zinc-600">{item.terminal}</td>
