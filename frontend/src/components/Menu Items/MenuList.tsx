@@ -184,7 +184,7 @@ const MOCK_MENU_DATA = [
   { id: 148, name: "MATCHA M.TEA + CRM CHEESE (L)", barcode: "CRML8", category: "CREAM CHEESE M. TEA -> LARGE", unitCost: 71.00, sellingPrice: 135.00, totalCost: 0.00 },
   { id: 149, name: "OKINAWA M.TEA + CRM CHEESE (L)", barcode: "CRML6", category: "CREAM CHEESE M. TEA -> LARGE", unitCost: 69.00, sellingPrice: 135.00, totalCost: 0.00 },
   { id: 150, name: "RED VELVET M.TEA + CRM CHEESE (L)", barcode: "CRML2", category: "CREAM CHEESE M. TEA -> LARGE", unitCost: 64.00, sellingPrice: 135.00, totalCost: 0.00 },
-  { id: 150, name: "SALTED CARAMEL M.TEA + CRM CHEESE (L)", barcode: "CRML4", category: "CREAM CHEESE M. TEA -> LARGE", unitCost: 64.00, sellingPrice: 135.55, totalCost: 0.00 },
+  { id: 151, name: "SALTED CARAMEL M.TEA + CRM CHEESE (L)", barcode: "CRML4", category: "CREAM CHEESE M. TEA -> LARGE", unitCost: 64.00, sellingPrice: 135.55, totalCost: 0.00 },
   { id: 152, name: "TARO M.TEA + CRM CHEESE (L)", barcode: "CRML7", category: "CREAM CHEESE M. TEA -> LARGE", unitCost: 65.00, sellingPrice: 135.00, totalCost: 0.00 },
   { id: 153, name: "VANILLA M.TEA + CRM CHEESE (L)", barcode: "CRML5", category: "CREAM CHEESE M. TEA -> LARGE", unitCost: 68.00, sellingPrice: 135.55, totalCost: 0.00 },
 
@@ -210,57 +210,57 @@ const MOCK_MENU_DATA = [
   { id: 172, name: "CHOCO HAZELNUT M.TEA (L)", barcode: "FLML19", category: "FLAVORED MILK TEA -> LARGE", unitCost: 40.00, sellingPrice: 105.00, totalCost: 0.00 },
   { id: 173, name: "TOFFEE CARAMEL M.TEA (L)", barcode: "FLML20", category: "FLAVORED MILK TEA -> LARGE", unitCost: 42.00, sellingPrice: 105.00, totalCost: 0.00 },
 
-  { id: 154, name: "MATCHA M.TEA (M)", barcode: "FLMM1", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 40.00, sellingPrice: 85.00, totalCost: 0.00 },
-  { id: 155, name: "TARO M.TEA (M)", barcode: "FLMM2", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 36.00, sellingPrice: 85.00, totalCost: 0.00 },
-  { id: 156, name: "SALTED CARAMERL M.TEA (M)", barcode: "FLMM3", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 34.00, sellingPrice: 85.00, totalCost: 0.00 },
-  { id: 157, name: "WINTERMELON M.TEA (M)", barcode: "FLMM4", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 31.00, sellingPrice: 85.00, totalCost: 0.00 },
-  { id: 158, name: "JAVA CHIP M.TEA (M)", barcode: "FLMM5", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 34.00, sellingPrice: 85.00, totalCost: 0.00 },
-  { id: 159, name: "OKINAWA M.TEA (M)", barcode: "FLMM6", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 39.00, sellingPrice: 85.55, totalCost: 0.00 },
-  { id: 160, name: "VANILLA M.TEA (M)", barcode: "FLMM7", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 37.00, sellingPrice: 85.55, totalCost: 0.00 },
-  { id: 161, name: "HERSHEYS CHOCO M.TEA (M)", barcode: "FLMM8", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 35.00, sellingPrice: 85.55, totalCost: 0.00 },
-  { id: 162, name: "MOCHI M.TEA (M)", barcode: "FLMM9", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 32.00, sellingPrice: 85.55, totalCost: 0.00 },
-  { id: 163, name: "BELGIAN CHOCO M.TEA (M)", barcode: "FLMM10", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 34.00, sellingPrice: 85.55, totalCost: 0.00 },
-  { id: 164, name: "MANGO M.TEA (M)", barcode: "FLMM11", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 29.00, sellingPrice: 85.00, totalCost: 0.00 },
-  { id: 165, name: "AVOCADO M.TEA (M)", barcode: "FLMM12", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 33.00, sellingPrice: 85.00, totalCost: 0.00 },
-  { id: 166, name: "RED VELVET M.TEA (M)", barcode:"FLMM13", category:"FLAVORED MILK TEA -> MEDIUM", unitCost : 34.00 , sellingPrice :85.00 , totalCost :0.00},
-  { id: 167, name: "CARAMEL MACCH M.TEA (M)", barcode: "FLMM14", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 32.00, sellingPrice: 85.00, totalCost: 0.00 },
-  { id: 168, name: "COOKIES & CREAM M.TEA (M)", barcode: "FLMM15", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 32.00, sellingPrice: 85.00, totalCost: 0.00 },
-  { id: 169, name: "STRAWBERRY M.TEA (M)", barcode: "FLMM16", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 30.00, sellingPrice: 85.00, totalCost: 0.00 },
-  { id: 170, name: "BLUEBERRY M.TEA (M)", barcode: "FLMM17", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 30.00, sellingPrice: 85.00, totalCost: 0.00 },
-  { id: 171, name: "DARK CHOCOLATE M.TEA (M)", barcode: "FLMM18", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 34.00, sellingPrice: 85.00, totalCost: 0.00 },
-  { id: 172, name: "CHOCO HAZELNUT M.TEA (M)", barcode:"FLMM19", category:"FLAVORED MILK TEA -> MEDIUM", unitCost :33.00 , sellingPrice :85.00 , totalCost :0.00},
-  { id: 173, name: "TOFFEE CARAMEL M.TEA (M)", barcode: "FLMM20", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 34.00, sellingPrice: 85.00, totalCost: 0.00 },
+  { id: 174, name: "MATCHA M.TEA (M)", barcode: "FLMM1", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 40.00, sellingPrice: 85.00, totalCost: 0.00 },
+  { id: 175, name: "TARO M.TEA (M)", barcode: "FLMM2", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 36.00, sellingPrice: 85.00, totalCost: 0.00 },
+  { id: 176, name: "SALTED CARAMERL M.TEA (M)", barcode: "FLMM3", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 34.00, sellingPrice: 85.00, totalCost: 0.00 },
+  { id: 177, name: "WINTERMELON M.TEA (M)", barcode: "FLMM4", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 31.00, sellingPrice: 85.00, totalCost: 0.00 },
+  { id: 178, name: "JAVA CHIP M.TEA (M)", barcode: "FLMM5", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 34.00, sellingPrice: 85.00, totalCost: 0.00 },
+  { id: 179, name: "OKINAWA M.TEA (M)", barcode: "FLMM6", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 39.00, sellingPrice: 85.55, totalCost: 0.00 },
+  { id: 180, name: "VANILLA M.TEA (M)", barcode: "FLMM7", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 37.00, sellingPrice: 85.55, totalCost: 0.00 },
+  { id: 181, name: "HERSHEYS CHOCO M.TEA (M)", barcode: "FLMM8", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 35.00, sellingPrice: 85.55, totalCost: 0.00 },
+  { id: 182, name: "MOCHI M.TEA (M)", barcode: "FLMM9", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 32.00, sellingPrice: 85.55, totalCost: 0.00 },
+  { id: 183, name: "BELGIAN CHOCO M.TEA (M)", barcode: "FLMM10", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 34.00, sellingPrice: 85.55, totalCost: 0.00 },
+  { id: 184, name: "MANGO M.TEA (M)", barcode: "FLMM11", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 29.00, sellingPrice: 85.00, totalCost: 0.00 },
+  { id: 185, name: "AVOCADO M.TEA (M)", barcode: "FLMM12", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 33.00, sellingPrice: 85.00, totalCost: 0.00 },
+  { id: 186, name: "RED VELVET M.TEA (M)", barcode:"FLMM13", category:"FLAVORED MILK TEA -> MEDIUM", unitCost : 34.00 , sellingPrice :85.00 , totalCost :0.00},
+  { id: 187, name: "CARAMEL MACCH M.TEA (M)", barcode: "FLMM14", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 32.00, sellingPrice: 85.00, totalCost: 0.00 },
+  { id: 188, name: "COOKIES & CREAM M.TEA (M)", barcode: "FLMM15", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 32.00, sellingPrice: 85.00, totalCost: 0.00 },
+  { id: 189, name: "STRAWBERRY M.TEA (M)", barcode: "FLMM16", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 30.00, sellingPrice: 85.00, totalCost: 0.00 },
+  { id: 190, name: "BLUEBERRY M.TEA (M)", barcode: "FLMM17", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 30.00, sellingPrice: 85.00, totalCost: 0.00 },
+  { id: 191, name: "DARK CHOCOLATE M.TEA (M)", barcode: "FLMM18", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 34.00, sellingPrice: 85.00, totalCost: 0.00 },
+  { id: 192, name: "CHOCO HAZELNUT M.TEA (M)", barcode:"FLMM19", category:"FLAVORED MILK TEA -> MEDIUM", unitCost :33.00 , sellingPrice :85.00 , totalCost :0.00},
+  { id: 193, name: "TOFFEE CARAMEL M.TEA (M)", barcode: "FLMM20", category: "FLAVORED MILK TEA -> MEDIUM", unitCost: 34.00, sellingPrice: 85.00, totalCost: 0.00 },
   
 //--FP COFFEE BUNDLES --//
 
-  { ID: 174, name: "TOF. CARAMEL ICED COFFEE (L) + DK ROAST COFFEE(L)", barcode: "COF1", category: "FP COFFEE BUNDLE", unitCost: 76.00, sellingPrice: 154.00, totalCost: 0.00 },
-  { ID: 175, name: "VANILLA ICED COFFEE (L) + J.CHIP COFFEE FRP(L)", barcode: "COF2", category: "FP COFFEE BUNDLE", unitCost: 108.00, sellingPrice: 250.00, totalCost: 0.00 },
+  { id: 194, name: "TOF. CARAMEL ICED COFFEE (L) + DK ROAST COFFEE(L)", barcode: "COF1", category: "FP COFFEE BUNDLE", unitCost: 76.00, sellingPrice: 154.00, totalCost: 0.00 },
+  { id: 195, name: "VANILLA ICED COFFEE (L) + J.CHIP COFFEE FRP(L)", barcode: "COF2", category: "FP COFFEE BUNDLE", unitCost: 108.00, sellingPrice: 250.00, totalCost: 0.00 },
 
   //-- FP/GF GER 2 CLASSIC MILK TEA BUNDLE --//
-  { ID: 176, name: "2 CL BUDDY (L)", barcode: "1M", category: "FP/GF GER 2 CLASSIC", unitCost: 97.00, sellingPrice: 250.00, totalCost: 0.00 },
-  { ID: 177, name: "2 CL PEARL M. TEA  (L)", barcode: "2M", category: "FP/GF GER 2 CLASSIC", unitCost: 76.00, sellingPrice: 210.00, totalCost: 0.00 },
-  { ID: 178, name: "2 CL DUO (L)", barcode: "GC1", category: "FP/GF GER 2 CLASSIC", unitCost: 81.00, sellingPrice: 250.00, totalCost: 0.00 },
-  { ID: 179, name: "2 CLASSIC RSC (L)", barcode: "GC2", category: "FP/GF GER 2 CLASSIC", unitCost: 109.00, sellingPrice: 270.00, totalCost: 0.00 },
-  { ID: 180, name: "2 PUDDING M.TEA (L)", barcode: "GC3", category: "FP/GF GER 2 CLASSIC", unitCost: 82.00, sellingPrice: 230.00, totalCost: 0.00 },
+  { id: 196, name: "2 CL BUDDY (L)", barcode: "1M", category: "FP/GF GER 2 CLASSIC", unitCost: 97.00, sellingPrice: 250.00, totalCost: 0.00 },
+  { id: 197, name: "2 CL PEARL M. TEA  (L)", barcode: "2M", category: "FP/GF GER 2 CLASSIC", unitCost: 76.00, sellingPrice: 210.00, totalCost: 0.00 },
+  { id: 198, name: "2 CL DUO (L)", barcode: "GC1", category: "FP/GF GER 2 CLASSIC", unitCost: 81.00, sellingPrice: 250.00, totalCost: 0.00 },
+  { id: 199, name: "2 CLASSIC RSC (L)", barcode: "GC2", category: "FP/GF GER 2 CLASSIC", unitCost: 109.00, sellingPrice: 270.00, totalCost: 0.00 },
+  { id: 200, name: "2 PUDDING M.TEA (L)", barcode: "GC3", category: "FP/GF GER 2 CLASSIC", unitCost: 82.00, sellingPrice: 230.00, totalCost: 0.00 },
 
   //-- FRAPPE SERIES --//
-  { ID: 181, name: "BELGIAN CHOCO. FRAPPE", barcode: "FSM2", category: "FRAPPE SERIES -> MEDIUM ", unitCost: 54.00, sellingPrice: 110.00, totalCost: 0.00 },
-  { ID: 182, name: "CHOCO. HAZELNUT", barcode: "FSM5", category: "FRAPPE SERIES -> MEDIUM ", unitCost: 51.00, sellingPrice: 110.00, totalCost: 0.00 },
-  { ID: 183, name: "COOKIES & CREAM FRAPPE", barcode: "FSM8", category: "FRAPPE SERIES -> MEDIUM ", unitCost: 49.00, sellingPrice: 110.00, totalCost: 0.00 },
-  { ID: 184, name: "DARK CHOCOLATE FRAPPE", barcode: "FSM7", category: "FRAPPE SERIES -> MEDIUM ", unitCost: 53.00, sellingPrice: 110.00, totalCost: 0.00 },
-  { ID: 185, name: "HERSHEYS FRAPPE", barcode: "HS2", category: "FRAPPE SERIES -> MEDIUM ", unitCost: 53.00, sellingPrice: 110.00, totalCost: 0.00 },
-  { ID: 186, name: "RED VELVET FRAPPE", barcode: "FSM3", category: "FRAPPE SERIES -> MEDIUM ", unitCost: 55.00, sellingPrice: 110.00, totalCost: 0.00 },
-  { ID: 187, name: "SALTED CARAMEL FRAPPE", barcode: "FSM6", category: "FRAPPE SERIES -> MEDIUM ", unitCost: 53.00, sellingPrice: 110.00, totalCost: 0.00 },
-  { ID: 188, name: "TARO FRAPPE", barcode: "FSM1", category: "FRAPPE SERIES -> MEDIUM ", unitCost: 57.00, sellingPrice: 110.00, totalCost: 0.00 },
+  { id: 201, name: "BELGIAN CHOCO. FRAPPE", barcode: "FSM2", category: "FRAPPE SERIES -> MEDIUM", unitCost: 54.00, sellingPrice: 110.00, totalCost: 0.00 },
+  { id: 202, name: "CHOCO. HAZELNUT", barcode: "FSM5", category: "FRAPPE SERIES -> MEDIUM", unitCost: 51.00, sellingPrice: 110.00, totalCost: 0.00 },
+  { id: 203, name: "COOKIES & CREAM FRAPPE", barcode: "FSM8", category: "FRAPPE SERIES -> MEDIUM", unitCost: 49.00, sellingPrice: 110.00, totalCost: 0.00 },
+  { id: 204, name: "DARK CHOCOLATE FRAPPE", barcode: "FSM7", category: "FRAPPE SERIES -> MEDIUM", unitCost: 53.00, sellingPrice: 110.00, totalCost: 0.00 },
+  { id: 205, name: "HERSHEYS FRAPPE", barcode: "HS2", category: "FRAPPE SERIES -> MEDIUM", unitCost: 53.00, sellingPrice: 110.00, totalCost: 0.00 },
+  { id: 206, name: "RED VELVET FRAPPE", barcode: "FSM3", category: "FRAPPE SERIES -> MEDIUM", unitCost: 55.00, sellingPrice: 110.00, totalCost: 0.00 },
+  { id: 207, name: "SALTED CARAMEL FRAPPE", barcode: "FSM6", category: "FRAPPE SERIES -> MEDIUM", unitCost: 53.00, sellingPrice: 110.00, totalCost: 0.00 },
+  { id: 208, name: "TARO FRAPPE", barcode: "FSM1", category: "FRAPPE SERIES -> MEDIUM", unitCost: 57.00, sellingPrice: 110.00, totalCost: 0.00 },
 
-  { ID: 189, name: "BELGIAN CHOCO. FRAPPE (L)", barcode: "FSL3", category: "FRAPPE SERIES -> LARGE ", unitCost: 61.00, sellingPrice: 130.00, totalCost: 0.00 },
-  { ID: 190, name: "CHOCO. HAZELNUT (L)", barcode: "FSL5", category: "FRAPPE SERIES -> LARGE ", unitCost: 56.00, sellingPrice: 130.00, totalCost: 0.00 },
-  { ID: 191, name: "COOKIES & CREAM FRAPPE (L)", barcode: "FSL8", category: "FRAPPE SERIES -> LARGE ", unitCost: 54.00, sellingPrice: 130.00, totalCost: 0.00 },
-  { ID: 192, name: "DARK CHOCOLATE FRAPPE (L)", barcode: "FSL7", category: "FRAPPE SERIES -> LARGE ", unitCost: 59.00, sellingPrice: 130.00, totalCost: 0.00 },
-  { ID: 193, name: "HERSHEYS FRAPPE (L)", barcode: "HS1", category: "FRAPPE SERIES -> LARGE ", unitCost: 59.00, sellingPrice: 130.00, totalCost: 0.00 },
-  { ID: 194, name: "RED VELVET FRAPPE (L)", barcode: "FSL3", category: "FRAPPE SERIES -> LARGE ", unitCost: 61.00, sellingPrice: 130.00, totalCost: 0.00 },
-  { ID: 195, name: "SALTED CARAMEL FRAPPE (L)", barcode: "FSL6", category: "FRAPPE SERIES -> LARGE ", unitCost: 59.00, sellingPrice: 130.00, totalCost: 0.00 },
-  { ID: 196, name: "TARO FRAPPE (L)", barcode: "FSL1", category: "FRAPPE SERIES -> LARGE ", unitCost: 63.00, sellingPrice: 130.00, totalCost: 0.00 },
+  { id: 209, name: "BELGIAN CHOCO. FRAPPE (L)", barcode: "FSL3", category: "FRAPPE SERIES -> LARGE", unitCost: 61.00, sellingPrice: 130.00, totalCost: 0.00 },
+  { id: 210, name: "CHOCO. HAZELNUT (L)", barcode: "FSL5", category: "FRAPPE SERIES -> LARGE", unitCost: 56.00, sellingPrice: 130.00, totalCost: 0.00 },
+  { id: 211, name: "COOKIES & CREAM FRAPPE (L)", barcode: "FSL8", category: "FRAPPE SERIES -> LARGE", unitCost: 54.00, sellingPrice: 130.00, totalCost: 0.00 },
+  { id: 212, name: "DARK CHOCOLATE FRAPPE (L)", barcode: "FSL7", category: "FRAPPE SERIES -> LARGE", unitCost: 59.00, sellingPrice: 130.00, totalCost: 0.00 },
+  { id: 213, name: "HERSHEYS FRAPPE (L)", barcode: "HS1", category: "FRAPPE SERIES -> LARGE", unitCost: 59.00, sellingPrice: 130.00, totalCost: 0.00 },
+  { id: 214, name: "RED VELVET FRAPPE (L)", barcode: "FSL3", category: "FRAPPE SERIES -> LARGE", unitCost: 61.00, sellingPrice: 130.00, totalCost: 0.00 },
+  { id: 215, name: "SALTED CARAMEL FRAPPE (L)", barcode: "FSL6", category: "FRAPPE SERIES -> LARGE", unitCost: 59.00, sellingPrice: 130.00, totalCost: 0.00 },
+  { id: 216, name: "TARO FRAPPE (L)", barcode: "FSL1", category: "FRAPPE SERIES -> LARGE", unitCost: 63.00, sellingPrice: 130.00, totalCost: 0.00 },
 ];
 
   
@@ -268,11 +268,19 @@ function MenuList() {
   const [filterName, setFilterName] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
 
+  // Extract unique categories for the dropdown and sort them
+  const categories = [...new Set(MOCK_MENU_DATA.map(item => item.category.trim()))].sort();
+
   // Filtering Logic
   const filteredData = MOCK_MENU_DATA.filter(item => {
     const matchesName = item.name.toLowerCase().includes(filterName.toLowerCase()) ||
       item.barcode.toLowerCase().includes(filterName.toLowerCase());
-    const matchesCategory = item.category.toLowerCase().includes(filterCategory.toLowerCase());
+    
+    // STRICT EQUALITY CHECK
+    // If filterCategory is empty (''), return true (show all). 
+    // Otherwise, check if item.category matches exactly (===).
+    const matchesCategory = filterCategory === '' || item.category.trim() === filterCategory;
+
     return matchesName && matchesCategory;
   });
 
@@ -302,14 +310,19 @@ function MenuList() {
                 className="w-full px-3 py-2 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 h-10" />
             </div>
 
-            {/* Category */}
+            {/* Category Dropdown */}
             <div className="flex-1 w-full">
               <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1 block">Category</label>
-              <input
-                type="text"
+              <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className="w-full px-3 py-2 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 h-10" />
+                className="w-full px-3 py-2 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 h-10 cursor-pointer"
+              >
+                <option value="">ALL CATEGORIES</option>
+                {categories.map((cat, index) => (
+                  <option key={index} value={cat}>{cat}</option>
+                ))}
+              </select>
             </div>
 
             {/* Filter By */}
@@ -382,7 +395,7 @@ function MenuList() {
               </thead>
               <tbody className="divide-y divide-zinc-100">
                 {filteredData.map((item, index) => (
-                  <tr key={item.id} className={`hover:bg-blue-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-zinc-50'}`}>
+                  <tr key={`${item.barcode}-${index}`} className={`hover:bg-blue-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-zinc-50'}`}>
                     <td className="px-4 py-3 text-xs font-bold text-slate-700">{item.name}</td>
                     <td className="px-4 py-3 text-xs font-bold text-slate-500">{item.barcode || '-'}</td>
                     <td className="px-4 py-3 text-xs font-bold text-slate-500">{item.category}</td>
