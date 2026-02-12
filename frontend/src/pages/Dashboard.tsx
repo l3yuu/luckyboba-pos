@@ -9,7 +9,6 @@ import api from '../services/api';
 import type { DashboardData, TopSeller } from '../types/dashboard';
 import CashDrop from '../components/CashDrop';
 import SearchReceipts from '../components/SearchReceipts';
-// 1. Import your CashCount component
 import CashCount from '../components/CashCount'; 
 
 const Dashboard = () => {
@@ -20,18 +19,23 @@ const Dashboard = () => {
   const [stats, setStats] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // 1. Optimized Auth Check
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/login', { replace: true });
     }
   }, [user, authLoading, navigate]);
 
+  // 2. Faster Fetching Logic
   const fetchStats = useCallback(async (isManual = false) => {
+    // Only show full loading spinner if we don't have data yet or if manual refresh
     if (isManual || !stats) {
       setLoading(true);
     }
     
     try {
+      // PRO TIP: If you had more endpoints, you'd use:
+      // const [statsRes, otherRes] = await Promise.all([api.get('/dashboard/stats'), api.get('/other')])
       const response = await api.get('/dashboard/stats');
       setStats(response.data);
     } catch (error) {
@@ -39,16 +43,18 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); 
+  }, [stats]); 
 
+  // 3. Trigger fetch immediately when user is available
   useEffect(() => {
-    if (activeTab === 'dashboard') {
+    if (user && activeTab === 'dashboard') {
       fetchStats();
     }
-  }, [activeTab, fetchStats]);
+  }, [user, activeTab, fetchStats]);
 
-  if (authLoading) return null;
+  // Prevent rendering if not authenticated
+  if (authLoading) return <DashboardSkeleton />;
+  if (!user) return null;
 
   const renderContent = () => {
     switch (activeTab) {
@@ -63,7 +69,6 @@ const Dashboard = () => {
         return <CashDrop onSuccess={() => fetchStats(true)} />;
       case 'search-receipts':
         return <SearchReceipts />;
-      // 2. Add the case for Cash Count EOD
       case 'cash-count':
         return <CashCount />;
       default:
@@ -73,8 +78,9 @@ const Dashboard = () => {
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-[#f8f6ff] text-zinc-900 font-sans overflow-hidden">
+      {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-zinc-200">
-        <img src={logo} alt="Logo" className="h-8 w-auto object-contain" />
+        <img src={logo} alt="Lucky Boba" className="h-8 w-auto object-contain" />
         <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-2 text-[#3b2063]">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -122,7 +128,20 @@ const Dashboard = () => {
   );
 };
 
-// --- Sub-components (DashboardStats, TopSellerCard) remain identical to your previous version ---
+// 4. Skeleton Loader for "Instant" feel
+const DashboardSkeleton = () => (
+  <div className="flex h-screen bg-[#f8f6ff] animate-pulse">
+    <div className="w-64 bg-white hidden md:block border-r" />
+    <div className="flex-1 p-10">
+      <div className="h-10 w-48 bg-zinc-200 rounded-lg mb-4" />
+      <div className="grid grid-cols-4 gap-6">
+        {[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-white rounded-3xl border" />)}
+      </div>
+    </div>
+  </div>
+);
+
+// DashboardStats sub-component remains the same logic but updated for clean props
 const DashboardStats = ({ stats, loading }: { stats: DashboardData | null, loading: boolean }) => {
   const cards = [
     { label: "Cash in today", value: stats?.cash_in_today ?? 0 },

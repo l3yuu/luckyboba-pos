@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\DashboardService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
@@ -22,5 +23,13 @@ class DashboardController extends Controller
         $stats = $this->dashboardService->getHomeStats();
         
         return response()->json($stats);
+    }
+
+    public function init(Request $request): JsonResponse
+    {
+    return response()->json([
+        'user' => $request->user(),
+        'stats' => $this->dashboardService->getHomeStats(),
+    ]);
     }
 }

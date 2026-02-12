@@ -32,6 +32,8 @@ Route::get('/users', function () {
 */
 Route::middleware(['auth:sanctum'])->group(function () {
     
+    Route::get('/app-init', [DashboardController::class, 'init']);
+
     // Auth User Info - Useful for refreshing user data in React
     Route::get('/user', function (Request $request) {
         return $request->user();
