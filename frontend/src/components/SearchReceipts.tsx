@@ -32,7 +32,7 @@ const SearchReceipts = () => {
     setHasSearched(true);
 
     try {
-      const response = await api.get<Receipt[]>('/api/receipts/search', {
+      const response = await api.get<Receipt[]>('/receipts/search', {
         params: { query: activeQuery }
       });
       
