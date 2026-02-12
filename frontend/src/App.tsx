@@ -1,22 +1,10 @@
-import { useEffect } from 'react'; // Add this import
 import { RouterProvider } from 'react-router-dom';
 import { router } from './routes'; 
 import { ErrorBoundary } from './components/ErrorBoundary';
-import api from './services/api'; // Import your axios instance
 
 function App() {
-  useEffect(() => {
-    // Initial handshake to get the CSRF cookie on load
-    const initCsrf = async () => {
-      try {
-        await api.get('../sanctum/csrf-cookie');
-        console.log("CSRF Handshake successful");
-      } catch (err) {
-        console.error("CSRF Handshake failed:", err);
-      }
-    };
-    initCsrf();
-  }, []);
+  // CSRF Handshake removed to support Bearer Token authentication.
+  // This prevents the 419 Page Expired error on Railway/Brave.
 
   return (
     <ErrorBoundary 
