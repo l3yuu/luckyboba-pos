@@ -11,18 +11,17 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
-    ->withMiddleware(function (Middleware $middleware) {
-        // Essential for Sanctum SPA authentication
+->withMiddleware(function (Middleware $middleware) {
+        // This MUST be called first
         $middleware->statefulApi(); 
 
-        // We prepend these to the 'api' group to ensure cookies and sessions 
-        // are processed before CSRF validation happens.
+        // We manually order these to ensure the session is ready 
+        // BEFORE Laravel checks the CSRF token.
         $middleware->api(prepend: [
             \Illuminate\Cookie\Middleware\EncryptCookies::class,
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
-            \Illuminate\Session\Middleware\StartSession::class, 
-            \Illuminate\View\Middleware\ShareErrorsFromSession::class,
-            \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class, 
+            \Illuminate\Session\Middleware\StartSession::class, // Session first!
+            \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class, // CSRF second!
         ]);
 
         $middleware->alias([
