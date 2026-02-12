@@ -31,7 +31,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
 
     setIsLoading(true);
     try {
-      const response = await api.post('/api/cash-transactions', {
+      const response = await api.post('/cash-transactions', {
         type: 'cash_in',
         amount: parseFloat(amount),
         note: 'Initial drawer cash-in'

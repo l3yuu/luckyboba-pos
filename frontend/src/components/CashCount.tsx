@@ -88,7 +88,7 @@ const CashCount = () => {
     const finalRemarks = `${currentDay} EOD${remarks ? ' - ' + remarks : ''}`;
 
     try {
-      const response = await api.post('/api/cash-counts', {
+      const response = await api.post('/cash-counts', {
         total: total,
         breakdown: counts,
         remarks: finalRemarks, // Sends the Day + Remarks

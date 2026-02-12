@@ -32,7 +32,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
     if (cashDropCache !== null) return;
 
     try {
-      const response = await api.get<BackendTransaction[]>('/api/cash-transactions', {
+      const response = await api.get<BackendTransaction[]>('/cash-transactions', {
         params: { type: 'cash_drop', date: new Date().toISOString().split('T')[0] }
       });
       
@@ -109,7 +109,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
     const finalNote = `Drop Breakdown: ${breakdownString}${remarks ? ` | Remarks: ${remarks}` : ''}`;
 
     try {
-      const response = await api.post('/api/cash-transactions', {
+      const response = await api.post('/cash-transactions', {
         type: 'cash_drop',
         amount: total,
         note: finalNote
