@@ -1,5 +1,5 @@
 import { useState } from 'react'; // Fixed: Removed unused 'React' import
-import TopNavbar from './TopNavbar';
+import TopNavbar from '../TopNavbar';
 
 // --- MOCK DATA FOR LINE GRAPH (WEEKLY) ---
 const weeklySalesData = [

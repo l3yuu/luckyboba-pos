@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Keyboard from 'react-simple-keyboard';
 import 'react-simple-keyboard/build/css/index.css';
-import TopNavbar from './TopNavbar'; // Import the shared navbar
+import TopNavbar from '../TopNavbar'; // Import the shared navbar
 
 interface KeyboardRef {
   setInput: (input: string) => void;

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import TopNavbar from './TopNavbar';
+import TopNavbar from '../TopNavbar';
 
 // Updated Mock Data: Barcodes fixed to AO1-AO20 and AB1-AB7
 const MOCK_MENU_DATA = [

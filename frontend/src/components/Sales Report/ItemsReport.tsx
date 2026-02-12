@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import TopNavbar from './TopNavbar';
+import TopNavbar from '../TopNavbar';
 
 // Mock Data for the Table
 const MOCK_ITEMS_DATA = [

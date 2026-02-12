@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
-import TopNavbar from './TopNavbar';
+import TopNavbar from '../TopNavbar';
 
-const ZReading = () => {
+const XReading = () => {
   const today = new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState(today);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -18,7 +18,7 @@ const ZReading = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleGenerate = () => console.log("Generating Z-Reading...");
+  const handleGenerate = () => console.log("Generating...");
   const handlePrint = () => window.print();
 
   const menuCards = [
@@ -30,7 +30,7 @@ const ZReading = () => {
     { label: "ANALYSIS", title: "SALES DETAILED", color: "border-blue-600", rightText: "0" },
     { label: "INVENTORY", title: "EXPORT ITEMS", color: "border-blue-600", rightText: null },
     { label: "INVENTORY", title: "QTY ITEMS", color: "border-blue-600", rightText: "0" },
-    { label: "Z-READING", title: "", isAction: true, actionLabel: "Z-READING", actionText: "PRINT", color: "border-emerald-500", textColor: "text-emerald-600" },
+    { label: "X-READING", title: "", isAction: true, actionLabel: "X-READING", actionText: "PRINT", color: "border-emerald-500", textColor: "text-emerald-600" },
     { label: "CASH COUNT", title: "", isAction: true, actionLabel: "CASH COUNT", actionText: "VIEW", color: "border-blue-600", textColor: "text-blue-600" }
   ];
 
@@ -126,4 +126,4 @@ const ZReading = () => {
   );
 };
 
-export default ZReading;
+export default XReading;

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'; // Removed 'React'
-import TopNavbar from './TopNavbar';
+import TopNavbar from '../TopNavbar';
 
 const MallAccredReport = () => {
   const today = new Date().toISOString().split('T')[0];
