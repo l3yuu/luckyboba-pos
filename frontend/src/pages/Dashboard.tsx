@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import Sidebar from "../components/Sidebar";
@@ -18,41 +18,42 @@ const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [stats, setStats] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(false);
+  
+  const isFetching = useRef(false);
 
-  // 1. Optimized Auth Check
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/login', { replace: true });
     }
   }, [user, authLoading, navigate]);
 
-  // 2. Faster Fetching Logic
   const fetchStats = useCallback(async (isManual = false) => {
-    // Only show full loading spinner if we don't have data yet or if manual refresh
+    // Prevent multiple concurrent requests
+    if (isFetching.current) return;
+    
     if (isManual || !stats) {
       setLoading(true);
     }
+
+    isFetching.current = true;
     
     try {
-      // PRO TIP: If you had more endpoints, you'd use:
-      // const [statsRes, otherRes] = await Promise.all([api.get('/dashboard/stats'), api.get('/other')])
       const response = await api.get('/dashboard/stats');
       setStats(response.data);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
     } finally {
       setLoading(false);
+      isFetching.current = false;
     }
   }, [stats]); 
 
-  // 3. Trigger fetch immediately when user is available
   useEffect(() => {
-    if (user && activeTab === 'dashboard') {
+    if (user && activeTab === 'dashboard' && !stats) {
       fetchStats();
     }
-  }, [user, activeTab, fetchStats]);
+  }, [user, activeTab, stats, fetchStats]);
 
-  // Prevent rendering if not authenticated
   if (authLoading) return <DashboardSkeleton />;
   if (!user) return null;
 
@@ -122,26 +123,26 @@ const Dashboard = () => {
             </button>
           </header>
         )}
-        {renderContent()}
+        <div className="flex-1 overflow-y-auto">
+           {renderContent()}
+        </div>
       </main>
     </div>
   );
 };
 
-// 4. Skeleton Loader for "Instant" feel
 const DashboardSkeleton = () => (
   <div className="flex h-screen bg-[#f8f6ff] animate-pulse">
     <div className="w-64 bg-white hidden md:block border-r" />
     <div className="flex-1 p-10">
       <div className="h-10 w-48 bg-zinc-200 rounded-lg mb-4" />
-      <div className="grid grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-white rounded-3xl border" />)}
       </div>
     </div>
   </div>
 );
 
-// DashboardStats sub-component remains the same logic but updated for clean props
 const DashboardStats = ({ stats, loading }: { stats: DashboardData | null, loading: boolean }) => {
   const cards = [
     { label: "Cash in today", value: stats?.cash_in_today ?? 0 },
@@ -151,10 +152,10 @@ const DashboardStats = ({ stats, loading }: { stats: DashboardData | null, loadi
   ];
 
   return (
-    <section className="flex-1 px-6 md:px-10 pb-10 overflow-auto">
+    <section className="px-6 md:px-10 pb-10">
       <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((stat, i) => (
-          <div key={i} className="rounded-3xl border border-zinc-100 bg-white shadow-sm p-5 md:p-6 flex flex-col justify-between min-h-27.5 md:min-h-32.5 transition-all">
+          <div key={i} className="rounded-3xl border border-zinc-100 bg-white shadow-sm p-5 md:p-6 flex flex-col justify-between min-h-27.5 md:min-h-32.5">
             <p className="text-[12px] font-black uppercase tracking-[0.2em] text-zinc-400">{stat.label}</p>
             <p className={`text-xl md:text-2xl font-black ${stat.highlight ? 'text-emerald-500' : 'text-[#3b2063]'} ${loading && !stats ? 'animate-pulse opacity-20' : ''}`}>
               {stat.isCurrency === false ? stat.value : `₱${Number(stat.value).toLocaleString(undefined, {minimumFractionDigits: 2})}`}
