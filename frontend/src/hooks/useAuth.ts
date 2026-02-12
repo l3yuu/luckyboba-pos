@@ -1,4 +1,3 @@
-// src/hooks/useAuth.ts
 import api from '../services/api';
 import { useState, useEffect, useCallback } from 'react'; 
 import axios from 'axios'; 
@@ -10,18 +9,21 @@ export const useAuth = () => {
     const [user, setUser] = useState<User | null>(null);
 
     const checkAuth = useCallback(async (): Promise<User | null> => {
-        if (localStorage.getItem('lucky_boba_authenticated') !== 'true') {
+        // We now check for the token instead of just a boolean string
+        const token = localStorage.getItem('lucky_boba_token');
+        
+        if (!token) {
             setIsLoading(false);
             return null;
         }
 
         try {
-            // baseURL is already .../api, so we just use '/user'
             const response = await api.get('/user');
             const userData = response.data;
             setUser(userData);
             return userData;
         } catch {
+            localStorage.removeItem('lucky_boba_token');
             localStorage.removeItem('lucky_boba_authenticated');
             setUser(null);
             return null;
@@ -39,19 +41,19 @@ export const useAuth = () => {
         setError(null);
         
         try {
-            // 1. Get the CSRF Cookie 
-            // '../' moves up from .../api to the root .../sanctum/csrf-cookie
-            await api.get('../sanctum/csrf-cookie');
+            // STEP 1: No more sanctum/csrf-cookie call! 
+            // We go straight to login.
+            const response = await api.post('/login', credentials);
             
-            // 2. Perform Login 
-            // Removed the extra '/api' because it's already in your baseURL
-            await api.post('/login', credentials);
+            // STEP 2: Capture the token and user from our new controller response
+            const { token, user: userData } = response.data;
             
+            // STEP 3: Store them
+            localStorage.setItem('lucky_boba_token', token);
             localStorage.setItem('lucky_boba_authenticated', 'true');
             
-            // 3. Fetch the actual user data
-            const authenticatedUser = await checkAuth();
-            return authenticatedUser; 
+            setUser(userData);
+            return userData;
         } catch (err: unknown) { 
             if (axios.isAxiosError(err)) {
                 setError(err.response?.data?.message || 'Invalid credentials.');
@@ -65,13 +67,15 @@ export const useAuth = () => {
 
     const logout = async (): Promise<boolean> => {
         try {
-            // Removed the extra '/api' to prevent .../api/api/logout
             await api.post('/logout');
-            localStorage.removeItem('lucky_boba_authenticated');
-            setUser(null);
             return true;
         } catch {
             return false;
+        } finally {
+            // Always clear storage even if the API call fails
+            localStorage.removeItem('lucky_boba_token');
+            localStorage.removeItem('lucky_boba_authenticated');
+            setUser(null);
         }
     };
 

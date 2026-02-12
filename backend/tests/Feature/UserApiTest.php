@@ -10,19 +10,18 @@ class UserApiTest extends TestCase
 {
     use RefreshDatabase; // Use this to create the tables automatically
 
-    public function test_can_get_all_users()
-    {
-        // 1. Create a fake user in the memory database so there is something to "Get"
-        User::factory()->create([
-            'name' => 'Test User',
-            'role' => 'admin',
-        ]);
+// tests/Feature/UserApiTest.php
 
-        // 2. Act
-        $response = $this->getJson('/api/users');
+public function test_can_get_all_users(): void
+{
+    // 1. Arrange: Create a user so the count is 1
+    User::factory()->create();
 
-        // 3. Assert
-        $response->assertStatus(200)
-                 ->assertJsonCount(1); // Check if 1 user was returned
-    }
+    // 2. Act: Call the API (MUST include /api)
+    $response = $this->getJson('/api/users');
+
+    // 3. Assert
+    $response->assertStatus(200)
+             ->assertJsonCount(1);
+}
 }

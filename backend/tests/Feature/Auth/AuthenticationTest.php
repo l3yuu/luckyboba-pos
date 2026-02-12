@@ -38,13 +38,16 @@ class AuthenticationTest extends TestCase
 public function test_users_can_logout(): void
 {
     $user = User::factory()->create();
+    
+    // Explicitly create a token for the user so currentAccessToken() isn't null
+    $token = $user->createToken('test-token')->plainTextToken;
 
-    // actingAs needs the session middleware to be ACTIVE (which is why we don't use global WithoutMiddleware)
-    $response = $this->actingAs($user, 'web')
-        ->withoutMiddleware(\Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class)
-        ->postJson('/logout');
+    $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        ->postJson('/api/logout');
 
-    $this->assertGuest('web');
-    $response->assertNoContent();
+    $response->assertStatus(200)
+             ->assertJson(['message' => 'Logged out successfully']);
+    
+    $this->assertCount(0, $user->tokens);
 }
 }

@@ -1,10 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-    // Make sure this is: https://luckyboba-pos-production.up.railway.app/api
     baseURL: import.meta.env.VITE_API_BASE_URL,
-    withCredentials: true,
-    withXSRFToken: true,
+    // Note: withCredentials is NOT needed for Bearer Tokens
     headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
@@ -13,23 +11,14 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-    const name = "XSRF-TOKEN=";
-    const decodedCookie = decodeURIComponent(document.cookie);
-    const ca = decodedCookie.split(';');
-    
-    let token = "";
-    for (let i = 0; i < ca.length; i++) {
-        const c = ca[i].trim();
-        if (c.indexOf(name) === 0) {
-            token = c.substring(name.length, c.length);
-        }
-    }
+    // Grab the Bearer token from storage
+    const token = localStorage.getItem('lucky_boba_token');
 
     if (token) {
-        config.headers['X-XSRF-TOKEN'] = token;
-        console.log("Found XSRF Token, attaching to header.");
+        config.headers.Authorization = `Bearer ${token}`;
+        console.log("Bearer Token attached to header.");
     } else {
-        console.warn("XSRF Token NOT FOUND in cookies. Login might fail with 419.");
+        console.warn("No Bearer Token found in storage.");
     }
     
     return config;
