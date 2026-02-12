@@ -38,7 +38,7 @@ import PurchaseOrder from '../components/Inventory/PurchaseOrder';
 import StockTransfer from '../components/Inventory/StockTransfer';
 import Supplier from '../components/Inventory/Supplier';
 
-// --- Import Settings Component (New) ---
+// --- Import Settings Component ---
 import Settings from '../components/Settings';
 
 const Dashboard = () => {
@@ -51,22 +51,19 @@ const Dashboard = () => {
   
   const isFetching = useRef(false);
 
+  // AUTH CHECK
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/login', { replace: true });
     }
   }, [user, authLoading, navigate]);
 
+  // BACKEND FETCH LOGIC
   const fetchStats = useCallback(async (isManual = false) => {
-    // Prevent multiple concurrent requests
     if (isFetching.current) return;
-    
-    if (isManual || !stats) {
-      setLoading(true);
-    }
+    if (isManual || !stats) setLoading(true);
 
     isFetching.current = true;
-    
     try {
       const response = await api.get('/dashboard/stats');
       setStats(response.data);
@@ -91,71 +88,39 @@ const Dashboard = () => {
     switch (activeTab) {
       case 'dashboard':
         return <DashboardStats stats={stats} loading={loading} />;
-      case 'sales': 
-      case 'menu':   
-        return (
-          <div className="flex flex-col items-center justify-center h-full text-zinc-400">
-            <p className="font-bold uppercase tracking-widest text-sm">Feature Coming Soon</p>
-          </div>
-        );
-      case 'cash-in':
-        return <CashIn onSuccess={() => fetchStats(true)} />;
-      case 'cash-drop':
-        return <CashDrop onSuccess={() => fetchStats(true)} />;
-      case 'search-receipts':
-        return <SearchReceipts />;
-      case 'cash-count':
-        return <CashCount />;
+      
+      // POS TABS
+      case 'cash-in': return <CashIn onSuccess={() => fetchStats(true)} />;
+      case 'cash-drop': return <CashDrop onSuccess={() => fetchStats(true)} />;
+      case 'search-receipts': return <SearchReceipts />;
+      case 'cash-count': return <CashCount />;
 
-      // --- SALES REPORT TABS ---
-      case 'sales-dashboard':
-        return <SalesDashboard />;
-      case 'items-report':
-        return <ItemsReport />;
-      case 'x-reading':
-        return <XReading />;
-      case 'z-reading':
-        return <ZReading />;
-      case 'mall-accred':
-        return <MallAccredReport />;
+      // SALES REPORT
+      case 'sales-dashboard': return <SalesDashboard />;
+      case 'items-report': return <ItemsReport />;
+      case 'x-reading': return <XReading />;
+      case 'z-reading': return <ZReading />;
+      case 'mall-accred': return <MallAccredReport />;
 
-      // --- MENU ITEMS TABS ---
-      case 'menu-list':
-        return <MenuList />;
-      case 'category-list':
-        return <CategoryList />;
-      case 'sub-category-list':
-        return <SubCategoryList />;
+      // MENU ITEMS
+      case 'menu-list': return <MenuList />;
+      case 'category-list': return <CategoryList />;
+      case 'sub-category-list': return <SubCategoryList />;
 
-      // --- EXPENSE TAB ---
-      case 'expense':
-        return <Expense />;
+      // INVENTORY
+      case 'inventory-dashboard': return <InventoryDashboard />;
+      case 'inventory-list': return <InventoryList />;
+      case 'inventory-category': return <InventoryCategoryList />;
+      case 'supplier': return <Supplier />;
+      case 'item-checker': return <ItemChecker />;
+      case 'item-serials': return <ItemSerials />;
+      case 'purchase-order': return <PurchaseOrder />;
+      case 'stock-transfer': return <StockTransfer />;
+      case 'inventory-report': return <InventoryReport />;
 
-      // --- INVENTORY TABS ---
-      case 'inventory-dashboard':
-        return <InventoryDashboard />;
-      case 'inventory-list':
-        return <InventoryList />;
-      case 'inventory-category':
-        return <InventoryCategoryList />;
-      case 'supplier':
-        return <Supplier />;
-      case 'item-checker':
-        return <ItemChecker />;
-      case 'item-serials':
-        return <ItemSerials />;
-      case 'purchase-order':
-        return <PurchaseOrder />;
-      case 'stock-transfer':
-        return <StockTransfer />;
-      case 'inventory-report':
-        return <InventoryReport />;
+      case 'expense': return <Expense />;
+      case 'settings': return <Settings />;
 
-      // --- SETTINGS TAB (New) ---
-      case 'settings':
-        return <Settings />;
-
-      // --- FALLBACK ---
       default:
         return <DashboardStats stats={stats} loading={loading} />;
     }
@@ -215,17 +180,7 @@ const Dashboard = () => {
   );
 };
 
-const DashboardSkeleton = () => (
-  <div className="flex h-screen bg-[#f8f6ff] animate-pulse">
-    <div className="w-64 bg-white hidden md:block border-r" />
-    <div className="flex-1 p-10">
-      <div className="h-10 w-48 bg-zinc-200 rounded-lg mb-4" />
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-white rounded-3xl border" />)}
-      </div>
-    </div>
-  </div>
-);
+// --- Updated UI Components with Backend Logic ---
 
 const DashboardStats = ({ stats, loading }: { stats: DashboardData | null, loading: boolean }) => {
   const cards = [
@@ -236,11 +191,11 @@ const DashboardStats = ({ stats, loading }: { stats: DashboardData | null, loadi
   ];
 
   return (
-    <section className="px-6 md:px-10 pb-10">
+    <section className="flex-1 px-6 md:px-10 pb-10">
       <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((stat, i) => (
-          <div key={i} className="rounded-3xl border border-zinc-100 bg-white shadow-sm p-5 md:p-6 flex flex-col justify-between min-h-27.5 md:min-h-32.5">
-            <p className="text-[12px] font-black uppercase tracking-[0.2em] text-zinc-400">{stat.label}</p>
+          <div key={i} className="rounded-3xl md:rounded-4xl border border-zinc-100 bg-white shadow-sm p-5 md:p-6 flex flex-col justify-between min-h-27.5 md:min-h-32.5">
+            <p className="text-[12px] md:text-[13px] font-black uppercase tracking-[0.2em] text-zinc-400">{stat.label}</p>
             <p className={`text-xl md:text-2xl font-black ${stat.highlight ? 'text-emerald-500' : 'text-[#3b2063]'} ${loading && !stats ? 'animate-pulse opacity-20' : ''}`}>
               {stat.isCurrency === false ? stat.value : `₱${Number(stat.value).toLocaleString(undefined, {minimumFractionDigits: 2})}`}
             </p>
@@ -248,25 +203,42 @@ const DashboardStats = ({ stats, loading }: { stats: DashboardData | null, loadi
         ))}
       </div>
       <div className="mt-6 md:mt-8 grid gap-4 md:gap-6 grid-cols-1 xl:grid-cols-2">
-        <TopSellerCard title="Top seller for today" seller={stats?.top_seller_today ?? null} loading={loading && !stats} />
-        <TopSellerCard title="Top seller all time" seller={stats?.top_seller_all_time ?? null} loading={loading && !stats} />
+        <TopSellerList title="Top seller for today" seller={stats?.top_seller_today ?? null} loading={loading && !stats} />
+        <TopSellerList title="Top seller all time" seller={stats?.top_seller_all_time ?? null} loading={loading && !stats} />
       </div>
     </section>
   );
 };
 
-const TopSellerCard = ({ title, seller, loading }: { title: string, seller: TopSeller | null, loading: boolean }) => (
-  <div className="rounded-3xl border border-zinc-100 bg-white shadow-sm p-6 md:p-8 min-h-45 flex flex-col">
-    <p className="text-[12px] font-black uppercase tracking-[0.25em] text-zinc-400 mb-4">{title}</p>
-    <div className={`flex-1 flex flex-col justify-center ${loading ? 'opacity-20 animate-pulse' : ''}`}>
+const TopSellerList = ({ title, seller, loading }: { title: string, seller: TopSeller | null, loading: boolean }) => (
+  <div className="rounded-3xl md:rounded-[2.5rem] border border-zinc-100 bg-white shadow-sm p-6 md:p-8 min-h-45 md:min-h-55 flex flex-col">
+    <p className="text-[12px] md:text-[15px] font-black uppercase tracking-[0.25em] text-zinc-400 mb-4 md:mb-6">{title}</p>
+    <div className={`flex-1 flex flex-col justify-center gap-3 ${loading ? 'opacity-20 animate-pulse' : ''}`}>
       {seller ? (
-        <>
-          <p className="text-2xl md:text-3xl font-black text-[#3b2063]">{seller.product_name}</p>
-          <p className="text-emerald-500 font-bold uppercase text-[10px] tracking-widest mt-2">{seller.total_qty} Units Sold</p>
-        </>
+        <div className="flex items-center justify-between border-b border-zinc-100 pb-2">
+           <p className="font-bold text-[#3b2063] text-lg">#1 {seller.product_name}</p>
+           <p className="text-emerald-500 font-bold">{seller.total_qty} Sold</p>
+        </div>
       ) : (
-        <p className="text-zinc-300 font-bold uppercase tracking-widest mt-2">Data unavailable</p>
+        [1, 2, 3].map((rank) => (
+          <div key={rank} className="flex items-center justify-between border-b border-zinc-100 pb-2">
+            <p className="font-bold text-zinc-500">#{rank}</p>
+            <p className="text-zinc-300 font-semibold italic">No data</p>
+          </div>
+        ))
       )}
+    </div>
+  </div>
+);
+
+const DashboardSkeleton = () => (
+  <div className="flex h-screen bg-[#f8f6ff] animate-pulse">
+    <div className="w-64 bg-white hidden md:block border-r" />
+    <div className="flex-1 p-10">
+      <div className="h-10 w-48 bg-zinc-200 rounded-lg mb-4" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[1, 2, 3, 4].map(i => <div key={i} className="h-32 bg-white rounded-4xl border" />)}
+      </div>
     </div>
   </div>
 );
