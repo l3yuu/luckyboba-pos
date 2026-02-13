@@ -10,11 +10,10 @@ class MenuController extends Controller
     /**
      * Fetch all categories and their associated menu items.
      */
-    public function index()
-    {
-        // We use "with('menuItems')" to avoid the N+1 query problem
-        $menu = Category::with('menuItems')->get();
-
-        return response()->json($menu);
-    }
+public function index()
+{
+    // Match the new relationship name
+    $menu = Category::with('menu_items')->get(); 
+    return response()->json($menu);
+}
 }

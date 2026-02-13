@@ -65,6 +65,12 @@ const SearchReceipts = () => {
     if (keyboardRef.current) keyboardRef.current.setInput(val);
   };
 
+  const handleViewDetails = (saleId: number) => {
+    // You can redirect to a specific receipt view or open a modal
+    console.log("Viewing details for Sale ID:", saleId);
+    // navigate(`/receipt/${saleId}`); 
+  };
+
   return (
     <div className="flex flex-col h-full w-full bg-[#f8f6ff] animate-in fade-in zoom-in duration-300 relative overflow-hidden">
       <TopNavbar />
@@ -138,7 +144,11 @@ const SearchReceipts = () => {
                    </tr>
                  ) : searchResults.length > 0 ? (
                    searchResults.map((item) => (
-                    <tr key={item.id} className="hover:bg-[#f8f6ff] transition-colors cursor-pointer group">
+                    <tr 
+                      key={item.id} 
+                      onClick={() => handleViewDetails(item.sale_id)} 
+                      className="hover:bg-[#f8f6ff] transition-colors cursor-pointer group"
+                    >
                       <td className="px-6 py-4">
                         <span className="font-black text-[#3b2063] text-sm group-hover:text-purple-600">#{item.si_number}</span>
                         <p className="text-[10px] text-zinc-400 font-medium">
@@ -163,7 +173,8 @@ const SearchReceipts = () => {
                        </p>
                      </td>
                    </tr>
-                 )}
+                 )
+                }
                </tbody>
              </table>
            </div>
