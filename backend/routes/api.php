@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\CashTransactionController;
 use App\Http\Controllers\Api\ReceiptController;
 use App\Http\Controllers\Api\CashCountController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Api\MenuController;
 
 /*
 |--------------------------------------------------------------------------
@@ -24,6 +25,7 @@ Route::get('/users', function () {
     return User::all();
 });
 
+Route::get('/menu', [App\Http\Controllers\Api\MenuController::class, 'index']);
 /*
 |--------------------------------------------------------------------------
 | Protected API Routes (Requires auth:sanctum)
@@ -54,4 +56,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Cash Counts / End of Day Reporting
     Route::post('/cash-counts', [CashCountController::class, 'store']);
+
+    //Route::get('/menu', [MenuController::class, 'index']);
 });
