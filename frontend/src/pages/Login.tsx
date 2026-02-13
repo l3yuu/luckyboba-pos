@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 // Asset Imports
@@ -8,13 +8,33 @@ import backgroundImage from '../assets/background_image.png';
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login, isLoading, error } = useAuth();
+  const { login, isLoading, error, getUserRole } = useAuth();
   const navigate = useNavigate();
+
+  // Check if already logged in and redirect
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      const role = getUserRole();
+      if (role === 'superadmin') {
+        navigate('/super-admin', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
+    }
+  }, [navigate, getUserRole]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = await login(email, password);
-    if (success) navigate('/dashboard', { replace: true });
+    const result = await login(email, password);
+    if (result.success) {
+      // Redirect based on user role
+      if (result.role === 'superadmin') {
+        navigate('/super-admin', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
+    }
   };
 
   return (
