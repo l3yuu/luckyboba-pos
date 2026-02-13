@@ -11,19 +11,25 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Create at least one user so the transactions have an owner
+        // 1. Create the Categories and Menu Items first
+        $this->call([
+            CategorySeeder::class,
+            MenuSeeder::class, // <--- ADD THIS LINE HERE
+        ]);
+
+        // 2. Create at least one user so the transactions have an owner
         $user = \App\Models\User::factory()->create([
             'name' => 'Cashier Ichigo',
             'email' => 'cashier@luckyboba.com',
             'role' => 'cashier' 
         ]);
 
-        // 1. Create 10 Cash Transactions
+        // 3. Create 10 Cash Transactions
         \App\Models\CashTransaction::factory(10)->create([
             'user_id' => $user->id, 
         ]);
 
-        // 2. Create 30 Sales
+        // 4. Create 30 Sales
         \App\Models\Sale::factory(30)->create()->each(function ($sale) {
             \App\Models\SaleItem::factory(rand(1, 2))->create([
                 'sale_id' => $sale->id,
@@ -31,8 +37,7 @@ class DatabaseSeeder extends Seeder
             ]);
         });
 
-        // 3. Add the Cash Count Seeder here
-        // This will populate the cash_counts table you just created
+        // 5. Add other seeders
         $this->call([
             CashCountSeeder::class,
         ]);
