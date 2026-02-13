@@ -13,10 +13,26 @@ return new class extends Migration
     {
         Schema::create('sale_items', function (Blueprint $table) {
             $table->id();
+            // Link to the main sale
             $table->foreignId('sale_id')->constrained()->onDelete('cascade');
+            
+            // Item identification
+            $table->unsignedBigInteger('menu_item_id'); 
             $table->string('product_name');
+            
+            // Quantity and Pricing
             $table->integer('quantity');
-            $table->decimal('price', 8, 2);
+            $table->decimal('price', 10, 2); // Unit price
+            $table->decimal('final_price', 10, 2); // Price x Qty + extras
+            
+            // Drink Specific Customizations
+            $table->string('sugar_level')->nullable();
+            $table->string('size')->nullable();
+            
+            // Use JSON for arrays like ['NO ICE', 'WARM'] or ['Pearl', 'Nata']
+            $table->json('options')->nullable(); 
+            $table->json('add_ons')->nullable();
+            
             $table->timestamps();
         });
     }

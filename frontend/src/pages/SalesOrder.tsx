@@ -27,6 +27,7 @@ const SalesOrder = () => {
     const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
     const [categorySize, setCategorySize] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    const [submitting, setSubmitting] = useState(false);
 
     const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
     const [isAddOnModalOpen, setIsAddOnModalOpen] = useState(false);
@@ -44,31 +45,31 @@ const SalesOrder = () => {
 
     const [cart, setCart] = useState<CartItem[]>([]);
 
-    useEffect(() => {
-        const fetchMenu = async () => {
-            const token = localStorage.getItem('token');
-            try {
-                const response = await fetch('http://localhost:8000/api/menu', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Accept': 'application/json',
-                    }
-                });
-                const data = await response.json();
-                if (Array.isArray(data)) {
-                    setCategories(data);
+useEffect(() => {
+    const fetchMenu = async () => {
+        const token = localStorage.getItem('lucky_boba_token'); // ← Changed from 'token'
+        try {
+            const response = await fetch('http://localhost:8000/api/menu', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json',
                 }
-                setLoading(false);
-            } catch (error) {
-                console.error("Error fetching menu:", error);
-                setLoading(false);
+            });
+            const data = await response.json();
+            if (Array.isArray(data)) {
+                setCategories(data);
             }
-        };
-        fetchMenu();
+            setLoading(false);
+        } catch (error) {
+            console.error("Error fetching menu:", error);
+            setLoading(false);
+        }
+    };
+    fetchMenu();
 
-        const timer = setInterval(() => setCurrentDate(new Date()), 1000);
-        return () => clearInterval(timer);
-    }, []);
+    const timer = setInterval(() => setCurrentDate(new Date()), 1000);
+    return () => clearInterval(timer);
+}, []);
 
     // LOGIC HELPERS
     const isDrink = selectedCategory?.type === 'drink';
@@ -163,7 +164,80 @@ const SalesOrder = () => {
     };
 
     const removeFromCart = (index: number) => setCart(prev => prev.filter((_, i) => i !== index));
-    const handlePrint = () => { window.print(); setIsConfirmModalOpen(false); };
+    
+const handleConfirmOrder = async () => {
+    if (cart.length === 0) return;
+    
+    setSubmitting(true);
+    // CHANGE THIS LINE - use the correct localStorage key
+    const token = localStorage.getItem('lucky_boba_token'); // ← Changed from 'token'
+
+    console.log('Token:', token);
+
+    try {
+        // Prepare order data
+        const orderData = {
+            items: cart.map(item => ({
+                menu_item_id: item.id,
+                name: item.name,
+                quantity: item.qty,
+                unit_price: Number(item.price),
+                total_price: item.finalPrice,
+                size: item.size || null,
+                sugar_level: item.sugarLevel || null,
+                options: item.options || [],
+                add_ons: item.addOns || [],
+                remarks: item.remarks || null,
+                charges: {
+                    grab: item.charges.grab,
+                    panda: item.charges.panda
+                }
+            })),
+            subtotal: subtotal,
+            total: subtotal
+        };
+
+        console.log('Sending order data:', orderData);
+
+        const response = await fetch('http://localhost:8000/api/sales', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify(orderData)
+        });
+
+        console.log('Response status:', response.status);
+
+        const result = await response.json();
+        console.log('Response body:', result);
+
+        if (!response.ok) {
+            throw new Error(result.message || 'Failed to create order');
+        }
+
+        console.log('Order created:', result);
+
+        // Print receipt after successful order
+        window.print();
+        
+        // Clear cart and close modal
+        setCart([]);
+        setIsConfirmModalOpen(false);
+        
+        // Show success message
+        alert('Order confirmed successfully!');
+        
+    } catch (error) {
+        console.error('Error creating order:', error);
+        alert('Failed to create order. Please try again.');
+    } finally {
+        setSubmitting(false);
+    }
+};
+
     const subtotal = cart.reduce((acc, item) => acc + item.finalPrice, 0);
     const totalCount = cart.reduce((acc, item) => acc + item.qty, 0);
 
@@ -171,15 +245,15 @@ const SalesOrder = () => {
     const largeDrinks = cart.filter(item => item.size === 'L');
     const otherItems = cart.filter(item => !item.size);
 
-    // This filters both category names AND the items inside them
-const filteredCategories = categories.map(cat => ({
-    ...cat,
-    menu_items: cat.menu_items.filter(item => 
-        item.name.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-})).filter(cat => 
-    cat.name.toLowerCase().includes(searchQuery.toLowerCase()) || cat.menu_items.length > 0
-);
+    // Filter categories for the main grid view
+    const filteredCategories = categories.map(cat => ({
+        ...cat,
+        menu_items: cat.menu_items.filter(item => 
+            item.name.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+    })).filter(cat => 
+        cat.name.toLowerCase().includes(searchQuery.toLowerCase()) || cat.menu_items.length > 0
+    );
     
     if (loading) return <div className="h-screen flex items-center justify-center font-black text-[#3b2063]">LUCKY BOBA IS LOADING...</div>;
 
@@ -202,12 +276,12 @@ const filteredCategories = categories.map(cat => ({
                     </div>
                     <div className="flex-1 bg-zinc-50 rounded-2xl p-2 flex gap-2 shadow-inner border border-zinc-200 items-center">
                         <input 
-    type="text" 
-    placeholder="Search Item..." 
-    value={searchQuery} // Connect state
-    onChange={(e) => setSearchQuery(e.target.value)} // Update state on type
-    className="flex-1 bg-transparent px-4 font-bold text-zinc-700 outline-none uppercase placeholder:text-zinc-300 text-sm" 
-/>
+                            type="text" 
+                            placeholder="Search Item..." 
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="flex-1 bg-transparent px-4 font-bold text-zinc-700 outline-none uppercase placeholder:text-zinc-300 text-sm" 
+                        />
                     </div>
                     <div className="flex flex-col gap-2 w-56">
                         <div className="flex-1 bg-white border border-zinc-100 rounded-xl flex items-center justify-center text-[#3b2063] font-black uppercase text-[10px]">Main Branch - QC</div>
@@ -251,10 +325,10 @@ const filteredCategories = categories.map(cat => ({
                                 ) : (
                                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 pb-20">
                                         {selectedCategory.menu_items
-                                        .filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                                        .map((item) => (
-                                            <button key={item.id} onClick={() => handleItemClick(item)} className="bg-white hover:bg-[#3b2063] hover:text-white text-[#3b2063] p-4 rounded-2xl shadow-sm border border-zinc-100 h-24 text-xs uppercase font-bold text-center">{item.name}</button>
-                                        ))}
+                                            .filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
+                                            .map((item) => (
+                                                <button key={item.id} onClick={() => handleItemClick(item)} className="bg-white hover:bg-[#3b2063] hover:text-white text-[#3b2063] p-4 rounded-2xl shadow-sm border border-zinc-100 h-24 text-xs uppercase font-bold text-center">{item.name}</button>
+                                            ))}
                                     </div>
                                 )}
                             </div>
@@ -475,7 +549,13 @@ const filteredCategories = categories.map(cat => ({
                                 <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Total Amount</span>
                                 <span className="text-3xl font-black text-[#3b2063]">₱ {subtotal.toFixed(2)}</span>
                             </div>
-                            <button onClick={handlePrint} disabled={cart.length === 0} className="w-full bg-[#3b2063] text-white py-4 rounded-xl font-black uppercase tracking-widest shadow-lg">Print Receipt</button>
+                            <button 
+                                onClick={handleConfirmOrder} 
+                                disabled={cart.length === 0 || submitting} 
+                                className="w-full bg-[#3b2063] text-white py-4 rounded-xl font-black uppercase tracking-widest shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {submitting ? 'Processing...' : 'Print Receipt'}
+                            </button>
                             <button onClick={() => { setIsConfirmModalOpen(false); setOrderChargeType(null); }} className="w-full bg-white border-2 border-zinc-100 text-zinc-500 py-4 rounded-xl font-bold uppercase tracking-widest">Cancel</button>
                         </div>
                     </div>

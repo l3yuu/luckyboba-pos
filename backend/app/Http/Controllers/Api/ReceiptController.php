@@ -10,17 +10,19 @@ class ReceiptController extends Controller
 {
     public function search(Request $request)
     {
-        $query = strtolower($request->input('query'));
+        $query = $request->input('query');
 
-        // If no query is provided, return all receipts
+        // If no query, return the latest receipts so the table isn't empty on load
         if (empty($query)) {
-            $receipts = Receipt::latest()->get();
+            $receipts = Receipt::latest()->limit(50)->get();
             return response()->json($receipts);
         }
 
-        $receipts = Receipt::whereRaw('LOWER(si_number) LIKE ?', ["%{$query}%"])
-            ->orWhereRaw('LOWER(cashier_name) LIKE ?', ["%{$query}%"])
-            ->orWhereRaw('LOWER(terminal) LIKE ?', ["%{$query}%"])
+        $lowQuery = strtolower($query);
+
+        $receipts = Receipt::whereRaw('LOWER(si_number) LIKE ?', ["%{$lowQuery}%"])
+            ->orWhereRaw('LOWER(cashier_name) LIKE ?', ["%{$lowQuery}%"])
+            ->orWhereRaw('LOWER(terminal) LIKE ?', ["%{$lowQuery}%"])
             ->latest()
             ->get();
 

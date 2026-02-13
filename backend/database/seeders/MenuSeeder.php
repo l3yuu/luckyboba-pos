@@ -32,6 +32,89 @@ class MenuSeeder extends Seeder
                 ['name' => "Sticky Rice", 'price' => 20.00, 'barcode' => 'AO-19'],
                 ['name' => "Egg Pudding", 'price' => 20.00, 'barcode' => 'AO-20'],
             ],
+            
+            'AFFORDA-BOWLS' => [
+                ['name' => "AFFORD-SIOMAI + RICE", 'price' => 59.00, 'barcode' => 'AB-1'],
+                ['name' => "AFFORD-HOTDOG + RICE", 'price' => 59.00, 'barcode' => 'AB-2'],
+                ['name' => "AFFORD-CHIC WINGS + RICE", 'price' => 69.00, 'barcode' => 'AB-3'],
+                ['name' => "AFFORD-CHIC POPPERS + RICE", 'price' => 69.00, 'barcode' => 'AB-4'],
+                ['name' => "AFFORD-SHANGHAI + RICE", 'price' => 69.00, 'barcode' => 'AB-5'],
+                ['name' => "AFFORD-CHICK TONKATSU + RICE", 'price' => 79.00, 'barcode' => 'AB-6'],
+                ['name' => "AFFORD-LONGGA RICE + EGG", 'price' => 79.00, 'barcode' => 'AB-7'],
+            ],
+            
+            'ALA CARTE SNACKS' => [
+                ['name' => "Chicken Twister Wrap", 'price' => 85.00, 'barcode' => 'ACS-1'],
+                ['name' => "Chicken Poppers Snack", 'price' => 99.00, 'barcode' => 'ACS-2'],
+                ['name' => "Spaghetti", 'price' => 75.00, 'barcode' => 'ACS-3'],
+                ['name' => "Thick Coated Fries", 'price' => 99.00, 'barcode' => 'ACS-4'],
+                ['name' => "Cheesy Nachos", 'price' => 180.00, 'barcode' => 'ACS-5'],
+                ['name' => "Bottled Mineral Water", 'price' => 25.00, 'barcode' => 'ACS-6'],
+                ['name' => "Rice", 'price' => 20.00, 'barcode' => 'ACS-7'],
+            ],
+            
+            'ALL DAY MEALS' => [
+                ['name' => "SPICY TAPA ALL DAY MEAL", 'price' => 135.00, 'barcode' => 'ADM-1'],
+                ['name' => "TONKATSU ALL DAY MEAL", 'price' => 120.00, 'barcode' => 'ADM-2'],
+                ['name' => "3PCS CHICK WINGS ALL DAY MEAL", 'price' => 135.00, 'barcode' => 'ADM-3'],
+                ['name' => "LONGGANISA ALL DAY MEAL", 'price' => 100.00, 'barcode' => 'ADM-4'],
+                ['name' => "CHICKEN POPPERS ALL DAY MEAL", 'price' => 135.00, 'barcode' => 'ADM-5'],
+            ],
+            
+            'CHEESECAKE MILK TEA' => [
+                ['name' => "OKINAWA M. TEA + C.CAKE", 'price' => 115.00, 'barcode' => 'CCMM1'],
+                ['name' => "CHOC HZELNT + C.CAKE", 'price' => 115.00, 'barcode' => 'CCMM2'],
+                ['name' => "STRAWBERRY M. TEA + C.CAKE", 'price' => 115.00, 'barcode' => 'CCMM3'],
+                ['name' => "SALTED CARAMEL M. TEA + C.CAKE", 'price' => 115.00, 'barcode' => 'CCMM4'],
+                ['name' => "VANILLA M. TEA + C.CAKE", 'price' => 115.00, 'barcode' => 'CCMM5'],
+                ['name' => "TARO M. TEA + C.CAKE", 'price' => 115.00, 'barcode' => 'CCMM6'],
+                ['name' => "MANGO M. TEA + C.CAKE", 'price' => 115.00, 'barcode' => 'CCMM7'],
+                ['name' => "BBERRY M. TEA + C.CAKE", 'price' => 115.00, 'barcode' => 'CCMM8'],
+                ['name' => "MATCHA M. TEA + C.CAKE", 'price' => 115.00, 'barcode' => 'CCMM9'],
+                ['name' => "COOKIES & CREAM M. TEA + C.CAKE", 'price' => 115.00, 'barcode' => 'CCMM10'],
+                ['name' => "BELGIAN M. TEA + C.CAKE", 'price' => 115.00, 'barcode' => 'CCMM11'],
+            ],
+            
+            'CHICKEN WINGS' => [
+                ['name' => "BUFFALO", 'price' => 0.00, 'barcode' => 'CW-1'],
+                ['name' => "GARLIC PARMESAN", 'price' => 0.00, 'barcode' => 'CW-2'],
+                ['name' => "SWEET CHILI", 'price' => 0.00, 'barcode' => 'CW-3'],
+                ['name' => "TERIYAKI", 'price' => 0.00, 'barcode' => 'CW-4'],
+                ['name' => "SOY GARLIC", 'price' => 0.00, 'barcode' => 'CW-5'],
+                ['name' => "SALTED EGG", 'price' => 0.00, 'barcode' => 'CW-6'],
+            ],
+            
+            'CLASSIC MILKTEA' => [
+                ['name' => "CLASSIC M. TEA", 'price' => 70.00, 'barcode' => 'CMM1'],
+                ['name' => "CLASSIC PEARL M. TEA", 'price' => 70.00, 'barcode' => 'CMM2'],
+                ['name' => "CLASSIC BUDDY M. TEA", 'price' => 105.00, 'barcode' => 'CMM3'],
+                ['name' => "CLASSIC DUO M. TEA", 'price' => 115.00, 'barcode' => 'CMM4'],
+                ['name' => "CLASSIC CRM. CHEESE", 'price' => 115.00, 'barcode' => 'CMM5'],
+                ['name' => "CLASSIC C. CAKE M. TEA", 'price' => 115.00, 'barcode' => 'CMM6'],
+                ['name' => "CLASSIC RSC M. TEA", 'price' => 115.00, 'barcode' => 'CMM7'],
+                ['name' => "CLASSIC M. TEA + OREO", 'price' => 85.00, 'barcode' => 'CMM8'],
+                ['name' => "CLASSIC M. TEA + PUDDING", 'price' => 95.00, 'barcode' => 'CMM9'],
+                ['name' => "CL PUDDING + B.PEARL", 'price' => 110.00, 'barcode' => 'CMM10'],
+                ['name' => "CL PUDDING + MWP", 'price' => 110.00, 'barcode' => 'CMM11'],
+            ],
+            
+            'COFFEE FRAPPE' => [
+                ['name' => "MOCHA FRP", 'price' => 125.00, 'barcode' => 'CFM1'],
+                ['name' => "VANILLA FRP", 'price' => 125.00, 'barcode' => 'CFM2'],
+                ['name' => "JAVA CHIP FRP", 'price' => 125.00, 'barcode' => 'CFM3'],
+                ['name' => "TOFFEE CARAMEL FRP", 'price' => 125.00, 'barcode' => 'CFM4'],
+                ['name' => "CARAMEL MACCHIATO FRP", 'price' => 125.00, 'barcode' => 'CFM5'],
+            ],
+            
+            'COMBO MEALS' => [
+                ['name' => "THICK COATED FRIES & CLASSIC PEARL", 'price' => 174.00, 'barcode' => 'COM2'],
+                ['name' => "CHICKEN TWISTER & CLASSIC PEARL", 'price' => 164.00, 'barcode' => 'COM4'],
+                ['name' => "SPAGHETTI & CLASSIC PEARL", 'price' => 174.00, 'barcode' => 'COM6'],
+                ['name' => "3PC CHICK WINGS & CLASSIC PEARL", 'price' => 174.00, 'barcode' => 'COM8'],
+                ['name' => "CHEESY NACHOS & CLASSIC PEARL", 'price' => 174.00, 'barcode' => 'COM10'],
+                ['name' => "CHICKEN POPPERS & CLASSIC PEARL", 'price' => 174.00, 'barcode' => 'COM12'],
+            ],
+
             'CREAM CHEESE M. TEA' => [
                 ['name' => "BELGIAN CHOCO M.TEA + CRM CHEESE", 'price' => 115.00, 'barcode' => "CRMM1"],
                 ['name' => "RED VELVET M.TEA + CRM CHEESE", 'price' => 115.00, 'barcode' => "CRMM2"],
@@ -231,7 +314,7 @@ class MenuSeeder extends Seeder
 
     private function determineType($name) {
         $name = strtoupper($name);
-        $drinkKeywords = ['MILKTEA', 'COFFEE', 'DRINKS', 'TEA', 'SODA', 'YOGURT', 'YAKULT', 'NOVA', 'FRAPPE', 'BROWN SUGAR'];
+        $drinkKeywords = ['MILKTEA', 'MILK TEA', 'COFFEE', 'DRINKS', 'TEA', 'SODA', 'YOGURT', 'YAKULT', 'NOVA', 'FRAPPE', 'BROWN SUGAR'];
         
         foreach ($drinkKeywords as $key) {
             if (str_contains($name, $key)) return 'drink';

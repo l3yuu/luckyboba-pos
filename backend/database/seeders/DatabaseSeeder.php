@@ -11,35 +11,25 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Create the Categories and Menu Items first
+        // 1. Create foundational data ONLY
+        // These are required for the POS to actually function
         $this->call([
             CategorySeeder::class,
-            MenuSeeder::class, // <--- ADD THIS LINE HERE
+            MenuSeeder::class,
+            UserSeeder::class, 
         ]);
 
-        // 2. Create at least one user so the transactions have an owner
-        $user = \App\Models\User::factory()->create([
-            'name' => 'Cashier Ichigo',
-            'email' => 'cashier@luckyboba.com',
-            'role' => 'cashier' 
-        ]);
-
-        // 3. Create 10 Cash Transactions
-        \App\Models\CashTransaction::factory(10)->create([
-            'user_id' => $user->id, 
-        ]);
-
-        // 4. Create 30 Sales
-        \App\Models\Sale::factory(30)->create()->each(function ($sale) {
-            \App\Models\SaleItem::factory(rand(1, 2))->create([
-                'sale_id' => $sale->id,
-                'created_at' => $sale->created_at,
-            ]);
-        });
-
-        // 5. Add other seeders
+        // 2. Add system configurations or initial balances
         $this->call([
-            CashCountSeeder::class,
+            CashCountSeeder::class, // Seeds the starting drawer balance
         ]);
+
+        /* | DELETED: CashTransaction factory
+         | DELETED: Sale factory logic
+         | DELETED: Receipt factory logic
+         | 
+         | The sales, sale_items, and receipts tables will now be EMPTY 
+         | until you make a real transaction in the Sales Order page.
+        */
     }
 }

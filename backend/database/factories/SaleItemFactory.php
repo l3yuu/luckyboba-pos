@@ -2,26 +2,29 @@
 
 namespace Database\Factories;
 
+use App\Models\SaleItem;
+use App\Models\MenuItem;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
-/**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Model>
- */
 class SaleItemFactory extends Factory
 {
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
+    protected $model = SaleItem::class;
+
     public function definition(): array
     {
-        $products = ['Classic Milk Tea', 'Taro Boba', 'Wintermelon', 'Matcha Latte'];
+        // Pick a random menu item to get real data
+        $menuItem = MenuItem::inRandomOrder()->first();
+
         return [
-            'product_name' => fake()->randomElement($products),
-            'quantity' => fake()->numberBetween(1, 3),
-            'price' => 95.00,
-            'created_at' => fake()->dateTimeBetween('-1 month', 'now'),
+            'menu_item_id' => $menuItem->id,
+            'product_name' => $menuItem->name,
+            'quantity'     => $this->faker->numberBetween(1, 3),
+            'price'        => $menuItem->price,
+            'final_price'  => $menuItem->price, // Simplified for factory
+            'sugar_level'  => $this->faker->randomElement(['0%', '50%', '100%']),
+            'size'         => $this->faker->randomElement(['M', 'L']),
+            'options'      => [],
+            'add_ons'      => [],
         ];
     }
 }

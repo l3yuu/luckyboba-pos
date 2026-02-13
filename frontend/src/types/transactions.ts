@@ -23,12 +23,14 @@ export interface Transaction {
 
 export interface Receipt {
   id: number;
-  si_number: string; 
+  si_number: string;
   terminal: string;
   items_count: number;
   cashier_name: string;
   total_amount: number;
-  created_at: string; 
+  sale_id: number; // ADD THIS LINE
+  created_at: string;
+  updated_at: string;
 }
 
 /**
