@@ -11,7 +11,7 @@ class UserSeeder extends Seeder
     public function run(): void
     {
         // 1. Create the Admin Account (Bina Admin)
-        User::create([
+        User::updateOrCreate([
             'name' => 'Bina Admin',
             'email' => 'admin@luckyboba.com',
             'password' => Hash::make('password123'),
@@ -22,7 +22,7 @@ class UserSeeder extends Seeder
         ]);
 
         // 2. Create the Cashier Account (Matching your screenshot exactly)
-        User::create([
+        User::updateOrCreate([
             'name' => 'Cashier Ichigo',
             'email' => 'cashier@luckyboba.com',
             'password' => Hash::make('password123'),
