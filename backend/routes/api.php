@@ -4,9 +4,11 @@ use App\Models\User;
 use Illuminate\Http\Request; 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\SalesDashboardController;
 use App\Http\Controllers\Api\CashTransactionController;
 use App\Http\Controllers\Api\ReceiptController;
 use App\Http\Controllers\Api\CashCountController;
+use App\Http\Controllers\Api\ItemsReportController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 
 /*
@@ -45,6 +47,16 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // Dashboard Statistics
     Route::get('/dashboard/stats', [DashboardController::class, 'index']);
 
+    // ====================================================================
+    // Sales Dashboard Routes
+    // ====================================================================
+    Route::prefix('dashboard')->group(function () {
+        Route::get('/weekly-sales', [SalesDashboardController::class, 'getWeeklySales']);
+        Route::get('/today-sales', [SalesDashboardController::class, 'getTodaySales']);
+        Route::get('/statistics', [SalesDashboardController::class, 'getSalesStatistics']);
+        Route::get('/data', [SalesDashboardController::class, 'getDashboardData']);
+    });
+    
     // Cash Transactions (POS Sales and Cash Ins)
     Route::get('/cash-transactions', [CashTransactionController::class, 'index']);
     Route::post('/cash-transactions', [CashTransactionController::class, 'store']);
@@ -54,4 +66,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // Cash Counts / End of Day Reporting
     Route::post('/cash-counts', [CashCountController::class, 'store']);
+    
+    // ====================================================================
+    // Items Report Routes (FIXED)
+    // ====================================================================
+    Route::prefix('items-reports')->group(function () {
+        Route::get('/test', [ItemsReportController::class, 'test']); // Test endpoint
+        Route::post('/items', [ItemsReportController::class, 'getItemsSoldReport']);
+        Route::get('/items/today', [ItemsReportController::class, 'getItemsSoldToday']);
+    });
 });
