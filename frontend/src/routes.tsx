@@ -2,7 +2,8 @@ import { createBrowserRouter, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import SalesOrder from './pages/SalesOrder'; // Import from 'pages' based on your screenshot
-import { ProtectedRoute } from './components/ProtectedRoute'; 
+import SuperAdminDashboard from './pages/SuperAdminDashboard';
+import { ProtectedRoute } from './components/ProtectedRoute';
 
 export const router = createBrowserRouter([
   {
@@ -20,6 +21,10 @@ export const router = createBrowserRouter([
       {
         path: '/pos',         // New dedicated route for the Menu
         element: <SalesOrder />, // Renders full screen without Sidebar
+      },
+      {
+        path: '/super-admin',
+        element: <SuperAdminDashboard />,
       },
     ],
   },

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import type { LoginCredentials } from '../types/user'; // Import the type
@@ -9,8 +9,20 @@ import backgroundImage from '../assets/background_image.png';
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const { login, isLoading, error } = useAuth();
+  const { login, isLoading, error, user } = useAuth();
   const navigate = useNavigate();
+
+  // Check if already logged in and redirect
+  useEffect(() => {
+    const token = localStorage.getItem('auth_token');
+    if (token && user) {
+      if (user.role === 'superadmin') {
+        navigate('/super-admin', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
+    }
+  }, [navigate, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
