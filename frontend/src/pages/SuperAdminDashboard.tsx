@@ -18,6 +18,7 @@ interface User {
   role: 'superadmin' | 'admin' | 'manager';
   branch: string;
   status: 'ACTIVE' | 'INACTIVE';
+  password?: string;
 }
 
 // Mock Data
@@ -38,6 +39,7 @@ const mockUsers: User[] = [
 const SuperAdminDashboard = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'branches' | 'users' | 'reports'>('overview');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [users, setUsers] = useState<User[]>(mockUsers);
 
   const handleLogout = () => {
     localStorage.removeItem('auth_token');
@@ -45,10 +47,26 @@ const SuperAdminDashboard = () => {
     window.location.href = '/login';
   };
 
+  const handleCreateUser = (data: Omit<User, 'id'>) => {
+    const newUser: User = {
+      ...data,
+      id: Date.now(),
+    };
+    setUsers((prev) => [...prev, newUser]);
+  };
+
+  const handleUpdateUser = (updated: User) => {
+    setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
+  };
+
+  const handleDeleteUser = (id: number) => {
+    setUsers((prev) => prev.filter((u) => u.id !== id));
+  };
+
   const totalRevenue = mockBranches.reduce((sum, b) => sum + b.totalSales, 0);
   const todayRevenue = mockBranches.reduce((sum, b) => sum + b.todaySales, 0);
   const activeBranches = mockBranches.filter(b => b.status === 'active').length;
-  const activeUsers = mockUsers.filter(u => u.status === 'ACTIVE').length;
+  const activeUsers = users.filter(u => u.status === 'ACTIVE').length;
 
   const navItems = [
     { id: 'overview', label: 'Overview', icon: <DashboardIcon /> },
@@ -64,7 +82,14 @@ const SuperAdminDashboard = () => {
       case 'branches':
         return <BranchesTab branches={mockBranches} />;
       case 'users':
-        return <UsersTab users={mockUsers} />;
+        return (
+          <UsersTab
+            users={users}
+            onCreate={handleCreateUser}
+            onUpdate={handleUpdateUser}
+            onDelete={handleDeleteUser}
+          />
+        );
       case 'reports':
         return <ReportsTab />;
       default:
@@ -259,66 +284,337 @@ const BranchesTab = ({ branches }: { branches: Branch[] }) => (
   </section>
 );
 
-const UsersTab = ({ users }: { users: User[] }) => (
-  <section className="flex-1 px-6 md:px-10 pb-10 overflow-auto">
-    <div className="flex justify-between items-center mb-6">
-      <p className="text-[12px] font-black uppercase tracking-[0.2em] text-zinc-400">
-        {users.length} Users
-      </p>
-      <button className="bg-[#3b2063] text-white px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-wider hover:bg-[#2a174a] transition-all">
-        + Add User
-      </button>
-    </div>
+type UserFormState = {
+  name: string;
+  email: string;
+  role: User['role'];
+  branch: string;
+  status: User['status'];
+  password: string;
+};
 
-    <div className="rounded-[1.5rem] border border-zinc-100 bg-white shadow-sm overflow-hidden">
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-[#f8f6ff]">
-              <th className="text-left px-6 py-4 text-[11px] font-black uppercase tracking-wider text-zinc-400">User</th>
-              <th className="text-left px-6 py-4 text-[11px] font-black uppercase tracking-wider text-zinc-400">Role</th>
-              <th className="text-left px-6 py-4 text-[11px] font-black uppercase tracking-wider text-zinc-400">Branch</th>
-              <th className="text-left px-6 py-4 text-[11px] font-black uppercase tracking-wider text-zinc-400">Status</th>
-              <th className="text-right px-6 py-4 text-[11px] font-black uppercase tracking-wider text-zinc-400">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((user) => (
-              <tr key={user.id} className="border-t border-zinc-100 hover:bg-[#f8f6ff] transition-colors">
-                <td className="px-6 py-4">
-                  <div>
-                    <p className="font-bold text-[#3b2063]">{user.name}</p>
-                    <p className="text-xs text-zinc-400">{user.email}</p>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
-                    user.role === 'superadmin' ? 'bg-[#fbbf24] text-[#3b2063]' :
-                    user.role === 'admin' ? 'bg-[#f0ebff] text-[#3b2063]' :
-                    'bg-zinc-100 text-zinc-600'
-                  }`}>
-                    {user.role}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-sm text-zinc-600">{user.branch}</td>
-                <td className="px-6 py-4">
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
-                    user.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-600' : 'bg-zinc-100 text-zinc-500'
-                  }`}>
-                    {user.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <button className="text-[#3b2063] hover:text-[#2a174a] font-bold text-xs uppercase">Edit</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+interface UsersTabProps {
+  users: User[];
+  onCreate: (data: Omit<User, 'id'>) => void;
+  onUpdate: (user: User) => void;
+  onDelete: (id: number) => void;
+}
+
+const emptyForm: UserFormState = {
+  name: '',
+  email: '',
+  role: 'manager',
+  branch: '',
+  status: 'ACTIVE',
+  password: '',
+};
+
+const UsersTab = ({ users, onCreate, onUpdate, onDelete }: UsersTabProps) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [form, setForm] = useState<UserFormState>(emptyForm);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
+
+  const openCreate = () => {
+    setEditingUser(null);
+    setForm(emptyForm);
+    setIsModalOpen(true);
+  };
+
+  const openEdit = (user: User) => {
+    setEditingUser(user);
+    setForm({
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      branch: user.branch,
+      status: user.status,
+      password: '',
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedPassword = form.password.trim();
+
+    if (editingUser) {
+      const updated: User = {
+        ...editingUser,
+        ...form,
+        password: trimmedPassword ? trimmedPassword : editingUser.password,
+      };
+      onUpdate(updated);
+    } else {
+      if (!trimmedPassword) {
+        alert('Password is required for new users.');
+        return;
+      }
+      const newUser: Omit<User, 'id'> = {
+        ...form,
+        password: trimmedPassword,
+      };
+      onCreate(newUser);
+    }
+    setIsModalOpen(false);
+    setForm(emptyForm);
+  };
+
+  const handleDeleteClick = (id: number) => {
+    const found = users.find((u) => u.id === id) || null;
+    setUserToDelete(found);
+  };
+
+  return (
+    <section className="flex-1 px-6 md:px-10 pb-10 overflow-auto">
+      <div className="flex justify-between items-center mb-6">
+        <p className="text-[12px] font-black uppercase tracking-[0.2em] text-zinc-400">
+          {users.length} Users
+        </p>
+        <button
+          onClick={openCreate}
+          className="bg-[#3b2063] text-white px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-wider hover:bg-[#2a174a] transition-all"
+        >
+          + Add User
+        </button>
       </div>
-    </div>
-  </section>
-);
+
+      <div className="rounded-[1.5rem] border border-zinc-100 bg-white shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-[#f8f6ff]">
+                <th className="text-left px-6 py-4 text-[11px] font-black uppercase tracking-wider text-zinc-400">User</th>
+                <th className="text-left px-6 py-4 text-[11px] font-black uppercase tracking-wider text-zinc-400">Role</th>
+                <th className="text-left px-6 py-4 text-[11px] font-black uppercase tracking-wider text-zinc-400">Branch</th>
+                <th className="text-left px-6 py-4 text-[11px] font-black uppercase tracking-wider text-zinc-400">Status</th>
+                <th className="text-right px-6 py-4 text-[11px] font-black uppercase tracking-wider text-zinc-400">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((user) => (
+                <tr key={user.id} className="border-t border-zinc-100 hover:bg-[#f8f6ff] transition-colors">
+                  <td className="px-6 py-4">
+                    <div>
+                      <p className="font-bold text-[#3b2063]">{user.name}</p>
+                      <p className="text-xs text-zinc-400">{user.email}</p>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span
+                      className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
+                        user.role === 'superadmin'
+                          ? 'bg-[#fbbf24] text-[#3b2063]'
+                          : user.role === 'admin'
+                          ? 'bg-[#f0ebff] text-[#3b2063]'
+                          : 'bg-zinc-100 text-zinc-600'
+                      }`}
+                    >
+                      {user.role}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-zinc-600">{user.branch}</td>
+                  <td className="px-6 py-4">
+                    <span
+                      className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
+                        user.status === 'ACTIVE'
+                          ? 'bg-emerald-100 text-emerald-600'
+                          : 'bg-zinc-100 text-zinc-500'
+                      }`}
+                    >
+                      {user.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right space-x-3">
+                    <button
+                      onClick={() => openEdit(user)}
+                      className="text-[#3b2063] hover:text-[#2a174a] font-bold text-xs uppercase"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteClick(user.id)}
+                      className="text-red-500 hover:text-red-700 font-bold text-xs uppercase"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl p-6 space-y-5">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-lg font-black text-[#3b2063] uppercase tracking-wider">
+                {editingUser ? 'Edit User' : 'Add User'}
+              </h2>
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-zinc-400 hover:text-zinc-600"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                  className="w-5 h-5"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                  className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                  className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
+                  {editingUser ? 'Reset Password (optional)' : 'Password'}
+                </label>
+                <input
+                  type="password"
+                  value={form.password}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, password: e.target.value }))
+                  }
+                  className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
+                  placeholder={editingUser ? 'Leave blank to keep current password' : 'Set initial password'}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
+                    Role
+                  </label>
+                  <select
+                    value={form.role}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, role: e.target.value as User['role'] }))
+                    }
+                    className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
+                  >
+                    <option value="superadmin">Super Admin</option>
+                    <option value="admin">Admin</option>
+                    <option value="manager">Manager</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
+                    Status
+                  </label>
+                  <select
+                    value={form.status}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, status: e.target.value as User['status'] }))
+                    }
+                    className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
+                  >
+                    <option value="ACTIVE">Active</option>
+                    <option value="INACTIVE">Inactive</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
+                  Branch
+                </label>
+                <input
+                  type="text"
+                  value={form.branch}
+                  onChange={(e) => setForm((f) => ({ ...f, branch: e.target.value }))}
+                  className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
+                  placeholder="e.g. SM City, Ayala, All Branches"
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-4 py-2 rounded-2xl border border-zinc-200 text-xs font-bold uppercase text-zinc-500 hover:bg-zinc-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 rounded-2xl bg-[#3b2063] text-white text-xs font-black uppercase tracking-widest hover:bg-[#2a174a]"
+                >
+                  {editingUser ? 'Save Changes' : 'Create User'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {userToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white w-full max-w-sm rounded-[2rem] shadow-2xl p-6 space-y-4">
+            <h2 className="text-lg font-black text-[#3b2063] uppercase tracking-wider">
+              Delete User
+            </h2>
+            <p className="text-sm text-zinc-600">
+              Are you sure you want to delete user{' '}
+              <span className="font-bold text-[#3b2063]">{userToDelete.name}</span>?
+              This action cannot be undone.
+            </p>
+            <div className="pt-2 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setUserToDelete(null)}
+                className="px-4 py-2 rounded-2xl border border-zinc-200 text-xs font-bold uppercase text-zinc-500 hover:bg-zinc-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onDelete(userToDelete.id);
+                  setUserToDelete(null);
+                }}
+                className="px-6 py-2 rounded-2xl bg-red-600 text-white text-xs font-black uppercase tracking-widest hover:bg-red-700"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+};
 
 const ReportsTab = () => (
   <section className="flex-1 px-6 md:px-10 pb-10 overflow-auto">
