@@ -10,7 +10,7 @@ use App\Http\Controllers\Api\ReceiptController;
 use App\Http\Controllers\Api\CashCountController;
 use App\Http\Controllers\Api\ItemsReportController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
-
+use App\Http\Controllers\Auth\UserController;
 /*
 |--------------------------------------------------------------------------
 | Public API Routes
@@ -75,4 +75,17 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/items', [ItemsReportController::class, 'getItemsSoldReport']);
         Route::get('/items/today', [ItemsReportController::class, 'getItemsSoldToday']);
     });
+
+    // User CRUD routes (protected by auth middleware)
+Route::middleware(['auth:sanctum'])->group(function () {
+    
+    // Get user statistics
+    Route::get('/users/stats', [UserController::class, 'stats']);
+    
+    // Toggle user status
+    Route::patch('/users/{id}/toggle-status', [UserController::class, 'toggleStatus']);
+    
+    // Standard CRUD operations
+    Route::apiResource('users', UserController::class);
+});
 });

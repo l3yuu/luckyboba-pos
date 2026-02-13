@@ -1,9 +1,25 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import SalesOrder from './pages/SalesOrder'; // Import from 'pages' based on your screenshot
+import SalesOrder from './pages/SalesOrder';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import { ProtectedRoute } from './components/ProtectedRoute';
+
+// Helper function to determine default route based on user role
+const getDefaultRoute = () => {
+  const userRole = localStorage.getItem('user_role');
+  const token = localStorage.getItem('auth_token');
+  
+  if (!token) {
+    return '/login';
+  }
+  
+  if (userRole === 'superadmin') {
+    return '/super-admin';
+  }
+  
+  return '/dashboard';
+};
 
 export const router = createBrowserRouter([
   {
@@ -11,7 +27,7 @@ export const router = createBrowserRouter([
     element: <Login />,
   },
   {
-    // The Guard: Wraps both Dashboard and POS so they are secure
+    // The Guard: Wraps all protected routes
     element: <ProtectedRoute />,
     children: [
       {
@@ -19,8 +35,8 @@ export const router = createBrowserRouter([
         element: <Dashboard />,
       },
       {
-        path: '/pos',         // New dedicated route for the Menu
-        element: <SalesOrder />, // Renders full screen without Sidebar
+        path: '/pos',
+        element: <SalesOrder />,
       },
       {
         path: '/super-admin',
@@ -30,6 +46,11 @@ export const router = createBrowserRouter([
   },
   {
     path: '/',
-    element: <Navigate to="/dashboard" replace />,
+    element: <Navigate to={getDefaultRoute()} replace />,
+  },
+  {
+    // Catch all - redirect to default route
+    path: '*',
+    element: <Navigate to={getDefaultRoute()} replace />,
   },
 ]);

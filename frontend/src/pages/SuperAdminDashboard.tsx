@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import logo from '../assets/logo.png';
+import UserService, { type User, type CreateUserData, type UpdateUserData } from '../services/UserService';
 
 // Types
 interface Branch {
@@ -11,17 +12,7 @@ interface Branch {
   todaySales: number;
 }
 
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: 'superadmin' | 'admin' | 'manager';
-  branch: string;
-  status: 'ACTIVE' | 'INACTIVE';
-  password?: string;
-}
-
-// Mock Data
+// Mock Data (for branches - you can replace this with API calls too)
 const mockBranches: Branch[] = [
   { id: 1, name: 'Lucky Boba - SM City', location: 'SM City Cebu', status: 'active', totalSales: 125000, todaySales: 4500 },
   { id: 2, name: 'Lucky Boba - Ayala', location: 'Ayala Center', status: 'active', totalSales: 98000, todaySales: 3200 },
@@ -29,17 +20,33 @@ const mockBranches: Branch[] = [
   { id: 4, name: 'Lucky Boba - Banilad', location: 'Banilad Town Center', status: 'inactive', totalSales: 45000, todaySales: 0 },
 ];
 
-const mockUsers: User[] = [
-  { id: 1, name: 'Bina', email: 'admin@luckyboba.com', role: 'superadmin', branch: 'All Branches', status: 'ACTIVE' },
-  { id: 2, name: 'Maria Santos', email: 'maria@luckyboba.com', role: 'admin', branch: 'SM City', status: 'ACTIVE' },
-  { id: 3, name: 'Juan Dela Cruz', email: 'juan@luckyboba.com', role: 'manager', branch: 'Ayala', status: 'ACTIVE' },
-  { id: 4, name: 'Ana Reyes', email: 'ana@luckyboba.com', role: 'manager', branch: 'IT Park', status: 'INACTIVE' },
-];
-
 const SuperAdminDashboard = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'branches' | 'users' | 'reports'>('overview');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
-  const [users, setUsers] = useState<User[]>(mockUsers);
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch users on mount
+  useEffect(() => {
+    if (activeTab === 'users') {
+      fetchUsers();
+    }
+  }, [activeTab]);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const fetchedUsers = await UserService.getAllUsers();
+      setUsers(fetchedUsers);
+    } catch (err) {
+      setError('Failed to load users. Please try again.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('auth_token');
@@ -47,20 +54,45 @@ const SuperAdminDashboard = () => {
     window.location.href = '/login';
   };
 
-  const handleCreateUser = (data: Omit<User, 'id'>) => {
-    const newUser: User = {
-      ...data,
-      id: Date.now(),
-    };
-    setUsers((prev) => [...prev, newUser]);
+  const handleCreateUser = async (data: CreateUserData) => {
+    try {
+      setLoading(true);
+      const newUser = await UserService.createUser(data);
+      setUsers((prev) => [newUser, ...prev]);
+      return newUser;
+    } catch (err: unknown) {
+      setError((err instanceof Error ? err.message : 'Failed to create user') || 'Failed to create user');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleUpdateUser = (updated: User) => {
-    setUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
+  const handleUpdateUser = async (id: number, data: UpdateUserData) => {
+    try {
+      setLoading(true);
+      const updatedUser = await UserService.updateUser(id, data);
+      setUsers((prev) => prev.map((u) => (u.id === id ? updatedUser : u)));
+      return updatedUser;
+    } catch (err: unknown) {
+      setError((err instanceof Error ? err.message : 'Failed to update user') || 'Failed to update user');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDeleteUser = (id: number) => {
-    setUsers((prev) => prev.filter((u) => u.id !== id));
+  const handleDeleteUser = async (id: number) => {
+    try {
+      setLoading(true);
+      await UserService.deleteUser(id);
+      setUsers((prev) => prev.filter((u) => u.id !== id));
+    } catch (err: unknown) {
+      setError((err instanceof Error ? err.message : 'Failed to delete user') || 'Failed to delete user');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const totalRevenue = mockBranches.reduce((sum, b) => sum + b.totalSales, 0);
@@ -85,9 +117,12 @@ const SuperAdminDashboard = () => {
         return (
           <UsersTab
             users={users}
+            loading={loading}
+            error={error}
             onCreate={handleCreateUser}
             onUpdate={handleUpdateUser}
             onDelete={handleDeleteUser}
+            onRefresh={fetchUsers}
           />
         );
       case 'reports':
@@ -182,7 +217,7 @@ const SuperAdminDashboard = () => {
   );
 };
 
-// --- Sub Components ---
+// --- Sub Components (same as before) ---
 
 const OverviewTab = ({ totalRevenue, todayRevenue, activeBranches, activeUsers, branches }: {
   totalRevenue: number;
@@ -295,9 +330,12 @@ type UserFormState = {
 
 interface UsersTabProps {
   users: User[];
-  onCreate: (data: Omit<User, 'id'>) => void;
-  onUpdate: (user: User) => void;
-  onDelete: (id: number) => void;
+  loading: boolean;
+  error: string | null;
+  onCreate: (data: CreateUserData) => Promise<User>;
+  onUpdate: (id: number, data: UpdateUserData) => Promise<User>;
+  onDelete: (id: number) => Promise<void>;
+  onRefresh: () => void;
 }
 
 const emptyForm: UserFormState = {
@@ -309,15 +347,18 @@ const emptyForm: UserFormState = {
   password: '',
 };
 
-const UsersTab = ({ users, onCreate, onUpdate, onDelete }: UsersTabProps) => {
+const UsersTab = ({ users, loading, error, onCreate, onUpdate, onDelete, onRefresh }: UsersTabProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [form, setForm] = useState<UserFormState>(emptyForm);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const openCreate = () => {
     setEditingUser(null);
     setForm(emptyForm);
+    setFormError(null);
     setIsModalOpen(true);
   };
 
@@ -327,53 +368,109 @@ const UsersTab = ({ users, onCreate, onUpdate, onDelete }: UsersTabProps) => {
       name: user.name,
       email: user.email,
       role: user.role,
-      branch: user.branch,
+      branch: user.branch || '',
       status: user.status,
       password: '',
     });
+    setFormError(null);
     setIsModalOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const trimmedPassword = form.password.trim();
+    setFormError(null);
+    setIsSubmitting(true);
 
-    if (editingUser) {
-      const updated: User = {
-        ...editingUser,
-        ...form,
-        password: trimmedPassword ? trimmedPassword : editingUser.password,
-      };
-      onUpdate(updated);
-    } else {
-      if (!trimmedPassword) {
-        alert('Password is required for new users.');
-        return;
+    try {
+      const trimmedPassword = form.password.trim();
+
+      if (editingUser) {
+        // Update existing user
+        const updateData: UpdateUserData = {
+          name: form.name,
+          email: form.email,
+          role: form.role,
+          branch: form.branch,
+          status: form.status,
+        };
+        
+        if (trimmedPassword) {
+          updateData.password = trimmedPassword;
+        }
+
+        await onUpdate(editingUser.id, updateData);
+      } else {
+        // Create new user
+        if (!trimmedPassword) {
+          setFormError('Password is required for new users.');
+          setIsSubmitting(false);
+          return;
+        }
+
+        const createData: CreateUserData = {
+          name: form.name,
+          email: form.email,
+          password: trimmedPassword,
+          role: form.role,
+          branch: form.branch || undefined,
+          status: form.status,
+        };
+
+        await onCreate(createData);
       }
-      const newUser: Omit<User, 'id'> = {
-        ...form,
-        password: trimmedPassword,
-      };
-      onCreate(newUser);
+
+      setIsModalOpen(false);
+      setForm(emptyForm);
+    } catch (err: unknown) {
+      setFormError((err instanceof Error ? err.message : 'An error occurred') || 'An error occurred');
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsModalOpen(false);
-    setForm(emptyForm);
   };
 
-  const handleDeleteClick = (id: number) => {
-    const found = users.find((u) => u.id === id) || null;
-    setUserToDelete(found);
+  const handleDeleteClick = (user: User) => {
+    setUserToDelete(user);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!userToDelete) return;
+
+    try {
+      await onDelete(userToDelete.id);
+      setUserToDelete(null);
+    } catch (err: unknown) {
+      alert((err instanceof Error ? err.message : 'Failed to delete user') || 'Failed to delete user');
+    }
   };
 
   return (
     <section className="flex-1 px-6 md:px-10 pb-10 overflow-auto">
+      {/* Error Alert */}
+      {error && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center justify-between">
+          <p className="text-sm text-red-600">{error}</p>
+          <button onClick={onRefresh} className="text-xs font-bold text-red-600 hover:text-red-700 uppercase">
+            Retry
+          </button>
+        </div>
+      )}
+
       <div className="flex justify-between items-center mb-6">
-        <p className="text-[12px] font-black uppercase tracking-[0.2em] text-zinc-400">
-          {users.length} Users
-        </p>
+        <div className="flex items-center gap-4">
+          <p className="text-[12px] font-black uppercase tracking-[0.2em] text-zinc-400">
+            {users.length} Users
+          </p>
+          {loading && (
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-[#3b2063] border-t-transparent rounded-full animate-spin" />
+              <span className="text-xs text-zinc-400">Loading...</span>
+            </div>
+          )}
+        </div>
         <button
           onClick={openCreate}
-          className="bg-[#3b2063] text-white px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-wider hover:bg-[#2a174a] transition-all"
+          disabled={loading}
+          className="bg-[#3b2063] text-white px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-wider hover:bg-[#2a174a] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
           + Add User
         </button>
@@ -413,7 +510,7 @@ const UsersTab = ({ users, onCreate, onUpdate, onDelete }: UsersTabProps) => {
                       {user.role}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-sm text-zinc-600">{user.branch}</td>
+                  <td className="px-6 py-4 text-sm text-zinc-600">{user.branch || '-'}</td>
                   <td className="px-6 py-4">
                     <span
                       className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
@@ -428,24 +525,34 @@ const UsersTab = ({ users, onCreate, onUpdate, onDelete }: UsersTabProps) => {
                   <td className="px-6 py-4 text-right space-x-3">
                     <button
                       onClick={() => openEdit(user)}
-                      className="text-[#3b2063] hover:text-[#2a174a] font-bold text-xs uppercase"
+                      disabled={loading}
+                      className="text-[#3b2063] hover:text-[#2a174a] font-bold text-xs uppercase disabled:opacity-50"
                     >
                       Edit
                     </button>
                     <button
-                      onClick={() => handleDeleteClick(user.id)}
-                      className="text-red-500 hover:text-red-700 font-bold text-xs uppercase"
+                      onClick={() => handleDeleteClick(user)}
+                      disabled={loading}
+                      className="text-red-500 hover:text-red-700 font-bold text-xs uppercase disabled:opacity-50"
                     >
                       Delete
                     </button>
                   </td>
                 </tr>
               ))}
+              {users.length === 0 && !loading && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-zinc-400">
+                    No users found
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
+      {/* Create/Edit Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl p-6 space-y-5">
@@ -455,7 +562,8 @@ const UsersTab = ({ users, onCreate, onUpdate, onDelete }: UsersTabProps) => {
               </h2>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-zinc-400 hover:text-zinc-600"
+                disabled={isSubmitting}
+                className="text-zinc-400 hover:text-zinc-600 disabled:opacity-50"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -470,6 +578,12 @@ const UsersTab = ({ users, onCreate, onUpdate, onDelete }: UsersTabProps) => {
               </button>
             </div>
 
+            {formError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
+                <p className="text-sm text-red-600">{formError}</p>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
@@ -481,6 +595,7 @@ const UsersTab = ({ users, onCreate, onUpdate, onDelete }: UsersTabProps) => {
                   onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                   className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
                   required
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -494,6 +609,7 @@ const UsersTab = ({ users, onCreate, onUpdate, onDelete }: UsersTabProps) => {
                   onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                   className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
                   required
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -509,6 +625,8 @@ const UsersTab = ({ users, onCreate, onUpdate, onDelete }: UsersTabProps) => {
                   }
                   className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
                   placeholder={editingUser ? 'Leave blank to keep current password' : 'Set initial password'}
+                  disabled={isSubmitting}
+                  required={!editingUser}
                 />
               </div>
 
@@ -523,6 +641,7 @@ const UsersTab = ({ users, onCreate, onUpdate, onDelete }: UsersTabProps) => {
                       setForm((f) => ({ ...f, role: e.target.value as User['role'] }))
                     }
                     className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
+                    disabled={isSubmitting}
                   >
                     <option value="superadmin">Super Admin</option>
                     <option value="admin">Admin</option>
@@ -539,6 +658,7 @@ const UsersTab = ({ users, onCreate, onUpdate, onDelete }: UsersTabProps) => {
                       setForm((f) => ({ ...f, status: e.target.value as User['status'] }))
                     }
                     className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
+                    disabled={isSubmitting}
                   >
                     <option value="ACTIVE">Active</option>
                     <option value="INACTIVE">Inactive</option>
@@ -556,6 +676,7 @@ const UsersTab = ({ users, onCreate, onUpdate, onDelete }: UsersTabProps) => {
                   onChange={(e) => setForm((f) => ({ ...f, branch: e.target.value }))}
                   className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
                   placeholder="e.g. SM City, Ayala, All Branches"
+                  disabled={isSubmitting}
                 />
               </div>
 
@@ -563,14 +684,19 @@ const UsersTab = ({ users, onCreate, onUpdate, onDelete }: UsersTabProps) => {
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-2xl border border-zinc-200 text-xs font-bold uppercase text-zinc-500 hover:bg-zinc-50"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 rounded-2xl border border-zinc-200 text-xs font-bold uppercase text-zinc-500 hover:bg-zinc-50 disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 rounded-2xl bg-[#3b2063] text-white text-xs font-black uppercase tracking-widest hover:bg-[#2a174a]"
+                  disabled={isSubmitting}
+                  className="px-6 py-2 rounded-2xl bg-[#3b2063] text-white text-xs font-black uppercase tracking-widest hover:bg-[#2a174a] disabled:opacity-50 flex items-center gap-2"
                 >
+                  {isSubmitting && (
+                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  )}
                   {editingUser ? 'Save Changes' : 'Create User'}
                 </button>
               </div>
@@ -579,6 +705,7 @@ const UsersTab = ({ users, onCreate, onUpdate, onDelete }: UsersTabProps) => {
         </div>
       )}
 
+      {/* Delete Confirmation Modal */}
       {userToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white w-full max-w-sm rounded-[2rem] shadow-2xl p-6 space-y-4">
@@ -594,18 +721,20 @@ const UsersTab = ({ users, onCreate, onUpdate, onDelete }: UsersTabProps) => {
               <button
                 type="button"
                 onClick={() => setUserToDelete(null)}
-                className="px-4 py-2 rounded-2xl border border-zinc-200 text-xs font-bold uppercase text-zinc-500 hover:bg-zinc-50"
+                disabled={loading}
+                className="px-4 py-2 rounded-2xl border border-zinc-200 text-xs font-bold uppercase text-zinc-500 hover:bg-zinc-50 disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  onDelete(userToDelete.id);
-                  setUserToDelete(null);
-                }}
-                className="px-6 py-2 rounded-2xl bg-red-600 text-white text-xs font-black uppercase tracking-widest hover:bg-red-700"
+                onClick={handleConfirmDelete}
+                disabled={loading}
+                className="px-6 py-2 rounded-2xl bg-red-600 text-white text-xs font-black uppercase tracking-widest hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
               >
+                {loading && (
+                  <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                )}
                 Delete
               </button>
             </div>
@@ -640,7 +769,7 @@ const ReportsTab = () => (
   </section>
 );
 
-// --- Icons ---
+// --- Icons (same as before) ---
 const DashboardIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25a2.25 2.25 0 0 1-2.25-2.25v-2.25Z" />

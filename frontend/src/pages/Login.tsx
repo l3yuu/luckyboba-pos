@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import type { LoginCredentials } from '../types/user'; // Import the type
+import type { LoginCredentials } from '../types/user';
 // Asset Imports
 import logo from '../assets/logo.png';
 import backgroundImage from '../assets/background_image.png'; 
@@ -14,7 +14,7 @@ const Login: React.FC = () => {
 
   // Check if already logged in and redirect
   useEffect(() => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem('lucky_boba_token');
     if (token && user) {
       if (user.role === 'superadmin') {
         navigate('/super-admin', { replace: true });
@@ -27,13 +27,21 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // FIX: Pass as a single object to match your useAuth logic
+    // Pass credentials to login
     const credentials: LoginCredentials = { email, password };
-    const user = await login(credentials); 
+    const loggedInUser = await login(credentials); 
     
-    // If user is returned, it means login was successful
-    if (user) {
-      navigate('/dashboard', { replace: true });
+    // If user is returned, redirect based on role
+    if (loggedInUser) {
+      // Store user_role for the ProtectedRoute component
+      localStorage.setItem('user_role', loggedInUser.role);
+      
+      // Redirect based on role
+      if (loggedInUser.role === 'superadmin') {
+        navigate('/super-admin', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     }
   };
 
