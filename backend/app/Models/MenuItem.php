@@ -10,20 +10,20 @@ class MenuItem extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['category_id', 'name', 'price', 'barcode'];
-
-    /**
-     * The attributes that should be cast.
-     * This ensures the frontend receives numbers, not strings.
-     */
-    protected $casts = [
-        'price' => 'float',
-        'category_id' => 'integer'
+    protected $fillable = [
+        'category_id', 
+        'sub_category_id',  // Add this if you have the column
+        'name', 
+        'price', 
+        'barcode'
     ];
 
-    /**
-     * Relationship: A menu item belongs to a specific category.
-     */
+    protected $casts = [
+        'price' => 'float',
+        'category_id' => 'integer',
+        'sub_category_id' => 'integer', // Add this
+    ];
+
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
