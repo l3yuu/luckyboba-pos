@@ -73,7 +73,10 @@ class DashboardService
     public function clearTodayCache()
     {
         $today = Carbon::today();
-        Cache::forget('dashboard_stats_' . $today->format('Y-m-d'));
-        Cache::forget('top_seller_today_' . $today->format('Y-m-d'));
+        $dateKey = $today->format('Y-m-d');
+
+        Cache::forget('dashboard_stats_' . $dateKey);
+        Cache::forget('top_seller_today_' . $dateKey);
+        Cache::forget('top_seller_all_time');
     }
 }

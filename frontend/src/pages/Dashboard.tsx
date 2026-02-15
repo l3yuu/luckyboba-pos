@@ -75,41 +75,36 @@
     }, [user, authLoading, navigate]);
 
     // BACKEND FETCH LOGIC
-    const fetchStats = useCallback(async (isManual = false) => {
-      if (isFetching.current) return;
+  const fetchStats = useCallback(async (isManual = false) => {
+    if (isFetching.current) return;
+    
+    // If it's a manual refresh or we're forcing an update, show loading
+    if (isManual) setLoading(true);
+
+    isFetching.current = true;
+    try {
+      const response = await api.get('/dashboard/stats');
+      const newStats = response.data;
       
-      if (isManual) setLoading(true);
+      setStats(newStats);
+      setIsInitialLoad(false); 
+      
+      localStorage.setItem('dashboard_stats', JSON.stringify(newStats));
+      localStorage.setItem('dashboard_stats_timestamp', Date.now().toString());
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      setIsInitialLoad(false);
+    } finally {
+      setLoading(false);
+      isFetching.current = false;
+    }
+  }, []); 
 
-      isFetching.current = true;
-      try {
-        const response = await api.get('/dashboard/stats');
-        const newStats = response.data;
-        
-        setStats(newStats);
-        setIsInitialLoad(false); // Mark initial load as complete
-        
-        localStorage.setItem('dashboard_stats', JSON.stringify(newStats));
-        localStorage.setItem('dashboard_stats_timestamp', Date.now().toString());
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-        setIsInitialLoad(false);
-      } finally {
-        setLoading(false);
-        isFetching.current = false;
-      }
-    }, []); 
-
-    useEffect(() => {
-      if (user && activeTab === 'dashboard') {
-        const timestamp = localStorage.getItem('dashboard_stats_timestamp');
-        
-        if (!timestamp || (Date.now() - parseInt(timestamp)) > 120000) {
-          fetchStats();
-        } else if (!stats) {
-          fetchStats();
-        }
-      }
-    }, [user, activeTab, stats, fetchStats]);
+  useEffect(() => {
+    if (user && activeTab === 'dashboard') {
+      fetchStats(true); 
+    }
+  }, [user, activeTab, fetchStats]);
 
     if (authLoading) return <DashboardSkeleton />;
     if (!user) return null;
