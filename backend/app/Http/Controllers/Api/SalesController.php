@@ -6,11 +6,19 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Sale;
 use App\Models\SaleItem;
-use App\Models\Receipt; // 1. Import the Receipt Model
+use App\Models\Receipt;
+use App\Services\DashboardService;
 use Illuminate\Support\Facades\DB;
 
 class SalesController extends Controller
 {
+    protected $dashboardService;
+
+    public function __construct(DashboardService $dashboardService)
+    {
+        $this->dashboardService = $dashboardService;
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -48,7 +56,7 @@ class SalesController extends Controller
                 }
             }
 
-            // 2. Create the Sale record
+            // Create the Sale record
             $sale = Sale::create([
                 'user_id' => auth()->id(),
                 'total_amount' => $validated['total'],
@@ -58,7 +66,7 @@ class SalesController extends Controller
                 'is_synced' => false,
             ]);
 
-            // 3. Create the SaleItems records
+            // Create the SaleItems records
             foreach ($validated['items'] as $item) {
                 SaleItem::create([
                     'sale_id' => $sale->id,
@@ -74,7 +82,7 @@ class SalesController extends Controller
                 ]);
             }
 
-            // 4. Create the Receipt record
+            // Create the Receipt record
             // Generates format: SI-20260213-0001
             $siNumber = 'SI-' . date('Ymd') . '-' . str_pad($sale->id, 4, '0', STR_PAD_LEFT);
 
@@ -88,6 +96,9 @@ class SalesController extends Controller
             ]);
 
             DB::commit();
+
+            // Clear dashboard cache after successful sale
+            $this->dashboardService->clearTodayCache();
 
             return response()->json([
                 'status'  => 'success',
