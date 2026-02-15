@@ -10,15 +10,15 @@ return new class extends Migration
     {
         Schema::create('sales', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained(); // Foreign key to users
             $table->decimal('total_amount', 10, 2);
             $table->string('payment_method')->default('cash');
-            // Added to match your frontend 'orderChargeType' (grab/panda/null)
-            $table->string('charge_type')->nullable(); 
+            $table->string('charge_type')->nullable(); // grab, panda, etc.
             $table->integer('pax')->default(1);
-            // Track which admin/staff made the sale
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->boolean('is_synced')->default(false);
             $table->timestamps();
+            $table->index('created_at'); 
+            $table->index('user_id'); 
         });
     }
 

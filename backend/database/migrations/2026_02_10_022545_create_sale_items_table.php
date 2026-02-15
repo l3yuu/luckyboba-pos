@@ -34,6 +34,17 @@ return new class extends Migration
             $table->json('add_ons')->nullable();
             
             $table->timestamps();
+
+            // --- CUSTOM INDEXES FOR SPEED ---
+            
+            // 1. Dashboard Speed: Date first, then product name
+            $table->index(['created_at', 'product_name'], 'idx_created_product');
+
+            // 2. Advanced Analytics: Product first, then date and qty
+            $table->index(['product_name', 'created_at', 'quantity'], 'idx_product_created_qty');
+
+            // 3. Inventory/Simple Lookups: Product name and quantity
+            $table->index(['product_name', 'quantity'], 'idx_product_qty');
         });
     }
 
