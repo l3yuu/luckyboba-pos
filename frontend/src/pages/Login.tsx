@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import type { LoginCredentials } from '../types/user'; // Import the type
+import type { LoginCredentials } from '../types/user';
+import { Toast } from '../components/Toast'; 
 // Asset Imports
 import logo from '../assets/logo.png';
 import backgroundImage from '../assets/background_image.png'; 
@@ -9,17 +10,33 @@ import backgroundImage from '../assets/background_image.png';
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // 1. DERIVED STATE: Check URL params during render to avoid cascading renders
+  const isExpired = searchParams.get('reason') === 'expired';
+  
+  // 2. Only use state to track if the user manually dismissed the toast
+  const [userDismissedToast, setUserDismissedToast] = useState(false);
+  
   const { login, isLoading, error } = useAuth();
   const navigate = useNavigate();
 
+  // Determine if toast should be visible
+  const showToast = isExpired && !userDismissedToast;
+
+  const handleCloseToast = () => {
+    setUserDismissedToast(true);
+    // Optional: Clean the URL so 'reason=expired' doesn't stay there
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('reason');
+    setSearchParams(newParams, { replace: true });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // FIX: Pass as a single object to match your useAuth logic
     const credentials: LoginCredentials = { email, password };
     const user = await login(credentials); 
     
-    // If user is returned, it means login was successful
     if (user) {
       navigate('/dashboard', { replace: true });
     }
@@ -27,15 +44,20 @@ const Login: React.FC = () => {
 
   return (
     <div 
-      className="min-h-screen flex items-center justify-center p-6 bg-cover bg-center bg-no-repeat"
+      className="relative min-h-screen flex items-center justify-center p-6 bg-cover bg-center bg-no-repeat"
       style={{ backgroundImage: `url(${backgroundImage})` }}
     >
-      {/* Login Card - Darker Taro Purple Background */}
+      {/* 3. Branded Toast Notification - Triggered by derived state */}
+      {showToast && (
+        <Toast 
+          message="Your session has expired. Please log in again." 
+          type="warning" 
+          onClose={handleCloseToast} 
+        />
+      )}
+
       <div className="max-w-md w-full z-10 overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#D4C8F0] shadow-2xl">
-        
-        {/* Header Section */}
         <div className="flex flex-col items-center p-8 pb-4 text-center">
-          {/* Logo */}
           <div className="flex justify-center mb-0">
             <img 
               src={logo} 
@@ -43,14 +65,11 @@ const Login: React.FC = () => {
               className="w-80 h-48 object-contain drop-shadow-sm" 
             />
           </div>
-          
-          {/* Subtitle */}
           <div className="text-[#3b2063] font-black uppercase text-[11px] tracking-[0.25em] -mt-10 opacity-70">
             Point of Sale System
           </div>
         </div>
 
-        {/* Login Form */}
         <form onSubmit={handleSubmit}>
           <div className="p-8 pt-4 space-y-6">
             {error && (
@@ -88,7 +107,6 @@ const Login: React.FC = () => {
             </div>
           </div>
 
-          {/* Action Button */}
           <div className="flex items-center p-8 pt-2 pb-12">
             <button
               type="submit"

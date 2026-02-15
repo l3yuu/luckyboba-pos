@@ -1,8 +1,9 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { ErrorFallback } from './ErrorFallback';
 
 interface Props {
   children: ReactNode;
-  fallback: ReactNode;
+  fallback?: ReactNode; // Made optional to use our default
 }
 
 interface State {
@@ -20,12 +21,14 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // This is helpful for your OJT documentation/debugging
     console.error("Uncaught Lucky Boba UI Error:", error, errorInfo);
   }
 
   public render() {
     if (this.state.hasError) {
-      return this.props.fallback;
+      // Return custom fallback if provided, otherwise our consistent UI
+      return this.props.fallback || <ErrorFallback />;
     }
 
     return this.props.children;

@@ -8,15 +8,12 @@ use Illuminate\Support\Facades\Cache;
 
 class MenuController extends Controller
 {
-    /**
-     * Fetch all categories and their associated menu items.
-     */
     public function index()
     {
         try {
-            // Cache for 10 minutes (600 seconds)
             return Cache::remember('menu_data_v1', 600, function () {
-                return Category::with('menu_items')->get();
+                return Category::with('menu_items')
+                    ->get();
             });
         } catch (\Exception $e) {
             \Log::error('Menu fetch error: ' . $e->getMessage());
@@ -27,9 +24,6 @@ class MenuController extends Controller
         }
     }
 
-    /**
-     * Clear menu cache (optional - useful when menu is updated)
-     */
     public function clearCache()
     {
         Cache::forget('menu_data_v1');
