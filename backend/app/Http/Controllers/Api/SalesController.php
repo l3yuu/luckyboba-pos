@@ -17,7 +17,6 @@ class SalesController extends Controller
 
     public function __construct(DashboardService $dashboardService)
     {
-        // Injecting the service so we can clear cache after a sale
         $this->dashboardService = $dashboardService;
     }
 
@@ -53,9 +52,16 @@ class SalesController extends Controller
                 }
             }
 
+            // --- GENERATE INVOICE NUMBER ---
+            // LB-YYYYMMDD-000X
+            $todayCount = Sale::whereDate('created_at', now()->today())->count();
+            $invoiceNumber = 'LB-' . date('Ymd') . '-' . str_pad($todayCount + 1, 4, '0', STR_PAD_LEFT);
+
             $sale = Sale::create([
                 'user_id' => auth()->id(),
                 'total_amount' => $validated['total'],
+                'invoice_number' => $invoiceNumber, // REQUIRED NOW
+                'status' => 'completed',            // REQUIRED NOW
                 'payment_method' => 'cash',
                 'charge_type' => $chargeType,
                 'pax' => 1,
@@ -77,10 +83,9 @@ class SalesController extends Controller
                 ]);
             }
 
-            $siNumber = 'SI-' . date('Ymd') . '-' . str_pad($sale->id, 4, '0', STR_PAD_LEFT);
-
+            // For the Receipt, we use the same Invoice Number for consistency
             Receipt::create([
-                'si_number'    => $siNumber,
+                'si_number'    => $invoiceNumber,
                 'terminal'     => '01',
                 'items_count'  => $totalQty,
                 'cashier_name' => auth()->user()->name,
@@ -90,13 +95,13 @@ class SalesController extends Controller
 
             DB::commit();
 
-            // CRITICAL: This clears the "Old" data so the Dashboard sees "New" data
+            // Clear cache so the new sale appears on the dashboard immediately
             $this->dashboardService->clearTodayCache();
 
             return response()->json([
                 'status'  => 'success',
                 'message' => 'Sale and Receipt created successfully',
-                'si_number' => $siNumber,
+                'si_number' => $invoiceNumber,
                 'sale'    => $sale->load('items'),
             ], 201);
 

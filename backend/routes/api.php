@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\CashCountController;
 use App\Http\Controllers\Api\CashTransactionController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\SalesDashboardController; 
 use App\Http\Controllers\Api\MenuController;
 use App\Http\Controllers\Api\ReceiptController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -26,32 +27,34 @@ Route::get('/users', function () { return User::all(); });
 */
 Route::middleware(['auth:sanctum'])->group(function () {
     
-    // --- USER & INIT ---
+    // --- USER & SYSTEM INIT ---
+    // DashboardController handles the initial app state & basic user info
     Route::get('/app-init', [DashboardController::class, 'init']);
     Route::get('/user', function (Request $request) {
         return $request->user();
     });
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy']);
 
-    // --- MENU ---
-    Route::get('/menu', [MenuController::class, 'index']);
-    Route::post('/menu/clear-cache', [MenuController::class, 'clearCache']); // Optional
-
-    // --- DASHBOARD ---
+    // --- ANALYTICS & REPORTING ---
     Route::get('/dashboard/stats', [DashboardController::class, 'index']);
+    
+    // SalesDashboardController: Detailed Analytics (Weekly Line & Today Bar graphs)
+    Route::get('/sales-analytics', [SalesDashboardController::class, 'index']);
 
-    // --- SALES / ORDERS ---
-    Route::post('/sales', [SalesController::class, 'store']);      // Create new sale (from POS)
-    Route::get('/sales', [SalesController::class, 'index']);       // List all sales
-    Route::get('/sales/{id}', [SalesController::class, 'show']);   // View single sale
+    // --- MENU MANAGEMENT ---
+    Route::get('/menu', [MenuController::class, 'index']);
+    Route::post('/menu/clear-cache', [MenuController::class, 'clearCache']); 
 
-    // --- CASH TRANSACTIONS ---
+    // --- SALES / ORDERS (POS Transactions) ---
+    Route::post('/sales', [SalesController::class, 'store']);     
+    Route::get('/sales', [SalesController::class, 'index']);       
+    Route::get('/sales/{id}', [SalesController::class, 'show']);   
+
+    // --- CASH & RECEIPTS ---
     Route::get('/cash-transactions', [CashTransactionController::class, 'index']);
     Route::post('/cash-transactions', [CashTransactionController::class, 'store']);
-
-    // --- RECEIPTS / TRANSACTION HISTORY ---
     Route::get('/receipts/search', [ReceiptController::class, 'search']);
 
-    // --- CASH COUNTS / END OF DAY ---
+    // --- END OF DAY ---
     Route::post('/cash-counts', [CashCountController::class, 'store']);
 });

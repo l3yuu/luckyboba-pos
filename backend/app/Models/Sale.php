@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasOne; // 1. Add this import
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Sale extends Model
 {
@@ -15,32 +15,24 @@ class Sale extends Model
     protected $fillable = [
         'total_amount',
         'payment_method',
-        'charge_type', // grab, panda, or null
+        'charge_type', 
         'pax',
-        'user_id',     // Links to the admin/staff who made the sale
-        'is_synced'
+        'user_id',
+        'is_synced',
+        'invoice_number', // Added for tracking
+        'status'         // Added for analytics (completed, cancelled)
     ];
 
-    /**
-     * Get the items for the sale.
-     */
     public function items(): HasMany
     {
         return $this->hasMany(SaleItem::class);
     }
 
-    /**
-     * Get the user (admin/staff) who performed the sale.
-     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * Get the receipt record associated with the sale.
-     * 2. Added this for Search and History linking
-     */
     public function receipt(): HasOne
     {
         return $this->hasOne(Receipt::class);
