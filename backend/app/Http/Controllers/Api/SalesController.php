@@ -6,11 +6,21 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Sale;
 use App\Models\SaleItem;
-use App\Models\Receipt; // 1. Import the Receipt Model
+use App\Models\Receipt;
+use App\Services\DashboardService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class SalesController extends Controller
 {
+    protected $dashboardService;
+
+    public function __construct(DashboardService $dashboardService)
+    {
+        // Injecting the service so we can clear cache after a sale
+        $this->dashboardService = $dashboardService;
+    }
+
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -33,22 +43,16 @@ class SalesController extends Controller
         try {
             DB::beginTransaction();
 
-            // Determine charge_type from items (grab/panda/null)
             $chargeType = null;
-            $totalQty = 0; // Track for receipt summary
+            $totalQty = 0; 
             foreach ($validated['items'] as $item) {
                 $totalQty += $item['quantity'];
                 if (isset($item['charges'])) {
-                    if ($item['charges']['grab'] ?? false) {
-                        $chargeType = 'grab';
-                    }
-                    if ($item['charges']['panda'] ?? false) {
-                        $chargeType = 'panda';
-                    }
+                    if ($item['charges']['grab'] ?? false) $chargeType = 'grab';
+                    if ($item['charges']['panda'] ?? false) $chargeType = 'panda';
                 }
             }
 
-            // 2. Create the Sale record
             $sale = Sale::create([
                 'user_id' => auth()->id(),
                 'total_amount' => $validated['total'],
@@ -58,7 +62,6 @@ class SalesController extends Controller
                 'is_synced' => false,
             ]);
 
-            // 3. Create the SaleItems records
             foreach ($validated['items'] as $item) {
                 SaleItem::create([
                     'sale_id' => $sale->id,
@@ -74,13 +77,11 @@ class SalesController extends Controller
                 ]);
             }
 
-            // 4. Create the Receipt record
-            // Generates format: SI-20260213-0001
             $siNumber = 'SI-' . date('Ymd') . '-' . str_pad($sale->id, 4, '0', STR_PAD_LEFT);
 
             Receipt::create([
                 'si_number'    => $siNumber,
-                'terminal'     => '01', // Standardized terminal ID
+                'terminal'     => '01',
                 'items_count'  => $totalQty,
                 'cashier_name' => auth()->user()->name,
                 'total_amount' => $validated['total'],
@@ -88,6 +89,9 @@ class SalesController extends Controller
             ]);
 
             DB::commit();
+
+            // CRITICAL: This clears the "Old" data so the Dashboard sees "New" data
+            $this->dashboardService->clearTodayCache();
 
             return response()->json([
                 'status'  => 'success',
@@ -98,7 +102,7 @@ class SalesController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Sale creation failed: ' . $e->getMessage());
+            Log::error('Sale creation failed: ' . $e->getMessage());
             
             return response()->json([
                 'status'  => 'error',
@@ -107,18 +111,10 @@ class SalesController extends Controller
             ], 500);
         }
     }
-    
+
     public function index()
     {
-        $sales = Sale::with('items', 'user')
-            ->latest()
-            ->paginate(20);
+        $sales = Sale::with('items', 'user')->latest()->paginate(20);
         return response()->json($sales);
-    }
-
-    public function show($id)
-    {
-        $sale = Sale::with('items', 'user')->findOrFail($id);
-        return response()->json($sale);
     }
 }

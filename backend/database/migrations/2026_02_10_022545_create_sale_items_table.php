@@ -22,24 +22,26 @@ return new class extends Migration
             
             // Quantity and Pricing
             $table->integer('quantity');
-            $table->decimal('price', 10, 2); // Unit price
-            $table->decimal('final_price', 10, 2); // Price x Qty + extras
+            $table->decimal('price', 10, 2); 
+            $table->decimal('final_price', 10, 2); 
             
             // Drink Specific Customizations
             $table->string('sugar_level')->nullable();
             $table->string('size')->nullable();
             
-            // Use JSON for arrays like ['NO ICE', 'WARM'] or ['Pearl', 'Nata']
             $table->json('options')->nullable(); 
             $table->json('add_ons')->nullable();
             
             $table->timestamps();
+
+            // --- CUSTOM INDEXES FOR SPEED ---
+            // We provide specific names to prevent SQLite/MySQL name collisions
+            $table->index(['created_at', 'product_name'], 'idx_items_created_product');
+            $table->index(['product_name', 'created_at', 'quantity'], 'idx_items_analytic_lookup');
+            $table->index(['product_name', 'quantity'], 'idx_items_inventory_qty');
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('sale_items');

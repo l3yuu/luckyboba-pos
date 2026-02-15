@@ -18,7 +18,6 @@ use Illuminate\Support\Facades\Route;
 */
 Route::post('/login', [AuthenticatedSessionController::class, 'store']);
 Route::get('/users', function () { return User::all(); });
-Route::get('/menu', [MenuController::class, 'index']);
 
 /*
 |--------------------------------------------------------------------------
@@ -33,6 +32,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
         return $request->user();
     });
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy']);
+
+    // --- MENU ---
+    Route::get('/menu', [MenuController::class, 'index']);
+    Route::post('/menu/clear-cache', [MenuController::class, 'clearCache']); // Optional
 
     // --- DASHBOARD ---
     Route::get('/dashboard/stats', [DashboardController::class, 'index']);
