@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\CashCountController;
 use App\Http\Controllers\Api\CashTransactionController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\InventoryDashboardController;
 use App\Http\Controllers\Api\MenuController;
 use App\Http\Controllers\Api\MenuListController;
@@ -77,4 +78,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // --- INVENTORY DASHBOARD ---
     Route::get('/inventory/top-products', [InventoryDashboardController::class, 'getWeeklyTopProducts']);
+    Route::get('/inventory', [InventoryController::class, 'index']);
+    Route::patch('/inventory/{id}/quantity', [InventoryController::class, 'updateQuantity']);
 });
