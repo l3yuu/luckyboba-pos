@@ -12,6 +12,15 @@ interface Branch {
   todaySales: number;
 }
 
+type BranchFormState = {
+  id: number | null;
+  name: string;
+  location: string;
+  status: 'active' | 'inactive';
+  totalSales: number;
+  todaySales: number;
+};
+
 // Mock Data (for branches - you can replace this with API calls too)
 const mockBranches: Branch[] = [
   { id: 1, name: 'Lucky Boba - SM City', location: 'SM City Cebu', status: 'active', totalSales: 125000, todaySales: 4500 },
@@ -20,12 +29,23 @@ const mockBranches: Branch[] = [
   { id: 4, name: 'Lucky Boba - Banilad', location: 'Banilad Town Center', status: 'inactive', totalSales: 45000, todaySales: 0 },
 ];
 
-const SuperAdminDashboard = () => {
+const SuperAdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'branches' | 'users' | 'reports'>('overview');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [branches, setBranches] = useState<Branch[]>(mockBranches);
+  const [branchFormState, setBranchFormState] = useState<BranchFormState>({
+    id: null,
+    name: '',
+    location: '',
+    status: 'active',
+    totalSales: 0,
+    todaySales: 0,
+  });
+  const [isCreateBranchModalOpen, setIsCreateBranchModalOpen] = useState(false);
+  const [isUpdateBranchModalOpen, setIsUpdateBranchModalOpen] = useState(false);
 
   // Fetch users on mount
   useEffect(() => {
@@ -48,18 +68,6 @@ const SuperAdminDashboard = () => {
     }
   };
 
-  const handleLogout = () => {
-    // Clear all possible token locations
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('lucky_boba_token');
-    localStorage.removeItem('token');
-    localStorage.removeItem('user_role');
-    localStorage.removeItem('lucky_boba_authenticated');
-    sessionStorage.clear();
-    
-    // Redirect to login
-    window.location.href = '/login';
-  };
 
   const handleCreateUser = async (data: CreateUserData) => {
     try {
@@ -102,9 +110,63 @@ const SuperAdminDashboard = () => {
     }
   };
 
-  const totalRevenue = mockBranches.reduce((sum, b) => sum + b.totalSales, 0);
-  const todayRevenue = mockBranches.reduce((sum, b) => sum + b.todaySales, 0);
-  const activeBranches = mockBranches.filter(b => b.status === 'active').length;
+  // Branch management functions
+  const handleCreateBranch = () => {
+    setBranchFormState({
+      id: null,
+      name: '',
+      location: '',
+      status: 'active',
+      totalSales: 0,
+      todaySales: 0,
+    });
+    setIsCreateBranchModalOpen(true);
+  };
+
+  const handleEditBranch = (branch: Branch) => {
+    setBranchFormState({
+      id: branch.id,
+      name: branch.name,
+      location: branch.location,
+      status: branch.status,
+      totalSales: branch.totalSales,
+      todaySales: branch.todaySales,
+    });
+    setIsUpdateBranchModalOpen(true);
+  };
+
+  const handleSaveBranch = () => {
+    if (branchFormState.id === null) {
+      // Create new branch
+      const newBranch: Branch = {
+        id: branches.length > 0 ? Math.max(...branches.map(b => b.id)) + 1 : 1,
+        name: branchFormState.name,
+        location: branchFormState.location,
+        status: branchFormState.status,
+        totalSales: branchFormState.totalSales,
+        todaySales: branchFormState.todaySales,
+      };
+      setBranches([...branches, newBranch]);
+    } else {
+      // Update existing branch
+      setBranches(
+        branches.map((b) => {
+          if (b.id === branchFormState.id && branchFormState.id !== null) {
+            return { ...b, name: branchFormState.name, location: branchFormState.location, status: branchFormState.status, totalSales: branchFormState.totalSales, todaySales: branchFormState.todaySales };
+          }
+          return b;
+        })
+      );
+    }
+    setIsCreateBranchModalOpen(false);
+    setIsUpdateBranchModalOpen(false);
+  };
+
+  const [viewBranch, setViewBranch] = useState<Branch | null>(null);
+
+  const totalRevenue = branches.reduce((sum, b) => sum + b.totalSales, 0);
+  const todayRevenue = branches.reduce((sum, b) => sum + b.todaySales, 0);
+  const activeBranches = branches.filter(b => b.status === 'active').length;
   const activeUsers = users.filter(u => u.status === 'ACTIVE').length;
 
   const navItems = [
@@ -117,9 +179,16 @@ const SuperAdminDashboard = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'overview':
-        return <OverviewTab totalRevenue={totalRevenue} todayRevenue={todayRevenue} activeBranches={activeBranches} activeUsers={activeUsers} branches={mockBranches} />;
+        return <OverviewTab totalRevenue={totalRevenue} todayRevenue={todayRevenue} activeBranches={activeBranches} activeUsers={activeUsers} branches={branches} />;
       case 'branches':
-        return <BranchesTab branches={mockBranches} />;
+        return (
+          <BranchesTab 
+            branches={branches} 
+            onCreateBranch={handleCreateBranch}
+            onEditBranch={handleEditBranch}
+            onViewBranch={setViewBranch}
+          />
+        );
       case 'users':
         return (
           <UsersTab
@@ -135,7 +204,7 @@ const SuperAdminDashboard = () => {
       case 'reports':
         return <ReportsTab />;
       default:
-        return <OverviewTab totalRevenue={totalRevenue} todayRevenue={todayRevenue} activeBranches={activeBranches} activeUsers={activeUsers} branches={mockBranches} />;
+        return <OverviewTab totalRevenue={totalRevenue} todayRevenue={todayRevenue} activeBranches={activeBranches} activeUsers={activeUsers} branches={branches} />;
     }
   };
 
@@ -145,16 +214,6 @@ const SuperAdminDashboard = () => {
       <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-zinc-200">
         <img src={logo} alt="Logo" className="h-8 w-auto object-contain" />
         <div className="flex items-center gap-3">
-          {/* Mobile Logout */}
-          <button 
-            onClick={handleLogout}
-            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-            title="Sign Out"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
-            </svg>
-          </button>
           {/* Menu Toggle */}
           <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-2 text-[#3b2063]">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
@@ -199,16 +258,7 @@ const SuperAdminDashboard = () => {
         </div>
 
         <div className="shrink-0 px-6 pb-8">
-          <button 
-            onClick={handleLogout}
-            className="flex items-center justify-center w-full px-6 py-4 rounded-2xl bg-[#be2525] hover:bg-[#a11f1f] text-white text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-200 shadow-md shadow-red-900/10"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4 mr-3">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
-            </svg>
-            Sign Out
-          </button>
-          <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 text-center mt-4">Lucky Boba © 2026</div>
+          <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 text-center mt-4">Lucky Boba 2026</div>
         </div>
 
         <button onClick={() => setSidebarOpen(false)} className="md:hidden absolute top-4 right-4 text-zinc-400 text-xs font-bold">CLOSE</button>
@@ -230,19 +280,217 @@ const SuperAdminDashboard = () => {
               Super Administrator Panel
             </p>
           </div>
-          
-          {/* Header Logout Button (visible on desktop) */}
-          <button 
-            onClick={handleLogout}
-            className="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-zinc-200 hover:border-red-300 hover:bg-red-50 text-zinc-600 hover:text-red-600 text-[11px] font-bold uppercase tracking-wider transition-all shadow-sm"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
-            </svg>
-            <span>Sign Out</span>
-          </button>
         </header>
         {renderContent()}
+        
+        {/* Branch Modals */}
+        {/* Create/Edit Branch Modal */}
+        {(isCreateBranchModalOpen || isUpdateBranchModalOpen) && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+            <div className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl p-6 space-y-5">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-lg font-black text-[#3b2063] uppercase tracking-wider">
+                  {isCreateBranchModalOpen ? 'Add Branch' : 'Edit Branch'}
+                </h2>
+                <button
+                  onClick={() => {
+                    setIsCreateBranchModalOpen(false);
+                    setIsUpdateBranchModalOpen(false);
+                  }}
+                  className="text-zinc-400 hover:text-zinc-600"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                    stroke="currentColor"
+                    className="w-5 h-5"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <form onSubmit={(e) => { e.preventDefault(); handleSaveBranch(); }} className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
+                    Branch Name
+                  </label>
+                  <input
+                    type="text"
+                    value={branchFormState.name}
+                    onChange={(e) => setBranchFormState((f) => ({ ...f, name: e.target.value }))}
+                    className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
+                    Location
+                  </label>
+                  <input
+                    type="text"
+                    value={branchFormState.location}
+                    onChange={(e) => setBranchFormState((f) => ({ ...f, location: e.target.value }))}
+                    className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
+                      Status
+                    </label>
+                    <select
+                      value={branchFormState.status}
+                      onChange={(e) =>
+                        setBranchFormState((f) => ({ ...f, status: e.target.value as 'active' | 'inactive' }))
+                      }
+                      className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
+                    >
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
+                      Today's Sales
+                    </label>
+                    <input
+                      type="number"
+                      value={branchFormState.todaySales}
+                      onChange={(e) => setBranchFormState((f) => ({ ...f, todaySales: Number(e.target.value) }))}
+                      className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
+                      min="0"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
+                    Total Sales
+                  </label>
+                  <input
+                    type="number"
+                    value={branchFormState.totalSales}
+                    onChange={(e) => setBranchFormState((f) => ({ ...f, totalSales: Number(e.target.value) }))}
+                    className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
+                    min="0"
+                  />
+                </div>
+
+                <div className="pt-2 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCreateBranchModalOpen(false);
+                      setIsUpdateBranchModalOpen(false);
+                    }}
+                    className="px-4 py-2 rounded-2xl border border-zinc-200 text-xs font-bold uppercase text-zinc-500 hover:bg-zinc-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2 rounded-2xl bg-[#3b2063] text-white text-xs font-black uppercase tracking-widest hover:bg-[#2a174a]"
+                  >
+                    {isCreateBranchModalOpen ? 'Create Branch' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* View Branch Modal */}
+        {viewBranch && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+            <div className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl p-6 space-y-5">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-lg font-black text-[#3b2063] uppercase tracking-wider">
+                  Branch Details
+                </h2>
+                <button
+                  onClick={() => setViewBranch(null)}
+                  className="text-zinc-400 hover:text-zinc-600"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                    stroke="currentColor"
+                    className="w-5 h-5"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
+                    Branch Name
+                  </p>
+                  <p className="text-sm font-bold text-[#3b2063]">{viewBranch.name}</p>
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
+                    Location
+                  </p>
+                  <p className="text-sm font-bold text-[#3b2063]">{viewBranch.location}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
+                      Status
+                    </p>
+                    <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase ${
+                      viewBranch.status === 'active' ? 'bg-emerald-100 text-emerald-600' : 'bg-zinc-100 text-zinc-500'
+                    }`}>
+                      {viewBranch.status}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
+                      Branch ID
+                    </p>
+                    <p className="text-sm font-bold text-[#3b2063]">#{viewBranch.id}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
+                      Today's Sales
+                    </p>
+                    <p className="text-lg font-black text-emerald-500">₱{viewBranch.todaySales.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
+                      Total Sales
+                    </p>
+                    <p className="text-lg font-black text-[#3b2063]">₱{viewBranch.totalSales.toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-end">
+                <button
+                  onClick={() => setViewBranch(null)}
+                  className="px-6 py-2 rounded-2xl bg-[#3b2063] text-white text-xs font-black uppercase tracking-widest hover:bg-[#2a174a]"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
@@ -306,13 +554,23 @@ const OverviewTab = ({ totalRevenue, todayRevenue, activeBranches, activeUsers, 
   </section>
 );
 
-const BranchesTab = ({ branches }: { branches: Branch[] }) => (
+interface BranchesTabProps {
+  branches: Branch[];
+  onCreateBranch: () => void;
+  onEditBranch: (branch: Branch) => void;
+  onViewBranch: (branch: Branch) => void;
+}
+
+const BranchesTab = ({ branches, onCreateBranch, onEditBranch, onViewBranch }: BranchesTabProps) => (
   <section className="flex-1 px-6 md:px-10 pb-10 overflow-auto">
     <div className="flex justify-between items-center mb-6">
       <p className="text-[12px] font-black uppercase tracking-[0.2em] text-zinc-400">
         {branches.length} Branches
       </p>
-      <button className="bg-[#3b2063] text-white px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-wider hover:bg-[#2a174a] transition-all">
+      <button 
+        onClick={onCreateBranch}
+        className="bg-[#3b2063] text-white px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-wider hover:bg-[#2a174a] transition-all"
+      >
         + Add Branch
       </button>
     </div>
@@ -342,8 +600,18 @@ const BranchesTab = ({ branches }: { branches: Branch[] }) => (
             </div>
           </div>
           <div className="flex gap-2 mt-4">
-            <button className="flex-1 bg-[#f0ebff] text-[#3b2063] py-2 rounded-xl font-bold text-[11px] uppercase hover:bg-[#e5deff] transition-all">Edit</button>
-            <button className="flex-1 bg-[#f0ebff] text-[#3b2063] py-2 rounded-xl font-bold text-[11px] uppercase hover:bg-[#e5deff] transition-all">View</button>
+            <button 
+              onClick={() => onEditBranch(branch)}
+              className="flex-1 bg-[#f0ebff] text-[#3b2063] py-2 rounded-xl font-bold text-[11px] uppercase hover:bg-[#e5deff] transition-all"
+            >
+              Edit
+            </button>
+            <button 
+              onClick={() => onViewBranch(branch)}
+              className="flex-1 bg-[#f0ebff] text-[#3b2063] py-2 rounded-xl font-bold text-[11px] uppercase hover:bg-[#e5deff] transition-all"
+            >
+              View
+            </button>
           </div>
         </div>
       ))}

@@ -26,6 +26,7 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+<<<<<<< HEAD
     
     // Pass credentials to login
     const credentials: LoginCredentials = { email, password };
@@ -42,6 +43,13 @@ const Login: React.FC = () => {
       } else {
         navigate('/dashboard', { replace: true });
       }
+=======
+    const result = await login(email, password);
+    if (result === 'superadmin') {
+      navigate('/super-admin', { replace: true });
+    } else if (result) {
+      navigate('/dashboard', { replace: true });
+>>>>>>> 9057bc1bbe00a3ae4125184c77f2d07a9d510873
     }
   };
 
