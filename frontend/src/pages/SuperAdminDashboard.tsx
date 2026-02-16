@@ -610,7 +610,7 @@ const BranchesTab = ({ branches, onCreateBranch, onEditBranch, onViewBranch }: B
               onClick={() => onViewBranch(branch)}
               className="flex-1 bg-[#f0ebff] text-[#3b2063] py-2 rounded-xl font-bold text-[11px] uppercase hover:bg-[#e5deff] transition-all"
             >
-              View
+              View  
             </button>
           </div>
         </div>

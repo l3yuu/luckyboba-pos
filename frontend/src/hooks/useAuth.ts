@@ -15,7 +15,6 @@ export const useAuth = () => {
     const [error, setError] = useState<string | null>(null);
     const [user, setUser] = useState<User | null>(null);
 
-<<<<<<< HEAD
     const checkAuth = useCallback(async (): Promise<User | null> => {
         // We now check for the token instead of just a boolean string
         const token = localStorage.getItem('lucky_boba_token');
@@ -24,12 +23,6 @@ export const useAuth = () => {
             setIsLoading(false);
             return null;
         }
-=======
-  const login = async (email: string, pass: string): Promise<boolean | 'superadmin'> => {
-    setIsLoading(true);
-    setError(null);
-    setIsSuccess(false);
->>>>>>> 9057bc1bbe00a3ae4125184c77f2d07a9d510873
 
         try {
             const response = await api.get('/user');
@@ -46,36 +39,9 @@ export const useAuth = () => {
         }
     }, []);
 
-<<<<<<< HEAD
     useEffect(() => {
         checkAuth();
     }, [checkAuth]);
-=======
-    // Super Admin credentials
-    const SUPER_ADMIN_EMAIL = import.meta.env.VITE_SUPER_ADMIN_EMAIL || 'superadmin@luckyboba.com';
-    const SUPER_ADMIN_PASSWORD = import.meta.env.VITE_SUPER_ADMIN_PASSWORD || 'superadmin123';
-
-    if (email === SUPER_ADMIN_EMAIL && pass === SUPER_ADMIN_PASSWORD) {
-      localStorage.setItem('auth_token', 'mock-boba-token-123');
-      sessionStorage.setItem('super_admin_authenticated', 'true');
-      setIsSuccess(true);
-      setIsLoading(false);
-      return 'superadmin';
-    }
-
-    // Regular admin credentials
-    if (email === 'admin@luckyboba.com' && pass === 'password123') {
-      localStorage.setItem('auth_token', 'mock-boba-token-123');
-      setIsSuccess(true);
-      setIsLoading(false);
-      return true;
-    }
-
-    setError('Invalid credentials. Try admin@luckyboba.com / password123 or superadmin@luckyboba.com / superadmin123');
-    setIsLoading(false);
-    return false;
-  };
->>>>>>> 9057bc1bbe00a3ae4125184c77f2d07a9d510873
 
     const login = async (credentials: LoginCredentials): Promise<User | null> => {
         setIsLoading(true);

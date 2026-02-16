@@ -1,7 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-<<<<<<< HEAD
 import SalesOrder from './pages/SalesOrder';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -21,11 +20,6 @@ const getDefaultRoute = () => {
   
   return '/dashboard';
 };
-=======
-import SalesOrder from './pages/SalesOrder'; // Import from 'pages' based on your screenshot
-import SuperAdminDashboard from './pages/SuperAdminDashboard';
-import { ProtectedRoute } from './components/ProtectedRoute';
->>>>>>> 9057bc1bbe00a3ae4125184c77f2d07a9d510873
 
 export const router = createBrowserRouter([
   {
@@ -41,21 +35,12 @@ export const router = createBrowserRouter([
         element: <Dashboard />,
       },
       {
-<<<<<<< HEAD
         path: '/pos',
         element: <SalesOrder />,
       },
       {
         path: '/super-admin',
         element: <SuperAdminDashboard />,
-=======
-        path: '/super-admin',
-        element: <SuperAdminDashboard />,
-      },
-      {
-        path: '/pos',         // New dedicated route for the Menu
-        element: <SalesOrder />, // Renders full screen without Sidebar
->>>>>>> 9057bc1bbe00a3ae4125184c77f2d07a9d510873
       },
     ],
   },
