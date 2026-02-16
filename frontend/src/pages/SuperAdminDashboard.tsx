@@ -165,7 +165,14 @@ const SuperAdminDashboard: React.FC = () => {
       setBranches(
         branches.map((b) => {
           if (b.id === branchFormState.id) {
-            return { ...b, ...branchFormState };
+            return { 
+              id: b.id,
+              name: branchFormState.name,
+              location: branchFormState.location,
+              status: branchFormState.status,
+              totalSales: branchFormState.totalSales,
+              todaySales: branchFormState.todaySales
+            };
           }
           return b;
         })
@@ -271,6 +278,16 @@ const SuperAdminDashboard: React.FC = () => {
         </div>
 
         <div className="shrink-0 px-6 pb-8">
+          <button 
+            onClick={handleLogout}
+            disabled={false}
+            className="flex items-center justify-center w-full px-6 py-4 rounded-2xl bg-[#be2525] hover:bg-[#a11f1f] text-white text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-200 shadow-md shadow-red-900/10 disabled:opacity-70 disabled:cursor-not-allowed group"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4 mr-3 group-hover:-translate-x-1 transition-transform">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+            </svg>
+            Logout
+          </button>
           <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 text-center mt-4">Lucky Boba 2026</div>
         </div>
 
