@@ -10,6 +10,7 @@ import {
     EXTRA_OPTIONS, 
     WINGS_QUANTITIES 
 } from '../types/index'; 
+import { Toast } from '../components/Toast';
 
 // === CUSTOM ICON COMPONENT ===
 const DrinkIcon = ({ className }: { className?: string }) => (
@@ -176,6 +177,13 @@ const SalesOrder = () => {
 
     const removeFromCart = (index: number) => setCart(prev => prev.filter((_, i) => i !== index));
     
+    const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
+
+    // Helper to auto-clear or just set the toast
+    const showToast = (message: string, type: 'success' | 'error' | 'warning') => {
+        setToast({ message, type });
+    };
+
     const handleConfirmOrder = async () => {
         if (cart.length === 0) return;
         
@@ -220,22 +228,25 @@ const SalesOrder = () => {
                 throw new Error(result.message || 'Failed to create order');
             }
 
-            // Print receipt after successful order
+            // --- SUCCESS FLOW ---
             window.print();
-            
-            // Clear cart and close modal
             setCart([]);
             setIsConfirmModalOpen(false);
             
-            // Show success message
-            alert('Order confirmed successfully!');
+            // SUCCESS TOAST
+            showToast('Order confirmed successfully!', 'success');
             
-        } catch (error) {
-            console.error('Error creating order:', error);
-            alert('Failed to create order. Please try again.');
-        } finally {
-            setSubmitting(false);
-        }
+            } catch (error) {
+                console.error('Error creating order:', error);
+                
+                const errorMessage = error instanceof Error 
+                    ? error.message 
+                    : 'Failed to create order. Please try again.';
+
+                showToast(errorMessage, 'error');
+            } finally {
+                    setSubmitting(false);
+                }
     };
 
     const subtotal = cart.reduce((acc, item) => acc + item.finalPrice, 0);
@@ -399,6 +410,15 @@ const SalesOrder = () => {
                             </div>
                         </div>
                     </div>
+                )}
+
+                {/* --- RENDER TOAST --- */}
+                {toast && (
+                    <Toast 
+                        message={toast.message} 
+                        type={toast.type} 
+                        onClose={() => setToast(null)} 
+                    />
                 )}
 
                 {/* MODAL: ADD-ONS */}

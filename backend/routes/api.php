@@ -53,6 +53,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/sales', [SalesController::class, 'store']);     
     Route::get('/sales', [SalesController::class, 'index']);       
     Route::get('/sales/{id}', [SalesController::class, 'show']);   
+    Route::patch('/sales/{id}/cancel', [SalesController::class, 'cancel']);
 
     // --- CASH & RECEIPTS ---
     Route::get('/cash-transactions', [CashTransactionController::class, 'index']);

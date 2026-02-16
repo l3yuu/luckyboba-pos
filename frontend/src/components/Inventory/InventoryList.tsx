@@ -23,7 +23,9 @@ const InventoryList = () => {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   
-  const cacheRef = useRef<InventoryItem[] | null>(null);
+  // Cache refs
+  const inventoryCacheRef = useRef<InventoryItem[] | null>(null);
+  const categoriesCacheRef = useRef<Category[] | null>(null);
   const hasFetchedRef = useRef(false);
   
   // Existing Restock Modal States
@@ -43,28 +45,38 @@ const InventoryList = () => {
     category_id: '' 
   });
 
-  // Fetch Inventory and Categories
+  // Fetch Inventory and Categories with improved caching
   const fetchData = useCallback(async () => {
-    if (cacheRef.current) {
-      setInventory(cacheRef.current);
+    // Check cache first
+    if (inventoryCacheRef.current && categoriesCacheRef.current) {
+      setInventory(inventoryCacheRef.current);
+      setCategories(categoriesCacheRef.current);
+      return;
     }
 
-    if (!hasFetchedRef.current) {
-      setLoading(true);
-      try {
-        const [invRes, catRes] = await Promise.all([
-          api.get('/inventory'),
-          api.get('/categories')
-        ]);
-        cacheRef.current = invRes.data;
-        setInventory(invRes.data);
-        setCategories(catRes.data);
-        hasFetchedRef.current = true;
-      } catch (err) { 
-        console.error("Failed to fetch data:", err); 
-      } finally { 
-        setLoading(false); 
-      }
+    // If already fetched, don't fetch again
+    if (hasFetchedRef.current) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const [invRes, catRes] = await Promise.all([
+        api.get('/inventory'),
+        api.get('/categories')
+      ]);
+      
+      // Store in cache
+      inventoryCacheRef.current = invRes.data;
+      categoriesCacheRef.current = catRes.data;
+      
+      setInventory(invRes.data);
+      setCategories(catRes.data);
+      hasFetchedRef.current = true;
+    } catch (err) { 
+      console.error("Failed to fetch data:", err); 
+    } finally { 
+      setLoading(false); 
     }
   }, []);
 
@@ -75,7 +87,8 @@ const InventoryList = () => {
   // --- SEARCH LOGIC ---
   const filteredInventory = useMemo(() => {
     return inventory.filter(item => 
-      item.name.toLowerCase().includes(searchTerm.toLowerCase())
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.barcode && item.barcode.toLowerCase().includes(searchTerm.toLowerCase()))
     );
   }, [inventory, searchTerm]);
 
@@ -84,8 +97,12 @@ const InventoryList = () => {
     setUpdating(true);
     try {
       await api.post('/inventory', newItem);
-      cacheRef.current = null;
+      
+      // Clear cache and refetch
+      inventoryCacheRef.current = null;
+      categoriesCacheRef.current = null;
       hasFetchedRef.current = false;
+      
       await fetchData();
       setIsAddModalOpen(false);
       setNewItem({ name: '', barcode: '', quantity: '', price: '', cost: '', category_id: '' });
@@ -106,11 +123,15 @@ const InventoryList = () => {
   const handleUpdateStock = async () => {
     const qtyToUpdate = parseInt(addQty);
     if (!selectedItem || isNaN(qtyToUpdate) || qtyToUpdate === 0) return;
+    
     setUpdating(true);
     try {
       await api.patch(`/inventory/${selectedItem.id}/quantity`, { quantity: qtyToUpdate });
-      cacheRef.current = null;
+      
+      // Clear cache and refetch
+      inventoryCacheRef.current = null;
       hasFetchedRef.current = false;
+      
       await fetchData(); 
       setIsModalOpen(false);
     } catch (err) {
@@ -156,7 +177,7 @@ const InventoryList = () => {
         <div className="mb-6 relative">
           <input 
             type="text"
-            placeholder="Search items by name..."
+            placeholder="Search by name or barcode..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-white border border-zinc-200 rounded-xl px-12 py-3 text-sm font-bold text-[#3b2063] outline-none focus:ring-2 ring-purple-100 transition-all shadow-sm"
@@ -214,6 +235,7 @@ const InventoryList = () => {
              <div className="mb-6">
               <h2 className="text-slate-700 font-black text-lg uppercase tracking-widest mb-2">Restock Item</h2>
               <p className="text-zinc-400 text-sm font-bold">{selectedItem?.name}</p>
+              <p className="text-zinc-300 text-xs">Current Stock: <span className="font-black text-slate-600">{selectedItem?.quantity}</span></p>
             </div>
             <div className="mb-6">
               <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2 block">Add Quantity</label>
@@ -222,12 +244,26 @@ const InventoryList = () => {
                 value={addQty}
                 onChange={(e) => setAddQty(e.target.value)}
                 autoFocus
-                className="w-full border-2 border-zinc-200 rounded-md px-4 py-3 text-slate-700 font-bold outline-none focus:border-[#1e40af]"
+                onFocus={(e) => e.target.select()}
+                className="w-full border-2 border-zinc-200 rounded-md px-4 py-3 text-slate-700 font-bold outline-none focus:border-[#1e40af] transition-all"
+                placeholder="Enter quantity to add"
+                min="1"
               />
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3 border-2 border-zinc-200 text-slate-600 rounded-md font-bold text-xs uppercase tracking-widest">Cancel</button>
-              <button onClick={handleUpdateStock} disabled={updating} className="flex-1 py-3 bg-[#10b981] text-white rounded-md font-bold text-xs uppercase tracking-widest">Confirm</button>
+              <button 
+                onClick={() => setIsModalOpen(false)} 
+                className="flex-1 py-3 border-2 border-zinc-200 text-slate-600 rounded-md font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleUpdateStock} 
+                disabled={updating || !addQty || parseInt(addQty) <= 0} 
+                className="flex-1 py-3 bg-[#10b981] text-white rounded-md font-bold text-xs uppercase tracking-widest hover:bg-[#0da673] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              >
+                {updating ? 'Updating...' : 'Confirm'}
+              </button>
             </div>
           </div>
         </div>
@@ -242,7 +278,7 @@ const InventoryList = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Product Name</label>
-                  <input required type="text" value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-[#10b981]" placeholder="e.g. Boba Milk Tea" />
+                  <input required type="text" value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-[#10b981] transition-all" placeholder="e.g. Boba Milk Tea" />
                 </div>
                 
                 {/* CATEGORY DROPDOWN */}
@@ -252,7 +288,7 @@ const InventoryList = () => {
                     required 
                     value={newItem.category_id} 
                     onChange={e => setNewItem({...newItem, category_id: e.target.value})}
-                    className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-[#10b981] appearance-none cursor-pointer bg-white"
+                    className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-[#10b981] appearance-none cursor-pointer bg-white transition-all"
                   >
                     <option value="" disabled>Select a category</option>
                     {categories.map(cat => (
@@ -263,24 +299,34 @@ const InventoryList = () => {
 
                 <div>
                   <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Barcode/SKU</label>
-                  <input type="text" value={newItem.barcode} onChange={e => setNewItem({...newItem, barcode: e.target.value})} className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-[#10b981]" />
+                  <input type="text" value={newItem.barcode} onChange={e => setNewItem({...newItem, barcode: e.target.value})} className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-[#10b981] transition-all" placeholder="Optional" />
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Initial Stock</label>
-                  <input required type="number" value={newItem.quantity} onChange={e => setNewItem({...newItem, quantity: e.target.value})} className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-[#10b981]" />
+                  <input required type="number" value={newItem.quantity} onChange={e => setNewItem({...newItem, quantity: e.target.value})} className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-[#10b981] transition-all" min="0" />
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Cost Price (₱)</label>
-                  <input required type="number" step="0.01" value={newItem.cost} onChange={e => setNewItem({...newItem, cost: e.target.value})} className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-[#10b981]" />
+                  <input required type="number" step="0.01" value={newItem.cost} onChange={e => setNewItem({...newItem, cost: e.target.value})} className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-[#10b981] transition-all" min="0" />
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Selling Price (₱)</label>
-                  <input required type="number" step="0.01" value={newItem.price} onChange={e => setNewItem({...newItem, price: e.target.value})} className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-[#10b981]" />
+                  <input required type="number" step="0.01" value={newItem.price} onChange={e => setNewItem({...newItem, price: e.target.value})} className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-[#10b981] transition-all" min="0" />
                 </div>
               </div>
               <div className="flex gap-3 mt-8">
-                <button type="button" onClick={() => setIsAddModalOpen(false)} className="flex-1 py-3 text-zinc-400 font-bold text-xs uppercase tracking-widest">Cancel</button>
-                <button type="submit" disabled={updating} className="flex-1 py-3 bg-[#3b2063] text-white rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-[#2d184b] transition-all shadow-md">
+                <button 
+                  type="button" 
+                  onClick={() => setIsAddModalOpen(false)} 
+                  className="flex-1 py-3 text-zinc-400 font-bold text-xs uppercase tracking-widest hover:text-zinc-600 transition-all"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={updating} 
+                  className="flex-1 py-3 bg-[#3b2063] text-white rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-[#2d184b] transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   {updating ? 'Saving...' : 'Save Item'}
                 </button>
               </div>

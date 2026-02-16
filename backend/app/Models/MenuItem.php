@@ -12,16 +12,20 @@ class MenuItem extends Model
 
     protected $fillable = [
         'category_id', 
-        'sub_category_id',  // Add this if you have the column
+        'sub_category_id',
         'name', 
         'price', 
+        'cost',     // Added to track profit
+        'quantity', // Added to track stock
         'barcode'
     ];
 
     protected $casts = [
         'price' => 'float',
+        'cost' => 'float',
+        'quantity' => 'integer',
         'category_id' => 'integer',
-        'sub_category_id' => 'integer', // Add this
+        'sub_category_id' => 'integer',
     ];
 
     public function category(): BelongsTo

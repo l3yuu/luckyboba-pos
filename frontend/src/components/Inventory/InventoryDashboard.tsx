@@ -23,7 +23,7 @@ interface DashboardData {
   weekly_profit_total: number;
 }
 
-// Updated colors to match SalesDashboard palette
+// Updated colors to match SalesDashboard palette - 5 colors for top 5
 const COLORS = ['#3b2063', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 const InventoryDashboard = () => {
@@ -31,6 +31,7 @@ const InventoryDashboard = () => {
   const [totals, setTotals] = useState({ sold: 0, profit: 0 });
   const [loading, setLoading] = useState(false);
   
+  // Cache refs
   const cacheRef = useRef<DashboardData | null>(null);
   const hasFetchedRef = useRef(false);
 
@@ -52,20 +53,38 @@ const InventoryDashboard = () => {
 
   useEffect(() => {
     const fetchDashboardData = async () => {
+      // Check cache first
       if (cacheRef.current) {
         setData(cacheRef.current.products);
-        setTotals({ sold: cacheRef.current.weekly_sold_total, profit: cacheRef.current.weekly_profit_total });
+        setTotals({ 
+          sold: cacheRef.current.weekly_sold_total, 
+          profit: cacheRef.current.weekly_profit_total 
+        });
         return;
       }
+
+      // If already fetched, don't fetch again
       if (hasFetchedRef.current) return;
 
       setLoading(true);
       try {
         const response = await api.get('/inventory/top-products');
         const responseData: DashboardData = response.data;
-        cacheRef.current = responseData;
-        setData(responseData.products);
-        setTotals({ sold: responseData.weekly_sold_total, profit: responseData.weekly_profit_total });
+        
+        // Ensure we only take top 5 products
+        const top5Products = responseData.products.slice(0, 5);
+        
+        // Store in cache
+        cacheRef.current = {
+          ...responseData,
+          products: top5Products
+        };
+        
+        setData(top5Products);
+        setTotals({ 
+          sold: responseData.weekly_sold_total, 
+          profit: responseData.weekly_profit_total 
+        });
         hasFetchedRef.current = true;
       } catch (error) {
         console.error("Failed to fetch inventory analytics:", error);
@@ -80,14 +99,12 @@ const InventoryDashboard = () => {
     new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(val);
 
   return (
-    // Background updated to match SalesDashboard purple tint
     <div className="flex-1 bg-[#f8f6ff] h-full flex flex-col overflow-hidden font-sans">
       <TopNavbar />
 
       <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
         <div className="bg-white rounded-xl shadow-sm border border-zinc-100 overflow-hidden">
           <div className="bg-zinc-50 px-6 py-4 border-b border-zinc-100">
-            {/* Text color updated to #3b2063 */}
             <h2 className="text-[#3b2063] font-black text-xs uppercase tracking-[0.15em] text-center">
               TOP 5 PRODUCTS by Qty Sold FROM {start} TO {end}
             </h2>
@@ -110,7 +127,12 @@ const InventoryDashboard = () => {
               <tbody className="divide-y divide-zinc-50">
                 {loading ? (
                   <tr>
-                    <td colSpan={8} className="py-10 text-center animate-pulse text-zinc-400 font-bold uppercase text-[10px]">Updating Dashboard...</td>
+                    <td colSpan={8} className="py-10 text-center">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#3b2063]"></div>
+                        <span className="text-zinc-400 font-bold uppercase text-[10px]">Loading...</span>
+                      </div>
+                    </td>
                   </tr>
                 ) : data.length > 0 ? (
                   data.map((item, index) => (
@@ -142,60 +164,69 @@ const InventoryDashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
+          {/* Bar Chart */}
           <div className="bg-white rounded-xl shadow-sm border border-zinc-100 p-6 h-72 flex flex-col">
             <div className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-4">Profit vs Cost Breakdown</div>
             <div className="flex-1 w-full overflow-hidden">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f8f6ff" />
-                  <XAxis dataKey="name" hide />
-                  <YAxis fontSize={10} tickFormatter={(value) => `₱${value}`} />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                    formatter={(value: ValueType | undefined) => formatPHP(Number(value) || 0)} 
-                  />
-                  <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }} />
-                  {/* Colors updated to emerald and dark purple */}
-                  <Bar dataKey="profit" name="Profit" fill="#10b981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="total_cost" name="Cost" fill="#3b2063" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              {data.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={data}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f8f6ff" />
+                    <XAxis dataKey="name" hide />
+                    <YAxis fontSize={10} tickFormatter={(value) => `₱${value}`} />
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                      formatter={(value: ValueType | undefined) => formatPHP(Number(value) || 0)} 
+                    />
+                    <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }} />
+                    <Bar dataKey="profit" name="Profit" fill="#10b981" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="total_cost" name="Cost" fill="#3b2063" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-zinc-300 text-xs italic">No data available</div>
+              )}
             </div>
           </div>
           
+          {/* Pie Chart */}
           <div className="bg-white rounded-xl shadow-sm border border-zinc-100 p-6 h-72 flex flex-col">
             <div className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-4">Sales Quantity Share</div>
             <div className="flex-1 w-full overflow-hidden">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={data}
-                    dataKey="qty"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={70}
-                    paddingAngle={5}
-                    stroke="none"
-                  >
-                    {data.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                    formatter={(value: ValueType | undefined, name: NameType | undefined) => [`${value ?? 0} units`, name ?? 'Unknown']}
-                  />
-                  <Legend 
-                    layout="vertical" 
-                    verticalAlign="middle" 
-                    align="right" 
-                    iconType="circle"
-                    wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', lineHeight: '20px', textTransform: 'uppercase' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+              {data.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={data}
+                      dataKey="qty"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={70}
+                      paddingAngle={5}
+                      stroke="none"
+                    >
+                      {data.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                      formatter={(value: ValueType | undefined, name: NameType | undefined) => [`${value ?? 0} units`, name ?? 'Unknown']}
+                    />
+                    <Legend 
+                      layout="vertical" 
+                      verticalAlign="middle" 
+                      align="right" 
+                      iconType="circle"
+                      wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', lineHeight: '20px', textTransform: 'uppercase' }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-zinc-300 text-xs italic">No data available</div>
+              )}
             </div>
           </div>
         </div>

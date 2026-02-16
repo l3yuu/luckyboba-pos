@@ -107,6 +107,22 @@
     }
   }, [user, activeTab, fetchStats]);
 
+  useEffect(() => {
+    const checkRefresh = () => {
+      const needsRefresh = localStorage.getItem('dashboard_needs_refresh');
+      if (needsRefresh === 'true' && activeTab === 'dashboard') {
+        localStorage.removeItem('dashboard_needs_refresh');
+        localStorage.removeItem('dashboard_stats_timestamp');
+        fetchStats(true);
+      }
+    };
+
+    checkRefresh();
+    // Listen for storage changes in case voiding happens in another window
+    window.addEventListener('storage', checkRefresh);
+    return () => window.removeEventListener('storage', checkRefresh);
+  }, [activeTab, fetchStats]);
+
     if (authLoading) return <DashboardSkeleton />;
     if (!user) return null;
 
@@ -115,6 +131,11 @@
         case 'dashboard':
           return <DashboardStats stats={stats} loading={loading} isInitialLoad={isInitialLoad} />;
         
+        case 'search-receipts': 
+          return <SearchReceipts onSuccess={() => {
+            localStorage.removeItem('dashboard_stats_timestamp');
+            fetchStats(true); // Forces the dashboard to subtract voided sales
+        }} />;
         case 'cash-in': return <CashIn onSuccess={() => {
           localStorage.removeItem('dashboard_stats_timestamp');
           fetchStats(true);
@@ -123,7 +144,6 @@
           localStorage.removeItem('dashboard_stats_timestamp');
           fetchStats(true);
         }} />;
-        case 'search-receipts': return <SearchReceipts />;
         case 'cash-count': return <CashCount />;
         case 'sales-dashboard': return <SalesDashboard />;
         case 'items-report': return <ItemsReport />;
@@ -213,16 +233,20 @@ const DashboardStats = ({
   stats, 
   isInitialLoad 
 }: { 
-  stats: DashboardData | null; // Use the actual type here instead of 'any'
+  stats: DashboardData | null; 
   loading: boolean;
   isInitialLoad: boolean;
 }) => {
-  const cards = [
-    { label: "Cash in today", value: stats?.cash_in_today ?? 0 },
-    { label: "Cash out today", value: stats?.cash_out_today ?? 0 },
-    { label: "Total Sales", value: stats?.total_sales_today ?? 0, highlight: true },
-    { label: "Total items", value: stats?.total_orders_today ?? 0, isCurrency: false },
-  ];
+  // We define the cards here. 
+  // 'total_sales_today' and 'total_orders_today' are now the NET values (voids already subtracted by backend)
+const cards = [
+  { label: "Cash in today", value: stats?.cash_in_today ?? 0 },
+  { label: "Cash out today", value: stats?.cash_out_today ?? 0 },
+  { label: "Total Sales (Net)", value: stats?.total_sales_today ?? 0, highlight: true },
+  { label: "Total items", value: stats?.total_orders_today ?? 0, isCurrency: false },
+  // This matches the property you just added to the interface
+  { label: "Voided today", value: stats?.voided_sales_today ?? 0, isVoid: true }, 
+];
 
   return (
     <section className="flex-1 px-6 md:px-10 pb-10">
@@ -231,34 +255,32 @@ const DashboardStats = ({
           0% { background-position: -200% 0; }
           100% { background-position: 200% 0; }
         }
-        
         .skeleton-shimmer {
-          background: linear-gradient(
-            90deg,
-            #f0f0f0 25%,
-            #e0e0e0 50%,
-            #f0f0f0 75%
-          );
+          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
           background-size: 200% 100%;
           animation: shimmer 1.5s infinite;
           border-radius: 8px;
         }
       `}</style>
 
-      <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Changed grid to cols-5 to fit the void card, or keep it responsive */}
+      <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">
         {cards.map((stat, i) => (
           <div 
             key={i} 
-            className="rounded-3xl md:rounded-4xl border border-zinc-100 bg-white shadow-sm p-5 md:p-6 flex flex-col justify-between min-h-27.5 md:min-h-32.5 transition-all duration-300"
+            className={`rounded-3xl md:rounded-4xl border border-zinc-100 bg-white shadow-sm p-5 md:p-6 flex flex-col justify-between min-h-27.5 md:min-h-32.5 transition-all duration-300 ${stat.highlight ? 'border-emerald-100 bg-emerald-50/30' : ''}`}
           >
-            <p className="text-[12px] md:text-[13px] font-black uppercase tracking-[0.2em] text-zinc-400">
+            <p className={`text-[12px] md:text-[13px] font-black uppercase tracking-[0.2em] ${stat.isVoid ? 'text-red-400' : 'text-zinc-400'}`}>
               {stat.label}
             </p>
             
             {isInitialLoad ? (
               <div className="h-8 skeleton-shimmer" />
             ) : (
-              <p className={`text-xl md:text-2xl font-black transition-all duration-500 ${stat.highlight ? 'text-emerald-500' : 'text-[#3b2063]'}`}>
+              <p className={`text-xl md:text-2xl font-black transition-all duration-500 ${
+                stat.highlight ? 'text-emerald-500' : 
+                stat.isVoid ? 'text-red-500' : 'text-[#3b2063]'
+              }`}>
                 {stat.isCurrency === false ? stat.value : `₱${Number(stat.value).toLocaleString(undefined, {minimumFractionDigits: 2})}`}
               </p>
             )}
@@ -267,7 +289,6 @@ const DashboardStats = ({
       </div>
       
       <div className="mt-6 md:mt-8 grid gap-4 md:gap-6 grid-cols-1 xl:grid-cols-2">
-        {/* Pass the arrays to the List component */}
         <TopSellerList title="Top 5 sellers today" sellers={stats?.top_seller_today ?? []} loading={isInitialLoad} />
         <TopSellerList title="Top 5 sellers all time" sellers={stats?.top_seller_all_time ?? []} loading={isInitialLoad} />
       </div>
@@ -350,7 +371,7 @@ const TopSellerList = ({
       {/* Main content skeleton */}
       <div className="flex-1 p-10">
         <div className="h-10 w-48 bg-zinc-200 rounded-lg mb-4 animate-pulse" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
           {[1, 2, 3, 4].map(i => (
             <div key={i} className="h-32 bg-white rounded-4xl border border-zinc-100 p-6 animate-pulse">
               <div className="h-4 w-24 bg-zinc-200 rounded mb-4" />

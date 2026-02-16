@@ -19,8 +19,18 @@ class Sale extends Model
         'pax',
         'user_id',
         'is_synced',
-        'invoice_number', // Added for tracking
-        'status'         // Added for analytics (completed, cancelled)
+        'invoice_number',
+        'status',           // (completed, cancelled)
+        'cancellation_reason', // Added for void audit
+        'cancelled_at'         // Added for timestamp tracking
+    ];
+
+    /**
+     * The attributes that should be cast.
+     */
+    protected $casts = [
+        'cancelled_at' => 'datetime',
+        'total_amount' => 'decimal:2',
     ];
 
     public function items(): HasMany

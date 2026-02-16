@@ -3,11 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Models\MenuItem;
+use App\Models\Receipt;
 use App\Models\Sale;
 use App\Models\SaleItem;
-use App\Models\Receipt;
 use App\Services\DashboardService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -52,16 +53,14 @@ class SalesController extends Controller
                 }
             }
 
-            // --- GENERATE INVOICE NUMBER ---
-            // LB-YYYYMMDD-000X
             $todayCount = Sale::whereDate('created_at', now()->today())->count();
             $invoiceNumber = 'LB-' . date('Ymd') . '-' . str_pad($todayCount + 1, 4, '0', STR_PAD_LEFT);
 
             $sale = Sale::create([
                 'user_id' => auth()->id(),
                 'total_amount' => $validated['total'],
-                'invoice_number' => $invoiceNumber, // REQUIRED NOW
-                'status' => 'completed',            // REQUIRED NOW
+                'invoice_number' => $invoiceNumber,
+                'status' => 'completed',
                 'payment_method' => 'cash',
                 'charge_type' => $chargeType,
                 'pax' => 1,
@@ -81,9 +80,14 @@ class SalesController extends Controller
                     'options' => $item['options'] ?? null,
                     'add_ons' => $item['add_ons'] ?? null,
                 ]);
+
+                // --- NEW: DEDUCT FROM INVENTORY ---
+                $menuItem = MenuItem::find($item['menu_item_id']);
+                if ($menuItem) {
+                    $menuItem->decrement('quantity', $item['quantity']);
+                }
             }
 
-            // For the Receipt, we use the same Invoice Number for consistency
             Receipt::create([
                 'si_number'    => $invoiceNumber,
                 'terminal'     => '01',
@@ -95,12 +99,11 @@ class SalesController extends Controller
 
             DB::commit();
 
-            // Clear cache so the new sale appears on the dashboard immediately
             $this->dashboardService->clearTodayCache();
 
             return response()->json([
                 'status'  => 'success',
-                'message' => 'Sale and Receipt created successfully',
+                'message' => 'Sale created and stock deducted',
                 'si_number' => $invoiceNumber,
                 'sale'    => $sale->load('items'),
             ], 201);
@@ -117,9 +120,56 @@ class SalesController extends Controller
         }
     }
 
+    // index() and cancel() remain the same
     public function index()
     {
         $sales = Sale::with('items', 'user')->latest()->paginate(20);
         return response()->json($sales);
     }
+
+public function cancel(Request $request, $id)
+{
+    $request->validate([
+        'reason' => 'required|string|max:255'
+    ]);
+
+    try {
+        DB::beginTransaction();
+
+        $sale = Sale::with('items')->findOrFail($id);
+
+        if ($sale->status === 'cancelled') {
+            return response()->json(['message' => 'Sale already cancelled'], 400);
+        }
+
+        foreach ($sale->items as $item) {
+            $menuItem = MenuItem::find($item->menu_item_id);
+            if ($menuItem) {
+                $menuItem->increment('quantity', $item->quantity);
+            } else {
+                // Optional: Log if a menu item no longer exists
+                Log::warning("Inventory restore failed for sale #{$sale->invoice_number}: Item ID {$item->menu_item_id} not found.");
+            }
+        }
+
+        // 1. Update Sale Table (This is the primary record)
+        $sale->update([
+            'status' => 'cancelled',
+            'cancellation_reason' => $request->reason,
+            'cancelled_at' => now(),
+        ]);
+
+        // 2. REMOVE OR COMMENT OUT THIS BLOCK:
+        // DB::table('receipts')->where('sale_id', $id)->update(['status' => 'cancelled']);
+
+        DB::commit();
+        $this->dashboardService->clearTodayCache();
+
+        return response()->json(['status' => 'success', 'message' => 'Voided successfully']);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        // This will help you see the REAL error in your console
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+    }
+}
 }
