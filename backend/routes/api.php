@@ -61,4 +61,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // --- SALES REPORTS ---
     Route::get('/items-report', [SalesDashboardController::class, 'itemsReport']);
     Route::get('/reports/x-reading', [SalesDashboardController::class, 'xReading']);
+    Route::get('/reports/z-reading', [SalesDashboardController::class, 'zReading']);
+    Route::get('/reports/mall-accreditation', [SalesDashboardController::class, 'mallReport']);
 });

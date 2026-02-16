@@ -1,10 +1,25 @@
 import { useState, useRef, useEffect } from 'react';
 import TopNavbar from '../TopNavbar';
+import api from '../../services/api';
+
+// Defined interface for type safety
+interface ZReadingReport {
+  reading_date: string;
+  gross_sales: number;
+  net_sales: number;
+  transaction_count: number;
+  cash_total: number;
+  non_cash_total: number;
+  generated_at: string;
+}
 
 const ZReading = () => {
   const today = new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState(today);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  
+  const [reportData, setReportData] = useState<ZReadingReport | null>(null);
+  const [loading, setLoading] = useState(false);
   
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -18,7 +33,22 @@ const ZReading = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleGenerate = () => console.log("Generating Z-Reading...");
+  // Connected Generate Function
+  const handleGenerate = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get<ZReadingReport>('/reports/z-reading', {
+        params: { date: selectedDate }
+      });
+      setReportData(response.data);
+      setIsMenuOpen(false);
+    } catch (error) {
+      console.error("Z-Reading generation failed:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handlePrint = () => window.print();
 
   const menuCards = [
@@ -38,7 +68,7 @@ const ZReading = () => {
     <div className="flex-1 bg-[#f4f5f7] h-full flex flex-col overflow-hidden font-sans">
       <TopNavbar />
       <div className="flex-1 overflow-y-auto p-6 flex flex-col relative">
-        <div className="bg-white p-3 rounded-lg shadow-sm border border-zinc-200 mb-6 flex flex-col xl:flex-row items-center gap-4 relative z-50">
+        <div className="bg-white p-3 rounded-lg shadow-sm border border-zinc-200 mb-6 flex flex-col xl:flex-row items-center gap-4 relative z-50 print:hidden">
           <div className="relative" ref={menuRef}>
             <button 
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -49,15 +79,18 @@ const ZReading = () => {
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className={`w-3 h-3 ml-1 transition-transform ${isMenuOpen ? 'rotate-180' : ''}`}><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
             </button>
             {isMenuOpen && (
-              <div className="absolute top-full left-0 mt-2 w-[800px] bg-white rounded-xl shadow-2xl border border-zinc-200 p-6 animate-in fade-in slide-in-from-top-2 duration-200 z-50 max-h-[70vh] overflow-y-auto">
+              <div className="absolute top-full left-0 mt-2 w-200 bg-white rounded-xl shadow-2xl border border-zinc-200 p-6 animate-in fade-in slide-in-from-top-2 duration-200 z-50 max-h-[70vh] overflow-y-auto">
                 <div className="grid grid-cols-2 gap-4">
                   {menuCards.map((card, index) => (
                     <div 
                       key={index}
-                      onClick={() => setIsMenuOpen(false)} 
+                      onClick={() => {
+                        if (card.actionLabel === "Z-READING") handleGenerate();
+                        else setIsMenuOpen(false);
+                      }} 
                       className={`bg-white border-l-4 ${card.color} rounded-r-lg shadow-sm hover:shadow-md border-y border-r border-zinc-100 p-4 h-24 flex flex-col justify-center relative overflow-hidden transition-all cursor-pointer group`}
                     >
-                      <div className={`absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l to-transparent opacity-10 pointer-events-none ${card.color.includes('amber') ? 'from-amber-100' : card.color.includes('emerald') ? 'from-emerald-100' : 'from-blue-100'}`}></div>
+                      <div className={`absolute right-0 top-0 bottom-0 w-24 bg-linear-to-l to-transparent opacity-10 pointer-events-none ${card.color.includes('amber') ? 'from-amber-100' : card.color.includes('emerald') ? 'from-emerald-100' : 'from-blue-100'}`}></div>
                       {card.isAction ? (
                         <div className="flex items-center justify-between relative z-10">
                           <h3 className={`${card.textColor} font-black uppercase tracking-widest text-xs`}>{card.actionLabel}</h3>
@@ -102,24 +135,62 @@ const ZReading = () => {
             </div>
           ))}
           <div className="flex gap-2 w-full xl:w-auto ml-auto pl-4 border-l border-zinc-200">
-            <button onClick={handleGenerate} className="px-6 h-12 bg-[#1e40af] text-white rounded-md font-bold uppercase text-xs tracking-wider hover:bg-[#1e3a8a] transition-all flex items-center justify-center gap-2 shadow-sm min-w-[120px]">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
-              Generate
+            <button 
+              onClick={handleGenerate} 
+              disabled={loading}
+              className="px-6 h-12 bg-[#1e40af] text-white rounded-md font-bold uppercase text-xs tracking-wider hover:bg-[#1e3a8a] transition-all flex items-center justify-center gap-2 shadow-sm min-w-30 disabled:opacity-50"
+            >
+              {loading ? "Processing..." : (
+                <>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg>
+                  Generate
+                </>
+              )}
             </button>
-            <button onClick={handlePrint} className="px-6 h-12 bg-[#172554] text-white rounded-md font-bold uppercase text-xs tracking-wider hover:bg-[#0f172a] transition-all flex items-center justify-center gap-2 shadow-sm min-w-[100px]">
+            <button onClick={handlePrint} className="px-6 h-12 bg-[#172554] text-white rounded-md font-bold uppercase text-xs tracking-wider hover:bg-[#0f172a] transition-all flex items-center justify-center gap-2 shadow-sm min-w-25">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.198-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0m10.5 0V3.375c0-.621-.504-1.125-1.125-1.125h-8.25c-.621 0-1.125.504-1.125 1.125v3.659M18 10.5h.008v.008H18V10.5Zm-3 0h.008v.008H15V10.5Z" /></svg>
               Print
             </button>
           </div>
         </div>
-        <div className="flex-1 flex flex-col items-center justify-center text-center opacity-50">
-          <div className="bg-zinc-100 p-8 rounded-full mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-16 h-16 text-zinc-400">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-            </svg>
-          </div>
-          <h2 className="text-xl font-bold text-slate-700">No Report Selected</h2>
-          <p className="text-sm text-zinc-400 mt-2">Click the <strong>MENU</strong> button above to select a report.</p>
+
+        {/* --- REPORT PREVIEW AREA --- */}
+        <div className="flex-1 flex flex-col items-center justify-start py-10">
+          {reportData ? (
+            <div className="bg-white w-full max-w-100 p-10 shadow-2xl border border-zinc-200 font-mono text-slate-800">
+              <div className="text-center mb-6">
+                <h1 className="font-black text-xl">LUCKY BOBA</h1>
+                <p className="text-[10px] text-zinc-400">Z-READING REPORT</p>
+                <p className="text-[10px] mt-2 font-bold uppercase">{reportData.reading_date}</p>
+              </div>
+
+              <div className="border-t-2 border-dashed border-zinc-200 my-4 pt-4 space-y-2">
+                <div className="flex justify-between text-xs"><span>GROSS SALES</span> <span className="font-bold">₱ {reportData.gross_sales.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span></div>
+                <div className="flex justify-between text-xs"><span>NET SALES</span> <span className="font-bold">₱ {reportData.net_sales.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span></div>
+                <div className="flex justify-between text-xs"><span>TRANS COUNT</span> <span className="font-bold">{reportData.transaction_count}</span></div>
+              </div>
+
+              <div className="border-t border-dashed border-zinc-200 my-4 pt-4 space-y-2">
+                <div className="flex justify-between text-xs"><span>CASH SALES</span> <span>₱ {reportData.cash_total.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span></div>
+                <div className="flex justify-between text-xs"><span>NON-CASH</span> <span>₱ {reportData.non_cash_total.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span></div>
+              </div>
+
+              <div className="mt-10 text-center border-t border-zinc-100 pt-4">
+                <p className="text-[9px] uppercase tracking-widest text-zinc-300">Generated: {reportData.generated_at}</p>
+                <p className="text-[9px] font-bold mt-2">--- END OF REPORT ---</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center text-center opacity-50">
+              <div className="bg-zinc-100 p-8 rounded-full mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-16 h-16 text-zinc-400">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold text-slate-700">No Report Selected</h2>
+              <p className="text-sm text-zinc-400 mt-2">Click the <strong>MENU</strong> button above to select a report.</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

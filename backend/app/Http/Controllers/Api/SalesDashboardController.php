@@ -70,4 +70,20 @@ class SalesDashboardController extends Controller
             return response()->json(['message' => 'Error generating X-Reading'], 500);
         }
     }
+
+    public function zReading(Request $request) 
+    {
+        $request->validate(['date' => 'required|date']);
+        $report = $this->salesService->generateZReading($request->date);
+
+        return response()->json($report);
+    }
+
+    public function mallReport(Request $request) 
+    {
+        $request->validate(['date' => 'required|date', 'mall' => 'required|string']);
+        $report = $this->salesService->getMallReport($request->date, $request->mall);
+        
+        return response()->json($report);
+    }
 }

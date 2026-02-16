@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Sale;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use App\Models\ZReading;
 
 class SalesDashboardService
 {
@@ -140,6 +141,71 @@ class SalesDashboardService
             'cash_total' => (float)$cashSales,
             'non_cash_total' => (float)$otherSales,
             'hourly_data' => $hourly
+        ];
+    }
+
+    public function generateZReading($date)
+    {
+        $formattedDate = \Carbon\Carbon::parse($date)->format('Y-m-d');
+
+        // 1. Check for existing record using the Model
+        $existing = ZReading::where('reading_date', $formattedDate)->first();
+        if ($existing) {
+            return $existing->data; // Already returns as array due to the $casts in Model
+        }
+
+        // 2. Aggregate Data (logic from previous steps)
+        $sales = DB::table('sales')
+            ->whereDate('created_at', $formattedDate)
+            ->where('status', 'completed')
+            ->get();
+
+        $gross = (float)$sales->sum('total_amount');
+
+        $reportData = [
+            'reading_date' => $formattedDate,
+            'gross_sales' => $gross,
+            'transaction_count' => $sales->count(),
+            'generated_at' => now()->toDateTimeString(),
+            // Add any other breakdown info here...
+        ];
+
+        // 3. Save using the Model
+        ZReading::create([
+            'reading_date' => $formattedDate,
+            'total_sales' => $gross,
+            'data' => $reportData, // Model handles the json_encode automatically
+        ]);
+
+        return $reportData;
+    }
+
+    public function getMallReport($date, $mallName)
+    {
+        $formattedDate = \Carbon\Carbon::parse($date)->format('Y-m-d');
+
+        // Fetch sales for that specific mall (if multi-branch) or just for that date
+        $sales = DB::table('sales')
+            ->whereDate('created_at', $formattedDate)
+            ->where('status', 'completed')
+            ->get();
+
+        $gross = (float)$sales->sum('total_amount');
+        $count = $sales->count();
+        
+        // Most malls require Tax and Discount breakdowns
+        $tax = $gross * 0.12; // Assuming 12% VAT
+        $netSales = $gross - $tax;
+
+        return [
+            'mall' => $mallName,
+            'date' => $formattedDate,
+            'gross_sales' => $gross,
+            'net_sales' => $netSales,
+            'tax_amount' => $tax,
+            'transaction_count' => $count,
+            'tenant_id' => 'LUCKYBOBA-001', // Example ID
+            'generated_at' => now()->toDateTimeString(),
         ];
     }
 }
