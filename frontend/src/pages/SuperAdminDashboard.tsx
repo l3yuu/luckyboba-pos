@@ -49,8 +49,15 @@ const SuperAdminDashboard = () => {
   };
 
   const handleLogout = () => {
+    // Clear all possible token locations
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('lucky_boba_token');
+    localStorage.removeItem('token');
     localStorage.removeItem('user_role');
+    localStorage.removeItem('lucky_boba_authenticated');
+    sessionStorage.clear();
+    
+    // Redirect to login
     window.location.href = '/login';
   };
 
@@ -137,11 +144,24 @@ const SuperAdminDashboard = () => {
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-zinc-200">
         <img src={logo} alt="Logo" className="h-8 w-auto object-contain" />
-        <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-2 text-[#3b2063]">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-          </svg>
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Mobile Logout */}
+          <button 
+            onClick={handleLogout}
+            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+            title="Sign Out"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+            </svg>
+          </button>
+          {/* Menu Toggle */}
+          <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-2 text-[#3b2063]">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Sidebar */}
@@ -210,6 +230,17 @@ const SuperAdminDashboard = () => {
               Super Administrator Panel
             </p>
           </div>
+          
+          {/* Header Logout Button (visible on desktop) */}
+          <button 
+            onClick={handleLogout}
+            className="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-zinc-200 hover:border-red-300 hover:bg-red-50 text-zinc-600 hover:text-red-600 text-[11px] font-bold uppercase tracking-wider transition-all shadow-sm"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+            </svg>
+            <span>Sign Out</span>
+          </button>
         </header>
         {renderContent()}
       </main>
@@ -217,7 +248,8 @@ const SuperAdminDashboard = () => {
   );
 };
 
-// --- Sub Components (same as before) ---
+// Rest of the component remains the same...
+// (OverviewTab, BranchesTab, UsersTab, ReportsTab, and Icons)
 
 const OverviewTab = ({ totalRevenue, todayRevenue, activeBranches, activeUsers, branches }: {
   totalRevenue: number;
@@ -769,7 +801,7 @@ const ReportsTab = () => (
   </section>
 );
 
-// --- Icons (same as before) ---
+// --- Icons ---
 const DashboardIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25a2.25 2.25 0 0 1-2.25-2.25v-2.25Z" />

@@ -31,6 +31,7 @@ interface WeeklySalesResponse {
   total_revenue: number;
   start_date: string;
   end_date: string;
+  current_week_start: string;
 }
 
 interface TodaySalesResponse {
@@ -64,20 +65,19 @@ interface DateRange {
 // CONSTANTS
 // ============================================================
 
-const WEEKLY_MAX = 1000;
+const WEEKLY_MAX = 10000;
 const WEEKLY_HEIGHT = 200;
-const TODAY_MAX = 1000;
+const TODAY_MAX = 20000;
 const TODAY_HEIGHT = 180;
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-const DEBUG_MODE = true;
+const DEBUG_MODE = false;
 
 // ============================================================
 // HELPER FUNCTION - LUCKY BOBA SPECIFIC TOKEN RETRIEVAL
 // ============================================================
 
 const getAuthToken = (): { token: string | null; source: string; isMock: boolean } => {
-  // Check Lucky Boba specific keys FIRST
   const luckyBobaToken = localStorage.getItem('lucky_boba_token');
   if (luckyBobaToken && !luckyBobaToken.startsWith('mock-')) {
     return { 
@@ -87,12 +87,10 @@ const getAuthToken = (): { token: string | null; source: string; isMock: boolean
     };
   }
 
-  // Check if it's a mock token
   if (luckyBobaToken && luckyBobaToken.startsWith('mock-')) {
     console.warn('⚠️ Mock token detected in lucky_boba_token');
   }
 
-  // Try auth_token but verify it's not a mock token
   const authToken = localStorage.getItem('auth_token');
   if (authToken && !authToken.startsWith('mock-')) {
     return { 
@@ -106,7 +104,6 @@ const getAuthToken = (): { token: string | null; source: string; isMock: boolean
     console.warn('⚠️ Mock token detected in auth_token');
   }
 
-  // Check other possible locations
   const token = localStorage.getItem('token');
   if (token && !token.startsWith('mock-')) {
     return { 
@@ -116,7 +113,6 @@ const getAuthToken = (): { token: string | null; source: string; isMock: boolean
     };
   }
 
-  // Check if token is in user object
   const userDataLocal = localStorage.getItem('user');
   if (userDataLocal) {
     try {
@@ -134,7 +130,6 @@ const getAuthToken = (): { token: string | null; source: string; isMock: boolean
     }
   }
 
-  // If we get here, either no token or only mock tokens found
   const mockToken = luckyBobaToken || authToken;
   if (mockToken) {
     return {
@@ -147,10 +142,7 @@ const getAuthToken = (): { token: string | null; source: string; isMock: boolean
   return { token: null, source: 'none', isMock: false };
 };
 
-// Validate that token looks like a real Sanctum token
 const isValidSanctumToken = (token: string): boolean => {
-  // Sanctum tokens typically start with a number followed by |
-  // Example: 1|aBcDeFgHiJkLmNoPqRsTuVwXyZ
   return /^\d+\|/.test(token);
 };
 
@@ -174,23 +166,68 @@ const SalesDashboard: React.FC = () => {
 
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [debugInfo, setDebugInfo] = useState<string>('');
 
   const [hoveredValue, setHoveredValue] = useState<LinePoint | null>(null);
 
   useEffect(() => {
     fetchDashboardData();
-    const interval = setInterval(() => {
+    
+    const refreshInterval = setInterval(() => {
       fetchDashboardData();
     }, 30000);
-    return () => clearInterval(interval);
+    
+    const weekCheckInterval = setInterval(() => {
+      checkForNewWeek();
+    }, 600000);
+    
+    return () => {
+      clearInterval(refreshInterval);
+      clearInterval(weekCheckInterval);
+    };
   }, []);
+
+  const checkForNewWeek = async () => {
+    try {
+      const { token } = getAuthToken();
+      if (!token) return;
+
+      const response = await fetch(`${API_BASE_URL}/dashboard/weekly-sales`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data.current_week_start) {
+          const serverWeekStart = result.data.current_week_start;
+          const lastKnownWeek = localStorage.getItem('lastWeeklyRefresh');
+
+          if (lastKnownWeek && lastKnownWeek !== serverWeekStart) {
+            console.log('📅 New week detected from server!');
+            console.log('  Previous week:', lastKnownWeek);
+            console.log('  Current week:', serverWeekStart);
+            console.log('🔄 Refreshing dashboard...');
+            
+            localStorage.setItem('lastWeeklyRefresh', serverWeekStart);
+            fetchDashboardData();
+          }
+        }
+      }
+    } catch (err) {
+      if (DEBUG_MODE) {
+        console.log('Week check failed:', err);
+      }
+    }
+  };
 
   const fetchDashboardData = async (): Promise<void> => {
     try {
       setLoading(true);
       setError(null);
-      setDebugInfo('');
 
       const { token, source, isMock } = getAuthToken();
 
@@ -203,12 +240,6 @@ const SalesDashboard: React.FC = () => {
           console.log('  Token preview:', token.substring(0, 20) + '...');
           console.log('  Valid Sanctum format:', isValidSanctumToken(token));
         }
-        
-        // Log all Lucky Boba related keys
-        console.log('  All tokens in storage:');
-        console.log('    lucky_boba_token:', localStorage.getItem('lucky_boba_token')?.substring(0, 20));
-        console.log('    auth_token:', localStorage.getItem('auth_token')?.substring(0, 20));
-        console.log('    lucky_boba_authenticated:', localStorage.getItem('lucky_boba_authenticated'));
       }
 
       if (isMock) {
@@ -234,7 +265,6 @@ const SalesDashboard: React.FC = () => {
         );
       }
 
-      // Additional validation for Sanctum token format
       if (!isValidSanctumToken(token)) {
         throw new Error(
           `⚠️ Invalid token format!\n\n` +
@@ -245,8 +275,6 @@ const SalesDashboard: React.FC = () => {
           `Please log in again to get a valid Sanctum token.`
         );
       }
-
-      setDebugInfo(`Token: ${source}`);
 
       const url = `${API_BASE_URL}/dashboard/data`;
       
@@ -292,6 +320,7 @@ const SalesDashboard: React.FC = () => {
 
       if (result.success) {
         const { weekly_sales, today_sales, statistics: stats } = result.data;
+        
         setWeeklySalesData(weekly_sales.data);
         setWeeklyTotal(weekly_sales.total_revenue);
         setDateRange({
@@ -300,6 +329,17 @@ const SalesDashboard: React.FC = () => {
         });
         setTodaySalesData(today_sales.data);
         setStatistics(stats);
+
+        // Store current week start for auto-refresh detection
+        if (weekly_sales.current_week_start) {
+          const lastKnownWeek = localStorage.getItem('lastWeeklyRefresh');
+          if (!lastKnownWeek) {
+            localStorage.setItem('lastWeeklyRefresh', weekly_sales.current_week_start);
+          } else if (lastKnownWeek !== weekly_sales.current_week_start) {
+            console.log('🎉 New week started!');
+            localStorage.setItem('lastWeeklyRefresh', weekly_sales.current_week_start);
+          }
+        }
       } else {
         throw new Error(result.message || 'Failed to load data');
       }
@@ -332,9 +372,6 @@ const SalesDashboard: React.FC = () => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#3b2063] mx-auto"></div>
           <p className="mt-4 text-[#3b2063] font-bold">Loading dashboard...</p>
-          {DEBUG_MODE && debugInfo && (
-            <p className="mt-2 text-xs text-zinc-500">{debugInfo}</p>
-          )}
         </div>
       </div>
     );
@@ -355,27 +392,6 @@ const SalesDashboard: React.FC = () => {
           <pre className="text-left text-sm text-zinc-600 mb-4 whitespace-pre-wrap bg-zinc-50 p-4 rounded-lg overflow-auto max-h-60">
             {error}
           </pre>
-          
-          {DEBUG_MODE && (
-            <div className="mb-4 text-left">
-              <h4 className="font-bold text-sm text-[#3b2063] mb-2">Debug Info:</h4>
-              <div className="text-xs bg-zinc-50 p-3 rounded space-y-1 text-left">
-                <div>API URL: {API_BASE_URL}</div>
-                <div>Token source: {getAuthToken().source}</div>
-                <div>Token exists: {getAuthToken().token ? '✅' : '❌'}</div>
-                <div>Is mock token: {getAuthToken().isMock ? '🚫 Yes' : '✅ No'}</div>
-                <div className="mt-2 pt-2 border-t border-zinc-200 font-mono text-[10px]">
-                  lucky_boba_token: {localStorage.getItem('lucky_boba_token')?.substring(0, 30) || 'none'}...
-                </div>
-                <div className="font-mono text-[10px]">
-                  auth_token: {localStorage.getItem('auth_token')?.substring(0, 30) || 'none'}...
-                </div>
-                <div className="font-mono text-[10px]">
-                  lucky_boba_authenticated: {localStorage.getItem('lucky_boba_authenticated') || 'none'}
-                </div>
-              </div>
-            </div>
-          )}
 
           <div className="flex gap-3 justify-center flex-wrap">
             <button
@@ -424,6 +440,7 @@ const SalesDashboard: React.FC = () => {
       <TopNavbar />
 
       <div className="flex-1 overflow-y-auto p-8 flex flex-col">
+
         <div className="bg-white rounded-[2.5rem] shadow-xl shadow-purple-900/5 border border-zinc-100 p-8 flex flex-col mb-6">
           <div className="flex justify-between items-end mb-8">
             <div>

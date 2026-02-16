@@ -9,6 +9,10 @@ use Carbon\Carbon;
 
 class DashboardService
 {
+    // ============================================================
+    // EXISTING METHODS (Keep these as-is)
+    // ============================================================
+    
     public function getHomeStats()
     {
         $today = Carbon::today();
@@ -52,16 +56,27 @@ class DashboardService
 
         return $query->first();
     }
+
+    // ============================================================
+    // FIXED: WEEKLY SALES NOW SHOWS CURRENT WEEK (MONDAY-SUNDAY)
+    // ============================================================
+    
     /**
-     * Get weekly sales data grouped by day
-     * Returns last 8 days including today
+     * Get weekly sales data for CURRENT WEEK (Monday to Sunday)
+     * Automatically resets every Monday
      */
     public function getWeeklySalesData()
     {
-        $endDate = Carbon::now();
-        $startDate = Carbon::now()->subDays(7);
+        // Get current week's Monday and Sunday
+        $currentWeekStart = Carbon::now()->startOfWeek(Carbon::MONDAY);
+        $currentWeekEnd = Carbon::now()->endOfWeek(Carbon::SUNDAY);
 
-        // Using Sale model instead of DB facade for consistency
+        // If today is before Wednesday, we might want to show some previous week data too
+        // But let's stick to showing Monday-Sunday of current week
+        $startDate = $currentWeekStart->copy();
+        $endDate = $currentWeekEnd->copy();
+
+        // Fetch sales data for the current week
         $salesData = Sale::select(
                 DB::raw('DATE(created_at) as date'),
                 DB::raw('SUM(total_amount) as total')
@@ -71,33 +86,39 @@ class DashboardService
             ->orderBy('date', 'asc')
             ->get();
 
-        // Create array for all 8 days (even if no sales)
+        // Create array for all 7 days (Monday to Sunday)
         $weekData = [];
         $totalRevenue = 0;
-
-        for ($i = 7; $i >= 0; $i--) {
-            $currentDate = Carbon::now()->subDays($i);
-            $dateStr = $currentDate->format('Y-m-d');
+        
+        $currentDay = $currentWeekStart->copy();
+        
+        // Loop through Monday to Sunday
+        for ($i = 0; $i < 7; $i++) {
+            $dateStr = $currentDay->format('Y-m-d');
             
             // Find matching sales data
             $dayData = $salesData->firstWhere('date', $dateStr);
             $amount = $dayData ? (float)$dayData->total : 0;
             
             $weekData[] = [
-                'day' => $currentDate->format('D'), // Wed, Thu, etc.
-                'date' => $currentDate->format('M d'), // Feb 04
+                'day' => $currentDay->format('D'), // Mon, Tue, Wed, etc.
+                'date' => $currentDay->format('M d'), // Feb 17
                 'value' => $amount,
                 'full_date' => $dateStr
             ];
             
             $totalRevenue += $amount;
+            
+            // Move to next day
+            $currentDay->addDay();
         }
 
         return [
             'data' => $weekData,
             'total_revenue' => $totalRevenue,
-            'start_date' => $startDate->format('M d, Y'),
-            'end_date' => $endDate->format('M d, Y')
+            'start_date' => $currentWeekStart->format('M d, Y'), // Monday
+            'end_date' => $currentWeekEnd->format('M d, Y'),     // Sunday
+            'current_week_start' => $currentWeekStart->format('Y-m-d'), // e.g., "2026-02-17" (Monday)
         ];
     }
 

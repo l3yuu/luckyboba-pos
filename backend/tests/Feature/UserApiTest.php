@@ -2,26 +2,31 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase; // Import this!
 use Tests\TestCase;
 use App\Models\User;
+use Laravel\Sanctum\Sanctum;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 
 class UserApiTest extends TestCase
 {
-    use RefreshDatabase; // Use this to create the tables automatically
+    use RefreshDatabase;
 
-// tests/Feature/UserApiTest.php
+    /** @test */
+    public function can_get_all_users()
+    {
+        // ✅ Authenticate a user (VERY IMPORTANT)
+        Sanctum::actingAs(
+            User::factory()->create()
+        );
 
-public function test_can_get_all_users(): void
-{
-    // 1. Arrange: Create a user so the count is 1
-    User::factory()->create();
+        // ✅ Create users that the API should return
+        User::factory()->count(3)->create();
 
-    // 2. Act: Call the API (MUST include /api)
-    $response = $this->getJson('/api/users');
+        // ✅ Call the protected API route
+        $response = $this->getJson('/api/users');
 
-    // 3. Assert
-    $response->assertStatus(200)
-             ->assertJsonCount(1);
-}
+        // ✅ Assert response
+        $response->assertStatus(200)
+                 ->assertJsonCount(3);
+    }
 }
