@@ -8,10 +8,24 @@ export interface User {
   role: UserRole;
   status: UserStatus;
   branch_name?: string;
+  branch?: string;
 }
 
 export interface CreateUserData {
   name: string;
   email: string;
   role: UserRole;
+  password?: string;
+  branch?: string;
+  status?: UserStatus;
+}
+
+export interface UpdateUserData {
+  name?: string;
+  email?: string;
+  role?: UserRole;
+  status?: UserStatus;
+  branch_name?: string;
+  branch?: string;
+  password?: string;
 }

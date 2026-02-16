@@ -13,8 +13,12 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = await login(email, password);
-    if (success) navigate('/dashboard', { replace: true });
+    const result = await login(email, password);
+    if (result === 'superadmin') {
+      navigate('/super-admin', { replace: true });
+    } else if (result) {
+      navigate('/dashboard', { replace: true });
+    }
   };
 
   return (
