@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\SalesDashboardService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class SalesDashboardController extends Controller
 {
@@ -37,6 +38,36 @@ class SalesDashboardController extends Controller
                 'message' => 'Failed to load sales analytics.',
                 'error' => $e->getMessage()
             ], 500);
+        }
+    }
+
+    public function itemsReport(Request $request)
+    {
+        // Validate that 'type' is one of our supported options
+        $request->validate([
+            'from' => 'required|date',
+            'to' => 'required|date',
+            'type' => 'nullable|string|in:item-list,category-summary'
+        ]);
+
+        $report = $this->salesService->getItemReport(
+            $request->from, 
+            $request->to, 
+            $request->type ?? 'item-list'
+        );
+
+        return response()->json($report);
+    }
+
+    public function xReading(Request $request)
+    {
+        $request->validate(['date' => 'required|date']);
+
+        try {
+            $report = $this->salesService->getXReading($request->date);
+            return response()->json($report);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Error generating X-Reading'], 500);
         }
     }
 }

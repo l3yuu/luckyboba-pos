@@ -57,4 +57,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // --- END OF DAY ---
     Route::post('/cash-counts', [CashCountController::class, 'store']);
+
+    // --- SALES REPORTS ---
+    Route::get('/items-report', [SalesDashboardController::class, 'itemsReport']);
+    Route::get('/reports/x-reading', [SalesDashboardController::class, 'xReading']);
 });
