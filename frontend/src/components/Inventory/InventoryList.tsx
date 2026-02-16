@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import TopNavbar from '../TopNavbar';
 import api from '../../services/api';
 
@@ -12,9 +12,16 @@ interface InventoryItem {
   category_id?: number;
 }
 
+interface Category {
+  id: number;
+  name: string;
+}
+
 const InventoryList = () => {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   
   const cacheRef = useRef<InventoryItem[] | null>(null);
   const hasFetchedRef = useRef(false);
@@ -25,7 +32,7 @@ const InventoryList = () => {
   const [addQty, setAddQty] = useState<string>("");
   const [updating, setUpdating] = useState(false);
 
-  // --- NEW: Add Item Modal States ---
+  // Add Item Modal States
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newItem, setNewItem] = useState({
     name: '',
@@ -33,48 +40,58 @@ const InventoryList = () => {
     quantity: '',
     price: '',
     cost: '',
-    category_id: '1' // Default category
+    category_id: '' 
   });
 
-  const fetchInventory = useCallback(async () => {
+  // Fetch Inventory and Categories
+  const fetchData = useCallback(async () => {
     if (cacheRef.current) {
       setInventory(cacheRef.current);
-      return;
     }
-    if (hasFetchedRef.current) return;
 
-    setLoading(true);
-    try {
-      const response = await api.get('/inventory');
-      cacheRef.current = response.data;
-      setInventory(response.data);
-      hasFetchedRef.current = true;
-    } catch (err) { 
-      console.error("Failed to fetch inventory:", err); 
-    } finally { 
-      setLoading(false); 
+    if (!hasFetchedRef.current) {
+      setLoading(true);
+      try {
+        const [invRes, catRes] = await Promise.all([
+          api.get('/inventory'),
+          api.get('/categories')
+        ]);
+        cacheRef.current = invRes.data;
+        setInventory(invRes.data);
+        setCategories(catRes.data);
+        hasFetchedRef.current = true;
+      } catch (err) { 
+        console.error("Failed to fetch data:", err); 
+      } finally { 
+        setLoading(false); 
+      }
     }
   }, []);
 
   useEffect(() => { 
-    fetchInventory(); 
-  }, [fetchInventory]);
+    fetchData(); 
+  }, [fetchData]);
 
-  // --- NEW: Handle Add Item ---
+  // --- SEARCH LOGIC ---
+  const filteredInventory = useMemo(() => {
+    return inventory.filter(item => 
+      item.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [inventory, searchTerm]);
+
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
     setUpdating(true);
     try {
       await api.post('/inventory', newItem);
-      // Clear cache and refetch
       cacheRef.current = null;
       hasFetchedRef.current = false;
-      await fetchInventory();
+      await fetchData();
       setIsAddModalOpen(false);
-      setNewItem({ name: '', barcode: '', quantity: '', price: '', cost: '', category_id: '1' });
+      setNewItem({ name: '', barcode: '', quantity: '', price: '', cost: '', category_id: '' });
     } catch (err) {
       console.error("Failed to add item:", err);
-      alert("Error adding item. Check backend console.");
+      alert("Error adding item.");
     } finally {
       setUpdating(false);
     }
@@ -94,7 +111,7 @@ const InventoryList = () => {
       await api.patch(`/inventory/${selectedItem.id}/quantity`, { quantity: qtyToUpdate });
       cacheRef.current = null;
       hasFetchedRef.current = false;
-      await fetchInventory(); 
+      await fetchData(); 
       setIsModalOpen(false);
     } catch (err) {
       console.error("Update failed:", err);
@@ -123,14 +140,30 @@ const InventoryList = () => {
       <TopNavbar />
       <div className="flex-1 overflow-y-auto p-6 flex flex-col">
         <div className="flex justify-between items-end mb-6">
-          <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Inventory List</h1>
-          {/* Linked button to state */}
+          <div>
+            <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Inventory List</h1>
+            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Lucky Boba Stockroom</p>
+          </div>
           <button 
             onClick={() => setIsAddModalOpen(true)}
             className="px-6 py-2 bg-[#10b981] text-white rounded-md font-bold text-[10px] uppercase tracking-widest shadow-sm hover:bg-[#0da673] transition-all"
           >
             ADD NEW ITEM
           </button>
+        </div>
+
+        {/* === SEARCH BAR === */}
+        <div className="mb-6 relative">
+          <input 
+            type="text"
+            placeholder="Search items by name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-white border border-zinc-200 rounded-xl px-12 py-3 text-sm font-bold text-[#3b2063] outline-none focus:ring-2 ring-purple-100 transition-all shadow-sm"
+          />
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 text-zinc-300 absolute left-4 top-1/2 -translate-y-1/2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+          </svg>
         </div>
 
         <div className="flex-1 bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
@@ -144,11 +177,11 @@ const InventoryList = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {inventory.length > 0 ? (
-                inventory.map((item) => (
+              {filteredInventory.length > 0 ? (
+                filteredInventory.map((item) => (
                   <tr key={item.id} className="hover:bg-zinc-50 transition-colors">
                     <td className="px-6 py-4 text-xs font-bold text-slate-700">{item.name}</td>
-                    <td className="px-6 py-4 text-xs font-bold text-slate-500">{item.barcode || '-'}</td>
+                    <td className="px-6 py-4 text-xs font-bold text-slate-500 font-mono">{item.barcode || '-'}</td>
                     <td className={`px-6 py-4 text-xs font-black text-center ${item.quantity <= 10 ? 'text-red-500' : 'text-slate-700'}`}>
                       {item.quantity}
                     </td>
@@ -164,8 +197,8 @@ const InventoryList = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="px-6 py-10 text-center text-zinc-400 font-bold uppercase tracking-widest text-xs">
-                    No inventory items found
+                  <td colSpan={4} className="px-6 py-10 text-center text-zinc-400 font-bold uppercase tracking-widest text-xs italic">
+                    {searchTerm ? `No results for "${searchTerm}"` : "No inventory items found"}
                   </td>
                 </tr>
               )}
@@ -174,11 +207,10 @@ const InventoryList = () => {
         </div>
       </div>
 
-      {/* === RESTOCK MODAL (EXISTING) === */}
+      {/* === RESTOCK MODAL === */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-xl shadow-2xl p-8">
-             {/* Content remains same as your original code */}
              <div className="mb-6">
               <h2 className="text-slate-700 font-black text-lg uppercase tracking-widest mb-2">Restock Item</h2>
               <p className="text-zinc-400 text-sm font-bold">{selectedItem?.name}</p>
@@ -201,7 +233,7 @@ const InventoryList = () => {
         </div>
       )}
 
-      {/* === NEW: ADD ITEM MODAL === */}
+      {/* === ADD ITEM MODAL === */}
       {isAddModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl p-8">
@@ -212,6 +244,23 @@ const InventoryList = () => {
                   <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Product Name</label>
                   <input required type="text" value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-[#10b981]" placeholder="e.g. Boba Milk Tea" />
                 </div>
+                
+                {/* CATEGORY DROPDOWN */}
+                <div className="col-span-2">
+                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Category</label>
+                  <select 
+                    required 
+                    value={newItem.category_id} 
+                    onChange={e => setNewItem({...newItem, category_id: e.target.value})}
+                    className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-[#10b981] appearance-none cursor-pointer bg-white"
+                  >
+                    <option value="" disabled>Select a category</option>
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+                </div>
+
                 <div>
                   <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Barcode/SKU</label>
                   <input type="text" value={newItem.barcode} onChange={e => setNewItem({...newItem, barcode: e.target.value})} className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-[#10b981]" />

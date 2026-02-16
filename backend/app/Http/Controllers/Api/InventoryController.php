@@ -101,4 +101,30 @@ class InventoryController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
+    public function getCategories()
+    {
+        try {
+            // Fetch categories from your categories table
+            $categories = \App\Models\Category::select('id', 'name')->get();
+            return response()->json($categories);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function checkByBarcode($barcode)
+    {
+        try {
+            $item = \App\Models\MenuItem::where('barcode', $barcode)->first();
+
+            if (!$item) {
+                return response()->json(['message' => 'Item not found'], 404);
+            }
+
+            return response()->json($item);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Server error'], 500);
+        }
+    }
 }

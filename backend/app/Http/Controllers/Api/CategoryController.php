@@ -47,4 +47,24 @@ class CategoryController extends Controller
         $category->delete();
         return response()->json(['message' => 'Category deleted successfully']);
     }
+
+    public function update(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255|unique:categories,name,' . $id,
+            'description' => 'nullable|string',
+        ]);
+
+        try {
+            $category = Category::findOrFail($id);
+            $category->update($validated);
+
+            // FIX: Load the count after update so the frontend doesn't get NaN
+            $category->loadCount('menu_items');
+
+            return response()->json($category);
+        } catch (\Exception $e) {
+            return response()->json(['message' => $e->getMessage()], 500);
+        }
+    }
 }

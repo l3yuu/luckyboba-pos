@@ -80,4 +80,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/inventory/top-products', [InventoryDashboardController::class, 'getWeeklyTopProducts']);
     Route::get('/inventory', [InventoryController::class, 'index']);
     Route::patch('/inventory/{id}/quantity', [InventoryController::class, 'updateQuantity']);
+    Route::get('/categories', [InventoryController::class, 'getCategories']);
+    Route::patch('/categories/{id}', [CategoryController::class, 'update']);
+    Route::get('/inventory/check/{barcode}', [InventoryController::class, 'checkByBarcode']);
 });
