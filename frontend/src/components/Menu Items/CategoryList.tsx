@@ -1,35 +1,86 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TopNavbar from '../TopNavbar';
+import api from '../../services/api';
 
 interface CategoryData {
   id: number;
   name: string;
   description: string;
-  itemCount: number;
+  menu_items_count: number; // Matches Laravel's withCount attribute
 }
 
 const CategoryList = () => {
   const [categoryName, setCategoryName] = useState('');
   const [description, setDescription] = useState('');
+  const [categories, setCategories] = useState<CategoryData[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Initial data based on reference image
-  const [categories, setCategories] = useState<CategoryData[]>([
-    { id: 1, name: "Add Ons Sinkers", description: "", itemCount: 22 },
-    { id: 2, name: "AFFORDA-BOWLS", description: "", itemCount: 7 },
-    { id: 3, name: "ALA CARTE SNACKS", description: "", itemCount: 10 },
-  ]);
+  // --- 1. Fetch Categories with Cache Logic ---
+  const fetchCategories = async () => {
+    // Check if we have cached data in localStorage
+    const cachedData = localStorage.getItem('luckyboba_categories_cache');
+    if (cachedData) {
+      setCategories(JSON.parse(cachedData));
+      setLoading(false); // Stop loading immediately if cache exists
+    }
 
-  const handleAddCategory = () => {
+    try {
+      const response = await api.get('/categories');
+      const freshData = response.data;
+      
+      // Update state and refresh the cache with fresh data
+      setCategories(freshData);
+      localStorage.setItem('luckyboba_categories_cache', JSON.stringify(freshData));
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  // --- 2. Add Category (and refresh cache) ---
+  const handleAddCategory = async () => {
     if (!categoryName) return;
-    const newCategory: CategoryData = {
-      id: Date.now(),
-      name: categoryName,
-      description: description,
-      itemCount: 0
-    };
-    setCategories([...categories, newCategory]);
-    setCategoryName('');
-    setDescription('');
+    
+    try {
+      const response = await api.post('/categories', {
+        name: categoryName,
+        description: description
+      });
+      
+      const updatedCategories = [...categories, response.data];
+      setCategories(updatedCategories);
+      
+      // Update cache so the new item is there next time
+      localStorage.setItem('luckyboba_categories_cache', JSON.stringify(updatedCategories));
+      
+      setCategoryName('');
+      setDescription('');
+    } catch (error) {
+      console.error("Error adding category:", error);
+      alert("Failed to add category. Please check if the name already exists.");
+    }
+  };
+
+  // --- 3. Delete Category (and refresh cache) ---
+  const handleDelete = async (id: number) => {
+    if (!window.confirm("Are you sure you want to delete this category?")) return;
+
+    try {
+      await api.delete(`/categories/${id}`);
+      const updatedCategories = categories.filter(cat => cat.id !== id);
+      setCategories(updatedCategories);
+      
+      // Update cache after deletion
+      localStorage.setItem('luckyboba_categories_cache', JSON.stringify(updatedCategories));
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      alert("Cannot delete category. It might have active menu items linked to it.");
+    }
   };
 
   return (
@@ -98,40 +149,47 @@ const CategoryList = () => {
           </div>
 
           <div className="flex-1 overflow-auto">
-            <table className="w-full text-left border-collapse">
-              <thead className="sticky top-0 bg-zinc-100 z-10 shadow-sm">
-                <tr>
-                  <th className="px-6 py-3 text-[10px] font-black text-slate-600 uppercase tracking-widest border-b border-zinc-200">Name</th>
-                  <th className="px-6 py-3 text-[10px] font-black text-slate-600 uppercase tracking-widest border-b border-zinc-200">Description</th>
-                  <th className="px-6 py-3 text-[10px] font-black text-slate-600 uppercase tracking-widest border-b border-zinc-200 text-center">Items</th>
-                  <th className="px-6 py-3 text-[10px] font-black text-slate-600 uppercase tracking-widest border-b border-zinc-200 text-center w-24">Edit</th>
-                  <th className="px-6 py-3 text-[10px] font-black text-slate-600 uppercase tracking-widest border-b border-zinc-200 text-center w-24">Delete</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {categories.map((cat, index) => (
-                  <tr key={cat.id} className={`hover:bg-blue-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-zinc-50/30'}`}>
-                    <td className="px-6 py-4 text-xs font-black text-[#3b2063] uppercase tracking-tight">{cat.name}</td>
-                    <td className="px-6 py-4 text-xs font-bold text-zinc-400">{cat.description || '-'}</td>
-                    <td className="px-6 py-4 text-xs font-black text-slate-700 text-center">{cat.itemCount}</td>
-                    <td className="px-6 py-4 text-center">
-                      <button className="bg-[#1e40af] hover:bg-blue-700 text-white p-2 rounded-lg transition-colors shadow-sm active:scale-95">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
-                        </svg>
-                      </button>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <button className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg transition-colors shadow-sm active:scale-95">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                        </svg>
-                      </button>
-                    </td>
+            {loading && categories.length === 0 ? (
+              <div className="p-10 text-center font-bold text-zinc-400 uppercase tracking-widest text-xs animate-pulse">Loading Categories...</div>
+            ) : (
+              <table className="w-full text-left border-collapse">
+                <thead className="sticky top-0 bg-zinc-100 z-10 shadow-sm">
+                  <tr>
+                    <th className="px-6 py-3 text-[10px] font-black text-slate-600 uppercase tracking-widest border-b border-zinc-200">Name</th>
+                    <th className="px-6 py-3 text-[10px] font-black text-slate-600 uppercase tracking-widest border-b border-zinc-200">Description</th>
+                    <th className="px-6 py-3 text-[10px] font-black text-slate-600 uppercase tracking-widest border-b border-zinc-200 text-center">Items</th>
+                    <th className="px-6 py-3 text-[10px] font-black text-slate-600 uppercase tracking-widest border-b border-zinc-200 text-center w-24">Edit</th>
+                    <th className="px-6 py-3 text-[10px] font-black text-slate-600 uppercase tracking-widest border-b border-zinc-200 text-center w-24">Delete</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-zinc-100">
+                  {categories.map((cat, index) => (
+                    <tr key={cat.id} className={`hover:bg-blue-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-zinc-50/30'}`}>
+                      <td className="px-6 py-4 text-xs font-black text-[#3b2063] uppercase tracking-tight">{cat.name}</td>
+                      <td className="px-6 py-4 text-xs font-bold text-zinc-400">{cat.description || '-'}</td>
+                      <td className="px-6 py-4 text-xs font-black text-slate-700 text-center">{cat.menu_items_count}</td>
+                      <td className="px-6 py-4 text-center">
+                        <button className="bg-[#1e40af] hover:bg-blue-700 text-white p-2 rounded-lg transition-colors shadow-sm active:scale-95">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                          </svg>
+                        </button>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <button 
+                          onClick={() => handleDelete(cat.id)}
+                          className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg transition-colors shadow-sm active:scale-95"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
 
           <div className="p-3 bg-zinc-50 border-t border-zinc-200 text-right text-[10px] font-bold text-zinc-400 uppercase tracking-widest">

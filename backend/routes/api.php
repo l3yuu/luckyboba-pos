@@ -2,12 +2,14 @@
 
 use App\Http\Controllers\Api\CashCountController;
 use App\Http\Controllers\Api\CashTransactionController;
+use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\DashboardController;
-use App\Http\Controllers\Api\SalesDashboardController; 
 use App\Http\Controllers\Api\MenuController;
+use App\Http\Controllers\Api\MenuListController;
 use App\Http\Controllers\Api\ReceiptController;
-use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Api\SalesController;
+use App\Http\Controllers\Api\SalesDashboardController; 
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Models\User;
 use Illuminate\Http\Request; 
 use Illuminate\Support\Facades\Route;
@@ -63,4 +65,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/reports/x-reading', [SalesDashboardController::class, 'xReading']);
     Route::get('/reports/z-reading', [SalesDashboardController::class, 'zReading']);
     Route::get('/reports/mall-accreditation', [SalesDashboardController::class, 'mallReport']);
+
+    // --- MENU LIST ---
+    Route::get('/menu-list', [MenuListController::class, 'index']);
+
+    // --- CATEGORIES ---
+    Route::get('/categories', [CategoryController::class, 'index']);
+    Route::post('/categories', [CategoryController::class, 'store']);
+    Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
 });
