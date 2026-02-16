@@ -15,7 +15,7 @@ const UserService = {
 
   async createUser(data: CreateUserData): Promise<User> {
     await new Promise((resolve) => setTimeout(resolve, SIMULATED_DELAY));
-    const { password: _pass, ...rest } = data;
+    const { ...rest } = data;
     const newUser: User = {
       ...rest,
       id: Math.floor(Math.random() * 10000),
@@ -32,7 +32,7 @@ const UserService = {
     if (index === -1) {
       throw new Error('User not found');
     }
-    const { password: _pass, ...rest } = data;
+    const { ...rest } = data;
     const updatedUser: User = { ...mockUsers[index], ...rest };
     mockUsers[index] = updatedUser;
     return updatedUser;

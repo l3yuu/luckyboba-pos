@@ -257,7 +257,7 @@ const Calendar: React.FC = () => {
             </div>
             <select 
               value={viewType}
-              onChange={(e) => setViewType(e.target.value as any)}
+              onChange={(e) => setViewType(e.target.value as 'day' | 'week' | 'month')}
               className="bg-[#f8f6ff] border border-[#3b2063]/10 rounded-2xl px-5 py-3 text-xs font-black uppercase tracking-widest text-[#3b2063] focus:outline-none focus:ring-4 focus:ring-[#3b2063]/5 cursor-pointer shadow-sm hover:shadow-md transition-all appearance-none"
             >
               <option value="day">Day view</option>
@@ -569,7 +569,17 @@ const Calendar: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={(e) => { e.preventDefault(); editingReservation ? handleUpdateReservation() : handleCreateReservation(); }} className="space-y-6">
+            <form 
+              onSubmit={(e) => { 
+                e.preventDefault(); 
+                if (editingReservation) {
+                  handleUpdateReservation();
+                } else {
+                  handleCreateReservation();
+                }
+              }} 
+              className="space-y-6"
+            >
               <div>
                 <label className="block text-[10px] font-black uppercase tracking-widest text-[#3b2063]/40 mb-3 ml-2">
                   Reservation Type
