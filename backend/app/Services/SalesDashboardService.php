@@ -148,34 +148,34 @@ class SalesDashboardService
     {
         $formattedDate = \Carbon\Carbon::parse($date)->format('Y-m-d');
 
-        // 1. Check for existing record using the Model
-        $existing = ZReading::where('reading_date', $formattedDate)->first();
-        if ($existing) {
-            return $existing->data; // Already returns as array due to the $casts in Model
-        }
-
-        // 2. Aggregate Data (logic from previous steps)
+        // Fetch sales - ensure it handles empty collections
         $sales = DB::table('sales')
             ->whereDate('created_at', $formattedDate)
             ->where('status', 'completed')
             ->get();
 
-        $gross = (float)$sales->sum('total_amount');
+        // Use null coalescing (?? 0) to ensure numbers are returned
+        $gross = (float)($sales->sum('total_amount') ?? 0);
+        $cash = (float)($sales->where('payment_method', 'cash')->sum('total_amount') ?? 0);
 
         $reportData = [
-            'reading_date' => $formattedDate,
-            'gross_sales' => $gross,
-            'transaction_count' => $sales->count(),
-            'generated_at' => now()->toDateTimeString(),
-            // Add any other breakdown info here...
+            'reading_date'      => $formattedDate,
+            'gross_sales'       => $gross,
+            'net_sales'         => $gross,
+            'transaction_count' => $sales->count() ?? 0,
+            'cash_total'        => $cash,
+            'non_cash_total'    => $gross - $cash,
+            'generated_at'      => now()->toDateTimeString(),
         ];
 
-        // 3. Save using the Model
-        ZReading::create([
-            'reading_date' => $formattedDate,
-            'total_sales' => $gross,
-            'data' => $reportData, // Model handles the json_encode automatically
-        ]);
+        // Use updateOrCreate to avoid duplicate key errors
+        ZReading::updateOrCreate(
+            ['reading_date' => $formattedDate],
+            [
+                'total_sales' => $gross,
+                'data' => $reportData,
+            ]
+        );
 
         return $reportData;
     }

@@ -165,14 +165,30 @@ const ZReading = () => {
               </div>
 
               <div className="border-t-2 border-dashed border-zinc-200 my-4 pt-4 space-y-2">
-                <div className="flex justify-between text-xs"><span>GROSS SALES</span> <span className="font-bold">₱ {reportData.gross_sales.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span></div>
-                <div className="flex justify-between text-xs"><span>NET SALES</span> <span className="font-bold">₱ {reportData.net_sales.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span></div>
-                <div className="flex justify-between text-xs"><span>TRANS COUNT</span> <span className="font-bold">{reportData.transaction_count}</span></div>
+                {/* FIXED: Added Optional Chaining and fallback to 0 */}
+                <div className="flex justify-between text-xs">
+                  <span>GROSS SALES</span> 
+                  <span className="font-bold">₱ {(reportData.gross_sales || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span>NET SALES</span> 
+                  <span className="font-bold">₱ {(reportData.net_sales || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span>TRANS COUNT</span> 
+                  <span className="font-bold">{reportData.transaction_count || 0}</span>
+                </div>
               </div>
 
               <div className="border-t border-dashed border-zinc-200 my-4 pt-4 space-y-2">
-                <div className="flex justify-between text-xs"><span>CASH SALES</span> <span>₱ {reportData.cash_total.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span></div>
-                <div className="flex justify-between text-xs"><span>NON-CASH</span> <span>₱ {reportData.non_cash_total.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span></div>
+                <div className="flex justify-between text-xs">
+                  <span>CASH SALES</span> 
+                  <span>₱ {(reportData.cash_total || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span>NON-CASH</span> 
+                  <span>₱ {(reportData.non_cash_total || 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}</span>
+                </div>
               </div>
 
               <div className="mt-10 text-center border-t border-zinc-100 pt-4">

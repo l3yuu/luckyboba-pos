@@ -59,7 +59,7 @@ class SalesDashboardController extends Controller
         return response()->json($report);
     }
 
-    public function xReading(Request $request)
+public function xReading(Request $request)
     {
         $request->validate(['date' => 'required|date']);
 
@@ -74,9 +74,24 @@ class SalesDashboardController extends Controller
     public function zReading(Request $request) 
     {
         $request->validate(['date' => 'required|date']);
-        $report = $this->salesService->generateZReading($request->date);
 
-        return response()->json($report);
+        try {
+            $report = $this->salesService->generateZReading($request->date);
+
+            // CHANGE: Use array syntax $report['key'] instead of object syntax $report->key
+            return response()->json([
+                'reading_date'      => $report['reading_date'] ?? $request->date,
+                'gross_sales'       => (float)($report['gross_sales'] ?? 0),
+                'net_sales'         => (float)($report['net_sales'] ?? 0),
+                'transaction_count' => (int)($report['transaction_count'] ?? 0),
+                'cash_total'        => (float)($report['cash_total'] ?? 0),
+                'non_cash_total'    => (float)($report['non_cash_total'] ?? 0),
+                'generated_at'      => $report['generated_at'] ?? now()->toDateTimeString(),
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("Z-Reading Error: " . $e->getMessage());
+            return response()->json(['message' => 'Error generating Z-Reading'], 500);
+        }
     }
 
     public function mallReport(Request $request) 

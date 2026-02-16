@@ -6,17 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 
 class ZReading extends Model
 {
+// app/Models/ZReading.php
+
     protected $fillable = [
         'reading_date',
         'total_sales',
         'data'
     ];
 
-    /**
-     * The attributes that should be cast.
-     */
     protected $casts = [
-        'data' => 'array', // This turns the JSON column into a usable array automatically
-        'reading_date' => 'date',
+        'data' => 'array' // This ensures 'data' is saved as JSON in DB but acts as an Array in PHP
     ];
 }
