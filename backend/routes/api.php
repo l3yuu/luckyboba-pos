@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\CashCountController;
 use App\Http\Controllers\Api\ItemsReportController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\UserController;
+use App\Http\Controllers\Api\BranchController;
 /*
 |--------------------------------------------------------------------------
 | Public API Routes
@@ -89,3 +90,44 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::apiResource('users', UserController::class);
 });
 });
+
+Route::prefix('branches')->group(function () {
+    // Main CRUD operations
+    Route::get('/', [BranchController::class, 'index']); // Get all branches
+    Route::post('/', [BranchController::class, 'store']); // Create new branch
+    Route::get('/{id}', [BranchController::class, 'show']); // Get single branch
+    Route::put('/{id}', [BranchController::class, 'update']); // Update branch
+    Route::delete('/{id}', [BranchController::class, 'destroy']); // Delete branch
+    
+    // Analytics & Reports
+    Route::get('/analytics/performance', [BranchController::class, 'performance']); // Branch performance view
+    Route::get('/analytics/today', [BranchController::class, 'todaySales']); // Today's sales by branch
+    Route::get('/{id}/daily-sales', [BranchController::class, 'dailySales']); // Daily sales history
+    Route::get('/{id}/summary', [BranchController::class, 'salesSummary']); // Branch sales summary
+    
+    // Utility
+    Route::post('/{id}/refresh', [BranchController::class, 'refreshTotals']); // Manually refresh totals
+});
+
+
+// Branch routes
+// TO THIS (outside auth middleware):
+Route::get('/branches', [BranchController::class, 'index']);
+Route::post('/branches', [BranchController::class, 'store']);
+Route::get('/branches/{id}', [BranchController::class, 'show']);
+Route::put('/branches/{id}', [BranchController::class, 'update']);
+Route::delete('/branches/{id}', [BranchController::class, 'destroy']);
+
+// User routes
+Route::get('/users', [UserController::class, 'index']);
+Route::post('/users', [UserController::class, 'store']);
+Route::get('/users/{id}', [UserController::class, 'show']);
+Route::put('/users/{id}', [UserController::class, 'update']);
+Route::delete('/users/{id}', [UserController::class, 'destroy']);
+
+// Branch routes
+Route::get('/branches', [BranchController::class, 'index']);
+Route::post('/branches', [BranchController::class, 'store']);
+Route::get('/branches/{id}', [BranchController::class, 'show']);
+Route::put('/branches/{id}', [BranchController::class, 'update']);
+Route::delete('/branches/{id}', [BranchController::class, 'destroy']);

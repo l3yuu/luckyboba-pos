@@ -1,0 +1,64 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+
+class Branch extends Model
+{
+    use HasFactory;
+
+    protected $fillable = [
+        'name',
+        'location',
+        'status',
+        'total_sales',
+        'today_sales',
+    ];
+
+    protected $casts = [
+        'total_sales' => 'decimal:2',
+        'today_sales' => 'decimal:2',
+    ];
+
+    /**
+     * Get the users assigned to this branch
+     */
+    public function users()
+    {
+        return $this->hasMany(User::class);
+    }
+
+    /**
+     * Get active users only
+     */
+    public function activeUsers()
+    {
+        return $this->users()->where('status', 'active');
+    }
+
+    /**
+     * Get managers of this branch
+     */
+    public function managers()
+    {
+        return $this->users()->where('role', 'manager');
+    }
+
+    /**
+     * Get cashiers of this branch
+     */
+    public function cashiers()
+    {
+        return $this->users()->where('role', 'cashier');
+    }
+
+    /**
+     * Get all sales for this branch
+     */
+    public function sales()
+    {
+        return $this->hasMany(Sale::class);
+    }
+}

@@ -17,17 +17,23 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'role',
-        'status',
-        'branch_name',
-        'email_verified_at',
-        'remember_token',
-    ];
+protected $fillable = [
+    'name',
+    'email',
+    'password',
+    'role',
+    'status',
+    'branch_name',
+    'branch_id', // Add this
+];
 
+/**
+ * Get the branch that the user belongs to
+ */
+public function branch()
+{
+    return $this->belongsTo(Branch::class);
+}
     /**
      * The attributes that should be hidden for serialization.
      *

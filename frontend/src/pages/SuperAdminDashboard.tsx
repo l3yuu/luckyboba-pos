@@ -1,33 +1,15 @@
 import { useState, useEffect } from 'react';
 import logo from '../assets/logo.png';
 import UserService, { type User, type CreateUserData, type UpdateUserData } from '../services/UserService';
+import BranchService, { type Branch } from '../services/BranchService';
 
-// Types
-interface Branch {
-  id: number;
-  name: string;
-  location: string;
-  status: 'active' | 'inactive';
-  totalSales: number;
-  todaySales: number;
-}
-
-type BranchFormState = {
-  id: number | null;
-  name: string;
-  location: string;
-  status: 'active' | 'inactive';
-  totalSales: number;
-  todaySales: number;
+// Format currency helper function - MOVED TO TOP
+const formatCurrency = (amount: number): string => {
+  return `₱${amount.toLocaleString('en-PH', { 
+    minimumFractionDigits: 2, 
+    maximumFractionDigits: 2 
+  })}`;
 };
-
-// Mock Data (for branches - you can replace this with API calls too)
-const mockBranches: Branch[] = [
-  { id: 1, name: 'Lucky Boba - SM City', location: 'SM City Cebu', status: 'active', totalSales: 125000, todaySales: 4500 },
-  { id: 2, name: 'Lucky Boba - Ayala', location: 'Ayala Center', status: 'active', totalSales: 98000, todaySales: 3200 },
-  { id: 3, name: 'Lucky Boba - IT Park', location: 'Cebu IT Park', status: 'active', totalSales: 87500, todaySales: 2800 },
-  { id: 4, name: 'Lucky Boba - Banilad', location: 'Banilad Town Center', status: 'inactive', totalSales: 45000, todaySales: 0 },
-];
 
 const SuperAdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'branches' | 'users' | 'reports'>('overview');
@@ -35,22 +17,32 @@ const SuperAdminDashboard: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [branches, setBranches] = useState<Branch[]>(mockBranches);
-  const [branchFormState, setBranchFormState] = useState<BranchFormState>({
-    id: null,
+  
+  // Branch state
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [branchLoading, setBranchLoading] = useState(false);
+  const [branchError, setBranchError] = useState<string | null>(null);
+  const [branchFormState, setBranchFormState] = useState({
+    id: null as number | null,
     name: '',
     location: '',
-    status: 'active',
-    totalSales: 0,
-    todaySales: 0,
+    status: 'active' as 'active' | 'inactive',
   });
   const [isCreateBranchModalOpen, setIsCreateBranchModalOpen] = useState(false);
   const [isUpdateBranchModalOpen, setIsUpdateBranchModalOpen] = useState(false);
+  const [viewBranch, setViewBranch] = useState<Branch | null>(null);
 
   // Fetch users on mount
   useEffect(() => {
     if (activeTab === 'users') {
       fetchUsers();
+    }
+  }, [activeTab]);
+
+  // Fetch branches when branches tab is active or overview
+  useEffect(() => {
+    if (activeTab === 'branches' || activeTab === 'overview') {
+      fetchBranches();
     }
   }, [activeTab]);
 
@@ -68,6 +60,24 @@ const SuperAdminDashboard: React.FC = () => {
     }
   };
 
+  const fetchBranches = async () => {
+    try {
+      setBranchLoading(true);
+      setBranchError(null);
+      const fetchedBranches = await BranchService.getAllBranches();
+      setBranches(fetchedBranches);
+    } catch (err) {
+      setBranchError('Failed to load branches. Please try again.');
+      console.error(err);
+    } finally {
+      setBranchLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    UserService.logout();
+    window.location.reload();
+  };
 
   const handleCreateUser = async (data: CreateUserData) => {
     try {
@@ -110,16 +120,14 @@ const SuperAdminDashboard: React.FC = () => {
     }
   };
 
-  // Branch management functions
   const handleCreateBranch = () => {
     setBranchFormState({
       id: null,
       name: '',
       location: '',
       status: 'active',
-      totalSales: 0,
-      todaySales: 0,
     });
+    setBranchError(null);
     setIsCreateBranchModalOpen(true);
   };
 
@@ -129,43 +137,73 @@ const SuperAdminDashboard: React.FC = () => {
       name: branch.name,
       location: branch.location,
       status: branch.status,
-      totalSales: branch.totalSales,
-      todaySales: branch.todaySales,
     });
+    setBranchError(null);
     setIsUpdateBranchModalOpen(true);
   };
 
-  const handleSaveBranch = () => {
-    if (branchFormState.id === null) {
-      // Create new branch
-      const newBranch: Branch = {
-        id: branches.length > 0 ? Math.max(...branches.map(b => b.id)) + 1 : 1,
-        name: branchFormState.name,
-        location: branchFormState.location,
-        status: branchFormState.status,
-        totalSales: branchFormState.totalSales,
-        todaySales: branchFormState.todaySales,
-      };
-      setBranches([...branches, newBranch]);
-    } else {
-      // Update existing branch
-      setBranches(
-        branches.map((b) => {
-          if (b.id === branchFormState.id && branchFormState.id !== null) {
-            return { ...b, name: branchFormState.name, location: branchFormState.location, status: branchFormState.status, totalSales: branchFormState.totalSales, todaySales: branchFormState.todaySales };
-          }
-          return b;
-        })
-      );
+  const handleSaveBranch = async () => {
+    try {
+      setBranchLoading(true);
+      setBranchError(null);
+
+      if (branchFormState.id === null) {
+        await BranchService.createBranch({
+          name: branchFormState.name,
+          location: branchFormState.location,
+          status: branchFormState.status,
+        });
+        alert('Branch created successfully!');
+      } else {
+        await BranchService.updateBranch(branchFormState.id, {
+          name: branchFormState.name,
+          location: branchFormState.location,
+          status: branchFormState.status,
+        });
+        alert('Branch updated successfully!');
+      }
+
+      await fetchBranches();
+      setIsCreateBranchModalOpen(false);
+      setIsUpdateBranchModalOpen(false);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save branch';
+      setBranchError(errorMessage);
+      alert(errorMessage);
+    } finally {
+      setBranchLoading(false);
     }
-    setIsCreateBranchModalOpen(false);
-    setIsUpdateBranchModalOpen(false);
   };
 
-  const [viewBranch, setViewBranch] = useState<Branch | null>(null);
+  const handleDeleteBranch = async (branch: Branch) => {
+    if (!window.confirm(`Are you sure you want to delete "${branch.name}"?\n\nThis action cannot be undone. The branch can only be deleted if it has no associated sales or users.`)) {
+      return;
+    }
 
-  const totalRevenue = branches.reduce((sum, b) => sum + b.totalSales, 0);
-  const todayRevenue = branches.reduce((sum, b) => sum + b.todaySales, 0);
+    try {
+      setBranchLoading(true);
+      await BranchService.deleteBranch(branch.id);
+      alert('Branch deleted successfully!');
+      await fetchBranches();
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete branch';
+      alert(errorMessage);
+    } finally {
+      setBranchLoading(false);
+    }
+  };
+
+  // Calculate revenues with proper parsing
+  const totalRevenue = branches.reduce((sum, b) => {
+    const sales = parseFloat(String(b.total_sales)) || 0;
+    return sum + sales;
+  }, 0);
+
+  const todayRevenue = branches.reduce((sum, b) => {
+    const sales = parseFloat(String(b.today_sales)) || 0;
+    return sum + sales;
+  }, 0);
+  
   const activeBranches = branches.filter(b => b.status === 'active').length;
   const activeUsers = users.filter(u => u.status === 'ACTIVE').length;
 
@@ -179,20 +217,34 @@ const SuperAdminDashboard: React.FC = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'overview':
-        return <OverviewTab totalRevenue={totalRevenue} todayRevenue={todayRevenue} activeBranches={activeBranches} activeUsers={activeUsers} branches={branches} />;
+        return (
+          <OverviewTab 
+            totalRevenue={totalRevenue} 
+            todayRevenue={todayRevenue} 
+            activeBranches={activeBranches} 
+            activeUsers={activeUsers} 
+            branches={branches}
+            loading={branchLoading}
+          />
+        );
       case 'branches':
         return (
           <BranchesTab 
             branches={branches} 
+            loading={branchLoading}
+            error={branchError}
             onCreateBranch={handleCreateBranch}
             onEditBranch={handleEditBranch}
             onViewBranch={setViewBranch}
+            onDeleteBranch={handleDeleteBranch}
+            onRefresh={fetchBranches}
           />
         );
       case 'users':
         return (
           <UsersTab
             users={users}
+            branches={branches}
             loading={loading}
             error={error}
             onCreate={handleCreateUser}
@@ -204,7 +256,16 @@ const SuperAdminDashboard: React.FC = () => {
       case 'reports':
         return <ReportsTab />;
       default:
-        return <OverviewTab totalRevenue={totalRevenue} todayRevenue={todayRevenue} activeBranches={activeBranches} activeUsers={activeUsers} branches={branches} />;
+        return (
+          <OverviewTab 
+            totalRevenue={totalRevenue} 
+            todayRevenue={todayRevenue} 
+            activeBranches={activeBranches} 
+            activeUsers={activeUsers} 
+            branches={branches}
+            loading={branchLoading}
+          />
+        );
     }
   };
 
@@ -214,7 +275,6 @@ const SuperAdminDashboard: React.FC = () => {
       <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-zinc-200">
         <img src={logo} alt="Logo" className="h-8 w-auto object-contain" />
         <div className="flex items-center gap-3">
-          {/* Menu Toggle */}
           <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-2 text-[#3b2063]">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
               <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -258,6 +318,16 @@ const SuperAdminDashboard: React.FC = () => {
         </div>
 
         <div className="shrink-0 px-6 pb-8">
+          <button 
+            onClick={handleLogout}
+            disabled={false}
+            className="flex items-center justify-center w-full px-6 py-4 rounded-2xl bg-[#be2525] hover:bg-[#a11f1f] text-white text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-200 shadow-md shadow-red-900/10 disabled:opacity-70 disabled:cursor-not-allowed group"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4 mr-3 group-hover:-translate-x-1 transition-transform">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+            </svg>
+            Logout
+          </button>
           <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 text-center mt-4">Lucky Boba 2026</div>
         </div>
 
@@ -283,7 +353,6 @@ const SuperAdminDashboard: React.FC = () => {
         </header>
         {renderContent()}
         
-        {/* Branch Modals */}
         {/* Create/Edit Branch Modal */}
         {(isCreateBranchModalOpen || isUpdateBranchModalOpen) && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
@@ -297,7 +366,8 @@ const SuperAdminDashboard: React.FC = () => {
                     setIsCreateBranchModalOpen(false);
                     setIsUpdateBranchModalOpen(false);
                   }}
-                  className="text-zinc-400 hover:text-zinc-600"
+                  disabled={branchLoading}
+                  className="text-zinc-400 hover:text-zinc-600 disabled:opacity-50"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -312,6 +382,12 @@ const SuperAdminDashboard: React.FC = () => {
                 </button>
               </div>
 
+              {branchError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
+                  <p className="text-sm text-red-600">{branchError}</p>
+                </div>
+              )}
+
               <form onSubmit={(e) => { e.preventDefault(); handleSaveBranch(); }} className="space-y-4">
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
@@ -323,6 +399,7 @@ const SuperAdminDashboard: React.FC = () => {
                     onChange={(e) => setBranchFormState((f) => ({ ...f, name: e.target.value }))}
                     className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
                     required
+                    disabled={branchLoading}
                   />
                 </div>
 
@@ -336,50 +413,31 @@ const SuperAdminDashboard: React.FC = () => {
                     onChange={(e) => setBranchFormState((f) => ({ ...f, location: e.target.value }))}
                     className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
                     required
+                    disabled={branchLoading}
                   />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
-                      Status
-                    </label>
-                    <select
-                      value={branchFormState.status}
-                      onChange={(e) =>
-                        setBranchFormState((f) => ({ ...f, status: e.target.value as 'active' | 'inactive' }))
-                      }
-                      className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
-                    >
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
-                      Today's Sales
-                    </label>
-                    <input
-                      type="number"
-                      value={branchFormState.todaySales}
-                      onChange={(e) => setBranchFormState((f) => ({ ...f, todaySales: Number(e.target.value) }))}
-                      className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
-                      min="0"
-                    />
-                  </div>
                 </div>
 
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
-                    Total Sales
+                    Status
                   </label>
-                  <input
-                    type="number"
-                    value={branchFormState.totalSales}
-                    onChange={(e) => setBranchFormState((f) => ({ ...f, totalSales: Number(e.target.value) }))}
+                  <select
+                    value={branchFormState.status}
+                    onChange={(e) =>
+                      setBranchFormState((f) => ({ ...f, status: e.target.value as 'active' | 'inactive' }))
+                    }
                     className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
-                    min="0"
-                  />
+                    disabled={branchLoading}
+                  >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+
+                <div className="bg-[#f0ebff] border border-zinc-200 rounded-2xl p-3">
+                  <p className="text-[10px] font-bold text-zinc-500 leading-relaxed">
+                    <span className="text-[#3b2063]">💡 Note:</span> Sales totals will automatically update when transactions are assigned to this branch via triggers.
+                  </p>
                 </div>
 
                 <div className="pt-2 flex justify-end gap-3">
@@ -389,14 +447,19 @@ const SuperAdminDashboard: React.FC = () => {
                       setIsCreateBranchModalOpen(false);
                       setIsUpdateBranchModalOpen(false);
                     }}
-                    className="px-4 py-2 rounded-2xl border border-zinc-200 text-xs font-bold uppercase text-zinc-500 hover:bg-zinc-50"
+                    disabled={branchLoading}
+                    className="px-4 py-2 rounded-2xl border border-zinc-200 text-xs font-bold uppercase text-zinc-500 hover:bg-zinc-50 disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-2 rounded-2xl bg-[#3b2063] text-white text-xs font-black uppercase tracking-widest hover:bg-[#2a174a]"
+                    disabled={branchLoading}
+                    className="px-6 py-2 rounded-2xl bg-[#3b2063] text-white text-xs font-black uppercase tracking-widest hover:bg-[#2a174a] disabled:opacity-50 flex items-center gap-2"
                   >
+                    {branchLoading && (
+                      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    )}
                     {isCreateBranchModalOpen ? 'Create Branch' : 'Save Changes'}
                   </button>
                 </div>
@@ -469,13 +532,17 @@ const SuperAdminDashboard: React.FC = () => {
                     <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
                       Today's Sales
                     </p>
-                    <p className="text-lg font-black text-emerald-500">₱{viewBranch.todaySales.toLocaleString()}</p>
+                    <p className="text-lg font-black text-emerald-500">
+                      {formatCurrency(Number(viewBranch.today_sales))}
+                    </p>
                   </div>
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
                       Total Sales
                     </p>
-                    <p className="text-lg font-black text-[#3b2063]">₱{viewBranch.totalSales.toLocaleString()}</p>
+                    <p className="text-lg font-black text-[#3b2063]">
+                      {formatCurrency(Number(viewBranch.total_sales))}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -496,31 +563,33 @@ const SuperAdminDashboard: React.FC = () => {
   );
 };
 
-// Rest of the component remains the same...
-// (OverviewTab, BranchesTab, UsersTab, ReportsTab, and Icons)
+// ===========================
+// TAB COMPONENTS
+// ===========================
 
-const OverviewTab = ({ totalRevenue, todayRevenue, activeBranches, activeUsers, branches }: {
+const OverviewTab = ({ totalRevenue, todayRevenue, activeBranches, activeUsers, branches, loading }: {
   totalRevenue: number;
   todayRevenue: number;
   activeBranches: number;
   activeUsers: number;
   branches: Branch[];
+  loading: boolean;
 }) => (
   <section className="flex-1 px-6 md:px-10 pb-10 overflow-auto">
     {/* Stats Grid */}
     <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
       {[
-        { label: "Total Revenue", value: `₱${totalRevenue.toLocaleString()}`, highlight: true },
-        { label: "Today's Sales", value: `₱${todayRevenue.toLocaleString()}` },
-        { label: "Active Branches", value: activeBranches.toString() },
-        { label: "Active Users", value: activeUsers.toString() },
+        { label: "Total Revenue", value: formatCurrency(totalRevenue), highlight: true },
+        { label: "Today's Sales", value: formatCurrency(todayRevenue), highlight: false },
+        { label: "Active Branches", value: activeBranches.toString(), highlight: false },
+        { label: "Active Users", value: activeUsers.toString(), highlight: false },
       ].map((stat, i) => (
-        <div key={i} className="rounded-[1.5rem] md:rounded-[2rem] border border-zinc-100 bg-white shadow-sm p-5 md:p-6 flex flex-col justify-between min-h-[110px] md:min-h-[130px]">
-          <p className="text-[12px] md:text-[13px] font-black uppercase tracking-[0.2em] text-zinc-400">
+        <div key={i} className="rounded-[1.5rem] md:rounded-[2rem] border-2 border-zinc-200 bg-white shadow-lg hover:shadow-xl transition-all p-5 md:p-6 flex flex-col justify-between min-h-[110px] md:min-h-[130px]">
+          <p className="text-[11px] md:text-[12px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-2">
             {stat.label}
           </p>
-          <p className={`text-xl md:text-2xl font-black ${stat.highlight ? 'text-emerald-500' : 'text-[#3b2063]'}`}>
-            {stat.value}
+          <p className={`text-2xl md:text-3xl font-black ${stat.highlight ? 'text-emerald-500' : 'text-[#3b2063]'}`}>
+            {loading ? '...' : stat.value}
           </p>
         </div>
       ))}
@@ -532,23 +601,32 @@ const OverviewTab = ({ totalRevenue, todayRevenue, activeBranches, activeUsers, 
         <p className="text-[12px] md:text-[15px] font-black uppercase tracking-[0.25em] text-zinc-400 mb-6">
           Branch Performance
         </p>
-        <div className="space-y-4">
-          {branches.map((branch) => (
-            <div key={branch.id} className="flex items-center justify-between p-4 rounded-2xl bg-[#f8f6ff] border border-zinc-100">
-              <div className="flex items-center gap-4">
-                <div className={`w-3 h-3 rounded-full ${branch.status === 'active' ? 'bg-emerald-500' : 'bg-zinc-300'}`} />
-                <div>
-                  <p className="font-bold text-[#3b2063]">{branch.name}</p>
-                  <p className="text-xs text-zinc-400">{branch.location}</p>
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="inline-block w-8 h-8 border-4 border-[#3b2063] border-t-transparent rounded-full animate-spin" />
+            <p className="mt-2 text-sm text-zinc-500">Loading branches...</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {branches.map((branch) => (
+              <div key={branch.id} className="flex items-center justify-between p-4 rounded-2xl bg-[#f8f6ff] border border-zinc-100">
+                <div className="flex items-center gap-4">
+                  <div className={`w-3 h-3 rounded-full ${branch.status === 'active' ? 'bg-emerald-500' : 'bg-zinc-300'}`} />
+                  <div>
+                    <p className="font-bold text-[#3b2063]">{branch.name}</p>
+                    <p className="text-xs text-zinc-400">{branch.location}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-black text-[#3b2063]">
+                    {formatCurrency(Number(branch.today_sales))}
+                  </p>
+                  <p className="text-xs text-zinc-400">Today</p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="font-black text-[#3b2063]">₱{branch.todaySales.toLocaleString()}</p>
-                <p className="text-xs text-zinc-400">Today</p>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   </section>
@@ -556,20 +634,42 @@ const OverviewTab = ({ totalRevenue, todayRevenue, activeBranches, activeUsers, 
 
 interface BranchesTabProps {
   branches: Branch[];
+  loading: boolean;
+  error: string | null;
   onCreateBranch: () => void;
   onEditBranch: (branch: Branch) => void;
   onViewBranch: (branch: Branch) => void;
+  onDeleteBranch: (branch: Branch) => void;
+  onRefresh: () => void;
 }
 
-const BranchesTab = ({ branches, onCreateBranch, onEditBranch, onViewBranch }: BranchesTabProps) => (
+const BranchesTab = ({ branches, loading, error, onCreateBranch, onEditBranch, onViewBranch, onDeleteBranch, onRefresh }: BranchesTabProps) => (
   <section className="flex-1 px-6 md:px-10 pb-10 overflow-auto">
+    {error && (
+      <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center justify-between">
+        <p className="text-sm text-red-600">{error}</p>
+        <button onClick={onRefresh} className="text-xs font-bold text-red-600 hover:text-red-700 uppercase">
+          Retry
+        </button>
+      </div>
+    )}
+
     <div className="flex justify-between items-center mb-6">
-      <p className="text-[12px] font-black uppercase tracking-[0.2em] text-zinc-400">
-        {branches.length} Branches
-      </p>
+      <div className="flex items-center gap-4">
+        <p className="text-[12px] font-black uppercase tracking-[0.2em] text-zinc-400">
+          {branches.length} Branches
+        </p>
+        {loading && (
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 border-2 border-[#3b2063] border-t-transparent rounded-full animate-spin" />
+            <span className="text-xs text-zinc-400">Loading...</span>
+          </div>
+        )}
+      </div>
       <button 
         onClick={onCreateBranch}
-        className="bg-[#3b2063] text-white px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-wider hover:bg-[#2a174a] transition-all"
+        disabled={loading}
+        className="bg-[#3b2063] text-white px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-wider hover:bg-[#2a174a] transition-all disabled:opacity-50"
       >
         + Add Branch
       </button>
@@ -592,17 +692,22 @@ const BranchesTab = ({ branches, onCreateBranch, onEditBranch, onViewBranch }: B
           <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-zinc-100">
             <div>
               <p className="text-[10px] font-bold uppercase text-zinc-400">Total Sales</p>
-              <p className="font-black text-[#3b2063]">₱{branch.totalSales.toLocaleString()}</p>
+              <p className="font-black text-[#3b2063]">
+                {formatCurrency(Number(branch.total_sales))}
+              </p>
             </div>
             <div>
               <p className="text-[10px] font-bold uppercase text-zinc-400">Today</p>
-              <p className="font-black text-emerald-500">₱{branch.todaySales.toLocaleString()}</p>
+              <p className="font-black text-emerald-500">
+                {formatCurrency(Number(branch.today_sales))}
+              </p>
             </div>
           </div>
           <div className="flex gap-2 mt-4">
             <button 
               onClick={() => onEditBranch(branch)}
-              className="flex-1 bg-[#f0ebff] text-[#3b2063] py-2 rounded-xl font-bold text-[11px] uppercase hover:bg-[#e5deff] transition-all"
+              disabled={loading}
+              className="flex-1 bg-[#f0ebff] text-[#3b2063] py-2 rounded-xl font-bold text-[11px] uppercase hover:bg-[#e5deff] transition-all disabled:opacity-50"
             >
               Edit
             </button>
@@ -612,9 +717,27 @@ const BranchesTab = ({ branches, onCreateBranch, onEditBranch, onViewBranch }: B
             >
               View  
             </button>
+            <button 
+              onClick={() => onDeleteBranch(branch)}
+              disabled={loading}
+              className="flex-1 bg-red-50 text-red-600 py-2 rounded-xl font-bold text-[11px] uppercase hover:bg-red-100 transition-all disabled:opacity-50"
+            >
+              Delete  
+            </button>
           </div>
         </div>
       ))}
+      {branches.length === 0 && !loading && (
+        <div className="col-span-2 text-center py-12">
+          <p className="text-zinc-400 text-lg">No branches found</p>
+          <button
+            onClick={onCreateBranch}
+            className="mt-4 text-[#3b2063] hover:text-[#2a174a] font-bold"
+          >
+            Add your first branch
+          </button>
+        </div>
+      )}
     </div>
   </section>
 );
@@ -630,12 +753,13 @@ type UserFormState = {
 
 interface UsersTabProps {
   users: User[];
+  branches: Branch[];
   loading: boolean;
   error: string | null;
   onCreate: (data: CreateUserData) => Promise<User>;
   onUpdate: (id: number, data: UpdateUserData) => Promise<User>;
   onDelete: (id: number) => Promise<void>;
-  onRefresh: () => void;
+  onRefresh: () => Promise<void>;
 }
 
 const emptyForm: UserFormState = {
@@ -685,7 +809,6 @@ const UsersTab = ({ users, loading, error, onCreate, onUpdate, onDelete, onRefre
       const trimmedPassword = form.password.trim();
 
       if (editingUser) {
-        // Update existing user
         const updateData: UpdateUserData = {
           name: form.name,
           email: form.email,
@@ -700,7 +823,6 @@ const UsersTab = ({ users, loading, error, onCreate, onUpdate, onDelete, onRefre
 
         await onUpdate(editingUser.id, updateData);
       } else {
-        // Create new user
         if (!trimmedPassword) {
           setFormError('Password is required for new users.');
           setIsSubmitting(false);
@@ -745,7 +867,6 @@ const UsersTab = ({ users, loading, error, onCreate, onUpdate, onDelete, onRefre
 
   return (
     <section className="flex-1 px-6 md:px-10 pb-10 overflow-auto">
-      {/* Error Alert */}
       {error && (
         <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center justify-between">
           <p className="text-sm text-red-600">{error}</p>
@@ -1069,7 +1190,10 @@ const ReportsTab = () => (
   </section>
 );
 
-// --- Icons ---
+// ===========================
+// ICONS
+// ===========================
+
 const DashboardIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
     <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25a2.25 2.25 0 0 1-2.25-2.25v-2.25Z" />

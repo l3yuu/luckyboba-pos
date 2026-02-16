@@ -9,10 +9,25 @@ class Sale extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['total_amount', 'payment_method', 'is_synced'];
+    protected $fillable = [
+        'branch_id',
+        'user_id',
+        'total_amount',
+        'payment_method',
+        'status',
+    ];
 
-    public function items()
+    protected $casts = [
+        'total_amount' => 'decimal:2',
+    ];
+
+    public function branch()
     {
-        return $this->hasMany(SaleItem::class);
+        return $this->belongsTo(Branch::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }
