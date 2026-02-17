@@ -74,4 +74,15 @@ class CashTransactionController extends Controller
 
         return response()->json($query->orderBy('created_at', 'desc')->get());
     }
+
+    public function checkInitialCash(Request $request)
+    {
+        // Check if a 'cash_in' exists for this user today
+        $hasCashedIn = \App\Models\CashTransaction::where('user_id', $request->user()->id)
+            ->where('type', 'cash_in')
+            ->whereDate('created_at', now()->toDateString())
+            ->exists();
+
+        return response()->json(['hasCashedIn' => $hasCashedIn]);
+    }
 }

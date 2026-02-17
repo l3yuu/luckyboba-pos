@@ -136,9 +136,11 @@
             localStorage.removeItem('dashboard_stats_timestamp');
             fetchStats(true); // Forces the dashboard to subtract voided sales
         }} />;
-        case 'cash-in': return <CashIn onSuccess={() => {
+        case 'cash-in': 
+          return <CashIn onSuccess={() => {
           localStorage.removeItem('dashboard_stats_timestamp');
           fetchStats(true);
+          setActiveTab('cash-in');
         }} />;
         case 'cash-drop': return <CashDrop onSuccess={() => {
           localStorage.removeItem('dashboard_stats_timestamp');
