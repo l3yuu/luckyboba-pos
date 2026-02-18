@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import Sidebar from "../components/Sidebar";
+import SidebarBm from '../components/SidebarBm.tsx';
 import logo from '../assets/logo.png';
 import { Users, Plus, Trash2, Edit3, X, Save, Shield } from 'lucide-react';
 
@@ -115,13 +115,12 @@ const BranchManagerDashboard = () => {
       </div>
 
       {/* --- Sidebar --- */}
-      <Sidebar 
+      <SidebarBm 
         isSidebarOpen={isSidebarOpen} 
         setSidebarOpen={setSidebarOpen} 
         logo={logo} 
         currentTab={activeTab}
         setCurrentTab={setActiveTab}
-        isBranchManager={true}
       />
 
       {/* --- Main Content Area --- */}
