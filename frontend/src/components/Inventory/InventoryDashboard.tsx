@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import TopNavbar from '../TopNavbar';
 import api from '../../services/api';
+import { getCache, setCache } from '../../utils/cache';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
   ResponsiveContainer, Legend, PieChart, Pie, Cell 
@@ -25,16 +26,14 @@ interface DashboardData {
 
 const COLORS = ['#3b2063', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
-// ✅ Module-level cache — survives tab switches (component unmount/remount)
-let dashboardCache: DashboardData | null = null;
-
 const InventoryDashboard = () => {
-  const [data, setData] = useState<TopProduct[]>(dashboardCache?.products ?? []);
+  const cached = getCache<DashboardData>('inventory-top-products');
+  const [data, setData] = useState<TopProduct[]>(cached?.products ?? []);
   const [totals, setTotals] = useState({
-    sold: dashboardCache?.weekly_sold_total ?? 0,
-    profit: dashboardCache?.weekly_profit_total ?? 0,
+    sold: cached?.weekly_sold_total ?? 0,
+    profit: cached?.weekly_profit_total ?? 0
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(cached === null);
 
   const getWeeklyRange = () => {
     const now = new Date();
@@ -53,13 +52,10 @@ const InventoryDashboard = () => {
   const { start, end } = getWeeklyRange();
 
   useEffect(() => {
-    // ✅ If cache exists, populate state immediately — no fetch, no flash
-    if (dashboardCache) {
-      setData(dashboardCache.products);
-      setTotals({
-        sold: dashboardCache.weekly_sold_total,
-        profit: dashboardCache.weekly_profit_total,
-      });
+    const cached = getCache<DashboardData>('inventory-top-products');
+    if (cached) {
+      setData(cached.products);
+      setTotals({ sold: cached.weekly_sold_total, profit: cached.weekly_profit_total });
       return;
     }
 
@@ -69,18 +65,11 @@ const InventoryDashboard = () => {
         const response = await api.get('/inventory/top-products');
         const responseData: DashboardData = response.data;
         const top5Products = responseData.products.slice(0, 5);
+        const toCache = { ...responseData, products: top5Products };
 
-        // ✅ Save to module-level cache
-        dashboardCache = {
-          ...responseData,
-          products: top5Products,
-        };
-
+        setCache('inventory-top-products', toCache);
         setData(top5Products);
-        setTotals({
-          sold: responseData.weekly_sold_total,
-          profit: responseData.weekly_profit_total,
-        });
+        setTotals({ sold: responseData.weekly_sold_total, profit: responseData.weekly_profit_total });
       } catch (error) {
         console.error("Failed to fetch inventory analytics:", error);
       } finally {
@@ -97,7 +86,6 @@ const InventoryDashboard = () => {
   return (
     <div className="flex-1 bg-[#f8f6ff] h-full flex flex-col overflow-hidden font-sans">
       <TopNavbar />
-
       <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
         <div className="bg-white rounded-xl shadow-sm border border-zinc-100 overflow-hidden">
           <div className="bg-zinc-50 px-6 py-4 border-b border-zinc-100">
@@ -105,7 +93,6 @@ const InventoryDashboard = () => {
               TOP 5 PRODUCTS by Qty Sold FROM {start} TO {end}
             </h2>
           </div>
-
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -160,7 +147,6 @@ const InventoryDashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
-          {/* Bar Chart */}
           <div className="bg-white rounded-xl shadow-sm border border-zinc-100 p-6 min-h-75 flex flex-col">
             <div className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-4">Profit vs Cost Breakdown</div>
             <div className="w-full" style={{ height: '220px' }}>
@@ -170,10 +156,7 @@ const InventoryDashboard = () => {
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f8f6ff" />
                     <XAxis dataKey="name" hide />
                     <YAxis fontSize={10} tickFormatter={(value) => `₱${value}`} />
-                    <Tooltip 
-                      contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                      formatter={(value: ValueType | undefined) => formatPHP(Number(value) || 0)} 
-                    />
+                    <Tooltip contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} formatter={(value: ValueType | undefined) => formatPHP(Number(value) || 0)} />
                     <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }} />
                     <Bar dataKey="profit" name="Profit" fill="#10b981" radius={[4, 4, 0, 0]} />
                     <Bar dataKey="total_cost" name="Cost" fill="#3b2063" radius={[4, 4, 0, 0]} />
@@ -184,40 +167,20 @@ const InventoryDashboard = () => {
               )}
             </div>
           </div>
-          
-          {/* Pie Chart */}
+
           <div className="bg-white rounded-xl shadow-sm border border-zinc-100 p-6 min-h-75 flex flex-col">
             <div className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-4">Sales Quantity Share</div>
             <div className="w-full" style={{ height: '220px' }}>
               {data.length > 0 ? (
                 <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
-                    <Pie
-                      data={data}
-                      dataKey="qty"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={70}
-                      paddingAngle={5}
-                      stroke="none"
-                    >
+                    <Pie data={data} dataKey="qty" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={5} stroke="none">
                       {data.map((_, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <Tooltip 
-                      contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                      formatter={(value: ValueType | undefined, name: NameType | undefined) => [`${value ?? 0} units`, name ?? 'Unknown']}
-                    />
-                    <Legend 
-                      layout="vertical" 
-                      verticalAlign="middle" 
-                      align="right" 
-                      iconType="circle"
-                      wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', lineHeight: '20px', textTransform: 'uppercase' }}
-                    />
+                    <Tooltip contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} formatter={(value: ValueType | undefined, name: NameType | undefined) => [`${value ?? 0} units`, name ?? 'Unknown']} />
+                    <Legend layout="vertical" verticalAlign="middle" align="right" iconType="circle" wrapperStyle={{ fontSize: '9px', fontWeight: 'bold', lineHeight: '20px', textTransform: 'uppercase' }} />
                   </PieChart>
                 </ResponsiveContainer>
               ) : (

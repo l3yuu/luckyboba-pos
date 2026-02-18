@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import TopNavbar from '../TopNavbar';
 import api from '../../services/api';
+import { getCache, setCache, clearCache } from '../../utils/cache';
 
 interface InventoryItem {
   id: number;
@@ -17,38 +18,33 @@ interface Category {
   name: string;
 }
 
-// ✅ Module-level cache — survives tab switches (component unmount/remount)
-let inventoryCache: InventoryItem[] | null = null;
-let categoriesCache: Category[] | null = null;
-
 const InventoryList = () => {
-  const [inventory, setInventory] = useState<InventoryItem[]>(inventoryCache ?? []);
-  const [categories, setCategories] = useState<Category[]>(categoriesCache ?? []);
+  const [inventory, setInventory] = useState<InventoryItem[]>(
+    getCache<InventoryItem[]>('inventory') ?? []
+  );
+  const [categories, setCategories] = useState<Category[]>(
+    getCache<Category[]>('categories') ?? []
+  );
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   
-  // Existing Restock Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [addQty, setAddQty] = useState<string>("");
   const [updating, setUpdating] = useState(false);
 
-  // Add Item Modal States
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newItem, setNewItem] = useState({
-    name: '',
-    barcode: '',
-    quantity: '',
-    price: '',
-    cost: '',
-    category_id: '' 
+    name: '', barcode: '', quantity: '', price: '', cost: '', category_id: '' 
   });
 
   const fetchData = useCallback(async (forceRefresh = false) => {
-    // ✅ If cache exists and not forcing refresh, populate state immediately
-    if (!forceRefresh && inventoryCache && categoriesCache) {
-      setInventory(inventoryCache);
-      setCategories(categoriesCache);
+    const cachedInv = getCache<InventoryItem[]>('inventory');
+    const cachedCat = getCache<Category[]>('categories');
+
+    if (!forceRefresh && cachedInv && cachedCat) {
+      setInventory(cachedInv);
+      setCategories(cachedCat);
       return;
     }
 
@@ -59,9 +55,8 @@ const InventoryList = () => {
         api.get('/categories')
       ]);
       
-      // ✅ Save to module-level cache
-      inventoryCache = invRes.data;
-      categoriesCache = catRes.data;
+      setCache('inventory', invRes.data);
+      setCache('categories', catRes.data);
       
       setInventory(invRes.data);
       setCategories(catRes.data);
@@ -88,11 +83,8 @@ const InventoryList = () => {
     setUpdating(true);
     try {
       await api.post('/inventory', newItem);
-      
-      // ✅ Invalidate cache and force refetch
-      inventoryCache = null;
-      categoriesCache = null;
-      
+      clearCache('inventory');
+      clearCache('categories');
       await fetchData(true);
       setIsAddModalOpen(false);
       setNewItem({ name: '', barcode: '', quantity: '', price: '', cost: '', category_id: '' });
@@ -117,10 +109,7 @@ const InventoryList = () => {
     setUpdating(true);
     try {
       await api.patch(`/inventory/${selectedItem.id}/quantity`, { quantity: qtyToUpdate });
-      
-      // ✅ Invalidate only inventory cache, categories unchanged
-      inventoryCache = null;
-      
+      clearCache('inventory');
       await fetchData(true);
       setIsModalOpen(false);
     } catch (err) {
@@ -154,21 +143,15 @@ const InventoryList = () => {
             <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Inventory List</h1>
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Lucky Boba Stockroom</p>
           </div>
-          <button 
-            onClick={() => setIsAddModalOpen(true)}
-            className="px-6 py-2 bg-[#10b981] text-white rounded-md font-bold text-[10px] uppercase tracking-widest shadow-sm hover:bg-[#0da673] transition-all"
-          >
+          <button onClick={() => setIsAddModalOpen(true)} className="px-6 py-2 bg-[#10b981] text-white rounded-md font-bold text-[10px] uppercase tracking-widest shadow-sm hover:bg-[#0da673] transition-all">
             ADD NEW ITEM
           </button>
         </div>
 
-        {/* === SEARCH BAR === */}
         <div className="mb-6 relative">
           <input 
-            type="text"
-            placeholder="Search by name or barcode..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            type="text" placeholder="Search by name or barcode..."
+            value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-white border border-zinc-200 rounded-xl px-12 py-3 text-sm font-bold text-[#3b2063] outline-none focus:ring-2 ring-purple-100 transition-all shadow-sm"
           />
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 text-zinc-300 absolute left-4 top-1/2 -translate-y-1/2">
@@ -192,73 +175,40 @@ const InventoryList = () => {
                   <tr key={item.id} className="hover:bg-zinc-50 transition-colors">
                     <td className="px-6 py-4 text-xs font-bold text-slate-700">{item.name}</td>
                     <td className="px-6 py-4 text-xs font-bold text-slate-500 font-mono">{item.barcode || '-'}</td>
-                    <td className={`px-6 py-4 text-xs font-black text-center ${item.quantity <= 10 ? 'text-red-500' : 'text-slate-700'}`}>
-                      {item.quantity}
-                    </td>
+                    <td className={`px-6 py-4 text-xs font-black text-center ${item.quantity <= 10 ? 'text-red-500' : 'text-slate-700'}`}>{item.quantity}</td>
                     <td className="px-6 py-4 text-center">
-                      <button 
-                        onClick={() => openUpdateModal(item)}
-                        className="bg-[#1e40af] text-white px-4 py-2 rounded-md font-bold text-[10px] uppercase tracking-widest hover:bg-[#1e3a8a] transition-all shadow-sm"
-                      >
-                        RESTOCK
-                      </button>
+                      <button onClick={() => openUpdateModal(item)} className="bg-[#1e40af] text-white px-4 py-2 rounded-md font-bold text-[10px] uppercase tracking-widest hover:bg-[#1e3a8a] transition-all shadow-sm">RESTOCK</button>
                     </td>
                   </tr>
                 ))
               ) : (
-                <tr>
-                  <td colSpan={4} className="px-6 py-10 text-center text-zinc-400 font-bold uppercase tracking-widest text-xs italic">
-                    {searchTerm ? `No results for "${searchTerm}"` : "No inventory items found"}
-                  </td>
-                </tr>
+                <tr><td colSpan={4} className="px-6 py-10 text-center text-zinc-400 font-bold uppercase tracking-widest text-xs italic">{searchTerm ? `No results for "${searchTerm}"` : "No inventory items found"}</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* === RESTOCK MODAL === */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-xl shadow-2xl p-8">
-             <div className="mb-6">
+            <div className="mb-6">
               <h2 className="text-slate-700 font-black text-lg uppercase tracking-widest mb-2">Restock Item</h2>
               <p className="text-zinc-400 text-sm font-bold">{selectedItem?.name}</p>
               <p className="text-zinc-300 text-xs">Current Stock: <span className="font-black text-slate-600">{selectedItem?.quantity}</span></p>
             </div>
             <div className="mb-6">
               <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2 block">Add Quantity</label>
-              <input 
-                type="number"
-                value={addQty}
-                onChange={(e) => setAddQty(e.target.value)}
-                autoFocus
-                onFocus={(e) => e.target.select()}
-                className="w-full border-2 border-zinc-200 rounded-md px-4 py-3 text-slate-700 font-bold outline-none focus:border-[#1e40af] transition-all"
-                placeholder="Enter quantity to add"
-                min="1"
-              />
+              <input type="number" value={addQty} onChange={(e) => setAddQty(e.target.value)} autoFocus onFocus={(e) => e.target.select()} className="w-full border-2 border-zinc-200 rounded-md px-4 py-3 text-slate-700 font-bold outline-none focus:border-[#1e40af] transition-all" placeholder="Enter quantity to add" min="1" />
             </div>
             <div className="flex gap-3">
-              <button 
-                onClick={() => setIsModalOpen(false)} 
-                className="flex-1 py-3 border-2 border-zinc-200 text-slate-600 rounded-md font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleUpdateStock} 
-                disabled={updating || !addQty || parseInt(addQty) <= 0} 
-                className="flex-1 py-3 bg-[#10b981] text-white rounded-md font-bold text-xs uppercase tracking-widest hover:bg-[#0da673] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-              >
-                {updating ? 'Updating...' : 'Confirm'}
-              </button>
+              <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3 border-2 border-zinc-200 text-slate-600 rounded-md font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all">Cancel</button>
+              <button onClick={handleUpdateStock} disabled={updating || !addQty || parseInt(addQty) <= 0} className="flex-1 py-3 bg-[#10b981] text-white rounded-md font-bold text-xs uppercase tracking-widest hover:bg-[#0da673] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">{updating ? 'Updating...' : 'Confirm'}</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* === ADD ITEM MODAL === */}
       {isAddModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl p-8">
@@ -269,22 +219,13 @@ const InventoryList = () => {
                   <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Product Name</label>
                   <input required type="text" value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-[#10b981] transition-all" placeholder="e.g. Boba Milk Tea" />
                 </div>
-                
                 <div className="col-span-2">
                   <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Category</label>
-                  <select 
-                    required 
-                    value={newItem.category_id} 
-                    onChange={e => setNewItem({...newItem, category_id: e.target.value})}
-                    className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-[#10b981] appearance-none cursor-pointer bg-white transition-all"
-                  >
+                  <select required value={newItem.category_id} onChange={e => setNewItem({...newItem, category_id: e.target.value})} className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-[#10b981] appearance-none cursor-pointer bg-white transition-all">
                     <option value="" disabled>Select a category</option>
-                    {categories.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
+                    {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
                   </select>
                 </div>
-
                 <div>
                   <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Barcode/SKU</label>
                   <input type="text" value={newItem.barcode} onChange={e => setNewItem({...newItem, barcode: e.target.value})} className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-[#10b981] transition-all" placeholder="Optional" />
@@ -303,20 +244,8 @@ const InventoryList = () => {
                 </div>
               </div>
               <div className="flex gap-3 mt-8">
-                <button 
-                  type="button" 
-                  onClick={() => setIsAddModalOpen(false)} 
-                  className="flex-1 py-3 text-zinc-400 font-bold text-xs uppercase tracking-widest hover:text-zinc-600 transition-all"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  disabled={updating} 
-                  className="flex-1 py-3 bg-[#3b2063] text-white rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-[#2d184b] transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {updating ? 'Saving...' : 'Save Item'}
-                </button>
+                <button type="button" onClick={() => setIsAddModalOpen(false)} className="flex-1 py-3 text-zinc-400 font-bold text-xs uppercase tracking-widest hover:text-zinc-600 transition-all">Cancel</button>
+                <button type="submit" disabled={updating} className="flex-1 py-3 bg-[#3b2063] text-white rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-[#2d184b] transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed">{updating ? 'Saving...' : 'Save Item'}</button>
               </div>
             </form>
           </div>

@@ -5,6 +5,7 @@ import TopNavbar from '../TopNavbar';
 import api from '../../services/api';
 import { isAxiosError } from 'axios';
 import { useToast } from '../../hooks/useToast';
+import { getCache, setCache, clearCache } from '../../utils/cache';
 
 interface InventoryCategory {
   id: number;
@@ -13,39 +14,33 @@ interface InventoryCategory {
   menu_items_count: number;
 }
 
-// ✅ Module-level cache — survives tab switches
-let categoriesCache: InventoryCategory[] | null = null;
-
 const InventoryCategoryList = () => {
   const { showToast } = useToast();
-  
-  const [categories, setCategories] = useState<InventoryCategory[]>(categoriesCache ?? []);
+  const [categories, setCategories] = useState<InventoryCategory[]>(
+    getCache<InventoryCategory[]>('categories') ?? []
+  );
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
-
   const [editingCategory, setEditingCategory] = useState<InventoryCategory | null>(null);
   const [editName, setEditName] = useState('');
   const [editDesc, setEditDesc] = useState('');
 
   const fetchCategories = useCallback(async (forceRefresh = false) => {
-    // ✅ Return cached data immediately if available
-    if (!forceRefresh && categoriesCache) {
-      setCategories(categoriesCache);
+    const cached = getCache<InventoryCategory[]>('categories');
+    if (!forceRefresh && cached) {
+      setCategories(cached);
       return;
     }
 
     try {
       setLoading(true);
       const response = await api.get('/categories');
-
-      // ✅ Save to module-level cache
-      categoriesCache = response.data;
+      setCache('categories', response.data);
       setCategories(response.data);
     } catch (err) {
       console.error(err);
@@ -73,14 +68,11 @@ const InventoryCategoryList = () => {
       setNewName('');
       setNewDesc('');
       setIsAddModalOpen(false);
-      // ✅ Invalidate cache then refetch
-      categoriesCache = null;
+      clearCache('categories');
       await fetchCategories(true);
       showToast("Category added successfully!", "success");
     } catch (err) {
-      if (isAxiosError(err)) {
-        showToast(err.response?.data?.message || "Error adding category", "error");
-      }
+      if (isAxiosError(err)) showToast(err.response?.data?.message || "Error adding category", "error");
     }
   };
 
@@ -96,8 +88,7 @@ const InventoryCategoryList = () => {
     try {
       await api.patch(`/categories/${editingCategory.id}`, { name: editName, description: editDesc });
       setIsEditModalOpen(false);
-      // ✅ Invalidate cache then refetch
-      categoriesCache = null;
+      clearCache('categories');
       await fetchCategories(true);
       showToast("Category updated!", "success");
     } catch (err) {
@@ -109,49 +100,33 @@ const InventoryCategoryList = () => {
     if (!window.confirm("Are you sure?")) return;
     try {
       await api.delete(`/categories/${id}`);
-      // ✅ Invalidate cache then refetch
-      categoriesCache = null;
+      clearCache('categories');
       await fetchCategories(true);
       showToast("Category deleted", "success");
     } catch (err) {
-      if (isAxiosError(err)) {
-        showToast(err.response?.data?.message || "Delete failed", "error");
-      }
+      if (isAxiosError(err)) showToast(err.response?.data?.message || "Delete failed", "error");
     }
   };
 
   return (
     <div className="flex-1 bg-[#f4f5f7] h-full flex flex-col overflow-hidden font-sans relative">
       <TopNavbar />
-
       <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
         <div className="flex justify-between items-center mb-2">
           <div>
             <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest leading-none">Category List</h1>
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Total Categories: {categories.length}</p>
           </div>
-          <button 
-            onClick={() => setIsAddModalOpen(true)}
-            className="px-6 py-2 bg-[#10b981] text-white rounded-md font-bold text-[10px] uppercase tracking-widest shadow-sm hover:bg-[#0da673] transition-all active:scale-95"
-          >
-            NEW CATEGORY
-          </button>
+          <button onClick={() => setIsAddModalOpen(true)} className="px-6 py-2 bg-[#10b981] text-white rounded-md font-bold text-[10px] uppercase tracking-widest shadow-sm hover:bg-[#0da673] transition-all active:scale-95">NEW CATEGORY</button>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Search:</span>
-              <input 
-                type="text" 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Find category..."
-                className="border border-zinc-300 rounded-md bg-white px-3 py-1.5 text-xs outline-none focus:border-blue-500 shadow-sm w-64 font-bold text-slate-700" 
-              />
+              <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Find category..." className="border border-zinc-300 rounded-md bg-white px-3 py-1.5 text-xs outline-none focus:border-blue-500 shadow-sm w-64 font-bold text-slate-700" />
             </div>
           </div>
-
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -182,7 +157,6 @@ const InventoryCategoryList = () => {
         </div>
       </div>
 
-      {/* === ADD CATEGORY MODAL === */}
       {isAddModalOpen && (
         <div className="fixed inset-0 bg-[#3b2063]/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl p-10">
@@ -205,7 +179,6 @@ const InventoryCategoryList = () => {
         </div>
       )}
 
-      {/* === EDIT MODAL === */}
       {isEditModalOpen && (
         <div className="fixed inset-0 bg-[#3b2063]/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl p-10">

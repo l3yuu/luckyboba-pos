@@ -5,8 +5,8 @@ import TopNavbar from './TopNavbar';
 import api from '../services/api';
 import { useToast } from '../hooks/useToast';
 import { Loader2 } from 'lucide-react';
+import { getCache, setCache, clearCache } from '../utils/cache';
 
-// The structure your Frontend expects
 interface ExpenseItem {
   id?: number;
   refNum: string;
@@ -16,7 +16,6 @@ interface ExpenseItem {
   amount: number;
 }
 
-// The structure your Laravel Backend sends (snake_case)
 interface RawExpenseData {
   id: number;
   ref_num: string;
@@ -24,6 +23,11 @@ interface RawExpenseData {
   description: string | null;
   category: string;
   amount: string | number;
+}
+
+interface ExpenseCache {
+  expenses: ExpenseItem[];
+  summary: { totalExpense: number; totalSales: number; netTotal: number };
 }
 
 const Expense = () => {
@@ -47,8 +51,23 @@ const Expense = () => {
     amount: ''
   });
 
-  // --- API FETCH LOGIC ---
-  const fetchExpenses = useCallback(async () => {
+  // ✅ Cache key based on current filters
+  const getCacheKey = useCallback(() => {
+    return `expense|${fromDate}|${toDate}|${refNumSearch}|${categoryFilter}`;
+  }, [fromDate, toDate, refNumSearch, categoryFilter]);
+
+  const fetchExpenses = useCallback(async (forceRefresh = false) => {
+    const cacheKey = getCacheKey();
+    const cached = getCache<ExpenseCache>(cacheKey);
+
+    // ✅ Return cached data immediately if available
+    if (!forceRefresh && cached) {
+      setExpenses(cached.expenses);
+      setSummary(cached.summary);
+      setIsFetching(false);
+      return;
+    }
+
     setIsFetching(true);
     try {
       const response = await api.get('/expenses', {
@@ -60,7 +79,6 @@ const Expense = () => {
         }
       });
       
-      // FIXED: Used RawExpenseData instead of any
       const mapped: ExpenseItem[] = response.data.expenses.map((e: RawExpenseData) => ({
         id: e.id,
         refNum: e.ref_num,
@@ -70,6 +88,9 @@ const Expense = () => {
         amount: typeof e.amount === 'string' ? parseFloat(e.amount) : e.amount
       }));
 
+      // ✅ Cache this filter combination
+      setCache(cacheKey, { expenses: mapped, summary: response.data.summary });
+
       setExpenses(mapped);
       setSummary(response.data.summary);
     } catch (error) {
@@ -78,13 +99,12 @@ const Expense = () => {
     } finally {
       setIsFetching(false);
     }
-  }, [fromDate, toDate, refNumSearch, categoryFilter, showToast]);
+  }, [fromDate, toDate, refNumSearch, categoryFilter, showToast, getCacheKey]);
 
   useEffect(() => {
     fetchExpenses();
   }, [fetchExpenses]);
 
-  // --- SAVE LOGIC ---
   const handleSaveExpense = async () => {
     if (!newExpense.refNum || !newExpense.amount) {
       showToast("Please fill in the Reference Number and Amount", "warning");
@@ -110,9 +130,13 @@ const Expense = () => {
         category: 'Bills',
         amount: ''
       });
-      fetchExpenses();
+
+      // ✅ Invalidate all expense cache keys since new record affects all filter combos
+      for (const key of Object.keys(sessionStorage)) {
+        if (key.startsWith('expense|')) clearCache(key);
+      }
+      await fetchExpenses(true);
     } catch (error: unknown) {
-      // FIXED: Handled the error variable properly to satisfy the linter
       console.error("Save error:", error);
       showToast("Error saving expense", "error");
     } finally {
@@ -152,7 +176,7 @@ const Expense = () => {
           </div>
 
           <div className="flex gap-2 w-full xl:w-auto">
-            <button onClick={fetchExpenses} className="flex-1 xl:flex-none px-8 h-10 bg-[#1e40af] text-white rounded-md font-black uppercase text-[10px] tracking-widest hover:bg-[#1e3a8a] shadow-md transition-all">SEARCH</button>
+            <button onClick={() => fetchExpenses(true)} className="flex-1 xl:flex-none px-8 h-10 bg-[#1e40af] text-white rounded-md font-black uppercase text-[10px] tracking-widest hover:bg-[#1e3a8a] shadow-md transition-all">SEARCH</button>
             <button onClick={() => setIsAddModalOpen(true)} className="flex-1 xl:flex-none px-8 h-10 bg-[#10b981] text-white rounded-md font-black uppercase text-[10px] tracking-widest hover:bg-[#059669] shadow-md transition-all">ADD NEW</button>
           </div>
         </div>
@@ -196,14 +220,14 @@ const Expense = () => {
               )}
             </tbody>
             {expenses.length > 0 && (
-               <tfoot>
-                 <tr className="bg-zinc-50 font-black">
-                   <td colSpan={4} className="px-6 py-3 text-right text-[10px] uppercase tracking-widest text-slate-500">Total</td>
-                   <td className="px-6 py-3 text-right text-sm text-slate-900">
-                     {summary.totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                   </td>
-                 </tr>
-               </tfoot>
+              <tfoot>
+                <tr className="bg-zinc-50 font-black">
+                  <td colSpan={4} className="px-6 py-3 text-right text-[10px] uppercase tracking-widest text-slate-500">Total</td>
+                  <td className="px-6 py-3 text-right text-sm text-slate-900">
+                    {summary.totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </td>
+                </tr>
+              </tfoot>
             )}
           </table>
         </div>
@@ -234,9 +258,9 @@ const Expense = () => {
         <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 relative">
             {isSubmitting && (
-               <div className="absolute inset-0 bg-white/50 z-20 flex items-center justify-center">
-                  <Loader2 className="animate-spin text-[#1e40af]" />
-               </div>
+              <div className="absolute inset-0 bg-white/50 z-20 flex items-center justify-center">
+                <Loader2 className="animate-spin text-[#1e40af]" />
+              </div>
             )}
             <div className="bg-[#1e40af] p-4 text-center">
               <h2 className="text-white font-black uppercase tracking-[0.2em] text-sm">Add Expense</h2>
@@ -275,9 +299,7 @@ const Expense = () => {
               </div>
 
               <div className="flex gap-3 pt-4">
-                <button onClick={() => setIsAddModalOpen(false)} className="flex-1 px-6 py-3 bg-zinc-100 text-zinc-500 rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all">
-                  Back
-                </button>
+                <button onClick={() => setIsAddModalOpen(false)} className="flex-1 px-6 py-3 bg-zinc-100 text-zinc-500 rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all">Back</button>
                 <button onClick={handleSaveExpense} className="flex-1 px-6 py-3 bg-[#1e40af] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#1e3a8a] shadow-lg shadow-blue-900/20 transition-all">
                   {isSubmitting ? 'Saving...' : 'Save'}
                 </button>
