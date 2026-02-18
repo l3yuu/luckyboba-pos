@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\SubCategoryController;
 use App\Http\Controllers\Api\VoucherController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\UserController;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -107,6 +108,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/inventory/top-products', [InventoryDashboardController::class, 'getWeeklyTopProducts']);
     Route::get('/inventory/check/{barcode}', [InventoryController::class, 'checkByBarcode']);
     Route::get('/inventory', [InventoryController::class, 'index']);
+    Route::post('/inventory', [InventoryController::class, 'store']);
     Route::patch('/inventory/{id}/quantity', [InventoryController::class, 'updateQuantity']);
     Route::get('/purchase-orders', [PurchaseOrderController::class, 'index']);
     Route::post('/purchase-orders', [PurchaseOrderController::class, 'store']);

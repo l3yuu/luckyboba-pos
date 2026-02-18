@@ -14,13 +14,9 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [isLoading, setIsLoading] = useState(false); 
   
-<<<<<<< HEAD
-
-=======
   // --- NEW STATE FOR LOCK LOGIC ---
   const [isEodLocked, setIsEodLocked] = useState(false);
   
->>>>>>> 3537335148519ac44802b3b8ee695dd57c595ab6
   const [receiptData, setReceiptData] = useState<ReceiptData>({ date: '', time: '' });
   const keyboardRef = useRef<KeyboardRef | null>(null);
 
@@ -63,11 +59,6 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
         setIsFlipped(true); 
         setShowKeyboard(false);
 
-<<<<<<< HEAD
-
-        // Notify sidebar to unlock the Menu
-=======
->>>>>>> 3537335148519ac44802b3b8ee695dd57c595ab6
         if (onSuccess) onSuccess(); 
       }
     } catch (error: unknown) {
@@ -139,13 +130,8 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
       </style>
 
       <div className="flex flex-col h-full w-full bg-[#f8f6ff] animate-in fade-in zoom-in duration-300 relative overflow-hidden">
-<<<<<<< HEAD
-
-        <TopNavbar />
-=======
         {/* Added the lock prop to TopNavbar as requested earlier */}
         <TopNavbar isEodLocked={isEodLocked} />
->>>>>>> 3537335148519ac44802b3b8ee695dd57c595ab6
 
         <div className={`flex-1 flex flex-col xl:flex-row items-center justify-center p-6 gap-6 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-75' : ''}`}>
           <div className="relative w-full max-w-2xl h-125" style={{ perspective: '1000px' }}>

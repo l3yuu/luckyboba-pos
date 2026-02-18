@@ -1,10 +1,6 @@
 "use client"
-<<<<<<< HEAD
-import React, { useState, useRef } from 'react';
-=======
 
 import React, { useState, useRef, useEffect } from 'react';
->>>>>>> 3537335148519ac44802b3b8ee695dd57c595ab6
 import Keyboard from 'react-simple-keyboard';
 import 'react-simple-keyboard/build/css/index.css';
 import type { Transaction, ActiveInput } from '../../types/cash-count';
@@ -38,12 +34,6 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
   const [activeInput, setActiveInput] = useState<ActiveInput | null>(null);
   const [layoutName, setLayoutName] = useState('numpad');
   const [showKeyboard, setShowKeyboard] = useState(false);
-<<<<<<< HEAD
-  
-
-  const keyboardRef = useRef<SimpleKeyboardInstance | null>(null);
-
-=======
   const keyboardRef = useRef<SimpleKeyboardInstance | null>(null);
 
   // --- Check EOD Status on Mount ---
@@ -64,7 +54,6 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
   useEffect(() => {
     checkEodStatus();
   }, []);
->>>>>>> 3537335148519ac44802b3b8ee695dd57c595ab6
 
   const getGrandTotal = (currentCounts: { [key: number]: string }) => {
     return denominations.reduce((total, denom) => {
@@ -112,14 +101,8 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
 
   const handleSubmit = async () => {
     const total = getGrandTotal(counts);
-<<<<<<< HEAD
-    if (total <= 0) {
-
-      showToast("Please enter a valid cash count.", "warning");
-=======
     if (total <= 0 || isEodLocked) {
       showToast(isEodLocked ? "Terminal is already locked." : "Please enter a valid cash count.", "warning");
->>>>>>> 3537335148519ac44802b3b8ee695dd57c595ab6
       return;
     }
 
@@ -139,11 +122,8 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
       if (response.status === 201 || response.status === 200) {
         localStorage.setItem('terminal_eod_locked', 'true');
         localStorage.setItem('cashier_menu_unlocked', 'false');
-<<<<<<< HEAD
-=======
         setIsEodLocked(true);
 
->>>>>>> 3537335148519ac44802b3b8ee695dd57c595ab6
         const now = new Date();
         const newTx: Transaction = {
           id: response.data.id,
@@ -356,12 +336,8 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
                         (activeInput?.type === 'remarks' ? 'border-[#3b2063] bg-white ring-4 ring-[#f0ebff]' : 'border-zinc-100 bg-[#f8f6ff]')}`}
                   />
                 </div>
-<<<<<<< HEAD
-                {!latestTx ? (
-=======
 
                 {!latestTx && !isEodLocked ? (
->>>>>>> 3537335148519ac44802b3b8ee695dd57c595ab6
                   <button onClick={handleSubmit} disabled={isLoading} className="w-full bg-[#3b2063] text-white py-5 rounded-3xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-transform disabled:bg-zinc-300">
                     {isLoading ? 'Saving...' : 'Submit EOD Count'}
                   </button>

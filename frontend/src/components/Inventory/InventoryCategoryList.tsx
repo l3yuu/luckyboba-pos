@@ -55,12 +55,12 @@ const InventoryCategoryList = () => {
     fetchCategories();
   }, [fetchCategories]);
 
-  const filteredCategories = useMemo(() => {
-    return categories.filter(cat => 
-      cat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cat.description.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [categories, searchTerm]);
+const filteredCategories = useMemo(() => {
+  return categories.filter(cat => 
+    cat?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    cat?.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+}, [categories, searchTerm]);
 
   const handleAddCategory = async () => {
     if (!newName) return;
