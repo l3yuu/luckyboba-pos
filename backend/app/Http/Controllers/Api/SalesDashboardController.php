@@ -102,4 +102,56 @@ public function xReading(Request $request)
         
         return response()->json($report);
     }
+
+    public function dashboardData(): JsonResponse
+{
+    try {
+        $data = $this->salesService->getAnalyticsData();
+        $startOfWeek = \Carbon\Carbon::now()->startOfWeek();
+        $endOfWeek = \Carbon\Carbon::now()->endOfWeek();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'weekly_sales' => [
+                    'data' => $data['weekly'],
+                    'total_revenue' => $data['stats']['total_revenue'],
+                    'start_date' => $startOfWeek->format('M d, Y'),
+                    'end_date' => $endOfWeek->format('M d, Y'),
+                    'current_week_start' => $startOfWeek->format('Y-m-d'),
+                ],
+                'today_sales' => [
+                    'data' => $data['today_hourly'],
+                    'date' => now()->format('Y-m-d'),
+                ],
+                'statistics' => [
+                    'beginning_sales' => 0,
+                    'today_sales' => $data['stats']['today_sales'],
+                    'ending_sales' => $data['stats']['today_sales'],
+                    'cancelled_sales' => $data['stats']['cancelled_sales'],
+                    'beginning_or' => $data['stats']['beginning_or'],
+                    'ending_or' => $data['stats']['ending_or'],
+                ],
+            ]
+        ]);
+    } catch (\Exception $e) {
+        Log::error("Dashboard Data Error: " . $e->getMessage());
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+    }
+}
+
+public function weeklySales(): JsonResponse
+{
+    try {
+        $startOfWeek = \Carbon\Carbon::now()->startOfWeek();
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'current_week_start' => $startOfWeek->format('Y-m-d'),
+            ]
+        ]);
+    } catch (\Exception $e) {
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+    }
+}
 }

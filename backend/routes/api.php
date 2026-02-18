@@ -15,7 +15,6 @@ use App\Http\Controllers\Api\ItemsReportController;
 use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\UserController;
-use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -25,7 +24,6 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 Route::post('/login', [AuthenticatedSessionController::class, 'store']);
-Route::get('/users', function () { return User::all(); });
 
 /*
 |--------------------------------------------------------------------------
@@ -33,7 +31,7 @@ Route::get('/users', function () { return User::all(); });
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum'])->group(function () {
-    
+
     // --- USER & SYSTEM INIT ---
     Route::get('/app-init', [DashboardController::class, 'init']);
     Route::get('/user', function (Request $request) {
@@ -41,19 +39,31 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy']);
 
+    // --- USER MANAGEMENT ---
+    Route::get('/users/stats', [UserController::class, 'stats']);
+    Route::get('/users', [UserController::class, 'index']);
+    Route::post('/users', [UserController::class, 'store']);
+    Route::get('/users/{id}', [UserController::class, 'show']);
+    Route::put('/users/{id}', [UserController::class, 'update']);
+    Route::delete('/users/{id}', [UserController::class, 'destroy']);
+    Route::patch('/users/{id}/toggle-status', [UserController::class, 'toggleStatus']);
+
     // --- ANALYTICS & REPORTING ---
     Route::get('/dashboard/stats', [DashboardController::class, 'index']);
+    Route::get('/dashboard/data', [SalesDashboardController::class, 'dashboardData']);
+    Route::get('/dashboard/weekly-sales', [SalesDashboardController::class, 'weeklySales']);
     Route::get('/sales-analytics', [SalesDashboardController::class, 'index']);
 
     // --- MENU MANAGEMENT ---
     Route::get('/menu', [MenuController::class, 'index']);
-    Route::post('/menu/clear-cache', [MenuController::class, 'clearCache']); 
+    Route::post('/menu/clear-cache', [MenuController::class, 'clearCache']);
 
     // --- SALES / ORDERS (POS Transactions) ---
-    Route::post('/sales', [SalesController::class, 'store']);     
-    Route::get('/sales', [SalesController::class, 'index']);       
-    Route::get('/sales/{id}', [SalesController::class, 'show']);   
+    Route::post('/sales', [SalesController::class, 'store']);
+    Route::get('/sales', [SalesController::class, 'index']);
+    Route::get('/sales/{id}', [SalesController::class, 'show']);
     Route::patch('/sales/{id}/cancel', [SalesController::class, 'cancel']);
+    Route::post('/sales/{id}/cancel', [SalesController::class, 'cancel']);
 
     // --- CASH & RECEIPTS ---
     Route::get('/cash-transactions', [CashTransactionController::class, 'index']);
@@ -67,6 +77,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // --- SALES REPORTS ---
     Route::get('/items-report', [SalesDashboardController::class, 'itemsReport']);
+    Route::get('/items-reports/items', [SalesDashboardController::class, 'itemsReport']);
     Route::get('/reports/x-reading', [SalesDashboardController::class, 'xReading']);
     Route::get('/reports/z-reading', [SalesDashboardController::class, 'zReading']);
     Route::get('/reports/mall-accreditation', [SalesDashboardController::class, 'mallReport']);
@@ -80,32 +91,27 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
     Route::patch('/categories/{id}', [CategoryController::class, 'update']);
 
-    // --- INVENTORY DASHBOARD ---
+    // --- INVENTORY ---
     Route::get('/inventory/top-products', [InventoryDashboardController::class, 'getWeeklyTopProducts']);
+    Route::get('/inventory/check/{barcode}', [InventoryController::class, 'checkByBarcode']);
     Route::get('/inventory', [InventoryController::class, 'index']);
     Route::patch('/inventory/{id}/quantity', [InventoryController::class, 'updateQuantity']);
-    Route::get('/inventory/check/{barcode}', [InventoryController::class, 'checkByBarcode']);
 });
 
 /*
 |--------------------------------------------------------------------------
-| Branch Routes (Outside Auth Middleware)
+| Branch Routes
 |--------------------------------------------------------------------------
 */
 Route::prefix('branches')->group(function () {
-    // Main CRUD operations
     Route::get('/', [BranchController::class, 'index']);
     Route::post('/', [BranchController::class, 'store']);
     Route::get('/{id}', [BranchController::class, 'show']);
     Route::put('/{id}', [BranchController::class, 'update']);
     Route::delete('/{id}', [BranchController::class, 'destroy']);
-    
-    // Analytics & Reports
     Route::get('/analytics/performance', [BranchController::class, 'performance']);
     Route::get('/analytics/today', [BranchController::class, 'todaySales']);
     Route::get('/{id}/daily-sales', [BranchController::class, 'dailySales']);
     Route::get('/{id}/summary', [BranchController::class, 'salesSummary']);
-    
-    // Utility
     Route::post('/{id}/refresh', [BranchController::class, 'refreshTotals']);
 });

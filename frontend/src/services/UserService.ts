@@ -23,7 +23,7 @@ export interface CreateUserData {
   password: string;
   role: 'superadmin' | 'admin' | 'manager' | 'cashier';
   branch?: string;
-  status?: 'ACTIVE' | 'INACTIVE'; // Optional, will default to ACTIVE
+  status?: 'ACTIVE' | 'INACTIVE';
 }
 
 export interface UpdateUserData {
@@ -71,27 +71,12 @@ const apiClient = axios.create({
   },
 });
 
-<<<<<<< HEAD
 // Attach auth token
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('lucky_boba_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
-=======
-  async createUser(data: CreateUserData): Promise<User> {
-    await new Promise((resolve) => setTimeout(resolve, SIMULATED_DELAY));
-    const { ...rest } = data;
-    const newUser: User = {
-      ...rest,
-      id: Math.floor(Math.random() * 10000),
-      status: data.status ?? 'ACTIVE',
-      branch: data.branch,
-    };
-    mockUsers.push(newUser);
-    return newUser;
-  },
->>>>>>> ddec0ef95aab049e456d303aa7b689355bce6983
 
 // Handle global errors
 apiClient.interceptors.response.use(
@@ -100,17 +85,9 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401) {
       console.error('Authentication error - token may be invalid');
     }
-<<<<<<< HEAD
     return Promise.reject(error);
   }
 );
-=======
-    const { ...rest } = data;
-    const updatedUser: User = { ...mockUsers[index], ...rest };
-    mockUsers[index] = updatedUser;
-    return updatedUser;
-  },
->>>>>>> ddec0ef95aab049e456d303aa7b689355bce6983
 
 export class UserService {
   /** Get all users with optional filters */
@@ -152,7 +129,6 @@ export class UserService {
   static async createUser(data: CreateUserData): Promise<User> {
     try {
       const payload: CreateUserData = { ...data, status: data.status ?? 'ACTIVE' };
-
       const response = await apiClient.post<ApiResponse<User>>('/users', payload);
       return response.data.data!;
     } catch (error: unknown) {
@@ -218,19 +194,11 @@ export class UserService {
     }
   }
 
-static logout(): void {
-  // Remove token and any other user info from localStorage
-  localStorage.removeItem('lucky_boba_token');
-  // Optional: clear all localStorage if needed
-  // localStorage.clear();
-
-  // Redirect to login page
-  window.location.href = '/login';
+  /** Logout - clear token and redirect */
+  static logout(): void {
+    localStorage.removeItem('lucky_boba_token');
+    window.location.href = '/login';
   }
-  
-
 }
-
-
 
 export default UserService;

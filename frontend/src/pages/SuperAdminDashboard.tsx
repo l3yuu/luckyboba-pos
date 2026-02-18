@@ -142,7 +142,6 @@ const SuperAdminDashboard: React.FC = () => {
     setIsUpdateBranchModalOpen(true);
   };
 
-<<<<<<< HEAD
   const handleSaveBranch = async () => {
     try {
       setBranchLoading(true);
@@ -173,37 +172,6 @@ const SuperAdminDashboard: React.FC = () => {
       alert(errorMessage);
     } finally {
       setBranchLoading(false);
-=======
-  const handleSaveBranch = () => {
-    if (branchFormState.id === null) {
-      // Create new branch
-      const newBranch: Branch = {
-        id: branches.length > 0 ? Math.max(...branches.map(b => b.id)) + 1 : 1,
-        name: branchFormState.name,
-        location: branchFormState.location,
-        status: branchFormState.status,
-        totalSales: branchFormState.totalSales,
-        todaySales: branchFormState.todaySales,
-      };
-      setBranches([...branches, newBranch]);
-    } else {
-      // Update existing branch
-      setBranches(
-        branches.map((b) => {
-          if (b.id === branchFormState.id) {
-            return { 
-              id: b.id,
-              name: branchFormState.name,
-              location: branchFormState.location,
-              status: branchFormState.status,
-              totalSales: branchFormState.totalSales,
-              todaySales: branchFormState.todaySales
-            };
-          }
-          return b;
-        })
-      );
->>>>>>> ddec0ef95aab049e456d303aa7b689355bce6983
     }
   };
 

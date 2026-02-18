@@ -3,30 +3,38 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Hash;
+use App\Models\User;
 
 class AuthenticatedSessionController extends Controller
 {
     /**
      * Handle an incoming authentication request.
      */
-    public function store(LoginRequest $request): JsonResponse
-    {
-        $request->authenticate();
+public function store(Request $request): JsonResponse
+{
+    $request->validate([
+        'email' => 'required|email',
+        'password' => 'required',
+    ]);
 
-        // Get the authenticated user
-        $user = $request->user();
+    $user = \App\Models\User::where('email', $request->email)->first();
 
-        // Generate the Sanctum Token
-        $token = $user->createToken('lucky_boba_token')->plainTextToken;
-
+    if (!$user || !\Illuminate\Support\Facades\Hash::check($request->password, $user->password)) {
         return response()->json([
-            'user' => $user,
-            'token' => $token,
-        ]);
+            'message' => 'The provided credentials are incorrect.'
+        ], 401);
     }
+
+    $token = $user->createToken('lucky_boba_token')->plainTextToken;
+
+    return response()->json([
+        'user' => $user,
+        'token' => $token,
+    ]);
+}
 
     /**
      * Destroy an authenticated session.
