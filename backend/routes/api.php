@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\SubCategoryController;
 use App\Http\Controllers\Api\VoucherController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\UserController;
+use App\Http\Controllers\Api\BranchController;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -134,4 +135,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // --- AUDIT ---
     Route::get('/system/audit', [SettingsController::class, 'getAuditLogs']);
+
+    // --- BRANCHES ---
+Route::get('/branches', [BranchController::class, 'index']);
+Route::post('/branches', [BranchController::class, 'store']);
+Route::get('/branches/{id}', [BranchController::class, 'show']);
+Route::put('/branches/{id}', [BranchController::class, 'update']);
+Route::delete('/branches/{id}', [BranchController::class, 'destroy']);
 });
