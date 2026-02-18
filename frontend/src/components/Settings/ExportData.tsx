@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from 'react';
-import TopNavbar from '../TopNavbar';
 import { Download, FileText, ArrowLeft, Loader2 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import api from '../../services/api';
@@ -103,12 +102,7 @@ const ExportData = ({ onBack }: ExportDataProps) => {
 
   return (
     <div className="flex-1 bg-[#f8f6ff] h-full flex flex-col overflow-hidden font-sans">
-      <TopNavbar />
       <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
-        <div className="mb-2">
-          <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">LUCKY BOBA MILKTEA</h1>
-          <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">QCGH • Data Export Center</p>
-        </div>
 
         {/* DATE PICKER CARD */}
         <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-6 relative">

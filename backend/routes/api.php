@@ -9,14 +9,15 @@ use App\Http\Controllers\Api\InventoryDashboardController;
 use App\Http\Controllers\Api\MenuController;
 use App\Http\Controllers\Api\MenuListController;
 use App\Http\Controllers\Api\ReceiptController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\SalesController;
 use App\Http\Controllers\Api\SalesDashboardController; 
 use App\Http\Controllers\Api\SettingController;
+use App\Http\Controllers\Api\VoucherController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Models\User;
 use Illuminate\Http\Request; 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\ReportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -94,4 +95,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // --- SETTINGS ---
     Route::get('/settings', [SettingController::class, 'index']);
     Route::post('/settings', [SettingController::class, 'update']);
+
+    Route::get('/vouchers', [VoucherController::class, 'index']);
+    Route::post('/vouchers', [VoucherController::class, 'store']);
 });

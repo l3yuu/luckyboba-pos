@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import TopNavbar from '../TopNavbar';
 import { Plus, Search, Trash2, ArrowLeft, Save, X } from 'lucide-react';
 
 interface DiscountSettingsProps {
@@ -61,19 +60,10 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
 
   return (
     <div className="flex-1 bg-[#f4f5f7] h-full flex flex-col overflow-hidden font-sans">
-      <TopNavbar />
 
       <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
         {/* === HEADER SECTION === */}
         <div className="flex justify-between items-end">
-          <div>
-            <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">
-              LUCKY BOBA MILKTEA
-            </h1>
-            <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">
-              Discount Management
-            </p>
-          </div>
         </div>
 
         {/* === TABLE CARD SECTION === */}

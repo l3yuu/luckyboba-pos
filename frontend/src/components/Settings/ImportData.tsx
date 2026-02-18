@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import TopNavbar from '../TopNavbar';
 import { ArrowLeft, FileDown, Database, Upload, AlertCircle, Info, AlertTriangle } from 'lucide-react';
 
 const ImportData = ({ onBack }: { onBack: () => void }) => {
@@ -26,13 +25,6 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
         <button onClick={() => setActiveView(null)} className="p-2 bg-zinc-200 text-zinc-500 rounded-lg hover:bg-zinc-300 transition-all shadow-sm">
           <ArrowLeft size={20} strokeWidth={3} />
         </button>
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-white rounded-lg shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
-          <div>
-            <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Import Category</h1>
-            <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">Upload CSV Data</p>
-          </div>
-        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-8 flex flex-col items-center gap-6">
@@ -837,7 +829,6 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
 
   return (
     <div className="flex-1 bg-[#f8f6ff] h-full flex flex-col font-sans overflow-hidden">
-      <TopNavbar />
       <div className="flex-1 overflow-y-auto p-6 flex flex-col">
         {activeView === 'CATEGORY' && renderImportCategory()}
         {activeView === 'SUB_CATEGORY' && renderImportSubCategory()}

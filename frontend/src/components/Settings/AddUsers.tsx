@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import TopNavbar from '../TopNavbar';
 import { ArrowLeft, UserCog, Plus, Trash2, Edit3, X, Save, Shield } from 'lucide-react';
 
 interface User {
@@ -69,7 +68,6 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
 
   return (
     <div className="flex-1 bg-[#f8f6ff] h-full flex flex-col font-sans overflow-hidden">
-      <TopNavbar />
       <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
         
         {/* HEADER */}
@@ -77,10 +75,6 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
           <div className="flex items-center gap-3">
             <div className="p-2 bg-white rounded-lg shadow-sm">
               <UserCog size={24} className="text-[#3b2063]" />
-            </div>
-            <div>
-              <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">User Management</h1>
-              <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">System Access Control</p>
             </div>
           </div>
           <button 

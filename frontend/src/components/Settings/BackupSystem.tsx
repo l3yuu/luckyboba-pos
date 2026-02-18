@@ -1,9 +1,7 @@
-import TopNavbar from '../TopNavbar';
 import { ArrowLeft, Database } from 'lucide-react';
 
 const BackupSystem = ({ onBack }: { onBack: () => void }) => (
   <div className="flex-1 bg-[#f4f5f7] h-full flex flex-col font-sans">
-    <TopNavbar />
     <div className="p-6 flex flex-col gap-6">
       <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">System Backup</h1>
       <div className="bg-white p-6 rounded-xl border border-zinc-200 flex items-center gap-4">
