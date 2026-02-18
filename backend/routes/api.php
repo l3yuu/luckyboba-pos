@@ -63,23 +63,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // --- END OF DAY ---
     Route::post('/cash-counts', [CashCountController::class, 'store']);
-<<<<<<< HEAD
-    
-    // --- ITEMS REPORT ---
-    Route::prefix('items-reports')->group(function () {
-        Route::get('/test', [ItemsReportController::class, 'test']);
-        Route::post('/items', [ItemsReportController::class, 'getItemsSoldReport']);
-        Route::get('/items/today', [ItemsReportController::class, 'getItemsSoldToday']);
-    });
-
-    // --- USER MANAGEMENT ---
-    Route::get('/users/stats', [UserController::class, 'stats']);
-    Route::patch('/users/{id}/toggle-status', [UserController::class, 'toggleStatus']);
-    Route::apiResource('users', UserController::class);
-=======
     Route::get('/cash-counts/status', [CashCountController::class, 'checkEodStatus']);
->>>>>>> 8037a50714c3d3934f9c9d526420fec48518efa1
-
     // --- SALES REPORTS ---
     Route::get('/items-report', [SalesDashboardController::class, 'itemsReport']);
     Route::get('/reports/x-reading', [SalesDashboardController::class, 'xReading']);
@@ -102,6 +86,16 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/inventory/check/{barcode}', [InventoryController::class, 'checkByBarcode']);
 });
 
+    Route::prefix('items-reports')->group(function () {
+        Route::get('/test', [ItemsReportController::class, 'test']);
+        Route::post('/items', [ItemsReportController::class, 'getItemsSoldReport']);
+        Route::get('/items/today', [ItemsReportController::class, 'getItemsSoldToday']);
+    });
+
+        // --- USER MANAGEMENT ---
+    Route::get('/users/stats', [UserController::class, 'stats']);
+    Route::patch('/users/{id}/toggle-status', [UserController::class, 'toggleStatus']);
+    Route::apiResource('users', UserController::class);
 /*
 |--------------------------------------------------------------------------
 | Branch Routes (Outside Auth Middleware)
