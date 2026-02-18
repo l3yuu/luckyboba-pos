@@ -61,64 +61,64 @@ const Settings = () => {
     { 
       label: "Sales Settings", 
       Icon: SettingsIcon, 
-      color: "bg-blue-600", 
-      iconColor: "text-blue-600",
+      color: "#1e40af", 
+      iconColor: "#1e40af",
       action: () => setIsSalesSettingsOpen(true) 
     },
     { 
       label: "Add Customers", 
       Icon: UserPlus, 
-      color: "bg-emerald-500", 
-      iconColor: "text-emerald-500",
+      color: "#1e40af", 
+      iconColor: "#1e40af",
       action: () => setActiveSubView('add-customers')
     },
     { 
       label: "Discount", 
       Icon: Percent, 
-      color: "bg-zinc-500", 
-      iconColor: "text-zinc-500", 
+      color: "#1e40af", 
+      iconColor: "#1e40af", 
       action: () => setActiveSubView('discount') 
     },
     { 
       label: "Export Data", 
       Icon: FileUp, 
-      color: "bg-slate-400", 
-      iconColor: "text-slate-400", 
+      color: "#1e40af", 
+      iconColor: "#1e40af", 
       action: () => setActiveSubView('export-data') 
     },
     { 
       label: "Upload Data", 
       Icon: Upload, 
-      color: "bg-blue-500", 
-      iconColor: "text-blue-500", 
+      color: "#1e40af", 
+      iconColor: "#1e40af", 
       action: () => setActiveSubView('upload-data') 
     },
     { 
       label: "Add Users", 
       Icon: UserCog, 
-      color: "bg-emerald-400", 
-      iconColor: "text-emerald-400", 
+      color: "#1e40af", 
+      iconColor: "#1e40af", 
       action: () => setActiveSubView('add-users') 
     },
     { 
       label: "Add Vouchers", 
       Icon: Ticket, 
-      color: "bg-amber-400", 
-      iconColor: "text-amber-400", 
+      color: "#1e40af", 
+      iconColor: "#1e40af", 
       action: () => setActiveSubView('add-vouchers') 
     },
     { 
       label: "Import Data", 
       Icon: FileDown, 
-      color: "bg-cyan-500", 
-      iconColor: "text-cyan-500", 
+      color: "#1e40af", 
+      iconColor: "#1e40af", 
       action: () => setActiveSubView('import-data') 
     },
     { 
       label: "Backup System", 
       Icon: Database, 
-      color: "bg-red-500", 
-      iconColor: "text-red-500", 
+      color: "#1e40af", 
+      iconColor: "#1e40af", 
       action: () => setActiveSubView('backup-system') 
     },
   ];
@@ -139,8 +139,8 @@ const Settings = () => {
               onClick={item.action}
               className="group relative overflow-hidden flex flex-col items-center justify-center p-8 rounded-2xl shadow-sm border border-zinc-200 bg-white transition-all duration-200 active:scale-95 hover:shadow-md hover:border-zinc-300"
             >
-              <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${item.color}`} />
-              <div className={`mb-4 transition-transform duration-200 group-hover:scale-110 ${item.iconColor}`}>
+              <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: item.color }} />
+              <div className="mb-4 transition-transform duration-200 group-hover:scale-110" style={{ color: item.iconColor }}>
                 <item.Icon size={32} strokeWidth={1.5} />
               </div>
               <span className="text-[11px] font-black text-[#3b2063] uppercase tracking-widest text-center">
@@ -154,32 +154,32 @@ const Settings = () => {
         </div>
 
         <div className="mt-4 bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden">
-          <div className="bg-zinc-50 px-6 py-3 border-b border-zinc-200">
-            <h2 className="text-[#1e40af] font-black text-[10px] uppercase tracking-[0.2em] text-center">
+          <div className="bg-[#1e40af] px-6 py-3 border-b border-zinc-200">
+            <h2 className="text-white font-black text-[10px] uppercase tracking-[0.2em] text-center">
               System Audit & Security
             </h2>
           </div>
           <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="flex flex-col items-center text-center gap-2">
-              <div className="p-2 bg-zinc-100 rounded-full text-zinc-400"><Clock size={16} /></div>
+              <div className="p-2 bg-[#1e40af] rounded-full text-white"><Clock size={16} /></div>
               <div>
                 <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Last Backup</p>
                 <p className="text-sm font-black text-slate-700 uppercase italic">February 11, 2026</p>
               </div>
             </div>
             <div className="flex flex-col items-center text-center gap-2 border-x border-zinc-100 px-4">
-              <div className="p-2 bg-emerald-50 rounded-full text-emerald-500"><ShieldCheck size={16} /></div>
+              <div className="p-2 bg-[#1e40af] rounded-full text-white"><ShieldCheck size={16} /></div>
               <div>
                 <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Active Session</p>
-                <p className="text-sm font-black text-emerald-500 uppercase">Administrator</p>
+                <p className="text-sm font-black text-[#1e40af] uppercase">Administrator</p>
               </div>
             </div>
             <div className="flex flex-col items-center text-center gap-2">
-              <div className="p-2 bg-blue-50 rounded-full text-blue-500"><Activity size={16} /></div>
+              <div className="p-2 bg-[#1e40af] rounded-full text-white"><Activity size={16} /></div>
               <div>
                 <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">System Status</p>
                 <div className="flex items-center justify-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <div className="w-2 h-2 rounded-full bg-[#1e40af] animate-pulse" />
                   <p className="text-sm font-black text-slate-700 uppercase">Online</p>
                 </div>
               </div>
