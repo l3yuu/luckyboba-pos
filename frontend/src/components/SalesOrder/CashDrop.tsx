@@ -18,6 +18,9 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
   const [counts, setCounts] = useState<{ [key: number]: string }>({});
   const [remarks, setRemarks] = useState('');
   
+  // --- NEW STATE FOR LOCK LOGIC ---
+  const [isEodLocked, setIsEodLocked] = useState(false);
+
   // Initialize state from cache if available
   const [transactions, setTransactions] = useState<Transaction[]>(cashDropCache || []);
   const [isLoading, setIsLoading] = useState(false);
@@ -27,9 +30,18 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
   const [showKeyboard, setShowKeyboard] = useState(false);
   const keyboardRef = useRef<KeyboardRef | null>(null);
 
+  // --- Check EOD Status on Mount ---
+  const checkEodStatus = async () => {
+    try {
+      const response = await api.get<{ isEodDone: boolean }>('/cash-counts/status');
+      setIsEodLocked(response.data.isEodDone);
+    } catch (error) {
+      console.error("Failed to check EOD status:", error);
+    }
+  };
+
   // --- Fetch Today's Drops ---
   const fetchTodaysDrops = async () => {
-    // If we already have cached data, don't hit the API again
     if (cashDropCache !== null) return;
 
     try {
@@ -47,7 +59,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
       }));
       
       setTransactions(mappedData);
-      cashDropCache = mappedData; // Save to global cache
+      cashDropCache = mappedData;
     } catch (error) {
       console.error("Failed to fetch history:", error);
     }
@@ -55,6 +67,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
 
   useEffect(() => {
     fetchTodaysDrops();
+    checkEodStatus(); // Initialize lock status
   }, []);
 
   const getGrandTotal = (currentCounts: { [key: number]: string }) => {
@@ -65,6 +78,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
   };
 
   const handleCountFocus = (denom: number) => {
+    if (isEodLocked) return; // Prevent focus if locked
     setActiveInput({ type: 'count', id: denom });
     setLayoutName('numpad');
     setShowKeyboard(true);
@@ -72,6 +86,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
   };
 
   const handleRemarksFocus = () => {
+    if (isEodLocked) return; // Prevent focus if locked
     setActiveInput({ type: 'remarks' });
     setLayoutName('default');
     setShowKeyboard(true);
@@ -79,7 +94,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
   };
 
   const handleInputChange = (inputVal: string) => {
-    if (!activeInput) return;
+    if (!activeInput || isEodLocked) return;
     if (activeInput.type === 'count' && activeInput.id !== undefined) {
       const cleanValue = inputVal.replace(/[^0-9.]/g, ''); 
       setCounts(prev => ({ ...prev, [activeInput.id!]: cleanValue }));
@@ -98,8 +113,11 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
 
   const handleSubmit = async () => {
     const total = getGrandTotal(counts);
-    if (total <= 0 || isLoading) return; 
+    
+    // --- ADDED isEodLocked to GUARD ---
+    if (total <= 0 || isLoading || isEodLocked) return; 
 
+    setIsLoading(true);
 
     const breakdownString = denominations
       .filter(d => counts[d] && parseFloat(counts[d]) > 0)
@@ -128,7 +146,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
 
         const updatedHistory = [newTx, ...transactions];
         setTransactions(updatedHistory);
-        cashDropCache = updatedHistory; // Sync cache with new entry
+        cashDropCache = updatedHistory;
 
         setCounts({});
         setRemarks('');
@@ -214,7 +232,6 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
 
       <div className="flex flex-col h-full w-full bg-[#f8f6ff] animate-in fade-in zoom-in duration-300 relative overflow-hidden">
         
-        {/* --- REPLACED HEADER WITH SHARED COMPONENT --- */}
         <TopNavbar />
 
         <div className={`flex-1 flex flex-row items-start justify-center p-6 gap-6 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-87.5' : ''}`}>
@@ -248,7 +265,9 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
                         onFocus={() => handleCountFocus(denom)}
                         onChange={(e) => handleInputChange(e.target.value)}
                         placeholder="0"
-                        className="w-full text-center font-bold text-lg py-2 rounded-xl border-2 border-zinc-100 bg-[#f8f6ff] focus:border-[#3b2063]"
+                        // Disable input UI visually if locked
+                        disabled={isEodLocked}
+                        className={`w-full text-center font-bold text-lg py-2 rounded-xl border-2 border-zinc-100 focus:border-[#3b2063] ${isEodLocked ? 'bg-zinc-50 cursor-not-allowed opacity-50' : 'bg-[#f8f6ff]'}`}
                       />
                       <div className="text-right font-black text-zinc-400 text-lg">
                         {rowTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -272,12 +291,19 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
                     inputMode="none"
                     onFocus={handleRemarksFocus}
                     onChange={(e) => handleInputChange(e.target.value)}
-                    placeholder="Enter notes..."
-                    className="w-full p-4 rounded-2xl border-2 border-zinc-100 bg-[#f8f6ff] focus:border-[#3b2063] resize-none h-16"
+                    placeholder={isEodLocked ? "Terminal Locked" : "Enter notes..."}
+                    disabled={isEodLocked}
+                    className={`w-full p-4 rounded-2xl border-2 border-zinc-100 focus:border-[#3b2063] resize-none h-16 ${isEodLocked ? 'bg-zinc-50 cursor-not-allowed opacity-50' : 'bg-[#f8f6ff]'}`}
                   />
                 </div>
-                <button onClick={handleSubmit} disabled={isLoading} className="w-full bg-[#3b2063] text-white py-5 rounded-3xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-transform">
-                  {isLoading ? 'SUBMITTING...' : 'SUBMIT CASH DROP'}
+                
+                {/* Submit button logic for locked state */}
+                <button 
+                  onClick={handleSubmit} 
+                  disabled={isLoading || isEodLocked} 
+                  className={`w-full py-5 rounded-3xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-transform ${isEodLocked ? 'bg-zinc-300 text-zinc-500 cursor-not-allowed' : 'bg-[#3b2063] text-white'}`}
+                >
+                  {isLoading ? 'SUBMITTING...' : isEodLocked ? 'TERMINAL LOCKED' : 'SUBMIT CASH DROP'}
                 </button>
               </div>
             </div>
@@ -317,7 +343,10 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
           </div>
         </div>
 
-        <button onClick={() => setShowKeyboard(!showKeyboard)} className={`fixed bottom-8 right-8 z-60 p-4 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 ${showKeyboard ? 'bg-red-500 text-white' : 'bg-[#3b2063] text-white'}`}>
+        <button 
+          onClick={() => !isEodLocked && setShowKeyboard(!showKeyboard)} 
+          className={`fixed bottom-8 right-8 z-60 p-4 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 ${isEodLocked ? 'bg-zinc-300 cursor-not-allowed' : (showKeyboard ? 'bg-red-500 text-white' : 'bg-[#3b2063] text-white')}`}
+        >
           {showKeyboard ? (
              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
           ) : (
