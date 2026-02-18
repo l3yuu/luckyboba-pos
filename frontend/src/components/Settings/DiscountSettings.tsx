@@ -17,6 +17,8 @@ interface DiscountItem {
 const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [selectedDiscount, setSelectedDiscount] = useState<DiscountItem | null>(null);
 
   // --- STATE FOR TABLE DATA ---
   const [discounts, setDiscounts] = useState<DiscountItem[]>([
@@ -53,6 +55,29 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
     setDiscounts([entry, ...discounts]); // Add to top of list
     setNewDiscount({ name: '', amount: '', type: 'Global-Percent' }); // Reset
     setIsModalOpen(false); // Close modal
+  };
+
+  const handleStatusToggle = (discount: DiscountItem) => {
+    setSelectedDiscount(discount);
+    setIsConfirmModalOpen(true);
+  };
+
+  const confirmStatusToggle = () => {
+    if (!selectedDiscount) return;
+    
+    setDiscounts(discounts.map(d => 
+      d.id === selectedDiscount.id 
+        ? { ...d, status: d.status === 'ON' ? 'OFF' : 'ON' } 
+        : d
+    ));
+    
+    setIsConfirmModalOpen(false);
+    setSelectedDiscount(null);
+  };
+
+  const cancelStatusToggle = () => {
+    setIsConfirmModalOpen(false);
+    setSelectedDiscount(null);
   };
 
   const filteredDiscounts = discounts.filter(d => 
@@ -122,8 +147,18 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
                       <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{discount.status}</span>
                     </td>
                     <td className="px-4 py-4 text-center">
-                      <button className="px-4 py-1.5 bg-[#1e40af] text-white rounded text-[9px] font-black uppercase tracking-widest hover:bg-blue-800 transition-colors shadow-sm">
-                        Deactivate
+                      <button 
+                        onClick={() => handleStatusToggle(discount)}
+                        className={`relative group overflow-hidden px-1 sm:px-2 md:px-4 py-1.5 sm:py-2 rounded-full text-[7px] sm:text-[8px] md:text-[9px] font-black uppercase tracking-normal sm:tracking-widest transition-all duration-300 shadow-sm hover:shadow-md active:scale-95 w-20 sm:w-24 md:w-28 min-w-[80px] sm:min-w-[90px] md:min-w-[100px] border-2 ${
+                          discount.status === 'ON' 
+                          ? 'bg-red-50/50 text-red-600 border-red-500/20 hover:bg-red-500 hover:text-white'
+                          : 'bg-emerald-50/50 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500 hover:text-white'
+                        }`}
+                      >
+                        <span className="relative z-10 flex items-center justify-center gap-1">
+                          <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${discount.status === 'ON' ? 'bg-red-500 group-hover:bg-white' : 'bg-emerald-500 group-hover:bg-white'}`}></span>
+                          {discount.status === 'ON' ? 'Deactivate' : 'Activate'}
+                        </span>
                       </button>
                     </td>
                     <td className="px-4 py-4 text-xs font-bold text-zinc-500 text-center uppercase tracking-tighter italic">
@@ -155,10 +190,9 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
                {/* ADD DISCOUNT BUTTON BELOW TABLE */}
                <button 
                 onClick={() => setIsModalOpen(true)}
-                className="px-6 py-2 bg-[#10b981] text-white rounded-lg font-black text-[10px] uppercase tracking-widest hover:bg-[#059669] flex items-center gap-2 shadow-md transition-all active:scale-95"
+                className="px-4 sm:px-6 py-2 sm:py-2.5 bg-[#3b2063] text-white rounded-lg font-black text-[9px] sm:text-[10px] uppercase tracking-normal sm:tracking-widest hover:bg-[#291645] flex items-center gap-2 shadow-lg transition-all active:scale-95 min-w-[120px] sm:min-w-[140px]"
                >
-                <Plus size={14} strokeWidth={3} />
-                Add Discount
+                <Plus size={12} strokeWidth={3} /> Add Discount
                </button>
             </div>
           </div>
@@ -216,7 +250,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
               <div className="flex gap-3 pt-4">
                 <button 
                   onClick={handleSave}
-                  className="flex-1 bg-[#10b981] hover:bg-[#059669] text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
+                  className="flex-1 bg-[#3b2063] hover:bg-[#291645] text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
                 >
                   <Save size={14} />
                   Save Entry
@@ -226,6 +260,70 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
                   className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-500 py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-all"
                 >
                   Back
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* === CONFIRM STATUS TOGGLE MODAL === */}
+      {isConfirmModalOpen && selectedDiscount && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className={`px-6 py-4 flex justify-between items-center ${
+              selectedDiscount.status === 'ON' ? 'bg-red-500' : 'bg-emerald-500'
+            }`}>
+              <h2 className="text-white font-black text-xs uppercase tracking-[0.2em]">
+                Confirm Status Change
+              </h2>
+              <button onClick={cancelStatusToggle} className="text-white/70 hover:text-white transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="text-center space-y-2">
+                <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center ${
+                  selectedDiscount.status === 'ON' ? 'bg-red-100' : 'bg-emerald-100'
+                }`}>
+                  {selectedDiscount.status === 'ON' ? (
+                    <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                    </svg>
+                  ) : (
+                    <svg className="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  )}
+                </div>
+                <h3 className="text-lg font-bold text-slate-800">
+                  {selectedDiscount.status === 'ON' ? 'Deactivate Discount?' : 'Activate Discount?'}
+                </h3>
+                <p className="text-sm text-slate-600">
+                  Are you sure you want to {selectedDiscount.status === 'ON' ? 'deactivate' : 'activate'} the discount:
+                </p>
+                <p className="text-sm font-black text-[#3b2063] uppercase">
+                  {selectedDiscount.name}
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button 
+                  onClick={confirmStatusToggle}
+                  className={`flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 text-white ${
+                    selectedDiscount.status === 'ON' 
+                      ? 'bg-red-500 hover:bg-red-600' 
+                      : 'bg-emerald-500 hover:bg-emerald-600'
+                  }`}
+                >
+                  {selectedDiscount.status === 'ON' ? 'Deactivate' : 'Activate'}
+                </button>
+                <button 
+                  onClick={cancelStatusToggle}
+                  className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-500 py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-all"
+                >
+                  Cancel
                 </button>
               </div>
             </div>

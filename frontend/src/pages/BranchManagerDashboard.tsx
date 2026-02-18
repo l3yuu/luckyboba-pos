@@ -3,6 +3,32 @@ import Sidebar from "../components/Sidebar";
 import logo from '../assets/logo.png';
 import { Users, Plus, Trash2, Edit3, X, Save, Shield } from 'lucide-react';
 
+// --- Import Sales Report Components ---
+import SalesDashboard from '../components/Sales Report/SalesDashboard';
+import ItemsReport from '../components/Sales Report/ItemsReport';
+import XReading from '../components/Sales Report/XReading';
+import ZReading from '../components/Sales Report/ZReading';
+import MallAccredReport from '../components/Sales Report/MallAccredReport';
+
+// --- Import Menu Management Components ---
+import MenuList from '../components/Menu Items/MenuList';
+import CategoryList from '../components/Menu Items/CategoryList';
+import SubCategoryList from '../components/Menu Items/Sub-CategoryList';
+
+// --- Import Inventory Components ---
+import InventoryDashboard from '../components/Inventory/InventoryDashboard';
+import InventoryCategoryList from '../components/Inventory/InventoryCategoryList';
+import InventoryList from '../components/Inventory/InventoryList';
+import InventoryReport from '../components/Inventory/InventoryReport';
+import ItemChecker from '../components/Inventory/ItemChecker';
+import ItemSerials from '../components/Inventory/ItemSerials';
+import PurchaseOrder from '../components/Inventory/PurchaseOrder';
+import StockTransfer from '../components/Inventory/StockTransfer';
+import Supplier from '../components/Inventory/Supplier';
+
+// --- Import Settings Component ---
+import Settings from '../components/Settings';
+
 interface User {
   id: number;
   username: string;
@@ -22,6 +48,51 @@ const BranchManagerDashboard = () => {
         return <DashboardStats />;
       case 'users':
         return <UserManagement />;
+      
+      // --- SALES REPORT TABS ---
+      case 'sales-dashboard':
+        return <SalesDashboard />;
+      case 'items-report':
+        return <ItemsReport />;
+      case 'x-reading':
+        return <XReading />;
+      case 'z-reading':
+        return <ZReading />;
+      case 'mall-accred':
+        return <MallAccredReport />;
+
+      // --- MENU ITEMS TABS ---
+      case 'menu-list':
+        return <MenuList />;
+      case 'category-list':
+        return <CategoryList />;
+      case 'sub-category-list':
+        return <SubCategoryList />;
+
+      // --- INVENTORY TABS ---
+      case 'inventory-dashboard':
+        return <InventoryDashboard />;
+      case 'inventory-list':
+        return <InventoryList />;
+      case 'inventory-category':
+        return <InventoryCategoryList />;
+      case 'supplier':
+        return <Supplier />;
+      case 'item-checker':
+        return <ItemChecker />;
+      case 'item-serials':
+        return <ItemSerials />;
+      case 'purchase-order':
+        return <PurchaseOrder />;
+      case 'stock-transfer':
+        return <StockTransfer />;
+      case 'inventory-report':
+        return <InventoryReport />;
+
+      // --- SETTINGS TAB ---
+      case 'settings':
+        return <Settings />;
+        
       default:
         return <DashboardStats />;
     }
@@ -134,6 +205,8 @@ const DashboardStats = () => (
 const UserManagement = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [users, setUsers] = useState<User[]>([
     { id: 1, username: "admin_Luigi", name: "Luigi", position: "SYSTEM ADMIN", lastLogin: "2026-02-12 10:45 AM", status: "Active" },
     { id: 2, username: "cashier_01", name: "Leumar", position: "CASHIER", lastLogin: "2026-02-11 09:15 PM", status: "Active" },
@@ -221,10 +294,27 @@ const UserManagement = () => {
     }
   };
 
-  const toggleStatus = (id: number) => {
+  const handleStatusToggle = (user: User) => {
+    setSelectedUser(user);
+    setIsConfirmModalOpen(true);
+  };
+
+  const confirmStatusToggle = () => {
+    if (!selectedUser) return;
+    
     setUsers(users.map(u => 
-      u.id === id ? { ...u, status: u.status === 'Active' ? 'Inactive' : 'Active' } : u
+      u.id === selectedUser.id 
+        ? { ...u, status: u.status === 'Active' ? 'Inactive' : 'Active' } 
+        : u
     ));
+    
+    setIsConfirmModalOpen(false);
+    setSelectedUser(null);
+  };
+
+  const cancelStatusToggle = () => {
+    setIsConfirmModalOpen(false);
+    setSelectedUser(null);
   };
 
   const closeModal = () => {
@@ -279,7 +369,7 @@ const UserManagement = () => {
                   <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-zinc-400 text-center">{user.lastLogin}</td>
                   <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-center">
                     <button 
-                      onClick={() => toggleStatus(user.id)}
+                      onClick={() => handleStatusToggle(user)}
                       className={`relative group overflow-hidden px-1 sm:px-2 md:px-4 py-1.5 sm:py-2 rounded-full text-[7px] sm:text-[8px] md:text-[9px] font-black uppercase tracking-normal sm:tracking-widest transition-all duration-300 shadow-sm hover:shadow-md active:scale-95 w-20 sm:w-24 md:w-28 min-w-[80px] sm:min-w-[90px] md:min-w-[100px] border-2 ${
                         user.status === 'Active' 
                         ? 'bg-red-50/50 text-red-600 border-red-500/20 hover:bg-red-500 hover:text-white'
@@ -429,6 +519,70 @@ const UserManagement = () => {
                 <button 
                   onClick={closeModal}
                   className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-500 py-2 sm:py-3 rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-normal sm:tracking-[0.2em] transition-all min-w-[80px] sm:min-w-[100px]"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* === CONFIRM STATUS TOGGLE MODAL === */}
+      {isConfirmModalOpen && selectedUser && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className={`px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center ${
+              selectedUser.status === 'Active' ? 'bg-red-500' : 'bg-emerald-500'
+            }`}>
+              <h2 className="text-white font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em]">
+                Confirm Status Change
+              </h2>
+              <button onClick={cancelStatusToggle} className="text-white/70 hover:text-white transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+              <div className="text-center space-y-2">
+                <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center ${
+                  selectedUser.status === 'Active' ? 'bg-red-100' : 'bg-emerald-100'
+                }`}>
+                  {selectedUser.status === 'Active' ? (
+                    <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                    </svg>
+                  ) : (
+                    <svg className="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  )}
+                </div>
+                <h3 className="text-lg font-bold text-slate-800">
+                  {selectedUser.status === 'Active' ? 'Deactivate User?' : 'Activate User?'}
+                </h3>
+                <p className="text-sm text-slate-600">
+                  Are you sure you want to {selectedUser.status === 'Active' ? 'deactivate' : 'activate'} the user:
+                </p>
+                <p className="text-sm font-black text-[#3b2063] uppercase">
+                  {selectedUser.name} ({selectedUser.username})
+                </p>
+              </div>
+
+              <div className="flex gap-2 sm:gap-3 pt-2">
+                <button 
+                  onClick={confirmStatusToggle}
+                  className={`flex-1 py-2 sm:py-3 rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 text-white ${
+                    selectedUser.status === 'Active' 
+                      ? 'bg-red-500 hover:bg-red-600' 
+                      : 'bg-emerald-500 hover:bg-emerald-600'
+                  }`}
+                >
+                  {selectedUser.status === 'Active' ? 'Deactivate' : 'Activate'}
+                </button>
+                <button 
+                  onClick={cancelStatusToggle}
+                  className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-500 py-2 sm:py-3 rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-all"
                 >
                   Cancel
                 </button>
