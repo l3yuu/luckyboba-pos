@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\InventoryDashboardController;
+use App\Http\Controllers\Api\InventoryReportController;
+use App\Http\Controllers\Api\ItemSerialController;
 use App\Http\Controllers\Api\MenuController;
 use App\Http\Controllers\Api\MenuListController;
 use App\Http\Controllers\Api\PurchaseOrderController;
@@ -105,4 +107,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // --- VOUCHERS ---
     Route::get('/vouchers', [VoucherController::class, 'index']);
     Route::post('/vouchers', [VoucherController::class, 'store']);
+
+    Route::get('/reports/inventory', [InventoryReportController::class, 'index']);
+
+    Route::get('/item-serials', [ItemSerialController::class, 'index']);
+    Route::post('/item-serials', [ItemSerialController::class, 'store']);
 });
