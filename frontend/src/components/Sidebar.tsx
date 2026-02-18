@@ -33,7 +33,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   setSidebarOpen, 
   logo, 
   currentTab, 
-  setCurrentTab 
+  setCurrentTab,
 }) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
