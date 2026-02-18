@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\InventoryDashboardController;
 use App\Http\Controllers\Api\MenuController;
 use App\Http\Controllers\Api\MenuListController;
+use App\Http\Controllers\Api\PurchaseOrderController;
 use App\Http\Controllers\Api\ReceiptController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\SalesController;
@@ -93,6 +94,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/inventory', [InventoryController::class, 'index']);
     Route::patch('/inventory/{id}/quantity', [InventoryController::class, 'updateQuantity']);
     Route::get('/inventory/check/{barcode}', [InventoryController::class, 'checkByBarcode']);
+    Route::get('/purchase-orders', [PurchaseOrderController::class, 'index']);
+    Route::post('/purchase-orders', [PurchaseOrderController::class, 'store']);
     // REMOVED duplicate Route::get('/categories') and Route::patch('/categories/{id}') from here
 
     // --- SETTINGS ---
