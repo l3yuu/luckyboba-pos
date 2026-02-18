@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\CashTransaction;
+use App\Models\CashCount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\JsonResponse;
@@ -11,8 +12,7 @@ use Illuminate\Http\JsonResponse;
 class CashTransactionController extends Controller
 {
     /**
-     * Display a listing of transactions (Used by CashDrop.tsx)
-     * This fixes the 500 error on GET /api/cash-transactions
+     * Display a listing of transactions
      */
     public function index(Request $request): JsonResponse
     {
@@ -20,12 +20,10 @@ class CashTransactionController extends Controller
             $userId = Auth::id();
             $query = CashTransaction::where('user_id', $userId);
 
-            // Filter by type (e.g., 'cash_drop') if provided
             if ($request->has('type')) {
                 $query->where('type', $request->type);
             }
 
-            // Filter by date if provided
             if ($request->has('date')) {
                 $query->whereDate('created_at', $request->date);
             }
@@ -39,32 +37,54 @@ class CashTransactionController extends Controller
     }
 
     /**
-     * Store a new transaction (Cash In, Cash Out, etc.)
+     * Store a new transaction (Cash In, Cash Out, Cash Drop)
      */
     public function store(Request $request): JsonResponse
     {
         $userId = Auth::id();
         $today = now()->toDateString();
 
-        // --- NEW SECURITY CHECK ---
-        // Check if EOD is already done for today
-        $isEodDone = \App\Models\CashCount::where('user_id', $userId)
-            ->whereDate('date', $today)
-            ->exists();
+        // 1. GLOBAL LOCK: Check if EOD is already done for today
+        $isEodDone = CashCount::where('user_id', $userId)
+            ->where(function($query) use ($today) {
+                $query->whereDate('date', $today)
+                      ->orWhereDate('created_at', $today);
+            })->exists();
 
         if ($isEodDone) {
             return response()->json([
                 'success' => false,
                 'message' => 'Terminal is locked. End of Day has already been processed.'
-            ], 403); // 403 means Forbidden
+            ], 403); 
         }
-        // ---------------------------
 
         $validated = $request->validate([
             'type'   => 'required|in:cash_in,cash_out,cash_drop',
             'amount' => 'required|numeric|min:0',
             'note'   => 'nullable|string|max:255',
         ]);
+
+        // 2. SHIFT INITIALIZATION CHECK
+        $hasCashedIn = CashTransaction::where('user_id', $userId)
+            ->where('type', 'cash_in')
+            ->whereDate('created_at', $today)
+            ->exists();
+
+        // Prevent Cash Out or Cash Drop if they haven't Cashed In yet
+        if (!$hasCashedIn && $validated['type'] !== 'cash_in') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Shift not initialized. Please perform Cash In first.'
+            ], 403);
+        }
+
+        // 3. PREVENT DOUBLE CASH-IN
+        if ($validated['type'] === 'cash_in' && $hasCashedIn) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You have already performed a Cash In for today.'
+            ], 422);
+        }
 
         try {
             $transaction = CashTransaction::create([
