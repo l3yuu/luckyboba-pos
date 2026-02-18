@@ -22,6 +22,55 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
 
+  // --- MENU DATA ---
+  const posMenuItems = [
+    { id: 'cash-in', label: 'Cash In' },
+    { id: 'cash-drop', label: 'Cash Drop' },
+    { id: 'menu', label: 'Menu' },
+    { id: 'search-receipts', label: 'Search Receipts' },
+    { id: 'cash-count', label: 'Cash Count EOD' },
+  ];
+
+  const salesReportItems = [
+    { id: 'sales-dashboard', label: 'Dashboard' },
+    { id: 'items-report', label: 'Items Report' },
+    { id: 'x-reading', label: 'X Reading' },
+    { id: 'z-reading', label: 'Z Reading' },
+    { id: 'mall-accred', label: 'Mall Accred Report' },
+  ];
+
+  const menuManagementItems = [
+    { id: 'menu-list', label: 'Menu List' },
+    { id: 'category-list', label: 'Category List' },
+    { id: 'sub-category-list', label: 'Sub-Category List' },
+  ];
+
+  const inventoryItems = [
+    { id: 'inventory-dashboard', label: 'Dashboard' },
+    { id: 'inventory-list', label: 'Inventory List' },
+    { id: 'inventory-category', label: 'Category List' },
+    { id: 'supplier', label: 'Supplier' },
+    { id: 'item-checker', label: 'Item Checker' },
+    { id: 'item-serials', label: 'Item Serials' },
+    { id: 'purchase-order', label: 'Purchase Order' },
+    { id: 'stock-transfer', label: 'Stock Transfer' },
+    { id: 'inventory-report', label: 'Inventory Report' },
+  ];
+
+  // --- DROPDOWN STATES ---
+  const [isPosDropdownOpen, setPosDropdownOpen] = useState(() => 
+    posMenuItems.some(item => item.id === currentTab)
+  );
+  const [isSalesReportDropdownOpen, setSalesReportDropdownOpen] = useState(() => 
+    salesReportItems.some(item => item.id === currentTab)
+  );
+  const [isMenuItemsDropdownOpen, setMenuItemsDropdownOpen] = useState(() => 
+    menuManagementItems.some(item => item.id === currentTab)
+  );
+  const [isInventoryDropdownOpen, setInventoryDropdownOpen] = useState(() => 
+    inventoryItems.some(item => item.id === currentTab)
+  );
+
   useEffect(() => {
     const timer = setInterval(() => setCurrentDate(new Date()), 1000);
     return () => clearInterval(timer);
@@ -123,55 +172,6 @@ const Sidebar: React.FC<SidebarProps> = ({
       </>
     );
   }
-  
-  // --- MENU DATA ---
-  const posMenuItems = [
-    { id: 'cash-in', label: 'Cash In' },
-    { id: 'cash-drop', label: 'Cash Drop' },
-    { id: 'menu', label: 'Menu' },
-    { id: 'search-receipts', label: 'Search Receipts' },
-    { id: 'cash-count', label: 'Cash Count EOD' },
-  ];
-
-  const salesReportItems = [
-    { id: 'sales-dashboard', label: 'Dashboard' },
-    { id: 'items-report', label: 'Items Report' },
-    { id: 'x-reading', label: 'X Reading' },
-    { id: 'z-reading', label: 'Z Reading' },
-    { id: 'mall-accred', label: 'Mall Accred Report' },
-  ];
-
-  const menuManagementItems = [
-    { id: 'menu-list', label: 'Menu List' },
-    { id: 'category-list', label: 'Category List' },
-    { id: 'sub-category-list', label: 'Sub-Category List' },
-  ];
-
-  const inventoryItems = [
-    { id: 'inventory-dashboard', label: 'Dashboard' },
-    { id: 'inventory-list', label: 'Inventory List' },
-    { id: 'inventory-category', label: 'Category List' },
-    { id: 'supplier', label: 'Supplier' },
-    { id: 'item-checker', label: 'Item Checker' },
-    { id: 'item-serials', label: 'Item Serials' },
-    { id: 'purchase-order', label: 'Purchase Order' },
-    { id: 'stock-transfer', label: 'Stock Transfer' },
-    { id: 'inventory-report', label: 'Inventory Report' },
-  ];
-
-  // --- DROPDOWN STATES ---
-  const [isPosDropdownOpen, setPosDropdownOpen] = useState(() => 
-    posMenuItems.some(item => item.id === currentTab)
-  );
-  const [isSalesReportDropdownOpen, setSalesReportDropdownOpen] = useState(() => 
-    salesReportItems.some(item => item.id === currentTab)
-  );
-  const [isMenuItemsDropdownOpen, setMenuItemsDropdownOpen] = useState(() => 
-    menuManagementItems.some(item => item.id === currentTab)
-  );
-  const [isInventoryDropdownOpen, setInventoryDropdownOpen] = useState(() => 
-    inventoryItems.some(item => item.id === currentTab)
-  );
 
   return (
     <>
