@@ -10,7 +10,7 @@ const BackupSystem = ({ onBack }: { onBack: () => void }) => (
         <Database className="text-emerald-500" />
         <p className="text-xs font-bold text-slate-700 uppercase">Last backup: February 11, 2026</p>
       </div>
-      <button onClick={onBack} className="w-fit px-6 py-3 bg-zinc-200 text-zinc-500 rounded-lg font-black uppercase text-[10px] tracking-widest flex items-center gap-2"><ArrowLeft size={14} /> Back</button>
+      <button onClick={onBack} className="w-fit px-6 py-3 bg-zinc-200 text-zinc-500 rounded-lg font-black uppercase text-[10px] tracking-widest flex items-center gap-2"><ArrowLeft size={14} /> Back to settings</button>
     </div>
   </div>
 );

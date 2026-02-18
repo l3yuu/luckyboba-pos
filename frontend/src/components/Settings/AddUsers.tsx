@@ -255,7 +255,7 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
                   onClick={() => setIsModalOpen(false)}
                   className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-500 py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] transition-all"
                 >
-                  Back
+                  Back to settings
                 </button>
               </div>
 

@@ -89,7 +89,7 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
               className="px-6 py-3 bg-zinc-200 text-zinc-500 rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-zinc-300 flex items-center gap-2 shadow-sm transition-all"
             >
               <ArrowLeft size={14} strokeWidth={3} />
-              Back
+              Back to settings
             </button>
 
              <button className="px-6 py-3 bg-[#10b981] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#059669] flex items-center gap-2 shadow-lg transition-all">

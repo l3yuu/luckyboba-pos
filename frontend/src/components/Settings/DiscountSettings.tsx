@@ -141,6 +141,13 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
           </div>
 
           <div className="p-4 bg-zinc-50 border-t border-zinc-200 flex justify-between items-center">
+            <button 
+              onClick={onBack}
+              className="px-6 py-2 bg-zinc-200 text-zinc-500 rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-zinc-300 flex items-center gap-2 transition-all"
+            >
+              <ArrowLeft size={14} strokeWidth={3} />
+              Back to Settings
+            </button>
             <div className="flex items-center gap-4">
                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
                  Showing 1 to {filteredDiscounts.length} entries
@@ -154,14 +161,6 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
                 Add Discount
                </button>
             </div>
-            
-            <button 
-              onClick={onBack}
-              className="px-6 py-2 bg-zinc-200 text-zinc-500 rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-zinc-300 flex items-center gap-2 transition-all"
-            >
-              <ArrowLeft size={14} strokeWidth={3} />
-              Back to Settings
-            </button>
           </div>
         </div>
       </div>
