@@ -42,21 +42,34 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showCashInRequired, setShowCashInRequired] = useState(false);
+  const [showEodLockedModal, setShowEodLockedModal] = useState(false); // NEW MODAL STATE
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [isEodLocked, setIsEodLocked] = useState(false); // USED IN LOGIC BELOW
 
   // --- CACHE INITIALIZATION ---
-  // This function runs immediately on refresh to prevent the "Locked -> Unlocked" flicker
   const [isMenuLocked, setIsMenuLocked] = useState(() => {
     const cachedStatus = localStorage.getItem('cashier_menu_unlocked');
     const cachedDate = localStorage.getItem('cashier_lock_date');
     const today = new Date().toDateString();
     
-    // If cache exists and it's from today, start as UNLOCKED (false)
     if (cachedStatus === 'true' && cachedDate === today) {
         return false;
     }
-    return true; // Default to locked
+    return true; 
   });
+
+  // --- CHECK EOD STATUS ---
+  useEffect(() => {
+    const checkEod = async () => {
+      try {
+        const response = await api.get('/cash-counts/status'); 
+        setIsEodLocked(response.data.isEodDone);
+      } catch (error) {
+        console.error("EOD Check failed", error);
+      }
+    };
+    checkEod();
+  }, [currentTab]);
 
   // --- TIME REFRESH ---
   useEffect(() => {
@@ -64,7 +77,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  // --- CHECK CASH IN STATUS WITH CACHING ---
+  // --- CHECK CASH IN STATUS ---
   useEffect(() => {
     const checkStatus = async () => {
       try {
@@ -74,7 +87,6 @@ const Sidebar: React.FC<SidebarProps> = ({
 
         setIsMenuLocked(!hasCashedIn);
 
-        // Update Cache based on server response
         if (hasCashedIn) {
             localStorage.setItem('cashier_menu_unlocked', 'true');
             localStorage.setItem('cashier_lock_date', today);
@@ -89,13 +101,8 @@ const Sidebar: React.FC<SidebarProps> = ({
     checkStatus();
   }, [currentTab]);
 
-  const formatDate = (date: Date) => {
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
-
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-  };
+  const formatDate = (date: Date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   
   // --- MENU DATA ---
   const posMenuItems: MenuItem[] = [
@@ -132,7 +139,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'inventory-report', label: 'Inventory Report' },
   ];
 
-  // --- DROPDOWN STATES ---
   const [isPosDropdownOpen, setPosDropdownOpen] = useState(() => posMenuItems.some(i => i.id === currentTab));
   const [isSalesReportDropdownOpen, setSalesReportDropdownOpen] = useState(() => salesReportItems.some(i => i.id === currentTab));
   const [isMenuItemsDropdownOpen, setMenuItemsDropdownOpen] = useState(() => menuManagementItems.some(i => i.id === currentTab));
@@ -142,10 +148,8 @@ const Sidebar: React.FC<SidebarProps> = ({
     setIsLoggingOut(true);
     setShowLogoutConfirm(false);
     try {
-      // CLEAR CACHE ON LOGOUT
       localStorage.removeItem('cashier_menu_unlocked');
       localStorage.removeItem('cashier_lock_date');
-      
       await logout();
       navigate('/login', { replace: true });
     } catch (error) {
@@ -183,6 +187,19 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
       )}
 
+      {showEodLockedModal && (
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-6 bg-[#3b2063]/40 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-10 shadow-2xl border border-zinc-100 flex flex-col items-center text-center transition-all animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-6">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="#be2525" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.546 1.16 3.743 1.16 5.289 0m-5.289-8c1.546-1.159 3.743-1.159 5.289 0m-5.289 4h5.29" /></svg>
+            </div>
+            <h3 className="text-[#3b2063] font-black uppercase text-xl tracking-tight mb-2">Terminal Closed</h3>
+            <p className="text-zinc-500 text-sm font-medium mb-8 leading-relaxed px-2">End of Day has been processed. This terminal is now locked for new orders today.</p>
+            <button onClick={() => setShowEodLockedModal(false)} className="w-full py-4 bg-[#3b2063] text-white rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-lg active:scale-95 transition-all">Dismiss</button>
+          </div>
+        </div>
+      )}
+
       {showLogoutConfirm && (
         <div className="fixed inset-0 z-100 flex items-center justify-center p-6 bg-[#3b2063]/40 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-10 shadow-2xl border border-zinc-100 flex flex-col items-center text-center transition-all animate-in zoom-in-95 duration-200">
@@ -201,7 +218,6 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
       )}
 
-      {/* --- SIDEBAR --- */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-zinc-200 transform transition-transform duration-300 md:relative md:translate-x-0 flex flex-col justify-between rounded-r-4xl md:rounded-r-3xl overflow-hidden ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex flex-col flex-1 overflow-y-auto no-scrollbar">
           <div className="px-6 pt-10 flex flex-col items-center shrink-0">
@@ -239,16 +255,24 @@ const Sidebar: React.FC<SidebarProps> = ({
                         key={item.id} 
                         onClick={() => { 
                           if (item.id === 'menu') {
-                            if (isMenuLocked) setShowCashInRequired(true);
-                            else navigate('/pos');
+                            // --- LOCK LOGIC INCORPORATING isEodLocked ---
+                            if (isMenuLocked) {
+                              setShowCashInRequired(true);
+                            } else if (isEodLocked) {
+                              setShowEodLockedModal(true);
+                            } else {
+                              navigate('/pos');
+                            }
                           } else {
                             setCurrentTab(item.id);
                           }
                           if (window.innerWidth < 768) setSidebarOpen(false); 
                         }} 
-                        className={`text-left px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-colors ${item.id === 'menu' && isMenuLocked ? 'opacity-40 grayscale cursor-not-allowed' : ''} ${currentTab === item.id ? 'text-[#3b2063] bg-[#f0ebff]' : `text-zinc-400 ${hoverClasses}`}`}
+                        className={`text-left px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-colors 
+                          ${item.id === 'menu' && (isMenuLocked || isEodLocked) ? 'opacity-40 grayscale cursor-not-allowed' : ''} 
+                          ${currentTab === item.id ? 'text-[#3b2063] bg-[#f0ebff]' : `text-zinc-400 ${hoverClasses}`}`}
                       >
-                        {item.label} {item.id === 'menu' && isMenuLocked && '🔒'}
+                        {item.label} {(item.id === 'menu' && (isMenuLocked || isEodLocked)) && '🔒'}
                       </button>
                     ))}
                   </div>

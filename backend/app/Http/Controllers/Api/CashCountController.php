@@ -27,4 +27,19 @@ class CashCountController extends Controller
 
         return response()->json($cashCount, 201);
     }
+
+public function checkEodStatus(Request $request)
+{
+    // Ensure user is actually caught by Sanctum
+    if (!$request->user()) {
+        return response()->json(['isEodDone' => false], 401);
+    }
+
+    // Use the imported Class directly
+    $isEodDone = CashCount::where('user_id', $request->user()->id)
+        ->whereDate('created_at', now()->toDateString())
+        ->exists();
+
+    return response()->json(['isEodDone' => $isEodDone]);
+}
 }

@@ -1,11 +1,19 @@
+"use client"
+
 import { useState, useRef } from 'react';
 import Keyboard from 'react-simple-keyboard';
 import 'react-simple-keyboard/build/css/index.css';
 import type { KeyboardRef, Transaction, ActiveInput } from '../../types/cash-count';
 import api from '../../services/api';
 import TopNavbar from '../TopNavbar';
+import { Toast } from '../Toast'; // Ensure this path is correct
 
-const CashCount = () => {
+// --- ADDED INTERFACE FOR PROPS ---
+interface CashCountProps {
+  onSuccess?: () => void;
+}
+
+const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
   const denominations = [1000, 500, 200, 100, 50, 20, 10, 5, 1, 0.25];
 
   // --- State ---
@@ -14,6 +22,9 @@ const CashCount = () => {
   const [latestTx, setLatestTx] = useState<Transaction | null>(null);
   const [printData, setPrintData] = useState<Transaction | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // --- Toast State ---
+  const [toastConfig, setToastConfig] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
 
   // Keyboard & Input State
   const [activeInput, setActiveInput] = useState<ActiveInput | null>(null);
@@ -36,7 +47,6 @@ const CashCount = () => {
     if (keyboardRef.current) keyboardRef.current.setInput(counts[denom] || '');
   };
 
-  // Added: Fix for Remarks Keyboard switching
   const handleRemarksFocus = () => {
     setActiveInput({ type: 'remarks' });
     setLayoutName('default');
@@ -74,13 +84,11 @@ const CashCount = () => {
   const handleSubmit = async () => {
     const total = getGrandTotal(counts);
     if (total <= 0) {
-      alert("Please enter a valid cash count.");
+      setToastConfig({ message: "Please enter a valid cash count.", type: 'warning' });
       return;
     }
 
     setIsLoading(true);
-
-    // Added: Auto-generate Day for remarks
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const currentDay = days[new Date().getDay()];
     const finalRemarks = `${currentDay} EOD${remarks ? ' - ' + remarks : ''}`;
@@ -89,10 +97,13 @@ const CashCount = () => {
       const response = await api.post('/cash-counts', {
         total: total,
         breakdown: counts,
-        remarks: finalRemarks, // Sends the Day + Remarks
+        remarks: finalRemarks,
       });
 
       if (response.status === 201) {
+        localStorage.setItem('terminal_eod_locked', 'true');
+        localStorage.setItem('cashier_menu_unlocked', 'false');
+
         const now = new Date();
         const newTx: Transaction = {
           id: response.data.id,
@@ -105,10 +116,20 @@ const CashCount = () => {
 
         setLatestTx(newTx); 
         setShowKeyboard(false);
+
+        if (onSuccess) onSuccess(); 
+        
+        setToastConfig({ 
+            message: "EOD Submitted. Terminal is now LOCKED for orders.", 
+            type: 'success' 
+        });
       }
     } catch (error) {
       console.error("Submission failed:", error);
-      alert("Failed to save to database. Ensure you are logged in.");
+      setToastConfig({ 
+          message: "Failed to save to database. Ensure you are logged in.", 
+          type: 'error' 
+      });
     } finally {
       setIsLoading(false);
     }
@@ -132,19 +153,23 @@ const CashCount = () => {
 
   return (
     <>
+      {/* --- ADDED TOAST TRIGGER --- */}
+      {toastConfig && (
+        <Toast 
+          message={toastConfig.message} 
+          type={toastConfig.type} 
+          onClose={() => setToastConfig(null)} 
+        />
+      )}
+
       <style>
         {`
           @media print {
-            @page { 
-              /* Optimized for your 60x120mm stock */
-              size: 60mm 120mm; 
-              margin: 0; 
-            }
+            @page { size: 60mm 120mm; margin: 0; }
             body * { visibility: hidden; }
             .printable-receipt, .printable-receipt * { visibility: visible; }
             .printable-receipt {
               position: fixed; left: 0; top: 0; 
-              /* Set width to 56mm to avoid clipping on the physical 60mm roll */
               width: 56mm !important; 
               margin: 0; padding: 4mm 2mm;
               background: white; color: black; font-family: 'Courier New', monospace; 
@@ -182,10 +207,7 @@ const CashCount = () => {
               const qty = parseFloat(qtyString);
               const rowTotal = qty * denom;
               const label = denom < 1 ? denom.toString().replace('0.', '.') : denom.toLocaleString();
-              
-              // Skip rows with 0 quantity to save space on your 120mm length limit
               if (qty === 0) return null;
-
               return (
                 <div key={denom} className="breakdown-row">
                   <span>{label} x {qtyString}</span>
@@ -220,12 +242,14 @@ const CashCount = () => {
             <div className="flex-1 overflow-y-auto p-8 w-full scroll-smooth">
               <h2 className="text-[#3b2063] font-black text-base tracking-[0.4em] uppercase mb-2 text-center">Terminal 01 (EOD)</h2>
               <p className="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-8 text-center">End of Day Counting</p>
+              
               <div className="grid grid-cols-4 gap-4 w-full mb-4 px-4 sticky top-0 bg-white z-10 py-2 border-b border-zinc-50">
                 <div className="text-center text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Bill/Coin</div>
                 <div className="text-center text-[10px] font-bold text-zinc-400 uppercase tracking-widest"></div>
                 <div className="text-center text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Qty</div>
                 <div className="text-center text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Total</div>
               </div>
+
               <div className="w-full space-y-2 mb-8">
                 {denominations.map((denom) => {
                   const qty = counts[denom] || '';
@@ -255,6 +279,7 @@ const CashCount = () => {
                   );
                 })}
               </div>
+
               <div className="w-full border-t border-zinc-100 pt-6 px-4 space-y-6">
                 <div className="flex items-center justify-between bg-[#f8f6ff] p-4 rounded-2xl">
                    <span className="text-xs font-bold text-zinc-500 uppercase">Grand Total :</span>
@@ -265,7 +290,7 @@ const CashCount = () => {
                   <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2">Remarks</label>
                   <textarea 
                     value={remarks}
-                    onFocus={handleRemarksFocus} // Attached the alphabet layout trigger
+                    onFocus={handleRemarksFocus}
                     onChange={(e) => handleInputChange(e.target.value)}
                     placeholder="E.g. Shortage of 20 pesos..."
                     disabled={latestTx !== null}
@@ -274,6 +299,7 @@ const CashCount = () => {
                         (activeInput?.type === 'remarks' ? 'border-[#3b2063] bg-white ring-4 ring-[#f0ebff]' : 'border-zinc-100 bg-[#f8f6ff]')}`}
                   />
                 </div>
+
                 {!latestTx ? (
                   <button onClick={handleSubmit} disabled={isLoading} className="w-full bg-[#3b2063] text-white py-5 rounded-3xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-transform disabled:bg-zinc-300">
                     {isLoading ? 'Saving...' : 'Submit EOD Count'}

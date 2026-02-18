@@ -63,6 +63,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // --- END OF DAY ---
     Route::post('/cash-counts', [CashCountController::class, 'store']);
+    Route::get('/cash-counts/status', [CashCountController::class, 'checkEodStatus']);
 
     // --- SALES REPORTS ---
     Route::get('/items-report', [SalesDashboardController::class, 'itemsReport']);

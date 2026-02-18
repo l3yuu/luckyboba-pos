@@ -134,19 +134,40 @@
         case 'search-receipts': 
           return <SearchReceipts onSuccess={() => {
             localStorage.removeItem('dashboard_stats_timestamp');
-            fetchStats(true); // Forces the dashboard to subtract voided sales
-        }} />;
+            fetchStats(true);
+          }} />;
+
         case 'cash-in': 
           return <CashIn onSuccess={() => {
-          localStorage.removeItem('dashboard_stats_timestamp');
-          fetchStats(true);
-          setActiveTab('cash-in');
-        }} />;
-        case 'cash-drop': return <CashDrop onSuccess={() => {
-          localStorage.removeItem('dashboard_stats_timestamp');
-          fetchStats(true);
-        }} />;
-        case 'cash-count': return <CashCount />;
+            localStorage.removeItem('dashboard_stats_timestamp');
+            fetchStats(true);
+            // Instant unlock by switching to dashboard or menu
+            setActiveTab('dashboard'); 
+          }} />;
+
+        case 'cash-drop': 
+          return <CashDrop onSuccess={() => {
+            localStorage.removeItem('dashboard_stats_timestamp');
+            fetchStats(true);
+          }} />;
+
+        // --- UPDATED CASH COUNT LOGIC ---
+        case 'cash-count': 
+          return <CashCount onSuccess={() => {
+            // 1. Clear the stats cache so the dashboard reflects the final numbers
+            localStorage.removeItem('dashboard_stats_timestamp');
+            
+            // 2. Fetch the latest stats to confirm the EOD record exists in the DB
+            fetchStats(true);
+
+            // 3. Force the Sidebar to re-check EOD status by "pinging" the activeTab
+            // This will trigger the Sidebar's useEffect which monitors [currentTab]
+            setActiveTab('dashboard'); 
+
+            // Optional: You can also manually set a local flag if you want zero-latency
+            localStorage.setItem('cashier_menu_unlocked', 'false');
+          }} />;
+
         case 'sales-dashboard': return <SalesDashboard />;
         case 'items-report': return <ItemsReport />;
         case 'x-reading': return <XReading />;
