@@ -15,5 +15,3 @@ const BackupSystem = ({ onBack }: { onBack: () => void }) => (
   </div>
 );
 export default BackupSystem;
-
-// try the account - yes
