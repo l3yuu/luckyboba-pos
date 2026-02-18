@@ -1,5 +1,8 @@
 import { useState } from 'react';
+<<<<<<< HEAD
 import TopNavbar from '../TopNavbar';
+=======
+>>>>>>> 9714d7b99a92f3684fe8edf6279ebfdf6fd0f273
 import { ArrowLeft, UserCog, Plus, Trash2, Edit3, X, Save, Shield } from 'lucide-react';
 
 interface User {
@@ -69,7 +72,10 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
 
   return (
     <div className="flex-1 bg-[#f8f6ff] h-full flex flex-col font-sans overflow-hidden">
+<<<<<<< HEAD
       <TopNavbar />
+=======
+>>>>>>> 9714d7b99a92f3684fe8edf6279ebfdf6fd0f273
       <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
         
         {/* HEADER */}
@@ -78,10 +84,13 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
             <div className="p-2 bg-white rounded-lg shadow-sm">
               <UserCog size={24} className="text-[#3b2063]" />
             </div>
+<<<<<<< HEAD
             <div>
               <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">User Management</h1>
               <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">System Access Control</p>
             </div>
+=======
+>>>>>>> 9714d7b99a92f3684fe8edf6279ebfdf6fd0f273
           </div>
           <button 
             onClick={() => setIsModalOpen(true)}
@@ -154,7 +163,11 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
 
       {/* CREATE NEW USER MODAL */}
       {isModalOpen && (
+<<<<<<< HEAD
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+=======
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+>>>>>>> 9714d7b99a92f3684fe8edf6279ebfdf6fd0f273
           <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
             
             {/* Modal Header */}
@@ -255,7 +268,11 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
                   onClick={() => setIsModalOpen(false)}
                   className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-500 py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] transition-all"
                 >
+<<<<<<< HEAD
                   Back to settings
+=======
+                  Back
+>>>>>>> 9714d7b99a92f3684fe8edf6279ebfdf6fd0f273
                 </button>
               </div>
 

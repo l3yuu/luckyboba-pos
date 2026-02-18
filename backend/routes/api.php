@@ -4,15 +4,21 @@ use App\Http\Controllers\Api\CashCountController;
 use App\Http\Controllers\Api\CashTransactionController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\InventoryDashboardController;
+use App\Http\Controllers\Api\InventoryReportController;
+use App\Http\Controllers\Api\ItemSerialController;
 use App\Http\Controllers\Api\MenuController;
 use App\Http\Controllers\Api\MenuListController;
+use App\Http\Controllers\Api\PurchaseOrderController;
 use App\Http\Controllers\Api\ReceiptController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\SalesController;
-use App\Http\Controllers\Api\SalesDashboardController;
-use App\Http\Controllers\Api\ItemsReportController;
-use App\Http\Controllers\Api\BranchController;
+use App\Http\Controllers\Api\SalesDashboardController; 
+use App\Http\Controllers\Api\SettingsController;
+use App\Http\Controllers\Api\SubCategoryController;
+use App\Http\Controllers\Api\VoucherController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\UserController;
 use Illuminate\Http\Request;
@@ -50,8 +56,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // --- ANALYTICS & REPORTING ---
     Route::get('/dashboard/stats', [DashboardController::class, 'index']);
-    Route::get('/dashboard/data', [SalesDashboardController::class, 'dashboardData']);
-    Route::get('/dashboard/weekly-sales', [SalesDashboardController::class, 'weeklySales']);
     Route::get('/sales-analytics', [SalesDashboardController::class, 'index']);
 
     // --- MENU MANAGEMENT ---
@@ -81,37 +85,49 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/reports/x-reading', [SalesDashboardController::class, 'xReading']);
     Route::get('/reports/z-reading', [SalesDashboardController::class, 'zReading']);
     Route::get('/reports/mall-accreditation', [SalesDashboardController::class, 'mallReport']);
+    Route::get('/reports/sales', [ReportController::class, 'getSalesReport']);
+    Route::get('/reports/food-menu', [ReportController::class, 'getFoodMenuReport']);
 
     // --- MENU LIST ---
     Route::get('/menu-list', [MenuListController::class, 'index']);
 
-    // --- CATEGORIES ---
+    // --- CATEGORIES (Cleaned up) ---
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::post('/categories', [CategoryController::class, 'store']);
+    Route::patch('/categories/{id}', [CategoryController::class, 'update']);
     Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
     Route::patch('/categories/{id}', [CategoryController::class, 'update']);
 
-    // --- INVENTORY ---
+    // --- SUB-CATEGORIES ---
+    // Added specific filter route for the dynamic dropdowns
+    Route::get('/sub-categories/filter/{categoryId}', [SubCategoryController::class, 'getByCategory']);
+    Route::apiResource('sub-categories', SubCategoryController::class);
+
+    // --- INVENTORY DASHBOARD ---
     Route::get('/inventory/top-products', [InventoryDashboardController::class, 'getWeeklyTopProducts']);
     Route::get('/inventory/check/{barcode}', [InventoryController::class, 'checkByBarcode']);
     Route::get('/inventory', [InventoryController::class, 'index']);
     Route::patch('/inventory/{id}/quantity', [InventoryController::class, 'updateQuantity']);
-});
+    Route::get('/inventory/check/{barcode}', [InventoryController::class, 'checkByBarcode']);
+    Route::get('/purchase-orders', [PurchaseOrderController::class, 'index']);
+    Route::post('/purchase-orders', [PurchaseOrderController::class, 'store']);
+    // REMOVED duplicate Route::get('/categories') and Route::patch('/categories/{id}') from here
 
-/*
-|--------------------------------------------------------------------------
-| Branch Routes
-|--------------------------------------------------------------------------
-*/
-Route::prefix('branches')->group(function () {
-    Route::get('/', [BranchController::class, 'index']);
-    Route::post('/', [BranchController::class, 'store']);
-    Route::get('/{id}', [BranchController::class, 'show']);
-    Route::put('/{id}', [BranchController::class, 'update']);
-    Route::delete('/{id}', [BranchController::class, 'destroy']);
-    Route::get('/analytics/performance', [BranchController::class, 'performance']);
-    Route::get('/analytics/today', [BranchController::class, 'todaySales']);
-    Route::get('/{id}/daily-sales', [BranchController::class, 'dailySales']);
-    Route::get('/{id}/summary', [BranchController::class, 'salesSummary']);
-    Route::post('/{id}/refresh', [BranchController::class, 'refreshTotals']);
+    // --- SETTINGS ---
+    Route::get('/settings', [SettingsController::class, 'index']);
+    Route::post('/settings', [SettingsController::class, 'update']);
+
+    // --- VOUCHERS ---
+    Route::get('/vouchers', [VoucherController::class, 'index']);
+    Route::post('/vouchers', [VoucherController::class, 'store']);
+
+    Route::get('/reports/inventory', [InventoryReportController::class, 'index']);
+
+    Route::get('/item-serials', [ItemSerialController::class, 'index']);
+    Route::post('/item-serials', [ItemSerialController::class, 'store']);
+
+    Route::get('/expenses', [ExpenseController::class, 'index']);
+    Route::post('/expenses', [ExpenseController::class, 'store']);
+
+    Route::get('/system/audit', [SettingsController::class, 'getAuditLogs']);
 });

@@ -1,5 +1,8 @@
 import { useState } from 'react';
+<<<<<<< HEAD
 import TopNavbar from '../TopNavbar';
+=======
+>>>>>>> 9714d7b99a92f3684fe8edf6279ebfdf6fd0f273
 import { Plus, Search, Trash2, ArrowLeft, Save, X } from 'lucide-react';
 
 interface DiscountSettingsProps {
@@ -61,11 +64,15 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
 
   return (
     <div className="flex-1 bg-[#f4f5f7] h-full flex flex-col overflow-hidden font-sans">
+<<<<<<< HEAD
       <TopNavbar />
+=======
+>>>>>>> 9714d7b99a92f3684fe8edf6279ebfdf6fd0f273
 
       <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
         {/* === HEADER SECTION === */}
         <div className="flex justify-between items-end">
+<<<<<<< HEAD
           <div>
             <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">
               LUCKY BOBA MILKTEA
@@ -74,6 +81,8 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
               Discount Management
             </p>
           </div>
+=======
+>>>>>>> 9714d7b99a92f3684fe8edf6279ebfdf6fd0f273
         </div>
 
         {/* === TABLE CARD SECTION === */}
@@ -141,6 +150,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
           </div>
 
           <div className="p-4 bg-zinc-50 border-t border-zinc-200 flex justify-between items-center">
+<<<<<<< HEAD
             <button 
               onClick={onBack}
               className="px-6 py-2 bg-zinc-200 text-zinc-500 rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-zinc-300 flex items-center gap-2 transition-all"
@@ -148,6 +158,8 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
               <ArrowLeft size={14} strokeWidth={3} />
               Back to Settings
             </button>
+=======
+>>>>>>> 9714d7b99a92f3684fe8edf6279ebfdf6fd0f273
             <div className="flex items-center gap-4">
                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
                  Showing 1 to {filteredDiscounts.length} entries
@@ -161,13 +173,28 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
                 Add Discount
                </button>
             </div>
+<<<<<<< HEAD
+=======
+            
+            <button 
+              onClick={onBack}
+              className="px-6 py-2 bg-zinc-200 text-zinc-500 rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-zinc-300 flex items-center gap-2 transition-all"
+            >
+              <ArrowLeft size={14} strokeWidth={3} />
+              Back to Settings
+            </button>
+>>>>>>> 9714d7b99a92f3684fe8edf6279ebfdf6fd0f273
           </div>
         </div>
       </div>
 
       {/* === ADD DISCOUNT MODAL === */}
       {isModalOpen && (
+<<<<<<< HEAD
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+=======
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+>>>>>>> 9714d7b99a92f3684fe8edf6279ebfdf6fd0f273
           <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="bg-[#1e40af] px-6 py-4 flex justify-between items-center">
               <h2 className="text-white font-black text-xs uppercase tracking-[0.2em]">New Discount Entry</h2>
