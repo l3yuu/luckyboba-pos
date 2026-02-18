@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import BranchManagerSidebar from "../components/BranchManagerSidebar";
+import Sidebar from "../components/Sidebar";
 import logo from '../assets/logo.png';
-import { UserCog, Plus, Trash2, Edit3, X, Save, Shield } from 'lucide-react';
+import { Users, Plus, Trash2, Edit3, X, Save, Shield } from 'lucide-react';
 
 interface User {
   id: number;
@@ -44,12 +44,13 @@ const BranchManagerDashboard = () => {
       </div>
 
       {/* --- Sidebar --- */}
-      <BranchManagerSidebar 
+      <Sidebar 
         isSidebarOpen={isSidebarOpen} 
         setSidebarOpen={setSidebarOpen} 
         logo={logo} 
         currentTab={activeTab}
         setCurrentTab={setActiveTab}
+        isBranchManager={true}
       />
 
       {/* --- Main Content Area --- */}
@@ -237,16 +238,16 @@ const UserManagement = () => {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="p-1.5 sm:p-2 bg-white rounded-lg shadow-sm">
-            <UserCog size={20} className="text-[#3b2063]" />
+            <Users size={20} className="text-[#3b2063]" />
           </div>
           <div>
-            <h1 className="text-lg sm:text-xl font-black text-[#3b2063] uppercase tracking-wider">User Management</h1>
+            <h1 className="text-sm sm:text-xl font-black text-[#3b2063] uppercase tracking-wider">User Management</h1>
             <p className="text-zinc-400 font-bold text-[10px] sm:text-xs uppercase tracking-wider mt-1">System Access Control</p>
           </div>
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="px-4 sm:px-6 py-2 sm:py-2.5 bg-[#10b981] text-white rounded-lg font-black text-[9px] sm:text-[10px] uppercase tracking-normal sm:tracking-widest hover:bg-[#059669] flex items-center gap-2 shadow-lg transition-all active:scale-95 min-w-[120px] sm:min-w-[140px]"
+          className="px-4 sm:px-6 py-2 sm:py-2.5 bg-[#3b2063] text-white rounded-lg font-black text-[9px] sm:text-[10px] uppercase tracking-normal sm:tracking-widest hover:bg-[#291645] flex items-center gap-2 shadow-lg transition-all active:scale-95 min-w-[120px] sm:min-w-[140px]"
         >
           <Plus size={12} strokeWidth={3} /> Add New User
         </button>
@@ -279,13 +280,16 @@ const UserManagement = () => {
                   <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-center">
                     <button 
                       onClick={() => toggleStatus(user.id)}
-                      className={`px-1 sm:px-2 md:px-4 py-1 sm:py-1.5 rounded text-[7px] sm:text-[8px] md:text-[9px] font-black uppercase tracking-normal sm:tracking-wider transition-colors shadow-sm w-20 sm:w-24 md:w-24 min-w-[80px] sm:min-w-[90px] md:min-w-[100px] ${
+                      className={`relative group overflow-hidden px-1 sm:px-2 md:px-4 py-1.5 sm:py-2 rounded-full text-[7px] sm:text-[8px] md:text-[9px] font-black uppercase tracking-normal sm:tracking-widest transition-all duration-300 shadow-sm hover:shadow-md active:scale-95 w-20 sm:w-24 md:w-28 min-w-[80px] sm:min-w-[90px] md:min-w-[100px] border-2 ${
                         user.status === 'Active' 
-                        ? 'bg-red-500 text-white hover:bg-red-600'
-                        : 'bg-emerald-500 text-white hover:bg-emerald-600'
+                        ? 'bg-red-50/50 text-red-600 border-red-500/20 hover:bg-red-500 hover:text-white'
+                        : 'bg-emerald-50/50 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500 hover:text-white'
                       }`}
                     >
-                      {user.status === 'Active' ? 'Deactivate' : 'Activate'}
+                      <span className="relative z-10 flex items-center justify-center gap-1">
+                        <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${user.status === 'Active' ? 'bg-red-500 group-hover:bg-white' : 'bg-emerald-500 group-hover:bg-white'}`}></span>
+                        {user.status === 'Active' ? 'Deactivate' : 'Activate'}
+                      </span>
                     </button>
                   </td>
                   <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-center">
@@ -418,13 +422,13 @@ const UserManagement = () => {
               <div className="flex gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-zinc-100">
                 <button 
                   onClick={editingUser ? handleUpdateUser : handleAddUser}
-                  className="flex-1 bg-[#10b981] hover:bg-[#059669] text-white py-2 sm:py-3 rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
+                  className="flex-1 bg-[#3b2063] hover:bg-[#291645] text-white py-2 sm:py-3 rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-normal sm:tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 min-w-[100px] sm:min-w-[120px]"
                 >
                   <Save size={14} /> {editingUser ? 'Update User' : 'Add Account'}
                 </button>
                 <button 
                   onClick={closeModal}
-                  className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-500 py-2 sm:py-3 rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] transition-all"
+                  className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-500 py-2 sm:py-3 rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-normal sm:tracking-[0.2em] transition-all min-w-[80px] sm:min-w-[100px]"
                 >
                   Cancel
                 </button>
