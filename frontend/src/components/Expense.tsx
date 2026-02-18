@@ -1,7 +1,14 @@
-import { useState } from 'react';
-import TopNavbar from './TopNavbar';
+"use client"
 
+import { useState, useEffect, useCallback } from 'react';
+import TopNavbar from './TopNavbar';
+import api from '../services/api';
+import { useToast } from '../hooks/useToast';
+import { Loader2 } from 'lucide-react';
+
+// The structure your Frontend expects
 interface ExpenseItem {
+  id?: number;
   refNum: string;
   date: string;
   description: string;
@@ -9,18 +16,29 @@ interface ExpenseItem {
   amount: number;
 }
 
+// The structure your Laravel Backend sends (snake_case)
+interface RawExpenseData {
+  id: number;
+  ref_num: string;
+  date: string;
+  description: string | null;
+  category: string;
+  amount: string | number;
+}
+
 const Expense = () => {
+  const { showToast } = useToast();
   const [fromDate, setFromDate] = useState('2026-01-11');
   const [toDate, setToDate] = useState('2026-02-11');
   const [refNumSearch, setRefNumSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('ALL');
   
-  // 1. Manage the list of expenses in state
   const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
-  
-  // Modal State
+  const [summary, setSummary] = useState({ totalExpense: 0, totalSales: 0, netTotal: 0 });
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // New Expense Form State
   const [newExpense, setNewExpense] = useState({
     refNum: '',
     description: '',
@@ -29,35 +47,77 @@ const Expense = () => {
     amount: ''
   });
 
-  // 2. Calculation logic for summaries
-  const totalExpense = expenses.reduce((sum, item) => sum + item.amount, 0);
-  const totalSales = 0.00; // This would typically come from your sales state/API
-  const netTotal = totalSales - totalExpense;
+  // --- API FETCH LOGIC ---
+  const fetchExpenses = useCallback(async () => {
+    setIsFetching(true);
+    try {
+      const response = await api.get('/expenses', {
+        params: { 
+          from: fromDate, 
+          to: toDate, 
+          ref: refNumSearch,
+          category: categoryFilter !== 'ALL' ? categoryFilter : undefined
+        }
+      });
+      
+      // FIXED: Used RawExpenseData instead of any
+      const mapped: ExpenseItem[] = response.data.expenses.map((e: RawExpenseData) => ({
+        id: e.id,
+        refNum: e.ref_num,
+        date: e.date,
+        description: e.description || '',
+        category: e.category,
+        amount: typeof e.amount === 'string' ? parseFloat(e.amount) : e.amount
+      }));
 
-  const handleSaveExpense = () => {
-    // Basic validation
+      setExpenses(mapped);
+      setSummary(response.data.summary);
+    } catch (error) {
+      console.error(error);
+      showToast("Failed to load expenses", "error");
+    } finally {
+      setIsFetching(false);
+    }
+  }, [fromDate, toDate, refNumSearch, categoryFilter, showToast]);
+
+  useEffect(() => {
+    fetchExpenses();
+  }, [fetchExpenses]);
+
+  // --- SAVE LOGIC ---
+  const handleSaveExpense = async () => {
     if (!newExpense.refNum || !newExpense.amount) {
-      alert("Please fill in the Reference Number and Amount");
+      showToast("Please fill in the Reference Number and Amount", "warning");
       return;
     }
 
-    // 3. Construct the new item and add to list
-    const itemToAdd: ExpenseItem = {
-      ...newExpense,
-      amount: parseFloat(newExpense.amount) || 0
-    };
+    setIsSubmitting(true);
+    try {
+      await api.post('/expenses', {
+        refNum: newExpense.refNum,
+        description: newExpense.description,
+        date: newExpense.date,
+        category: newExpense.category,
+        amount: parseFloat(newExpense.amount)
+      });
 
-    setExpenses([itemToAdd, ...expenses]); // Add new item to the top of the list
-
-    // Reset form and close modal
-    setNewExpense({
-      refNum: '',
-      description: '',
-      date: new Date().toISOString().split('T')[0],
-      category: 'Bills',
-      amount: ''
-    });
-    setIsAddModalOpen(false);
+      showToast("Expense recorded!", "success");
+      setIsAddModalOpen(false);
+      setNewExpense({
+        refNum: '',
+        description: '',
+        date: new Date().toISOString().split('T')[0],
+        category: 'Bills',
+        amount: ''
+      });
+      fetchExpenses();
+    } catch (error: unknown) {
+      // FIXED: Handled the error variable properly to satisfy the linter
+      console.error("Save error:", error);
+      showToast("Error saving expense", "error");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -78,23 +138,32 @@ const Expense = () => {
           </div>
 
           <div className="w-full xl:w-48">
-            <select className="w-full px-4 py-2 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 h-10 cursor-pointer">
-              <option>ALL</option>
-              <option>Bills</option>
-              <option>Salary</option>
-              <option>Rent</option>
-              <option>Miscellaneous</option>
+            <select 
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="w-full px-4 py-2 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 h-10 cursor-pointer"
+            >
+              <option value="ALL">ALL</option>
+              <option value="Bills">Bills</option>
+              <option value="Salary">Salary</option>
+              <option value="Rent">Rent</option>
+              <option value="Miscellaneous">Miscellaneous</option>
             </select>
           </div>
 
           <div className="flex gap-2 w-full xl:w-auto">
-            <button className="flex-1 xl:flex-none px-8 h-10 bg-[#1e40af] text-white rounded-md font-black uppercase text-[10px] tracking-widest hover:bg-[#1e3a8a] shadow-md transition-all">SEARCH</button>
+            <button onClick={fetchExpenses} className="flex-1 xl:flex-none px-8 h-10 bg-[#1e40af] text-white rounded-md font-black uppercase text-[10px] tracking-widest hover:bg-[#1e3a8a] shadow-md transition-all">SEARCH</button>
             <button onClick={() => setIsAddModalOpen(true)} className="flex-1 xl:flex-none px-8 h-10 bg-[#10b981] text-white rounded-md font-black uppercase text-[10px] tracking-widest hover:bg-[#059669] shadow-md transition-all">ADD NEW</button>
           </div>
         </div>
 
         {/* === EXPENSE TABLE === */}
-        <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden flex flex-col mb-6">
+        <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden flex flex-col mb-6 relative">
+          {isFetching && (
+            <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center backdrop-blur-[1px]">
+              <Loader2 className="animate-spin text-[#1e40af]" />
+            </div>
+          )}
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-zinc-50">
@@ -131,7 +200,7 @@ const Expense = () => {
                  <tr className="bg-zinc-50 font-black">
                    <td colSpan={4} className="px-6 py-3 text-right text-[10px] uppercase tracking-widest text-slate-500">Total</td>
                    <td className="px-6 py-3 text-right text-sm text-slate-900">
-                     {totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                     {summary.totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                    </td>
                  </tr>
                </tfoot>
@@ -139,21 +208,21 @@ const Expense = () => {
           </table>
         </div>
 
-        {/* --- SUMMARY BOX --- */}
+        {/* === SUMMARY BOX === */}
         <div className="flex justify-end">
           <div className="w-full max-w-sm bg-white border border-zinc-200 rounded-lg overflow-hidden shadow-sm">
             <div className="p-4 bg-zinc-50 border-b border-zinc-200 flex justify-between">
               <span className="text-[10px] font-black uppercase text-slate-600">Total Expense</span>
-              <span className="font-bold text-red-500">{totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              <span className="font-bold text-red-500">{summary.totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
             </div>
             <div className="p-4 bg-zinc-50 border-b border-zinc-200 flex justify-between">
               <span className="text-[10px] font-black uppercase text-slate-600">Total Sales</span>
-              <span className="font-bold text-emerald-500">{totalSales.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+              <span className="font-bold text-emerald-500">{summary.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
             </div>
             <div className="p-4 bg-zinc-100 flex justify-between items-center">
               <span className="text-[11px] font-black uppercase text-slate-800">Net Total</span>
-              <span className={`text-lg font-black ${netTotal >= 0 ? 'text-slate-900' : 'text-red-600'}`}>
-                {netTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              <span className={`text-lg font-black ${summary.netTotal >= 0 ? 'text-slate-900' : 'text-red-600'}`}>
+                {summary.netTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
               </span>
             </div>
           </div>
@@ -162,8 +231,13 @@ const Expense = () => {
 
       {/* === ADD EXPENSE MODAL === */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 relative">
+            {isSubmitting && (
+               <div className="absolute inset-0 bg-white/50 z-20 flex items-center justify-center">
+                  <Loader2 className="animate-spin text-[#1e40af]" />
+               </div>
+            )}
             <div className="bg-[#1e40af] p-4 text-center">
               <h2 className="text-white font-black uppercase tracking-[0.2em] text-sm">Add Expense</h2>
             </div>
@@ -205,7 +279,7 @@ const Expense = () => {
                   Back
                 </button>
                 <button onClick={handleSaveExpense} className="flex-1 px-6 py-3 bg-[#1e40af] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#1e3a8a] shadow-lg shadow-blue-900/20 transition-all">
-                  Save
+                  {isSubmitting ? 'Saving...' : 'Save'}
                 </button>
               </div>
             </div>

@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\CashCountController;
 use App\Http\Controllers\Api\CashTransactionController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\InventoryDashboardController;
 use App\Http\Controllers\Api\InventoryReportController;
@@ -15,7 +16,7 @@ use App\Http\Controllers\Api\ReceiptController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\SalesController;
 use App\Http\Controllers\Api\SalesDashboardController; 
-use App\Http\Controllers\Api\SettingController;
+use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\SubCategoryController;
 use App\Http\Controllers\Api\VoucherController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -101,8 +102,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // REMOVED duplicate Route::get('/categories') and Route::patch('/categories/{id}') from here
 
     // --- SETTINGS ---
-    Route::get('/settings', [SettingController::class, 'index']);
-    Route::post('/settings', [SettingController::class, 'update']);
+    Route::get('/settings', [SettingsController::class, 'index']);
+    Route::post('/settings', [SettingsController::class, 'update']);
 
     // --- VOUCHERS ---
     Route::get('/vouchers', [VoucherController::class, 'index']);
@@ -112,4 +113,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::get('/item-serials', [ItemSerialController::class, 'index']);
     Route::post('/item-serials', [ItemSerialController::class, 'store']);
+
+    Route::get('/expenses', [ExpenseController::class, 'index']);
+    Route::post('/expenses', [ExpenseController::class, 'store']);
+
+    Route::get('/system/audit', [SettingsController::class, 'getAuditLogs']);
 });
