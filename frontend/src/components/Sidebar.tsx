@@ -133,7 +133,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   setCurrentTab('users');
                   if (window.innerWidth < 768) setSidebarOpen(false);
                 }}
-                className={`w-full px-3 sm:px-5 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl font-black text-[11px] sm:text-[13px] uppercase tracking-wider flex items-center transition-all duration-200 ${
+                className={`w-full px-5 sm:px-5 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl font-black text-[10px] sm:text-[12px] uppercase tracking-wider flex items-center transition-all duration-200 ${
                   currentTab === 'users' ? 'bg-[#f0ebff] text-[#3b2063]' : `text-zinc-400 ${hoverClasses}`
                 }`}
               >
