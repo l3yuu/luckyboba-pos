@@ -6,7 +6,6 @@ import api from '../../services/api';
 import { useToast } from '../../hooks/useToast';
 import { Loader2, Plus, X } from 'lucide-react';
 
-// Interfaces for Type Safety
 interface POItem {
   id: number;
   poNumber: string;
@@ -25,13 +24,26 @@ interface RawPOData {
   date_ordered: string;
 }
 
+interface POStats {
+  active_orders: number;
+  pending_payment: number;
+  monthly_spend: number;
+}
+
+interface POCache {
+  orders: POItem[];
+  stats: POStats;
+}
+
+// ✅ Module-level cache — survives tab switches
+let purchaseOrderCache: POCache | null = null;
+
 const PurchaseOrder = () => {
   const { showToast } = useToast();
-  const [orders, setOrders] = useState<POItem[]>([]);
-  const [stats, setStats] = useState({ active_orders: 0, pending_payment: 0, monthly_spend: 0 });
-  const [isFetching, setIsFetching] = useState(true);
+  const [orders, setOrders] = useState<POItem[]>(purchaseOrderCache?.orders ?? []);
+  const [stats, setStats] = useState<POStats>(purchaseOrderCache?.stats ?? { active_orders: 0, pending_payment: 0, monthly_spend: 0 });
+  const [isFetching, setIsFetching] = useState(false);
   
-  // Modal & Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -40,7 +52,14 @@ const PurchaseOrder = () => {
     date_ordered: new Date().toISOString().split('T')[0]
   });
 
-  const fetchPurchaseOrders = useCallback(async () => {
+  const fetchPurchaseOrders = useCallback(async (forceRefresh = false) => {
+    // ✅ Return cached data immediately if available
+    if (!forceRefresh && purchaseOrderCache) {
+      setOrders(purchaseOrderCache.orders);
+      setStats(purchaseOrderCache.stats);
+      return;
+    }
+
     setIsFetching(true);
     try {
       const response = await api.get('/purchase-orders');
@@ -52,6 +71,13 @@ const PurchaseOrder = () => {
         status: po.status,
         dateOrdered: po.date_ordered
       }));
+
+      // ✅ Save both orders and stats to module-level cache
+      purchaseOrderCache = {
+        orders: mappedOrders,
+        stats: response.data.stats
+      };
+
       setOrders(mappedOrders);
       setStats(response.data.stats);
     } catch (error) {
@@ -74,7 +100,9 @@ const PurchaseOrder = () => {
       showToast("Purchase Order Created!", "success");
       setIsModalOpen(false);
       setFormData({ supplier: '', total_amount: '', date_ordered: new Date().toISOString().split('T')[0] });
-      fetchPurchaseOrders(); // Refresh list and stats
+      // ✅ Invalidate cache and force refetch so stats update too
+      purchaseOrderCache = null;
+      await fetchPurchaseOrders(true);
     } catch (error) {
       console.error(error);
       showToast("Error creating P.O.", "error");
@@ -102,23 +130,23 @@ const PurchaseOrder = () => {
           </button>
         </div>
 
-        {/* STATS SUMMARY (Same as before) */}
+        {/* STATS SUMMARY */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
-                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Active Orders</p>
-                <p className="text-2xl font-black text-[#3b2063]">{isFetching ? "..." : stats.active_orders}</p>
-            </div>
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
-                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Pending Payment</p>
-                <p className="text-2xl font-black text-amber-500">{isFetching ? "..." : `₱${stats.pending_payment.toLocaleString()}`}</p>
-            </div>
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
-                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Monthly Spend</p>
-                <p className="text-2xl font-black text-emerald-500">{isFetching ? "..." : `₱${stats.monthly_spend.toLocaleString()}`}</p>
-            </div>
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
+            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Active Orders</p>
+            <p className="text-2xl font-black text-[#3b2063]">{isFetching ? "..." : stats.active_orders}</p>
+          </div>
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
+            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Pending Payment</p>
+            <p className="text-2xl font-black text-amber-500">{isFetching ? "..." : `₱${stats.pending_payment.toLocaleString()}`}</p>
+          </div>
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
+            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Monthly Spend</p>
+            <p className="text-2xl font-black text-emerald-500">{isFetching ? "..." : `₱${stats.monthly_spend.toLocaleString()}`}</p>
+          </div>
         </div>
 
-        {/* ORDERS TABLE (Same as before) */}
+        {/* ORDERS TABLE */}
         <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden relative">
           {isFetching && (
             <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">

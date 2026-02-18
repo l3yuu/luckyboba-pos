@@ -18,45 +18,66 @@ interface MainCategory {
   name: string;
 }
 
+interface SubCategoryCache {
+  subCategories: SubCategoryData[];
+  mainCategories: MainCategory[];
+}
+
+// ✅ Module-level cache — survives tab switches
+let subCategoryCache: SubCategoryCache | null = null;
+
 const SubCategoryList = () => {
   const { showToast } = useToast();
   const [subCategoryName, setSubCategoryName] = useState('');
-  const [selectedMainCategoryId, setSelectedMainCategoryId] = useState<number | string>('');
+  const [selectedMainCategoryId, setSelectedMainCategoryId] = useState<number | string>(
+    subCategoryCache?.mainCategories[0]?.id ?? ''
+  );
   
-  const [subCategories, setSubCategories] = useState<SubCategoryData[]>([]);
-  const [mainCategories, setMainCategories] = useState<MainCategory[]>([]);
+  const [subCategories, setSubCategories] = useState<SubCategoryData[]>(subCategoryCache?.subCategories ?? []);
+  const [mainCategories, setMainCategories] = useState<MainCategory[]>(subCategoryCache?.mainCategories ?? []);
   
   const [loading, setLoading] = useState(false);
-  const [isFetching, setIsFetching] = useState(true);
+  const [isFetching, setIsFetching] = useState(subCategoryCache === null);
 
-  // --- FETCH DATA ---
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (forceRefresh = false) => {
+    // ✅ Return cached data immediately if available
+    if (!forceRefresh && subCategoryCache) {
+      setSubCategories(subCategoryCache.subCategories);
+      setMainCategories(subCategoryCache.mainCategories);
+      return;
+    }
+
     setIsFetching(true);
     try {
       const [subRes, mainRes] = await Promise.all([
         api.get('/sub-categories'),
         api.get('/categories')
       ]);
+
+      // ✅ Save to module-level cache
+      subCategoryCache = {
+        subCategories: subRes.data,
+        mainCategories: mainRes.data
+      };
+
       setSubCategories(subRes.data);
       setMainCategories(mainRes.data);
       
-      if (mainRes.data.length > 0) {
+      if (mainRes.data.length > 0 && !selectedMainCategoryId) {
         setSelectedMainCategoryId(mainRes.data[0].id);
       }
     } catch (error) {
-      // FIXED: Using the error variable to satisfy the linter
       console.error("Fetch error:", error);
       showToast("Failed to sync with database", "error");
     } finally {
       setIsFetching(false);
     }
-  }, [showToast]);
+  }, [showToast, selectedMainCategoryId]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // --- ADD SUB CATEGORY ---
   const handleAddSubCategory = async () => {
     if (!subCategoryName || !selectedMainCategoryId) {
       showToast("Please enter a name and select a category", "warning");
@@ -70,11 +91,17 @@ const SubCategoryList = () => {
         category_id: selectedMainCategoryId
       });
       
-      setSubCategories([response.data, ...subCategories]);
+      const updated = [response.data, ...subCategories];
+      setSubCategories(updated);
+
+      // ✅ Keep cache in sync with optimistic update
+      if (subCategoryCache) {
+        subCategoryCache.subCategories = updated;
+      }
+
       setSubCategoryName('');
       showToast("Sub-category added!", "success");
     } catch (error) {
-      // FIXED: Using the error variable
       console.error("Add error:", error);
       showToast("Error saving to database", "error");
     } finally {
@@ -82,16 +109,21 @@ const SubCategoryList = () => {
     }
   };
 
-  // --- DELETE SUB CATEGORY ---
   const handleDelete = async (id: number) => {
     if (!window.confirm("Delete this sub-category?")) return;
     
     try {
       await api.delete(`/sub-categories/${id}`);
-      setSubCategories(subCategories.filter(s => s.id !== id));
+      const updated = subCategories.filter(s => s.id !== id);
+      setSubCategories(updated);
+
+      // ✅ Keep cache in sync with local delete
+      if (subCategoryCache) {
+        subCategoryCache.subCategories = updated;
+      }
+
       showToast("Deleted successfully", "success");
     } catch (error) {
-      // FIXED: Using the error variable
       console.error("Delete error:", error);
       showToast("Delete failed", "error");
     }
@@ -105,9 +137,9 @@ const SubCategoryList = () => {
         {/* ADD FORM */}
         <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden mb-6 relative">
           {loading && (
-             <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center">
-                <Loader2 className="animate-spin text-[#1e40af]" />
-             </div>
+            <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center">
+              <Loader2 className="animate-spin text-[#1e40af]" />
+            </div>
           )}
           <div className="bg-zinc-50 px-6 py-3 border-b border-zinc-200">
             <h2 className="text-[#1e40af] font-black text-xs uppercase tracking-[0.2em] text-center">Add Sub Category</h2>
@@ -150,9 +182,9 @@ const SubCategoryList = () => {
         {/* DATA TABLE */}
         <div className="flex-1 bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden flex flex-col relative">
           {isFetching && (
-             <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center">
-                <Loader2 className="animate-spin text-[#1e40af]" size={32} />
-             </div>
+            <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center">
+              <Loader2 className="animate-spin text-[#1e40af]" size={32} />
+            </div>
           )}
           
           <div className="flex-1 overflow-auto">

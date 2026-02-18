@@ -22,14 +22,16 @@ interface SerialRecord {
   dateAdded: string;
 }
 
+// ✅ Module-level cache keyed by "searchTerm|statusFilter"
+const serialsCache = new Map<string, SerialRecord[]>();
+
 const ItemSerials = () => {
   const { showToast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isFetching, setIsFetching] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
   const [serials, setSerials] = useState<SerialRecord[]>([]);
   
-  // Search & Filter State
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All Status');
 
@@ -39,56 +41,66 @@ const ItemSerials = () => {
     status: 'In Stock'
   });
 
-  const fetchSerials = useCallback(async () => {
-      setIsFetching(true);
-      try {
-        const response = await api.get('/item-serials', {
-          params: { search: searchTerm, status: statusFilter }
-        });
-        
-        // FIXED: Used RawSerialData instead of any
-        const mapped: SerialRecord[] = response.data.map((s: RawSerialData) => ({
-          id: s.id,
-          itemName: s.item_name,
-          serialNumber: s.serial_number,
-          status: s.status,
-          dateAdded: s.date_added
-        }));
-        setSerials(mapped);
-      } catch (error) {
-        // FIXED: Used the error variable to satisfy the linter
-        console.error("Fetch error:", error);
-        showToast("Failed to load serials", "error");
-      } finally {
-        setIsFetching(false);
-      }
-    }, [searchTerm, statusFilter, showToast]);
+  const fetchSerials = useCallback(async (forceRefresh = false) => {
+    const cacheKey = `${searchTerm}|${statusFilter}`;
+
+    // ✅ Return cached data immediately if available
+    if (!forceRefresh && serialsCache.has(cacheKey)) {
+      setSerials(serialsCache.get(cacheKey)!);
+      return;
+    }
+
+    setIsFetching(true);
+    try {
+      const response = await api.get('/item-serials', {
+        params: { search: searchTerm, status: statusFilter }
+      });
+      
+      const mapped: SerialRecord[] = response.data.map((s: RawSerialData) => ({
+        id: s.id,
+        itemName: s.item_name,
+        serialNumber: s.serial_number,
+        status: s.status,
+        dateAdded: s.date_added
+      }));
+
+      // ✅ Save to cache under this key
+      serialsCache.set(cacheKey, mapped);
+      setSerials(mapped);
+    } catch (error) {
+      console.error("Fetch error:", error);
+      showToast("Failed to load serials", "error");
+    } finally {
+      setIsFetching(false);
+    }
+  }, [searchTerm, statusFilter, showToast]);
 
   useEffect(() => {
     fetchSerials();
   }, [fetchSerials]);
 
   const handleRegister = async (e: React.FormEvent) => {
-      e.preventDefault();
-      setIsSubmitting(true);
-      try {
-        await api.post('/item-serials', {
-          item_name: formData.itemName,
-          serial_number: formData.serialNumber,
-          status: formData.status
-        });
-        showToast("Serial registered successfully", "success");
-        setIsModalOpen(false);
-        setFormData({ itemName: '', serialNumber: '', status: 'In Stock' });
-        fetchSerials();
-      } catch (error: unknown) { 
-        // FIXED: Replaced any with unknown and properly handled the error
-        console.error("Registration error:", error);
-        showToast("Registration failed", "error");
-      } finally {
-        setIsSubmitting(false);
-      }
-    };
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await api.post('/item-serials', {
+        item_name: formData.itemName,
+        serial_number: formData.serialNumber,
+        status: formData.status
+      });
+      showToast("Serial registered successfully", "success");
+      setIsModalOpen(false);
+      setFormData({ itemName: '', serialNumber: '', status: 'In Stock' });
+      // ✅ Invalidate entire cache since a new record affects all filters
+      serialsCache.clear();
+      await fetchSerials(true);
+    } catch (error: unknown) { 
+      console.error("Registration error:", error);
+      showToast("Registration failed", "error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="flex-1 bg-[#f4f5f7] h-full flex flex-col overflow-hidden font-sans relative">

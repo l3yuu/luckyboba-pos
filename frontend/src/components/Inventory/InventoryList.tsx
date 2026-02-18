@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import TopNavbar from '../TopNavbar';
 import api from '../../services/api';
 
@@ -17,16 +17,15 @@ interface Category {
   name: string;
 }
 
+// ✅ Module-level cache — survives tab switches (component unmount/remount)
+let inventoryCache: InventoryItem[] | null = null;
+let categoriesCache: Category[] | null = null;
+
 const InventoryList = () => {
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>(inventoryCache ?? []);
+  const [categories, setCategories] = useState<Category[]>(categoriesCache ?? []);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  
-  // Cache refs
-  const inventoryCacheRef = useRef<InventoryItem[] | null>(null);
-  const categoriesCacheRef = useRef<Category[] | null>(null);
-  const hasFetchedRef = useRef(false);
   
   // Existing Restock Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -45,17 +44,11 @@ const InventoryList = () => {
     category_id: '' 
   });
 
-  // Fetch Inventory and Categories with improved caching
-  const fetchData = useCallback(async () => {
-    // Check cache first
-    if (inventoryCacheRef.current && categoriesCacheRef.current) {
-      setInventory(inventoryCacheRef.current);
-      setCategories(categoriesCacheRef.current);
-      return;
-    }
-
-    // If already fetched, don't fetch again
-    if (hasFetchedRef.current) {
+  const fetchData = useCallback(async (forceRefresh = false) => {
+    // ✅ If cache exists and not forcing refresh, populate state immediately
+    if (!forceRefresh && inventoryCache && categoriesCache) {
+      setInventory(inventoryCache);
+      setCategories(categoriesCache);
       return;
     }
 
@@ -66,13 +59,12 @@ const InventoryList = () => {
         api.get('/categories')
       ]);
       
-      // Store in cache
-      inventoryCacheRef.current = invRes.data;
-      categoriesCacheRef.current = catRes.data;
+      // ✅ Save to module-level cache
+      inventoryCache = invRes.data;
+      categoriesCache = catRes.data;
       
       setInventory(invRes.data);
       setCategories(catRes.data);
-      hasFetchedRef.current = true;
     } catch (err) { 
       console.error("Failed to fetch data:", err); 
     } finally { 
@@ -84,7 +76,6 @@ const InventoryList = () => {
     fetchData(); 
   }, [fetchData]);
 
-  // --- SEARCH LOGIC ---
   const filteredInventory = useMemo(() => {
     return inventory.filter(item => 
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -98,12 +89,11 @@ const InventoryList = () => {
     try {
       await api.post('/inventory', newItem);
       
-      // Clear cache and refetch
-      inventoryCacheRef.current = null;
-      categoriesCacheRef.current = null;
-      hasFetchedRef.current = false;
+      // ✅ Invalidate cache and force refetch
+      inventoryCache = null;
+      categoriesCache = null;
       
-      await fetchData();
+      await fetchData(true);
       setIsAddModalOpen(false);
       setNewItem({ name: '', barcode: '', quantity: '', price: '', cost: '', category_id: '' });
     } catch (err) {
@@ -128,11 +118,10 @@ const InventoryList = () => {
     try {
       await api.patch(`/inventory/${selectedItem.id}/quantity`, { quantity: qtyToUpdate });
       
-      // Clear cache and refetch
-      inventoryCacheRef.current = null;
-      hasFetchedRef.current = false;
+      // ✅ Invalidate only inventory cache, categories unchanged
+      inventoryCache = null;
       
-      await fetchData(); 
+      await fetchData(true);
       setIsModalOpen(false);
     } catch (err) {
       console.error("Update failed:", err);
@@ -142,7 +131,7 @@ const InventoryList = () => {
     }
   };
 
-  if (loading) {
+  if (loading && inventory.length === 0) {
     return (
       <div className="flex-1 bg-[#f4f5f7] h-full flex flex-col overflow-hidden font-sans">
         <TopNavbar />
@@ -281,7 +270,6 @@ const InventoryList = () => {
                   <input required type="text" value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-[#10b981] transition-all" placeholder="e.g. Boba Milk Tea" />
                 </div>
                 
-                {/* CATEGORY DROPDOWN */}
                 <div className="col-span-2">
                   <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Category</label>
                   <select 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import TopNavbar from '../TopNavbar';
 import api from '../../services/api';
 import { 
@@ -23,17 +23,18 @@ interface DashboardData {
   weekly_profit_total: number;
 }
 
-// Updated colors to match SalesDashboard palette - 5 colors for top 5
 const COLORS = ['#3b2063', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
+// ✅ Module-level cache — survives tab switches (component unmount/remount)
+let dashboardCache: DashboardData | null = null;
+
 const InventoryDashboard = () => {
-  const [data, setData] = useState<TopProduct[]>([]);
-  const [totals, setTotals] = useState({ sold: 0, profit: 0 });
+  const [data, setData] = useState<TopProduct[]>(dashboardCache?.products ?? []);
+  const [totals, setTotals] = useState({
+    sold: dashboardCache?.weekly_sold_total ?? 0,
+    profit: dashboardCache?.weekly_profit_total ?? 0,
+  });
   const [loading, setLoading] = useState(false);
-  
-  // Cache refs
-  const cacheRef = useRef<DashboardData | null>(null);
-  const hasFetchedRef = useRef(false);
 
   const getWeeklyRange = () => {
     const now = new Date();
@@ -52,46 +53,41 @@ const InventoryDashboard = () => {
   const { start, end } = getWeeklyRange();
 
   useEffect(() => {
+    // ✅ If cache exists, populate state immediately — no fetch, no flash
+    if (dashboardCache) {
+      setData(dashboardCache.products);
+      setTotals({
+        sold: dashboardCache.weekly_sold_total,
+        profit: dashboardCache.weekly_profit_total,
+      });
+      return;
+    }
+
     const fetchDashboardData = async () => {
-      // Check cache first
-      if (cacheRef.current) {
-        setData(cacheRef.current.products);
-        setTotals({ 
-          sold: cacheRef.current.weekly_sold_total, 
-          profit: cacheRef.current.weekly_profit_total 
-        });
-        return;
-      }
-
-      // If already fetched, don't fetch again
-      if (hasFetchedRef.current) return;
-
       setLoading(true);
       try {
         const response = await api.get('/inventory/top-products');
         const responseData: DashboardData = response.data;
-        
-        // Ensure we only take top 5 products
         const top5Products = responseData.products.slice(0, 5);
-        
-        // Store in cache
-        cacheRef.current = {
+
+        // ✅ Save to module-level cache
+        dashboardCache = {
           ...responseData,
-          products: top5Products
+          products: top5Products,
         };
-        
+
         setData(top5Products);
-        setTotals({ 
-          sold: responseData.weekly_sold_total, 
-          profit: responseData.weekly_profit_total 
+        setTotals({
+          sold: responseData.weekly_sold_total,
+          profit: responseData.weekly_profit_total,
         });
-        hasFetchedRef.current = true;
       } catch (error) {
         console.error("Failed to fetch inventory analytics:", error);
       } finally {
         setLoading(false);
       }
     };
+
     fetchDashboardData();
   }, []);
 
@@ -148,7 +144,7 @@ const InventoryDashboard = () => {
                     </tr>
                   ))
                 ) : (
-                   <tr><td colSpan={8} className="py-10 text-center italic text-zinc-300 text-xs">No sales data recorded for this week</td></tr>
+                  <tr><td colSpan={8} className="py-10 text-center italic text-zinc-300 text-xs">No sales data recorded for this week</td></tr>
                 )}
               </tbody>
               <tfoot className="bg-zinc-50">
@@ -165,11 +161,11 @@ const InventoryDashboard = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
           {/* Bar Chart */}
-          <div className="bg-white rounded-xl shadow-sm border border-zinc-100 p-6 h-72 flex flex-col">
+          <div className="bg-white rounded-xl shadow-sm border border-zinc-100 p-6 min-h-75 flex flex-col">
             <div className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-4">Profit vs Cost Breakdown</div>
-            <div className="flex-1 w-full overflow-hidden">
+            <div className="w-full" style={{ height: '220px' }}>
               {data.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={data}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f8f6ff" />
                     <XAxis dataKey="name" hide />
@@ -190,11 +186,11 @@ const InventoryDashboard = () => {
           </div>
           
           {/* Pie Chart */}
-          <div className="bg-white rounded-xl shadow-sm border border-zinc-100 p-6 h-72 flex flex-col">
+          <div className="bg-white rounded-xl shadow-sm border border-zinc-100 p-6 min-h-75 flex flex-col">
             <div className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-4">Sales Quantity Share</div>
-            <div className="flex-1 w-full overflow-hidden">
+            <div className="w-full" style={{ height: '220px' }}>
               {data.length > 0 ? (
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height={220}>
                   <PieChart>
                     <Pie
                       data={data}

@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import TopNavbar from '../TopNavbar';
 import api from '../../services/api';
 import { isAxiosError } from 'axios';
-// 1. Import the global hook
 import { useToast } from '../../hooks/useToast';
 
 interface InventoryCategory {
@@ -14,42 +13,47 @@ interface InventoryCategory {
   menu_items_count: number;
 }
 
+// ✅ Module-level cache — survives tab switches
+let categoriesCache: InventoryCategory[] | null = null;
+
 const InventoryCategoryList = () => {
-  // 2. Initialize global toast
   const { showToast } = useToast();
   
-  const [categories, setCategories] = useState<InventoryCategory[]>([]);
+  const [categories, setCategories] = useState<InventoryCategory[]>(categoriesCache ?? []);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // --- MODAL STATES ---
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   
-  // State for the Add Modal
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
 
-  // State for the Edit Modal
   const [editingCategory, setEditingCategory] = useState<InventoryCategory | null>(null);
   const [editName, setEditName] = useState('');
   const [editDesc, setEditDesc] = useState('');
 
-  // 3. Removed the local showToast helper and local state
+  const fetchCategories = useCallback(async (forceRefresh = false) => {
+    // ✅ Return cached data immediately if available
+    if (!forceRefresh && categoriesCache) {
+      setCategories(categoriesCache);
+      return;
+    }
 
-  const fetchCategories = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.get('/categories');
+
+      // ✅ Save to module-level cache
+      categoriesCache = response.data;
       setCategories(response.data);
     } catch (err) {
       console.error(err);
-      // 4. Use global toast
       showToast("Failed to load categories", "error");
     } finally {
       setLoading(false);
     }
-  }, [showToast]); // Added showToast to dependencies
+  }, [showToast]);
 
   useEffect(() => {
     fetchCategories();
@@ -69,8 +73,9 @@ const InventoryCategoryList = () => {
       setNewName('');
       setNewDesc('');
       setIsAddModalOpen(false);
-      fetchCategories();
-      // 5. Trigger Success Toast
+      // ✅ Invalidate cache then refetch
+      categoriesCache = null;
+      await fetchCategories(true);
       showToast("Category added successfully!", "success");
     } catch (err) {
       if (isAxiosError(err)) {
@@ -91,7 +96,9 @@ const InventoryCategoryList = () => {
     try {
       await api.patch(`/categories/${editingCategory.id}`, { name: editName, description: editDesc });
       setIsEditModalOpen(false);
-      fetchCategories();
+      // ✅ Invalidate cache then refetch
+      categoriesCache = null;
+      await fetchCategories(true);
       showToast("Category updated!", "success");
     } catch (err) {
       if (isAxiosError(err)) showToast("Update failed", "error");
@@ -102,7 +109,9 @@ const InventoryCategoryList = () => {
     if (!window.confirm("Are you sure?")) return;
     try {
       await api.delete(`/categories/${id}`);
-      fetchCategories();
+      // ✅ Invalidate cache then refetch
+      categoriesCache = null;
+      await fetchCategories(true);
       showToast("Category deleted", "success");
     } catch (err) {
       if (isAxiosError(err)) {
@@ -115,10 +124,7 @@ const InventoryCategoryList = () => {
     <div className="flex-1 bg-[#f4f5f7] h-full flex flex-col overflow-hidden font-sans relative">
       <TopNavbar />
 
-      {/* 6. Removed local <Toast /> component mapping */}
-
       <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
-        {/* HEADER SECTION */}
         <div className="flex justify-between items-center mb-2">
           <div>
             <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest leading-none">Category List</h1>
@@ -132,7 +138,6 @@ const InventoryCategoryList = () => {
           </button>
         </div>
 
-        {/* TABLE SECTION */}
         <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
             <div className="flex items-center gap-2">
@@ -200,7 +205,7 @@ const InventoryCategoryList = () => {
         </div>
       )}
 
-      {/* EDIT MODAL SECTION */}
+      {/* === EDIT MODAL === */}
       {isEditModalOpen && (
         <div className="fixed inset-0 bg-[#3b2063]/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl p-10">

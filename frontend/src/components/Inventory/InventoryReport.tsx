@@ -18,24 +18,38 @@ interface MetricItem {
   color: string;
 }
 
-interface CriticalItem {
-  name: string;
-  remaining: number;
-  unitCost: number;
-  potentialLoss: number;
+interface ReportCache {
+  metrics: MetricItem[];
+  criticalItems: CriticalItem[];
 }
 
+// ✅ Module-level cache — survives tab switches
+let reportCache: ReportCache | null = null;
+
 const InventoryReport = () => {
-  // FIXED: Replaced any[] with MetricItem[]
-  const [metrics, setMetrics] = useState<MetricItem[]>([]);
-  const [criticalItems, setCriticalItems] = useState<CriticalItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [metrics, setMetrics] = useState<MetricItem[]>(reportCache?.metrics ?? []);
+  const [criticalItems, setCriticalItems] = useState<CriticalItem[]>(reportCache?.criticalItems ?? []);
+  const [loading, setLoading] = useState(reportCache === null);
 
   useEffect(() => {
+    // ✅ Return cached data immediately if available
+    if (reportCache) {
+      setMetrics(reportCache.metrics);
+      setCriticalItems(reportCache.criticalItems);
+      return;
+    }
+
     const fetchReport = async () => {
+      setLoading(true);
       try {
         const res = await api.get('/reports/inventory');
-        // Ensure the response data matches your interfaces
+
+        // ✅ Save to module-level cache
+        reportCache = {
+          metrics: res.data.metrics,
+          criticalItems: res.data.criticalItems
+        };
+
         setMetrics(res.data.metrics);
         setCriticalItems(res.data.criticalItems);
       } catch (err) {
@@ -44,6 +58,7 @@ const InventoryReport = () => {
         setLoading(false);
       }
     };
+
     fetchReport();
   }, []);
 
@@ -71,7 +86,7 @@ const InventoryReport = () => {
         {/* METRICS GRID */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {loading ? (
-             [...Array(4)].map((_, i) => <div key={i} className="h-24 bg-white animate-pulse rounded-2xl border border-zinc-100" />)
+            [...Array(4)].map((_, i) => <div key={i} className="h-24 bg-white animate-pulse rounded-2xl border border-zinc-100" />)
           ) : (
             metrics.map((m, i) => (
               <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
@@ -85,7 +100,7 @@ const InventoryReport = () => {
         {/* LOW STOCK ALERT SECTION */}
         <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden relative">
           {loading && (
-             <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10"><Loader2 className="animate-spin text-[#3b2063]" /></div>
+            <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10"><Loader2 className="animate-spin text-[#3b2063]" /></div>
           )}
           <div className="bg-red-50 px-6 py-4 border-b border-red-100 flex items-center gap-2">
             <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
