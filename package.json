@@ -1,5 +1,9 @@
 {
   "devDependencies": {
-    "@types/node": "^25.2.3"
+    "@types/node": "^25.2.3",
+    "@types/recharts": "^1.8.29"
+  },
+  "dependencies": {
+    "recharts": "^3.7.0"
   }
 }

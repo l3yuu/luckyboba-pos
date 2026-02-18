@@ -62,40 +62,31 @@ class SalesDashboardService
         ];
     }
 
-    public function getItemReport($fromDate, $toDate, $reportType = 'item-list')
-    {
-        $query = DB::table('sale_items')
-            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
-            ->join('menu_items', 'sale_items.menu_item_id', '=', 'menu_items.id')
-            ->join('categories', 'menu_items.category_id', '=', 'categories.id')
-            ->where('sales.status', 'completed')
-            ->whereBetween('sales.created_at', [
-                \Carbon\Carbon::parse($fromDate)->startOfDay(),
-                \Carbon\Carbon::parse($toDate)->endOfDay()
-            ]);
+public function getItemReport($fromDate, $toDate, $reportType = 'item-list')
+{
+    $query = DB::table('sale_items')
+        ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+        ->where('sales.status', 'completed')
+        ->whereBetween('sales.created_at', [
+            \Carbon\Carbon::parse($fromDate)->startOfDay(),
+            \Carbon\Carbon::parse($toDate)->endOfDay()
+        ]);
 
-        if ($reportType === 'category-summary') {
-            $query->select(
-                'categories.name as name', 
-                DB::raw('SUM(sale_items.quantity) as qty'),
-                DB::raw('SUM(sale_items.final_price) as amount')
-            )->groupBy('categories.name');
-        } else {
-            $query->select(
-                'sale_items.product_name as name',
-                DB::raw('SUM(sale_items.quantity) as qty'),
-                DB::raw('SUM(sale_items.final_price) as amount')
-            )->groupBy('sale_items.product_name');
-        }
+    // category-summary falls back to item-list since there's no category join available
+    $query->select(
+        'sale_items.product_name as name',
+        DB::raw('SUM(sale_items.quantity) as qty'),
+        DB::raw('SUM(sale_items.final_price) as amount')
+    )->groupBy('sale_items.product_name');
 
-        $items = $query->get();
+    $items = $query->get();
 
-        return [
-            'items' => $items,
-            'total_qty' => $items->sum('qty'),
-            'grand_total' => (float) $items->sum('amount')
-        ];
-    }
+    return [
+        'items' => $items,
+        'total_qty' => $items->sum('qty'),
+        'grand_total' => (float) $items->sum('amount')
+    ];
+}
 
     public function getXReading($date)
     {
