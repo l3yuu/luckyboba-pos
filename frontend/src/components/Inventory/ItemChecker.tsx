@@ -1,8 +1,11 @@
+"use client"
+
 import { useState, useRef } from 'react';
 import TopNavbar from '../TopNavbar';
 import api from '../../services/api';
 import { isAxiosError } from 'axios';
-import { Toast } from '../Toast';
+// 1. Import the global hook instead of the local Toast component
+import { useToast } from '../../hooks/useToast';
 
 interface ItemDetails {
   name: string;
@@ -12,10 +15,12 @@ interface ItemDetails {
 }
 
 const ItemChecker = () => {
+  // 2. Initialize global toast
+  const { showToast } = useToast();
   const [barcode, setBarcode] = useState("");
   const [item, setItem] = useState<ItemDetails | null>(null);
   const [loading, setLoading] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: 'error' | 'success' } | null>(null);
+  // 3. Removed local toast state
   const inputRef = useRef<HTMLInputElement>(null);
 
   const handleCheck = async (e?: React.FormEvent) => {
@@ -29,11 +34,13 @@ const ItemChecker = () => {
       setItem(response.data);
       setBarcode(""); // Clear for next scan
       inputRef.current?.focus();
+      // Optional: showToast("Product retrieved", "success");
     } catch (err) {
       if (isAxiosError(err) && err.response?.status === 404) {
-        setToast({ message: "Item not registered", type: 'error' });
+        // 4. Use global showToast for errors
+        showToast("Item not registered", 'error');
       } else {
-        setToast({ message: "Search failed", type: 'error' });
+        showToast("Search failed", 'error');
       }
     } finally {
       setLoading(false);
@@ -44,7 +51,7 @@ const ItemChecker = () => {
     <div className="flex-1 bg-[#f4f5f7] h-full flex flex-col overflow-hidden font-sans">
       <TopNavbar />
       
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      {/* 5. Removed local <Toast /> component rendering */}
 
       <div className="flex-1 p-6 flex flex-col items-center justify-center gap-6">
         {/* SCANNER INPUT */}
