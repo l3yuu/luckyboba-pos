@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\SalesController;
 use App\Http\Controllers\Api\SalesDashboardController; 
 use App\Http\Controllers\Api\SettingController;
+use App\Http\Controllers\Api\SubCategoryController;
 use App\Http\Controllers\Api\VoucherController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Models\User;
@@ -35,7 +36,6 @@ Route::get('/users', function () { return User::all(); });
 Route::middleware(['auth:sanctum'])->group(function () {
     
     // --- USER & SYSTEM INIT ---
-    // DashboardController handles the initial app state & basic user info
     Route::get('/app-init', [DashboardController::class, 'init']);
     Route::get('/user', function (Request $request) {
         return $request->user();
@@ -44,8 +44,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // --- ANALYTICS & REPORTING ---
     Route::get('/dashboard/stats', [DashboardController::class, 'index']);
-    
-    // SalesDashboardController: Detailed Analytics (Weekly Line & Today Bar graphs)
     Route::get('/sales-analytics', [SalesDashboardController::class, 'index']);
 
     // --- MENU MANAGEMENT ---
@@ -79,23 +77,29 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // --- MENU LIST ---
     Route::get('/menu-list', [MenuListController::class, 'index']);
 
-    // --- CATEGORIES ---
+    // --- CATEGORIES (Cleaned up) ---
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::post('/categories', [CategoryController::class, 'store']);
+    Route::patch('/categories/{id}', [CategoryController::class, 'update']);
     Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
+
+    // --- SUB-CATEGORIES ---
+    // Added specific filter route for the dynamic dropdowns
+    Route::get('/sub-categories/filter/{categoryId}', [SubCategoryController::class, 'getByCategory']);
+    Route::apiResource('sub-categories', SubCategoryController::class);
 
     // --- INVENTORY DASHBOARD ---
     Route::get('/inventory/top-products', [InventoryDashboardController::class, 'getWeeklyTopProducts']);
     Route::get('/inventory', [InventoryController::class, 'index']);
     Route::patch('/inventory/{id}/quantity', [InventoryController::class, 'updateQuantity']);
-    Route::get('/categories', [InventoryController::class, 'getCategories']);
-    Route::patch('/categories/{id}', [CategoryController::class, 'update']);
     Route::get('/inventory/check/{barcode}', [InventoryController::class, 'checkByBarcode']);
+    // REMOVED duplicate Route::get('/categories') and Route::patch('/categories/{id}') from here
 
     // --- SETTINGS ---
     Route::get('/settings', [SettingController::class, 'index']);
     Route::post('/settings', [SettingController::class, 'update']);
 
+    // --- VOUCHERS ---
     Route::get('/vouchers', [VoucherController::class, 'index']);
     Route::post('/vouchers', [VoucherController::class, 'store']);
 });

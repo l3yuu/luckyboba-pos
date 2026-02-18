@@ -14,10 +14,11 @@ class DatabaseSeeder extends Seeder
         // 1. Create foundational data ONLY
         // These are required for the POS to actually function
         $this->call([
-            CategorySeeder::class,
-            MenuSeeder::class,
             UserSeeder::class, 
+            CategorySeeder::class,
+            SubCategorySeeder::class,
             VoucherSeeder::class,
+            MenuSeeder::class,
         ]);
 
         // 2. Add system configurations or initial balances
