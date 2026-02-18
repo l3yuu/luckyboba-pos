@@ -1,11 +1,9 @@
 import { RouterProvider } from 'react-router-dom';
 import { router } from './routes'; 
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { ToastProvider } from './context/ToastProvider'; 
 
 function App() {
-  // CSRF Handshake removed to support Bearer Token authentication.
-  // This prevents the 419 Page Expired error on Railway/Brave.
-
   return (
     <ErrorBoundary 
       fallback={
@@ -20,7 +18,10 @@ function App() {
         </div>
       }
     >
-      <RouterProvider router={router} />
+      {/* Wrap everything in ToastProvider */}
+      <ToastProvider>
+        <RouterProvider router={router} />
+      </ToastProvider>
     </ErrorBoundary>
   );
 }

@@ -1,11 +1,23 @@
-import { useState, useRef } from 'react';
+"use client"
+import React, { useState, useRef } from 'react';
 import Keyboard from 'react-simple-keyboard';
 import 'react-simple-keyboard/build/css/index.css';
-import type { KeyboardRef, Transaction, ActiveInput } from '../../types/cash-count';
+import type { Transaction, ActiveInput } from '../../types/cash-count';
 import api from '../../services/api';
 import TopNavbar from '../TopNavbar';
+import { useToast } from '../../hooks/useToast';
 
-const CashCount = () => {
+// Interface for keyboard instance methods to avoid 'any'
+interface SimpleKeyboardInstance {
+  setInput: (input: string) => void;
+}
+
+interface CashCountProps {
+  onSuccess?: () => void;
+}
+
+const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
+  const { showToast } = useToast();
   const denominations = [1000, 500, 200, 100, 50, 20, 10, 5, 1, 0.25];
 
   // --- State ---
@@ -20,7 +32,9 @@ const CashCount = () => {
   const [layoutName, setLayoutName] = useState('numpad');
   const [showKeyboard, setShowKeyboard] = useState(false);
   
-  const keyboardRef = useRef<KeyboardRef | null>(null);
+
+  const keyboardRef = useRef<SimpleKeyboardInstance | null>(null);
+
 
   const getGrandTotal = (currentCounts: { [key: number]: string }) => {
     return denominations.reduce((total, denom) => {
@@ -36,7 +50,6 @@ const CashCount = () => {
     if (keyboardRef.current) keyboardRef.current.setInput(counts[denom] || '');
   };
 
-  // Added: Fix for Remarks Keyboard switching
   const handleRemarksFocus = () => {
     setActiveInput({ type: 'remarks' });
     setLayoutName('default');
@@ -74,13 +87,12 @@ const CashCount = () => {
   const handleSubmit = async () => {
     const total = getGrandTotal(counts);
     if (total <= 0) {
-      alert("Please enter a valid cash count.");
+
+      showToast("Please enter a valid cash count.", "warning");
       return;
     }
 
-    setIsLoading(true);
-
-    // Added: Auto-generate Day for remarks
+    setIsLoading(true); // Triggers the "Syncing" overlay
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const currentDay = days[new Date().getDay()];
     const finalRemarks = `${currentDay} EOD${remarks ? ' - ' + remarks : ''}`;
@@ -89,10 +101,13 @@ const CashCount = () => {
       const response = await api.post('/cash-counts', {
         total: total,
         breakdown: counts,
-        remarks: finalRemarks, // Sends the Day + Remarks
+
+        remarks: finalRemarks,
       });
 
       if (response.status === 201) {
+        localStorage.setItem('terminal_eod_locked', 'true');
+        localStorage.setItem('cashier_menu_unlocked', 'false');
         const now = new Date();
         const newTx: Transaction = {
           id: response.data.id,
@@ -105,10 +120,13 @@ const CashCount = () => {
 
         setLatestTx(newTx); 
         setShowKeyboard(false);
+        if (onSuccess) onSuccess(); 
+        
+        showToast("EOD Submitted. Terminal is now LOCKED.", "success");
       }
     } catch (error) {
       console.error("Submission failed:", error);
-      alert("Failed to save to database. Ensure you are logged in.");
+      showToast("Failed to save to database. Ensure you are logged in.", "error");
     } finally {
       setIsLoading(false);
     }
@@ -132,19 +150,33 @@ const CashCount = () => {
 
   return (
     <>
+      {/* SYNCING OVERLAY */}
+      {isLoading && (
+        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-[#3b2063]/60 backdrop-blur-md animate-in fade-in duration-300">
+           <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl flex flex-col items-center gap-4 border border-purple-100 animate-in zoom-in-95 duration-200">
+              <div className="relative">
+                <div className="w-12 h-12 border-4 border-zinc-100 border-t-[#3b2063] rounded-full animate-spin"></div>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-2 h-2 bg-[#3b2063] rounded-full animate-pulse"></div>
+                </div>
+              </div>
+              <div className="text-center">
+                <p className="text-[#3b2063] font-black uppercase text-xs tracking-[0.2em]">Syncing Records</p>
+                <p className="text-zinc-400 font-bold text-[10px] uppercase tracking-widest mt-1">Finalizing Day End...</p>
+              </div>
+           </div>
+        </div>
+      )}
+
       <style>
         {`
           @media print {
-            @page { 
-              /* Optimized for your 60x120mm stock */
-              size: 60mm 120mm; 
-              margin: 0; 
-            }
+            @page { size: 60mm 120mm; margin: 0; }
             body * { visibility: hidden; }
             .printable-receipt, .printable-receipt * { visibility: visible; }
             .printable-receipt {
               position: fixed; left: 0; top: 0; 
-              /* Set width to 56mm to avoid clipping on the physical 60mm roll */
+
               width: 56mm !important; 
               margin: 0; padding: 4mm 2mm;
               background: white; color: black; font-family: 'Courier New', monospace; 
@@ -182,10 +214,8 @@ const CashCount = () => {
               const qty = parseFloat(qtyString);
               const rowTotal = qty * denom;
               const label = denom < 1 ? denom.toString().replace('0.', '.') : denom.toLocaleString();
-              
-              // Skip rows with 0 quantity to save space on your 120mm length limit
-              if (qty === 0) return null;
 
+              if (qty === 0) return null;
               return (
                 <div key={denom} className="breakdown-row">
                   <span>{label} x {qtyString}</span>
@@ -265,7 +295,7 @@ const CashCount = () => {
                   <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2">Remarks</label>
                   <textarea 
                     value={remarks}
-                    onFocus={handleRemarksFocus} // Attached the alphabet layout trigger
+                    onFocus={handleRemarksFocus}
                     onChange={(e) => handleInputChange(e.target.value)}
                     placeholder="E.g. Shortage of 20 pesos..."
                     disabled={latestTx !== null}
@@ -328,7 +358,7 @@ const CashCount = () => {
           </div>
           <div className="p-2">
             <Keyboard
-              keyboardRef={r => { if(r) keyboardRef.current = r; }}
+              keyboardRef={r => { if(r) keyboardRef.current = r as unknown as SimpleKeyboardInstance; }}
               layoutName={layoutName}
               onChange={onKeyboardChange}
               onKeyPress={onKeyPress}

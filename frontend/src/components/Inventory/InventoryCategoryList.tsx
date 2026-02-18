@@ -1,8 +1,11 @@
+"use client"
+
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import TopNavbar from '../TopNavbar';
 import api from '../../services/api';
 import { isAxiosError } from 'axios';
-import { Toast } from '../Toast'; 
+// 1. Import the global hook
+import { useToast } from '../../hooks/useToast';
 
 interface InventoryCategory {
   id: number;
@@ -12,10 +15,12 @@ interface InventoryCategory {
 }
 
 const InventoryCategoryList = () => {
+  // 2. Initialize global toast
+  const { showToast } = useToast();
+  
   const [categories, setCategories] = useState<InventoryCategory[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
 
   // --- MODAL STATES ---
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -30,9 +35,7 @@ const InventoryCategoryList = () => {
   const [editName, setEditName] = useState('');
   const [editDesc, setEditDesc] = useState('');
 
-  const showToast = (message: string, type: 'success' | 'error' | 'warning' = 'success') => {
-    setToast({ message, type });
-  };
+  // 3. Removed the local showToast helper and local state
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -41,11 +44,12 @@ const InventoryCategoryList = () => {
       setCategories(response.data);
     } catch (err) {
       console.error(err);
+      // 4. Use global toast
       showToast("Failed to load categories", "error");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [showToast]); // Added showToast to dependencies
 
   useEffect(() => {
     fetchCategories();
@@ -66,6 +70,7 @@ const InventoryCategoryList = () => {
       setNewDesc('');
       setIsAddModalOpen(false);
       fetchCategories();
+      // 5. Trigger Success Toast
       showToast("Category added successfully!", "success");
     } catch (err) {
       if (isAxiosError(err)) {
@@ -110,7 +115,7 @@ const InventoryCategoryList = () => {
     <div className="flex-1 bg-[#f4f5f7] h-full flex flex-col overflow-hidden font-sans relative">
       <TopNavbar />
 
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      {/* 6. Removed local <Toast /> component mapping */}
 
       <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
         {/* HEADER SECTION */}

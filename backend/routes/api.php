@@ -59,9 +59,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/cash-transactions', [CashTransactionController::class, 'index']);
     Route::post('/cash-transactions', [CashTransactionController::class, 'store']);
     Route::get('/receipts/search', [ReceiptController::class, 'search']);
+    Route::get('/cash-transactions/status', [CashTransactionController::class, 'checkInitialCash']);
 
     // --- END OF DAY ---
     Route::post('/cash-counts', [CashCountController::class, 'store']);
+<<<<<<< HEAD
     
     // --- ITEMS REPORT ---
     Route::prefix('items-reports')->group(function () {
@@ -74,6 +76,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/users/stats', [UserController::class, 'stats']);
     Route::patch('/users/{id}/toggle-status', [UserController::class, 'toggleStatus']);
     Route::apiResource('users', UserController::class);
+=======
+    Route::get('/cash-counts/status', [CashCountController::class, 'checkEodStatus']);
+>>>>>>> 8037a50714c3d3934f9c9d526420fec48518efa1
 
     // --- SALES REPORTS ---
     Route::get('/items-report', [SalesDashboardController::class, 'itemsReport']);

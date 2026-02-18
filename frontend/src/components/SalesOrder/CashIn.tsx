@@ -1,3 +1,5 @@
+
+"use client"
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Keyboard from 'react-simple-keyboard';
 import 'react-simple-keyboard/build/css/index.css';
@@ -12,10 +14,8 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [isLoading, setIsLoading] = useState(false); 
   
-  // Use the ReceiptData interface here
+
   const [receiptData, setReceiptData] = useState<ReceiptData>({ date: '', time: '' });
-  
-  const notifRef = useRef<HTMLDivElement>(null);
   const keyboardRef = useRef<KeyboardRef | null>(null);
 
   const getCurrentDateTime = (): ReceiptData => {
@@ -42,6 +42,8 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
         setIsFlipped(true); 
         setShowKeyboard(false);
 
+
+        // Notify sidebar to unlock the Menu
         if (onSuccess) onSuccess(); 
       }
     } catch (error: unknown) {
@@ -82,16 +84,6 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
   }, [isFlipped]);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
-        setNotifOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (isFlipped && event.altKey && (event.key === 'p' || event.key === 'P')) {
         event.preventDefault();
@@ -121,12 +113,10 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
       </style>
 
       <div className="flex flex-col h-full w-full bg-[#f8f6ff] animate-in fade-in zoom-in duration-300 relative overflow-hidden">
-        
-        {/* --- REPLACED HEADER WITH SHARED COMPONENT --- */}
+
         <TopNavbar />
 
         <div className={`flex-1 flex flex-col xl:flex-row items-center justify-center p-6 gap-6 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-75' : ''}`}>
-          
           <div className="relative w-full max-w-2xl h-125" style={{ perspective: '1000px' }}>
             <div 
               className="relative w-full h-full transition-transform duration-700 ease-in-out"
@@ -138,13 +128,11 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
               <div className="absolute w-full h-full bg-white rounded-[3rem] shadow-xl border border-zinc-100 p-10 flex flex-col items-center overflow-hidden" style={{ backfaceVisibility: 'hidden' }}>
                 <div className="absolute top-0 left-0 w-full h-3 bg-[#3b2063] opacity-10"></div>
                 <h2 className="text-[#3b2063] font-black text-base tracking-[0.4em] uppercase mb-6 mt-2">Terminal 01</h2>
-
                 <div className="w-full space-y-5 flex-1 flex flex-col justify-center">
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest ml-4">Cashier</label>
                     <div className="w-full bg-[#f8f6ff] text-[#3b2063] font-bold text-base px-8 py-5 rounded-3xl border border-transparent select-none">ADMIN</div>
                   </div>
-
                   <div className="space-y-2">
                     <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest ml-4">Total</label>
                     <div className="relative">
@@ -153,12 +141,12 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
                         type="text" 
                         value={amount}
                         onChange={handleAmountChange} 
+                        onFocus={() => setShowKeyboard(true)}
                         placeholder="0.00"
                         className="w-full bg-white text-[#3b2063] font-black text-3xl px-8 pl-14 py-5 rounded-3xl border-2 border-zinc-100 focus:border-[#3b2063] focus:outline-none focus:ring-4 focus:ring-[#f0ebff] transition-all"
                       />
                     </div>
                   </div>
-
                   <button 
                     onClick={handleSubmit} 
                     disabled={!amount || isLoading}
@@ -222,9 +210,6 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
   );
 };
 
+
 export default CashIn;
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function setNotifOpen(_arg0: boolean) {
-  throw new Error('Function not implemented.');
-}
