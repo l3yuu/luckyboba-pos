@@ -8,22 +8,31 @@ use Illuminate\Http\Request;
 
 class ReceiptController extends Controller
 {
-    public function search(Request $request)
-    {
-        $query = strtolower($request->input('query'));
 
-        // If no query is provided, return all receipts
-        if (empty($query)) {
-            $receipts = Receipt::latest()->get();
-            return response()->json($receipts);
-        }
+public function search(Request $request)
+{
+    $query = $request->input('query');
 
-        $receipts = Receipt::whereRaw('LOWER(si_number) LIKE ?', ["%{$query}%"])
-            ->orWhereRaw('LOWER(cashier_name) LIKE ?', ["%{$query}%"])
-            ->orWhereRaw('LOWER(terminal) LIKE ?', ["%{$query}%"])
-            ->latest()
-            ->get();
+    $dbQuery = Receipt::query()
+        ->leftJoin('sales', 'receipts.sale_id', '=', 'sales.id')
+        ->select([
+            'receipts.*', 
+            'sales.status', 
+            'sales.cancellation_reason'
+        ]);
 
-        return response()->json($receipts);
+    if (!empty($query)) {
+        $lowQuery = strtolower($query);
+        $dbQuery->where(function($q) use ($lowQuery) {
+            $q->whereRaw('LOWER(receipts.si_number) LIKE ?', ["%{$lowQuery}%"])
+              ->orWhereRaw('LOWER(receipts.cashier_name) LIKE ?', ["%{$lowQuery}%"])
+              ->orWhereRaw('LOWER(receipts.terminal) LIKE ?', ["%{$lowQuery}%"]);
+        });
     }
+
+    $results = $dbQuery->latest('receipts.created_at')->limit(50)->get();
+
+    // Return the array directly so the frontend mapping works again
+    return response()->json($results);
+}
 }

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import type { LoginCredentials } from '../types/user';
+import { Toast } from '../components/Toast'; 
 // Asset Imports
 import logo from '../assets/logo.png';
 import backgroundImage from '../assets/background_image.png'; 
@@ -9,8 +10,15 @@ import backgroundImage from '../assets/background_image.png';
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [userDismissedToast, setUserDismissedToast] = useState(false);
+  
   const { login, isLoading, error, user } = useAuth();
   const navigate = useNavigate();
+
+  // Derived state: Check URL params during render
+  const isExpired = searchParams.get('reason') === 'expired';
+  const showToast = isExpired && !userDismissedToast;
 
   // Check if already logged in and redirect
   useEffect(() => {
@@ -24,19 +32,21 @@ const Login: React.FC = () => {
     }
   }, [navigate, user]);
 
+  const handleCloseToast = () => {
+    setUserDismissedToast(true);
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('reason');
+    setSearchParams(newParams, { replace: true });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Pass credentials to login
     const credentials: LoginCredentials = { email, password };
-    const loggedInUser = await login(credentials); 
-    
-    // If user is returned, redirect based on role
+    const loggedInUser = await login(credentials);
+  
     if (loggedInUser) {
-      // Store user_role for the ProtectedRoute component
       localStorage.setItem('user_role', loggedInUser.role);
-      
-      // Redirect based on role
+    
       if (loggedInUser.role === 'superadmin') {
         navigate('/super-admin', { replace: true });
       } else {
@@ -46,31 +56,33 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div 
-      className="min-h-screen flex items-center justify-center p-6 bg-cover bg-center bg-no-repeat"
+    <div
+      className="relative min-h-screen flex items-center justify-center p-6 bg-cover bg-center bg-no-repeat"
       style={{ backgroundImage: `url(${backgroundImage})` }}
     >
-      {/* Login Card - Darker Taro Purple Background */}
+      {/* Toast Notification */}
+      {showToast && (
+        <Toast
+          message="Your session has expired. Please log in again."
+          type="warning"
+          onClose={handleCloseToast}
+        />
+      )}
+
       <div className="max-w-md w-full z-10 overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#D4C8F0] shadow-2xl">
-        
-        {/* Header Section */}
         <div className="flex flex-col items-center p-8 pb-4 text-center">
-          {/* Logo */}
           <div className="flex justify-center mb-0">
-            <img 
-              src={logo} 
-              alt="Lucky Boba Logo" 
-              className="w-80 h-48 object-contain drop-shadow-sm" 
+            <img
+              src={logo}
+              alt="Lucky Boba Logo"
+              className="w-80 h-48 object-contain drop-shadow-sm"
             />
           </div>
-          
-          {/* Subtitle */}
           <div className="text-[#3b2063] font-black uppercase text-[11px] tracking-[0.25em] -mt-10 opacity-70">
             Point of Sale System
           </div>
         </div>
 
-        {/* Login Form */}
         <form onSubmit={handleSubmit}>
           <div className="p-8 pt-4 space-y-6">
             {error && (
@@ -108,7 +120,6 @@ const Login: React.FC = () => {
             </div>
           </div>
 
-          {/* Action Button */}
           <div className="flex items-center p-8 pt-2 pb-12">
             <button
               type="submit"

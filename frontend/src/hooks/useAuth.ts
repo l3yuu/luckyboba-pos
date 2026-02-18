@@ -3,20 +3,25 @@ import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios'; 
 import type { LoginCredentials, User } from '../types/user'; 
 
-export type UserRole = 'superadmin' | 'admin' | 'manager';
-
-export interface LoginResult {
-  success: boolean;
-  role?: UserRole;
-}
+// Constants to avoid typos
+const AUTH_KEYS = [
+    'lucky_boba_token',
+    'lucky_boba_authenticated',
+    'dashboard_stats',
+    'dashboard_stats_timestamp'
+];
 
 export const useAuth = () => {
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
     const [user, setUser] = useState<User | null>(null);
 
+    const clearSession = useCallback(() => {
+        AUTH_KEYS.forEach(key => localStorage.removeItem(key));
+        setUser(null);
+    }, []);
+
     const checkAuth = useCallback(async (): Promise<User | null> => {
-        // We now check for the token instead of just a boolean string
         const token = localStorage.getItem('lucky_boba_token');
         
         if (!token) {
@@ -30,14 +35,12 @@ export const useAuth = () => {
             setUser(userData);
             return userData;
         } catch {
-            localStorage.removeItem('lucky_boba_token');
-            localStorage.removeItem('lucky_boba_authenticated');
-            setUser(null);
+            clearSession();
             return null;
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [clearSession]);
 
     useEffect(() => {
         checkAuth();
@@ -48,20 +51,22 @@ export const useAuth = () => {
         setError(null);
         
         try {
-            // STEP 1: No more sanctum/csrf-cookie call! 
-            // We go straight to login.
             const response = await api.post('/login', credentials);
+            const { token, user: userData, dashboard_stats } = response.data;
             
-            // STEP 2: Capture the token and user from our new controller response
-            const { token, user: userData } = response.data;
-            
-            // STEP 3: Store them
             localStorage.setItem('lucky_boba_token', token);
             localStorage.setItem('lucky_boba_authenticated', 'true');
             
+            if (dashboard_stats) {
+                localStorage.setItem('dashboard_stats', JSON.stringify(dashboard_stats));
+                localStorage.setItem('dashboard_stats_timestamp', Date.now().toString());
+            }
+            
             setUser(userData);
+            setIsLoading(false); // Make sure to reset loading after success
             return userData;
         } catch (err: unknown) { 
+            clearSession(); // Safety measure if login fails
             if (axios.isAxiosError(err)) {
                 setError(err.response?.data?.message || 'Invalid credentials.');
             } else {
@@ -79,10 +84,7 @@ export const useAuth = () => {
         } catch {
             return false;
         } finally {
-            // Always clear storage even if the API call fails
-            localStorage.removeItem('lucky_boba_token');
-            localStorage.removeItem('lucky_boba_authenticated');
-            setUser(null);
+            clearSession();
         }
     };
 

@@ -14,13 +14,16 @@ class SaleFactory extends Factory
      *
      * @return array<string, mixed>
      */
-    public function definition(): array
-    {
-        return [
-            'total_amount' => fake()->randomFloat(2, 85, 500), // Random Boba price
-            'payment_method' => 'cash',
-            'is_synced' => false,
-            'created_at' => fake()->dateTimeBetween('-1 month', 'now'), // Mix of old and new data
-        ];
-    }
+// database/factories/SaleFactory.php
+public function definition(): array
+{
+    return [
+        'total_amount'   => $this->faker->randomFloat(2, 100, 1000),
+        'payment_method' => 'cash',
+        'charge_type'    => $this->faker->randomElement(['grab', 'panda', null]),
+        'pax'            => $this->faker->numberBetween(1, 4),
+        'user_id'        => \App\Models\User::first()->id,
+        'is_synced'      => false,
+    ];
+}
 }

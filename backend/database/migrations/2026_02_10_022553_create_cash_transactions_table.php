@@ -13,12 +13,13 @@ return new class extends Migration
     {
         Schema::create('cash_transactions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained(); 
-            $table->enum('type', ['cash_in', 'cash_out', 'cash_drop']);
-            $table->decimal('amount', 10, 2);
-            $table->string('note')->nullable();
-            $table->boolean('is_synced')->default(false); // Add this for Hostinger sync
+            $table->foreignId('user_id')->constrained();
+            $table->string('type'); // cash_in, cash_drop, etc.
+            $table->decimal('amount', 12, 2);
+            $table->text('note')->nullable(); // Based on your screenshot
+            $table->boolean('is_synced')->default(false);
             $table->timestamps();
+            $table->index(['created_at', 'type'], 'idx_cash_stats');
         });
     }
 

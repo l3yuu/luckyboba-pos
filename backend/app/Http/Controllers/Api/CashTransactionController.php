@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Services\CashierService;
+use App\Services\DashboardService;
 use App\Models\CashTransaction; 
 use Illuminate\Support\Facades\Auth; 
 use Illuminate\Http\Request;
@@ -12,10 +13,12 @@ use Illuminate\Http\JsonResponse;
 class CashTransactionController extends Controller
 {
     protected $cashierService;
+    protected $dashboardService;
 
-    public function __construct(CashierService $cashierService)
+    public function __construct(CashierService $cashierService, DashboardService $dashboardService)
     {
-        $this->cashierService = $cashierService;
+        $this->cashierService = $cashierService; // Fixed typo: was $cashboardService
+        $this->dashboardService = $dashboardService;
     }
 
     public function store(Request $request): JsonResponse
@@ -32,6 +35,9 @@ class CashTransactionController extends Controller
                 $validated['amount'],
                 $validated['note']
             );
+
+            // Clear dashboard cache after creating transaction
+            $this->dashboardService->clearTodayCache();
 
             return response()->json([
                 'success' => true,
