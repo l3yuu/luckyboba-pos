@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\InventoryDashboardController;
 use App\Http\Controllers\Api\InventoryReportController;
 use App\Http\Controllers\Api\ItemSerialController;
+use App\Http\Controllers\Api\ItemsReportController;
 use App\Http\Controllers\Api\MenuController;
 use App\Http\Controllers\Api\MenuListController;
 use App\Http\Controllers\Api\PurchaseOrderController;
@@ -57,6 +58,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // --- ANALYTICS & REPORTING ---
     Route::get('/dashboard/stats', [DashboardController::class, 'index']);
     Route::get('/sales-analytics', [SalesDashboardController::class, 'index']);
+    Route::get('/dashboard/data', [SalesDashboardController::class, 'dashboardData']);
 
     // --- MENU MANAGEMENT ---
     Route::get('/menu', [MenuController::class, 'index']);
@@ -81,7 +83,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // --- SALES REPORTS ---
     Route::get('/items-report', [SalesDashboardController::class, 'itemsReport']);
-    Route::get('/items-reports/items', [SalesDashboardController::class, 'itemsReport']);
+    Route::get('/items-reports/items', [ItemsReportController::class, 'getItemsSoldReport']);
     Route::get('/reports/x-reading', [SalesDashboardController::class, 'xReading']);
     Route::get('/reports/z-reading', [SalesDashboardController::class, 'zReading']);
     Route::get('/reports/mall-accreditation', [SalesDashboardController::class, 'mallReport']);
@@ -91,27 +93,23 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // --- MENU LIST ---
     Route::get('/menu-list', [MenuListController::class, 'index']);
 
-    // --- CATEGORIES (Cleaned up) ---
+    // --- CATEGORIES ---
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::post('/categories', [CategoryController::class, 'store']);
     Route::patch('/categories/{id}', [CategoryController::class, 'update']);
     Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
-    Route::patch('/categories/{id}', [CategoryController::class, 'update']);
 
     // --- SUB-CATEGORIES ---
-    // Added specific filter route for the dynamic dropdowns
     Route::get('/sub-categories/filter/{categoryId}', [SubCategoryController::class, 'getByCategory']);
     Route::apiResource('sub-categories', SubCategoryController::class);
 
-    // --- INVENTORY DASHBOARD ---
+    // --- INVENTORY ---
     Route::get('/inventory/top-products', [InventoryDashboardController::class, 'getWeeklyTopProducts']);
     Route::get('/inventory/check/{barcode}', [InventoryController::class, 'checkByBarcode']);
     Route::get('/inventory', [InventoryController::class, 'index']);
     Route::patch('/inventory/{id}/quantity', [InventoryController::class, 'updateQuantity']);
-    Route::get('/inventory/check/{barcode}', [InventoryController::class, 'checkByBarcode']);
     Route::get('/purchase-orders', [PurchaseOrderController::class, 'index']);
     Route::post('/purchase-orders', [PurchaseOrderController::class, 'store']);
-    // REMOVED duplicate Route::get('/categories') and Route::patch('/categories/{id}') from here
 
     // --- SETTINGS ---
     Route::get('/settings', [SettingsController::class, 'index']);
@@ -121,13 +119,17 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/vouchers', [VoucherController::class, 'index']);
     Route::post('/vouchers', [VoucherController::class, 'store']);
 
+    // --- OTHER REPORTS ---
     Route::get('/reports/inventory', [InventoryReportController::class, 'index']);
 
+    // --- ITEM SERIALS ---
     Route::get('/item-serials', [ItemSerialController::class, 'index']);
     Route::post('/item-serials', [ItemSerialController::class, 'store']);
 
+    // --- EXPENSES ---
     Route::get('/expenses', [ExpenseController::class, 'index']);
     Route::post('/expenses', [ExpenseController::class, 'store']);
 
+    // --- AUDIT ---
     Route::get('/system/audit', [SettingsController::class, 'getAuditLogs']);
 });

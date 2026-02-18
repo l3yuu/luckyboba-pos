@@ -103,39 +103,71 @@ public function xReading(Request $request)
         return response()->json($report);
     }
 
-    public function dashboardData(): JsonResponse
+public function dashboardData(): \Illuminate\Http\JsonResponse
 {
     try {
-        $data = $this->salesService->getAnalyticsData();
-        $startOfWeek = \Carbon\Carbon::now()->startOfWeek();
-        $endOfWeek = \Carbon\Carbon::now()->endOfWeek();
+        $today = now()->toDateString();
+        $weekStart = now()->startOfWeek()->toDateString();
+        $weekEnd = now()->endOfWeek()->toDateString();
+
+        // Weekly sales - group by day
+        $weeklySales = \App\Models\Sale::selectRaw('DATE(created_at) as date, SUM(total_amount) as value')
+            ->whereBetween('created_at', [$weekStart, $weekEnd])
+            ->where('status', '!=', 'cancelled')
+            ->groupByRaw('DATE(created_at)')
+            ->orderBy('date')
+            ->get()
+            ->map(fn($row) => [
+                'day'       => \Carbon\Carbon::parse($row->date)->format('D'),
+                'date'      => \Carbon\Carbon::parse($row->date)->format('M d'),
+                'value'     => (float) $row->value,
+                'full_date' => $row->date,
+            ]);
+
+        // Today's sales - group by hour
+        $todaySales = \App\Models\Sale::selectRaw('HOUR(created_at) as hour, SUM(total_amount) as value')
+            ->whereDate('created_at', $today)
+            ->where('status', '!=', 'cancelled')
+            ->groupByRaw('HOUR(created_at)')
+            ->orderBy('hour')
+            ->get()
+            ->map(fn($row) => [
+                'time'  => \Carbon\Carbon::createFromTime($row->hour)->format('g A'),
+                'value' => (float) $row->value,
+            ]);
+
+        // Statistics
+        $beginning = \App\Models\Sale::whereDate('created_at', $today)->where('status', '!=', 'cancelled')->orderBy('id')->first();
+        $ending    = \App\Models\Sale::whereDate('created_at', $today)->where('status', '!=', 'cancelled')->orderBy('id', 'desc')->first();
+
+        $statistics = [
+            'beginning_sales'  => \App\Models\Sale::whereDate('created_at', $today)->where('status', '!=', 'cancelled')->min('total_amount') ?? 0,
+            'today_sales'      => \App\Models\Sale::whereDate('created_at', $today)->where('status', '!=', 'cancelled')->sum('total_amount'),
+            'ending_sales'     => \App\Models\Sale::whereDate('created_at', $today)->where('status', '!=', 'cancelled')->max('total_amount') ?? 0,
+            'cancelled_sales'  => \App\Models\Sale::whereDate('created_at', $today)->where('status', 'cancelled')->sum('total_amount'),
+            'beginning_or'     => $beginning?->or_number ?? '00000',
+            'ending_or'        => $ending?->or_number ?? '00000',
+        ];
 
         return response()->json([
             'success' => true,
-            'data' => [
+            'data'    => [
                 'weekly_sales' => [
-                    'data' => $data['weekly'],
-                    'total_revenue' => $data['stats']['total_revenue'],
-                    'start_date' => $startOfWeek->format('M d, Y'),
-                    'end_date' => $endOfWeek->format('M d, Y'),
-                    'current_week_start' => $startOfWeek->format('Y-m-d'),
+                    'data'               => $weeklySales,
+                    'total_revenue'      => $weeklySales->sum('value'),
+                    'start_date'         => \Carbon\Carbon::parse($weekStart)->format('M d, Y'),
+                    'end_date'           => \Carbon\Carbon::parse($weekEnd)->format('M d, Y'),
+                    'current_week_start' => $weekStart,
                 ],
                 'today_sales' => [
-                    'data' => $data['today_hourly'],
-                    'date' => now()->format('Y-m-d'),
+                    'data' => $todaySales,
+                    'date' => $today,
                 ],
-                'statistics' => [
-                    'beginning_sales' => 0,
-                    'today_sales' => $data['stats']['today_sales'],
-                    'ending_sales' => $data['stats']['today_sales'],
-                    'cancelled_sales' => $data['stats']['cancelled_sales'],
-                    'beginning_or' => $data['stats']['beginning_or'],
-                    'ending_or' => $data['stats']['ending_or'],
-                ],
-            ]
+                'statistics' => $statistics,
+            ],
         ]);
+
     } catch (\Exception $e) {
-        Log::error("Dashboard Data Error: " . $e->getMessage());
         return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
     }
 }
@@ -154,4 +186,6 @@ public function weeklySales(): JsonResponse
         return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
     }
 }
+
+
 }
