@@ -16,6 +16,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Models\User;
 use Illuminate\Http\Request; 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\ReportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -71,6 +72,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/reports/x-reading', [SalesDashboardController::class, 'xReading']);
     Route::get('/reports/z-reading', [SalesDashboardController::class, 'zReading']);
     Route::get('/reports/mall-accreditation', [SalesDashboardController::class, 'mallReport']);
+    Route::get('/reports/sales', [ReportController::class, 'getSalesReport']);
+    Route::get('/reports/food-menu', [ReportController::class, 'getFoodMenuReport']);
 
     // --- MENU LIST ---
     Route::get('/menu-list', [MenuListController::class, 'index']);
