@@ -1,14 +1,17 @@
-import { useState } from 'react';
+"use client"
+
+import { useState, useEffect } from 'react';
 import logo from '../../assets/logo.png';
-import { Pencil, ArrowLeft, Check, X, Save } from 'lucide-react';
+import { Pencil, ArrowLeft, Check, X, Save, Loader2 } from 'lucide-react';
+import api from '../../services/api';
+import { useToast } from '../../hooks/useToast';
 
 interface SalesSettingsProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-// --- HELPER COMPONENTS (Moved Outside) ---
-
+// --- HELPER COMPONENTS ---
 const RedCross = () => (
   <div className="w-4 h-4 rounded-full bg-red-100 flex items-center justify-center">
     <X size={12} className="text-red-500" strokeWidth={3} />
@@ -21,10 +24,11 @@ const GreenCheck = () => (
   </div>
 );
 
-// --- MAIN COMPONENT ---
-
 const SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
+  const { showToast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const [formData, setFormData] = useState({
     bcode: '123456789',
@@ -40,12 +44,67 @@ const SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
     tableLayout: false,
   });
 
+  // --- BACKEND: FETCH SETTINGS ---
+  useEffect(() => {
+    if (isOpen) {
+      const loadSettings = async () => {
+        setIsSyncing(true);
+        try {
+          const res = await api.get('/settings');
+          const data = res.data;
+          
+          if (Object.keys(data).length > 0) {
+            setFormData({
+              bcode: data.bcode || '123456789',
+              posType: data.posType || 'RESTO',
+              transDateDay: data.transDateDay === 'true' || data.transDateDay === true,
+              serviceCharge: data.serviceCharge || '0%',
+              voucherSurge: data.voucherSurge || '0%',
+              scPwdDiscount: data.scPwdDiscount || 'PAX',
+              transPerLine: data.transPerLine === 'true' || data.transPerLine === true,
+              vatable: data.vatable === 'true' || data.vatable === true,
+              customerPoints: parseInt(data.customerPoints) || 0,
+              onlineCustomer: data.onlineCustomer === 'true' || data.onlineCustomer === true,
+              tableLayout: data.tableLayout === 'true' || data.tableLayout === true,
+            });
+          }
+        } catch {
+          showToast("Could not sync with server", "error");
+        } finally {
+          setIsSyncing(false);
+        }
+      };
+      loadSettings();
+    }
+  }, [isOpen, showToast]);
+
+  // --- BACKEND: SAVE SETTINGS ---
+  const handleSave = async () => {
+    setLoading(true);
+    try {
+      await api.post('/settings', formData);
+      showToast("Configuration saved!", "success");
+      setIsEditing(false);
+    } catch {
+      showToast("Failed to save changes", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white w-full max-w-4xl rounded-xl shadow-2xl overflow-hidden flex flex-col md:flex-row h-[90vh] md:h-auto animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <div className="bg-white w-full max-w-4xl rounded-xl shadow-2xl overflow-hidden flex flex-col md:flex-row h-[90vh] md:h-auto animate-in zoom-in-95 duration-200 relative">
         
+        {/* Syncing Overlay */}
+        {isSyncing && (
+          <div className="absolute inset-0 bg-white/60 z-50 flex items-center justify-center backdrop-blur-[1px]">
+            <Loader2 className="animate-spin text-[#1e40af]" size={32} />
+          </div>
+        )}
+
         {/* === LEFT COLUMN: Sales Configuration === */}
         <div className="flex-1 bg-zinc-50/50 p-8 border-r border-zinc-200 flex flex-col relative overflow-hidden">
           
@@ -125,13 +184,11 @@ const SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
               {/* ACTION BUTTONS */}
               <div className="flex gap-3 mt-6 pt-4 border-t border-zinc-200">
                 <button 
-                  onClick={() => {
-                    console.log("Saving...", formData);
-                    setIsEditing(false); 
-                  }} 
-                  className="flex-1 px-4 py-3 bg-[#10b981] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#059669] flex items-center justify-center gap-2 shadow-md transition-all"
+                  onClick={handleSave} 
+                  disabled={loading}
+                  className="flex-1 px-4 py-3 bg-[#10b981] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#059669] flex items-center justify-center gap-2 shadow-md transition-all disabled:opacity-50"
                 >
-                  <Save size={14} strokeWidth={2.5} />
+                  {loading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} strokeWidth={2.5} />}
                   Save
                 </button>
                 <button 
@@ -150,6 +207,7 @@ const SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
               
               <div className="flex-1 space-y-4 text-xs font-bold text-slate-600 overflow-y-auto">
                  <div className="flex justify-between items-center"><span className="text-zinc-400 uppercase tracking-wider">Branch</span> <span className="text-slate-800">Vipra sangandaan Quezon City</span></div>
+                 <div className="flex justify-between items-center"><span className="text-zinc-400 uppercase tracking-wider">BCODE</span> <span className="text-slate-800">{formData.bcode}</span></div>
                  <div className="flex justify-between items-center"><span className="text-zinc-400 uppercase tracking-wider">POS TYPE</span> <span className="text-slate-800">{formData.posType}</span></div>
                  <div className="flex justify-between items-center"><span className="text-zinc-400 uppercase tracking-wider">Transaction by DATE/DAY</span> {formData.transDateDay ? <GreenCheck /> : <RedCross />}</div>
                  <div className="flex justify-between items-center"><span className="text-zinc-400 uppercase tracking-wider">Service Charge</span> <span className="text-slate-800">{formData.serviceCharge}</span></div>

@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\MenuListController;
 use App\Http\Controllers\Api\ReceiptController;
 use App\Http\Controllers\Api\SalesController;
 use App\Http\Controllers\Api\SalesDashboardController; 
+use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Models\User;
 use Illuminate\Http\Request; 
@@ -86,4 +87,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/categories', [InventoryController::class, 'getCategories']);
     Route::patch('/categories/{id}', [CategoryController::class, 'update']);
     Route::get('/inventory/check/{barcode}', [InventoryController::class, 'checkByBarcode']);
+
+    // --- SETTINGS ---
+    Route::get('/settings', [SettingController::class, 'index']);
+    Route::post('/settings', [SettingController::class, 'update']);
 });
