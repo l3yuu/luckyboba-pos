@@ -71,12 +71,27 @@ const apiClient = axios.create({
   },
 });
 
+<<<<<<< HEAD
 // Attach auth token
 apiClient.interceptors.request.use((config) => {
   const token = localStorage.getItem('lucky_boba_token');
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
+=======
+  async createUser(data: CreateUserData): Promise<User> {
+    await new Promise((resolve) => setTimeout(resolve, SIMULATED_DELAY));
+    const { ...rest } = data;
+    const newUser: User = {
+      ...rest,
+      id: Math.floor(Math.random() * 10000),
+      status: data.status ?? 'ACTIVE',
+      branch: data.branch,
+    };
+    mockUsers.push(newUser);
+    return newUser;
+  },
+>>>>>>> ddec0ef95aab049e456d303aa7b689355bce6983
 
 // Handle global errors
 apiClient.interceptors.response.use(
@@ -85,9 +100,17 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401) {
       console.error('Authentication error - token may be invalid');
     }
+<<<<<<< HEAD
     return Promise.reject(error);
   }
 );
+=======
+    const { ...rest } = data;
+    const updatedUser: User = { ...mockUsers[index], ...rest };
+    mockUsers[index] = updatedUser;
+    return updatedUser;
+  },
+>>>>>>> ddec0ef95aab049e456d303aa7b689355bce6983
 
 export class UserService {
   /** Get all users with optional filters */
