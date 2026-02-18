@@ -14,9 +14,29 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [isLoading, setIsLoading] = useState(false); 
   
+<<<<<<< HEAD
 
+=======
+  // --- NEW STATE FOR LOCK LOGIC ---
+  const [isEodLocked, setIsEodLocked] = useState(false);
+  
+>>>>>>> 3537335148519ac44802b3b8ee695dd57c595ab6
   const [receiptData, setReceiptData] = useState<ReceiptData>({ date: '', time: '' });
   const keyboardRef = useRef<KeyboardRef | null>(null);
+
+  // --- Check EOD Status on Mount ---
+  const checkEodStatus = async () => {
+    try {
+      const response = await api.get<{ isEodDone: boolean }>('/cash-counts/status');
+      setIsEodLocked(response.data.isEodDone);
+    } catch (error) {
+      console.error("Failed to check EOD status:", error);
+    }
+  };
+
+  useEffect(() => {
+    checkEodStatus();
+  }, []);
 
   const getCurrentDateTime = (): ReceiptData => {
     const now = new Date();
@@ -27,7 +47,8 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
   };
 
   const handleSubmit = async () => {
-    if (!amount || parseFloat(amount) <= 0) return; 
+    // Added isEodLocked to the guard
+    if (!amount || parseFloat(amount) <= 0 || isEodLocked) return; 
 
     setIsLoading(true);
     try {
@@ -42,8 +63,11 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
         setIsFlipped(true); 
         setShowKeyboard(false);
 
+<<<<<<< HEAD
 
         // Notify sidebar to unlock the Menu
+=======
+>>>>>>> 3537335148519ac44802b3b8ee695dd57c595ab6
         if (onSuccess) onSuccess(); 
       }
     } catch (error: unknown) {
@@ -61,12 +85,14 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
   };
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isEodLocked) return; // Prevent manual typing if locked
     const value = e.target.value.replace(/[^0-9.]/g, '');
     setAmount(value);
     if (keyboardRef.current) keyboardRef.current.setInput(value);
   };
 
   const onKeyboardChange = (input: string) => {
+    if (isEodLocked) return;
     const value = input.replace(/[^0-9.]/g, '');
     setAmount(value);
   };
@@ -74,7 +100,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
   const onKeyPress = (button: string) => {
     if (button === "{enter}") {
         setShowKeyboard(false);
-        if (amount) handleSubmit();
+        if (amount && !isEodLocked) handleSubmit();
     }
   };
 
@@ -113,8 +139,13 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
       </style>
 
       <div className="flex flex-col h-full w-full bg-[#f8f6ff] animate-in fade-in zoom-in duration-300 relative overflow-hidden">
+<<<<<<< HEAD
 
         <TopNavbar />
+=======
+        {/* Added the lock prop to TopNavbar as requested earlier */}
+        <TopNavbar isEodLocked={isEodLocked} />
+>>>>>>> 3537335148519ac44802b3b8ee695dd57c595ab6
 
         <div className={`flex-1 flex flex-col xl:flex-row items-center justify-center p-6 gap-6 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-75' : ''}`}>
           <div className="relative w-full max-w-2xl h-125" style={{ perspective: '1000px' }}>
@@ -141,22 +172,26 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
                         type="text" 
                         value={amount}
                         onChange={handleAmountChange} 
-                        onFocus={() => setShowKeyboard(true)}
-                        placeholder="0.00"
-                        className="w-full bg-white text-[#3b2063] font-black text-3xl px-8 pl-14 py-5 rounded-3xl border-2 border-zinc-100 focus:border-[#3b2063] focus:outline-none focus:ring-4 focus:ring-[#f0ebff] transition-all"
+                        onFocus={() => !isEodLocked && setShowKeyboard(true)}
+                        placeholder={isEodLocked ? "LOCKED" : "0.00"}
+                        disabled={isEodLocked}
+                        className={`w-full text-[#3b2063] font-black text-3xl px-8 pl-14 py-5 rounded-3xl border-2 transition-all focus:outline-none focus:ring-4 focus:ring-[#f0ebff] 
+                          ${isEodLocked ? 'bg-zinc-50 border-zinc-100 cursor-not-allowed opacity-50' : 'bg-white border-zinc-100 focus:border-[#3b2063]'}`}
                       />
                     </div>
                   </div>
                   <button 
                     onClick={handleSubmit} 
-                    disabled={!amount || isLoading}
-                    className="w-full mt-2 bg-[#3b2063] hover:bg-[#2a1647] disabled:bg-zinc-200 text-white py-5 rounded-3xl font-black text-sm uppercase tracking-[0.25em] shadow-lg active:scale-95 transition-all duration-200"
+                    disabled={!amount || isLoading || isEodLocked}
+                    className={`w-full mt-2 py-5 rounded-3xl font-black text-sm uppercase tracking-[0.25em] shadow-lg active:scale-95 transition-all duration-200
+                      ${isEodLocked ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed' : 'bg-[#3b2063] hover:bg-[#2a1647] text-white'}`}
                   >
-                    {isLoading ? "Processing..." : "Submit Cash In"}
+                    {isLoading ? "Processing..." : isEodLocked ? "Terminal Closed" : "Submit Cash In"}
                   </button>
                 </div>
               </div>
 
+              {/* Back side of card */}
               <div className="printable-receipt absolute w-full h-full bg-white rounded-[3rem] shadow-xl border border-zinc-100 p-10 flex flex-col overflow-hidden" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
                 <div className="receipt-header border-b border-zinc-100 pb-4 mb-4">
                    <h2 className="text-[#3b2063] font-black text-xl uppercase">Cash In Receipt</h2>

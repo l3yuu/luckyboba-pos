@@ -75,7 +75,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/cash-transactions', [CashTransactionController::class, 'index']);
     Route::post('/cash-transactions', [CashTransactionController::class, 'store']);
     Route::get('/receipts/search', [ReceiptController::class, 'search']);
-    Route::get('/cash-transactions/status', [CashTransactionController::class, 'checkInitialCash']);
+    Route::get('/cash-transactions/status', [CashCountController::class, 'checkInitialCash']);
 
     // --- END OF DAY ---
     Route::post('/cash-counts', [CashCountController::class, 'store']);

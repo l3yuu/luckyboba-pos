@@ -1,5 +1,10 @@
 "use client"
+<<<<<<< HEAD
 import React, { useState, useRef } from 'react';
+=======
+
+import React, { useState, useRef, useEffect } from 'react';
+>>>>>>> 3537335148519ac44802b3b8ee695dd57c595ab6
 import Keyboard from 'react-simple-keyboard';
 import 'react-simple-keyboard/build/css/index.css';
 import type { Transaction, ActiveInput } from '../../types/cash-count';
@@ -7,7 +12,6 @@ import api from '../../services/api';
 import TopNavbar from '../TopNavbar';
 import { useToast } from '../../hooks/useToast';
 
-// Interface for keyboard instance methods to avoid 'any'
 interface SimpleKeyboardInstance {
   setInput: (input: string) => void;
 }
@@ -26,15 +30,41 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
   const [latestTx, setLatestTx] = useState<Transaction | null>(null);
   const [printData, setPrintData] = useState<Transaction | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // --- NEW STATE FOR LOCK LOGIC ---
+  const [isEodLocked, setIsEodLocked] = useState(false);
 
   // Keyboard & Input State
   const [activeInput, setActiveInput] = useState<ActiveInput | null>(null);
   const [layoutName, setLayoutName] = useState('numpad');
   const [showKeyboard, setShowKeyboard] = useState(false);
+<<<<<<< HEAD
   
 
   const keyboardRef = useRef<SimpleKeyboardInstance | null>(null);
 
+=======
+  const keyboardRef = useRef<SimpleKeyboardInstance | null>(null);
+
+  // --- Check EOD Status on Mount ---
+  const checkEodStatus = async () => {
+    try {
+      const response = await api.get<{ isEodDone: boolean }>('/cash-counts/status');
+      setIsEodLocked(response.data.isEodDone);
+      
+      // If already done, we simulate a "latest transaction" state to show the print UI
+      if (response.data.isEodDone) {
+        localStorage.setItem('terminal_eod_locked', 'true');
+      }
+    } catch (error) {
+      console.error("Failed to check EOD status:", error);
+    }
+  };
+
+  useEffect(() => {
+    checkEodStatus();
+  }, []);
+>>>>>>> 3537335148519ac44802b3b8ee695dd57c595ab6
 
   const getGrandTotal = (currentCounts: { [key: number]: string }) => {
     return denominations.reduce((total, denom) => {
@@ -44,6 +74,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
   };
 
   const handleCountFocus = (denom: number) => {
+    if (isEodLocked || latestTx) return; // Guard
     setActiveInput({ type: 'count', id: denom });
     setLayoutName('numpad');
     setShowKeyboard(true);
@@ -51,6 +82,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
   };
 
   const handleRemarksFocus = () => {
+    if (isEodLocked || latestTx) return; // Guard
     setActiveInput({ type: 'remarks' });
     setLayoutName('default');
     setShowKeyboard(true);
@@ -58,7 +90,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
   };
 
   const handleInputChange = (inputVal: string) => {
-    if (!activeInput) return;
+    if (!activeInput || isEodLocked || latestTx) return;
     if (activeInput.type === 'count' && activeInput.id !== undefined) {
       const cleanValue = inputVal.replace(/[^0-9.]/g, ''); 
       setCounts(prev => ({ ...prev, [activeInput.id!]: cleanValue }));
@@ -70,29 +102,28 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
   };
 
   const onKeyboardChange = (input: string) => {
-    if (!activeInput) return;
-    if (activeInput.type === 'count' && activeInput.id !== undefined) {
-      const cleanValue = input.replace(/[^0-9.]/g, '');
-      setCounts(prev => ({ ...prev, [activeInput.id!]: cleanValue }));
-    } else if (activeInput.type === 'remarks') {
-      setRemarks(input);
-    }
+    if (!activeInput || isEodLocked || latestTx) return;
+    handleInputChange(input);
   };
 
   const onKeyPress = (button: string) => {
     if (button === "{enter}") setShowKeyboard(false);
   };
 
-  // --- Database Submission ---
   const handleSubmit = async () => {
     const total = getGrandTotal(counts);
+<<<<<<< HEAD
     if (total <= 0) {
 
       showToast("Please enter a valid cash count.", "warning");
+=======
+    if (total <= 0 || isEodLocked) {
+      showToast(isEodLocked ? "Terminal is already locked." : "Please enter a valid cash count.", "warning");
+>>>>>>> 3537335148519ac44802b3b8ee695dd57c595ab6
       return;
     }
 
-    setIsLoading(true); // Triggers the "Syncing" overlay
+    setIsLoading(true); 
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const currentDay = days[new Date().getDay()];
     const finalRemarks = `${currentDay} EOD${remarks ? ' - ' + remarks : ''}`;
@@ -105,9 +136,14 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
         remarks: finalRemarks,
       });
 
-      if (response.status === 201) {
+      if (response.status === 201 || response.status === 200) {
         localStorage.setItem('terminal_eod_locked', 'true');
         localStorage.setItem('cashier_menu_unlocked', 'false');
+<<<<<<< HEAD
+=======
+        setIsEodLocked(true);
+
+>>>>>>> 3537335148519ac44802b3b8ee695dd57c595ab6
         const now = new Date();
         const newTx: Transaction = {
           id: response.data.id,
@@ -142,6 +178,11 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
   };
 
   const handleNewCount = () => {
+    // Only allow new count if not globally locked by DB
+    if (isEodLocked) {
+      showToast("Cannot start new count. Day is already finalized.", "error");
+      return;
+    }
     setLatestTx(null);
     setCounts({});
     setRemarks('');
@@ -150,7 +191,6 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
 
   return (
     <>
-      {/* SYNCING OVERLAY */}
       {isLoading && (
         <div className="fixed inset-0 z-9999 flex items-center justify-center bg-[#3b2063]/60 backdrop-blur-md animate-in fade-in duration-300">
            <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl flex flex-col items-center gap-4 border border-purple-100 animate-in zoom-in-95 duration-200">
@@ -194,7 +234,6 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
         `}
       </style>
 
-      {/* --- Print Template --- */}
       {printData && (
         <div className="printable-receipt">
           <div className="receipt-header">
@@ -241,12 +280,25 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
         </div>
       )}
 
-      {/* Main Dashboard UI */}
       <div className="flex flex-col h-full w-full bg-[#f8f6ff] animate-in fade-in zoom-in duration-300 relative overflow-hidden">
-        <TopNavbar />
+        <TopNavbar isEodLocked={isEodLocked} />
         <div className={`flex-1 flex flex-row items-start justify-center p-6 gap-6 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-87.5' : ''}`}>
           <div className="bg-white w-full flex-1 rounded-[2.5rem] shadow-xl shadow-purple-900/5 border border-zinc-100 flex flex-col relative overflow-hidden shrink-0 h-full">
             <div className="absolute top-0 left-0 w-full h-3 bg-[#3b2063] opacity-10 z-10"></div>
+            
+            {/* --- LOCKED OVERLAY --- */}
+            {isEodLocked && (
+              <div className="absolute inset-0 bg-white/40 backdrop-blur-[2px] z-20 flex items-center justify-center p-8">
+                <div className="bg-white p-8 rounded-4xl shadow-2xl border border-zinc-100 flex flex-col items-center text-center animate-in zoom-in-95 duration-300">
+                   <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mb-4">
+                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="#ef4444" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25z" /></svg>
+                   </div>
+                   <h3 className="text-[#3b2063] font-black uppercase text-sm tracking-widest mb-1">Terminal Closed</h3>
+                   <p className="text-zinc-400 font-bold text-[10px] uppercase leading-relaxed">End of Day record has been finalized.</p>
+                </div>
+              </div>
+            )}
+
             <div className="flex-1 overflow-y-auto p-8 w-full scroll-smooth">
               <h2 className="text-[#3b2063] font-black text-base tracking-[0.4em] uppercase mb-2 text-center">Terminal 01 (EOD)</h2>
               <p className="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-8 text-center">End of Day Counting</p>
@@ -272,9 +324,9 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
                           onFocus={() => handleCountFocus(denom)}
                           onChange={(e) => handleInputChange(e.target.value)}
                           placeholder="0"
-                          disabled={latestTx !== null}
+                          disabled={isEodLocked || latestTx !== null}
                           className={`w-full text-center font-bold text-lg py-2 rounded-xl border-2 transition-all outline-none 
-                            ${latestTx !== null ? 'bg-zinc-100 text-zinc-400 border-zinc-200' : 
+                            ${(isEodLocked || latestTx !== null) ? 'bg-zinc-100 text-zinc-400 border-zinc-200 cursor-not-allowed' : 
                               (activeInput?.type === 'count' && activeInput.id === denom ? 'border-[#3b2063] bg-white ring-4 ring-[#f0ebff]' : 'border-zinc-100 bg-[#f8f6ff]')}`}
                         />
                       </div>
@@ -297,20 +349,30 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
                     value={remarks}
                     onFocus={handleRemarksFocus}
                     onChange={(e) => handleInputChange(e.target.value)}
-                    placeholder="E.g. Shortage of 20 pesos..."
-                    disabled={latestTx !== null}
+                    placeholder={isEodLocked ? "No remarks needed." : "E.g. Shortage of 20 pesos..."}
+                    disabled={isEodLocked || latestTx !== null}
                     className={`w-full p-4 rounded-2xl border-2 font-bold text-sm text-[#3b2063] resize-none h-16 outline-none transition-all
-                      ${latestTx !== null ? 'bg-zinc-100 text-zinc-400 border-zinc-200' :
+                      ${(isEodLocked || latestTx !== null) ? 'bg-zinc-100 text-zinc-400 border-zinc-200 cursor-not-allowed' :
                         (activeInput?.type === 'remarks' ? 'border-[#3b2063] bg-white ring-4 ring-[#f0ebff]' : 'border-zinc-100 bg-[#f8f6ff]')}`}
                   />
                 </div>
+<<<<<<< HEAD
                 {!latestTx ? (
+=======
+
+                {!latestTx && !isEodLocked ? (
+>>>>>>> 3537335148519ac44802b3b8ee695dd57c595ab6
                   <button onClick={handleSubmit} disabled={isLoading} className="w-full bg-[#3b2063] text-white py-5 rounded-3xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-transform disabled:bg-zinc-300">
                     {isLoading ? 'Saving...' : 'Submit EOD Count'}
                   </button>
                 ) : (
-                  <button onClick={handleNewCount} className="w-full bg-zinc-100 text-zinc-600 py-5 rounded-3xl font-black uppercase tracking-widest active:scale-95 transition-transform">
-                    New Count
+                  <button 
+                    onClick={handleNewCount} 
+                    disabled={isEodLocked}
+                    className={`w-full py-5 rounded-3xl font-black uppercase tracking-widest transition-transform 
+                      ${isEodLocked ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed' : 'bg-zinc-100 text-zinc-600 active:scale-95'}`}
+                  >
+                    {isEodLocked ? 'Terminal Locked' : 'New Count'}
                   </button>
                 )}
               </div>
@@ -325,7 +387,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
               </svg>
             </div>
             <h3 className={`font-black text-xs uppercase tracking-[0.2em] mb-2 transition-colors duration-500 ${latestTx ? 'text-[#3b2063]' : 'text-zinc-400'}`}>Receipt Printer</h3>
-            <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-2">{latestTx ? "Ready to Print EOD" : "Waiting for Submit..."}</p>
+            <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mb-2">{latestTx ? "Ready to Print EOD" : isEodLocked ? "Shift Finalized" : "Waiting for Submit..."}</p>
             {latestTx && (
               <div className="bg-zinc-50 rounded-xl p-3 w-full mb-6 border border-zinc-100 animate-in fade-in zoom-in duration-300">
                  <div className="flex justify-between mb-1">
