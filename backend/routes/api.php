@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\CashCountController;
 use App\Http\Controllers\Api\CashTransactionController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\DiscountController;
 use App\Http\Controllers\Api\ExpenseController;
 use App\Http\Controllers\Api\InventoryController;
 use App\Http\Controllers\Api\InventoryDashboardController;
@@ -128,4 +129,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/system/audit', [SettingsController::class, 'getAuditLogs']);
     Route::get('/system/backup-status', [BackupController::class, 'lastBackupStatus']);
     Route::post('/system/run-backup', [BackupController::class, 'runBackup']);    
+
+    // Discount Routes
+    Route::get('/discounts', [DiscountController::class, 'index']);
+    Route::post('/discounts', [DiscountController::class, 'store']);
+    Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
+    Route::delete('/discounts/{discount}', [DiscountController::class, 'destroy']);
 });

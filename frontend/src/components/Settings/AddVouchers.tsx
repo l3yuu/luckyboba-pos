@@ -4,7 +4,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, Ticket, Plus, Printer, X, Save, Upload, FileText, Loader2 } from 'lucide-react';
 import api from '../../services/api';
 import { useToast } from '../../hooks/useToast';
+import { getCache, setCache } from '../../utils/cache';
 import { AxiosError } from 'axios';
+
+const CACHE_KEY = 'vouchers';
+const CACHE_TTL = 3 * 60 * 1000; // 3 min
 
 interface Voucher {
   id: number;
@@ -24,8 +28,10 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
   const { showToast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [isFetching, setIsFetching] = useState(true);
-  const [vouchers, setVouchers] = useState<Voucher[]>([]);
+  const [isFetching, setIsFetching] = useState(!getCache<Voucher[]>(CACHE_KEY));
+  const [vouchers, setVouchers] = useState<Voucher[]>(
+    getCache<Voucher[]>(CACHE_KEY) ?? []
+  );
 
   const [newVoucher, setNewVoucher] = useState({
     number: '',
@@ -37,7 +43,9 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
     setIsFetching(true);
     try {
       const response = await api.get('/vouchers');
-      setVouchers(response.data);
+      const data: Voucher[] = response.data;
+      setCache<Voucher[]>(CACHE_KEY, data, CACHE_TTL);
+      setVouchers(data);
     } catch (err) {
       console.error("Fetch Error:", err);
       showToast("Could not load vouchers from database", "error");
@@ -47,7 +55,9 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
   }, [showToast]);
 
   useEffect(() => {
-    fetchVouchers();
+    // Skip fetch if TTL cache is still valid
+    if (getCache<Voucher[]>(CACHE_KEY)) return;
+    void (async () => { await fetchVouchers(); })();
   }, [fetchVouchers]);
 
   const handlePrintVouchers = () => {
@@ -202,7 +212,9 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
         type: newVoucher.type
       });
 
-      setVouchers([response.data, ...vouchers]);
+      const updated = [response.data, ...vouchers];
+      setVouchers(updated);
+      setCache<Voucher[]>(CACHE_KEY, updated, CACHE_TTL); // keep cache in sync
       showToast("Voucher added successfully!", "success");
       setNewVoucher({ number: '', value: '', type: 'Percentage' });
       setIsModalOpen(false);
