@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Setting;
 use App\Models\AuditLog; // Ensure you created this model
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -47,27 +47,66 @@ class SettingsController extends Controller
     /**
      * Fetch System Audit Logs (Fixes the 404 error in Settings.tsx)
      */
-    public function getAuditLogs()
-    {
-        try {
-            // Fetch the last 50 actions with the name of the user who did them
-            $logs = AuditLog::with('user:id,name')
-                ->orderBy('created_at', 'desc')
-                ->limit(50)
-                ->get()
-                ->map(function($log) {
-                    return [
-                        'id' => $log->id,
-                        'user' => $log->user->name ?? 'System',
-                        'action' => $log->action,
-                        'module' => $log->module,
-                        'timestamp' => $log->created_at->format('Y-m-d H:i:s'),
-                    ];
-                });
+public function getAuditLogs()
+{
+    try {
+        // Gets the authenticated Cashier Ichigo user
+        $user = auth()->user(); 
 
-            return response()->json($logs);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
+        $logs = \App\Models\AuditLog::with('user')
+            ->latest()
+            ->take(10)
+            ->get()
+            ->map(fn($log) => [
+                'id' => $log->id,
+                'user' => $log->user->name ?? 'System',
+                'action' => $log->action,
+                // Formatted for Philippines timezone
+                'time' => $log->created_at->timezone('Asia/Manila')->format('h:i A')
+            ]);
+
+        return response()->json([
+            'active_session' => $user->name, // Dynamic name from database
+            'system_status' => 'Online',
+            'logs' => $logs
+        ]);
+    } catch (\Exception $e) {
+        \Log::error("Audit Fetch Error: " . $e->getMessage());
+        return response()->json(['error' => 'Internal Server Error'], 500);
     }
+}
+
+    /**
+ * Export System Audit Logs to a .txt file
+ */
+public function exportAuditLogs(): \Symfony\Component\HttpFoundation\StreamedResponse
+{
+    $logs = \App\Models\AuditLog::with('user')->latest()->get();
+    $fileName = 'lucky_boba_audit_log_' . now()->format('Y-m-d') . '.txt';
+
+    $headers = [
+        "Content-type"        => "text/plain",
+        "Content-Disposition" => "attachment; filename=$fileName",
+    ];
+
+    $callback = function() use($logs) {
+        $file = fopen('php://output', 'w');
+        fwrite($file, "LUCKY BOBA - SYSTEM AUDIT LOG\n");
+        fwrite($file, "Generated: " . now()->timezone('Asia/Manila')->format('F d, Y h:i A') . "\n");
+        fwrite($file, str_repeat("-", 40) . "\n\n");
+
+        foreach ($logs as $log) {
+            $line = sprintf(
+                "[%s] USER: %s | ACTION: %s\n",
+                $log->created_at->timezone('Asia/Manila')->format('Y-m-d H:i:s'),
+                $log->user->name,
+                $log->action
+            );
+            fwrite($file, $line);
+        }
+        fclose($file);
+    };
+
+    return response()->stream($callback, 200, $headers);
+}
 }

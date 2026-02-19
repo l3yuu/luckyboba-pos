@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\BackupController;
 use App\Http\Controllers\Api\CashCountController;
 use App\Http\Controllers\Api\CashTransactionController;
 use App\Http\Controllers\Api\CategoryController;
@@ -125,4 +126,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/expenses', [ExpenseController::class, 'index']);
     Route::post('/expenses', [ExpenseController::class, 'store']);
     Route::get('/system/audit', [SettingsController::class, 'getAuditLogs']);
+    Route::get('/system/backup-status', [BackupController::class, 'lastBackupStatus']);
+    Route::post('/system/run-backup', [BackupController::class, 'runBackup']);    
 });
