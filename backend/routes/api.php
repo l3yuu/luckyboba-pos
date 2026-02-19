@@ -70,52 +70,59 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/cash-counts', [CashCountController::class, 'store']);
     Route::get('/cash-counts/status', [CashCountController::class, 'checkEodStatus']);
 
-    // --- SALES REPORTS ---
+    // --- GROUPED SALES REPORTS (Fixes 404s for /reports/...) ---
+    Route::prefix('reports')->group(function () {
+        Route::get('/x-reading', [SalesDashboardController::class, 'xReading']);
+        Route::get('/z-reading', [SalesDashboardController::class, 'zReading']);
+        Route::get('/mall-accreditation', [SalesDashboardController::class, 'mallReport']);
+        Route::get('/sales', [ReportController::class, 'getSalesReport']);
+        Route::get('/food-menu', [ReportController::class, 'getFoodMenuReport']);
+        
+        // Additional Reports
+        Route::get('/hourly-sales', [ReportController::class, 'getHourlySales']); 
+        Route::get('/void-logs', [ReportController::class, 'getVoidLogs']);
+        Route::get('/sales-detailed', [ReportController::class, 'getDetailedSales']);
+        Route::get('/item-quantities', [ReportController::class, 'getItemQuantities']);
+        Route::get('/sold-items', [ReportController::class, 'getSoldItemsReport']);
+        Route::get('/export-sales', [ReportController::class, 'exportSales']);
+        Route::get('/export-items', [ReportController::class, 'exportItems']);
+        Route::get('/summary', [ReportController::class, 'getSummaryReport']);
+        Route::get('/cash-count-summary', [ReportController::class, 'getCashCountSummary']);
+    });
+
+    // --- ITEMS REPORT (Outside Prefix per your request) ---
     Route::get('/items-report', [SalesDashboardController::class, 'itemsReport']);
-    Route::get('/reports/x-reading', [SalesDashboardController::class, 'xReading']);
-    Route::get('/reports/z-reading', [SalesDashboardController::class, 'zReading']);
-    Route::get('/reports/mall-accreditation', [SalesDashboardController::class, 'mallReport']);
-    Route::get('/reports/sales', [ReportController::class, 'getSalesReport']);
-    Route::get('/reports/food-menu', [ReportController::class, 'getFoodMenuReport']);
 
     // --- MENU LIST ---
     Route::get('/menu-list', [MenuListController::class, 'index']);
 
-    // --- CATEGORIES (Cleaned up) ---
+    // --- CATEGORIES ---
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::post('/categories', [CategoryController::class, 'store']);
     Route::patch('/categories/{id}', [CategoryController::class, 'update']);
     Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
 
     // --- SUB-CATEGORIES ---
-    // Added specific filter route for the dynamic dropdowns
     Route::get('/sub-categories/filter/{categoryId}', [SubCategoryController::class, 'getByCategory']);
     Route::apiResource('sub-categories', SubCategoryController::class);
 
-    // --- INVENTORY DASHBOARD ---
+    // --- INVENTORY ---
     Route::get('/inventory/top-products', [InventoryDashboardController::class, 'getWeeklyTopProducts']);
     Route::get('/inventory', [InventoryController::class, 'index']);
     Route::patch('/inventory/{id}/quantity', [InventoryController::class, 'updateQuantity']);
     Route::get('/inventory/check/{barcode}', [InventoryController::class, 'checkByBarcode']);
     Route::get('/purchase-orders', [PurchaseOrderController::class, 'index']);
     Route::post('/purchase-orders', [PurchaseOrderController::class, 'store']);
-    // REMOVED duplicate Route::get('/categories') and Route::patch('/categories/{id}') from here
 
-    // --- SETTINGS ---
+    // --- SETTINGS & SYSTEM ---
     Route::get('/settings', [SettingsController::class, 'index']);
     Route::post('/settings', [SettingsController::class, 'update']);
-
-    // --- VOUCHERS ---
     Route::get('/vouchers', [VoucherController::class, 'index']);
     Route::post('/vouchers', [VoucherController::class, 'store']);
-
     Route::get('/reports/inventory', [InventoryReportController::class, 'index']);
-
     Route::get('/item-serials', [ItemSerialController::class, 'index']);
     Route::post('/item-serials', [ItemSerialController::class, 'store']);
-
     Route::get('/expenses', [ExpenseController::class, 'index']);
     Route::post('/expenses', [ExpenseController::class, 'store']);
-
     Route::get('/system/audit', [SettingsController::class, 'getAuditLogs']);
 });

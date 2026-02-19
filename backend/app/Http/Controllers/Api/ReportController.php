@@ -61,9 +61,14 @@ class ReportController extends Controller
      * Sales Summary per Day
      * MATCHED TO: total_amount
      */
-    private function getSummaryReport($from, $to)
-    {
-        return Sale::whereBetween('created_at', [$from, $to])
+public function getSummaryReport(Request $request)
+{
+    try {
+        // Extract dates from the query parameters sent by React
+        $from = $request->query('from') . ' 00:00:00';
+        $to = $request->query('to') . ' 23:59:59';
+
+        $data = Sale::whereBetween('created_at', [$from, $to])
             ->select(
                 DB::raw('DATE(created_at) as Sales_Date'),
                 DB::raw('COUNT(id) as Total_Orders'),
@@ -72,7 +77,15 @@ class ReportController extends Controller
             ->groupBy('Sales_Date')
             ->orderBy('Sales_Date', 'desc')
             ->get();
+
+        // Return as a JSON object that matches your React expectations
+        return response()->json($data);
+
+    } catch (\Exception $e) {
+        Log::error("Summary Report Error: " . $e->getMessage());
+        return response()->json(['error' => 'Internal Server Error'], 500);
     }
+}
 
     /**
      * Sold Items Report (Already functioning)
@@ -131,4 +144,195 @@ class ReportController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
+    public function exportSales(Request $request)
+    {
+        $date = $request->query('date');
+        $fileName = "lucky_boba_sales_{$date}.csv";
+        
+        // Fetch your sales for the Lucky Boba branch
+        $sales = Sale::whereDate('created_at', $date)->get();
+
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=$fileName",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $columns = ['ID', 'Total Amount', 'Items Count', 'Payment Type', 'Created At'];
+
+        $callback = function() use($sales, $columns) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, $columns);
+
+            foreach ($sales as $sale) {
+                fputcsv($file, [
+                    $sale->id,
+                    $sale->total_amount,
+                    $sale->items_count,
+                    $sale->payment_method,
+                    $sale->created_at
+                ]);
+            }
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function getHourlySales(Request $request) 
+    {
+        $date = $request->query('date');
+
+        // Example logic to group sales by hour
+        $hourlyData = Sale::whereDate('created_at', $date)
+            ->selectRaw('HOUR(created_at) as hour, SUM(total_amount) as total, COUNT(*) as count')
+            ->groupBy('hour')
+            ->orderBy('hour')
+            ->get();
+
+        return response()->json([
+            'date' => $date,
+            'report_type' => 'hourly_sales',
+            'hourly_data' => $hourlyData,
+            // Include default values to prevent frontend breaks
+            'gross_sales' => $hourlyData->sum('total'),
+            'net_sales' => $hourlyData->sum('total'),
+            'transaction_count' => $hourlyData->sum('count'),
+        ]);
+    }
+
+public function getItemQuantities(Request $request) {
+    $date = $request->query('date');
+    $items = DB::table('sale_items')
+        ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+        ->whereDate('sales.created_at', $date)
+        ->select('product_name', DB::raw('SUM(quantity) as total_qty'))
+        ->groupBy('product_name')
+        ->get();
+
+    return response()->json([
+        'date' => $date,
+        'items' => $items
+    ]);
+}
+
+public function getDetailedSales(Request $request) 
+{
+    $date = $request->query('date');
+
+    // Fetch individual sales with invoice numbers and statuses
+    $data = Sale::whereDate('created_at', $date)
+        ->select(
+            'invoice_number as Invoice',
+            'total_amount as Amount',
+            'status as Status',
+            'created_at as Date_Time'
+        )
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+    return response()->json([
+        'date' => $date,
+        'report_type' => 'detailed',
+        'transactions' => $data
+    ]);
+}
+
+public function getCashCountSummary(Request $request) 
+{
+    $date = $request->query('date');
+
+    $cashCount = DB::table('cash_counts')
+        ->whereDate('created_at', $date)
+        ->latest() // Get the most recent count for that day
+        ->first();
+
+    if (!$cashCount) {
+        // Return an empty structure instead of a 404 to prevent frontend crashes
+        return response()->json([
+            'date' => $date,
+            'report_type' => 'cash_count',
+            'cash_count' => [
+                'denominations' => [],
+                'grand_total' => 0
+            ],
+            'message' => 'No cash count found'
+        ]);
+    }
+
+    return response()->json([
+        'date' => $date,
+        'report_type' => 'cash_count',
+        'cash_count' => [
+            // Ensure denominations_data is decoded from JSON correctly
+            'denominations' => json_decode($cashCount->denominations_data) ?? [], 
+            'grand_total' => $cashCount->total_amount
+        ]
+    ]);
+}
+
+// app/Http/Controllers/Api/ReportController.php
+
+public function getVoidLogs(Request $request) 
+{
+    try {
+        $date = $request->query('date');
+
+        // Fetch cancelled/voided transactions for the day
+        $voids = Sale::whereDate('created_at', $date)
+            ->where('status', 'Cancelled') // or 'Voided' based on your DB status values
+            ->select(
+                'id',
+                'invoice_number as reason', // You can use invoice or a specific cancel_reason column
+                'total_amount as amount',
+                DB::raw("DATE_FORMAT(created_at, '%h:%i %p') as time")
+            )
+            ->get();
+
+        return response()->json([
+            'date' => $date,
+            'report_type' => 'void_logs',
+            'logs' => $voids
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error("Void Logs Error: " . $e->getMessage());
+        return response()->json(['error' => 'Internal Server Error'], 500);
+    }
+}
+
+// ReportController.php
+
+public function exportItems(Request $request)
+{
+    $date = $request->query('date');
+    $fileName = "lucky_boba_items_{$date}.csv";
+    
+    // Fetch sold items for the day
+    $items = DB::table('sale_items')
+        ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+        ->whereDate('sales.created_at', $date)
+        ->select('product_name', DB::raw('SUM(quantity) as total_qty'))
+        ->groupBy('product_name')
+        ->get();
+
+    $headers = [
+        "Content-type"        => "text/csv",
+        "Content-Disposition" => "attachment; filename=$fileName",
+    ];
+
+    $callback = function() use($items) {
+        $file = fopen('php://output', 'w');
+        fputcsv($file, ['Product Name', 'Total Qty Sold']);
+        foreach ($items as $item) {
+            fputcsv($file, [$item->product_name, $item->total_qty]);
+        }
+        fclose($file);
+    };
+
+    return response()->stream($callback, 200, $headers);
+}
 }
