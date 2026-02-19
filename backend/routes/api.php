@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\SalesController;
 use App\Http\Controllers\Api\SalesDashboardController; 
 use App\Http\Controllers\Api\SettingsController;
 use App\Http\Controllers\Api\SubCategoryController;
+use App\Http\Controllers\Api\UploadController;
 use App\Http\Controllers\Api\VoucherController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Models\User;
@@ -135,4 +136,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/discounts', [DiscountController::class, 'store']);
     Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
     Route::delete('/discounts/{discount}', [DiscountController::class, 'destroy']);
+    Route::post('/system/upload', [UploadController::class, 'upload']);
+    Route::get('/system/import-history', [UploadController::class, 'importHistory']);
+    Route::post('/system/upload-discounts', [UploadController::class, 'uploadDiscounts']);
 });
