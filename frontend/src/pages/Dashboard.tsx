@@ -103,7 +103,7 @@ const Dashboard = () => {
         return <CashDrop onSuccess={refreshStats} />;
 
       case 'search-receipts': 
-        return <SearchReceipts onSuccess={goToDashboardFresh} />;
+        return <SearchReceipts />;
 
       case 'cash-count': 
         return <CashCount onSuccess={() => {
