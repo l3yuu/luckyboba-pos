@@ -302,7 +302,9 @@ const SalesOrder = () => {
                                     </div>
                                     <div className="bg-zinc-50 p-3 rounded-2xl border border-zinc-100">
                                         <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block mb-1">Total Unit Price</span>
-                                        <span className="text-sm font-black text-[#3b2063]">₱ {Number(selectedItem.price).toFixed(2)}</span>
+                                        <span className="text-sm font-black text-[#3b2063]">
+                                            ₱ { (Number(selectedItem.price) + (size === 'L' ? 20 : 0)).toFixed(2) }
+                                        </span>
                                     </div>
                                 </div>
 

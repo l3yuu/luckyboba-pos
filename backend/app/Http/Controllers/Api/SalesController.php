@@ -47,9 +47,35 @@ class SalesController extends Controller
             $totalQty = 0; 
             foreach ($validated['items'] as $item) {
                 $totalQty += $item['quantity'];
+                
+                // Logic to set the unit price to 135 for Large items in the DB
+                $unitPrice = (float)$item['unit_price'];
+                if (($item['size'] ?? null) === 'L') {
+                    $unitPrice += 20;
+                }
+
                 if (isset($item['charges'])) {
                     if ($item['charges']['grab'] ?? false) $chargeType = 'grab';
                     if ($item['charges']['panda'] ?? false) $chargeType = 'panda';
+                }
+
+                SaleItem::create([
+                    'sale_id' => $sale->id,
+                    'menu_item_id' => $item['menu_item_id'],
+                    'product_name' => $item['name'],
+                    'quantity' => $item['quantity'],
+                    'price' => $unitPrice, // Now saves 135.00 for Large
+                    'final_price' => $item['total_price'],
+                    'size' => $item['size'] ?? null,
+                    'sugar_level' => $item['sugar_level'] ?? null,
+                    'options' => $item['options'] ?? null,
+                    'add_ons' => $item['add_ons'] ?? null,
+                ]);
+
+                // Deduction logic remains the same
+                $menuItem = MenuItem::find($item['menu_item_id']);
+                if ($menuItem) {
+                    $menuItem->decrement('quantity', $item['quantity']);
                 }
             }
 
