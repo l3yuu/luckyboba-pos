@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Services\SalesDashboardService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class SalesDashboardController extends Controller
 {
@@ -42,23 +43,32 @@ class SalesDashboardController extends Controller
         }
     }
 
-    public function itemsReport(Request $request)
-    {
-        // Validate that 'type' is one of our supported options
-        $request->validate([
-            'from' => 'required|date',
-            'to' => 'required|date',
-            'type' => 'nullable|string|in:item-list,category-summary'
-        ]);
+// SalesDashboardController.php
 
-        $report = $this->salesService->getItemReport(
-            $request->from, 
-            $request->to, 
-            $request->type ?? 'item-list'
-        );
+public function itemsReport(Request $request)
+{
+    $from = $request->query('from');
+    $to = $request->query('to');
+    $type = $request->query('type');
 
-        return response()->json($report);
-    }
+    // Example query for 'item-list'
+    $items = DB::table('sale_items')
+        ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+        ->whereBetween('sales.created_at', [$from . ' 00:00:00', $to . ' 23:59:59'])
+        ->select(
+            'sale_items.product_name as name',
+            DB::raw('SUM(sale_items.quantity) as qty'),
+            DB::raw('SUM(sale_items.final_price) as amount')
+        )
+        ->groupBy('sale_items.product_name')
+        ->get();
+
+    return response()->json([
+        'items' => $items,
+        'total_qty' => $items->sum('qty'),
+        'grand_total' => $items->sum('amount')
+    ]);
+}
 
 public function xReading(Request $request)
     {

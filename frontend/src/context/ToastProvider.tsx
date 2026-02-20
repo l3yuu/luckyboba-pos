@@ -1,14 +1,12 @@
 "use client"
-
 import React, { useState, useCallback } from 'react';
 import { ToastContext } from './ToastContext';
-import type { ToastContextType } from './ToastContext'; 
 import { Toast } from '../components/Toast';
 
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
 
-  const showToast = useCallback((message: string, type: 'success' | 'error' | 'warning' = 'error') => {
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'warning' = 'success') => {
     setToast({ message, type });
   }, []);
 
@@ -16,10 +14,8 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setToast(null);
   }, []);
 
-  const value: ToastContextType = { showToast };
-
   return (
-    <ToastContext.Provider value={value}>
+    <ToastContext.Provider value={{ showToast }}>
       {children}
       {toast && (
         <Toast 

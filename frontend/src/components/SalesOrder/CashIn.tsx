@@ -7,20 +7,23 @@ import type { AxiosError } from 'axios';
 import api from '../../services/api';
 import type { KeyboardRef, CashInProps, ReceiptData } from '../../types/transactions';
 import TopNavbar from '../TopNavbar';
+// --- IMPORT YOUR TOAST HOOK ---
+import { useToast } from '../../context/ToastContext'; 
 
 const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
+  // --- INITIALIZE TOAST ---
+  const { showToast } = useToast();
+
   const [amount, setAmount] = useState('');
   const [showKeyboard, setShowKeyboard] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isLoading, setIsLoading] = useState(false); 
   
-  // --- NEW STATE FOR LOCK LOGIC ---
   const [isEodLocked, setIsEodLocked] = useState(false);
   
   const [receiptData, setReceiptData] = useState<ReceiptData>({ date: '', time: '' });
   const keyboardRef = useRef<KeyboardRef | null>(null);
 
-  // --- Check EOD Status on Mount ---
   const checkEodStatus = async () => {
     try {
       const response = await api.get<{ isEodDone: boolean }>('/cash-counts/status');
@@ -43,7 +46,6 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
   };
 
   const handleSubmit = async () => {
-    // Added isEodLocked to the guard
     if (!amount || parseFloat(amount) <= 0 || isEodLocked) return; 
 
     setIsLoading(true);
@@ -55,6 +57,9 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
       });
 
       if (response.data.success) {
+        // --- SUCCESS TOAST ---
+        showToast(response.data.message || "Cash In recorded successfully!", "success");
+
         setReceiptData(getCurrentDateTime());
         setIsFlipped(true); 
         setShowKeyboard(false);
@@ -63,7 +68,10 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
       }
     } catch (error: unknown) {
       const err = error as AxiosError<{ message?: string }>;
-      alert(err.response?.data?.message || "Failed to record Cash In.");
+      const errorMessage = err.response?.data?.message || "Failed to record Cash In.";
+      
+      // --- ERROR TOAST ---
+      showToast(errorMessage, "error");
     } finally {
       setIsLoading(false);
     }
@@ -76,7 +84,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
   };
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (isEodLocked) return; // Prevent manual typing if locked
+    if (isEodLocked) return; 
     const value = e.target.value.replace(/[^0-9.]/g, '');
     setAmount(value);
     if (keyboardRef.current) keyboardRef.current.setInput(value);
@@ -130,7 +138,6 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
       </style>
 
       <div className="flex flex-col h-full w-full bg-[#f8f6ff] animate-in fade-in zoom-in duration-300 relative overflow-hidden">
-        {/* Added the lock prop to TopNavbar as requested earlier */}
         <TopNavbar isEodLocked={isEodLocked} />
 
         <div className={`flex-1 flex flex-col xl:flex-row items-center justify-center p-6 gap-6 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-75' : ''}`}>
