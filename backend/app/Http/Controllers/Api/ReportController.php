@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Sale;
+use App\Models\SaleItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
@@ -198,6 +200,88 @@ public function getHourlySales(Request $request) {
         $voids = Sale::whereDate('created_at', $date)->where('status', 'cancelled')
             ->select('id', 'invoice_number as reason', 'total_amount as amount', DB::raw("DATE_FORMAT(created_at, '%h:%i %p') as time"))->get();
         return response()->json(['logs' => $voids, 'prepared_by' => auth()->user()->name ?? 'System Admin']);
+    }
+
+    public function exportSales(Request $request)
+    {
+        $date = $request->query('date', now()->toDateString());
+
+        $sales = Sale::whereDate('created_at', $date)
+                     ->where('status', '!=', 'cancelled')
+                     ->get();
+
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=lucky_boba_sales_{$date}.csv",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $callback = function() use($sales) {
+            $file = fopen('php://output', 'w');
+            
+            // CSV Header Row
+            fputcsv($file, ['Invoice Number', 'Payment Method', 'Total Amount', 'Status', 'Date Time']);
+
+            // CSV Data Rows
+            foreach ($sales as $sale) {
+                fputcsv($file, [
+                    $sale->invoice_number,
+                    $sale->payment_method,
+                    $sale->total_amount,
+                    $sale->status,
+                    $sale->created_at->format('Y-m-d H:i:s')
+                ]);
+            }
+            fclose($file);
+        };
+
+        return new StreamedResponse($callback, 200, $headers);
+    }
+
+    public function exportItems(Request $request)
+    {
+        $date = $request->query('date', now()->toDateString());
+
+        // Get all items sold on this date, excluding cancelled sales
+        $items = SaleItem::join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->whereDate('sales.created_at', $date)
+            ->where('sales.status', '!=', 'cancelled')
+            ->select(
+                'sale_items.product_name',
+                \DB::raw('SUM(sale_items.quantity) as total_qty'),
+                \DB::raw('SUM(sale_items.final_price) as total_sales')
+            )
+            ->groupBy('sale_items.product_name')
+            ->get();
+
+        $headers = [
+            "Content-type"        => "text/csv",
+            "Content-Disposition" => "attachment; filename=lucky_boba_items_{$date}.csv",
+            "Pragma"              => "no-cache",
+            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
+            "Expires"             => "0"
+        ];
+
+        $callback = function() use($items) {
+            $file = fopen('php://output', 'w');
+            
+            // CSV Header Row
+            fputcsv($file, ['Product Name', 'Quantity Sold', 'Total Revenue']);
+
+            // CSV Data Rows
+            foreach ($items as $item) {
+                fputcsv($file, [
+                    $item->product_name,
+                    $item->total_qty,
+                    $item->total_sales
+                ]);
+            }
+            fclose($file);
+        };
+
+        return new StreamedResponse($callback, 200, $headers);
     }
 
     public function getDetailedSales(Request $request) { return $this->getSalesReport($request); }
