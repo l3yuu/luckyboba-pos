@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import TopNavbar from '../TopNavbar';
-import { ArrowLeft, UserCog, Plus, Trash2, Edit3, X, Save, Shield, Users } from 'lucide-react';
+import { ArrowLeft, UserCog, Plus, Trash2, Edit3, X, Save, Shield } from 'lucide-react';
 
 interface User {
   id: number;
