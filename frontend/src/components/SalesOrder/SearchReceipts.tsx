@@ -6,23 +6,28 @@ import TopNavbar from '../TopNavbar';
 import type { KeyboardRef, Receipt } from '../../types/transactions';
 import api from '../../services/api'; 
 import { Calendar, Clock, Search, X, RotateCcw } from 'lucide-react';
+// IMPORT TOAST
+import { useToast } from '../../hooks/useToast';
 
 const CACHE_KEY = 'lucky_boba_receipt_cache';
 
-const SearchReceipts = ({ onSuccess }: { onSuccess?: () => void }) => {
+const SearchReceipts = () => {
+  // INITIALIZE TOAST
+  const { showToast } = useToast();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchResults, setSearchResults] = useState<Receipt[]>([]); 
   const [hasSearched, setHasSearched] = useState(false); 
   const [showKeyboard, setShowKeyboard] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isVoiding, setIsVoiding] = useState(false); // FIXED: Now used in UI
+  const [isVoiding, setIsVoiding] = useState(false); 
   
   const [isReasonModalOpen, setIsReasonModalOpen] = useState(false);
   const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
   const [cancelReason, setCancelReason] = useState('');
   
-  const keyboardRef = useRef<KeyboardRef>(null); // FIXED: Removed if not used, or kept for input logic
+  const keyboardRef = useRef<KeyboardRef>(null);
 
   const stats = useMemo(() => {
     const data = Array.isArray(searchResults) ? searchResults : [];
@@ -98,7 +103,7 @@ const SearchReceipts = ({ onSuccess }: { onSuccess?: () => void }) => {
 
   const handleConfirmCancel = async () => {
     if (!cancelReason.trim() || !selectedSaleId) return;
-    setIsVoiding(true); // START LOADING
+    setIsVoiding(true);
 
     try {
       const response = await api.patch(`/sales/${selectedSaleId}/cancel`, {
@@ -117,14 +122,16 @@ const SearchReceipts = ({ onSuccess }: { onSuccess?: () => void }) => {
         setIsReasonModalOpen(false);
         setCancelReason('');
         localStorage.setItem('dashboard_needs_refresh', 'true');
-        if (onSuccess) onSuccess();
-        alert('Order voided successfully!');
+        
+        // FIXED: Removed onSuccess() so it doesn't redirect
+        // REPLACED: Native alert with your custom global toast
+        showToast('Order voided successfully!', 'success');
       }
     } catch (error) {
       console.error("Cancellation failed:", error);
-      alert('Failed to cancel order.');
+      showToast('Failed to cancel order.', 'error');
     } finally {
-      setIsVoiding(false); // STOP LOADING
+      setIsVoiding(false);
     }
   };
 
@@ -132,7 +139,6 @@ const SearchReceipts = ({ onSuccess }: { onSuccess?: () => void }) => {
       const val = e.target.value;
       setSearchQuery(val);
       
-      // Use the KeyboardRef type instead of 'any' to satisfy ESLint
       if (keyboardRef.current) {
         (keyboardRef.current as unknown as { setInput: (s: string) => void }).setInput(val);
       }
@@ -283,7 +289,7 @@ const SearchReceipts = ({ onSuccess }: { onSuccess?: () => void }) => {
         </div>
       </div>
 
-      {/* VOID MODAL - Restored logic to clear unused variable errors */}
+      {/* VOID MODAL */}
       {isReasonModalOpen && (
         <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 border border-zinc-100">

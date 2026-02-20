@@ -72,7 +72,7 @@ public function itemsReport(Request $request)
         ]);
     }
 
-public function xReading(Request $request)
+    public function xReading(Request $request)
     {
         $request->validate(['date' => 'required|date']);
 

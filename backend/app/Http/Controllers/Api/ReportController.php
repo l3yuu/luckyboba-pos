@@ -161,12 +161,24 @@ class ReportController extends Controller
         ]);
     }
 
-    public function getHourlySales(Request $request) {
+public function getHourlySales(Request $request) {
         $date = $request->query('date');
+        
+        // Safely extract the logged-in user to fix "System Admin" bug
+        $user = auth('sanctum')->user() ?? $request->user();
+        $cashierName = $user ? $user->name : 'System Admin';
+
         $hourlyData = Sale::whereDate('created_at', $date)
+            ->where('status', '!=', 'cancelled') // <-- FIX: EXCLUDES VOIDED SALES
             ->selectRaw('HOUR(created_at) as hour, SUM(total_amount) as total, COUNT(*) as count')
-            ->groupBy('hour')->orderBy('hour')->get();
-        return response()->json(['hourly_data' => $hourlyData, 'prepared_by' => auth()->user()->name ?? 'System Admin']);
+            ->groupBy('hour')
+            ->orderBy('hour')
+            ->get();
+            
+        return response()->json([
+            'hourly_data' => $hourlyData, 
+            'prepared_by' => $cashierName
+        ]);
     }
 
     public function getCashCountSummary(Request $request) {
