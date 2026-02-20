@@ -80,7 +80,7 @@ const InventoryHistoryModal: React.FC<InventoryHistoryModalProps> = ({ onClose }
                     <td className={`py-4 text-center font-black ${log.quantity_change > 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                       {log.quantity_change > 0 ? `+${log.quantity_change}` : log.quantity_change}
                     </td>
-                    <td className="py-4 text-zinc-400 italic text-[10px] leading-relaxed max-w-[150px] truncate hover:whitespace-normal">
+                    <td className="py-4 text-zinc-400 italic text-[10px] leading-relaxed max-w-37.5 truncate hover:whitespace-normal">
                       {log.remarks || 'No remarks'}
                     </td>
                   </tr>
