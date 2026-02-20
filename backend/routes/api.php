@@ -120,6 +120,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/inventory/check/{barcode}', [InventoryController::class, 'checkByBarcode']);
     Route::get('/purchase-orders', [PurchaseOrderController::class, 'index']);
     Route::post('/purchase-orders', [PurchaseOrderController::class, 'store']);
+    Route::post('/inventory', [InventoryController::class, 'store']);
+    Route::get('/inventory/history', [InventoryController::class, 'getTransactionHistory']);
 
     // --- SETTINGS & SYSTEM ---
     Route::get('/settings', [SettingsController::class, 'index']);

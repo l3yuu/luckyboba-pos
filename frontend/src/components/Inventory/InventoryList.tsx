@@ -1,7 +1,10 @@
+"use client"
+
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import TopNavbar from '../TopNavbar';
 import api from '../../services/api';
 import { getCache, setCache, clearCache } from '../../utils/cache';
+import InventoryHistoryModal from './InventoryHistory'; // Ensure this path is correct
 
 interface InventoryItem {
   id: number;
@@ -34,6 +37,10 @@ const InventoryList = () => {
   const [updating, setUpdating] = useState(false);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  
+  // --- NEW STATE FOR HISTORY MODAL ---
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
   const [newItem, setNewItem] = useState({
     name: '', barcode: '', quantity: '', price: '', cost: '', category_id: '' 
   });
@@ -143,9 +150,22 @@ const InventoryList = () => {
             <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Inventory List</h1>
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Lucky Boba Stockroom</p>
           </div>
-          <button onClick={() => setIsAddModalOpen(true)} className="px-6 py-2 bg-[#10b981] text-white rounded-md font-bold text-[10px] uppercase tracking-widest shadow-sm hover:bg-[#0da673] transition-all">
-            ADD NEW ITEM
-          </button>
+          
+          <div className="flex gap-2">
+            {/* --- NEW HISTORY BUTTON --- */}
+            <button 
+              onClick={() => setIsHistoryOpen(true)} 
+              className="px-4 py-2 border-2 border-zinc-200 text-zinc-500 rounded-md font-bold text-[10px] uppercase tracking-widest hover:bg-zinc-50 hover:border-zinc-300 transition-all shadow-sm"
+            >
+              View History
+            </button>
+            <button 
+              onClick={() => setIsAddModalOpen(true)} 
+              className="px-6 py-2 bg-[#10b981] text-white rounded-md font-bold text-[10px] uppercase tracking-widest shadow-sm hover:bg-[#0da673] transition-all"
+            >
+              ADD NEW ITEM
+            </button>
+          </div>
         </div>
 
         <div className="mb-6 relative">
@@ -221,10 +241,10 @@ const InventoryList = () => {
                 </div>
                 <div className="col-span-2">
                   <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Category</label>
-                  <select required value={newItem.category_id} onChange={e => setNewItem({...newItem, category_id: e.target.value})} className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-[#10b981] appearance-none cursor-pointer bg-white transition-all">
-                    <option value="" disabled>Select a category</option>
-                    {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
-                  </select>
+                    <select required value={newItem.category_id} onChange={e => setNewItem({...newItem, category_id: e.target.value})}>
+                      <option value="" disabled>Select a category</option>
+                      {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
+                    </select>
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Barcode/SKU</label>
@@ -250,6 +270,11 @@ const InventoryList = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {/* --- RENDER HISTORY MODAL --- */}
+      {isHistoryOpen && (
+        <InventoryHistoryModal onClose={() => setIsHistoryOpen(false)} />
       )}
     </div>
   );
