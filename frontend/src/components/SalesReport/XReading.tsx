@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useRef, useEffect } from 'react';
+// 1. ADD 'React' TO THE IMPORT TO FIX THE UMD GLOBAL ERROR
+import React, { useState, useRef, useEffect } from 'react';
 import TopNavbar from '../TopNavbar';
 import api from '../../services/api';
 
@@ -23,6 +24,16 @@ interface XReadingReport {
   vatable_sales?: number;
   vat_amount?: number;
   prepared_by?: string;
+  // ENSURE THIS NESTED STRUCTURE IS DEFINED
+  categories?: {
+    category_name: string;
+    products: {
+      product_name: string;
+      total_qty: number;
+      total_sales: number;
+      add_ons: { name: string; qty: number }[];
+    }[];
+  }[];
 }
 
 const XReading = () => {
@@ -53,34 +64,29 @@ const XReading = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-const fetchReportData = async (type: string) => {
-  setLoading(true);
-  try {
-    const endpointMap: Record<string, { url: string; params: Record<string, string> }> = {
-      x_reading:    { url: '/reports/x-reading',         params: { date: selectedDate } },
-      hourly_sales: { url: '/reports/hourly-sales',      params: { date: selectedDate } },
-      void_logs:    { url: '/reports/void-logs',         params: { date: selectedDate } },
-      qty_items:    { url: '/reports/item-quantities',   params: { date: selectedDate } },
-      cash_count:   { url: '/reports/cash-count-summary',params: { date: selectedDate } },
-      summary:      { url: '/reports/summary',           params: { from: selectedDate, to: selectedDate, type: 'SUMMARY' } },
-      
-      // UPDATE THIS LINE:
-      // This will now pull every individual receipt for the selected day
-      search:       { url: '/reports/summary',           params: { from: selectedDate, to: selectedDate, type: 'DETAILED' } },
-      
-      detailed:     { url: '/reports/sales-detailed',    params: { date: selectedDate } },
-    };
+  const fetchReportData = async (type: string) => {
+    setLoading(true);
+    try {
+      const endpointMap: Record<string, { url: string; params: Record<string, string> }> = {
+        x_reading:    { url: '/reports/x-reading',         params: { date: selectedDate } },
+        hourly_sales: { url: '/reports/hourly-sales',      params: { date: selectedDate } },
+        void_logs:    { url: '/reports/void-logs',         params: { date: selectedDate } },
+        qty_items:    { url: '/reports/item-quantities',   params: { date: selectedDate } },
+        cash_count:   { url: '/reports/cash-count-summary',params: { date: selectedDate } },
+        summary:      { url: '/reports/summary',           params: { from: selectedDate, to: selectedDate, type: 'SUMMARY' } },
+        search:       { url: '/reports/summary',           params: { from: selectedDate, to: selectedDate, type: 'DETAILED' } },
+        detailed:     { url: '/reports/sales-detailed',    params: { date: selectedDate } },
+      };
 
-    const { url, params } = endpointMap[type];
-    const response = await api.get(url, { params });
-    
-    setReportData({ ...response.data, report_type: type });
-  } catch (error) {
-    console.error(`${type} fetch failed:`, error);
-  } finally {
-    setLoading(false);
-  }
-};
+      const { url, params } = endpointMap[type];
+      const response = await api.get(url, { params });
+      setReportData({ ...response.data, report_type: type });
+    } catch (error) {
+      console.error(`${type} fetch failed:`, error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleGenerate = () => fetchReportData('x_reading');
   const handlePrint = () => window.print();
@@ -189,34 +195,63 @@ const fetchReportData = async (type: string) => {
     </div>
   );
 
+  // 2. UPDATED RENDERQTYITEMS: CATEGORIZED WITH ADD-ONS
   const renderQtyItems = () => {
-    const items = reportData?.items ?? [];
+    if (!reportData || !reportData.categories) return null;
+
     return (
       <div className="my-2 pt-2">
         <div className="receipt-divider"></div>
-        <table className="w-full text-[10px]">
-          <thead>
-            <tr className="font-black border-b border-black">
-              <th className="text-left">PRODUCT</th>
-              <th className="text-center">QTY</th>
-              <th className="text-right">TOTAL</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item, i) => (
-              <tr key={i} className="border-b border-zinc-50">
-                <td className="py-1 uppercase text-[9px] leading-tight">{item.product_name}</td>
-                <td className="py-1 text-center font-bold">{item.total_qty}</td>
-                <td className="py-1 text-right">{phCurrency.format(item.total_sales || 0)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        
+        {reportData.categories.map((cat, catIdx) => (
+          <div key={catIdx} className="mb-4">
+            {/* CATEGORY HEADER */}
+            <p className="text-[10px] font-black bg-zinc-100 px-1 py-0.5 mb-1 uppercase tracking-tighter border-b border-black">
+              {cat.category_name}
+            </p>
+            
+            <table className="w-full text-[10px]">
+              <tbody>
+                {cat.products.map((item, i) => (
+                  <React.Fragment key={i}>
+                    <tr className="border-b border-zinc-50">
+                      <td className="py-1 uppercase text-[9px] font-bold leading-tight w-2/3">
+                        {item.product_name}
+                      </td>
+                      <td className="py-1 text-center font-bold">x{item.total_qty}</td>
+                      <td className="py-1 text-right">{phCurrency.format(item.total_sales)}</td>
+                    </tr>
+                    
+                    {/* ADD-ONS LISTING FOR THIS PRODUCT */}
+                    {item.add_ons.length > 0 && (
+                      <tr>
+                        <td colSpan={3} className="pb-2 pl-4">
+                          {item.add_ons.map((addon, aIdx) => (
+                            <div key={aIdx} className="text-[8px] text-zinc-500 italic flex justify-between">
+                              <span>+ {addon.name}</span>
+                              <span className="font-bold text-black">x{addon.qty}</span>
+                            </div>
+                          ))}
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))}
+
         <div className="receipt-divider"></div>
+        
         <div className="space-y-1">
           <div className="flex-between text-[10px]">
             <span>TOTAL ITEMS SOLD</span>
-            <span className="font-bold">{items.reduce((acc, item) => acc + Number(item.total_qty || 0), 0)}</span>
+            <span className="font-bold">
+              {reportData.categories.reduce((acc, cat) => 
+                acc + cat.products.reduce((pAcc, p) => pAcc + p.total_qty, 0), 0
+              )}
+            </span>
           </div>
           <div className="pt-1 text-[9px] opacity-80 uppercase italic">
             <div className="flex-between"><span>VATABLE SALES</span><span>{phCurrency.format(reportData?.vatable_sales || 0)}</span></div>
@@ -255,7 +290,6 @@ const fetchReportData = async (type: string) => {
   );
 
   const renderDetailedSales = () => {
-    // detailed uses `transactions` (from getDetailedSales), search uses `search_results` (from getPaymentReport)
     const rows = reportData?.transactions ?? reportData?.search_results ?? [];
     return (
       <div className="my-2 pt-2">
@@ -269,7 +303,7 @@ const fetchReportData = async (type: string) => {
                 <th>INVOICE</th>
                 <th>DATE/TIME</th>
                 <th className="text-right">AMOUNT</th>
-                {'Status' in rows[0] && <th className="text-center">STATUS</th>}
+                {rows[0] && 'Status' in rows[0] && <th className="text-center">STATUS</th>}
               </tr>
             </thead>
             <tbody>

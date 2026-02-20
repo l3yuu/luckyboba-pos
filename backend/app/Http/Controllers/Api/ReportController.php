@@ -139,25 +139,68 @@ public function getSalesReport(Request $request)
         ]);
     }
 
-    public function getItemQuantities(Request $request)
-    {
+    public function getItemQuantities(Request $request) {
         $date = $request->query('date');
-        $data = $this->getSoldItemsData($date . ' 00:00:00', $date . ' 23:59:59');
         
-        $items = collect($data['items'])->map(fn($i) => [
-            'product_name' => $i->Item_Name,
-            'total_qty' => (int)$i->Total_Qty,
-            'total_sales' => (float)$i->Total_Sales
-        ]);
+        // 1. Fetch raw items with category names
+        $rawItems = DB::table('sale_items')
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->join('menu_items', 'sale_items.menu_item_id', '=', 'menu_items.id')
+            ->join('categories', 'menu_items.category_id', '=', 'categories.id')
+            ->whereDate('sales.created_at', $date)
+            ->where('sales.status', 'completed') 
+            ->select(
+                'categories.name as category_name',
+                'sale_items.product_name',
+                'sale_items.quantity',
+                'sale_items.final_price',
+                'sale_items.add_ons' // This is your JSON column
+            )
+            ->get();
 
-        $total = $items->sum('total_sales');
+        // 2. Process and Group Data
+        $groupedData = $rawItems->groupBy('category_name')->map(function ($items, $category) {
+            $productSummary = $items->groupBy('product_name')->map(function ($pGroup, $pName) {
+                
+                // Count Add-ons for this specific product
+                $addOnCounts = [];
+                foreach ($pGroup as $item) {
+                    $addons = json_decode($item->add_ons) ?? [];
+                    foreach ($addons as $addonName) {
+                        $addOnCounts[$addonName] = ($addOnCounts[$addonName] ?? 0) + $item->quantity;
+                    }
+                }
+
+                // Format add-ons for frontend
+                $formattedAddons = [];
+                foreach ($addOnCounts as $name => $qty) {
+                    $formattedAddons[] = ['name' => $name, 'qty' => $qty];
+                }
+
+                return [
+                    'product_name' => $pName,
+                    'total_qty'    => $pGroup->sum('quantity'),
+                    'total_sales'  => (float) $pGroup->sum('final_price'),
+                    'add_ons'      => $formattedAddons
+                ];
+            })->values();
+
+            return [
+                'category_name' => $category,
+                'products'      => $productSummary
+            ];
+        })->values();
+
+        $grandTotal = $rawItems->sum('final_price');
+
         return response()->json([
+            'date' => $date,
             'report_type' => 'qty_items',
-            'items' => $items,
-            'grand_total_revenue' => round($total, 2),
-            'vatable_sales' => round($total / 1.12, 2),
-            'vat_amount' => round($total - ($total / 1.12), 2),
-            'prepared_by' => auth()->user()->name ?? 'System Admin'
+            'categories' => $groupedData, // New structured key
+            'grand_total_revenue' => $grandTotal,
+            'vatable_sales' => round($grandTotal / 1.12, 2),
+            'vat_amount' => round($grandTotal - ($grandTotal / 1.12), 2),
+            'prepared_by' => auth()->user()->name
         ]);
     }
 
