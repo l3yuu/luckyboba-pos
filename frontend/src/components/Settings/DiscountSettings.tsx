@@ -153,6 +153,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
           </div>
 
           <div className="overflow-x-auto">
+<<<<<<< HEAD
             {isLoading ? (
               <div className="p-20 flex justify-center"><Loader2 className="animate-spin text-blue-600" /></div>
             ) : (
@@ -165,6 +166,50 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
                     <th className="px-4 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Toggle</th>
                     <th className="px-4 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Type</th>
                     <th className="px-4 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Action</th>
+=======
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-zinc-200 bg-white">
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Name</th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Amount</th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Status</th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Status Toggle</th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Type</th>
+                  <th className="px-4 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {filteredDiscounts.map((discount) => (
+                  <tr key={discount.id} className="hover:bg-zinc-50 transition-colors">
+                    <td className="px-4 py-4 text-xs font-black text-[#3b2063] uppercase">{discount.name}</td>
+                    <td className="px-4 py-4 text-xs font-bold text-slate-700 text-center">{discount.amount}</td>
+                    <td className="px-4 py-4 text-center">
+                      <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">{discount.status}</span>
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <button 
+                        onClick={() => handleStatusToggle(discount)}
+                        className={`relative group overflow-hidden px-1 sm:px-2 md:px-4 py-1.5 sm:py-2 rounded-full text-[7px] sm:text-[8px] md:text-[9px] font-black uppercase tracking-normal sm:tracking-widest transition-all duration-300 shadow-sm hover:shadow-md active:scale-95 w-20 sm:w-24 md:w-28 min-w-[80px] sm:min-w-[90px] md:min-w-[100px] border-2 ${
+                          discount.status === 'ON' 
+                          ? 'bg-emerald-50/50 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500 hover:text-white'
+                          : 'bg-red-50/50 text-red-600 border-red-500/20 hover:bg-red-500 hover:text-white'
+                        }`}
+                      >
+                        <span className="relative z-10 flex items-center justify-center gap-1">
+                          <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${discount.status === 'ON' ? 'bg-emerald-500 group-hover:bg-white' : 'bg-red-500 group-hover:bg-white'}`}></span>
+                          {discount.status === 'ON' ? 'Activate' : 'Deactivate'}
+                        </span>
+                      </button>
+                    </td>
+                    <td className="px-4 py-4 text-xs font-bold text-zinc-500 text-center uppercase tracking-tighter italic">
+                      {discount.type}
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <button className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg transition-colors shadow-sm active:scale-95 mx-auto flex items-center justify-center">
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
+>>>>>>> 542bad1b2bfc320af41568d4d1739c14e759dd91
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
@@ -279,9 +324,47 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
       {isDeleteModalOpen && (
         <div className="fixed inset-0 z-120 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+<<<<<<< HEAD
             <div className="p-6 text-center space-y-4">
               <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <AlertTriangle size={32} />
+=======
+            <div className={`px-6 py-4 flex justify-between items-center ${
+              selectedDiscount.status === 'ON' ? 'bg-red-500' : 'bg-emerald-500'
+            }`}>
+              <h2 className="text-white font-black text-xs uppercase tracking-[0.2em]">
+                Confirm Status Change
+              </h2>
+              <button onClick={cancelStatusToggle} className="text-white/70 hover:text-white transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="text-center space-y-2">
+                <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center ${
+                  selectedDiscount.status === 'ON' ? 'bg-red-100' : 'bg-emerald-100'
+                }`}>
+                  {selectedDiscount.status === 'ON' ? (
+                    <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                    </svg>
+                  ) : (
+                    <svg className="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  )}
+                </div>
+                <h3 className="text-lg font-bold text-slate-800">
+                  {selectedDiscount.status === 'ON' ? 'Do you want to deactivate this promo?' : 'Do you want to activate this promo?'}
+                </h3>
+                <p className="text-sm text-slate-600">
+                  {selectedDiscount.status === 'ON' ? 'Are you sure you want to deactivate this promo:' : 'Are you sure you want to activate this promo:'}
+                </p>
+                <p className="text-sm font-black text-[#3b2063] uppercase">
+                  {selectedDiscount.name}
+                </p>
+>>>>>>> 542bad1b2bfc320af41568d4d1739c14e759dd91
               </div>
               <div>
                 <h2 className="text-lg font-black text-[#3b2063] uppercase tracking-tight">Confirm Deletion</h2>
