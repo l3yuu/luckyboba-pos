@@ -18,7 +18,9 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [selectedDiscount, setSelectedDiscount] = useState<DiscountItem | null>(null);
+  const [discountToDelete, setDiscountToDelete] = useState<DiscountItem | null>(null);
 
   // --- STATE FOR TABLE DATA ---
   const [discounts, setDiscounts] = useState<DiscountItem[]>([
@@ -80,11 +82,33 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
     setSelectedDiscount(null);
   };
 
+  const handleDeleteClick = (discount: DiscountItem) => {
+    console.log('Delete button clicked for:', discount);
+    setDiscountToDelete(discount);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = () => {
+    console.log('Confirm delete clicked');
+    if (!discountToDelete) return;
+    
+    console.log('Deleting discount:', discountToDelete);
+    setDiscounts(discounts.filter(d => d.id !== discountToDelete.id));
+    setIsDeleteConfirmOpen(false);
+    setDiscountToDelete(null);
+  };
+
+  const cancelDelete = () => {
+    setIsDeleteConfirmOpen(false);
+    setDiscountToDelete(null);
+  };
+
   const filteredDiscounts = discounts.filter(d => 
     d.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
+    <>
     <div className="flex-1 bg-[#f4f5f7] h-full flex flex-col overflow-hidden font-sans">
       <TopNavbar />
 
@@ -149,7 +173,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
                     <td className="px-4 py-4 text-center">
                       <button 
                         onClick={() => handleStatusToggle(discount)}
-                        className={`relative group overflow-hidden px-1 sm:px-2 md:px-4 py-1.5 sm:py-2 rounded-full text-[7px] sm:text-[8px] md:text-[9px] font-black uppercase tracking-normal sm:tracking-widest transition-all duration-300 shadow-sm hover:shadow-md active:scale-95 w-20 sm:w-24 md:w-28 min-w-[80px] sm:min-w-[90px] md:min-w-[100px] border-2 ${
+                        className={`relative group overflow-hidden px-1 sm:px-2 md:px-4 py-1.5 sm:py-2 rounded-full text-[7px] sm:text-[8px] md:text-[9px] font-black uppercase tracking-normal sm:tracking-widest transition-all duration-300 shadow-sm hover:shadow-md active:scale-95 w-20 sm:w-24 md:w-28 min-w-20 sm:min-w-24 md:min-w-28 border-2 ${
                           discount.status === 'ON' 
                           ? 'bg-emerald-50/50 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500 hover:text-white'
                           : 'bg-red-50/50 text-red-600 border-red-500/20 hover:bg-red-500 hover:text-white'
@@ -165,7 +189,9 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
                       {discount.type}
                     </td>
                     <td className="px-4 py-4 text-center">
-                      <button className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg transition-colors shadow-sm active:scale-95 mx-auto flex items-center justify-center">
+                      <button 
+                        onClick={() => handleDeleteClick(discount)}
+                        className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg transition-colors shadow-sm active:scale-95 mx-auto flex items-center justify-center">
                         <Trash2 size={14} />
                       </button>
                     </td>
@@ -190,7 +216,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
                {/* ADD DISCOUNT BUTTON BELOW TABLE */}
                <button 
                 onClick={() => setIsModalOpen(true)}
-                className="px-4 sm:px-6 py-2 sm:py-2.5 bg-[#3b2063] text-white rounded-lg font-black text-[9px] sm:text-[10px] uppercase tracking-normal sm:tracking-widest hover:bg-[#291645] flex items-center gap-2 shadow-lg transition-all active:scale-95 min-w-[120px] sm:min-w-[140px]"
+                className="px-4 sm:px-6 py-2 sm:py-2.5 bg-[#3b2063] text-white rounded-lg font-black text-[9px] sm:text-[10px] uppercase tracking-normal sm:tracking-widest hover:bg-[#291645] flex items-center gap-2 shadow-lg transition-all active:scale-95 min-w-32 sm:min-w-36"
                >
                 <Plus size={12} strokeWidth={3} /> Add Discount
                </button>
@@ -201,7 +227,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
 
       {/* === ADD DISCOUNT MODAL === */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="bg-[#1e40af] px-6 py-4 flex justify-between items-center">
               <h2 className="text-white font-black text-xs uppercase tracking-[0.2em]">New Discount Entry</h2>
@@ -269,7 +295,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
 
       {/* === CONFIRM STATUS TOGGLE MODAL === */}
       {isConfirmModalOpen && selectedDiscount && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className={`px-6 py-4 flex justify-between items-center ${
               selectedDiscount.status === 'ON' ? 'bg-red-500' : 'bg-emerald-500'
@@ -330,7 +356,59 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
           </div>
         </div>
       )}
+
+      {/* === DELETE CONFIRMATION MODAL === */}
+      {isDeleteConfirmOpen && discountToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-red-500 px-6 py-4 flex justify-between items-center">
+              <h2 className="text-white font-black text-xs uppercase tracking-[0.2em]">
+                Confirm Delete
+              </h2>
+              <button onClick={cancelDelete} className="text-white/70 hover:text-white transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="text-center space-y-2">
+                <div className="w-16 h-16 mx-auto rounded-full flex items-center justify-center bg-red-100">
+                  <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-slate-800">
+                  Delete Discount?
+                </h3>
+                <p className="text-sm text-slate-600">
+                  Are you sure you want to delete this discount permanently?
+                </p>
+                <p className="text-sm font-black text-[#3b2063] uppercase">
+                  {discountToDelete.name}
+                </p>
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button 
+                  onClick={confirmDelete}
+                  className="flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 text-white bg-red-500 hover:bg-red-600"
+                >
+                  <Trash2 size={14} />
+                  Delete
+                </button>
+                <button 
+                  onClick={cancelDelete}
+                  className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-500 py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+    </>
   );
 };
 
