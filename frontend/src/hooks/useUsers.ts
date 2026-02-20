@@ -40,7 +40,7 @@ export const useUsers = () => {
     const newUser: User = {
       ...data,
       id: Math.floor(Math.random() * 1000),
-      status: 'OPEN',
+      status: 'ACTIVE',
     };
 
     setUsers((prev) => [...prev, newUser]);
