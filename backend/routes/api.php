@@ -110,6 +110,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // --- SUB-CATEGORIES ---
     Route::get('/sub-categories/filter/{categoryId}', [SubCategoryController::class, 'getByCategory']);
     Route::apiResource('sub-categories', SubCategoryController::class);
+    Route::put('/sub-categories/{id}', [SubCategoryController::class, 'update']);
+    Route::delete('/sub-categories/{id}', [SubCategoryController::class, 'destroy']);
 
     // --- INVENTORY ---
     Route::get('/inventory/top-products', [InventoryDashboardController::class, 'getWeeklyTopProducts']);
