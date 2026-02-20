@@ -26,10 +26,10 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(!getCache<DiscountItem[]>(CACHE_KEY));
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedDiscount, setSelectedDiscount] = useState<DiscountItem | null>(null);
+  const [discountToDelete, setDiscountToDelete] = useState<DiscountItem | null>(null);
   const [discounts, setDiscounts] = useState<DiscountItem[]>(
     getCache<DiscountItem[]>(CACHE_KEY) ?? []
   );
@@ -89,10 +89,9 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
   const handleToggleStatus = async (id: number) => {
     try {
       const response = await api.patch(`/discounts/${id}/toggle`);
-      const updated = discounts.map(d => d.id === id ? response.data : d);
+      const updated = discounts.map((d: DiscountItem) => d.id === id ? response.data : d);
       setDiscounts(updated);
       setCache<DiscountItem[]>(CACHE_KEY, updated, CACHE_TTL);
-
       const isNowOn = response.data.status === 'ON';
       showToast(
         `${response.data.name} is now ${isNowOn ? 'Active' : 'Deactivated'}`,
@@ -103,28 +102,33 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
     }
   };
 
-  const initiateDelete = (discount: DiscountItem) => {
-    setSelectedDiscount(discount);
-    setIsDeleteModalOpen(true);
+  const handleDeleteClick = (discount: DiscountItem) => {
+    setDiscountToDelete(discount);
+    setIsDeleteConfirmOpen(true);
   };
 
   const confirmDelete = async () => {
-    if (!selectedDiscount) return;
-
+    if (!discountToDelete) return;
     try {
-      await api.delete(`/discounts/${selectedDiscount.id}`);
-      const updated = discounts.filter(d => d.id !== selectedDiscount.id);
+      await api.delete(`/discounts/${discountToDelete.id}`);
+      const updated = discounts.filter((d: DiscountItem) => d.id !== discountToDelete.id);
       setDiscounts(updated);
       setCache<DiscountItem[]>(CACHE_KEY, updated, CACHE_TTL);
-      showToast(`${selectedDiscount.name} removed`, "success");
-      setIsDeleteModalOpen(false);
-      setSelectedDiscount(null);
+      showToast(`${discountToDelete.name} removed`, "success");
     } catch {
       showToast("Failed to delete", "error");
+    } finally {
+      setIsDeleteConfirmOpen(false);
+      setDiscountToDelete(null);
     }
   };
 
-  const filteredDiscounts = discounts.filter(d =>
+  const cancelDelete = () => {
+    setIsDeleteConfirmOpen(false);
+    setDiscountToDelete(null);
+  };
+
+  const filteredDiscounts = discounts.filter((d: DiscountItem) =>
     d.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -169,7 +173,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
-                  {filteredDiscounts.length > 0 ? filteredDiscounts.map((discount) => (
+                  {filteredDiscounts.length > 0 ? filteredDiscounts.map((discount: DiscountItem) => (
                     <tr key={discount.id} className="hover:bg-zinc-50 transition-colors">
                       <td className="px-4 py-4 text-xs font-black text-[#3b2063] uppercase">{discount.name}</td>
                       <td className="px-4 py-4 text-xs font-bold text-slate-700 text-center">{discount.amount}</td>
@@ -191,7 +195,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
                       <td className="px-4 py-4 text-xs font-bold text-zinc-500 text-center uppercase tracking-tighter italic">{discount.type}</td>
                       <td className="px-4 py-4 text-center">
                         <button
-                          onClick={() => initiateDelete(discount)}
+                          onClick={() => handleDeleteClick(discount)}
                           className="p-2 rounded-lg transition-all shadow-sm active:scale-95 mx-auto flex items-center justify-center bg-red-600 hover:bg-red-700 text-white"
                         >
                           <Trash2 size={14} />
@@ -285,29 +289,35 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
       )}
 
       {/* DELETE CONFIRMATION MODAL */}
-      {isDeleteModalOpen && selectedDiscount && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      {isDeleteConfirmOpen && discountToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden">
             <div className="bg-red-500 px-6 py-4 flex justify-between items-center">
-              <h2 className="text-white font-black text-xs uppercase tracking-[0.2em]">Confirm Deletion</h2>
-              <button onClick={() => { setIsDeleteModalOpen(false); setSelectedDiscount(null); }} className="text-white/70 hover:text-white transition-colors">
+              <h2 className="text-white font-black text-xs uppercase tracking-[0.2em]">Confirm Delete</h2>
+              <button onClick={cancelDelete} className="text-white/70 hover:text-white transition-colors">
                 <X size={20} />
               </button>
             </div>
             <div className="p-6 space-y-4">
-              <p className="text-xs text-zinc-500 font-bold uppercase tracking-wider">
-                Are you sure you want to remove <span className="text-red-600">"{selectedDiscount.name}"</span>?
-              </p>
-              <p className="text-[10px] text-zinc-400 italic font-bold">This action cannot be undone.</p>
+              <div className="text-center space-y-2">
+                <div className="w-16 h-16 mx-auto rounded-full flex items-center justify-center bg-red-100">
+                  <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-slate-800">Delete Discount?</h3>
+                <p className="text-sm text-slate-600">Are you sure you want to permanently delete:</p>
+                <p className="text-sm font-black text-[#3b2063] uppercase">{discountToDelete.name}</p>
+              </div>
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={confirmDelete}
-                  className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg transition-all active:scale-95"
+                  className="flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 text-white bg-red-500 hover:bg-red-600"
                 >
-                  Delete
+                  <Trash2 size={14} /> Delete
                 </button>
                 <button
-                  onClick={() => { setIsDeleteModalOpen(false); setSelectedDiscount(null); }}
+                  onClick={cancelDelete}
                   className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-500 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all"
                 >
                   Cancel
