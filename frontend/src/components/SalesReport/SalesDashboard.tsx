@@ -376,10 +376,6 @@ const SalesDashboard: React.FC = () => {
       </div>
     );
   }
-<<<<<<< HEAD
-=======
-
->>>>>>> a89bca9846cf1b82f051ea4c9f922079c2d1c3f6
   if (error) {
     const { isMock } = getAuthToken();
     
@@ -459,10 +455,6 @@ const SalesDashboard: React.FC = () => {
               </p>
             </div>
           </div>
-<<<<<<< HEAD
-=======
-
->>>>>>> a89bca9846cf1b82f051ea4c9f922079c2d1c3f6
           {weeklySalesData.length > 0 ? (
             <div className="relative w-full h-64 pl-12 pb-8">
               <div className="absolute left-0 top-0 bottom-8 w-10 flex flex-col justify-between text-right text-[9px] font-bold text-zinc-300">
@@ -535,10 +527,6 @@ const SalesDashboard: React.FC = () => {
               </div>
             ))}
           </div>
-<<<<<<< HEAD
-=======
-
->>>>>>> a89bca9846cf1b82f051ea4c9f922079c2d1c3f6
           <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-100 shadow-sm flex flex-col">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-[#3b2063] font-black text-sm uppercase tracking-widest">Today's Sales Report</h3>
