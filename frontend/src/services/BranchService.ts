@@ -14,7 +14,9 @@ const api = axios.create({
 
 // Add auth token to requests if it exists
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('auth_token');
+  const token = localStorage.getItem('lucky_boba_token') 
+    || localStorage.getItem('auth_token') 
+    || localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -269,4 +271,6 @@ class BranchService {
   }
 }
 
+
 export default new BranchService();
+

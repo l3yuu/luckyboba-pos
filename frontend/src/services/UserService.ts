@@ -23,7 +23,7 @@ export interface CreateUserData {
   password: string;
   role: 'superadmin' | 'admin' | 'manager' | 'cashier';
   branch?: string;
-  status?: 'ACTIVE' | 'INACTIVE'; // Optional, will default to ACTIVE
+  status?: 'ACTIVE' | 'INACTIVE';
 }
 
 export interface UpdateUserData {
@@ -129,7 +129,6 @@ export class UserService {
   static async createUser(data: CreateUserData): Promise<User> {
     try {
       const payload: CreateUserData = { ...data, status: data.status ?? 'ACTIVE' };
-
       const response = await apiClient.post<ApiResponse<User>>('/users', payload);
       return response.data.data!;
     } catch (error: unknown) {
@@ -195,19 +194,11 @@ export class UserService {
     }
   }
 
-static logout(): void {
-  // Remove token and any other user info from localStorage
-  localStorage.removeItem('lucky_boba_token');
-  // Optional: clear all localStorage if needed
-  // localStorage.clear();
-
-  // Redirect to login page
-  window.location.href = '/login';
+  /** Logout - clear token and redirect */
+  static logout(): void {
+    localStorage.removeItem('lucky_boba_token');
+    window.location.href = '/login';
   }
-  
-
 }
-
-
 
 export default UserService;

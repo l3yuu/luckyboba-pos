@@ -14,7 +14,6 @@ interface MenuItem {
 interface DropdownConfig {
   id: string;
   state: boolean;
-  setState: React.Dispatch<React.SetStateAction<boolean>>;
   label: string;
   items: MenuItem[];
   icon: string;
@@ -33,7 +32,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   setSidebarOpen, 
   logo, 
   currentTab, 
-  setCurrentTab 
+  setCurrentTab,
 }) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -42,9 +41,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showCashInRequired, setShowCashInRequired] = useState(false);
-  const [showEodLockedModal, setShowEodLockedModal] = useState(false); // NEW MODAL STATE
+  const [showEodLockedModal, setShowEodLockedModal] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [isEodLocked, setIsEodLocked] = useState(false); // USED IN LOGIC BELOW
+  const [isEodLocked, setIsEodLocked] = useState(false);
 
   // --- CACHE INITIALIZATION ---
   const [isMenuLocked, setIsMenuLocked] = useState(() => {
@@ -139,10 +138,26 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'inventory-report', label: 'Inventory Report' },
   ];
 
+  // --- DROPDOWN STATES ---
   const [isPosDropdownOpen, setPosDropdownOpen] = useState(() => posMenuItems.some(i => i.id === currentTab));
   const [isSalesReportDropdownOpen, setSalesReportDropdownOpen] = useState(() => salesReportItems.some(i => i.id === currentTab));
   const [isMenuItemsDropdownOpen, setMenuItemsDropdownOpen] = useState(() => menuManagementItems.some(i => i.id === currentTab));
   const [isInventoryDropdownOpen, setInventoryDropdownOpen] = useState(() => inventoryItems.some(i => i.id === currentTab));
+
+  // --- ACCORDION HANDLER ---
+  const handleDropdownToggle = (id: string) => {
+    setPosDropdownOpen(id === 'pos' ? !isPosDropdownOpen : false);
+    setSalesReportDropdownOpen(id === 'sales' ? !isSalesReportDropdownOpen : false);
+    setMenuItemsDropdownOpen(id === 'menu-items' ? !isMenuItemsDropdownOpen : false);
+    setInventoryDropdownOpen(id === 'inventory' ? !isInventoryDropdownOpen : false);
+  };
+
+  const closeAllDropdowns = () => {
+    setPosDropdownOpen(false);
+    setSalesReportDropdownOpen(false);
+    setMenuItemsDropdownOpen(false);
+    setInventoryDropdownOpen(false);
+  };
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -162,10 +177,10 @@ const Sidebar: React.FC<SidebarProps> = ({
   const hoverClasses = 'hover:bg-[#f0ebff] hover:text-[#3b2063]';
 
   const dropdowns: DropdownConfig[] = [
-    { id: 'pos', state: isPosDropdownOpen, setState: setPosDropdownOpen, label: 'Point of Sale', items: posMenuItems, icon: 'M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72M6.75 18h3.75a.906.906 0 0 0 .906-.906v-4.438a.906.906 0 0 0-.906-.906H6.75a.906.906 0 0 0-.906.906v4.438a.906.906 0 0 0 .906.906Z' },
-    { id: 'sales', state: isSalesReportDropdownOpen, setState: setSalesReportDropdownOpen, label: 'Sales Report', items: salesReportItems, icon: 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z' },
-    { id: 'menu-items', state: isMenuItemsDropdownOpen, setState: setMenuItemsDropdownOpen, label: 'Menu Items', items: menuManagementItems, icon: 'M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25' },
-    { id: 'inventory', state: isInventoryDropdownOpen, setState: setInventoryDropdownOpen, label: 'Inventory', items: inventoryItems, icon: 'M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z' }
+    { id: 'pos', state: isPosDropdownOpen, label: 'Point of Sale', items: posMenuItems, icon: 'M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.015a3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72M6.75 18h3.75a.906.906 0 0 0 .906-.906v-4.438a.906.906 0 0 0-.906-.906H6.75a.906.906 0 0 0-.906.906v4.438a.906.906 0 0 0 .906.906Z' },
+    { id: 'sales', state: isSalesReportDropdownOpen, label: 'Sales Report', items: salesReportItems, icon: 'M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z' },
+    { id: 'menu-items', state: isMenuItemsDropdownOpen, label: 'Menu Items', items: menuManagementItems, icon: 'M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25' },
+    { id: 'inventory', state: isInventoryDropdownOpen, label: 'Inventory', items: inventoryItems, icon: 'M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z' }
   ];
 
   return (
@@ -189,7 +204,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       {showEodLockedModal && (
         <div className="fixed inset-0 z-100 flex items-center justify-center p-6 bg-[#3b2063]/40 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-10 shadow-2xl border border-zinc-100 flex flex-col items-center text-center transition-all animate-in zoom-in-95 duration-200">
+          <div className="bg-white w-full max-sm rounded-[2.5rem] p-10 shadow-2xl border border-zinc-100 flex flex-col items-center text-center transition-all animate-in zoom-in-95 duration-200">
             <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-6">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="#be2525" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.546 1.16 3.743 1.16 5.289 0m-5.289-8c1.546-1.159 3.743-1.159 5.289 0m-5.289 4h5.29" /></svg>
             </div>
@@ -227,7 +242,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           
           <nav className="w-full px-6 space-y-2 pb-6">
             <button
-              onClick={() => { setCurrentTab('dashboard'); if (window.innerWidth < 768) setSidebarOpen(false); }}
+              onClick={() => { setCurrentTab('dashboard'); closeAllDropdowns(); if (window.innerWidth < 768) setSidebarOpen(false); }}
               className={`w-full px-5 py-3 rounded-2xl font-black text-[13px] uppercase tracking-wider flex items-center transition-all duration-200 ${currentTab === 'dashboard' ? 'bg-[#f0ebff] text-[#3b2063]' : `text-zinc-400 ${hoverClasses}`}`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 mr-3"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" /></svg>
@@ -235,9 +250,9 @@ const Sidebar: React.FC<SidebarProps> = ({
             </button>
 
             {dropdowns.map((dropdown) => (
-              <div className="w-full" key={dropdown.label}>
+              <div className="w-full" key={dropdown.id}>
                 <button
-                  onClick={() => dropdown.setState(!dropdown.state)}
+                  onClick={() => handleDropdownToggle(dropdown.id)}
                   className={`w-full px-5 py-3 rounded-2xl font-black text-[13px] uppercase tracking-wider flex items-center justify-between transition-all duration-200 ${
                     dropdown.state || dropdown.items.some((i: MenuItem) => i.id === currentTab) ? 'text-[#3b2063] bg-[#f0ebff]' : `text-zinc-400 ${hoverClasses}`
                   }`}
@@ -248,14 +263,13 @@ const Sidebar: React.FC<SidebarProps> = ({
                   </div>
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={`w-3 h-3 transition-transform duration-300 ${dropdown.state ? 'rotate-180' : 'rotate-0'}`}><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
                 </button>
-                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${dropdown.state ? 'max-h-125 opacity-100 mt-2' : 'max-h-0 opacity-0'}`}>
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${dropdown.state ? 'max-h-125 opacity-100 mt-2 translate-y-0 scale-100' : 'max-h-0 opacity-0 -translate-y-2 scale-95'}`}>
                   <div className="flex flex-col space-y-1 pl-4 border-l-2 border-[#f0ebff] ml-5">
                     {dropdown.items.map((item: MenuItem) => (
                       <button 
                         key={item.id} 
                         onClick={() => { 
                           if (item.id === 'menu') {
-                            // --- LOCK LOGIC INCORPORATING isEodLocked ---
                             if (isMenuLocked) {
                               setShowCashInRequired(true);
                             } else if (isEodLocked) {
@@ -280,11 +294,11 @@ const Sidebar: React.FC<SidebarProps> = ({
               </div>
             ))}
 
-            <button onClick={() => { setCurrentTab('expense'); if (window.innerWidth < 768) setSidebarOpen(false); }} className={`w-full px-5 py-3 rounded-2xl font-black text-[13px] uppercase tracking-wider flex items-center transition-all duration-200 ${currentTab === 'expense' ? 'bg-[#f0ebff] text-[#3b2063]' : `text-zinc-400 ${hoverClasses}`}`}>
+            <button onClick={() => { setCurrentTab('expense'); closeAllDropdowns(); if (window.innerWidth < 768) setSidebarOpen(false); }} className={`w-full px-5 py-3 rounded-2xl font-black text-[13px] uppercase tracking-wider flex items-center transition-all duration-200 ${currentTab === 'expense' ? 'bg-[#f0ebff] text-[#3b2063]' : `text-zinc-400 ${hoverClasses}`}`}>
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 mr-3"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" /></svg>
               Expense
             </button>
-            <button onClick={() => { setCurrentTab('settings'); if (window.innerWidth < 768) setSidebarOpen(false); }} className={`w-full px-5 py-3 rounded-2xl font-black text-[13px] uppercase tracking-wider flex items-center transition-all duration-200 ${currentTab === 'settings' ? 'bg-[#f0ebff] text-[#3b2063]' : `text-zinc-400 ${hoverClasses}`}`}>
+            <button onClick={() => { setCurrentTab('settings'); closeAllDropdowns(); if (window.innerWidth < 768) setSidebarOpen(false); }} className={`w-full px-5 py-3 rounded-2xl font-black text-[13px] uppercase tracking-wider flex items-center transition-all duration-200 ${currentTab === 'settings' ? 'bg-[#f0ebff] text-[#3b2063]' : `text-zinc-400 ${hoverClasses}`}`}>
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 mr-3"><path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.559.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.894.149c-.424.07-.764.383-.929.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 0 1-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527a1.125 1.125 0 0 1-1.45-.12l-.773-.774a1.125 1.125 0 0 1-.12-1.45l.527-.737c.25-.35.272-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 0 1 .12-1.45l.773-.773a1.125 1.125 0 0 1 1.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
               Settings
             </button>

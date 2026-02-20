@@ -15,8 +15,8 @@ class MenuItem extends Model
         'sub_category_id',
         'name', 
         'price', 
-        'cost',     // Added to track profit
-        'quantity', // Added to track stock
+        'cost',
+        'quantity',
         'barcode'
     ];
 
@@ -31,5 +31,11 @@ class MenuItem extends Model
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    // ADD THIS: Relationship to the SubCategory
+    public function subCategory(): BelongsTo
+    {
+        return $this->belongsTo(SubCategory::class, 'sub_category_id');
     }
 }

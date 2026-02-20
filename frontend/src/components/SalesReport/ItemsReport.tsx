@@ -157,16 +157,17 @@ const ItemsReport: React.FC = () => {
         headers['Authorization'] = `Bearer ${token}`;
       }
 
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify({
-          from_date: fromDate,
-          to_date: toDate,
-          filter: filter,
-          report_type: reportType
-        })
-      });
+const params = new URLSearchParams({
+  from_date: fromDate,
+  to_date: toDate,
+  filter: filter,
+  report_type: reportType,
+});
+
+const response = await fetch(`${url}?${params}`, {
+  method: 'GET',
+  headers: headers,
+});
 
       if (DEBUG_MODE) {
         console.log('Response status:', response.status);

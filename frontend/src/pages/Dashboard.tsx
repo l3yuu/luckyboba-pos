@@ -5,7 +5,7 @@
   import logo from '../assets/logo.png';
   import api from '../services/api'; 
   import type { DashboardData, TopSeller } from '../types/dashboard';
-  
+  import { getCache, setCache, clearCache } from '../utils/cache';
 
   // --- Import POS Components ---
   import CashIn from '../components/SalesOrder/CashIn'; 
@@ -44,42 +44,29 @@
 
 
 
-  const Dashboard = () => {
-    const navigate = useNavigate();
-    const { user, isLoading: authLoading } = useAuth();
-    const [isSidebarOpen, setSidebarOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState('dashboard');
-    
-    // Load stats from localStorage immediately for instant display
-    const [stats, setStats] = useState<DashboardData | null>(() => {
-      const cached = localStorage.getItem('dashboard_stats');
-      const timestamp = localStorage.getItem('dashboard_stats_timestamp');
-      
-      if (cached && timestamp) {
-        const age = Date.now() - parseInt(timestamp);
-        if (age < 120000) {
-          return JSON.parse(cached);
-        }
-      }
-      return null;
-    });
-    
-    const [loading, setLoading] = useState(!stats);
-    const [isInitialLoad, setIsInitialLoad] = useState(!stats); // Track if it's the first load
-    const isFetching = useRef(false);
+const Dashboard = () => {
+  const navigate = useNavigate();
+  const { user, isLoading: authLoading } = useAuth();
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('dashboard');
+  
+  // ✅ Initialize from cache.ts instead of raw localStorage
+  const [stats, setStats] = useState<DashboardData | null>(() => {
+    return getCache<DashboardData>('dashboard-stats');
+  });
+  
+  const [loading, setLoading] = useState(!stats);
+  const [isInitialLoad, setIsInitialLoad] = useState(!stats);
+  const isFetching = useRef(false);
 
-    // AUTH CHECK
-    useEffect(() => {
-      if (!authLoading && !user) {
-        navigate('/login', { replace: true });
-      }
-    }, [user, authLoading, navigate]);
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/login', { replace: true });
+    }
+  }, [user, authLoading, navigate]);
 
-    // BACKEND FETCH LOGIC
   const fetchStats = useCallback(async (isManual = false) => {
     if (isFetching.current) return;
-    
-    // If it's a manual refresh or we're forcing an update, show loading
     if (isManual) setLoading(true);
 
     isFetching.current = true;
@@ -88,10 +75,10 @@
       const newStats = response.data;
       
       setStats(newStats);
-      setIsInitialLoad(false); 
+      setIsInitialLoad(false);
       
-      localStorage.setItem('dashboard_stats', JSON.stringify(newStats));
-      localStorage.setItem('dashboard_stats_timestamp', Date.now().toString());
+      // ✅ Use cache.ts with 2 minute TTL (same as before)
+      setCache('dashboard-stats', newStats, 2 * 60 * 1000);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
       setIsInitialLoad(false);
@@ -103,7 +90,15 @@
 
   useEffect(() => {
     if (user && activeTab === 'dashboard') {
-      fetchStats(true); 
+      // ✅ Only fetch if no valid cache exists
+      const cached = getCache<DashboardData>('dashboard-stats');
+      if (cached) {
+        setStats(cached);
+        setLoading(false);
+        setIsInitialLoad(false);
+      } else {
+        fetchStats(true);
+      }
     }
   }, [user, activeTab, fetchStats]);
 
@@ -112,61 +107,51 @@
       const needsRefresh = localStorage.getItem('dashboard_needs_refresh');
       if (needsRefresh === 'true' && activeTab === 'dashboard') {
         localStorage.removeItem('dashboard_needs_refresh');
-        localStorage.removeItem('dashboard_stats_timestamp');
+        // ✅ Invalidate cache then refetch
+        clearCache('dashboard-stats');
         fetchStats(true);
       }
     };
 
     checkRefresh();
-    // Listen for storage changes in case voiding happens in another window
     window.addEventListener('storage', checkRefresh);
     return () => window.removeEventListener('storage', checkRefresh);
   }, [activeTab, fetchStats]);
 
-    if (authLoading) return <DashboardSkeleton />;
-    if (!user) return null;
+  if (authLoading) return <DashboardSkeleton />;
+  if (!user) return null;
 
-    const renderContent = () => {
-      switch (activeTab) {
-        case 'dashboard':
-          return <DashboardStats stats={stats} loading={loading} isInitialLoad={isInitialLoad} />;
-        
-        case 'search-receipts': 
-          return <SearchReceipts onSuccess={() => {
-            localStorage.removeItem('dashboard_stats_timestamp');
-            fetchStats(true);
-          }} />;
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return <DashboardStats stats={stats} isInitialLoad={isInitialLoad} />;
+      
+      case 'search-receipts': 
+        return <SearchReceipts onSuccess={() => {
+          clearCache('dashboard-stats'); // ✅
+          fetchStats(true);
+        }} />;
 
-        case 'cash-in': 
-          return <CashIn onSuccess={() => {
-            localStorage.removeItem('dashboard_stats_timestamp');
-            fetchStats(true);
-            // Instant unlock by switching to dashboard or menu
-            setActiveTab('dashboard'); 
-          }} />;
+      case 'cash-in': 
+        return <CashIn onSuccess={() => {
+          clearCache('dashboard-stats'); // ✅
+          fetchStats(true);
+          setActiveTab('dashboard'); 
+        }} />;
 
-        case 'cash-drop': 
-          return <CashDrop onSuccess={() => {
-            localStorage.removeItem('dashboard_stats_timestamp');
-            fetchStats(true);
-          }} />;
+      case 'cash-drop': 
+        return <CashDrop onSuccess={() => {
+          clearCache('dashboard-stats'); // ✅
+          fetchStats(true);
+        }} />;
 
-        // --- UPDATED CASH COUNT LOGIC ---
-        case 'cash-count': 
-          return <CashCount onSuccess={() => {
-            // 1. Clear the stats cache so the dashboard reflects the final numbers
-            localStorage.removeItem('dashboard_stats_timestamp');
-            
-            // 2. Fetch the latest stats to confirm the EOD record exists in the DB
-            fetchStats(true);
-
-            // 3. Force the Sidebar to re-check EOD status by "pinging" the activeTab
-            // This will trigger the Sidebar's useEffect which monitors [currentTab]
-            setActiveTab('dashboard'); 
-
-            // Optional: You can also manually set a local flag if you want zero-latency
-            localStorage.setItem('cashier_menu_unlocked', 'false');
-          }} />;
+      case 'cash-count': 
+        return <CashCount onSuccess={() => {
+          clearCache('dashboard-stats'); // ✅
+          fetchStats(true);
+          setActiveTab('dashboard');
+          localStorage.setItem('cashier_menu_unlocked', 'false');
+        }} />;
 
         case 'sales-dashboard': return <SalesDashboard />;
         case 'items-report': return <ItemsReport />;
@@ -188,66 +173,70 @@
         case 'expense': return <Expense />;
         case 'settings': return <Settings />;
         default:
-          return <DashboardStats stats={stats} loading={loading} isInitialLoad={isInitialLoad} />;
+          return <DashboardStats stats={stats} isInitialLoad={isInitialLoad} />;
       }
     };
 
-    return (
-      <div className="flex flex-col md:flex-row h-screen bg-[#f8f6ff] text-zinc-900 font-sans overflow-hidden">
-        {/* Mobile Header */}
-        <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-zinc-200">
-          <img src={logo} alt="Lucky Boba" className="h-8 w-auto object-contain" />
-          <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-2 text-[#3b2063]">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-            </svg>
-          </button>
-        </div>
-
-        <Sidebar 
-          isSidebarOpen={isSidebarOpen} 
-          setSidebarOpen={setSidebarOpen} 
-          logo={logo} 
-          currentTab={activeTab} 
-          setCurrentTab={setActiveTab} 
-        />
-
-        <main className="flex-1 flex flex-col overflow-hidden">
-          {activeTab === 'dashboard' && (
-            <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-6 md:px-10 py-6 md:py-8 gap-4">
-              <div>
-                <h1 className="text-xl md:text-4xl font-black text-[#3b2063] uppercase tracking-tight">Dashboard</h1>
-                <p className="text-zinc-400 font-bold text-[9px] md:text-[10px] uppercase tracking-[0.2em] mt-1">Performance Summary</p>
-              </div>
-              
-              <button 
-                  onClick={() => {
-                    localStorage.removeItem('dashboard_stats_timestamp');
-                    fetchStats(true);
-                  }} 
-                  disabled={loading}
-                  className={`p-3 rounded-2xl bg-white border border-zinc-100 shadow-sm transition-all active:scale-95 ${loading ? 'opacity-50' : 'hover:bg-zinc-50'}`}
-              >
-                <svg 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  fill="none" 
-                  viewBox="0 0 24 24" 
-                  strokeWidth={2.5} 
-                  stroke="#3b2063" 
-                  className={`w-4 h-4 transition-transform ${loading ? 'animate-spin' : ''}`}
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
-                </svg>
-              </button>
-            </header>
-          )}
-          <div className="flex-1 overflow-y-auto">
-            {renderContent()}
-          </div>
-        </main>
+  return (
+    // ... your JSX stays exactly the same, just replace the manual refresh button handler:
+    // OLD: localStorage.removeItem('dashboard_stats_timestamp'); fetchStats(true);
+    // NEW: clearCache('dashboard-stats'); fetchStats(true);
+    <div className="flex flex-col md:flex-row h-screen bg-[#f8f6ff] text-zinc-900 font-sans overflow-hidden">
+      <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-zinc-200">
+        <img src={logo} alt="Lucky Boba" className="h-8 w-auto object-contain" />
+        <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-2 text-[#3b2063]">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+          </svg>
+        </button>
       </div>
-    );
-  };
+
+      <Sidebar 
+        isSidebarOpen={isSidebarOpen} 
+        setSidebarOpen={setSidebarOpen} 
+        logo={logo} 
+        currentTab={activeTab} 
+        setCurrentTab={setActiveTab} 
+      />
+
+      <main className="flex-1 flex flex-col overflow-hidden">
+        {activeTab === 'dashboard' && (
+          <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-6 md:px-10 py-6 md:py-8 gap-4">
+            <div>
+              <h1 className="text-xl md:text-4xl font-black text-[#3b2063] uppercase tracking-tight">Dashboard</h1>
+              <p className="text-zinc-400 font-bold text-[9px] md:text-[10px] uppercase tracking-[0.2em] mt-1">Performance Summary</p>
+            </div>
+            
+            {/* ✅ Updated refresh button to use clearCache */}
+            <button 
+              onClick={() => {
+                clearCache('dashboard-stats');
+                fetchStats(true);
+              }} 
+              disabled={loading}
+              className={`p-3 rounded-2xl bg-white border border-zinc-100 shadow-sm transition-all active:scale-95 ${loading ? 'opacity-50' : 'hover:bg-zinc-50'}`}
+            >
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                fill="none" 
+                viewBox="0 0 24 24" 
+                strokeWidth={2.5} 
+                stroke="#3b2063" 
+                className={`w-4 h-4 transition-transform ${loading ? 'animate-spin' : ''}`}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+              </svg>
+            </button>
+          </header>
+        )}
+        <div className="flex-1 overflow-y-auto">
+          {renderContent()}
+        </div>
+      </main>
+    </div>
+  );
+};
+
 
   // --- UPDATED DashboardStats with Skeleton Loading ---
 // ... (keep all your imports and Dashboard component logic exactly the same)
@@ -257,7 +246,6 @@ const DashboardStats = ({
   isInitialLoad 
 }: { 
   stats: DashboardData | null; 
-  loading: boolean;
   isInitialLoad: boolean;
 }) => {
   // We define the cards here. 
@@ -273,18 +261,6 @@ const cards = [
 
   return (
     <section className="flex-1 px-6 md:px-10 pb-10">
-      <style>{`
-        @keyframes shimmer {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
-        }
-        .skeleton-shimmer {
-          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-          background-size: 200% 100%;
-          animation: shimmer 1.5s infinite;
-          border-radius: 8px;
-        }
-      `}</style>
 
       {/* Changed grid to cols-5 to fit the void card, or keep it responsive */}
       <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-5">

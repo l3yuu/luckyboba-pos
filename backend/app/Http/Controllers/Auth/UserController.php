@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Services\UserService;
 use App\Models\User;
 use App\Models\Branch;
 use Illuminate\Http\Request;
@@ -13,60 +12,55 @@ use Exception;
 
 class UserController extends Controller
 {
-    protected $userService;
-
-    public function __construct(UserService $userService)
+    /**
+     * Transform user to return branch as a plain string (not object)
+     */
+    private function transformUser(User $user): array
     {
-        $this->userService = $userService;
+        return [
+            'id'                 => $user->id,
+            'name'               => $user->name,
+            'email'              => $user->email,
+            'role'               => $user->role,
+            'status'             => $user->status,
+            'branch'             => $user->branch_name ?? null,
+            'branch_id'          => $user->branch_id,
+            'email_verified_at'  => $user->email_verified_at,
+            'created_at'         => $user->created_at,
+            'updated_at'         => $user->updated_at,
+        ];
     }
 
     /**
      * GET /api/users
-     * Display a listing of users with filters
      */
     public function index(Request $request)
     {
         try {
+            $query = User::orderBy('created_at', 'desc');
 
-            // OPTIONAL: use service if you built filtering there
-            $filters = [
-                'status' => $request->query('status'),
-                'role' => $request->query('role'),
-                'branch' => $request->query('branch'),
-                'search' => $request->query('search'),
-            ];
-
-            if (method_exists($this->userService, 'getAllUsers')) {
-                $users = $this->userService->getAllUsers($filters);
-            } else {
-                // fallback query
-                $query = User::with('branch')->orderBy('created_at', 'desc');
-
-                if ($filters['status']) {
-                    $query->where('status', $filters['status']);
-                }
-
-                if ($filters['role']) {
-                    $query->where('role', $filters['role']);
-                }
-
-                if ($filters['branch']) {
-                    $query->where('branch_name', $filters['branch']);
-                }
-
-                if ($filters['search']) {
-                    $query->where(function ($q) use ($filters) {
-                        $q->where('name', 'like', '%' . $filters['search'] . '%')
-                          ->orWhere('email', 'like', '%' . $filters['search'] . '%');
-                    });
-                }
-
-                $users = $query->get();
+            if ($request->query('status')) {
+                $query->where('status', $request->query('status'));
             }
+            if ($request->query('role')) {
+                $query->where('role', $request->query('role'));
+            }
+            if ($request->query('branch')) {
+                $query->where('branch_name', $request->query('branch'));
+            }
+            if ($request->query('search')) {
+                $search = $request->query('search');
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%");
+                });
+            }
+
+            $users = $query->get()->map(fn($u) => $this->transformUser($u));
 
             return response()->json([
                 'success' => true,
-                'data' => $users,
+                'data'    => $users,
                 'message' => 'Users retrieved successfully'
             ], 200);
 
@@ -74,7 +68,7 @@ class UserController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve users',
-                'error' => $e->getMessage()
+                'error'   => $e->getMessage()
             ], 500);
         }
     }
@@ -85,12 +79,11 @@ class UserController extends Controller
     public function show($id)
     {
         try {
-
-            $user = User::with('branch')->findOrFail($id);
+            $user = User::findOrFail($id);
 
             return response()->json([
                 'success' => true,
-                'data' => $user,
+                'data'    => $this->transformUser($user),
                 'message' => 'User retrieved successfully'
             ], 200);
 
@@ -98,7 +91,7 @@ class UserController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'User not found',
-                'error' => $e->getMessage()
+                'error'   => $e->getMessage()
             ], 404);
         }
     }
@@ -109,121 +102,110 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email',
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|email|max:255|unique:users,email',
             'password' => 'required|string|min:6',
-            'role' => 'required|in:superadmin,admin,manager,cashier',
-            'branch' => 'nullable|string|max:255',
-            'status' => 'required|in:ACTIVE,INACTIVE',
+            'role'     => 'required|in:superadmin,admin,manager,cashier',
+            'branch'   => 'nullable|string|max:255',
+            'status'   => 'required|in:ACTIVE,INACTIVE',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors'  => $validator->errors()
             ], 422);
         }
 
         try {
-
-            // find branch
             $branchId = null;
 
             if ($request->filled('branch')) {
-
                 $branch = Branch::where('name', $request->branch)->first();
 
                 if (!$branch) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Branch not found',
-                        'error' => "No branch found with the name: {$request->branch}"
+                        'error'   => "No branch found with the name: {$request->branch}"
                     ], 404);
                 }
 
                 $branchId = $branch->id;
             }
 
-            // create user
             $user = User::create([
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
-                'role' => $request->role,
-                'status' => $request->status,
+                'name'        => $request->name,
+                'email'       => $request->email,
+                'password'    => Hash::make($request->password),
+                'role'        => $request->role,
+                'status'      => $request->status,
                 'branch_name' => $request->branch,
-                'branch_id' => $branchId,
+                'branch_id'   => $branchId,
             ]);
-
-            $user->load('branch');
 
             return response()->json([
                 'success' => true,
-                'data' => $user,
+                'data'    => $this->transformUser($user),
                 'message' => 'User created successfully'
             ], 201);
 
         } catch (Exception $e) {
-
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create user',
-                'error' => $e->getMessage()
+                'error'   => $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * PUT/PATCH /api/users/{id}
+     * PUT /api/users/{id}
      */
     public function update(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'sometimes|required|string|max:255',
-            'email' => 'sometimes|required|email|max:255|unique:users,email,' . $id,
+            'name'     => 'sometimes|required|string|max:255',
+            'email'    => 'sometimes|required|email|max:255|unique:users,email,' . $id,
             'password' => 'nullable|string|min:6',
-            'role' => 'sometimes|required|in:superadmin,admin,manager,cashier',
-            'status' => 'sometimes|required|in:ACTIVE,INACTIVE',
-            'branch' => 'nullable|string|max:255',
+            'role'     => 'sometimes|required|in:superadmin,admin,manager,cashier',
+            'status'   => 'sometimes|required|in:ACTIVE,INACTIVE',
+            'branch'   => 'nullable|string|max:255',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors'  => $validator->errors()
             ], 422);
         }
 
         try {
-
             $user = User::findOrFail($id);
-
             $updateData = [];
 
-            if ($request->has('name')) $updateData['name'] = $request->name;
-            if ($request->has('email')) $updateData['email'] = $request->email;
+            if ($request->has('name'))   $updateData['name']   = $request->name;
+            if ($request->has('email'))  $updateData['email']  = $request->email;
+            if ($request->has('role'))   $updateData['role']   = $request->role;
+            if ($request->has('status')) $updateData['status'] = $request->status;
+
             if ($request->filled('password')) {
                 $updateData['password'] = Hash::make($request->password);
             }
-            if ($request->has('role')) $updateData['role'] = $request->role;
-            if ($request->has('status')) $updateData['status'] = $request->status;
 
-            // branch handling
             if ($request->has('branch')) {
-
                 $updateData['branch_name'] = $request->branch;
 
                 if (!empty($request->branch)) {
-
                     $branch = Branch::where('name', $request->branch)->first();
 
                     if (!$branch) {
                         return response()->json([
                             'success' => false,
                             'message' => 'Branch not found',
-                            'error' => "No branch found with the name: {$request->branch}"
+                            'error'   => "No branch found with the name: {$request->branch}"
                         ], 404);
                     }
 
@@ -234,20 +216,18 @@ class UserController extends Controller
             }
 
             $user->update($updateData);
-            $user->load('branch');
 
             return response()->json([
                 'success' => true,
-                'data' => $user,
+                'data'    => $this->transformUser($user->fresh()),
                 'message' => 'User updated successfully'
             ], 200);
 
         } catch (Exception $e) {
-
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update user',
-                'error' => $e->getMessage()
+                'error'   => $e->getMessage()
             ], 500);
         }
     }
@@ -258,7 +238,6 @@ class UserController extends Controller
     public function destroy($id)
     {
         try {
-
             $user = User::findOrFail($id);
 
             if ($user->role === 'superadmin') {
@@ -276,11 +255,10 @@ class UserController extends Controller
             ], 200);
 
         } catch (Exception $e) {
-
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete user',
-                'error' => $e->getMessage()
+                'error'   => $e->getMessage()
             ], 500);
         }
     }
@@ -291,20 +269,17 @@ class UserController extends Controller
     public function toggleStatus($id)
     {
         try {
-
             $user = User::findOrFail($id);
-
             $user->status = $user->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
             $user->save();
 
             return response()->json([
                 'success' => true,
-                'data' => $user,
+                'data'    => $this->transformUser($user),
                 'message' => 'User status updated successfully'
             ], 200);
 
         } catch (Exception $e) {
-
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage()
@@ -318,30 +293,29 @@ class UserController extends Controller
     public function stats()
     {
         try {
-
-            if (method_exists($this->userService, 'getUserStats')) {
-                $stats = $this->userService->getUserStats();
-            } else {
-                $stats = [
-                    'total' => User::count(),
-                    'active' => User::where('status', 'ACTIVE')->count(),
-                    'inactive' => User::where('status', 'INACTIVE')->count(),
-                    'admins' => User::whereIn('role', ['admin','superadmin'])->count(),
-                ];
-            }
+            $stats = [
+                'total'    => User::count(),
+                'active'   => User::where('status', 'ACTIVE')->count(),
+                'inactive' => User::where('status', 'INACTIVE')->count(),
+                'by_role'  => [
+                    'superadmin' => User::where('role', 'superadmin')->count(),
+                    'admin'      => User::where('role', 'admin')->count(),
+                    'manager'    => User::where('role', 'manager')->count(),
+                    'cashier'    => User::where('role', 'cashier')->count(),
+                ],
+            ];
 
             return response()->json([
                 'success' => true,
-                'data' => $stats,
+                'data'    => $stats,
                 'message' => 'User statistics retrieved successfully'
             ], 200);
 
         } catch (Exception $e) {
-
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve statistics',
-                'error' => $e->getMessage()
+                'error'   => $e->getMessage()
             ], 500);
         }
     }

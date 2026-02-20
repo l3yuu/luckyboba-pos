@@ -21,16 +21,18 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
 
   // Redirect if already logged in
-  useEffect(() => {
-    const token = localStorage.getItem('lucky_boba_token');
-    if (token && user) {
-      if (user.role === 'superadmin') {
-        navigate('/super-admin', { replace: true });
-      } else {
-        navigate('/dashboard', { replace: true });
-      }
+useEffect(() => {
+  const token = localStorage.getItem('lucky_boba_token');
+  if (token && user) {
+    if (user.role === 'superadmin') {
+      navigate('/super-admin', { replace: true });
+    } else if (user.role === 'manager' || user.role === 'admin') {
+      navigate('/branch-manager', { replace: true });
+    } else {
+      navigate('/dashboard', { replace: true });
     }
-  }, [navigate, user]);
+  }
+}, [navigate, user]);
 
   // Handle session expiry toast
   useEffect(() => {
@@ -55,22 +57,24 @@ const Login: React.FC = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const credentials: LoginCredentials = { email, password };
-    const loggedInUser = await login(credentials);
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  const credentials: LoginCredentials = { email, password };
+  const loggedInUser = await login(credentials);
 
-    if (loggedInUser) {
-      localStorage.setItem('user_role', loggedInUser.role);
-      showToast(`Welcome back, ${loggedInUser.name}!`, "success");
+  if (loggedInUser) {
+    localStorage.setItem('user_role', loggedInUser.role);
+    showToast(`Welcome back, ${loggedInUser.name}!`, "success");
 
-      if (loggedInUser.role === 'superadmin') {
-        navigate('/super-admin', { replace: true });
-      } else {
-        navigate('/dashboard', { replace: true });
-      }
+    if (loggedInUser.role === 'superadmin') {
+      navigate('/super-admin', { replace: true });
+    } else if (loggedInUser.role === 'manager' || loggedInUser.role === 'admin') {
+      navigate('/branch-manager', { replace: true });
+    } else {
+      navigate('/dashboard', { replace: true });
     }
-  };
+  }
+};
 
   return (
     <div

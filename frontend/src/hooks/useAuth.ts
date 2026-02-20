@@ -3,7 +3,6 @@ import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios'; 
 import type { LoginCredentials, User } from '../types/user'; 
 
-// Constants to avoid typos
 const AUTH_KEYS = [
     'lucky_boba_token',
     'lucky_boba_authenticated',
@@ -63,10 +62,10 @@ export const useAuth = () => {
             }
             
             setUser(userData);
-            setIsLoading(false); // Make sure to reset loading after success
+            setIsLoading(false);
             return userData;
         } catch (err: unknown) { 
-            clearSession(); // Safety measure if login fails
+            clearSession();
             if (axios.isAxiosError(err)) {
                 setError(err.response?.data?.message || 'Invalid credentials.');
             } else {
@@ -77,16 +76,27 @@ export const useAuth = () => {
         }
     };
 
-    const logout = async (): Promise<boolean> => {
-        try {
-            await api.post('/logout');
-            return true;
-        } catch {
-            return false;
-        } finally {
-            clearSession();
-        }
-    };
+const logout = async (): Promise<boolean> => {
+  console.log('5. Inside useAuth logout');
+  try {
+    const res = await api.post('/logout');
+    console.log('6. API logout response:', res);
+  } catch (err) {
+    console.log('7. API logout failed (still continuing):', err);
+  } finally {
+    console.log('8. Clearing session...');
+    AUTH_KEYS.forEach(key => localStorage.removeItem(key));
+    document.cookie.split(';').forEach((cookie) => {
+      document.cookie = cookie
+        .replace(/^ +/, '')
+        .replace(/=.*/, `=;expires=${new Date(0).toUTCString()};path=/`);
+    });
+    setUser(null);
+    console.log('9. Redirecting to /login...');
+    window.location.href = '/login';
+  }
+  return true;
+};
 
     return { login, logout, isLoading, error, user };
 };

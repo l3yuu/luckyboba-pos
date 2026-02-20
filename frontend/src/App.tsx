@@ -1,9 +1,16 @@
+import { useEffect } from 'react';
 import { RouterProvider } from 'react-router-dom';
 import { router } from './routes'; 
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { ToastProvider } from './context/ToastProvider'; 
+import { ToastProvider } from './context/ToastProvider';
+import { prefetchAll } from './utils/prefetch'; // ✅ import
 
 function App() {
+  // ✅ Fire and forget — runs once on app load
+  useEffect(() => {
+    prefetchAll();
+  }, []);
+
   return (
     <ErrorBoundary 
       fallback={
@@ -18,7 +25,6 @@ function App() {
         </div>
       }
     >
-      {/* Wrap everything in ToastProvider */}
       <ToastProvider>
         <RouterProvider router={router} />
       </ToastProvider>
