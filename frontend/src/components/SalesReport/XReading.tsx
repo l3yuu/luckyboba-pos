@@ -24,7 +24,7 @@ interface XReadingReport {
   vatable_sales?: number;
   vat_amount?: number;
   prepared_by?: string;
-  // ENSURE THIS NESTED STRUCTURE IS DEFINED
+  all_addons_summary?: { name: string; qty: number }[];
   categories?: {
     category_name: string;
     category_total: number;
