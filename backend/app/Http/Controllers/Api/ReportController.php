@@ -110,58 +110,77 @@ class ReportController extends Controller
         return ['transactions' => $data];
     }
 
-    public function getItemQuantities(Request $request) {
-        $date = $request->query('date');
-        
-        $rawItems = DB::table('sale_items')
-            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
-            ->join('menu_items', 'sale_items.menu_item_id', '=', 'menu_items.id')
-            ->join('categories', 'menu_items.category_id', '=', 'categories.id')
-            ->whereDate('sales.created_at', $date)
-            ->where('sales.status', 'completed') 
-            ->select('categories.name as category_name', 'sale_items.*')
-            ->get();
+public function getItemQuantities(Request $request) {
+    $date = $request->query('date');
+    
+    // Safely extract the logged-in user
+    $user = auth('sanctum')->user() ?? $request->user();
+    $cashierName = $user ? $user->name : 'System Admin';
 
-        $groupedData = $rawItems->groupBy('category_name')->map(function ($items, $category) {
-            $productSummary = $items->groupBy('product_name')->map(function ($pGroup, $pName) {
-                $addOnCounts = [];
-                foreach ($pGroup as $item) {
-                    $addons = json_decode($item->add_ons) ?? [];
-                    foreach ($addons as $addonName) {
-                        $addOnCounts[$addonName] = ($addOnCounts[$addonName] ?? 0) + $item->quantity;
-                    }
+    $rawItems = DB::table('sale_items')
+        ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+        ->join('menu_items', 'sale_items.menu_item_id', '=', 'menu_items.id')
+        ->join('categories', 'menu_items.category_id', '=', 'categories.id')
+        ->whereDate('sales.created_at', $date)
+        ->where('sales.status', 'completed') 
+        ->select('categories.name as category_name', 'sale_items.*')
+        ->get();
+
+    // Track a global summary of all add-ons sold across all products
+    $globalAddonSummary = [];
+
+    $groupedData = $rawItems->groupBy('category_name')->map(function ($items, $category) use (&$globalAddonSummary) {
+        $productSummary = $items->groupBy('product_name')->map(function ($pGroup, $pName) use (&$globalAddonSummary) {
+            $productAddOnCounts = [];
+            foreach ($pGroup as $item) {
+                $addons = json_decode($item->add_ons) ?? [];
+                foreach ($addons as $addonName) {
+                    // Count for specific product
+                    $productAddOnCounts[$addonName] = ($productAddOnCounts[$addonName] ?? 0) + $item->quantity;
+                    // Count for the entire day (Global)
+                    $globalAddonSummary[$addonName] = ($globalAddonSummary[$addonName] ?? 0) + $item->quantity;
                 }
-                $formattedAddons = [];
-                foreach ($addOnCounts as $name => $qty) {
-                    $formattedAddons[] = ['name' => $name, 'qty' => $qty];
-                }
-                return [
-                    'product_name' => $pName,
-                    'total_qty'    => (int) $pGroup->sum('quantity'),
-                    'total_sales'  => (float) $pGroup->sum('final_price'),
-                    'add_ons'      => $formattedAddons
-                ];
-            })->values();
+            }
+            
+            $formattedProductAddons = [];
+            foreach ($productAddOnCounts as $name => $qty) {
+                $formattedProductAddons[] = ['name' => $name, 'qty' => $qty];
+            }
 
             return [
-                'category_name'  => $category,
-                'products'       => $productSummary,
-                'category_total' => (float) $productSummary->sum('total_sales')
+                'product_name' => $pName,
+                'total_qty'    => (int) $pGroup->sum('quantity'),
+                'total_sales'  => (float) $pGroup->sum('final_price'),
+                'add_ons'      => $formattedProductAddons
             ];
         })->values();
 
-        $grandTotal = (float) $rawItems->sum('final_price');
+        return [
+            'category_name'  => $category,
+            'products'       => $productSummary,
+            'category_total' => (float) $productSummary->sum('total_sales')
+        ];
+    })->values();
 
-        return response()->json([
-            'date' => $date,
-            'report_type' => 'qty_items',
-            'categories' => $groupedData,
-            'grand_total_revenue' => round($grandTotal, 2),
-            'vatable_sales' => round($grandTotal / 1.12, 2),
-            'vat_amount' => round($grandTotal - ($grandTotal / 1.12), 2),
-            'prepared_by' => auth()->user()->name ?? 'System Admin'
-        ]);
+    $grandTotal = (float) $rawItems->sum('final_price');
+
+    // Convert global addon summary map to formatted array
+    $addonsList = [];
+    foreach ($globalAddonSummary as $name => $qty) {
+        $addonsList[] = ['name' => $name, 'qty' => $qty];
     }
+
+    return response()->json([
+        'date' => $date,
+        'report_type' => 'qty_items',
+        'categories' => $groupedData,
+        'all_addons_summary' => $addonsList, // New global list for the UI
+        'grand_total_revenue' => round($grandTotal, 2),
+        'vatable_sales' => round($grandTotal / 1.12, 2),
+        'vat_amount' => round($grandTotal - ($grandTotal / 1.12), 2),
+        'prepared_by' => $cashierName
+    ]);
+}
 
 public function getHourlySales(Request $request) {
         $date = $request->query('date');

@@ -207,13 +207,13 @@ const renderQtyItems = () => {
     if (!reportData || !reportData.categories) return null;
 
     return (
-      <div className="my-2 pt-2">
+      <div className="my-2 pt-2 animate-in fade-in duration-300">
         <div className="receipt-divider"></div>
         
+        {/* PRODUCT BREAKDOWN SECTION */}
         {reportData.categories.map((cat, catIdx) => (
           <div key={catIdx} className="mb-4">
-            {/* CATEGORY HEADER */}
-            <p className="text-[10px] font-black bg-zinc-100 px-1 py-0.5 mb-1 uppercase tracking-tighter border-b border-black">
+            <p className="text-[10px] font-black bg-zinc-100 px-2 py-0.5 mb-1 uppercase tracking-tighter border-b border-black">
               {cat.category_name}
             </p>
             
@@ -229,16 +229,18 @@ const renderQtyItems = () => {
                       <td className="py-1 text-right">{phCurrency.format(item.total_sales)}</td>
                     </tr>
                     
-                    {/* ADD-ONS LISTING FOR THIS PRODUCT */}
-                    {item.add_ons.length > 0 && (
+                    {/* INDIVIDUAL PRODUCT ADD-ONS */}
+                    {item.add_ons && item.add_ons.length > 0 && (
                       <tr>
                         <td colSpan={3} className="pb-2 pl-4">
-                          {item.add_ons.map((addon, aIdx) => (
-                            <div key={aIdx} className="text-[8px] text-zinc-500 italic flex justify-between">
-                              <span>+ {addon.name}</span>
-                              <span className="font-bold text-black">x{addon.qty}</span>
-                            </div>
-                          ))}
+                          <div className="border-l-2 border-zinc-200 pl-2">
+                            {item.add_ons.map((addon, aIdx) => (
+                              <div key={aIdx} className="text-[8px] text-zinc-500 italic flex justify-between">
+                                <span>+ {addon.name}</span>
+                                <span className="font-bold text-black">x{addon.qty}</span>
+                              </div>
+                            ))}
+                          </div>
                         </td>
                       </tr>
                     )}
@@ -247,7 +249,6 @@ const renderQtyItems = () => {
               </tbody>
             </table>
 
-            {/* CATEGORY SUB-TOTAL SECTION */}
             <div className="flex justify-between items-center pt-1 mt-1 border-t border-dotted border-zinc-300">
               <span className="text-[8px] font-bold uppercase opacity-60">Sub-total {cat.category_name}</span>
               <span className="text-[9px] font-black">{phCurrency.format(cat.category_total || 0)}</span>
@@ -255,8 +256,26 @@ const renderQtyItems = () => {
           </div>
         ))}
 
+        {/* GLOBAL ADD-ONS SUMMARY (For Inventory Management) */}
+        {reportData.all_addons_summary && reportData.all_addons_summary.length > 0 && (
+          <div className="mt-4 mb-2 p-2 bg-slate-50 rounded-lg border border-slate-200">
+            <p className="text-[10px] font-black text-center mb-2 uppercase border-b border-slate-300 pb-1">Total Add-ons Summary</p>
+            <table className="w-full text-[9px]">
+              <tbody>
+                {reportData.all_addons_summary.map((addon, idx) => (
+                  <tr key={idx} className="border-b border-white last:border-0">
+                    <td className="py-0.5 uppercase font-bold text-slate-600">{addon.name}</td>
+                    <td className="py-0.5 text-right font-black text-slate-800">x{addon.qty}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
         <div className="receipt-divider"></div>
         
+        {/* TOTALS SECTION */}
         <div className="space-y-1">
           <div className="flex-between text-[10px]">
             <span>TOTAL ITEMS SOLD</span>
