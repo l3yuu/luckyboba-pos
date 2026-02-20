@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import TopNavbar from '../TopNavbar';
 import { Search, Printer, Plus, ArrowLeft } from 'lucide-react';
+import CustomerReport from './CustomerReport';
+
+// Define tab types for consistency
+type TabType = 'CUSTOMER' | 'REPORT';
 
 // Define the interface for props
 interface AddCustomersProps {
@@ -8,13 +12,19 @@ interface AddCustomersProps {
 }
 
 const AddCustomers = ({ onBack }: AddCustomersProps) => {
-  const [activeTab, setActiveTab] = useState<'CUSTOMER' | 'REPORT'>('CUSTOMER');
+  const [activeTab, setActiveTab] = useState<TabType>('CUSTOMER' as TabType);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
 
   const customers = [
     { card: '1001', name: 'John Doe', transaction: '2026-02-10', email: 'john@example.com', phone: '09123456789', points: 120 },
     { card: '1002', name: 'Jane Smith', transaction: '2026-02-11', email: 'jane@example.com', phone: '09987654321', points: 50 },
   ];
+
+  // Conditional rendering based on active tab
+  if (activeTab === 'REPORT') {
+    return <CustomerReport onBack={onBack} activeTab={activeTab} setActiveTab={setActiveTab} />;
+  }
 
   return (
     <div className="flex-1 bg-[#f4f5f7] h-full flex flex-col overflow-hidden font-sans">
@@ -32,8 +42,8 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
           </div>
           
           <div className="flex gap-2">
-            <button onClick={() => setActiveTab('CUSTOMER')} className={`px-6 py-2 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === 'CUSTOMER' ? 'bg-[#2a9d8f] text-white shadow-md' : 'bg-white text-zinc-400 border border-zinc-200'}`}>Customer</button>
-            <button onClick={() => setActiveTab('REPORT')} className={`px-6 py-2 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === 'REPORT' ? 'bg-[#e9c46a] text-white shadow-md' : 'bg-white text-zinc-400 border border-zinc-200'}`}>Report</button>
+            <button onClick={() => setActiveTab('CUSTOMER' as TabType)} className={`px-6 py-2 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === ('CUSTOMER' as TabType) ? 'bg-[#2a9d8f] text-white shadow-md' : 'bg-white text-zinc-400 border border-zinc-200'}`}>Customer</button>
+            <button onClick={() => setActiveTab('REPORT' as TabType)} className={`px-6 py-2 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === ('REPORT' as TabType) ? 'bg-[#e9c46a] text-white shadow-md' : 'bg-white text-zinc-400 border border-zinc-200'}`}>Report</button>
           </div>
         </div>
 
@@ -92,13 +102,89 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
               Back to settings
             </button>
 
-             <button className="px-6 py-3 bg-[#10b981] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#059669] flex items-center gap-2 shadow-lg transition-all">
+             <button 
+               onClick={() => setIsAddCustomerModalOpen(true)}
+               className="px-6 py-3 bg-[#10b981] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#059669] flex items-center gap-2 shadow-lg transition-all"
+             >
                 <Plus size={14} strokeWidth={3} />
                 Add New Customer
              </button>
           </div>
         </div>
       </div>
+
+      {/* Add Customer Modal */}
+      {isAddCustomerModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6 space-y-4">
+            <h2 className="text-lg font-black text-[#3b2063] uppercase tracking-wider">
+              Add New Customer
+            </h2>
+            
+            <form className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
+                  Card Number
+                </label>
+                <input
+                  type="text"
+                  className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
+                  placeholder="Enter card number"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
+                  placeholder="Enter customer name"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
+                  placeholder="Enter email address"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
+                  Phone Number
+                </label>
+                <input
+                  type="tel"
+                  className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
+                  placeholder="Enter phone number"
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsAddCustomerModalOpen(false)}
+                  className="px-4 py-2 rounded-2xl border border-zinc-200 text-xs font-bold uppercase text-zinc-500 hover:bg-zinc-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2 rounded-2xl bg-[#10b981] text-white text-xs font-black uppercase tracking-widest hover:bg-[#059669]"
+                >
+                  Add Customer
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -151,13 +151,13 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
                         onClick={() => handleStatusToggle(discount)}
                         className={`relative group overflow-hidden px-1 sm:px-2 md:px-4 py-1.5 sm:py-2 rounded-full text-[7px] sm:text-[8px] md:text-[9px] font-black uppercase tracking-normal sm:tracking-widest transition-all duration-300 shadow-sm hover:shadow-md active:scale-95 w-20 sm:w-24 md:w-28 min-w-[80px] sm:min-w-[90px] md:min-w-[100px] border-2 ${
                           discount.status === 'ON' 
-                          ? 'bg-red-50/50 text-red-600 border-red-500/20 hover:bg-red-500 hover:text-white'
-                          : 'bg-emerald-50/50 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500 hover:text-white'
+                          ? 'bg-emerald-50/50 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500 hover:text-white'
+                          : 'bg-red-50/50 text-red-600 border-red-500/20 hover:bg-red-500 hover:text-white'
                         }`}
                       >
                         <span className="relative z-10 flex items-center justify-center gap-1">
-                          <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${discount.status === 'ON' ? 'bg-red-500 group-hover:bg-white' : 'bg-emerald-500 group-hover:bg-white'}`}></span>
-                          {discount.status === 'ON' ? 'Deactivate' : 'Activate'}
+                          <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${discount.status === 'ON' ? 'bg-emerald-500 group-hover:bg-white' : 'bg-red-500 group-hover:bg-white'}`}></span>
+                          {discount.status === 'ON' ? 'Activate' : 'Deactivate'}
                         </span>
                       </button>
                     </td>
@@ -298,10 +298,10 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
                   )}
                 </div>
                 <h3 className="text-lg font-bold text-slate-800">
-                  {selectedDiscount.status === 'ON' ? 'Deactivate Discount?' : 'Activate Discount?'}
+                  {selectedDiscount.status === 'ON' ? 'Do you want to deactivate this promo?' : 'Do you want to activate this promo?'}
                 </h3>
                 <p className="text-sm text-slate-600">
-                  Are you sure you want to {selectedDiscount.status === 'ON' ? 'deactivate' : 'activate'} the discount:
+                  {selectedDiscount.status === 'ON' ? 'Are you sure you want to deactivate this promo:' : 'Are you sure you want to activate this promo:'}
                 </p>
                 <p className="text-sm font-black text-[#3b2063] uppercase">
                   {selectedDiscount.name}

@@ -1,7 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import logo from '../assets/logo.png';
 import type { User, CreateUserData, UpdateUserData } from '../types/user';
-import UserService from '../services/UserService.ts';
+import UserService from '../services/UserService';
+
+// Import Settings Components
+import SalesSettings from '../components/Settings/SalesSettings';
+import AddCustomers from '../components/Settings/AddCustomers';
+import DiscountSettings from '../components/Settings/DiscountSettings';
+import ExportData from '../components/Settings/ExportData';
+import UploadData from '../components/Settings/UploadData';
+import AddUsers from '../components/Settings/AddUsers';
+import AddVouchers from '../components/Settings/AddVouchers';
+import ImportData from '../components/Settings/ImportData';
+import BackupSystem from '../components/Settings/BackupSystem';
 
 // Types
 interface Branch {
@@ -31,7 +42,7 @@ const mockBranches: Branch[] = [
 ];
 
 const SuperAdminDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'branches' | 'users' | 'reports'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'branches' | 'users' | 'reports' | 'settings'>('overview');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
@@ -194,6 +205,7 @@ const SuperAdminDashboard: React.FC = () => {
     { id: 'branches', label: 'Branches', icon: <BranchIcon /> },
     { id: 'users', label: 'Users', icon: <UsersIcon /> },
     { id: 'reports', label: 'Reports', icon: <ReportsIcon /> },
+    { id: 'settings', label: 'Settings', icon: <SettingsIcon /> },
   ];
 
   const renderContent = () => {
@@ -223,6 +235,8 @@ const SuperAdminDashboard: React.FC = () => {
         );
       case 'reports':
         return <ReportsTab />;
+      case 'settings':
+        return <SettingsTab />;
       default:
         return <OverviewTab totalRevenue={totalRevenue} todayRevenue={todayRevenue} activeBranches={activeBranches} activeUsers={activeUsers} branches={branches} />;
     }
@@ -305,6 +319,7 @@ const SuperAdminDashboard: React.FC = () => {
               {activeTab === 'branches' && 'Branch Management'}
               {activeTab === 'users' && 'User Management'}
               {activeTab === 'reports' && 'System Reports'}
+              {activeTab === 'settings' && 'System Settings'}
             </h1>
             <p className="text-zinc-400 font-bold text-[9px] md:text-[10px] uppercase tracking-[0.2em] mt-1">
               Super Administrator Panel
@@ -1099,10 +1114,176 @@ const ReportsTab = () => (
   </section>
 );
 
-// --- Icons ---
+const SettingsTab = () => {
+  // --- UI STATES ---
+  const [isSalesSettingsOpen, setIsSalesSettingsOpen] = useState(false);
+  const [activeSubView, setActiveSubView] = useState<string | null>(null);
+
+  // --- NAVIGATION HANDLER ---
+  const closeSubView = () => setActiveSubView(null);
+
+  // --- CONDITIONAL RENDERING ---
+  switch (activeSubView) {
+    case 'add-customers':
+      return <AddCustomers onBack={closeSubView} />;
+    case 'discount':
+      return <DiscountSettings onBack={closeSubView} />;
+    case 'export-data':
+      return <ExportData onBack={closeSubView} />;
+    case 'upload-data':
+      return <UploadData onBack={closeSubView} />;
+    case 'add-users':
+      return <AddUsers onBack={closeSubView} />;
+    case 'add-vouchers':
+      return <AddVouchers onBack={closeSubView} />;
+    case 'import-data':
+      return <ImportData onBack={closeSubView} />;
+    case 'backup-system':
+      return <BackupSystem onBack={closeSubView} />;
+    default:
+      break;
+  }
+
+  const settingActions = [
+    { 
+      label: "Sales Settings", 
+      Icon: SalesSettingsIcon, 
+      color: "#1e40af", 
+      iconColor: "#1e40af",
+      action: () => setIsSalesSettingsOpen(true) 
+    },
+    { 
+      label: "Add Customers", 
+      Icon: AddCustomersIcon, 
+      color: "#1e40af", 
+      iconColor: "#1e40af",
+      action: () => setActiveSubView('add-customers')
+    },
+    { 
+      label: "Discount", 
+      Icon: DiscountIcon, 
+      color: "#1e40af", 
+      iconColor: "#1e40af", 
+      action: () => setActiveSubView('discount') 
+    },
+    { 
+      label: "Export Data", 
+      Icon: ExportDataIcon, 
+      color: "#1e40af", 
+      iconColor: "#1e40af", 
+      action: () => setActiveSubView('export-data') 
+    },
+    { 
+      label: "Upload Data", 
+      Icon: UploadDataIcon, 
+      color: "#1e40af", 
+      iconColor: "#1e40af", 
+      action: () => setActiveSubView('upload-data') 
+    },
+    { 
+      label: "Add Users", 
+      Icon: AddUsersIcon, 
+      color: "#1e40af", 
+      iconColor: "#1e40af", 
+      action: () => setActiveSubView('add-users') 
+    },
+    { 
+      label: "Add Vouchers", 
+      Icon: AddVouchersIcon, 
+      color: "#1e40af", 
+      iconColor: "#1e40af", 
+      action: () => setActiveSubView('add-vouchers') 
+    },
+    { 
+      label: "Import Data", 
+      Icon: ImportDataIcon, 
+      color: "#1e40af", 
+      iconColor: "#1e40af", 
+      action: () => setActiveSubView('import-data') 
+    },
+    { 
+      label: "Backup System", 
+      Icon: BackupSystemIcon, 
+      color: "#1e40af", 
+      iconColor: "#1e40af", 
+      action: () => setActiveSubView('backup-system') 
+    },
+  ];
+
+  return (
+    <div className="flex-1 bg-[#f8f6ff] h-full flex flex-col overflow-hidden font-sans">
+      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+        <div className="mb-2">
+           
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {settingActions.map((item, index) => (
+            <button
+              key={index}
+              onClick={item.action}
+              className="group relative overflow-hidden flex flex-col items-center justify-center p-8 rounded-2xl shadow-sm border border-zinc-200 bg-white transition-all duration-200 active:scale-95 hover:shadow-md hover:border-zinc-300"
+            >
+              <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: item.color }} />
+              <div className="mb-4 transition-transform duration-200 group-hover:scale-110 w-8 h-8 flex items-center justify-center" style={{ color: item.iconColor }}>
+                <item.Icon />
+              </div>
+              <span className="text-[11px] font-black text-[#3b2063] uppercase tracking-widest text-center">
+                {item.label}
+              </span>
+              <div className="mt-3 px-3 py-1 rounded-full bg-zinc-50 text-[8px] font-bold text-zinc-400 uppercase tracking-tighter group-hover:bg-zinc-200 group-hover:text-zinc-600 transition-colors border border-zinc-100">
+                Configure
+              </div>
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-4 bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden">
+          <div className="bg-[#1e40af] px-6 py-3 border-b border-zinc-200">
+            <h2 className="text-white font-black text-[10px] uppercase tracking-[0.2em] text-center">
+              System Audit & Security
+            </h2>
+          </div>
+          <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="flex flex-col items-center text-center gap-2">
+              <div className="p-2 bg-[#1e40af] rounded-full text-white"><LastBackupIcon /></div>
+              <div>
+                <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Last Backup</p>
+                <p className="text-sm font-black text-slate-700 uppercase italic">February 11, 2026</p>
+              </div>
+            </div>
+            <div className="flex flex-col items-center text-center gap-2 border-x border-zinc-100 px-4">
+              <div className="p-2 bg-[#1e40af] rounded-full text-white"><ActiveSessionIcon /></div>
+              <div>
+                <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Active Session</p>
+                <p className="text-sm font-black text-[#1e40af] uppercase">Administrator</p>
+              </div>
+            </div>
+            <div className="flex flex-col items-center text-center gap-2">
+              <div className="p-2 bg-[#1e40af] rounded-full text-white"><SystemStatusIcon /></div>
+              <div>
+                <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">System Status</p>
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-[#1e40af] animate-pulse" />
+                  <p className="text-sm font-black text-slate-700 uppercase">Online</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <SalesSettings 
+        isOpen={isSalesSettingsOpen} 
+        onClose={() => setIsSalesSettingsOpen(false)} 
+      />
+    </div>
+  );
+};
+
 const DashboardIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25a2.25 2.25 0 0 1-2.25-2.25v-2.25Z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
   </svg>
 );
 
@@ -1121,6 +1302,19 @@ const UsersIcon = () => (
 const ReportsIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
     <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+  </svg>
+);
+
+const SettingsIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.094c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 011.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.56.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.893.149c-.425.07-.765.383-.93.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.449l-.774.773a1.125 1.125 0 01-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527a1.125 1.125 0 01-1.449-.12l-.774-.774a1.125 1.125 0 01-.12-1.449l.527-.738c.25-.35.273-.806.108-1.203-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.425-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 01.12-1.449l.774-.773a1.125 1.125 0 011.449-.12l.738.526c.35.25.806.273 1.203.108.397-.165.71-.505.78-.93l.15-.893z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+);
+
+const AuditLogIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6 text-[#3b2063]">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
   </svg>
 );
 
@@ -1154,9 +1348,75 @@ const FinancialIcon = () => (
   </svg>
 );
 
-const AuditLogIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6 text-[#3b2063]">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+const SalesSettingsIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const AddCustomersIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
+  </svg>
+);
+
+const DiscountIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375z" />
+  </svg>
+);
+
+const ExportDataIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M7.5 10.5L12 15m0 0l4.5-4.5M12 15V3" />
+  </svg>
+);
+
+const UploadDataIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+  </svg>
+);
+
+const AddUsersIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+  </svg>
+);
+
+const AddVouchersIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375z" />
+  </svg>
+);
+
+const ImportDataIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+  </svg>
+);
+
+const BackupSystemIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+  </svg>
+);
+
+const LastBackupIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+  </svg>
+);
+
+const ActiveSessionIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+  </svg>
+);
+
+const SystemStatusIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
   </svg>
 );
 
