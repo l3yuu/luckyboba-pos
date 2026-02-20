@@ -6,20 +6,40 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-public function up(): void
-{
-    Schema::table('sale_items', function (Blueprint $table) {
-        $table->string('size')->nullable()->after('final_price');
-        $table->string('sugar_level')->nullable()->after('size');
-        $table->json('options')->nullable()->after('sugar_level');
-        $table->json('add_ons')->nullable()->after('options');
-    });
-}
+    public function up(): void
+    {
+        if (!Schema::hasTable('sale_items')) {
+            return;
+        }
 
-public function down(): void
-{
-    Schema::table('sale_items', function (Blueprint $table) {
-        $table->dropColumn(['size', 'sugar_level', 'options', 'add_ons']);
-    });
-}
+        Schema::table('sale_items', function (Blueprint $table) {
+            if (!Schema::hasColumn('sale_items', 'size')) {
+                $table->string('size')->nullable()->after('final_price');
+            }
+            if (!Schema::hasColumn('sale_items', 'sugar_level')) {
+                $table->string('sugar_level')->nullable()->after('size');
+            }
+            if (!Schema::hasColumn('sale_items', 'options')) {
+                $table->json('options')->nullable()->after('sugar_level');
+            }
+            if (!Schema::hasColumn('sale_items', 'add_ons')) {
+                $table->json('add_ons')->nullable()->after('options');
+            }
+        });
+    }
+
+    public function down(): void
+    {
+        if (!Schema::hasTable('sale_items')) {
+            return;
+        }
+
+        Schema::table('sale_items', function (Blueprint $table) {
+            foreach (['size', 'sugar_level', 'options', 'add_ons'] as $column) {
+                if (Schema::hasColumn('sale_items', $column)) {
+                    $table->dropColumn($column);
+                }
+            }
+        });
+    }
 };

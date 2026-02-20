@@ -88,9 +88,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // --- END OF DAY ---
     Route::post('/cash-counts', [CashCountController::class, 'store']);
     Route::get('/cash-counts/status', [CashCountController::class, 'checkEodStatus']);
-<<<<<<< HEAD
-    // --- SALES REPORTS ---
-=======
 
     // --- GROUPED SALES REPORTS ---
     Route::prefix('reports')->group(function () {
@@ -112,7 +109,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
 
     // --- ITEMS REPORT ---
->>>>>>> a89bca9846cf1b82f051ea4c9f922079c2d1c3f6
     Route::get('/items-report', [SalesDashboardController::class, 'itemsReport']);
     Route::get('/items-reports/items', [ItemsReportController::class, 'getItemsSoldReport']);
 
@@ -138,39 +134,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/purchase-orders', [PurchaseOrderController::class, 'index']);
     Route::post('/purchase-orders', [PurchaseOrderController::class, 'store']);
 
-<<<<<<< HEAD
-    Route::prefix('items-reports')->group(function () {
-        Route::get('/test', [ItemsReportController::class, 'test']);
-        Route::post('/items', [ItemsReportController::class, 'getItemsSoldReport']);
-        Route::get('/items/today', [ItemsReportController::class, 'getItemsSoldToday']);
-    });
-
-        // --- USER MANAGEMENT ---
-    Route::get('/users/stats', [UserController::class, 'stats']);
-    Route::patch('/users/{id}/toggle-status', [UserController::class, 'toggleStatus']);
-    Route::apiResource('users', UserController::class);
-/*
-|--------------------------------------------------------------------------
-| Branch Routes (Outside Auth Middleware)
-|--------------------------------------------------------------------------
-*/
-Route::prefix('branches')->group(function () {
-    // Main CRUD operations
-    Route::get('/', [BranchController::class, 'index']);
-    Route::post('/', [BranchController::class, 'store']);
-    Route::get('/{id}', [BranchController::class, 'show']);
-    Route::put('/{id}', [BranchController::class, 'update']);
-    Route::delete('/{id}', [BranchController::class, 'destroy']);
-    
-    // Analytics & Reports
-    Route::get('/analytics/performance', [BranchController::class, 'performance']);
-    Route::get('/analytics/today', [BranchController::class, 'todaySales']);
-    Route::get('/{id}/daily-sales', [BranchController::class, 'dailySales']);
-    Route::get('/{id}/summary', [BranchController::class, 'salesSummary']);
-    
-    // Utility
-    Route::post('/{id}/refresh', [BranchController::class, 'refreshTotals']);
-=======
     // --- SETTINGS & SYSTEM ---
     Route::get('/settings', [SettingsController::class, 'index']);
     Route::post('/settings', [SettingsController::class, 'update']);
@@ -194,5 +157,4 @@ Route::prefix('branches')->group(function () {
     Route::post('/system/upload', [UploadController::class, 'upload']);
     Route::get('/system/import-history', [UploadController::class, 'importHistory']);
     Route::post('/system/upload-discounts', [UploadController::class, 'uploadDiscounts']);
->>>>>>> a89bca9846cf1b82f051ea4c9f922079c2d1c3f6
 });

@@ -7,25 +7,25 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     public function up(): void
-    {
-        if (!Schema::hasColumn('sale_items', 'final_price')) {
-            Schema::table('sale_items', function (Blueprint $table) {
-                $table->decimal('final_price', 10, 2)->default(0)->after('price');
-            });
+{
+    Schema::table('sales', function (Blueprint $table) {
+        if (!Schema::hasColumn('sales', 'user_id')) {
+            $table->foreignId('user_id')->nullable()->after('id')->constrained()->nullOnDelete();
         }
-
-        if (!Schema::hasColumn('sales', 'status')) {
-            Schema::table('sales', function (Blueprint $table) {
-                $table->string('status')->default('completed')->after('total_amount');
-            });
+        if (!Schema::hasColumn('sales', 'charge_type')) {
+            $table->string('charge_type')->nullable()->after('payment_method');
         }
-
-        if (!Schema::hasColumn('sales', 'invoice_number')) {
-            Schema::table('sales', function (Blueprint $table) {
-                $table->string('invoice_number')->nullable()->after('id');
-            });
+        if (!Schema::hasColumn('sales', 'pax')) {
+            $table->integer('pax')->default(1)->after('charge_type');
         }
-    }
+        if (!Schema::hasColumn('sales', 'cancellation_reason')) {
+            $table->string('cancellation_reason')->nullable()->after('status');
+        }
+        if (!Schema::hasColumn('sales', 'cancelled_at')) {
+            $table->timestamp('cancelled_at')->nullable()->after('cancellation_reason');
+        }
+    });
+}
 
     public function down(): void
     {
