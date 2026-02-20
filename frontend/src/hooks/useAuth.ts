@@ -3,10 +3,12 @@ import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios'; 
 import type { LoginCredentials, User } from '../types/user'; 
 
-// Constants to avoid typos
+// Constants to avoid typos - UPDATED to include User Info
 const AUTH_KEYS = [
     'lucky_boba_token',
     'lucky_boba_authenticated',
+    'lucky_boba_user_name',
+    'lucky_boba_user_role',
     'dashboard_stats',
     'dashboard_stats_timestamp'
 ];
@@ -32,6 +34,11 @@ export const useAuth = () => {
         try {
             const response = await api.get('/user');
             const userData = response.data;
+            
+            // Sync localStorage if user name changed on backend
+            localStorage.setItem('lucky_boba_user_name', userData.name);
+            localStorage.setItem('lucky_boba_user_role', userData.role || 'cashier');
+            
             setUser(userData);
             return userData;
         } catch {
@@ -54,8 +61,13 @@ export const useAuth = () => {
             const response = await api.post('/login', credentials);
             const { token, user: userData, dashboard_stats } = response.data;
             
+            // PERSIST AUTH DATA
             localStorage.setItem('lucky_boba_token', token);
             localStorage.setItem('lucky_boba_authenticated', 'true');
+            
+            // NEW: PERSIST USER INFO FOR NAVBAR
+            localStorage.setItem('lucky_boba_user_name', userData.name);
+            localStorage.setItem('lucky_boba_user_role', userData.role || 'cashier');
             
             if (dashboard_stats) {
                 localStorage.setItem('dashboard_stats', JSON.stringify(dashboard_stats));
@@ -63,10 +75,10 @@ export const useAuth = () => {
             }
             
             setUser(userData);
-            setIsLoading(false); // Make sure to reset loading after success
+            setIsLoading(false);
             return userData;
         } catch (err: unknown) { 
-            clearSession(); // Safety measure if login fails
+            clearSession();
             if (axios.isAxiosError(err)) {
                 setError(err.response?.data?.message || 'Invalid credentials.');
             } else {
