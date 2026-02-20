@@ -27,6 +27,7 @@ interface XReadingReport {
   // ENSURE THIS NESTED STRUCTURE IS DEFINED
   categories?: {
     category_name: string;
+    category_total: number;
     products: {
       product_name: string;
       total_qty: number;
@@ -196,7 +197,7 @@ const XReading = () => {
   );
 
   // 2. UPDATED RENDERQTYITEMS: CATEGORIZED WITH ADD-ONS
-  const renderQtyItems = () => {
+const renderQtyItems = () => {
     if (!reportData || !reportData.categories) return null;
 
     return (
@@ -239,6 +240,12 @@ const XReading = () => {
                 ))}
               </tbody>
             </table>
+
+            {/* CATEGORY SUB-TOTAL SECTION */}
+            <div className="flex justify-between items-center pt-1 mt-1 border-t border-dotted border-zinc-300">
+              <span className="text-[8px] font-bold uppercase opacity-60">Sub-total {cat.category_name}</span>
+              <span className="text-[9px] font-black">{phCurrency.format(cat.category_total || 0)}</span>
+            </div>
           </div>
         ))}
 
