@@ -1,10 +1,5 @@
 import { useState, useEffect } from 'react';
 import logo from '../assets/logo.png';
-<<<<<<< HEAD
-import UserService, { type User, type CreateUserData, type UpdateUserData } from '../services/UserService';
-import BranchService, { type Branch } from '../services/BranchService';
-import { useToast } from '../context/ToastContext';
-=======
 import type { User, CreateUserData, UpdateUserData } from '../types/user';
 import UserService from '../services/UserService';
 
@@ -18,7 +13,11 @@ import AddUsers from '../components/Settings/AddUsers';
 import AddVouchers from '../components/Settings/AddVouchers';
 import ImportData from '../components/Settings/ImportData';
 import BackupSystem from '../components/Settings/BackupSystem';
->>>>>>> 542bad1b2bfc320af41568d4d1739c14e759dd91
+import BranchService, { type Branch } from '../services/BranchService';
+
+const showToast = (message: string, _type: 'success' | 'error') => {
+  console.log(`[${_type.toUpperCase()}] ${message}`);
+};
 
 const formatCurrency = (amount: number): string => {
   return `₱${amount.toLocaleString('en-PH', { 
@@ -28,12 +27,7 @@ const formatCurrency = (amount: number): string => {
 };
 
 const SuperAdminDashboard: React.FC = () => {
-<<<<<<< HEAD
-  const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'overview' | 'branches' | 'users' | 'reports'>('overview');
-=======
   const [activeTab, setActiveTab] = useState<'overview' | 'branches' | 'users' | 'reports' | 'settings'>('overview');
->>>>>>> 542bad1b2bfc320af41568d4d1739c14e759dd91
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
@@ -974,11 +968,6 @@ const ReportsTab = () => (
   </section>
 );
 
-<<<<<<< HEAD
-// ===========================
-// ICONS
-// ===========================
-=======
 const SettingsTab = () => {
   // --- UI STATES ---
   const [isSalesSettingsOpen, setIsSalesSettingsOpen] = useState(false);
@@ -1145,7 +1134,6 @@ const SettingsTab = () => {
     </div>
   );
 };
->>>>>>> 542bad1b2bfc320af41568d4d1739c14e759dd91
 
 const DashboardIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
