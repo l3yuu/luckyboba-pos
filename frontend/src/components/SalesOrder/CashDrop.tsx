@@ -10,19 +10,19 @@ import type {
   CashDropProps 
 } from '../../types/transactions';
 import TopNavbar from '../TopNavbar';
+import { getCache, setCache } from '../../utils/cache';
 
-let cashDropCache: Transaction[] | null = null;
+const CACHE_KEY = 'cash-drop-history';
+const CACHE_TTL = 5 * 60 * 1000; // 5 min
 
 const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
   const denominations = [1000, 500, 200, 100, 50, 20, 10, 5, 1, 0.25];
   const [counts, setCounts] = useState<{ [key: number]: string }>({});
   const [remarks, setRemarks] = useState('');
-  
-  // --- NEW STATE FOR LOCK LOGIC ---
   const [isEodLocked, setIsEodLocked] = useState(false);
-
-  // Initialize state from cache if available
-  const [transactions, setTransactions] = useState<Transaction[]>(cashDropCache || []);
+  const [transactions, setTransactions] = useState<Transaction[]>(
+    getCache<Transaction[]>(CACHE_KEY) ?? []
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [printData, setPrintData] = useState<Transaction | null>(null);
   const [activeInput, setActiveInput] = useState<{ type: 'count' | 'remarks', id?: number } | null>(null);
@@ -30,7 +30,6 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
   const [showKeyboard, setShowKeyboard] = useState(false);
   const keyboardRef = useRef<KeyboardRef | null>(null);
 
-  // --- Check EOD Status on Mount ---
   const checkEodStatus = async () => {
     try {
       const response = await api.get<{ isEodDone: boolean }>('/cash-counts/status');
@@ -40,9 +39,8 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
     }
   };
 
-  // --- Fetch Today's Drops ---
   const fetchTodaysDrops = async () => {
-    if (cashDropCache !== null) return;
+    if (getCache<Transaction[]>(CACHE_KEY)) return;
 
     try {
       const response = await api.get<BackendTransaction[]>('/cash-transactions', {
@@ -58,16 +56,16 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
         breakdown: {} 
       }));
       
+      setCache<Transaction[]>(CACHE_KEY, mappedData, CACHE_TTL);
       setTransactions(mappedData);
-      cashDropCache = mappedData;
     } catch (error) {
       console.error("Failed to fetch history:", error);
     }
   };
 
   useEffect(() => {
-    fetchTodaysDrops();
-    checkEodStatus(); // Initialize lock status
+    void (async () => { await fetchTodaysDrops(); })();
+    checkEodStatus();
   }, []);
 
   const getGrandTotal = (currentCounts: { [key: number]: string }) => {
@@ -77,19 +75,18 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
     }, 0);
   };
 
+  // Focus handlers no longer auto-show keyboard — just track active input
   const handleCountFocus = (denom: number) => {
-    if (isEodLocked) return; // Prevent focus if locked
+    if (isEodLocked) return;
     setActiveInput({ type: 'count', id: denom });
     setLayoutName('numpad');
-    setShowKeyboard(true);
     if (keyboardRef.current) keyboardRef.current.setInput(counts[denom] || '');
   };
 
   const handleRemarksFocus = () => {
-    if (isEodLocked) return; // Prevent focus if locked
+    if (isEodLocked) return;
     setActiveInput({ type: 'remarks' });
     setLayoutName('default');
-    setShowKeyboard(true);
     if (keyboardRef.current) keyboardRef.current.setInput(remarks);
   };
 
@@ -113,8 +110,6 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
 
   const handleSubmit = async () => {
     const total = getGrandTotal(counts);
-    
-    // --- ADDED isEodLocked to GUARD ---
     if (total <= 0 || isLoading || isEodLocked) return; 
 
     setIsLoading(true);
@@ -146,14 +141,20 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
 
         const updatedHistory = [newTx, ...transactions];
         setTransactions(updatedHistory);
-        cashDropCache = updatedHistory;
+        setCache<Transaction[]>(CACHE_KEY, updatedHistory, CACHE_TTL);
 
         setCounts({});
         setRemarks('');
         setShowKeyboard(false);
         if (keyboardRef.current) keyboardRef.current.setInput("");
         
+        // Notify parent (bust dashboard cache) but do NOT redirect
+        // Notify parent immediately — don't wait for print dialog.
+        // onafterprint is unreliable across browsers and Electron.
         if (onSuccess) onSuccess();
+
+        // Print after a short delay so the receipt DOM is ready,
+        // but this is fully decoupled from the dashboard refresh.
         handlePrint(newTx);
       }
     } catch (error: unknown) {
@@ -168,7 +169,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
     setPrintData(tx);
     setTimeout(() => {
       window.print();
-      setPrintData(null); 
+      setPrintData(null);
     }, 150);
   };
 
@@ -198,7 +199,6 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
           <div>
             <p><strong>Cashier:</strong> ADMIN | <strong>Terminal:</strong> 01</p>
           </div>
-
           <div style={{ marginTop: '10px' }}>
             <p style={{ fontWeight: 'bold', borderBottom: '1px solid black' }}>Details:</p>
             {denominations.map(denom => {
@@ -213,16 +213,13 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
               );
             })}
           </div>
-
           <div className="total-row breakdown-row">
-              <span>TOTAL DROP:</span>
-              <span>₱ {printData.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            <span>TOTAL DROP:</span>
+            <span>₱ {printData.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
           </div>
-          
           <div>
             <p><strong>Remarks:</strong> {printData.remarks}</p>
           </div>
-
           <div className="signatures">
             <div className="signature-line">Prepared By (Admin)</div>
             <div className="signature-line">Received By</div>
@@ -231,7 +228,6 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
       )}
 
       <div className="flex flex-col h-full w-full bg-[#f8f6ff] animate-in fade-in zoom-in duration-300 relative overflow-hidden">
-        
         <TopNavbar />
 
         <div className={`flex-1 flex flex-row items-start justify-center p-6 gap-6 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-87.5' : ''}`}>
@@ -265,7 +261,6 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
                         onFocus={() => handleCountFocus(denom)}
                         onChange={(e) => handleInputChange(e.target.value)}
                         placeholder="0"
-                        // Disable input UI visually if locked
                         disabled={isEodLocked}
                         className={`w-full text-center font-bold text-lg py-2 rounded-xl border-2 border-zinc-100 focus:border-[#3b2063] ${isEodLocked ? 'bg-zinc-50 cursor-not-allowed opacity-50' : 'bg-[#f8f6ff]'}`}
                       />
@@ -279,10 +274,10 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
 
               <div className="w-full border-t border-zinc-100 pt-6 px-4 space-y-6">
                 <div className="flex items-center justify-between bg-[#f8f6ff] p-4 rounded-2xl">
-                   <span className="text-xs font-bold text-zinc-500 uppercase">Grand Total :</span>
-                   <span className="text-2xl font-black text-[#3b2063]">
-                     ₱ {getGrandTotal(counts).toLocaleString()}
-                   </span>
+                  <span className="text-xs font-bold text-zinc-500 uppercase">Grand Total :</span>
+                  <span className="text-2xl font-black text-[#3b2063]">
+                    ₱ {getGrandTotal(counts).toLocaleString()}
+                  </span>
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2">Remarks</label>
@@ -296,8 +291,6 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
                     className={`w-full p-4 rounded-2xl border-2 border-zinc-100 focus:border-[#3b2063] resize-none h-16 ${isEodLocked ? 'bg-zinc-50 cursor-not-allowed opacity-50' : 'bg-[#f8f6ff]'}`}
                   />
                 </div>
-                
-                {/* Submit button logic for locked state */}
                 <button 
                   onClick={handleSubmit} 
                   disabled={isLoading || isEodLocked} 
@@ -309,55 +302,59 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
             </div>
           </div>
 
+          {/* History table */}
           <div className="w-full flex-1 bg-white rounded-4xl shadow-sm border border-zinc-200 overflow-hidden h-full flex flex-col">
-              <div className="px-8 py-5 border-b border-zinc-100 bg-zinc-50"><h3 className="text-[#3b2063] font-black text-xs uppercase">Drop History (Today)</h3></div>
-              <div className="flex-1 overflow-auto">
-                <table className="w-full text-left">
-                  <thead className="sticky top-0 bg-white z-10 border-b border-zinc-100">
-                    <tr>
-                      <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase">Time</th>
-                      <th className="px-6 py-4 text-right text-[10px] font-bold text-zinc-400 uppercase">Amount</th>
-                      <th className="px-6 py-4 text-center text-[10px] font-bold text-zinc-400 uppercase">Print</th>
+            <div className="px-8 py-5 border-b border-zinc-100 bg-zinc-50">
+              <h3 className="text-[#3b2063] font-black text-xs uppercase">Drop History (Today)</h3>
+            </div>
+            <div className="flex-1 overflow-auto">
+              <table className="w-full text-left">
+                <thead className="sticky top-0 bg-white z-10 border-b border-zinc-100">
+                  <tr>
+                    <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase">Time</th>
+                    <th className="px-6 py-4 text-right text-[10px] font-bold text-zinc-400 uppercase">Amount</th>
+                    <th className="px-6 py-4 text-center text-[10px] font-bold text-zinc-400 uppercase">Print</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-50">
+                  {transactions.map((tx) => (
+                    <tr key={tx.id} className="hover:bg-zinc-50 transition-colors">
+                      <td className="px-6 py-4 text-xs font-bold text-zinc-600">{tx.time}</td>
+                      <td className="px-6 py-4 text-sm font-black text-[#3b2063] text-right">₱{tx.total.toLocaleString()}</td>
+                      <td className="px-6 py-4 text-center">
+                        <button onClick={() => handlePrint(tx)} className="p-2 bg-emerald-100 text-emerald-600 rounded-xl hover:bg-emerald-200 transition-colors">
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18" /></svg>
+                        </button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-50">
-                    {transactions.map((tx) => (
-                      <tr key={tx.id} className="hover:bg-zinc-50 transition-colors">
-                        <td className="px-6 py-4 text-xs font-bold text-zinc-600">{tx.time}</td>
-                        <td className="px-6 py-4 text-sm font-black text-[#3b2063] text-right">₱{tx.total.toLocaleString()}</td>
-                        <td className="px-6 py-4 text-center">
-                          <button onClick={() => handlePrint(tx)} className="p-2 bg-emerald-100 text-emerald-600 rounded-xl hover:bg-emerald-200 transition-colors">
-                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18" /></svg>
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    {transactions.length === 0 && (
-                      <tr>
-                        <td colSpan={3} className="px-6 py-10 text-center text-zinc-400 text-xs italic">No transactions today</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                  {transactions.length === 0 && (
+                    <tr>
+                      <td colSpan={3} className="px-6 py-10 text-center text-zinc-400 text-xs italic">No transactions today</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
 
+        {/* Keyboard toggle button — optional, always visible unless locked */}
         <button 
-          onClick={() => !isEodLocked && setShowKeyboard(!showKeyboard)} 
+          onClick={() => !isEodLocked && setShowKeyboard(prev => !prev)} 
           className={`fixed bottom-8 right-8 z-60 p-4 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 ${isEodLocked ? 'bg-zinc-300 cursor-not-allowed' : (showKeyboard ? 'bg-red-500 text-white' : 'bg-[#3b2063] text-white')}`}
         >
           {showKeyboard ? (
-             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
           ) : (
-             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 5.25h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5" /></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 5.25h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5" /></svg>
           )}
         </button>
 
         <div className={`fixed bottom-0 left-0 right-0 bg-white shadow-2xl transition-transform duration-300 z-50 ${showKeyboard ? 'translate-y-0' : 'translate-y-full'}`}>
           <div className="flex items-center justify-between px-4 py-2 bg-zinc-50 border-b">
-              <span className="text-xs font-bold text-zinc-400 uppercase">{layoutName === 'numpad' ? 'Numpad' : 'Keyboard'}</span>
-              <button onClick={() => setShowKeyboard(false)} className="text-xs font-black text-[#3b2063] uppercase p-4">Close</button>
+            <span className="text-xs font-bold text-zinc-400 uppercase">{layoutName === 'numpad' ? 'Numpad' : 'Keyboard'}</span>
+            <button onClick={() => setShowKeyboard(false)} className="text-xs font-black text-[#3b2063] uppercase p-4">Close</button>
           </div>
           <div className="p-2">
             <Keyboard

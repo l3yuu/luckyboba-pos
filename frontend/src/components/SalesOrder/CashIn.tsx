@@ -7,20 +7,16 @@ import type { AxiosError } from 'axios';
 import api from '../../services/api';
 import type { KeyboardRef, CashInProps, ReceiptData } from '../../types/transactions';
 import TopNavbar from '../TopNavbar';
-// --- IMPORT YOUR TOAST HOOK ---
 import { useToast } from '../../context/ToastContext'; 
 
 const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
-  // --- INITIALIZE TOAST ---
   const { showToast } = useToast();
 
   const [amount, setAmount] = useState('');
   const [showKeyboard, setShowKeyboard] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isLoading, setIsLoading] = useState(false); 
-  
   const [isEodLocked, setIsEodLocked] = useState(false);
-  
   const [receiptData, setReceiptData] = useState<ReceiptData>({ date: '', time: '' });
   const keyboardRef = useRef<KeyboardRef | null>(null);
 
@@ -57,20 +53,20 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
       });
 
       if (response.data.success) {
-        // --- SUCCESS TOAST ---
         showToast(response.data.message || "Cash In recorded successfully!", "success");
-
         setReceiptData(getCurrentDateTime());
         setIsFlipped(true); 
         setShowKeyboard(false);
 
-        if (onSuccess) onSuccess(); 
+        // Notify parent (bust dashboard cache) AFTER the flip animation settles
+        // so no parent re-render races with the card flip (700ms transition).
+        setTimeout(() => {
+          if (onSuccess) onSuccess();
+        }, 750);
       }
     } catch (error: unknown) {
       const err = error as AxiosError<{ message?: string }>;
       const errorMessage = err.response?.data?.message || "Failed to record Cash In.";
-      
-      // --- ERROR TOAST ---
       showToast(errorMessage, "error");
     } finally {
       setIsLoading(false);
@@ -98,8 +94,8 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
 
   const onKeyPress = (button: string) => {
     if (button === "{enter}") {
-        setShowKeyboard(false);
-        if (amount && !isEodLocked) handleSubmit();
+      setShowKeyboard(false);
+      if (amount && !isEodLocked) handleSubmit();
     }
   };
 
@@ -149,6 +145,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
                 transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)' 
               }}
             >
+              {/* Front */}
               <div className="absolute w-full h-full bg-white rounded-[3rem] shadow-xl border border-zinc-100 p-10 flex flex-col items-center overflow-hidden" style={{ backfaceVisibility: 'hidden' }}>
                 <div className="absolute top-0 left-0 w-full h-3 bg-[#3b2063] opacity-10"></div>
                 <h2 className="text-[#3b2063] font-black text-base tracking-[0.4em] uppercase mb-6 mt-2">Terminal 01</h2>
@@ -164,8 +161,8 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
                       <input 
                         type="text" 
                         value={amount}
-                        onChange={handleAmountChange} 
-                        onFocus={() => !isEodLocked && setShowKeyboard(true)}
+                        onChange={handleAmountChange}
+                        // ← removed onFocus that auto-showed keyboard
                         placeholder={isEodLocked ? "LOCKED" : "0.00"}
                         disabled={isEodLocked}
                         className={`w-full text-[#3b2063] font-black text-3xl px-8 pl-14 py-5 rounded-3xl border-2 transition-all focus:outline-none focus:ring-4 focus:ring-[#f0ebff] 
@@ -184,19 +181,19 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
                 </div>
               </div>
 
-              {/* Back side of card */}
+              {/* Back (receipt) */}
               <div className="printable-receipt absolute w-full h-full bg-white rounded-[3rem] shadow-xl border border-zinc-100 p-10 flex flex-col overflow-hidden" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
                 <div className="receipt-header border-b border-zinc-100 pb-4 mb-4">
-                   <h2 className="text-[#3b2063] font-black text-xl uppercase">Cash In Receipt</h2>
-                   <div className="flex flex-col items-center mt-2">
-                      <p className="text-xs font-bold text-zinc-500">{receiptData.date} - {receiptData.time}</p>
-                   </div>
+                  <h2 className="text-[#3b2063] font-black text-xl uppercase">Cash In Receipt</h2>
+                  <div className="flex flex-col items-center mt-2">
+                    <p className="text-xs font-bold text-zinc-500">{receiptData.date} - {receiptData.time}</p>
+                  </div>
                 </div>
                 <div className="space-y-2 mb-6 w-full">
-                   <div className="flex justify-between items-center bg-[#f8f6ff] p-5 rounded-xl mt-2">
-                      <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Amount</span>
-                      <span className="text-2xl font-black text-[#3b2063]">₱ {amount}</span>
-                   </div>
+                  <div className="flex justify-between items-center bg-[#f8f6ff] p-5 rounded-xl mt-2">
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Amount</span>
+                    <span className="text-2xl font-black text-[#3b2063]">₱ {amount}</span>
+                  </div>
                 </div>
                 <button onClick={handleNewTransaction} className="no-print w-full bg-zinc-100 hover:bg-zinc-200 text-zinc-600 py-4 rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all">
                   New Transaction
@@ -205,6 +202,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
             </div>
           </div>
 
+          {/* Receipt printer panel */}
           <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-xl border border-zinc-100 p-8 flex flex-col items-center text-center h-fit">
             <h3 className={`font-black text-xs uppercase tracking-[0.2em] mb-2 ${isFlipped ? 'text-[#3b2063]' : 'text-zinc-400'}`}>Receipt Printer</h3>
             <button 
@@ -218,10 +216,24 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
           </div>
         </div>
 
+        {/* Keyboard toggle button */}
+        {!isEodLocked && (
+          <button
+            onClick={() => setShowKeyboard(prev => !prev)}
+            className={`fixed bottom-8 right-8 z-60 p-4 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 ${showKeyboard ? 'bg-red-500 text-white' : 'bg-[#3b2063] text-white'}`}
+          >
+            {showKeyboard ? (
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 5.25h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5" /></svg>
+            )}
+          </button>
+        )}
+
         <div className={`fixed bottom-0 left-0 right-0 bg-white shadow-2xl transition-transform duration-300 z-50 ${showKeyboard ? 'translate-y-0' : 'translate-y-full'}`}>
           <div className="flex items-center justify-between px-4 py-2 bg-zinc-50 border-b">
-             <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Numpad</span>
-             <button onClick={() => setShowKeyboard(false)} className="text-xs font-black text-[#3b2063] uppercase p-2">Close</button>
+            <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Numpad</span>
+            <button onClick={() => setShowKeyboard(false)} className="text-xs font-black text-[#3b2063] uppercase p-2">Close</button>
           </div>
           <div className="p-2">
             <Keyboard
