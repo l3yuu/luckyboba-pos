@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import logo from '../assets/logo.png';
 import UserService, { type User, type CreateUserData, type UpdateUserData } from '../services/UserService';
 import BranchService, { type Branch } from '../services/BranchService';
+import { useToast } from '../context/ToastContext';
 
-// Format currency helper function - MOVED TO TOP
 const formatCurrency = (amount: number): string => {
   return `₱${amount.toLocaleString('en-PH', { 
     minimumFractionDigits: 2, 
@@ -12,13 +12,13 @@ const formatCurrency = (amount: number): string => {
 };
 
 const SuperAdminDashboard: React.FC = () => {
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<'overview' | 'branches' | 'users' | 'reports'>('overview');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Branch state
   const [branches, setBranches] = useState<Branch[]>([]);
   const [branchLoading, setBranchLoading] = useState(false);
   const [branchError, setBranchError] = useState<string | null>(null);
@@ -32,14 +32,12 @@ const SuperAdminDashboard: React.FC = () => {
   const [isUpdateBranchModalOpen, setIsUpdateBranchModalOpen] = useState(false);
   const [viewBranch, setViewBranch] = useState<Branch | null>(null);
 
-  // Fetch users on mount
   useEffect(() => {
     if (activeTab === 'users') {
       fetchUsers();
     }
   }, [activeTab]);
 
-  // Fetch branches when branches tab is active or overview
   useEffect(() => {
     if (activeTab === 'branches' || activeTab === 'overview') {
       fetchBranches();
@@ -54,6 +52,7 @@ const SuperAdminDashboard: React.FC = () => {
       setUsers(fetchedUsers);
     } catch (err) {
       setError('Failed to load users. Please try again.');
+      showToast('Failed to load users. Please try again.', 'error');
       console.error(err);
     } finally {
       setLoading(false);
@@ -68,6 +67,7 @@ const SuperAdminDashboard: React.FC = () => {
       setBranches(fetchedBranches);
     } catch (err) {
       setBranchError('Failed to load branches. Please try again.');
+      showToast('Failed to load branches. Please try again.', 'error');
       console.error(err);
     } finally {
       setBranchLoading(false);
@@ -84,9 +84,12 @@ const SuperAdminDashboard: React.FC = () => {
       setLoading(true);
       const newUser = await UserService.createUser(data);
       setUsers((prev) => [newUser, ...prev]);
+      showToast('User created successfully!', 'success');
       return newUser;
     } catch (err: unknown) {
-      setError((err instanceof Error ? err.message : 'Failed to create user') || 'Failed to create user');
+      const errorMessage = (err instanceof Error ? err.message : 'Failed to create user') || 'Failed to create user';
+      setError(errorMessage);
+      showToast(errorMessage, 'error');
       throw err;
     } finally {
       setLoading(false);
@@ -98,9 +101,12 @@ const SuperAdminDashboard: React.FC = () => {
       setLoading(true);
       const updatedUser = await UserService.updateUser(id, data);
       setUsers((prev) => prev.map((u) => (u.id === id ? updatedUser : u)));
+      showToast('User updated successfully!', 'success');
       return updatedUser;
     } catch (err: unknown) {
-      setError((err instanceof Error ? err.message : 'Failed to update user') || 'Failed to update user');
+      const errorMessage = (err instanceof Error ? err.message : 'Failed to update user') || 'Failed to update user';
+      setError(errorMessage);
+      showToast(errorMessage, 'error');
       throw err;
     } finally {
       setLoading(false);
@@ -112,8 +118,11 @@ const SuperAdminDashboard: React.FC = () => {
       setLoading(true);
       await UserService.deleteUser(id);
       setUsers((prev) => prev.filter((u) => u.id !== id));
+      showToast('User deleted successfully!', 'success');
     } catch (err: unknown) {
-      setError((err instanceof Error ? err.message : 'Failed to delete user') || 'Failed to delete user');
+      const errorMessage = (err instanceof Error ? err.message : 'Failed to delete user') || 'Failed to delete user';
+      setError(errorMessage);
+      showToast(errorMessage, 'error');
       throw err;
     } finally {
       setLoading(false);
@@ -121,12 +130,7 @@ const SuperAdminDashboard: React.FC = () => {
   };
 
   const handleCreateBranch = () => {
-    setBranchFormState({
-      id: null,
-      name: '',
-      location: '',
-      status: 'active',
-    });
+    setBranchFormState({ id: null, name: '', location: '', status: 'active' });
     setBranchError(null);
     setIsCreateBranchModalOpen(true);
   };
@@ -153,14 +157,14 @@ const SuperAdminDashboard: React.FC = () => {
           location: branchFormState.location,
           status: branchFormState.status,
         });
-        alert('Branch created successfully!');
+        showToast('Branch created successfully!', 'success');
       } else {
         await BranchService.updateBranch(branchFormState.id, {
           name: branchFormState.name,
           location: branchFormState.location,
           status: branchFormState.status,
         });
-        alert('Branch updated successfully!');
+        showToast('Branch updated successfully!', 'success');
       }
 
       await fetchBranches();
@@ -169,41 +173,31 @@ const SuperAdminDashboard: React.FC = () => {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to save branch';
       setBranchError(errorMessage);
-      alert(errorMessage);
+      showToast(errorMessage, 'error');
     } finally {
       setBranchLoading(false);
     }
   };
 
   const handleDeleteBranch = async (branch: Branch) => {
-    if (!window.confirm(`Are you sure you want to delete "${branch.name}"?\n\nThis action cannot be undone. The branch can only be deleted if it has no associated sales or users.`)) {
+    if (!window.confirm(`Are you sure you want to delete "${branch.name}"?\n\nThis action cannot be undone.`)) {
       return;
     }
-
     try {
       setBranchLoading(true);
       await BranchService.deleteBranch(branch.id);
-      alert('Branch deleted successfully!');
+      showToast('Branch deleted successfully!', 'success');
       await fetchBranches();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete branch';
-      alert(errorMessage);
+      showToast(errorMessage, 'error');
     } finally {
       setBranchLoading(false);
     }
   };
 
-  // Calculate revenues with proper parsing
-  const totalRevenue = branches.reduce((sum, b) => {
-    const sales = parseFloat(String(b.total_sales)) || 0;
-    return sum + sales;
-  }, 0);
-
-  const todayRevenue = branches.reduce((sum, b) => {
-    const sales = parseFloat(String(b.today_sales)) || 0;
-    return sum + sales;
-  }, 0);
-  
+  const totalRevenue = branches.reduce((sum, b) => sum + (parseFloat(String(b.total_sales)) || 0), 0);
+  const todayRevenue = branches.reduce((sum, b) => sum + (parseFloat(String(b.today_sales)) || 0), 0);
   const activeBranches = branches.filter(b => b.status === 'active').length;
   const activeUsers = users.filter(u => u.status === 'ACTIVE').length;
 
@@ -274,13 +268,11 @@ const SuperAdminDashboard: React.FC = () => {
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-zinc-200">
         <img src={logo} alt="Logo" className="h-8 w-auto object-contain" />
-        <div className="flex items-center gap-3">
-          <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-2 text-[#3b2063]">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-            </svg>
-          </button>
-        </div>
+        <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-2 text-[#3b2063]">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+          </svg>
+        </button>
       </div>
 
       {/* Sidebar */}
@@ -297,7 +289,6 @@ const SuperAdminDashboard: React.FC = () => {
             <div className="text-[#3b2063] font-black uppercase text-[9px] tracking-[0.3em] opacity-60 mb-2 text-center">Super Admin</div>
             <div className="bg-[#fbbf24] text-[#3b2063] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-8">Master Control</div>
           </div>
-
           <nav className="w-full px-6 space-y-2 pb-6">
             {navItems.map((item) => (
               <button
@@ -320,8 +311,7 @@ const SuperAdminDashboard: React.FC = () => {
         <div className="shrink-0 px-6 pb-8">
           <button 
             onClick={handleLogout}
-            disabled={false}
-            className="flex items-center justify-center w-full px-6 py-4 rounded-2xl bg-[#be2525] hover:bg-[#a11f1f] text-white text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-200 shadow-md shadow-red-900/10 disabled:opacity-70 disabled:cursor-not-allowed group"
+            className="flex items-center justify-center w-full px-6 py-4 rounded-2xl bg-[#be2525] hover:bg-[#a11f1f] text-white text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-200 shadow-md shadow-red-900/10 group"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4 mr-3 group-hover:-translate-x-1 transition-transform">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
@@ -351,8 +341,9 @@ const SuperAdminDashboard: React.FC = () => {
             </p>
           </div>
         </header>
+
         {renderContent()}
-        
+
         {/* Create/Edit Branch Modal */}
         {(isCreateBranchModalOpen || isUpdateBranchModalOpen) && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
@@ -362,21 +353,11 @@ const SuperAdminDashboard: React.FC = () => {
                   {isCreateBranchModalOpen ? 'Add Branch' : 'Edit Branch'}
                 </h2>
                 <button
-                  onClick={() => {
-                    setIsCreateBranchModalOpen(false);
-                    setIsUpdateBranchModalOpen(false);
-                  }}
+                  onClick={() => { setIsCreateBranchModalOpen(false); setIsUpdateBranchModalOpen(false); }}
                   disabled={branchLoading}
                   className="text-zinc-400 hover:text-zinc-600 disabled:opacity-50"
                 >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                    stroke="currentColor"
-                    className="w-5 h-5"
-                  >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
                   </svg>
                 </button>
@@ -390,9 +371,7 @@ const SuperAdminDashboard: React.FC = () => {
 
               <form onSubmit={(e) => { e.preventDefault(); handleSaveBranch(); }} className="space-y-4">
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
-                    Branch Name
-                  </label>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Branch Name</label>
                   <input
                     type="text"
                     value={branchFormState.name}
@@ -402,11 +381,8 @@ const SuperAdminDashboard: React.FC = () => {
                     disabled={branchLoading}
                   />
                 </div>
-
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
-                    Location
-                  </label>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Location</label>
                   <input
                     type="text"
                     value={branchFormState.location}
@@ -416,16 +392,11 @@ const SuperAdminDashboard: React.FC = () => {
                     disabled={branchLoading}
                   />
                 </div>
-
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
-                    Status
-                  </label>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Status</label>
                   <select
                     value={branchFormState.status}
-                    onChange={(e) =>
-                      setBranchFormState((f) => ({ ...f, status: e.target.value as 'active' | 'inactive' }))
-                    }
+                    onChange={(e) => setBranchFormState((f) => ({ ...f, status: e.target.value as 'active' | 'inactive' }))}
                     className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
                     disabled={branchLoading}
                   >
@@ -433,20 +404,15 @@ const SuperAdminDashboard: React.FC = () => {
                     <option value="inactive">Inactive</option>
                   </select>
                 </div>
-
                 <div className="bg-[#f0ebff] border border-zinc-200 rounded-2xl p-3">
                   <p className="text-[10px] font-bold text-zinc-500 leading-relaxed">
                     <span className="text-[#3b2063]">💡 Note:</span> Sales totals will automatically update when transactions are assigned to this branch via triggers.
                   </p>
                 </div>
-
                 <div className="pt-2 flex justify-end gap-3">
                   <button
                     type="button"
-                    onClick={() => {
-                      setIsCreateBranchModalOpen(false);
-                      setIsUpdateBranchModalOpen(false);
-                    }}
+                    onClick={() => { setIsCreateBranchModalOpen(false); setIsUpdateBranchModalOpen(false); }}
                     disabled={branchLoading}
                     className="px-4 py-2 rounded-2xl border border-zinc-200 text-xs font-bold uppercase text-zinc-500 hover:bg-zinc-50 disabled:opacity-50"
                   >
@@ -457,9 +423,7 @@ const SuperAdminDashboard: React.FC = () => {
                     disabled={branchLoading}
                     className="px-6 py-2 rounded-2xl bg-[#3b2063] text-white text-xs font-black uppercase tracking-widest hover:bg-[#2a174a] disabled:opacity-50 flex items-center gap-2"
                   >
-                    {branchLoading && (
-                      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    )}
+                    {branchLoading && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                     {isCreateBranchModalOpen ? 'Create Branch' : 'Save Changes'}
                   </button>
                 </div>
@@ -473,46 +437,25 @@ const SuperAdminDashboard: React.FC = () => {
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
             <div className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl p-6 space-y-5">
               <div className="flex items-center justify-between mb-2">
-                <h2 className="text-lg font-black text-[#3b2063] uppercase tracking-wider">
-                  Branch Details
-                </h2>
-                <button
-                  onClick={() => setViewBranch(null)}
-                  className="text-zinc-400 hover:text-zinc-600"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                    stroke="currentColor"
-                    className="w-5 h-5"
-                  >
+                <h2 className="text-lg font-black text-[#3b2063] uppercase tracking-wider">Branch Details</h2>
+                <button onClick={() => setViewBranch(null)} className="text-zinc-400 hover:text-zinc-600">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
-
               <div className="space-y-4">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
-                    Branch Name
-                  </p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Branch Name</p>
                   <p className="text-sm font-bold text-[#3b2063]">{viewBranch.name}</p>
                 </div>
-
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
-                    Location
-                  </p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Location</p>
                   <p className="text-sm font-bold text-[#3b2063]">{viewBranch.location}</p>
                 </div>
-
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
-                      Status
-                    </p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Status</p>
                     <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase ${
                       viewBranch.status === 'active' ? 'bg-emerald-100 text-emerald-600' : 'bg-zinc-100 text-zinc-500'
                     }`}>
@@ -520,38 +463,23 @@ const SuperAdminDashboard: React.FC = () => {
                     </span>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
-                      Branch ID
-                    </p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Branch ID</p>
                     <p className="text-sm font-bold text-[#3b2063]">#{viewBranch.id}</p>
                   </div>
                 </div>
-
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
-                      Today's Sales
-                    </p>
-                    <p className="text-lg font-black text-emerald-500">
-                      {formatCurrency(Number(viewBranch.today_sales))}
-                    </p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Today's Sales</p>
+                    <p className="text-lg font-black text-emerald-500">{formatCurrency(Number(viewBranch.today_sales))}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
-                      Total Sales
-                    </p>
-                    <p className="text-lg font-black text-[#3b2063]">
-                      {formatCurrency(Number(viewBranch.total_sales))}
-                    </p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Total Sales</p>
+                    <p className="text-lg font-black text-[#3b2063]">{formatCurrency(Number(viewBranch.total_sales))}</p>
                   </div>
                 </div>
               </div>
-
               <div className="pt-2 flex justify-end">
-                <button
-                  onClick={() => setViewBranch(null)}
-                  className="px-6 py-2 rounded-2xl bg-[#3b2063] text-white text-xs font-black uppercase tracking-widest hover:bg-[#2a174a]"
-                >
+                <button onClick={() => setViewBranch(null)} className="px-6 py-2 rounded-2xl bg-[#3b2063] text-white text-xs font-black uppercase tracking-widest hover:bg-[#2a174a]">
                   Close
                 </button>
               </div>
@@ -576,7 +504,6 @@ const OverviewTab = ({ totalRevenue, todayRevenue, activeBranches, activeUsers, 
   loading: boolean;
 }) => (
   <section className="flex-1 px-6 md:px-10 pb-10 overflow-auto">
-    {/* Stats Grid */}
     <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
       {[
         { label: "Total Revenue", value: formatCurrency(totalRevenue), highlight: true },
@@ -585,9 +512,7 @@ const OverviewTab = ({ totalRevenue, todayRevenue, activeBranches, activeUsers, 
         { label: "Active Users", value: activeUsers.toString(), highlight: false },
       ].map((stat, i) => (
         <div key={i} className="rounded-[1.5rem] md:rounded-[2rem] border-2 border-zinc-200 bg-white shadow-lg hover:shadow-xl transition-all p-5 md:p-6 flex flex-col justify-between min-h-[110px] md:min-h-[130px]">
-          <p className="text-[11px] md:text-[12px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-2">
-            {stat.label}
-          </p>
+          <p className="text-[11px] md:text-[12px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-2">{stat.label}</p>
           <p className={`text-2xl md:text-3xl font-black ${stat.highlight ? 'text-emerald-500' : 'text-[#3b2063]'}`}>
             {loading ? '...' : stat.value}
           </p>
@@ -595,12 +520,9 @@ const OverviewTab = ({ totalRevenue, todayRevenue, activeBranches, activeUsers, 
       ))}
     </div>
 
-    {/* Branch Performance */}
     <div className="mt-6 md:mt-8">
       <div className="rounded-[1.5rem] md:rounded-[2.5rem] border border-zinc-100 bg-white shadow-sm p-6 md:p-8">
-        <p className="text-[12px] md:text-[15px] font-black uppercase tracking-[0.25em] text-zinc-400 mb-6">
-          Branch Performance
-        </p>
+        <p className="text-[12px] md:text-[15px] font-black uppercase tracking-[0.25em] text-zinc-400 mb-6">Branch Performance</p>
         {loading ? (
           <div className="text-center py-8">
             <div className="inline-block w-8 h-8 border-4 border-[#3b2063] border-t-transparent rounded-full animate-spin" />
@@ -618,9 +540,7 @@ const OverviewTab = ({ totalRevenue, todayRevenue, activeBranches, activeUsers, 
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-black text-[#3b2063]">
-                    {formatCurrency(Number(branch.today_sales))}
-                  </p>
+                  <p className="font-black text-[#3b2063]">{formatCurrency(Number(branch.today_sales))}</p>
                   <p className="text-xs text-zinc-400">Today</p>
                 </div>
               </div>
@@ -648,17 +568,12 @@ const BranchesTab = ({ branches, loading, error, onCreateBranch, onEditBranch, o
     {error && (
       <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center justify-between">
         <p className="text-sm text-red-600">{error}</p>
-        <button onClick={onRefresh} className="text-xs font-bold text-red-600 hover:text-red-700 uppercase">
-          Retry
-        </button>
+        <button onClick={onRefresh} className="text-xs font-bold text-red-600 hover:text-red-700 uppercase">Retry</button>
       </div>
     )}
-
     <div className="flex justify-between items-center mb-6">
       <div className="flex items-center gap-4">
-        <p className="text-[12px] font-black uppercase tracking-[0.2em] text-zinc-400">
-          {branches.length} Branches
-        </p>
+        <p className="text-[12px] font-black uppercase tracking-[0.2em] text-zinc-400">{branches.length} Branches</p>
         {loading && (
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 border-2 border-[#3b2063] border-t-transparent rounded-full animate-spin" />
@@ -666,15 +581,10 @@ const BranchesTab = ({ branches, loading, error, onCreateBranch, onEditBranch, o
           </div>
         )}
       </div>
-      <button 
-        onClick={onCreateBranch}
-        disabled={loading}
-        className="bg-[#3b2063] text-white px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-wider hover:bg-[#2a174a] transition-all disabled:opacity-50"
-      >
+      <button onClick={onCreateBranch} disabled={loading} className="bg-[#3b2063] text-white px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-wider hover:bg-[#2a174a] transition-all disabled:opacity-50">
         + Add Branch
       </button>
     </div>
-
     <div className="grid gap-4 md:gap-6 grid-cols-1 lg:grid-cols-2">
       {branches.map((branch) => (
         <div key={branch.id} className="rounded-[1.5rem] border border-zinc-100 bg-white shadow-sm p-6">
@@ -692,50 +602,24 @@ const BranchesTab = ({ branches, loading, error, onCreateBranch, onEditBranch, o
           <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-zinc-100">
             <div>
               <p className="text-[10px] font-bold uppercase text-zinc-400">Total Sales</p>
-              <p className="font-black text-[#3b2063]">
-                {formatCurrency(Number(branch.total_sales))}
-              </p>
+              <p className="font-black text-[#3b2063]">{formatCurrency(Number(branch.total_sales))}</p>
             </div>
             <div>
               <p className="text-[10px] font-bold uppercase text-zinc-400">Today</p>
-              <p className="font-black text-emerald-500">
-                {formatCurrency(Number(branch.today_sales))}
-              </p>
+              <p className="font-black text-emerald-500">{formatCurrency(Number(branch.today_sales))}</p>
             </div>
           </div>
           <div className="flex gap-2 mt-4">
-            <button 
-              onClick={() => onEditBranch(branch)}
-              disabled={loading}
-              className="flex-1 bg-[#f0ebff] text-[#3b2063] py-2 rounded-xl font-bold text-[11px] uppercase hover:bg-[#e5deff] transition-all disabled:opacity-50"
-            >
-              Edit
-            </button>
-            <button 
-              onClick={() => onViewBranch(branch)}
-              className="flex-1 bg-[#f0ebff] text-[#3b2063] py-2 rounded-xl font-bold text-[11px] uppercase hover:bg-[#e5deff] transition-all"
-            >
-              View  
-            </button>
-            <button 
-              onClick={() => onDeleteBranch(branch)}
-              disabled={loading}
-              className="flex-1 bg-red-50 text-red-600 py-2 rounded-xl font-bold text-[11px] uppercase hover:bg-red-100 transition-all disabled:opacity-50"
-            >
-              Delete  
-            </button>
+            <button onClick={() => onEditBranch(branch)} disabled={loading} className="flex-1 bg-[#f0ebff] text-[#3b2063] py-2 rounded-xl font-bold text-[11px] uppercase hover:bg-[#e5deff] transition-all disabled:opacity-50">Edit</button>
+            <button onClick={() => onViewBranch(branch)} className="flex-1 bg-[#f0ebff] text-[#3b2063] py-2 rounded-xl font-bold text-[11px] uppercase hover:bg-[#e5deff] transition-all">View</button>
+            <button onClick={() => onDeleteBranch(branch)} disabled={loading} className="flex-1 bg-red-50 text-red-600 py-2 rounded-xl font-bold text-[11px] uppercase hover:bg-red-100 transition-all disabled:opacity-50">Delete</button>
           </div>
         </div>
       ))}
       {branches.length === 0 && !loading && (
         <div className="col-span-2 text-center py-12">
           <p className="text-zinc-400 text-lg">No branches found</p>
-          <button
-            onClick={onCreateBranch}
-            className="mt-4 text-[#3b2063] hover:text-[#2a174a] font-bold"
-          >
-            Add your first branch
-          </button>
+          <button onClick={onCreateBranch} className="mt-4 text-[#3b2063] hover:text-[#2a174a] font-bold">Add your first branch</button>
         </div>
       )}
     </div>
@@ -816,11 +700,7 @@ const UsersTab = ({ users, loading, error, onCreate, onUpdate, onDelete, onRefre
           branch: form.branch,
           status: form.status,
         };
-        
-        if (trimmedPassword) {
-          updateData.password = trimmedPassword;
-        }
-
+        if (trimmedPassword) updateData.password = trimmedPassword;
         await onUpdate(editingUser.id, updateData);
       } else {
         if (!trimmedPassword) {
@@ -828,7 +708,6 @@ const UsersTab = ({ users, loading, error, onCreate, onUpdate, onDelete, onRefre
           setIsSubmitting(false);
           return;
         }
-
         const createData: CreateUserData = {
           name: form.name,
           email: form.email,
@@ -837,7 +716,6 @@ const UsersTab = ({ users, loading, error, onCreate, onUpdate, onDelete, onRefre
           branch: form.branch || undefined,
           status: form.status,
         };
-
         await onCreate(createData);
       }
 
@@ -850,37 +728,30 @@ const UsersTab = ({ users, loading, error, onCreate, onUpdate, onDelete, onRefre
     }
   };
 
-  const handleDeleteClick = (user: User) => {
-    setUserToDelete(user);
-  };
+  const handleDeleteClick = (user: User) => setUserToDelete(user);
 
-  const handleConfirmDelete = async () => {
-    if (!userToDelete) return;
-
-    try {
-      await onDelete(userToDelete.id);
-      setUserToDelete(null);
-    } catch (err: unknown) {
-      alert((err instanceof Error ? err.message : 'Failed to delete user') || 'Failed to delete user');
-    }
-  };
+const handleConfirmDelete = async () => {
+  if (!userToDelete) return;
+  try {
+    await onDelete(userToDelete.id);
+    setUserToDelete(null);
+  } catch (_e) {
+    setUserToDelete(null);
+  }
+};
 
   return (
     <section className="flex-1 px-6 md:px-10 pb-10 overflow-auto">
       {error && (
         <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-center justify-between">
           <p className="text-sm text-red-600">{error}</p>
-          <button onClick={onRefresh} className="text-xs font-bold text-red-600 hover:text-red-700 uppercase">
-            Retry
-          </button>
+          <button onClick={onRefresh} className="text-xs font-bold text-red-600 hover:text-red-700 uppercase">Retry</button>
         </div>
       )}
 
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-4">
-          <p className="text-[12px] font-black uppercase tracking-[0.2em] text-zinc-400">
-            {users.length} Users
-          </p>
+          <p className="text-[12px] font-black uppercase tracking-[0.2em] text-zinc-400">{users.length} Users</p>
           {loading && (
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 border-2 border-[#3b2063] border-t-transparent rounded-full animate-spin" />
@@ -888,11 +759,7 @@ const UsersTab = ({ users, loading, error, onCreate, onUpdate, onDelete, onRefre
             </div>
           )}
         </div>
-        <button
-          onClick={openCreate}
-          disabled={loading}
-          className="bg-[#3b2063] text-white px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-wider hover:bg-[#2a174a] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-        >
+        <button onClick={openCreate} disabled={loading} className="bg-[#3b2063] text-white px-6 py-3 rounded-2xl font-black text-[11px] uppercase tracking-wider hover:bg-[#2a174a] transition-all disabled:opacity-50 disabled:cursor-not-allowed">
           + Add User
         </button>
       </div>
@@ -913,59 +780,35 @@ const UsersTab = ({ users, loading, error, onCreate, onUpdate, onDelete, onRefre
               {users.map((user) => (
                 <tr key={user.id} className="border-t border-zinc-100 hover:bg-[#f8f6ff] transition-colors">
                   <td className="px-6 py-4">
-                    <div>
-                      <p className="font-bold text-[#3b2063]">{user.name}</p>
-                      <p className="text-xs text-zinc-400">{user.email}</p>
-                    </div>
+                    <p className="font-bold text-[#3b2063]">{user.name}</p>
+                    <p className="text-xs text-zinc-400">{user.email}</p>
                   </td>
                   <td className="px-6 py-4">
-                    <span
-                      className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
-                        user.role === 'superadmin'
-                          ? 'bg-[#fbbf24] text-[#3b2063]'
-                          : user.role === 'admin'
-                          ? 'bg-[#f0ebff] text-[#3b2063]'
-                          : 'bg-zinc-100 text-zinc-600'
-                      }`}
-                    >
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
+                      user.role === 'superadmin' ? 'bg-[#fbbf24] text-[#3b2063]'
+                      : user.role === 'admin' ? 'bg-[#f0ebff] text-[#3b2063]'
+                      : 'bg-zinc-100 text-zinc-600'
+                    }`}>
                       {user.role}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-sm text-zinc-600">{user.branch || '-'}</td>
                   <td className="px-6 py-4">
-                    <span
-                      className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
-                        user.status === 'ACTIVE'
-                          ? 'bg-emerald-100 text-emerald-600'
-                          : 'bg-zinc-100 text-zinc-500'
-                      }`}
-                    >
+                    <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase ${
+                      user.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-600' : 'bg-zinc-100 text-zinc-500'
+                    }`}>
                       {user.status}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right space-x-3">
-                    <button
-                      onClick={() => openEdit(user)}
-                      disabled={loading}
-                      className="text-[#3b2063] hover:text-[#2a174a] font-bold text-xs uppercase disabled:opacity-50"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteClick(user)}
-                      disabled={loading}
-                      className="text-red-500 hover:text-red-700 font-bold text-xs uppercase disabled:opacity-50"
-                    >
-                      Delete
-                    </button>
+                    <button onClick={() => openEdit(user)} disabled={loading} className="text-[#3b2063] hover:text-[#2a174a] font-bold text-xs uppercase disabled:opacity-50">Edit</button>
+                    <button onClick={() => handleDeleteClick(user)} disabled={loading} className="text-red-500 hover:text-red-700 font-bold text-xs uppercase disabled:opacity-50">Delete</button>
                   </td>
                 </tr>
               ))}
               {users.length === 0 && !loading && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-zinc-400">
-                    No users found
-                  </td>
+                  <td colSpan={5} className="px-6 py-12 text-center text-zinc-400">No users found</td>
                 </tr>
               )}
             </tbody>
@@ -973,7 +816,7 @@ const UsersTab = ({ users, loading, error, onCreate, onUpdate, onDelete, onRefre
         </div>
       </div>
 
-      {/* Create/Edit Modal */}
+      {/* Create/Edit User Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl p-6 space-y-5">
@@ -981,19 +824,8 @@ const UsersTab = ({ users, loading, error, onCreate, onUpdate, onDelete, onRefre
               <h2 className="text-lg font-black text-[#3b2063] uppercase tracking-wider">
                 {editingUser ? 'Edit User' : 'Add User'}
               </h2>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                disabled={isSubmitting}
-                className="text-zinc-400 hover:text-zinc-600 disabled:opacity-50"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={2}
-                  stroke="currentColor"
-                  className="w-5 h-5"
-                >
+              <button onClick={() => setIsModalOpen(false)} disabled={isSubmitting} className="text-zinc-400 hover:text-zinc-600 disabled:opacity-50">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -1007,117 +839,61 @@ const UsersTab = ({ users, loading, error, onCreate, onUpdate, onDelete, onRefre
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Full Name</label>
+                <input type="text" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                   className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
-                  required
-                  disabled={isSubmitting}
-                />
+                  required disabled={isSubmitting} />
               </div>
-
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
-                  Email
-                </label>
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Email</label>
+                <input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
                   className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
-                  required
-                  disabled={isSubmitting}
-                />
+                  required disabled={isSubmitting} />
               </div>
-
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
                   {editingUser ? 'Reset Password (optional)' : 'Password'}
                 </label>
-                <input
-                  type="password"
-                  value={form.password}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, password: e.target.value }))
-                  }
+                <input type="password" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
                   className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
                   placeholder={editingUser ? 'Leave blank to keep current password' : 'Set initial password'}
-                  disabled={isSubmitting}
-                  required={!editingUser}
-                />
+                  disabled={isSubmitting} required={!editingUser} />
               </div>
-
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
-                    Role
-                  </label>
-                  <select
-                    value={form.role}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, role: e.target.value as User['role'] }))
-                    }
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Role</label>
+                  <select value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as User['role'] }))}
                     className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
-                    disabled={isSubmitting}
-                  >
+                    disabled={isSubmitting}>
                     <option value="superadmin">Super Admin</option>
                     <option value="admin">Admin</option>
                     <option value="manager">Manager</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
-                    Status
-                  </label>
-                  <select
-                    value={form.status}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, status: e.target.value as User['status'] }))
-                    }
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Status</label>
+                  <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as User['status'] }))}
                     className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
-                    disabled={isSubmitting}
-                  >
+                    disabled={isSubmitting}>
                     <option value="ACTIVE">Active</option>
                     <option value="INACTIVE">Inactive</option>
                   </select>
                 </div>
               </div>
-
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
-                  Branch
-                </label>
-                <input
-                  type="text"
-                  value={form.branch}
-                  onChange={(e) => setForm((f) => ({ ...f, branch: e.target.value }))}
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Branch</label>
+                <input type="text" value={form.branch} onChange={(e) => setForm((f) => ({ ...f, branch: e.target.value }))}
                   className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
-                  placeholder="e.g. SM City, Ayala, All Branches"
-                  disabled={isSubmitting}
-                />
+                  placeholder="e.g. SM City, Ayala, All Branches" disabled={isSubmitting} />
               </div>
-
               <div className="pt-2 flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  disabled={isSubmitting}
-                  className="px-4 py-2 rounded-2xl border border-zinc-200 text-xs font-bold uppercase text-zinc-500 hover:bg-zinc-50 disabled:opacity-50"
-                >
+                <button type="button" onClick={() => setIsModalOpen(false)} disabled={isSubmitting}
+                  className="px-4 py-2 rounded-2xl border border-zinc-200 text-xs font-bold uppercase text-zinc-500 hover:bg-zinc-50 disabled:opacity-50">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-6 py-2 rounded-2xl bg-[#3b2063] text-white text-xs font-black uppercase tracking-widest hover:bg-[#2a174a] disabled:opacity-50 flex items-center gap-2"
-                >
-                  {isSubmitting && (
-                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  )}
+                <button type="submit" disabled={isSubmitting}
+                  className="px-6 py-2 rounded-2xl bg-[#3b2063] text-white text-xs font-black uppercase tracking-widest hover:bg-[#2a174a] disabled:opacity-50 flex items-center gap-2">
+                  {isSubmitting && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                   {editingUser ? 'Save Changes' : 'Create User'}
                 </button>
               </div>
@@ -1130,32 +906,18 @@ const UsersTab = ({ users, loading, error, onCreate, onUpdate, onDelete, onRefre
       {userToDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white w-full max-w-sm rounded-[2rem] shadow-2xl p-6 space-y-4">
-            <h2 className="text-lg font-black text-[#3b2063] uppercase tracking-wider">
-              Delete User
-            </h2>
+            <h2 className="text-lg font-black text-[#3b2063] uppercase tracking-wider">Delete User</h2>
             <p className="text-sm text-zinc-600">
-              Are you sure you want to delete user{' '}
-              <span className="font-bold text-[#3b2063]">{userToDelete.name}</span>?
-              This action cannot be undone.
+              Are you sure you want to delete <span className="font-bold text-[#3b2063]">{userToDelete.name}</span>? This action cannot be undone.
             </p>
             <div className="pt-2 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setUserToDelete(null)}
-                disabled={loading}
-                className="px-4 py-2 rounded-2xl border border-zinc-200 text-xs font-bold uppercase text-zinc-500 hover:bg-zinc-50 disabled:opacity-50"
-              >
+              <button type="button" onClick={() => setUserToDelete(null)} disabled={loading}
+                className="px-4 py-2 rounded-2xl border border-zinc-200 text-xs font-bold uppercase text-zinc-500 hover:bg-zinc-50 disabled:opacity-50">
                 Cancel
               </button>
-              <button
-                type="button"
-                onClick={handleConfirmDelete}
-                disabled={loading}
-                className="px-6 py-2 rounded-2xl bg-red-600 text-white text-xs font-black uppercase tracking-widest hover:bg-red-700 disabled:opacity-50 flex items-center gap-2"
-              >
-                {loading && (
-                  <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                )}
+              <button type="button" onClick={handleConfirmDelete} disabled={loading}
+                className="px-6 py-2 rounded-2xl bg-red-600 text-white text-xs font-black uppercase tracking-widest hover:bg-red-700 disabled:opacity-50 flex items-center gap-2">
+                {loading && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
                 Delete
               </button>
             </div>
@@ -1181,9 +943,7 @@ const ReportsTab = () => (
           <div className="text-3xl mb-4">{report.icon}</div>
           <h3 className="font-black text-[#3b2063] text-lg group-hover:text-[#2a174a]">{report.title}</h3>
           <p className="text-sm text-zinc-400 mt-2">{report.desc}</p>
-          <button className="mt-4 bg-[#f0ebff] text-[#3b2063] px-4 py-2 rounded-xl font-bold text-[11px] uppercase hover:bg-[#e5deff] transition-all w-full">
-            Generate
-          </button>
+          <button className="mt-4 bg-[#f0ebff] text-[#3b2063] px-4 py-2 rounded-xl font-bold text-[11px] uppercase hover:bg-[#e5deff] transition-all w-full">Generate</button>
         </div>
       ))}
     </div>

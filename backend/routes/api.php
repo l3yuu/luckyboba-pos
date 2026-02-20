@@ -60,6 +60,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
     Route::patch('/users/{id}/toggle-status', [UserController::class, 'toggleStatus']);
 
+    // --- BRANCH MANAGEMENT ---
+    Route::apiResource('branches', BranchController::class);
+
     // --- ANALYTICS & REPORTING ---
     Route::get('/dashboard/stats', [DashboardController::class, 'index']);
     Route::get('/sales-analytics', [SalesDashboardController::class, 'index']);
@@ -86,15 +89,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/cash-counts', [CashCountController::class, 'store']);
     Route::get('/cash-counts/status', [CashCountController::class, 'checkEodStatus']);
 
-    // --- GROUPED SALES REPORTS (Fixes 404s for /reports/...) ---
+    // --- GROUPED SALES REPORTS ---
     Route::prefix('reports')->group(function () {
         Route::get('/x-reading', [SalesDashboardController::class, 'xReading']);
         Route::get('/z-reading', [SalesDashboardController::class, 'zReading']);
         Route::get('/mall-accreditation', [SalesDashboardController::class, 'mallReport']);
         Route::get('/sales', [ReportController::class, 'getSalesReport']);
         Route::get('/food-menu', [ReportController::class, 'getFoodMenuReport']);
-        
-        // Additional Reports
         Route::get('/hourly-sales', [ReportController::class, 'getHourlySales']); 
         Route::get('/void-logs', [ReportController::class, 'getVoidLogs']);
         Route::get('/sales-detailed', [ReportController::class, 'getDetailedSales']);
@@ -104,10 +105,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/export-items', [ReportController::class, 'exportItems']);
         Route::get('/summary', [ReportController::class, 'getSummaryReport']);
         Route::get('/cash-count-summary', [ReportController::class, 'getCashCountSummary']);
+        Route::get('/inventory', [InventoryReportController::class, 'index']);
     });
 
-    // --- ITEMS REPORT (Outside Prefix per your request) ---
+    // --- ITEMS REPORT ---
     Route::get('/items-report', [SalesDashboardController::class, 'itemsReport']);
+    Route::get('/items-reports/items', [ItemsReportController::class, 'getItemsSoldReport']);
 
     // --- MENU LIST ---
     Route::get('/menu-list', [MenuListController::class, 'index']);
@@ -136,7 +139,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/settings', [SettingsController::class, 'update']);
     Route::get('/vouchers', [VoucherController::class, 'index']);
     Route::post('/vouchers', [VoucherController::class, 'store']);
-    Route::get('/reports/inventory', [InventoryReportController::class, 'index']);
     Route::get('/item-serials', [ItemSerialController::class, 'index']);
     Route::post('/item-serials', [ItemSerialController::class, 'store']);
     Route::get('/expenses', [ExpenseController::class, 'index']);
@@ -145,11 +147,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/system/backup-status', [BackupController::class, 'lastBackupStatus']);
     Route::post('/system/run-backup', [BackupController::class, 'runBackup']);    
 
-    // Discount Routes
+    // --- DISCOUNTS ---
     Route::get('/discounts', [DiscountController::class, 'index']);
     Route::post('/discounts', [DiscountController::class, 'store']);
     Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
     Route::delete('/discounts/{discount}', [DiscountController::class, 'destroy']);
+
+    // --- UPLOADS ---
     Route::post('/system/upload', [UploadController::class, 'upload']);
     Route::get('/system/import-history', [UploadController::class, 'importHistory']);
     Route::post('/system/upload-discounts', [UploadController::class, 'uploadDiscounts']);

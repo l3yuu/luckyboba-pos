@@ -1,4 +1,3 @@
-"use client"
 import React, { useState, useCallback } from 'react';
 import { ToastContext } from './ToastContext';
 import { Toast } from '../components/Toast';
@@ -17,13 +16,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      {toast && (
-        <Toast 
-          message={toast.message} 
-          type={toast.type} 
-          onClose={hideToast} 
-        />
-      )}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
     </ToastContext.Provider>
   );
 };
