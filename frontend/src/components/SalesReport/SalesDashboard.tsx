@@ -1,3 +1,5 @@
+"use client"
+
 import { useState, useEffect } from 'react';
 import TopNavbar from '../TopNavbar';
 import api from '../../services/api';
@@ -10,24 +12,25 @@ const WEEKLY_HEIGHT = 200;
 const TODAY_HEIGHT = 180;
 const CACHE_KEY = 'lucky_boba_sales_analytics';
 
+// HARDCODED GRAPH CONFIGURATION
+const FIXED_TODAY_MAX = 5000;
+const yAxisLabels = [5000, 4000, 3000, 2000, 1000, 0];
+
 const SalesDashboard = () => {
   const [analytics, setAnalytics] = useState<SalesAnalyticsResponse | null>(() => {
     const cachedData = localStorage.getItem(CACHE_KEY);
     return cachedData ? JSON.parse(cachedData) : null;
   });
 
-  // If we have analytics already, we don't need to show the full-page loading spinner
   const [loading, setLoading] = useState(!analytics);
   const [hoveredValue, setHoveredValue] = useState<HoveredValuePoint | null>(null);
 
-  // --- FETCH DATA ---
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
         const response = await api.get('/sales-analytics');
         const newData = response.data;
         
-        // Update state and refresh the local cache
         setAnalytics(newData);
         localStorage.setItem(CACHE_KEY, JSON.stringify(newData));
       } catch (error) {
@@ -39,7 +42,6 @@ const SalesDashboard = () => {
     fetchAnalytics();
   }, []);
 
-  // Show loading spinner ONLY if there is no cached data and we are still fetching
   if (loading && !analytics) {
     return (
       <div className="flex-1 bg-[#f8f6ff] h-full flex flex-col items-center justify-center font-sans">
@@ -49,19 +51,14 @@ const SalesDashboard = () => {
     );
   }
 
-  // Safety return if analytics is still null
   if (!analytics) return null;
 
   const { weekly, today_hourly: todayData, stats } = analytics;
 
-  // --- CALCULATIONS ---
+  // --- WEEKLY GRAPH CALCULATIONS ---
   const WEEKLY_MAX = weekly.length > 0 
     ? Math.max(...weekly.map(d => d.value), 10000) 
     : 10000;
-
-  const TODAY_MAX = todayData.length > 0 
-    ? Math.max(...todayData.map(d => d.value), 20000) 
-    : 20000;
 
   const getLineY = (value: number) => WEEKLY_HEIGHT - (value / WEEKLY_MAX) * WEEKLY_HEIGHT;
   
@@ -75,11 +72,13 @@ const SalesDashboard = () => {
     };
   });
 
-  const getBarHeight = (value: number) => (value / TODAY_MAX) * TODAY_HEIGHT;
-
   const dateRangeText = weekly.length > 0 
     ? `${weekly[0].date}, 2026 — ${weekly[weekly.length - 1].date}, 2026`
     : 'No data available';
+
+  // --- TODAY GRAPH CALCULATIONS ---
+  // Calculates height percentage relative to the hardcoded 5000 max
+  const getBarHeight = (value: number) => (value / FIXED_TODAY_MAX) * TODAY_HEIGHT;
 
   return (
     <div className="flex-1 bg-[#f8f6ff] h-full flex flex-col overflow-hidden font-sans">
@@ -195,28 +194,33 @@ const SalesDashboard = () => {
               <span className="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full text-[10px] font-bold animate-pulse">Live</span>
             </div>
 
-            <div className="relative w-full flex-1 pl-10 pb-6">
-              <div className="absolute left-0 top-0 bottom-6 w-8 flex flex-col justify-between text-right text-[9px] font-bold text-zinc-300">
-                <span>{Math.round(TODAY_MAX/1000)}k</span>
-                <span>{Math.round((TODAY_MAX*0.75)/1000)}k</span>
-                <span>{Math.round((TODAY_MAX*0.5)/1000)}k</span>
-                <span>{Math.round((TODAY_MAX*0.25)/1000)}k</span>
-                <span>0</span>
+            {/* MODIFIED GRAPH CONTAINER */}
+            <div className="relative w-full flex-1 pl-12 pb-6">
+              
+              {/* Y-AXIS LABELS (5000 down to 0) */}
+              <div className="absolute left-0 top-0 bottom-6 w-10 flex flex-col justify-between text-right text-[9px] font-bold text-zinc-400">
+                {yAxisLabels.map((val) => (
+                  <span key={val}>{val === 0 ? "0" : val}</span>
+                ))}
               </div>
 
-              <div className="absolute left-10 right-0 top-0 bottom-6 flex flex-col justify-between pointer-events-none">
-                {[...Array(5)].map((_, i) => <div key={i} className="w-full h-px bg-zinc-50"></div>)}
+              {/* HORIZONTAL GRID LINES (Matches the 5 labels + 0) */}
+              <div className="absolute left-12 right-0 top-0 bottom-6 flex flex-col justify-between pointer-events-none">
+                {yAxisLabels.map((val) => (
+                  <div key={`grid-${val}`} className="w-full h-px bg-zinc-100"></div>
+                ))}
               </div>
 
-              <div className="absolute inset-0 left-10 bottom-6 right-0 top-0 flex items-end justify-between px-2">
+              {/* BAR GRAPH BARS */}
+              <div className="absolute inset-0 left-12 bottom-6 right-0 top-0 flex items-end justify-between px-2">
                 {todayData.length > 0 ? todayData.map((d, i) => {
                   const barHeight = getBarHeight(d.value);
-                  const percentageHeight = (barHeight / TODAY_HEIGHT) * 100;
+                  const percentageHeight = Math.min((barHeight / TODAY_HEIGHT) * 100, 100); // Caps at 100% if value somehow exceeds 5000
                   
                   return (
                     <div key={i} className="relative w-full mx-1 h-full flex items-end group">
                       <div 
-                        className="w-full bg-[#3b2063] rounded-t-lg transition-all duration-500 hover:bg-[#5b3299] relative"
+                        className="w-full bg-[#3b2063] rounded-t-sm transition-all duration-500 hover:bg-[#5b3299] relative"
                         style={{ height: `${percentageHeight}%` }}
                       >
                         <div className="opacity-0 group-hover:opacity-100 absolute -top-10 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-bold px-2 py-1 rounded-lg transition-opacity pointer-events-none whitespace-nowrap z-20">
@@ -232,10 +236,11 @@ const SalesDashboard = () => {
                 )}
               </div>
 
+              {/* X-AXIS LABELS (Time) */}
               {todayData.length > 0 && (
-                <div className="absolute left-10 right-0 bottom-0 flex justify-between px-2 pt-2">
+                <div className="absolute left-12 right-0 bottom-0 flex justify-between px-2 pt-2">
                   {todayData.map((d, i) => (
-                    <div key={i} className="w-full text-center text-[9px] font-bold text-zinc-400 mx-1">
+                    <div key={i} className="w-full text-center text-[8px] font-bold text-zinc-400 mx-1">
                       {d.time}
                     </div>
                   ))}

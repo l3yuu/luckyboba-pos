@@ -42,32 +42,35 @@ class SalesDashboardController extends Controller
         }
     }
 
-// SalesDashboardController.php
-
 public function itemsReport(Request $request)
-{
-    $from = $request->query('from');
-    $to = $request->query('to');
-    $type = $request->query('type');
+    {
+        $from = $request->query('from');
+        $to = $request->query('to');
+        $type = $request->query('type');
 
-    // Example query for 'item-list'
-    $items = DB::table('sale_items')
-        ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
-        ->whereBetween('sales.created_at', [$from . ' 00:00:00', $to . ' 23:59:59'])
-        ->select(
-            'sale_items.product_name as name',
-            DB::raw('SUM(sale_items.quantity) as qty'),
-            DB::raw('SUM(sale_items.final_price) as amount')
-        )
-        ->groupBy('sale_items.product_name')
-        ->get();
+        // Example query for 'item-list'
+        $items = DB::table('sale_items')
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->whereBetween('sales.created_at', [$from . ' 00:00:00', $to . ' 23:59:59'])
+            ->select(
+                'sale_items.product_name as name',
+                DB::raw('SUM(sale_items.quantity) as qty'),
+                DB::raw('SUM(sale_items.final_price) as amount')
+            )
+            ->groupBy('sale_items.product_name')
+            ->get();
 
-    return response()->json([
-        'items' => $items,
-        'total_qty' => $items->sum('qty'),
-        'grand_total' => $items->sum('amount')
-    ]);
-}
+        // SAFELY EXTRACT LOGGED-IN USER FROM SANCTUM
+        $user = auth('sanctum')->user() ?? $request->user();
+        $cashierName = $user ? $user->name : 'System Admin';
+
+        return response()->json([
+            'items' => $items,
+            'total_qty' => $items->sum('qty'),
+            'grand_total' => $items->sum('amount'),
+            'cashier_name' => $cashierName // <-- Pass the name securely from the server
+        ]);
+    }
 
 public function xReading(Request $request)
     {
