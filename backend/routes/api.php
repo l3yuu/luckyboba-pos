@@ -86,12 +86,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
         // Additional Reports
         Route::get('/hourly-sales', [ReportController::class, 'getHourlySales']); 
         Route::get('/void-logs', [ReportController::class, 'getVoidLogs']);
-        Route::get('/sales-detailed', [ReportController::class, 'getDetailedSales']);
+        Route::get('/sales-detailed', [ReportController::class, 'getSalesReport']);
         Route::get('/item-quantities', [ReportController::class, 'getItemQuantities']);
         Route::get('/sold-items', [ReportController::class, 'getSoldItemsReport']);
         Route::get('/export-sales', [ReportController::class, 'exportSales']);
         Route::get('/export-items', [ReportController::class, 'exportItems']);
-        Route::get('/summary', [ReportController::class, 'getSummaryReport']);
         Route::get('/cash-count-summary', [ReportController::class, 'getCashCountSummary']);
     });
 

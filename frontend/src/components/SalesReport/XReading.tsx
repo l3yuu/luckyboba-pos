@@ -35,6 +35,12 @@ interface XReadingReport {
       add_ons: { name: string; qty: number }[];
     }[];
   }[];
+  from_date?: string;
+  to_date?: string;
+  payment_breakdown?: { method: string; amount: number }[];
+  total_discounts?: number;
+  total_void_amount?: number;
+  average_order_value?: number;
 }
 
 const XReading = () => {
@@ -346,23 +352,25 @@ const renderQtyItems = () => {
     );
   };
 
-  const renderSummary = () => (
-    <div className="my-2 pt-2">
-      <div className="receipt-divider"></div>
-      {!reportData?.summary_data?.length ? (
-        <p className="text-[10px] italic">No sales data for this period.</p>
-      ) : (
-        <table className="w-full text-[10px]">
+const renderSummary = () => {
+    if (!reportData || !reportData.summary_data) return null;
+
+    return (
+      <div className="my-2 pt-2">
+        <div className="receipt-divider"></div>
+        
+        {/* DAILY TABLE */}
+        <table className="w-full text-[10px] mb-3">
           <thead>
-            <tr className="font-black border-b border-black">
-              <th className="text-left">DATE</th>
-              <th className="text-center">ORDERS</th>
-              <th className="text-right">REVENUE</th>
+            <tr className="font-black border-b border-black text-left">
+              <th>DATE</th>
+              <th className="text-center">QTY</th>
+              <th className="text-right">AMT</th>
             </tr>
           </thead>
           <tbody>
             {reportData.summary_data.map((item, i) => (
-              <tr key={i}>
+              <tr key={i} className="border-b border-zinc-50">
                 <td className="py-1">{item.Sales_Date}</td>
                 <td className="py-1 text-center font-bold">{item.Total_Orders}</td>
                 <td className="py-1 text-right font-black">{phCurrency.format(item.Daily_Revenue)}</td>
@@ -370,14 +378,55 @@ const renderQtyItems = () => {
             ))}
           </tbody>
         </table>
-      )}
-      <div className="receipt-divider"></div>
-      <div className="flex-between font-black text-[11px]">
-        <span>TOTAL REVENUE</span>
-        <span>{phCurrency.format(reportData?.summary_data?.reduce((acc, i) => acc + Number(i.Daily_Revenue || 0), 0) ?? 0)}</span>
+
+        <div className="receipt-divider"></div>
+
+        {/* FINANCIAL SUMMARY SECTION */}
+        <div className="space-y-1 uppercase text-[10px]">
+          <p className="font-black text-center bg-zinc-100 py-0.5 mb-2">Audit Summary</p>
+          
+          <div className="flex-between">
+            <span>Gross Sales</span>
+            <span className="font-bold">{phCurrency.format(reportData.gross_sales || 0)}</span>
+          </div>
+
+          <div className="flex-between text-red-600">
+            <span>Total Discounts</span>
+            <span>-{phCurrency.format(reportData.total_discounts || 0)}</span>
+          </div>
+
+          <div className="flex-between text-red-500">
+            <span>Total Voids</span>
+            <span>{phCurrency.format(reportData.total_void_amount || 0)}</span>
+          </div>
+
+          <div className="receipt-divider"></div>
+
+          {/* PAYMENT BREAKDOWN */}
+          <p className="font-black text-[9px] opacity-70 mt-2">Payment Methods</p>
+          {reportData.payment_breakdown?.map((p, i) => (
+            <div key={i} className="flex-between text-[10px]">
+              <span>{p.method}</span>
+              <span className="font-bold">{phCurrency.format(p.amount)}</span>
+            </div>
+          ))}
+
+          <div className="receipt-divider"></div>
+
+          {/* TAX BREAKDOWN (BIR Requirement) */}
+          <div className="opacity-60 text-[9px] italic">
+            <div className="flex-between"><span>VATable Sales</span><span>{phCurrency.format(reportData.vatable_sales || 0)}</span></div>
+            <div className="flex-between"><span>VAT Amount (12%)</span><span>{phCurrency.format(reportData.vat_amount || 0)}</span></div>
+          </div>
+
+          <div className="flex-between font-black text-[12px] mt-2 pt-2 border-t border-black">
+            <span>NET REVENUE</span>
+            <span>{phCurrency.format(reportData.gross_sales || 0)}</span>
+          </div>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderXReading = () => (
     <div className="my-2 pt-2">
