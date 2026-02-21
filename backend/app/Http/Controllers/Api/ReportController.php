@@ -348,6 +348,60 @@ class ReportController extends Controller
         return new StreamedResponse($callback, 200, $headers);
     }
 
-    public function getDetailedSales(Request $request) { return $this->getSalesReport($request); }
-    public function getSummaryReport(Request $request) { return $this->getSalesReport($request); }
+    /**
+     * GET /api/reports/sales-summary?from=YYYY-MM-DD&to=YYYY-MM-DD
+     */
+    public function getSalesSummary(Request $request)
+    {
+        try {
+            $from = $request->query('from', now()->toDateString()) . ' 00:00:00';
+            $to   = $request->query('to',   now()->toDateString()) . ' 23:59:59';
+
+            $data = $this->getSummaryData($from, $to);
+
+            $paymentBreakdown = Sale::whereBetween('created_at', [$from, $to])
+                ->where('status', 'completed')
+                ->selectRaw('payment_method as method, SUM(total_amount) as amount')
+                ->groupBy('payment_method')
+                ->get();
+
+            $gross        = $data['gross_sales'];
+            $vatableSales = round($gross / 1.12, 2);
+            $vatAmount    = round($gross - $vatableSales, 2);
+
+            return response()->json(array_merge($data, [
+                'payment_breakdown' => $paymentBreakdown,
+                'vatable_sales'     => $vatableSales,
+                'vat_amount'        => $vatAmount,
+            ]));
+
+        } catch (\Exception $e) {
+            Log::error("getSalesSummary Error: " . $e->getMessage());
+            return response()->json(['error' => 'Failed to generate summary report'], 500);
+        }
+    }
+
+    /**
+     * GET /api/reports/sales-detailed?date=YYYY-MM-DD
+     */
+    public function getSalesDetailed(Request $request)
+    {
+        try {
+            $date = $request->query('date', now()->toDateString());
+            $from = $date . ' 00:00:00';
+            $to   = $date . ' 23:59:59';
+
+            $data = $this->getDetailedData($from, $to);
+
+            return response()->json($data);
+
+        } catch (\Exception $e) {
+            Log::error("getSalesDetailed Error: " . $e->getMessage());
+            return response()->json(['error' => 'Failed to generate detailed sales report'], 500);
+        }
+    }
+
+    // Kept for backward compatibility
+    public function getDetailedSales(Request $request) { return $this->getSalesDetailed($request); }
+    public function getSummaryReport(Request $request) { return $this->getSalesSummary($request); }
 }

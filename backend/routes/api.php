@@ -112,6 +112,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/food-menu', [ReportController::class, 'getFoodMenu']); 
         Route::get('/export-sales', [ReportController::class, 'exportSales']);
         Route::get('/export-items', [ReportController::class, 'exportItems']);
+        Route::get('/sales-summary',  [ReportController::class, 'getSalesSummary']);
+        Route::get('/sales-detailed', [ReportController::class, 'getSalesDetailed']);
     });
 
     // --- 8. SETTINGS & MAINTENANCE ---
