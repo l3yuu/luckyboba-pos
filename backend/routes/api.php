@@ -1,27 +1,13 @@
 <?php
 
-use App\Http\Controllers\Api\BackupController;
-use App\Http\Controllers\Api\CashCountController;
-use App\Http\Controllers\Api\CashTransactionController;
-use App\Http\Controllers\Api\CategoryController;
-use App\Http\Controllers\Api\DashboardController;
-use App\Http\Controllers\Api\DiscountController;
-use App\Http\Controllers\Api\ExpenseController;
-use App\Http\Controllers\Api\InventoryController;
-use App\Http\Controllers\Api\InventoryDashboardController;
-use App\Http\Controllers\Api\InventoryReportController;
-use App\Http\Controllers\Api\ItemSerialController;
-use App\Http\Controllers\Api\MenuController;
-use App\Http\Controllers\Api\MenuListController;
-use App\Http\Controllers\Api\PurchaseOrderController;
-use App\Http\Controllers\Api\ReceiptController;
-use App\Http\Controllers\Api\ReportController;
-use App\Http\Controllers\Api\SalesController;
-use App\Http\Controllers\Api\SalesDashboardController; 
-use App\Http\Controllers\Api\SettingsController;
-use App\Http\Controllers\Api\SubCategoryController;
-use App\Http\Controllers\Api\UploadController;
-use App\Http\Controllers\Api\VoucherController;
+use App\Http\Controllers\Api\{
+    BackupController, CashCountController, CashTransactionController, CategoryController,
+    DashboardController, DiscountController, ExpenseController, InventoryController,
+    InventoryDashboardController, InventoryReportController, ItemSerialController,
+    MenuController, MenuListController, PurchaseOrderController, ReceiptController,
+    ReportController, SalesController, SalesDashboardController, SettingsController,
+    SubCategoryController, UploadController, VoucherController
+};
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Models\User;
 use Illuminate\Http\Request; 
@@ -42,109 +28,102 @@ Route::get('/users', function () { return User::all(); });
 */
 Route::middleware(['auth:sanctum'])->group(function () {
     
-    // --- USER & SYSTEM INIT ---
-    Route::get('/app-init', [DashboardController::class, 'init']);
-    Route::get('/user', function (Request $request) {
-        return $request->user();
-    });
+    // --- 1. SYSTEM CORE & DASHBOARD ---
+    Route::get('/user', fn (Request $request) => $request->user());
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy']);
-
-    // --- ANALYTICS & REPORTING ---
+    Route::get('/app-init', [DashboardController::class, 'init']);
     Route::get('/dashboard/stats', [DashboardController::class, 'index']);
     Route::get('/sales-analytics', [SalesDashboardController::class, 'index']);
 
-    // --- MENU MANAGEMENT ---
-    Route::get('/menu', [MenuController::class, 'index']);
-    Route::post('/menu/clear-cache', [MenuController::class, 'clearCache']); 
+    // --- 2. SALES & TRANSACTIONS (POS) ---
+    Route::prefix('sales')->group(function () {
+        Route::get('/', [SalesController::class, 'index']);
+        Route::post('/', [SalesController::class, 'store']);
+        Route::get('/{id}', [SalesController::class, 'show']);
+        Route::patch('/{id}/cancel', [SalesController::class, 'cancel']);
+    });
+    
+    Route::prefix('cash-transactions')->group(function () {
+        Route::get('/', [CashTransactionController::class, 'index']);
+        Route::post('/', [CashTransactionController::class, 'store']);
+        Route::get('/status', [CashCountController::class, 'checkInitialCash']);
+    });
 
-    // --- SALES / ORDERS (POS Transactions) ---
-    Route::post('/sales', [SalesController::class, 'store']);     
-    Route::get('/sales', [SalesController::class, 'index']);       
-    Route::get('/sales/{id}', [SalesController::class, 'show']);   
-    Route::patch('/sales/{id}/cancel', [SalesController::class, 'cancel']);
-
-    // --- CASH & RECEIPTS ---
-    Route::get('/cash-transactions', [CashTransactionController::class, 'index']);
-    Route::post('/cash-transactions', [CashTransactionController::class, 'store']);
     Route::get('/receipts/search', [ReceiptController::class, 'search']);
-    Route::get('/cash-transactions/status', [CashCountController::class, 'checkInitialCash']);
 
-    // --- END OF DAY ---
-    Route::post('/cash-counts', [CashCountController::class, 'store']);
-    Route::get('/cash-counts/status', [CashCountController::class, 'checkEodStatus']);
+    // --- 3. END OF DAY (EOD) OPERATIONS ---
+    Route::prefix('cash-counts')->group(function () {
+        Route::post('/', [CashCountController::class, 'store']);
+        Route::get('/status', [CashCountController::class, 'checkEodStatus']);
+        Route::get('/summary', [ReportController::class, 'getCashCountSummary']);
+    });
 
-    // --- GROUPED SALES REPORTS (Fixes 404s for /reports/...) ---
+    // --- 4. CATALOG & MENU MANAGEMENT ---
+    Route::get('/menu', [MenuController::class, 'index']);
+    Route::post('/menu/clear-cache', [MenuController::class, 'clearCache']);
+    Route::apiResource('menu-list', MenuListController::class)->only(['index', 'store']);
+
+    Route::apiResource('categories', CategoryController::class);
+    Route::apiResource('sub-categories', SubCategoryController::class);
+    Route::get('/sub-categories/filter/{categoryId}', [SubCategoryController::class, 'getByCategory']);
+
+    // --- 5. INVENTORY & PROCUREMENT ---
+    Route::prefix('inventory')->group(function () {
+        Route::get('/', [InventoryController::class, 'index']);
+        Route::post('/', [InventoryController::class, 'store']);
+        Route::get('/history', [InventoryController::class, 'getTransactionHistory']);
+        Route::get('/check/{barcode}', [InventoryController::class, 'checkByBarcode']);
+        Route::get('/top-products', [InventoryDashboardController::class, 'getWeeklyTopProducts']);
+        Route::patch('/{id}/quantity', [InventoryController::class, 'updateQuantity']);
+    });
+
+    Route::prefix('purchase-orders')->group(function () {
+        Route::get('/', [PurchaseOrderController::class, 'index']);
+        Route::post('/', [PurchaseOrderController::class, 'store']);
+        Route::patch('/{id}/status', [PurchaseOrderController::class, 'updateStatus']);
+    });
+
+    Route::prefix('item-serials')->group(function () {
+        Route::get('/', [ItemSerialController::class, 'index']);
+        Route::post('/', [ItemSerialController::class, 'store']);
+        Route::patch('/{id}/status', [ItemSerialController::class, 'updateStatus']);
+    });
+
+    // --- 6. EXPENSES & DISCOUNTS ---
+    Route::apiResource('expenses', ExpenseController::class)->only(['index', 'store']);
+    Route::apiResource('discounts', DiscountController::class)->except(['show', 'update']);
+    Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
+    Route::apiResource('vouchers', VoucherController::class)->only(['index', 'store']);
+
+    // --- 7. ANALYTICS & EXPORT REPORTS ---
     Route::prefix('reports')->group(function () {
+        // Business Intelligence
         Route::get('/x-reading', [SalesDashboardController::class, 'xReading']);
         Route::get('/z-reading', [SalesDashboardController::class, 'zReading']);
         Route::get('/mall-accreditation', [SalesDashboardController::class, 'mallReport']);
-        Route::get('/sales', [ReportController::class, 'getSalesReport']);
-        Route::get('/food-menu', [ReportController::class, 'getFoodMenuReport']);
-        Route::get('/reports/summary', [ReportController::class, 'getSalesReport']);
-        Route::get('/summary', [ReportController::class, 'getSalesReport']);
-        
-        // Additional Reports
+        Route::get('/items-report', [SalesDashboardController::class, 'itemsReport']); // Moved inside for better organization
         Route::get('/hourly-sales', [ReportController::class, 'getHourlySales']); 
         Route::get('/void-logs', [ReportController::class, 'getVoidLogs']);
-        Route::get('/sales-detailed', [ReportController::class, 'getSalesReport']);
         Route::get('/item-quantities', [ReportController::class, 'getItemQuantities']);
-        Route::get('/sold-items', [ReportController::class, 'getSoldItemsReport']);
+        Route::get('/inventory', [InventoryReportController::class, 'index']);
+
+        // Excel/CSV Exports
+        Route::get('/sales', [ReportController::class, 'getSalesReport']); 
+        Route::get('/food-menu', [ReportController::class, 'getFoodMenu']); 
         Route::get('/export-sales', [ReportController::class, 'exportSales']);
         Route::get('/export-items', [ReportController::class, 'exportItems']);
-        Route::get('/cash-count-summary', [ReportController::class, 'getCashCountSummary']);
     });
 
-    // --- ITEMS REPORT (Outside Prefix per your request) ---
-    Route::get('/items-report', [SalesDashboardController::class, 'itemsReport']);
+    // --- 8. SETTINGS & MAINTENANCE ---
+    Route::prefix('system')->group(function () {
+        Route::get('/audit', [SettingsController::class, 'getAuditLogs']);
+        Route::get('/backup-status', [BackupController::class, 'lastBackupStatus']);
+        Route::post('/run-backup', [BackupController::class, 'runBackup']);
+        Route::post('/upload', [UploadController::class, 'upload']);
+        Route::get('/import-history', [UploadController::class, 'importHistory']);
+        Route::post('/upload-discounts', [UploadController::class, 'uploadDiscounts']);
+    });
 
-    // --- MENU LIST ---
-    Route::get('/menu-list', [MenuListController::class, 'index']);
-    Route::post('/menu-list', [MenuListController::class, 'store']);
-
-    // --- CATEGORIES ---
-    Route::get('/categories', [CategoryController::class, 'index']);
-    Route::post('/categories', [CategoryController::class, 'store']);
-    Route::put('/categories/{id}', [CategoryController::class, 'update']);
-    Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
-
-    // --- SUB-CATEGORIES ---
-    Route::get('/sub-categories/filter/{categoryId}', [SubCategoryController::class, 'getByCategory']);
-    Route::apiResource('sub-categories', SubCategoryController::class);
-    Route::put('/sub-categories/{id}', [SubCategoryController::class, 'update']);
-    Route::delete('/sub-categories/{id}', [SubCategoryController::class, 'destroy']);
-
-    // --- INVENTORY ---
-    Route::get('/inventory/top-products', [InventoryDashboardController::class, 'getWeeklyTopProducts']);
-    Route::get('/inventory', [InventoryController::class, 'index']);
-    Route::patch('/inventory/{id}/quantity', [InventoryController::class, 'updateQuantity']);
-    Route::get('/inventory/check/{barcode}', [InventoryController::class, 'checkByBarcode']);
-    Route::get('/purchase-orders', [PurchaseOrderController::class, 'index']);
-    Route::post('/purchase-orders', [PurchaseOrderController::class, 'store']);
-    Route::post('/inventory', [InventoryController::class, 'store']);
-    Route::get('/inventory/history', [InventoryController::class, 'getTransactionHistory']);
-
-    // --- SETTINGS & SYSTEM ---
     Route::get('/settings', [SettingsController::class, 'index']);
     Route::post('/settings', [SettingsController::class, 'update']);
-    Route::get('/vouchers', [VoucherController::class, 'index']);
-    Route::post('/vouchers', [VoucherController::class, 'store']);
-    Route::get('/reports/inventory', [InventoryReportController::class, 'index']);
-    Route::get('/item-serials', [ItemSerialController::class, 'index']);
-    Route::post('/item-serials', [ItemSerialController::class, 'store']);
-    Route::patch('/item-serials/{id}/status', [ItemSerialController::class, 'updateStatus']);
-    Route::patch('/purchase-orders/{id}/status', [PurchaseOrderController::class, 'updateStatus']);
-    Route::get('/expenses', [ExpenseController::class, 'index']);
-    Route::post('/expenses', [ExpenseController::class, 'store']);
-    Route::get('/system/audit', [SettingsController::class, 'getAuditLogs']);
-    Route::get('/system/backup-status', [BackupController::class, 'lastBackupStatus']);
-    Route::post('/system/run-backup', [BackupController::class, 'runBackup']);    
-
-    // Discount Routes
-    Route::get('/discounts', [DiscountController::class, 'index']);
-    Route::post('/discounts', [DiscountController::class, 'store']);
-    Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
-    Route::delete('/discounts/{discount}', [DiscountController::class, 'destroy']);
-    Route::post('/system/upload', [UploadController::class, 'upload']);
-    Route::get('/system/import-history', [UploadController::class, 'importHistory']);
-    Route::post('/system/upload-discounts', [UploadController::class, 'uploadDiscounts']);
 });

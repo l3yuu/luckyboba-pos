@@ -16,18 +16,21 @@ const ExportData = ({ onBack }: ExportDataProps) => {
   const [toDate, setToDate] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // --- FUNCTION 1: DYNAMIC FOOD LIST (MENU ITEMS) ---
+// --- FUNCTION 1: DYNAMIC FOOD LIST ---
   const handleExportFoodList = async () => {
     setLoading(true);
     try {
       const response = await api.get('/reports/food-menu');
       
-      if (response.data.length === 0) {
+      // FIX: Convert to array just in case backend returns an object
+      const data = Array.isArray(response.data) ? response.data : Object.values(response.data);
+
+      if (data.length === 0) {
         showToast("No menu items found in database", "warning");
         return;
       }
 
-      const worksheet = XLSX.utils.json_to_sheet(response.data);
+      const worksheet = XLSX.utils.json_to_sheet(data);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Food Menu List");
 
@@ -41,7 +44,7 @@ const ExportData = ({ onBack }: ExportDataProps) => {
     }
   };
 
-  // --- FUNCTION 2: SALES REPORTS (SALES, SUMMARY, SOLD_ITEMS, PAYMENTS) ---
+  // --- FUNCTION 2: SALES REPORTS ---
   const handleExportSales = async (type: string, label: string) => {
     if (!fromDate || !toDate) {
       showToast("Please select a date range first", "warning");
@@ -54,12 +57,15 @@ const ExportData = ({ onBack }: ExportDataProps) => {
         params: { from: fromDate, to: toDate, type: type }
       });
 
-      if (response.data.length === 0) {
+      // FIX: Ensure the data is a flat array of objects for XLSX
+      const data = Array.isArray(response.data) ? response.data : Object.values(response.data);
+
+      if (data.length === 0) {
         showToast("No records found for this period", "warning");
         return;
       }
 
-      const worksheet = XLSX.utils.json_to_sheet(response.data);
+      const worksheet = XLSX.utils.json_to_sheet(data);
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, label);
       XLSX.writeFile(workbook, `LuckyBoba_${label}_${fromDate}_to_${toDate}.xlsx`);
@@ -67,7 +73,7 @@ const ExportData = ({ onBack }: ExportDataProps) => {
       showToast(`${label.replace('_', ' ')} exported successfully!`, "success");
     } catch (err) {
       console.error(err);
-      showToast("Export failed. Check server connection.", "error");
+      showToast("Export failed. Check console for details.", "error");
     } finally {
       setLoading(false);
     }

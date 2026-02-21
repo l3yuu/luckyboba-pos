@@ -117,7 +117,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'items-report', label: 'Items Report' },
     { id: 'x-reading', label: 'X Reading' },
     { id: 'z-reading', label: 'Z Reading' },
-    //{ id: 'mall-accred', label: 'Mall Accred Report' },
   ];
 
   const menuManagementItems: MenuItem[] = [
@@ -185,9 +184,9 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <>
-      {/* --- MODALS --- */}
+      {/* --- MENU LOCKED MODAL (CASH IN REQUIRED) --- */}
       {showCashInRequired && (
-        <div className="fixed inset-0 z-100 flex items-center justify-center p-6 bg-[#3b2063]/40 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-10 shadow-2xl border border-zinc-100 flex flex-col items-center text-center transition-all animate-in zoom-in-95 duration-200">
             <div className="w-16 h-16 bg-[#f0ebff] rounded-full flex items-center justify-center mb-6">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="#3b2063" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" /></svg>
@@ -202,8 +201,9 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
       )}
 
+      {/* --- TERMINAL CLOSED MODAL (EOD DONE) --- */}
       {showEodLockedModal && (
-        <div className="fixed inset-0 z-100 flex items-center justify-center p-6 bg-[#3b2063]/40 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white w-full max-sm rounded-[2.5rem] p-10 shadow-2xl border border-zinc-100 flex flex-col items-center text-center transition-all animate-in zoom-in-95 duration-200">
             <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-6">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="#be2525" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.546 1.16 3.743 1.16 5.289 0m-5.289-8c1.546-1.159 3.743-1.159 5.289 0m-5.289 4h5.29" /></svg>
@@ -215,8 +215,9 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
       )}
 
+      {/* --- LOGOUT CONFIRMATION MODAL --- */}
       {showLogoutConfirm && (
-        <div className="fixed inset-0 z-100 flex items-center justify-center p-6 bg-[#3b2063]/40 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-10 shadow-2xl border border-zinc-100 flex flex-col items-center text-center transition-all animate-in zoom-in-95 duration-200">
             <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-6">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="#be2525" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
@@ -336,7 +337,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       </aside>
 
       {/* MOBILE OVERLAY */}
-      {isSidebarOpen && <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 md:hidden" onClick={() => setSidebarOpen(false)} />}
+      {isSidebarOpen && <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden" onClick={() => setSidebarOpen(false)} />}
     </>
   );
 };
