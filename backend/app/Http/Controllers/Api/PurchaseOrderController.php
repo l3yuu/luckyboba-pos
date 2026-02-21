@@ -3,9 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\MenuItem;
 use App\Models\PurchaseOrder;
-use App\Models\StockTransaction;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -90,7 +88,7 @@ class PurchaseOrderController extends Controller
     /**
      * UPDATE STATUS FUNCTION
      */
-public function updateStatus(Request $request, $id)
+    public function updateStatus(Request $request, $id)
     {
         $validated = $request->validate([
             'status' => 'required|in:Pending,Received,Cancelled'
@@ -99,24 +97,21 @@ public function updateStatus(Request $request, $id)
         try {
             DB::beginTransaction(); // Start safe transaction
 
-            // Load the PO along with the items inside it
             $po = PurchaseOrder::with('items')->findOrFail($id);
             $oldStatus = $po->status;
             $newStatus = $validated['status'];
 
-            // AUTO-RESTOCK LOGIC: If changing FROM Pending TO Received
+            // AUTO-RESTOCK & AUTO-EXPENSE LOGIC
             if ($newStatus === 'Received' && $oldStatus !== 'Received') {
                 
+                // 1. Auto-Restock Items (from our previous step)
                 foreach ($po->items as $poItem) {
-                    $menuItem = MenuItem::find($poItem->menu_item_id);
-                    
+                    $menuItem = \App\Models\MenuItem::find($poItem->menu_item_id);
                     if ($menuItem) {
-                        // 1. Add the PO quantity to current stock
                         $menuItem->quantity += $poItem->quantity;
                         $menuItem->save();
 
-                        // 2. Create the exact same Audit Trail we built earlier
-                        StockTransaction::create([
+                        \App\Models\StockTransaction::create([
                             'menu_item_id' => $menuItem->id,
                             'quantity_change' => $poItem->quantity,
                             'type' => 'restock',
@@ -124,6 +119,15 @@ public function updateStatus(Request $request, $id)
                         ]);
                     }
                 }
+
+                // 2. NEW: Auto-Create Expense Record
+                \App\Models\Expense::create([
+                    'ref_num' => $po->po_number, // Use PO number as Ref Num
+                    'description' => 'Supplier Payment: ' . $po->supplier,
+                    'date' => now()->toDateString(),
+                    'category' => 'Inventory Purchase', // Or 'Supplier', based on your needs
+                    'amount' => $po->total_amount,
+                ]);
             }
 
             // Update the PO status
@@ -133,12 +137,12 @@ public function updateStatus(Request $request, $id)
             DB::commit(); // Save all changes safely
 
             return response()->json([
-                'message' => 'Status updated and stock adjusted automatically', 
+                'message' => 'Status updated, stock adjusted, and expense recorded.', 
                 'po' => $po
             ], 200);
 
         } catch (\Exception $e) {
-            DB::rollBack(); // Cancel everything if it crashes
+            DB::rollBack();
             Log::error("PO Status Update Error: " . $e->getMessage());
             return response()->json(['error' => 'Failed to process PO update'], 500);
         }
