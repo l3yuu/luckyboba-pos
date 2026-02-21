@@ -131,6 +131,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/reports/inventory', [InventoryReportController::class, 'index']);
     Route::get('/item-serials', [ItemSerialController::class, 'index']);
     Route::post('/item-serials', [ItemSerialController::class, 'store']);
+    Route::patch('/item-serials/{id}/status', [ItemSerialController::class, 'updateStatus']);
+    Route::patch('/purchase-orders/{id}/status', [PurchaseOrderController::class, 'updateStatus']);
     Route::get('/expenses', [ExpenseController::class, 'index']);
     Route::post('/expenses', [ExpenseController::class, 'store']);
     Route::get('/system/audit', [SettingsController::class, 'getAuditLogs']);
