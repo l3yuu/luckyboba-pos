@@ -2,6 +2,7 @@ export type ItemData = {
   name: string;
   price: number;
   category?: string;
+  barcode?: string;
 };
 
 // Empty menu lists - can be populated from backend API or database
