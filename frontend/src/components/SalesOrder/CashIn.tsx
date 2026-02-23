@@ -1,10 +1,5 @@
 
-<<<<<<< HEAD
-"use client"
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-=======
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
->>>>>>> 3e1273f2638462e7d06913b1d874350dd7b6de1e
 import Keyboard from 'react-simple-keyboard';
 import 'react-simple-keyboard/build/css/index.css';
 import type { AxiosError } from 'axios'; 

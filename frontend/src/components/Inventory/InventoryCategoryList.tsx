@@ -23,23 +23,16 @@ const InventoryCategoryList = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-<<<<<<< HEAD
-=======
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  
->>>>>>> 3e1273f2638462e7d06913b1d874350dd7b6de1e
+
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
 
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<InventoryCategory | null>(null);
   const [deletingCategory, setDeletingCategory] = useState<InventoryCategory | null>(null);
   const [editName, setEditName] = useState('');
   const [editDesc, setEditDesc] = useState('');
-
-  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-  const [categoryToDelete, setCategoryToDelete] = useState<InventoryCategory | null>(null);
 
   const fetchCategories = useCallback(async (forceRefresh = false) => {
     const cached = getCache<InventoryCategory[]>('categories');
@@ -87,11 +80,16 @@ const InventoryCategoryList = () => {
     }
   };
 
-  const handleEditClick = (cat: InventoryCategory) => {
+  const openEditModal = (cat: InventoryCategory) => {
     setEditingCategory(cat);
     setEditName(cat.name);
     setEditDesc(cat.description);
     setIsEditModalOpen(true);
+  };
+
+  const closeEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingCategory(null);
   };
 
   const openDeleteModal = (cat: InventoryCategory) => {
@@ -103,8 +101,7 @@ const InventoryCategoryList = () => {
     if (!editingCategory || !editName) return;
     try {
       await api.patch(`/categories/${editingCategory.id}`, { name: editName, description: editDesc });
-      setIsEditModalOpen(false);
-      setEditingCategory(null);
+      closeEditModal();
       clearCache('categories');
       await fetchCategories(true);
       showToast("Category updated!", "success");
@@ -113,45 +110,18 @@ const InventoryCategoryList = () => {
     }
   };
 
-<<<<<<< HEAD
-  const closeEditModal = () => {
-    setIsEditModalOpen(false);
-    setEditingCategory(null);
-    setEditName('');
-    setEditDesc('');
-  };
-
-  const handleDeleteClick = (cat: InventoryCategory) => {
-    setCategoryToDelete(cat);
-    setIsDeleteConfirmOpen(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!categoryToDelete) return;
-    try {
-      await api.delete(`/categories/${categoryToDelete.id}`);
-=======
   const handleDeleteConfirm = async () => {
     if (!deletingCategory) return;
     try {
       await api.delete(`/categories/${deletingCategory.id}`);
       setIsDeleteModalOpen(false);
       setDeletingCategory(null);
->>>>>>> 3e1273f2638462e7d06913b1d874350dd7b6de1e
       clearCache('categories');
       await fetchCategories(true);
       showToast("Category deleted", "success");
     } catch (err) {
       if (isAxiosError(err)) showToast(err.response?.data?.message || "Delete failed", "error");
-    } finally {
-      setIsDeleteConfirmOpen(false);
-      setCategoryToDelete(null);
     }
-  };
-
-  const cancelDelete = () => {
-    setIsDeleteConfirmOpen(false);
-    setCategoryToDelete(null);
   };
 
   return (
@@ -203,29 +173,9 @@ const InventoryCategoryList = () => {
                     <td className="px-4 py-4 text-xs font-black text-[#3b2063] uppercase tracking-tight">{cat.name}</td>
                     <td className="px-4 py-4 text-xs font-bold text-zinc-400 text-center">{cat.description || '-'}</td>
                     <td className="px-4 py-4 text-xs font-black text-slate-700 text-center">{cat.menu_items_count}</td>
-<<<<<<< HEAD
-                    <td className="px-4 py-4 text-center flex items-center justify-center gap-2">
-                      <button
-                        onClick={() => handleEditClick(cat)}
-                        className="bg-[#1e40af] hover:bg-blue-700 text-white p-2 rounded-lg transition-colors shadow-sm active:scale-95"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
-                        </svg>
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClick(cat)}
-                        className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg transition-colors shadow-sm active:scale-95"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                        </svg>
-                      </button>
-=======
                     <td className="px-4 py-4 text-center flex gap-2 justify-center">
                       <button onClick={() => openEditModal(cat)} className="bg-[#1e40af] text-white p-2 rounded-lg hover:bg-blue-700 shadow-sm transition-all"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" /></svg></button>
                       <button onClick={() => openDeleteModal(cat)} className="bg-red-600 text-white p-2 rounded-lg hover:bg-red-700 shadow-sm transition-all"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79" /></svg></button>
->>>>>>> 3e1273f2638462e7d06913b1d874350dd7b6de1e
                     </td>
                   </tr>
                 ))}
@@ -235,28 +185,12 @@ const InventoryCategoryList = () => {
         </div>
       </div>
 
-<<<<<<< HEAD
-      {/* ADD CATEGORY MODAL */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
-            <div className="bg-[#10b981] px-6 py-4 flex justify-between items-center">
-              <h2 className="text-white font-black text-xs uppercase tracking-[0.2em]">New Category</h2>
-              <button onClick={() => setIsAddModalOpen(false)} className="text-white/70 hover:text-white transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-=======
       {/* --- ADD CATEGORY MODAL --- */}
       {isAddModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl p-10 animate-in fade-in zoom-in-95 duration-200">
             <h2 className="text-[#3b2063] font-black text-lg uppercase tracking-widest mb-6">Create New Category</h2>
             <div className="space-y-4">
->>>>>>> 3e1273f2638462e7d06913b1d874350dd7b6de1e
               <div>
                 <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2 block">Category Name</label>
                 <input
@@ -274,53 +208,21 @@ const InventoryCategoryList = () => {
                   className="w-full px-4 py-2 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 transition-all h-24 resize-none"
                 />
               </div>
-<<<<<<< HEAD
-              <div className="flex gap-3 pt-4">
-                <button
-                  onClick={handleAddCategory}
-                  className="flex-1 bg-[#10b981] hover:bg-[#059669] text-white py-2 rounded-lg font-black text-[10px] uppercase tracking-widest shadow-md transition-all"
-                >
-                  Add Category
-                </button>
-                <button
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-500 py-2 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all"
-                >
-                  Cancel
-                </button>
-=======
               <div className="flex gap-4 mt-8">
                 <button onClick={() => setIsAddModalOpen(false)} className="flex-1 py-4 text-zinc-400 font-black text-[10px] uppercase tracking-widest hover:text-zinc-600 transition-colors">Cancel</button>
                 <button onClick={handleAddCategory} className="flex-2 py-4 bg-[#10b981] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-100 hover:bg-[#0da673] transition-all">Save Category</button>
->>>>>>> 3e1273f2638462e7d06913b1d874350dd7b6de1e
               </div>
             </div>
           </div>
         </div>
       )}
 
-<<<<<<< HEAD
-      {/* EDIT CATEGORY MODAL */}
-      {isEditModalOpen && editingCategory && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
-            <div className="bg-[#1e40af] px-6 py-4 flex justify-between items-center">
-              <h2 className="text-white font-black text-xs uppercase tracking-[0.2em]">Edit Category</h2>
-              <button onClick={closeEditModal} className="text-white/70 hover:text-white transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-=======
       {/* --- EDIT CATEGORY MODAL --- */}
       {isEditModalOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl p-10 animate-in fade-in zoom-in-95 duration-200">
             <h2 className="text-[#3b2063] font-black text-lg uppercase tracking-widest mb-6">Edit Category</h2>
             <div className="space-y-4">
->>>>>>> 3e1273f2638462e7d06913b1d874350dd7b6de1e
               <div>
                 <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2 block">Category Name</label>
                 <input
@@ -357,51 +259,9 @@ const InventoryCategoryList = () => {
         </div>
       )}
 
-      {/* DELETE CONFIRMATION MODAL */}
-      {isDeleteConfirmOpen && categoryToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden">
-            <div className="bg-red-500 px-6 py-4 flex justify-between items-center">
-              <h2 className="text-white font-black text-xs uppercase tracking-[0.2em]">Confirm Delete</h2>
-              <button onClick={cancelDelete} className="text-white/70 hover:text-white transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="text-center space-y-2">
-                <div className="w-16 h-16 mx-auto rounded-full flex items-center justify-center bg-red-100">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8 text-red-500">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                  </svg>
-                </div>
-                <h3 className="text-lg font-bold text-slate-800">Delete Category?</h3>
-                <p className="text-sm text-slate-600">Are you sure you want to delete this category permanently?</p>
-                <p className="text-sm font-black text-[#3b2063] uppercase">{categoryToDelete.name}</p>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={confirmDelete}
-                  className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg font-black text-[10px] uppercase tracking-widest shadow-md transition-all"
-                >
-                  Delete
-                </button>
-                <button
-                  onClick={cancelDelete}
-                  className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-500 py-2 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* --- DELETE CONFIRMATION MODAL --- */}
       {isDeleteModalOpen && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-60 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 animate-in fade-in zoom-in-95 duration-200">
             <div className="flex flex-col items-center text-center">
               <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
@@ -409,10 +269,10 @@ const InventoryCategoryList = () => {
               </div>
               <h2 className="text-[#3b2063] font-black text-lg uppercase tracking-widest mb-2">Delete Category?</h2>
               <p className="text-zinc-400 text-xs font-bold leading-relaxed mb-6">
-                Are you sure you want to delete <span className="text-red-500">"{deletingCategory?.name}"</span>? 
+                Are you sure you want to delete <span className="text-red-500">"{deletingCategory?.name}"</span>?
                 This action cannot be undone and may affect items linked to this category.
               </p>
-              
+
               {deletingCategory && deletingCategory.menu_items_count > 0 && (
                 <div className="w-full bg-amber-50 border border-amber-100 rounded-xl p-3 flex items-start gap-3 mb-6">
                   <AlertCircle className="text-amber-500 shrink-0" size={18} />
@@ -423,14 +283,14 @@ const InventoryCategoryList = () => {
               )}
 
               <div className="flex gap-3 w-full">
-                <button 
-                  onClick={() => setIsDeleteModalOpen(false)} 
+                <button
+                  onClick={() => { setIsDeleteModalOpen(false); setDeletingCategory(null); }}
                   className="flex-1 py-3 bg-zinc-100 text-zinc-500 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-zinc-200 transition-colors"
                 >
                   Cancel
                 </button>
-                <button 
-                  onClick={handleDeleteConfirm} 
+                <button
+                  onClick={handleDeleteConfirm}
                   className="flex-1 py-3 bg-red-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-red-100 hover:bg-red-700 transition-all"
                 >
                   Confirm Delete
