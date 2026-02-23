@@ -2,6 +2,8 @@ import { useState } from 'react';
 import SidebarBm from '../components/SidebarBm.tsx';
 import logo from '../assets/logo.png';
 import { Users, Plus, Trash2, Edit3, X, Save, Shield } from 'lucide-react';
+import { positionOptions } from '../types/branchManagerUser';
+import type { BranchManagerUser } from '../types/branchManagerUser';
 
 // --- Import Sales Report Components ---
 import SalesDashboard from '../components/Sales Report/SalesDashboard';
@@ -28,15 +30,6 @@ import Supplier from '../components/Inventory/Supplier';
 
 // --- Import Settings Component ---
 import Settings from '../components/Settings';
-
-interface User {
-  id: number;
-  username: string;
-  name: string;
-  position: string;
-  lastLogin: string;
-  status: 'Active' | 'Inactive';
-}
 
 const BranchManagerDashboard = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -203,10 +196,10 @@ const DashboardStats = () => (
 
 const UserManagement = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editingUser, setEditingUser] = useState<BranchManagerUser | null>(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [users, setUsers] = useState<User[]>([
+  const [selectedUser, setSelectedUser] = useState<BranchManagerUser | null>(null);
+  const [users, setUsers] = useState<BranchManagerUser[]>([
     { id: 1, username: "admin_Luigi", name: "Luigi", position: "SYSTEM ADMIN", lastLogin: "2026-02-12 10:45 AM", status: "Active" },
     { id: 2, username: "cashier_01", name: "Leumar", position: "CASHIER", lastLogin: "2026-02-11 09:15 PM", status: "Active" },
   ]);
@@ -219,16 +212,6 @@ const UserManagement = () => {
     position: 'CASHIER'
   });
 
-  const positionOptions = [
-    "SYSTEM ADMIN",
-    "SUPERVISOR", 
-    "CASHIER",
-    "WAITER",
-    "DISCOUNT",
-    "INVENTORY CLERK",
-    "ORDERS",
-    "VOID"
-  ];
 
   const handleAddUser = () => {
     if (!newUser.username || !newUser.name || !newUser.password) return;
@@ -237,7 +220,7 @@ const UserManagement = () => {
       return;
     }
     
-    const entry: User = {
+    const entry: BranchManagerUser = {
       id: Date.now(),
       username: newUser.username,
       name: newUser.name,
@@ -251,7 +234,7 @@ const UserManagement = () => {
     setIsModalOpen(false);
   };
 
-  const handleEditUser = (user: User) => {
+  const handleEditUser = (user: BranchManagerUser) => {
     setEditingUser(user);
     setNewUser({
       name: user.name,
@@ -293,7 +276,7 @@ const UserManagement = () => {
     }
   };
 
-  const handleStatusToggle = (user: User) => {
+  const handleStatusToggle = (user: BranchManagerUser) => {
     setSelectedUser(user);
     setIsConfirmModalOpen(true);
   };
