@@ -2,36 +2,39 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 // 1. IMPORT DATA
-import { AddOnsList, type ItemData } from '../components/Menu/AddOns';
-import { AffordaBowlsList } from '../components/Menu/AffordaBowls';
-import { AlaCarteList } from '../components/Menu/AlaCarte';
-import { AllDayList } from '../components/Menu/AllDay';
-import { LuckyCardList } from '../components/Menu/LuckyCard';
-import { CheeseCakeList } from '../components/Menu/CheeseCake';
-import { ChickenWingsList } from '../components/Menu/ChickenWings';
-import { YakultSeriesList } from '../components/Menu/YakultSeries';
-import { YogurtSeriesList } from '../components/Menu/YogurtSeries';
-import { WafflesList } from '../components/Menu/Waffles';
-import { RocksaltCheeseList } from '../components/Menu/Rocksalt&Cheese';
-import { PumpkinSpiceList } from '../components/Menu/PumpkinSpice';
-import { PromosList } from '../components/Menu/Promos';
-import { ClassicMilkteaList } from '../components/Menu/ClassicMilktea';
-import { CoffeeFrappeList } from '../components/Menu/CoffeeFrappe';
-import { OkinawaBrownSugarList } from '../components/Menu/OkinawaBrownSugar';
-import { NovaSeriesList } from '../components/Menu/NovaSeries';
-import { IceCoffeeList } from '../components/Menu/IceCoffee';
-import { HotDrinksList } from '../components/Menu/HotDrinks';
-import { HotCoffeeList } from '../components/Menu/HotCoffee';
-import { GreenTeaList } from '../components/Menu/GreenTea';
-import { GrandOpeningPromoList } from '../components/Menu/GrandOpeningPromo';
-import { GfDuoPromosList } from '../components/Menu/GfDuoBundles';
-import { FruitSodaSeriesList } from '../components/Menu/FruitSodaSeries';
-import { FreebiesList } from '../components/Menu/Freebies';
-import { FrappeSeriesList } from '../components/Menu/FrappeSeries';
-import { GfGet2ClassicList } from '../components/Menu/GfGet2Classic';
-import { FpCoffeeBundlesList } from '../components/Menu/FpCoffeeBundles';
-import { CreamCheeseMteaList } from '../components/Menu/CreamCheeseMtea';
-import { ComboMealsList } from '../components/Menu/ComboMeals';
+import { 
+  AddOnsList, 
+  AffordaBowlsList, 
+  AlaCarteList, 
+  AllDayList, 
+  LuckyCardList, 
+  CheeseCakeList, 
+  ChickenWingsList, 
+  YakultSeriesList, 
+  YogurtSeriesList, 
+  WafflesList, 
+  RocksaltCheeseList, 
+  PumpkinSpiceList, 
+  PromosList, 
+  ClassicMilkteaList, 
+  CoffeeFrappeList, 
+  OkinawaBrownSugarList, 
+  NovaSeriesList, 
+  IceCoffeeList, 
+  HotDrinksList, 
+  HotCoffeeList, 
+  GreenTeaList, 
+  GrandOpeningPromoList, 
+  GfDuoPromosList, 
+  FruitSodaSeriesList, 
+  FreebiesList, 
+  FrappeSeriesList, 
+  GfGet2ClassicList, 
+  FpCoffeeBundlesList, 
+  CreamCheeseMteaList, 
+  ComboMealsList,
+  type ItemData 
+} from '../data/menuItems';
 
 
 const CATEGORIES = [

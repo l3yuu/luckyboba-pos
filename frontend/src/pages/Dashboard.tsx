@@ -16,9 +16,9 @@ import ZReading from '../components/Sales Report/ZReading';
 import MallAccredReport from '../components/Sales Report/MallAccredReport';
 
 // --- Import Menu Management Components ---
-import MenuList from '../components/Menu Items/MenuList';
-import CategoryList from '../components/Menu Items/CategoryList';
-import SubCategoryList from '../components/Menu Items/Sub-CategoryList';
+import MenuList from '../components/MenuItems/MenuList';
+import CategoryList from '../components/MenuItems/CategoryList';
+import SubCategoryList from '../components/MenuItems/Sub-CategoryList';
 
 // --- Import Expense Component ---
 import Expense from '../components/Expense';
