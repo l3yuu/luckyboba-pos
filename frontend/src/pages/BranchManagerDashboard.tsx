@@ -189,7 +189,6 @@ const UserManagement = () => {
             position: newUser.position,
             ...(newUser.password && { 
               // In a real app, you'd hash the password
-              // For demo purposes, we're just showing the update logic
             })
           }
         : u
@@ -445,8 +444,9 @@ const UserManagement = () => {
       {isConfirmModalOpen && selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* FIXED: Active user = red (deactivating), Inactive user = green (activating) */}
             <div className={`px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center ${
-              selectedUser.status === 'Active' ? 'bg-emerald-500' : 'bg-red-500'
+              selectedUser.status === 'Active' ? 'bg-red-500' : 'bg-emerald-500'
             }`}>
               <h2 className="text-white font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em]">
                 Confirm Status Change
@@ -458,24 +458,26 @@ const UserManagement = () => {
 
             <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
               <div className="text-center space-y-2">
+                {/* FIXED: Active user = red circle with X (deactivate warning), Inactive = green circle with check (activate) */}
                 <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center ${
-                  selectedUser.status === 'Active' ? 'bg-emerald-100' : 'bg-red-100'
+                  selectedUser.status === 'Active' ? 'bg-red-100' : 'bg-emerald-100'
                 }`}>
                   {selectedUser.status === 'Active' ? (
-                    <svg className="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  ) : (
                     <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                     </svg>
+                  ) : (
+                    <svg className="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                   )}
                 </div>
+                {/* FIXED: Title reflects the action being taken */}
                 <h3 className="text-lg font-bold text-slate-800">
-                  {selectedUser.status === 'Active' ? 'Activate User?' : 'Deactivate User?'}
+                  {selectedUser.status === 'Active' ? 'Deactivate User?' : 'Activate User?'}
                 </h3>
                 <p className="text-sm text-slate-600">
-                  Are you sure you want to {selectedUser.status === 'Active' ? 'activate' : 'deactivate'} the user:
+                  Are you sure you want to {selectedUser.status === 'Active' ? 'deactivate' : 'activate'} the user:
                 </p>
                 <p className="text-sm font-black text-[#3b2063] uppercase">
                   {selectedUser.name} ({selectedUser.username})
@@ -483,15 +485,16 @@ const UserManagement = () => {
               </div>
 
               <div className="flex gap-2 sm:gap-3 pt-2">
+                {/* FIXED: Button color and label match the action */}
                 <button 
                   onClick={confirmStatusToggle}
                   className={`flex-1 py-2 sm:py-3 rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 text-white ${
-                    selectedUser.status === 'Active' 
-                      ? 'bg-emerald-500 hover:bg-emerald-600' 
-                      : 'bg-red-500 hover:bg-red-600'
+                    selectedUser.status === 'Active'
+                      ? 'bg-red-500 hover:bg-red-600'
+                      : 'bg-emerald-500 hover:bg-emerald-600'
                   }`}
                 >
-                  {selectedUser.status === 'Active' ? 'ACTIVATE' : 'DEACTIVATE'}
+                  {selectedUser.status === 'Active' ? 'DEACTIVATE' : 'ACTIVATE'}
                 </button>
                 <button 
                   onClick={cancelStatusToggle}
