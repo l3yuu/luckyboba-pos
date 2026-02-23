@@ -43,7 +43,7 @@ const ItemsReport = () => {
   const [toDate, setToDate] = useState(today);
   const [reportType, setReportType] = useState<'item-list' | 'category-summary'>('item-list');
   const [loading, setLoading] = useState(false);
-  const [_error, setError] = useState<string | null>(null);
+  const [_error, _setError] = useState<string | null>(null);
   const [data, setData] = useState<ReportResponse | null>(() => {
     const key = getCacheKey(today, today, 'item-list');
     const saved = localStorage.getItem(key);
