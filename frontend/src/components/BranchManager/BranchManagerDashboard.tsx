@@ -5,11 +5,11 @@ import DashboardStats from './DashboardStats';
 import UserManagement from './UserManagement';
 
 // Import Sales Report Components
-import SalesDashboard from '../Sales Report/SalesDashboard';
-import ItemsReport from '../Sales Report/ItemsReport';
-import XReading from '../Sales Report/XReading';
-import ZReading from '../Sales Report/ZReading';
-import MallAccredReport from '../Sales Report/MallAccredReport';
+import SalesDashboard from '../SalesReport/SalesDashboard';
+import ItemsReport from '../SalesReport/ItemsReport';
+import XReading from '../SalesReport/XReading';
+import ZReading from '../SalesReport/ZReading';
+import MallAccredReport from '../SalesReport/MallAccredReport';
 
 // Import Menu Management Components
 import MenuList from '../MenuItems/MenuList';

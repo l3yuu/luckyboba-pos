@@ -3,52 +3,46 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-<<<<<<< HEAD
-import { 
-    type MenuItem, 
-    type Category, 
-    type CartItem, 
-    SUGAR_LEVELS, 
-    EXTRA_OPTIONS, 
-    WINGS_QUANTITIES 
-} from '../types/index'; 
-import { useToast } from '../hooks/useToast';
-=======
-// 1. IMPORT DATA
-import { 
-  AddOnsList, 
-  AffordaBowlsList, 
-  AlaCarteList, 
-  AllDayList, 
-  LuckyCardList, 
-  CheeseCakeList, 
-  ChickenWingsList, 
-  YakultSeriesList, 
-  YogurtSeriesList, 
-  WafflesList, 
-  RocksaltCheeseList, 
-  PumpkinSpiceList, 
-  PromosList, 
-  ClassicMilkteaList, 
-  CoffeeFrappeList, 
-  OkinawaBrownSugarList, 
-  NovaSeriesList, 
-  IceCoffeeList, 
-  HotDrinksList, 
-  HotCoffeeList, 
-  GreenTeaList, 
-  GrandOpeningPromoList, 
-  GfDuoPromosList, 
-  FruitSodaSeriesList, 
-  FreebiesList, 
-  FrappeSeriesList, 
-  GfGet2ClassicList, 
-  FpCoffeeBundlesList, 
-  CreamCheeseMteaList, 
-  ComboMealsList,
-  type ItemData 
-} from '../data/menuItems';
->>>>>>> 0118529b0111183a0a4e5752f0f0149a49ca0c84
+
+// ── TYPES ──
+interface Category {
+  id: number;
+  name: string;
+  type?: string;
+  menu_items: MenuItem[];
+}
+
+interface MenuItem {
+  id: number;
+  name: string;
+  price: number | string;
+  barcode?: string;
+}
+
+interface CartItem extends MenuItem {
+  qty: number;
+  remarks: string;
+  charges: { grab: boolean; panda: boolean };
+  sugarLevel?: string;
+  size?: string;
+  options?: string[];
+  addOns?: string[];
+  finalPrice: number;
+}
+
+// ── CONSTANTS ──
+const SUGAR_LEVELS = ['0%', '25%', '50%', '75%', '100%'];
+const EXTRA_OPTIONS = ['NO ICE', '-ICE', '+ICE', 'WARM', 'NO PRL', 'W/ PRL'];
+const WINGS_QUANTITIES = ['3pc', '4pc', '6pc', '12pc'];
+
+// ── TOAST HOOK ──
+const useToast = () => {
+  const showToast = (message: string, type: 'success' | 'warning' | 'error') => {
+    console.log(`[${type.toUpperCase()}] ${message}`);
+    // Replace with your actual toast library call, e.g. react-hot-toast or sonner
+  };
+  return { showToast };
+};
 
 const DrinkIcon = ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" className={className} fill="currentColor">
