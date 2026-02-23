@@ -84,27 +84,16 @@ export const useAuth = () => {
         }
     };
 
-const logout = async (): Promise<boolean> => {
-  console.log('5. Inside useAuth logout');
-  try {
-    const res = await api.post('/logout');
-    console.log('6. API logout response:', res);
-  } catch (err) {
-    console.log('7. API logout failed (still continuing):', err);
-  } finally {
-    console.log('8. Clearing session...');
-    AUTH_KEYS.forEach(key => localStorage.removeItem(key));
-    document.cookie.split(';').forEach((cookie) => {
-      document.cookie = cookie
-        .replace(/^ +/, '')
-        .replace(/=.*/, `=;expires=${new Date(0).toUTCString()};path=/`);
-    });
-    setUser(null);
-    console.log('9. Redirecting to /login...');
-    window.location.href = '/login';
-  }
-  return true;
-};
+    const logout = async (): Promise<boolean> => {
+        try {
+            await api.post('/logout');
+            return true;
+        } catch {
+            return false;
+        } finally {
+            clearSession();
+        }
+    };
 
     return { login, logout, isLoading, error, user };
 };
