@@ -3,13 +3,11 @@ import TopNavbar from '../TopNavbar';
 import type { Receipt } from '../../types/transactions';
 import api from '../../services/api';
 import { Calendar, Clock, Search, X, RotateCcw } from 'lucide-react';
-// IMPORT TOAST
 import { useToast } from '../../hooks/useToast';
 
 const CACHE_KEY = 'lucky_boba_receipt_cache';
 
 const SearchReceipts = () => {
-  // INITIALIZE TOAST
   const { showToast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -113,9 +111,6 @@ const SearchReceipts = () => {
         setIsReasonModalOpen(false);
         setCancelReason('');
         localStorage.setItem('dashboard_needs_refresh', 'true');
-        
-        // FIXED: Removed onSuccess() so it doesn't redirect
-        // REPLACED: Native alert with your custom global toast
         showToast('Order voided successfully!', 'success');
       }
     } catch (error) {
@@ -170,20 +165,7 @@ const SearchReceipts = () => {
                 className="outline-none text-[#3b2063] font-bold bg-transparent cursor-pointer text-sm"
               />
             </div>
-            <button
-              onClick={() => {
-                const today = new Date().toISOString().split('T')[0];
-                setSelectedDate(today);
-                handleSearch(searchQuery, today);
-              }}
-              className={`px-4 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border ${
-                selectedDate === new Date().toISOString().split('T')[0]
-                  ? 'bg-emerald-50 border-emerald-200 text-emerald-600'
-                  : 'bg-white border-zinc-200 text-zinc-400'
-              }`}
-            >
-              Today
-            </button>
+            {/* TODAY BUTTON REMOVED FROM HERE */}
           </div>
 
           <button

@@ -11,6 +11,22 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked }) => {
   const [isNotifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
+  // --- OPTIMIZED: INITIALIZE STATE DIRECTLY FROM LOCALSTORAGE ---
+  // This avoids the "cascading render" error by setting the name before the first paint.
+const [cashierName] = useState(() => {
+    if (typeof window !== 'undefined') {
+      // 1. Check for the name we just added to useAuth
+      const name = localStorage.getItem('lucky_boba_user_name');
+      
+      // 2. Fallback to role if name is missing
+      const role = localStorage.getItem('lucky_boba_user_role');
+
+      if (name) return name.toUpperCase();
+      if (role) return role.toUpperCase();
+    }
+    return 'SYSTEM ADMIN';
+  });
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -34,7 +50,9 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked }) => {
         
         <div className="flex flex-col">
           <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Cashier</span>
-          <span className="text-[#3b2063] font-black text-xs uppercase tracking-wider">Admin User</span>
+          <span className="text-[#3b2063] font-black text-xs uppercase tracking-wider">
+            {cashierName}
+          </span>
         </div>
 
         {/* --- DYNAMIC TERMINAL LOCKED BADGE --- */}
@@ -56,7 +74,6 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked }) => {
           onClick={() => setNotifOpen(!isNotifOpen)} 
           className="p-2 text-zinc-400 hover:text-[#3b2063] hover:bg-purple-50 rounded-full transition-all relative"
         >
-          {/* Notification Dot */}
           <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 border-2 border-white rounded-full"></span>
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
             <path strokeLinecap="round" strokeLinejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />

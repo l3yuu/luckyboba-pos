@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import axios from 'axios';
 import TopNavbar from '../TopNavbar';
 import api from '../../services/api';
@@ -79,8 +79,6 @@ function AddModal({
       className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
     >
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-[modalIn_0.25s_ease-out]">
-
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 bg-zinc-50">
           <div>
             <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest">Add Sub-Category</h2>
@@ -88,13 +86,9 @@ function AddModal({
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-zinc-200 hover:bg-zinc-300 flex items-center justify-center text-zinc-500 hover:text-zinc-800 transition-all text-sm font-bold">×</button>
         </div>
-
-        {/* Body */}
         <div className="px-6 py-5 flex flex-col gap-4">
           <div>
-            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1 block">
-              Sub-Category Name <span className="text-red-400">*</span>
-            </label>
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1 block">Sub-Category Name <span className="text-red-400">*</span></label>
             <input
               autoFocus
               type="text"
@@ -102,16 +96,12 @@ function AddModal({
               onChange={(e) => { setName(e.target.value); setErrors({}); }}
               onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
               placeholder="e.g. UL, UM, SM"
-              className={`w-full px-3 py-2 rounded-md border bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 h-10
-                ${errors.name ? 'border-red-400 bg-red-50' : 'border-zinc-300'}`}
+              className={`w-full px-3 py-2 rounded-md border bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 h-10 ${errors.name ? 'border-red-400 bg-red-50' : 'border-zinc-300'}`}
             />
             {errors.name && <p className="text-[10px] text-red-500 font-bold mt-1">{errors.name}</p>}
           </div>
-
           <div>
-            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1 block">
-              Main Category <span className="text-red-400">*</span>
-            </label>
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1 block">Main Category <span className="text-red-400">*</span></label>
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(Number(e.target.value))}
@@ -123,12 +113,8 @@ function AddModal({
             </select>
           </div>
         </div>
-
-        {/* Footer */}
         <div className="flex gap-3 px-6 py-4 border-t border-zinc-200 bg-zinc-50">
-          <button onClick={onClose} disabled={submitting} className="flex-1 h-10 rounded-md border border-zinc-300 bg-white text-zinc-600 font-bold text-[10px] uppercase tracking-widest hover:bg-zinc-100 transition-all disabled:opacity-50">
-            Cancel
-          </button>
+          <button onClick={onClose} disabled={submitting} className="flex-1 h-10 rounded-md border border-zinc-300 bg-white text-zinc-600 font-bold text-[10px] uppercase tracking-widest hover:bg-zinc-100 transition-all disabled:opacity-50">Cancel</button>
           <button onClick={handleSubmit} disabled={submitting} className="flex-1 h-10 rounded-md bg-[#1e40af] hover:bg-[#1e3a8a] text-white font-bold text-[10px] uppercase tracking-widest transition-all shadow-sm disabled:opacity-60 flex items-center justify-center gap-2">
             {submitting ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Saving...</> : 'Add Sub-Category'}
           </button>
@@ -177,7 +163,17 @@ function EditModal({
         name: name.trim(),
         category_id: categoryId,
       });
-      onSuccess(response.data);
+      
+      // FIX: Find the main category object to get the name for the UI
+      const selectedMainCat = mainCategories.find(c => c.id === categoryId);
+      
+      // FIX: Merge logic to ensure 'mainCategory' name and 'itemCount' are not lost
+      onSuccess({ 
+        ...subCategory, 
+        ...response.data,
+        mainCategory: selectedMainCat ? selectedMainCat.name : subCategory.mainCategory 
+      });
+      
       onClose();
     } catch (err) {
       const msg = axios.isAxiosError(err)
@@ -196,8 +192,6 @@ function EditModal({
       className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
     >
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-[modalIn_0.25s_ease-out]">
-
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 bg-zinc-50">
           <div>
             <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest">Edit Sub-Category</h2>
@@ -205,13 +199,9 @@ function EditModal({
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-zinc-200 hover:bg-zinc-300 flex items-center justify-center text-zinc-500 hover:text-zinc-800 transition-all text-sm font-bold">×</button>
         </div>
-
-        {/* Body */}
         <div className="px-6 py-5 flex flex-col gap-4">
           <div>
-            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1 block">
-              Sub-Category Name <span className="text-red-400">*</span>
-            </label>
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1 block">Sub-Category Name <span className="text-red-400">*</span></label>
             <input
               autoFocus
               type="text"
@@ -219,16 +209,12 @@ function EditModal({
               onChange={(e) => { setName(e.target.value); setErrors({}); }}
               onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }}
               placeholder="e.g. UL, UM, SM"
-              className={`w-full px-3 py-2 rounded-md border bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 h-10
-                ${errors.name ? 'border-red-400 bg-red-50' : 'border-zinc-300'}`}
+              className={`w-full px-3 py-2 rounded-md border bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 h-10 ${errors.name ? 'border-red-400 bg-red-50' : 'border-zinc-300'}`}
             />
             {errors.name && <p className="text-[10px] text-red-500 font-bold mt-1">{errors.name}</p>}
           </div>
-
           <div>
-            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1 block">
-              Main Category <span className="text-red-400">*</span>
-            </label>
+            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1 block">Main Category <span className="text-red-400">*</span></label>
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(Number(e.target.value))}
@@ -240,12 +226,8 @@ function EditModal({
             </select>
           </div>
         </div>
-
-        {/* Footer */}
         <div className="flex gap-3 px-6 py-4 border-t border-zinc-200 bg-zinc-50">
-          <button onClick={onClose} disabled={submitting} className="flex-1 h-10 rounded-md border border-zinc-300 bg-white text-zinc-600 font-bold text-[10px] uppercase tracking-widest hover:bg-zinc-100 transition-all disabled:opacity-50">
-            Cancel
-          </button>
+          <button onClick={onClose} disabled={submitting} className="flex-1 h-10 rounded-md border border-zinc-300 bg-white text-zinc-600 font-bold text-[10px] uppercase tracking-widest hover:bg-zinc-100 transition-all disabled:opacity-50">Cancel</button>
           <button onClick={handleSubmit} disabled={submitting} className="flex-1 h-10 rounded-md bg-[#1e40af] hover:bg-[#1e3a8a] text-white font-bold text-[10px] uppercase tracking-widest transition-all shadow-sm disabled:opacity-60 flex items-center justify-center gap-2">
             {submitting ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Saving...</> : 'Save Changes'}
           </button>
@@ -284,38 +266,23 @@ function DeleteModal({
       className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4"
     >
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm flex flex-col overflow-hidden animate-[modalIn_0.25s_ease-out]">
-
-        {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-200 bg-zinc-50">
           <h2 className="text-sm font-black text-slate-800 uppercase tracking-widest">Delete Sub-Category</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-zinc-200 hover:bg-zinc-300 flex items-center justify-center text-zinc-500 hover:text-zinc-800 transition-all text-sm font-bold">×</button>
         </div>
-
-        {/* Body */}
         <div className="px-6 py-6 flex flex-col items-center gap-3 text-center">
           <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
             <Trash2 size={22} className="text-red-600" />
           </div>
-          <p className="text-xs font-bold text-slate-700">
-            Are you sure you want to delete{' '}
-            <span className="text-[#1e40af]">"{subCategory.name}"</span>?
-          </p>
+          <p className="text-xs font-bold text-slate-700">Are you sure you want to delete <span className="text-[#1e40af]">"{subCategory.name}"</span>?</p>
           {subCategory.itemCount > 0 && (
-            <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">
-              ⚠ This sub-category has {subCategory.itemCount} linked item{subCategory.itemCount > 1 ? 's' : ''}.
-            </p>
+            <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">⚠ This sub-category has {subCategory.itemCount} linked item{subCategory.itemCount > 1 ? 's' : ''}.</p>
           )}
           <p className="text-[10px] text-zinc-400 font-semibold">This action cannot be undone.</p>
         </div>
-
-        {/* Footer */}
         <div className="flex gap-3 px-6 py-4 border-t border-zinc-200 bg-zinc-50">
-          <button onClick={onClose} className="flex-1 h-10 rounded-md border border-zinc-300 bg-white text-zinc-600 font-bold text-[10px] uppercase tracking-widest hover:bg-zinc-100 transition-all">
-            Cancel
-          </button>
-          <button onClick={onConfirm} className="flex-1 h-10 rounded-md bg-red-600 hover:bg-red-700 text-white font-bold text-[10px] uppercase tracking-widest transition-all shadow-sm">
-            Delete
-          </button>
+          <button onClick={onClose} className="flex-1 h-10 rounded-md border border-zinc-300 bg-white text-zinc-600 font-bold text-[10px] uppercase tracking-widest hover:bg-zinc-100 transition-all">Cancel</button>
+          <button onClick={onConfirm} className="flex-1 h-10 rounded-md bg-red-600 hover:bg-red-700 text-white font-bold text-[10px] uppercase tracking-widest transition-all shadow-sm">Delete</button>
         </div>
       </div>
     </div>
@@ -370,6 +337,12 @@ const SubCategoryList = () => {
   }, [showToast]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // --- ALPHABETICAL SORTING ---
+  // This ensures items stay in order even after adding or editing
+  const sortedSubCategories = useMemo(() => {
+    return [...subCategories].sort((a, b) => a.name.localeCompare(b.name));
+  }, [subCategories]);
 
   // ── Cache helper ──
   const updateCache = (updated: SubCategoryData[]) => {
@@ -476,8 +449,8 @@ const SubCategoryList = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
-                  {subCategories.length > 0 ? (
-                    subCategories.map((sub, index) => (
+                  {sortedSubCategories.length > 0 ? (
+                    sortedSubCategories.map((sub, index) => (
                       <tr key={sub.id} className={`hover:bg-blue-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-zinc-50/30'}`}>
                         <td className="px-6 py-4 text-xs font-black text-[#3b2063] uppercase tracking-tight">{sub.name}</td>
                         <td className="px-6 py-4 text-xs font-bold text-zinc-400 uppercase">{sub.mainCategory}</td>
@@ -524,7 +497,7 @@ const SubCategoryList = () => {
       <style>{`
         @keyframes modalIn {
           from { transform: translateY(-16px) scale(0.97); opacity: 0; }
-          to   { transform: translateY(0) scale(1); opacity: 1; }
+          to   { transform: translateY(0) scale(1);    opacity: 1; }
         }
       `}</style>
     </>

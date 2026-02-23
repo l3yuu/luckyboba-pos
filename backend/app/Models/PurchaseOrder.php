@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\PurchaseOrderItem;
 use Illuminate\Database\Eloquent\Model;
 
 class PurchaseOrder extends Model
@@ -12,4 +13,9 @@ class PurchaseOrder extends Model
         'total_amount' => 'float',
         'date_ordered' => 'date:Y-m-d'
     ];
+
+    public function items()
+{
+    return $this->hasMany(PurchaseOrderItem::class);
+}
 }

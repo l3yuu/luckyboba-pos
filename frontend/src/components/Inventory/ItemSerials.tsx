@@ -3,15 +3,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import TopNavbar from '../TopNavbar';
 import api from '../../services/api';
+import { isAxiosError } from 'axios';
 import { useToast } from '../../hooks/useToast';
 import { Loader2 } from 'lucide-react';
 import { getCache, setCache, clearCache } from '../../utils/cache';
+
+// FIX: Define the status type once to reuse across the component
+type SerialStatus = 'In Stock' | 'Sold' | 'Defective';
 
 interface RawSerialData {
   id: number;
   item_name: string;
   serial_number: string;
-  status: 'In Stock' | 'Sold' | 'Defective';
+  status: SerialStatus;
   date_added: string;
 }
 
@@ -19,13 +23,14 @@ interface SerialRecord {
   id: number;
   itemName: string;
   serialNumber: string;
-  status: 'In Stock' | 'Sold' | 'Defective';
+  status: SerialStatus;
   dateAdded: string;
 }
 
 const ItemSerials = () => {
   const { showToast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
   const [serials, setSerials] = useState<SerialRecord[]>([]);
@@ -33,8 +38,11 @@ const ItemSerials = () => {
   const [statusFilter, setStatusFilter] = useState('All Status');
 
   const [formData, setFormData] = useState({
-    itemName: '', serialNumber: '', status: 'In Stock'
+    itemName: '', serialNumber: '', status: 'In Stock' as SerialStatus
   });
+
+  const [selectedSerial, setSelectedSerial] = useState<SerialRecord | null>(null);
+  const [newStatus, setNewStatus] = useState<SerialStatus>('In Stock');
 
   const fetchSerials = useCallback(async (forceRefresh = false) => {
     const cacheKey = `item-serials|${searchTerm}|${statusFilter}`;
@@ -84,14 +92,41 @@ const ItemSerials = () => {
       showToast("Serial registered successfully", "success");
       setIsModalOpen(false);
       setFormData({ itemName: '', serialNumber: '', status: 'In Stock' });
-      // Clear all serial cache keys since new record affects all filters
       for (const key of Object.keys(sessionStorage)) {
         if (key.startsWith('item-serials|')) clearCache(key);
       }
       await fetchSerials(true);
     } catch (error: unknown) {
       console.error("Registration error:", error);
-      showToast("Registration failed", "error");
+      const msg = isAxiosError(error) ? error.response?.data?.message : "Registration failed.";
+      showToast(msg || "Registration failed.", "error");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openUpdateModal = (record: SerialRecord) => {
+    setSelectedSerial(record);
+    setNewStatus(record.status);
+    setIsUpdateModalOpen(true);
+  };
+
+  const handleUpdateStatus = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSerial) return;
+    setIsSubmitting(true);
+    try {
+      await api.patch(`/item-serials/${selectedSerial.id}/status`, { status: newStatus });
+      showToast("Status updated successfully", "success");
+      setIsUpdateModalOpen(false);
+      for (const key of Object.keys(sessionStorage)) {
+        if (key.startsWith('item-serials|')) clearCache(key);
+      }
+      await fetchSerials(true);
+    } catch (error: unknown) {
+      console.error("Update error:", error);
+      const msg = isAxiosError(error) ? error.response?.data?.message : "Update failed.";
+      showToast(msg || "Failed to update status.", "error");
     } finally {
       setIsSubmitting(false);
     }
@@ -128,26 +163,37 @@ const ItemSerials = () => {
                 <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Serial Number</th>
                 <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Status</th>
                 <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Date Added</th>
+                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {serials.map((record) => (
-                <tr key={record.id} className="hover:bg-zinc-50 transition-colors">
-                  <td className="px-6 py-4 text-xs font-bold text-slate-700 uppercase">{record.itemName}</td>
-                  <td className="px-6 py-4 text-xs font-black text-[#3b2063] font-mono">{record.serialNumber}</td>
-                  <td className="px-6 py-4 text-center">
-                    <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter ${record.status === 'In Stock' ? 'bg-emerald-100 text-emerald-600' : record.status === 'Sold' ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600'}`}>{record.status}</span>
-                  </td>
-                  <td className="px-6 py-4 text-xs font-bold text-zinc-400 text-center">{record.dateAdded}</td>
+              {serials.length > 0 ? (
+                serials.map((record) => (
+                  <tr key={record.id} className="hover:bg-zinc-50 transition-colors">
+                    <td className="px-6 py-4 text-xs font-bold text-slate-700 uppercase">{record.itemName}</td>
+                    <td className="px-6 py-4 text-xs font-black text-[#3b2063] font-mono">{record.serialNumber}</td>
+                    <td className="px-6 py-4 text-center">
+                      <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter ${record.status === 'In Stock' ? 'bg-emerald-100 text-emerald-600' : record.status === 'Sold' ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600'}`}>{record.status}</span>
+                    </td>
+                    <td className="px-6 py-4 text-xs font-bold text-zinc-400 text-center">{record.dateAdded}</td>
+                    <td className="px-6 py-4 text-center">
+                      <button onClick={() => openUpdateModal(record)} className="text-zinc-500 hover:text-[#3b2063] transition-colors font-bold text-[10px] uppercase tracking-widest border border-zinc-200 px-3 py-1.5 rounded-md hover:bg-zinc-100 active:scale-95">Update</button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="py-12 text-center text-zinc-400 font-bold uppercase tracking-widest text-[10px]">No serial records found.</td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
+      {/* --- ADD MODAL --- */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-[#3b2063]/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-10 animate-in zoom-in duration-200">
             <h2 className="text-[#3b2063] font-black text-lg uppercase tracking-widest mb-6 text-center">Register Unit</h2>
             <form onSubmit={handleRegister} className="space-y-5">
@@ -161,15 +207,42 @@ const ItemSerials = () => {
               </div>
               <div>
                 <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Initial Status</label>
-                <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})} className="w-full bg-[#f8f6ff] border-none rounded-2xl px-5 py-3 text-sm font-bold text-[#3b2063] outline-none">
+                <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value as SerialStatus})} className="w-full bg-[#f8f6ff] border-none rounded-2xl px-5 py-3 text-sm font-bold text-[#3b2063] outline-none cursor-pointer">
                   <option value="In Stock">In Stock</option>
                   <option value="Defective">Defective</option>
                 </select>
               </div>
               <div className="flex gap-4 pt-4">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 text-zinc-400 font-black text-[10px] uppercase tracking-widest">Cancel</button>
-                <button type="submit" disabled={isSubmitting} className="flex-2 py-4 bg-[#3b2063] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg flex items-center justify-center gap-2">
+                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 text-zinc-400 font-black text-[10px] uppercase tracking-widest hover:text-zinc-600 transition-colors">Cancel</button>
+                <button type="submit" disabled={isSubmitting} className="flex-2 py-4 bg-[#3b2063] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 hover:bg-[#2a1647] transition-all disabled:opacity-50">
                   {isSubmitting ? <Loader2 className="animate-spin" size={14} /> : "Confirm Registration"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- UPDATE STATUS MODAL --- */}
+      {isUpdateModalOpen && selectedSerial && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 animate-in zoom-in duration-200">
+            <h2 className="text-[#3b2063] font-black text-lg uppercase tracking-widest mb-2 text-center">Update Status</h2>
+            <p className="text-center text-xs font-bold text-zinc-400 mb-6 font-mono">{selectedSerial.serialNumber}</p>
+            <form onSubmit={handleUpdateStatus} className="space-y-5">
+              <div>
+                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">New Status</label>
+                {/* FIX: Cast target value directly to the defined Type Alias */}
+                <select value={newStatus} onChange={(e) => setNewStatus(e.target.value as SerialStatus)} className="w-full bg-[#f8f6ff] border-none rounded-2xl px-5 py-3 text-sm font-bold text-[#3b2063] outline-none cursor-pointer">
+                  <option value="In Stock">In Stock</option>
+                  <option value="Sold">Sold</option>
+                  <option value="Defective">Defective</option>
+                </select>
+              </div>
+              <div className="flex gap-4 pt-4">
+                <button type="button" onClick={() => setIsUpdateModalOpen(false)} className="flex-1 py-4 text-zinc-400 font-black text-[10px] uppercase tracking-widest hover:text-zinc-600 transition-colors">Cancel</button>
+                <button type="submit" disabled={isSubmitting} className="flex-2 py-4 bg-[#3b2063] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 hover:bg-[#2a1647] transition-all disabled:opacity-50">
+                  {isSubmitting ? <Loader2 className="animate-spin" size={14} /> : "Save Changes"}
                 </button>
               </div>
             </form>
