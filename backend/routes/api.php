@@ -6,7 +6,8 @@ use App\Http\Controllers\Api\{
     InventoryDashboardController, InventoryReportController, ItemSerialController,
     MenuController, MenuListController, PurchaseOrderController, ReceiptController,
     ReportController, SalesController, SalesDashboardController, SettingsController,
-    SubCategoryController, UploadController, VoucherController
+    SubCategoryController, UploadController, VoucherController,  BranchController,
+    CacheController,
 };
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Models\User;
@@ -126,6 +127,23 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/upload-discounts', [UploadController::class, 'uploadDiscounts']);
     });
 
+    // Branches
+Route::prefix('branches')->group(function () {
+    Route::get('/', [BranchController::class, 'index']);
+    Route::post('/', [BranchController::class, 'store']);
+    Route::get('/{id}', [BranchController::class, 'show']);
+    Route::put('/{id}', [BranchController::class, 'update']);
+    Route::delete('/{id}', [BranchController::class, 'destroy']);
+});
+
+// Cache
+Route::prefix('cache')->group(function () {
+    Route::get('/all', [CacheController::class, 'index']);
+    Route::post('/clear', [CacheController::class, 'clear']);
+});
+
     Route::get('/settings', [SettingsController::class, 'index']);
     Route::post('/settings', [SettingsController::class, 'update']);
+
+    
 });
