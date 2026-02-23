@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import TopNavbar from '../TopNavbar';
 import { ArrowLeft, UserCog, Plus, Trash2, Edit3, X, Save, Shield } from 'lucide-react';
+import { useToast } from '../../context/ToastContext';
 
 interface User {
   id: number;
@@ -12,6 +13,7 @@ interface User {
 }
 
 const AddUsers = ({ onBack }: { onBack: () => void }) => {
+  const { showToast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -74,11 +76,20 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
   const confirmStatusToggle = () => {
     if (!selectedUser) return;
     
+    const newStatus = selectedUser.status === 'Active' ? 'Inactive' : 'Active';
+    const isDeactivating = newStatus === 'Inactive';
+    
     setUsers(users.map(u => 
       u.id === selectedUser.id 
-        ? { ...u, status: u.status === 'Active' ? 'Inactive' : 'Active' } 
+        ? { ...u, status: newStatus } 
         : u
     ));
+    
+    if (isDeactivating) {
+      showToast(`User "${selectedUser.name}" has been deactivated`, 'error');
+    } else {
+      showToast(`User "${selectedUser.name}" has been activated`, 'success');
+    }
     
     setIsConfirmModalOpen(false);
     setSelectedUser(null);
@@ -101,6 +112,8 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
       u.id === editingUser.id ? editingUser : u
     ));
     
+    showToast(`User "${editingUser.name}" has been updated successfully`, 'success');
+    
     setIsEditModalOpen(false);
     setEditingUser(null);
   };
@@ -119,6 +132,8 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
     if (!selectedUser) return;
     
     setUsers(users.filter(u => u.id !== selectedUser.id));
+    
+    showToast(`User "${selectedUser.name}" has been deleted`, 'error');
     
     setIsDeleteModalOpen(false);
     setSelectedUser(null);
@@ -147,7 +162,7 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
           </div>
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="px-6 py-2.5 bg-[#10b981] text-white rounded-lg font-black text-[10px] uppercase tracking-widest hover:bg-[#059669] flex items-center gap-2 shadow-lg transition-all active:scale-95"
+            className="px-6 py-2.5 bg-[#3b2063] text-white rounded-lg font-black text-[10px] uppercase tracking-widest hover:bg-[#291645] flex items-center gap-2 shadow-lg transition-all active:scale-95"
           >
             <Plus size={14} strokeWidth={3} /> Add New User
           </button>
@@ -318,7 +333,7 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
               <div className="flex gap-3 pt-4 border-t border-zinc-100">
                 <button 
                   onClick={handleAddUser}
-                  className="flex-1 bg-[#10b981] hover:bg-[#059669] text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
+                  className="flex-1 bg-[#3b2063] hover:bg-[#291645] text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
                 >
                   <Save size={14} /> Add Account
                 </button>
@@ -408,7 +423,7 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
               <div className="flex gap-3 pt-4 border-t border-zinc-100">
                 <button 
                   onClick={handleUpdateUser}
-                  className="flex-1 bg-[#10b981] hover:bg-[#059669] text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
+                  className="flex-1 bg-[#3b2063] hover:bg-[#291645] text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
                 >
                   <Save size={14} /> Update Account
                 </button>
@@ -523,7 +538,7 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
               <div className="flex gap-3 pt-2">
                 <button 
                   onClick={confirmDeleteUser}
-                  className="flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 text-white bg-red-500 hover:bg-red-600"
+                  className="flex-1 py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 text-white bg-red-500 hover:bg-[#291645]"
                 >
                   Delete User
                 </button>

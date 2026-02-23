@@ -2,6 +2,7 @@ import { useState } from 'react';
 import TopNavbar from '../TopNavbar';
 import { Search, Printer, Plus, ArrowLeft } from 'lucide-react';
 import CustomerReport from './CustomerReport';
+import { useToast } from '../../context/ToastContext';
 
 // Define tab types for consistency
 type TabType = 'CUSTOMER' | 'REPORT';
@@ -12,14 +13,14 @@ interface AddCustomersProps {
 }
 
 const AddCustomers = ({ onBack }: AddCustomersProps) => {
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<TabType>('CUSTOMER' as TabType);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
-
-  const customers = [
+  const [customers, setCustomers] = useState([
     { card: '1001', name: 'John Doe', transaction: '2026-02-10', email: 'john@example.com', phone: '09123456789', points: 120 },
     { card: '1002', name: 'Jane Smith', transaction: '2026-02-11', email: 'jane@example.com', phone: '09987654321', points: 50 },
-  ];
+  ]);
 
   // Conditional rendering based on active tab
   if (activeTab === 'REPORT') {
@@ -60,7 +61,7 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
               </div>
             </div>
             <div className="flex gap-2 w-full md:w-auto">
-              <button className="flex-1 md:flex-none px-6 py-2 bg-[#1e40af] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#1e3a8a] flex items-center justify-center gap-2 shadow-md"><Search size={14} strokeWidth={3} />Search</button>
+              <button className="flex-1 md:flex-none px-6 py-2 bg-[#3b2063] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#291645] flex items-center justify-center gap-2 shadow-md"><Search size={14} strokeWidth={3} />Search</button>
               <button className="flex-1 md:flex-none px-6 py-2 bg-[#3b2063] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#2a1647] flex items-center justify-center gap-2 shadow-md"><Printer size={14} strokeWidth={3} />Print</button>
             </div>
           </div>
@@ -104,7 +105,7 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
 
              <button 
                onClick={() => setIsAddCustomerModalOpen(true)}
-               className="px-6 py-3 bg-[#10b981] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#059669] flex items-center gap-2 shadow-lg transition-all"
+               className="px-6 py-3 bg-[#3b2063] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#291645] flex items-center gap-2 shadow-lg transition-all"
              >
                 <Plus size={14} strokeWidth={3} />
                 Add New Customer
@@ -128,7 +129,7 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
                 </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
+                  className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#00000] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
                   placeholder="Enter card number"
                 />
               </div>
@@ -139,7 +140,7 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
                 </label>
                 <input
                   type="text"
-                  className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
+                  className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#00000] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
                   placeholder="Enter customer name"
                 />
               </div>
@@ -150,7 +151,7 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
                 </label>
                 <input
                   type="email"
-                  className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
+                  className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#00000] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
                   placeholder="Enter email address"
                 />
               </div>
@@ -161,7 +162,7 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
                 </label>
                 <input
                   type="tel"
-                  className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
+                  className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#00000] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
                   placeholder="Enter phone number"
                 />
               </div>
@@ -175,8 +176,39 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
                   Cancel
                 </button>
                 <button
-                  type="submit"
-                  className="px-6 py-2 rounded-2xl bg-[#10b981] text-white text-xs font-black uppercase tracking-widest hover:bg-[#059669]"
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const form = e.currentTarget.closest('form');
+                    if (form) {
+                      const cardNumber = (form.querySelector('input[type="text"]') as HTMLInputElement)?.value;
+                      const fullName = (form.querySelectorAll('input[type="text"]')[1] as HTMLInputElement)?.value;
+                      const email = (form.querySelector('input[type="email"]') as HTMLInputElement)?.value;
+                      const phone = (form.querySelector('input[type="tel"]') as HTMLInputElement)?.value;
+                      
+                      if (!cardNumber || !fullName || !email || !phone) {
+                        showToast('Please fill in all required fields', 'error');
+                        return;
+                      }
+                      
+                      const newCustomer = {
+                        card: cardNumber,
+                        name: fullName,
+                        transaction: new Date().toISOString().split('T')[0],
+                        email: email,
+                        phone: phone,
+                        points: 0
+                      };
+                      
+                      setCustomers([...customers, newCustomer]);
+                      setIsAddCustomerModalOpen(false);
+                      showToast(`Customer "${fullName}" has been added successfully`, 'success');
+                      
+                      // Reset form
+                      form.reset();
+                    }
+                  }}
+                  className="px-6 py-2 rounded-2xl bg-[#3b2063] text-white text-xs font-black uppercase tracking-widest hover:bg-[#291645]"
                 >
                   Add Customer
                 </button>
