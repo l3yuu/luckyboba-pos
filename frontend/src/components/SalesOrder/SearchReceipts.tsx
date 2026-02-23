@@ -3,25 +3,27 @@ import TopNavbar from '../TopNavbar';
 import type { Receipt } from '../../types/transactions';
 import api from '../../services/api';
 import { Calendar, Clock, Search, X, RotateCcw } from 'lucide-react';
+// IMPORT TOAST
+import { useToast } from '../../hooks/useToast';
 
 const CACHE_KEY = 'lucky_boba_receipt_cache';
 
-interface SearchReceiptsProps {
-  onSuccess?: () => void;
-}
+const SearchReceipts = () => {
+  // INITIALIZE TOAST
+  const { showToast } = useToast();
 
-const SearchReceipts = ({ onSuccess }: SearchReceiptsProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchResults, setSearchResults] = useState<Receipt[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isVoiding, setIsVoiding] = useState(false);
+  const [isVoiding, setIsVoiding] = useState(false); 
+  
   const [isReasonModalOpen, setIsReasonModalOpen] = useState(false);
   const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
   const [cancelReason, setCancelReason] = useState('');
-
-  const keyboardRef = useRef<{ setInput: (s: string) => void } | null>(null);
+  
+  const keyboardRef = useRef<unknown>(null);
 
   const stats = useMemo(() => {
     const data = Array.isArray(searchResults) ? searchResults : [];
@@ -90,40 +92,48 @@ const SearchReceipts = ({ onSuccess }: SearchReceiptsProps) => {
     handleSearch('', today);
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setSearchQuery(val);
-    if (keyboardRef.current) {
-      keyboardRef.current.setInput(val);
-    }
-  };
-
   const handleConfirmCancel = async () => {
     if (!cancelReason.trim() || !selectedSaleId) return;
     setIsVoiding(true);
 
     try {
-      await api.post(`/sales/${selectedSaleId}/cancel`, { reason: cancelReason });
+      const response = await api.patch(`/sales/${selectedSaleId}/cancel`, {
+        reason: cancelReason
+      });
 
-      // Update local state to reflect the void
-const updatedData = searchResults.map(item =>
-  item.sale_id === selectedSaleId ? { ...item, status: 'cancelled' as const } : item
-);
-      setSearchResults(updatedData);
-      sessionStorage.setItem(`${CACHE_KEY}_results`, JSON.stringify(updatedData));
-      setIsReasonModalOpen(false);
-      setCancelReason('');
-      setSelectedSaleId(null);
-      localStorage.setItem('dashboard_needs_refresh', 'true');
-      if (onSuccess) onSuccess();
-      alert('Order voided successfully!');
+      if (response.status === 200) {
+        const updatedData = searchResults.map(item => 
+          item.sale_id === selectedSaleId 
+            ? { ...item, status: 'cancelled' as const, cancellation_reason: cancelReason } 
+            : item
+        );
+
+        setSearchResults(updatedData);
+        sessionStorage.setItem(`${CACHE_KEY}_results`, JSON.stringify(updatedData));
+        setIsReasonModalOpen(false);
+        setCancelReason('');
+        localStorage.setItem('dashboard_needs_refresh', 'true');
+        
+        // FIXED: Removed onSuccess() so it doesn't redirect
+        // REPLACED: Native alert with your custom global toast
+        showToast('Order voided successfully!', 'success');
+      }
     } catch (error) {
-      console.error('Void Error:', error);
-      alert('Failed to void order. Please try again.');
+      console.error("Cancellation failed:", error);
+      showToast('Failed to cancel order.', 'error');
     } finally {
       setIsVoiding(false);
     }
   };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const val = e.target.value;
+      setSearchQuery(val);
+      
+      if (keyboardRef.current) {
+        (keyboardRef.current as unknown as { setInput: (s: string) => void }).setInput(val);
+      }
+    };
 
   return (
     <div className="flex flex-col h-full w-full bg-[#f8f6ff] animate-in fade-in zoom-in duration-300 relative overflow-hidden">
@@ -287,7 +297,7 @@ const updatedData = searchResults.map(item =>
         </div>
       </div>
 
-      {/* Void Modal */}
+      {/* VOID MODAL */}
       {isReasonModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 border border-zinc-100">

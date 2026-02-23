@@ -117,7 +117,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'items-report', label: 'Items Report' },
     { id: 'x-reading', label: 'X Reading' },
     { id: 'z-reading', label: 'Z Reading' },
-    { id: 'mall-accred', label: 'Mall Accred Report' },
+    //{ id: 'mall-accred', label: 'Mall Accred Report' },
   ];
 
   const menuManagementItems: MenuItem[] = [

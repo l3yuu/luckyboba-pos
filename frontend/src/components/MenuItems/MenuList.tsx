@@ -108,22 +108,24 @@ function AddItemModal({
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
-  const handleSubmit = async () => {
+const handleSubmit = async () => {
     if (!validate()) return;
     setSubmitting(true);
     try {
+      // Ensure keys match the Laravel validation rules
       await api.post('/menu-list', {
         name: form.name.trim(),
         barcode: form.barcode.trim() || null,
         category: form.category.trim() || null,
-        unitCost: form.unitCost ? Number(form.unitCost) : 0,
         sellingPrice: Number(form.sellingPrice),
-        totalCost: form.totalCost ? Number(form.totalCost) : 0,
-        status: form.status,
-        type: form.type,
+        status: form.status, // Matches 'ACTIVE' | 'INACTIVE'
+        type: form.type,     // Matches 'FOOD' | 'DRINK'
+        // Include costs if your DB starts supporting them
+        unitCost: Number(form.unitCost) || 0,
+        totalCost: Number(form.totalCost) || 0,
       });
 
-      // Invalidate cache so next fetch pulls fresh data
+      // Clear local cache to force a fresh pull on next load
       localStorage.removeItem('luckyboba_menu_cache');
 
       onSuccess(`"${form.name}" has been added successfully.`);

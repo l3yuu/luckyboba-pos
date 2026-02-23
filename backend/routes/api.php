@@ -96,14 +96,17 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/mall-accreditation', [SalesDashboardController::class, 'mallReport']);
         Route::get('/sales', [ReportController::class, 'getSalesReport']);
         Route::get('/food-menu', [ReportController::class, 'getFoodMenuReport']);
+        Route::get('/reports/summary', [ReportController::class, 'getSalesReport']);
+        Route::get('/summary', [ReportController::class, 'getSalesReport']);
+        
+        // Additional Reports
         Route::get('/hourly-sales', [ReportController::class, 'getHourlySales']); 
         Route::get('/void-logs', [ReportController::class, 'getVoidLogs']);
-        Route::get('/sales-detailed', [ReportController::class, 'getDetailedSales']);
+        Route::get('/sales-detailed', [ReportController::class, 'getSalesReport']);
         Route::get('/item-quantities', [ReportController::class, 'getItemQuantities']);
         Route::get('/sold-items', [ReportController::class, 'getSoldItemsReport']);
         Route::get('/export-sales', [ReportController::class, 'exportSales']);
         Route::get('/export-items', [ReportController::class, 'exportItems']);
-        Route::get('/summary', [ReportController::class, 'getSummaryReport']);
         Route::get('/cash-count-summary', [ReportController::class, 'getCashCountSummary']);
         Route::get('/inventory', [InventoryReportController::class, 'index']);
     });
@@ -114,11 +117,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // --- MENU LIST ---
     Route::get('/menu-list', [MenuListController::class, 'index']);
+    Route::post('/menu-list', [MenuListController::class, 'store']);
 
     // --- CATEGORIES ---
     Route::get('/categories', [CategoryController::class, 'index']);
     Route::post('/categories', [CategoryController::class, 'store']);
-    Route::patch('/categories/{id}', [CategoryController::class, 'update']);
+    Route::put('/categories/{id}', [CategoryController::class, 'update']);
     Route::delete('/categories/{id}', [CategoryController::class, 'destroy']);
 
     // --- SUB-CATEGORIES ---

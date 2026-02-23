@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
-use App\Models\Discount;
 use App\Imports\DiscountsImport; // Ensure you created this class
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
