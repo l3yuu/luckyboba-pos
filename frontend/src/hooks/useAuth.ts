@@ -59,7 +59,7 @@ export const useAuth = () => {
         
         try {
             const response = await api.post('/login', credentials);
-            const { token, user: userData, dashboard_stats } = response.data;
+            const { token, user: userData } = response.data;
             
             // PERSIST AUTH DATA
             localStorage.setItem('lucky_boba_token', token);
@@ -68,11 +68,6 @@ export const useAuth = () => {
             // NEW: PERSIST USER INFO FOR NAVBAR
             localStorage.setItem('lucky_boba_user_name', userData.name);
             localStorage.setItem('lucky_boba_user_role', userData.role || 'cashier');
-            
-            if (dashboard_stats) {
-                localStorage.setItem('dashboard_stats', JSON.stringify(dashboard_stats));
-                localStorage.setItem('dashboard_stats_timestamp', Date.now().toString());
-            }
             
             setUser(userData);
             setIsLoading(false);

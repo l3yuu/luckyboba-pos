@@ -50,10 +50,10 @@ Route::get('/cache/stats',           [CacheController::class, 'stats']);
 
 
     // --- 1. SYSTEM CORE & DASHBOARD ---
+    Route::get('/dashboard/stats', [DashboardController::class, 'index']);
     Route::get('/user', fn (Request $request) => $request->user());
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy']);
     Route::get('/app-init', [DashboardController::class, 'init']);
-    Route::get('/dashboard/stats', [DashboardController::class, 'index']);
     Route::get('/sales-analytics', [SalesDashboardController::class, 'index']);
     Route::get('/dashboard/data', [SalesDashboardController::class, 'dashboardData']);
 

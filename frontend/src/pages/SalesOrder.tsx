@@ -26,10 +26,13 @@ const SalesOrder = () => {
     const [cashierName, setCashierName] = useState<string | null>(null);
     const [currentDate, setCurrentDate] = useState(new Date());
     const [searchQuery, setSearchQuery] = useState('');
-    const [categories, setCategories] = useState<Category[]>([]);
+    const [categories, setCategories] = useState<Category[]>(() => {
+        const cached = localStorage.getItem('pos_menu_cache');
+        return cached ? JSON.parse(cached) : [];
+    });
     const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
     const [categorySize, setCategorySize] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(!localStorage.getItem('pos_menu_cache'));
     const [submitting, setSubmitting] = useState(false);
     const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
     const [isAddOnModalOpen, setIsAddOnModalOpen] = useState(false);
@@ -72,7 +75,10 @@ const SalesOrder = () => {
                     headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
                 });
                 const data = await response.json();
-                if (Array.isArray(data)) setCategories(data);
+                if (Array.isArray(data)) {
+                    setCategories(data);
+                    localStorage.setItem('pos_menu_cache', JSON.stringify(data));
+                }
                 setLoading(false);
             } catch (error) {
                 console.error("Error fetching menu:", error);
@@ -229,6 +235,20 @@ const SalesOrder = () => {
             const result = await response.json();
             if (!response.ok) throw new Error(result.message || 'Failed to create order');
 
+            // Optimistic Dashboard Update
+            try {
+                const cachedStats = localStorage.getItem('dashboard_stats');
+                if (cachedStats) {
+                    const stats = JSON.parse(cachedStats);
+                    stats.total_sales_today = Number(stats.total_sales_today || 0) + subtotal;
+                    stats.total_orders_today = Number(stats.total_orders_today || 0) + totalCount;
+                    localStorage.setItem('dashboard_stats', JSON.stringify(stats));
+                    localStorage.setItem('dashboard_stats_timestamp', Date.now().toString());
+                }
+            } catch (e) {
+                console.error("Failed to update local stats", e);
+            }
+
             window.print();
             setCart([]);
             setOrderCharge(null);
@@ -264,8 +284,8 @@ const SalesOrder = () => {
         <>
             <style>
                 {`@media print {
-                    @page { size: 60mm auto; margin: 0; }
-                    html, body { width: 60mm; margin: 0; padding: 0; }
+                    @page { size: 80mm auto; margin: 0; }
+                    html, body { width: 80mm; margin: 0; padding: 0; }
                     body * { visibility: hidden; }
                     .printable-receipt-container, .printable-receipt-container * { visibility: visible; }
                     .printable-receipt-container {

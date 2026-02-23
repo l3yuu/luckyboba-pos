@@ -15,17 +15,13 @@ interface XReadingReport {
   logs?: { id: string; reason: string; amount: number; time: string }[];
   items?: { product_name: string; total_qty: number; total_sales?: number }[]; 
   hourly_data?: { hour: number; total: number; count: number }[];
-  // Transactions can be top-level OR nested — we handle both
   transactions?: { Invoice: string; Amount: number; Status: string; Date_Time: string }[];
   cash_count?: { denominations: { label: string; qty: number; total: number }[]; grand_total: number };
-  // Also accept flat structure for cash count
   denominations?: { label: string; qty: number; total: number }[];
   grand_total?: number;
   summary_data?: { Sales_Date: string; Total_Orders: number; Daily_Revenue: number }[];
-  // Also accept alternate key names for summary
   data?: { Sales_Date: string; Total_Orders: number; Daily_Revenue: number }[];
   search_results?: { Invoice: string; Amount: number; Method: string; Date: string }[];
-  // Also accept 'results' as alternate key
   results?: { Invoice: string; Amount: number; Status: string; Date_Time: string }[];
   grand_total_revenue?: number;
   vatable_sales?: number;
@@ -101,10 +97,8 @@ const XReading = () => {
       const { url, params } = endpointMap[type];
       const response = await api.get(url, { params });
 
-      // Save raw response for debugging
       setRawApiResponse(response.data as Record<string, unknown>);
 
-      // Normalize the response to handle varied API shapes
       const normalized = normalizeResponse(type, response.data);
       setReportData({ ...normalized, report_type: type });
 
@@ -117,23 +111,16 @@ const XReading = () => {
     }
   };
 
-  /**
-   * Normalizes API responses to a consistent shape.
-   * This is the key fix — different endpoints return data with different
-   * key names or nesting levels. We flatten everything here.
-   */
   const normalizeResponse = (type: string, data: Record<string, unknown>): XReadingReport => {
     switch (type) {
 
       case 'cash_count': {
-        // API might return flat: { denominations: [...], grand_total: N }
-        // OR nested: { cash_count: { denominations: [...], grand_total: N } }
         const nested = data.cash_count as { denominations: unknown[]; grand_total: number } | undefined;
         const flatDenominations = data.denominations as { label: string; qty: number; total: number }[] | undefined;
         const flatGrandTotal = data.grand_total as number | undefined;
 
         if (nested?.denominations) {
-          return data as unknown as XReadingReport; // already correct shape
+          return data as unknown as XReadingReport;
         }
         if (flatDenominations) {
           return {
@@ -148,7 +135,6 @@ const XReading = () => {
       }
 
       case 'summary': {
-        // API might return: { summary_data: [...] } OR { data: [...] } OR just an array
         const summaryData = (data.summary_data ?? data.data ?? (Array.isArray(data) ? data : null)) as
           | { Sales_Date: string; Total_Orders: number; Daily_Revenue: number }[]
           | null;
@@ -159,8 +145,6 @@ const XReading = () => {
       }
 
       case 'search': {
-        // ReceiptController returns si_number, total_amount, created_at, status
-        // Remap to the shape renderDetailedSales() expects
         const raw = (Array.isArray(data) ? data : []) as Record<string, unknown>[];
         const txData = raw.map(r => ({
           Invoice:   r.si_number   ?? r.Invoice   ?? '',
@@ -171,8 +155,19 @@ const XReading = () => {
         return { ...data, transactions: txData } as unknown as XReadingReport;
       }
 
+      case 'hourly_sales': {
+        // API may return array directly OR { hourly_data: [...] }
+        // Coerce hour/total/count to numbers in case API sends strings
+        const raw = (Array.isArray(data) ? data : ((data.hourly_data ?? []) as unknown[])) as Record<string, unknown>[];
+        const hourlyData = raw.map(r => ({
+          hour:  Number(r.hour  ?? r.Hour  ?? 0),
+          total: Number(r.total ?? r.Total ?? r.amount ?? 0),
+          count: Number(r.count ?? r.Count ?? r.qty    ?? 0),
+        }));
+        return { ...data, hourly_data: hourlyData } as unknown as XReadingReport;
+      }
+
       case 'detailed': {
-        // API might return: { transactions: [...] } OR { search_results: [...] } OR just an array
         const txData = (
           data.transactions ??
           data.search_results ??
@@ -241,41 +236,54 @@ const XReading = () => {
 
   // --- RENDER HELPERS ---
 
-  const renderHourlySales = () => (
-    <div className="my-2 pt-2">
-      <div className="receipt-divider"></div>
-      <table className="w-full text-[10px] border-collapse">
-        <thead>
-          <tr className="font-black">
-            <th className="text-left border-b border-black pb-1">HOUR</th>
-            <th className="text-center border-b border-black pb-1">QTY</th>
-            <th className="text-right border-b border-black pb-1">AMOUNT</th>
-          </tr>
-        </thead>
-        <tbody>
-          {reportData?.hourly_data?.map((data, i) => {
-            const ampm = data.hour >= 12 ? 'pm' : 'am';
-            const hour = data.hour % 12 || 12;
-            return (
-              <tr key={i}>
-                <td className="py-1 font-bold">{hour}{ampm}</td>
-                <td className="py-1 text-center">{data.count}</td>
-                <td className="py-1 text-right font-black">{phCurrency.format(data.total || 0)}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-      <div className="receipt-divider"></div>
-      <div className="flex-between text-[10px]"><span>TOTAL ITEMS SOLD</span><span className="font-bold">{calculateTotalItems()}</span></div>
-      <div className="flex-between font-black text-[11px] mt-1"><span>TOTAL REVENUE</span><span>{phCurrency.format(calculateTotalSales())}</span></div>
-    </div>
-  );
+  const renderHourlySales = () => {
+    // Hardcoded 24-hour labels — always shown regardless of API data
+    const HOUR_LABELS = [
+      '12am','1am','2am','3am','4am','5am','6am','7am','8am','9am','10am','11am',
+      '12pm','1pm','2pm','3pm','4pm','5pm','6pm','7pm','8pm','9pm','10pm','11pm',
+    ];
+
+    // Build lookup from API data — coerce hour to number just in case
+    const salesMap = new Map<number, { total: number; count: number }>();
+    reportData?.hourly_data?.forEach((item) => {
+      salesMap.set(Number(item.hour), { total: Number(item.total), count: Number(item.count) });
+    });
+
+    return (
+      <div className="my-2 pt-2">
+        <div className="receipt-divider"></div>
+        <table className="w-full border-collapse" style={{ fontSize: '12px' }}>
+          <thead>
+            <tr style={{ borderBottom: '2px solid black' }}>
+              <th className="text-left pb-1" style={{ fontSize: '12px', fontWeight: 700, paddingBottom: '4px' }}>HOUR</th>
+              <th className="text-center pb-1" style={{ fontSize: '12px', fontWeight: 700, paddingBottom: '4px' }}>QTY</th>
+              <th className="text-right pb-1" style={{ fontSize: '12px', fontWeight: 700, paddingBottom: '4px' }}>AMOUNT</th>
+            </tr>
+          </thead>
+          <tbody>
+            {HOUR_LABELS.map((label, h) => {
+              const data = salesMap.get(h) ?? { total: 0, count: 0 };
+              return (
+                <tr key={h} style={{ borderBottom: '1.5px solid #000' }}>
+                  <td style={{ padding: '3px 0', fontSize: '12px', fontWeight: 700 }}>{label}</td>
+                  <td className="text-center" style={{ padding: '3px 0', fontSize: '12px', fontWeight: 700 }}>{data.count}</td>
+                  <td className="text-right" style={{ padding: '3px 0', fontSize: '12px', fontWeight: 700 }}>{phCurrency.format(data.total)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+        <div className="receipt-divider"></div>
+        <div className="flex-between mt-1" style={{ fontSize: '13px' }}><span>TOTAL ITEMS SOLD</span><span style={{ fontWeight: 700 }}>{calculateTotalItems()}</span></div>
+        <div className="flex-between mt-1" style={{ fontSize: '13px', fontWeight: 700 }}><span>TOTAL REVENUE</span><span>{phCurrency.format(calculateTotalSales())}</span></div>
+      </div>
+    );
+  };
 
   const renderVoidLogs = () => (
     <div className="my-2 pt-2">
       <div className="receipt-divider"></div>
-      <p className="text-[10px] font-black mb-2">VOIDED TRANSACTIONS</p>
+      <p className="text-[10px] mb-2">VOIDED TRANSACTIONS</p>
       {reportData?.logs?.length ? (
         <table className="w-full text-[9px]">
           <thead>
@@ -309,16 +317,16 @@ const XReading = () => {
         <div className="receipt-divider"></div>
         {reportData.categories.map((cat, catIdx) => (
           <div key={catIdx} className="mb-4">
-            <p className="text-[10px] font-black bg-zinc-100 px-2 py-0.5 mb-1 uppercase tracking-tighter border-b border-black">
+            <p className="text-[12px] uppercase tracking-tighter bg-zinc-100 px-2 py-0.5 mb-1 border-b border-black">
               {cat.category_name}
             </p>
-            <table className="w-full text-[10px]">
+            <table className="w-full text-[12px]">
               <tbody>
                 {cat.products.map((item, i) => (
                   <React.Fragment key={i}>
                     <tr className="border-b border-zinc-50">
-                      <td className="py-1 uppercase text-[9px] font-bold leading-tight w-2/3">{item.product_name}</td>
-                      <td className="py-1 text-center font-bold">x{item.total_qty}</td>
+                      <td className="py-1 uppercase text-[9px] leading-tight w-2/3">{item.product_name}</td>
+                      <td className="py-1 text-center">x{item.total_qty}</td>
                       <td className="py-1 text-right">{phCurrency.format(item.total_sales)}</td>
                     </tr>
                     {item.add_ons && item.add_ons.length > 0 && (
@@ -326,9 +334,9 @@ const XReading = () => {
                         <td colSpan={3} className="pb-2 pl-4">
                           <div className="border-l-2 border-zinc-200 pl-2">
                             {item.add_ons.map((addon, aIdx) => (
-                              <div key={aIdx} className="text-[8px] text-zinc-500 italic flex justify-between">
+                              <div key={aIdx} className="text-[10px] text-zinc-1100 italic flex justify-between">
                                 <span>+ {addon.name}</span>
-                                <span className="font-bold text-black">x{addon.qty}</span>
+                                <span className="text-black">x{addon.qty}</span>
                               </div>
                             ))}
                           </div>
@@ -340,21 +348,21 @@ const XReading = () => {
               </tbody>
             </table>
             <div className="flex justify-between items-center pt-1 mt-1 border-t border-dotted border-zinc-300">
-              <span className="text-[8px] font-bold uppercase opacity-60">Sub-total {cat.category_name}</span>
-              <span className="text-[9px] font-black">{phCurrency.format(cat.category_total || 0)}</span>
+              <span className="text-[10px] uppercase opacity-100">Sub-total {cat.category_name}</span>
+              <span className="text-[9px]">{phCurrency.format(cat.category_total || 0)}</span>
             </div>
           </div>
         ))}
 
         {reportData.all_addons_summary && reportData.all_addons_summary.length > 0 && (
-          <div className="mt-4 mb-2 p-2 bg-slate-50 rounded-lg border border-slate-200">
-            <p className="text-[10px] font-black text-center mb-2 uppercase border-b border-slate-300 pb-1">Total Add-ons Summary</p>
-            <table className="w-full text-[9px]">
+          <div className="mt-4 mb-2 p-2 bg-slate-50 rounded-lg border border-slate-500">
+            <p className="text-[10px] text-center mb-2 uppercase border-b border-slate-1100 pb-1">Total Add-ons Summary</p>
+            <table className="w-full text-[12px]">
               <tbody>
                 {reportData.all_addons_summary.map((addon, idx) => (
                   <tr key={idx} className="border-b border-white last:border-0">
-                    <td className="py-0.5 uppercase font-bold text-slate-600">{addon.name}</td>
-                    <td className="py-0.5 text-right font-black text-slate-800">x{addon.qty}</td>
+                    <td className="py-0.5 uppercase text-slate-1100">{addon.name}</td>
+                    <td className="py-0.5 text-right text-slate-1100">x{addon.qty}</td>
                   </tr>
                 ))}
               </tbody>
@@ -366,16 +374,16 @@ const XReading = () => {
         <div className="space-y-1">
           <div className="flex-between text-[10px]">
             <span>TOTAL ITEMS SOLD</span>
-            <span className="font-bold">
+            <span>
               {reportData.categories.reduce((acc, cat) =>
                 acc + cat.products.reduce((pAcc, p) => pAcc + p.total_qty, 0), 0)}
             </span>
           </div>
-          <div className="pt-1 text-[9px] opacity-80 uppercase italic">
+          <div className="pt-1 text-[10px] opacity-500 uppercase italic">
             <div className="flex-between"><span>VATABLE SALES</span><span>{phCurrency.format(reportData?.vatable_sales || 0)}</span></div>
             <div className="flex-between"><span>VAT (12%)</span><span>{phCurrency.format(reportData?.vat_amount || 0)}</span></div>
           </div>
-          <div className="flex-between font-black text-[11px] mt-1 border-t border-black pt-1">
+          <div className="flex-between text-[11px] mt-1 border-t border-black pt-1">
             <span>TOTAL REVENUE</span>
             <span>{phCurrency.format(reportData?.grand_total_revenue || 0)}</span>
           </div>
@@ -385,15 +393,13 @@ const XReading = () => {
   };
 
   const renderCashCount = () => {
-    // Support both nested { cash_count: { denominations, grand_total } }
-    // and flat { denominations, grand_total } after normalization
     const denominations = reportData?.cash_count?.denominations;
     const grandTotal = reportData?.cash_count?.grand_total ?? 0;
 
     return (
       <div className="my-2 pt-2">
         <div className="receipt-divider"></div>
-        <p className="text-[10px] font-black mb-2">DENOMINATION BREAKDOWN</p>
+        <p className="text-[10px] mb-2">DENOMINATION BREAKDOWN</p>
         {!denominations || denominations.length === 0 ? (
           <p className="text-[10px] italic">No denomination data available.</p>
         ) : (
@@ -403,14 +409,14 @@ const XReading = () => {
                 <tr key={i}>
                   <td className="py-0.5">{d.label}</td>
                   <td className="py-0.5 text-center">x{d.qty}</td>
-                  <td className="py-0.5 text-right font-bold">{phCurrency.format(d.total)}</td>
+                  <td className="py-0.5 text-right">{phCurrency.format(d.total)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         )}
         <div className="receipt-divider"></div>
-        <div className="flex-between font-black text-[12px]">
+        <div className="flex-between text-[12px]">
           <span>GRAND TOTAL</span>
           <span>{phCurrency.format(grandTotal)}</span>
         </div>
@@ -419,7 +425,6 @@ const XReading = () => {
   };
 
   const renderDetailedSales = () => {
-    // After normalization, data is always in reportData.transactions
     const rows = reportData?.transactions ?? reportData?.search_results ?? [];
     const hasStatus = rows.length > 0 && 'Status' in rows[0];
 
@@ -429,9 +434,9 @@ const XReading = () => {
         {rows.length === 0 ? (
           <p className="text-[10px] italic">{reportData?.report_type === 'search' ? 'No receipts found. Try a different invoice number or cashier name.' : 'No transactions found for this date.'}</p>
         ) : (
-          <table className="w-full text-[9px]">
+          <table className="w-full text-[12px]">
             <thead>
-              <tr className="font-black border-b border-black text-left">
+              <tr className="border-b border-black text-left">
                 <th>INVOICE</th>
                 <th>DATE/TIME</th>
                 <th className="text-right">AMOUNT</th>
@@ -444,11 +449,11 @@ const XReading = () => {
                 const status = hasStatus && 'Status' in tx ? tx.Status : null;
                 return (
                   <tr key={i} className="border-b border-zinc-50">
-                    <td className="py-1 font-bold">#{tx.Invoice}</td>
-                    <td className="py-1 text-[8px]">{dateTime}</td>
+                    <td className="py-1">#{tx.Invoice}</td>
+                    <td className="py-1 text-[12px]">{dateTime}</td>
                     <td className="py-1 text-right">{phCurrency.format(tx.Amount)}</td>
                     {hasStatus && (
-                      <td className={`py-1 text-center text-[8px] font-black ${status === 'completed' ? 'text-emerald-600' : 'text-red-500'}`}>
+                      <td className={`py-1 text-center text-[12px] ${status === 'completed' ? 'text-emerald-600' : 'text-red-500'}`}>
                         {status ? String(status).toUpperCase() : ''}
                       </td>
                     )}
@@ -459,10 +464,10 @@ const XReading = () => {
           </table>
         )}
         <div className="receipt-divider"></div>
-        <div className="flex-between font-black text-[11px]">
+        <div className="flex-between text-[11px]">
           <span>TOTAL TRANSACTIONS</span><span>{rows.length}</span>
         </div>
-        <div className="flex-between font-black text-[11px] mt-1">
+        <div className="flex-between text-[11px] mt-1">
           <span>TOTAL AMOUNT</span>
           <span>{phCurrency.format(rows.reduce((acc, tx) => acc + Number(tx.Amount || 0), 0))}</span>
         </div>
@@ -482,7 +487,7 @@ const XReading = () => {
         ) : (
           <table className="w-full text-[10px] mb-3">
             <thead>
-              <tr className="font-black border-b border-black text-left">
+              <tr className="border-b border-black text-left">
                 <th>DATE</th>
                 <th className="text-center">QTY</th>
                 <th className="text-right">AMT</th>
@@ -492,8 +497,8 @@ const XReading = () => {
               {summaryRows.map((item, i) => (
                 <tr key={i} className="border-b border-zinc-50">
                   <td className="py-1">{item.Sales_Date}</td>
-                  <td className="py-1 text-center font-bold">{item.Total_Orders}</td>
-                  <td className="py-1 text-right font-black">{phCurrency.format(item.Daily_Revenue)}</td>
+                  <td className="py-1 text-center">{item.Total_Orders}</td>
+                  <td className="py-1 text-right">{phCurrency.format(item.Daily_Revenue)}</td>
                 </tr>
               ))}
             </tbody>
@@ -502,11 +507,11 @@ const XReading = () => {
 
         <div className="receipt-divider"></div>
         <div className="space-y-1 uppercase text-[10px]">
-          <p className="font-black text-center bg-zinc-100 py-0.5 mb-2">Audit Summary</p>
+          <p className="text-center bg-zinc-100 py-0.5 mb-2">Audit Summary</p>
 
           <div className="flex-between">
             <span>Gross Sales</span>
-            <span className="font-bold">{phCurrency.format(reportData?.gross_sales || 0)}</span>
+            <span>{phCurrency.format(reportData?.gross_sales || 0)}</span>
           </div>
           <div className="flex-between text-red-600">
             <span>Total Discounts</span>
@@ -518,11 +523,11 @@ const XReading = () => {
           </div>
 
           <div className="receipt-divider"></div>
-          <p className="font-black text-[9px] opacity-70 mt-2">Payment Methods</p>
+          <p className="text-[9px] opacity-70 mt-2">Payment Methods</p>
           {reportData?.payment_breakdown?.map((p, i) => (
             <div key={i} className="flex-between text-[10px]">
               <span>{p.method}</span>
-              <span className="font-bold">{phCurrency.format(p.amount)}</span>
+              <span>{phCurrency.format(p.amount)}</span>
             </div>
           ))}
 
@@ -532,7 +537,7 @@ const XReading = () => {
             <div className="flex-between"><span>VAT Amount (12%)</span><span>{phCurrency.format(reportData?.vat_amount || 0)}</span></div>
           </div>
 
-          <div className="flex-between font-black text-[12px] mt-2 pt-2 border-t border-black">
+          <div className="flex-between text-[12px] mt-2 pt-2 border-t border-black">
             <span>NET REVENUE</span>
             <span>{phCurrency.format(reportData?.gross_sales || 0)}</span>
           </div>
@@ -544,13 +549,13 @@ const XReading = () => {
   const renderXReading = () => (
     <div className="my-2 pt-2">
       <div className="receipt-divider"></div>
-      <div className="space-y-1.5 uppercase">
-        <div className="flex-between text-[11px] font-black"><span>GROSS SALES</span><span>{phCurrency.format(reportData?.gross_sales || 0)}</span></div>
-        <div className="flex-between text-[10px]"><span>TOTAL CASH</span><span>{phCurrency.format(reportData?.cash_total || 0)}</span></div>
-        <div className="flex-between text-[10px]"><span>TOTAL NON-CASH</span><span>{phCurrency.format(reportData?.non_cash_total || 0)}</span></div>
+      <div className="space-y-1.5 uppercase text-[12px]">
+        <div className="flex-between"><span>GROSS SALES</span><span>{phCurrency.format(reportData?.gross_sales || 0)}</span></div>
+        <div className="flex-between"><span>TOTAL CASH</span><span>{phCurrency.format(reportData?.cash_total || 0)}</span></div>
+        <div className="flex-between"><span>TOTAL NON-CASH</span><span>{phCurrency.format(reportData?.non_cash_total || 0)}</span></div>
         <div className="receipt-divider"></div>
-        <div className="flex-between text-[11px] font-black"><span>NET SALES</span><span>{phCurrency.format(reportData?.net_sales || 0)}</span></div>
-        <div className="flex-between text-[10px]"><span>TRANSACTIONS</span><span>{reportData?.transaction_count || 0}</span></div>
+        <div className="flex-between"><span>NET SALES</span><span>{phCurrency.format(reportData?.net_sales || 0)}</span></div>
+        <div className="flex-between"><span>TRANSACTIONS</span><span>{reportData?.transaction_count || 0}</span></div>
       </div>
     </div>
   );
@@ -560,22 +565,109 @@ const XReading = () => {
       <TopNavbar />
       <div className="flex-1 overflow-y-auto p-6 flex flex-col relative">
         <style>{`
+          /* ── Screen-only helpers ── */
+          .receipt-divider { border-top: 1px dashed #000; margin: 6px 0; }
+          .flex-between { display: flex; justify-content: space-between; width: 100%; align-items: flex-end; }
+
+          /* ── Print styles ── */
           @media print {
             @page { size: 80mm auto; margin: 0; }
-            body * { visibility: hidden; margin: 0; padding: 0; }
-            nav, .print\\:hidden, header, aside, .TopNavbar { display: none !important; }
-            .receipt-area, .receipt-area * { visibility: visible; }
-            .receipt-area {
-              position: absolute; left: 0; top: 0;
-              width: 80mm !important; max-width: 80mm !important;
-              padding: 4mm !important; background: white;
-              box-shadow: none !important; border: none !important;
-              font-family: 'Courier New', Courier, monospace;
+
+            /* Hide everything except the receipt */
+            body * { visibility: hidden; }
+            nav, header, aside, button,
+            .print\\:hidden, .TopNavbar, .TopNavbar * { display: none !important; }
+
+            html, body {
+              width: 80mm;
+              margin: 0 !important;
+              padding: 0 !important;
+              background: white !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
             }
-            .flex-1, main, div { padding: 0 !important; margin: 0 !important; overflow: visible !important; }
+
+            /* Make only the receipt visible and position it at top-left */
+            .receipt-area, .receipt-area * { visibility: visible !important; }
+            .receipt-area {
+              position: absolute !important;
+              top: 0 !important; left: 0 !important;
+              width: 80mm !important;
+              padding: 6mm 4mm 20mm 4mm !important;
+              margin: 0 !important;
+              box-sizing: border-box !important;
+              background: white !important;
+              color: #000 !important;
+              font-family: Arial, Helvetica, sans-serif !important;
+              font-size: 11px !important;
+              font-weight: 400 !important;
+              line-height: 1.35 !important;
+
+              /* Reset Tailwind overrides that break print */
+              box-shadow: none !important;
+              border: none !important;
+              border-radius: 0 !important;
+              max-width: 100% !important;
+            }
+
+            /* Store name — same weight as screen (bold, not black) */
+            .receipt-area .store-name {
+              font-size: 26px !important;
+              font-weight: 800 !important;
+              text-align: center !important;
+              line-height: 1.3 !important;
+              display: block !important;
+            }
+
+            /* Branch — light */
+            .receipt-area .store-branch {
+              font-size: 13px !important;
+              font-weight: 500 !important;
+              text-align: center !important;
+              display: block !important;
+            }
+
+            /* Report type title — the ONLY superbold element */
+            .receipt-area .report-title {
+              font-size: 15px !important;
+              font-weight: 900 !important;
+              letter-spacing: 0.12em !important;
+              text-align: center !important;
+              display: block !important;
+            }
+
+            /* Dividers */
+            .receipt-divider {
+              border-top: 1px dashed #000 !important;
+              margin: 5px 0 !important;
+              width: 100% !important;
+              display: block !important;
+            }
+
+            /* flex-between needs to work in print */
+            .flex-between {
+              display: flex !important;
+              justify-content: space-between !important;
+              width: 100% !important;
+              align-items: flex-end !important;
+            }
+
+            /* Tables */
+            table { width: 100% !important; border-collapse: collapse !important; font-size: 12px !important; }
+            th { text-align: left !important; border-bottom: 2px solid #000 !important; padding-bottom: 4px !important; text-transform: uppercase !important; font-weight: 700 !important; font-size: 12px !important; }
+            td { padding: 3px 0 !important; vertical-align: top !important; font-size: 12px !important; font-weight: 700 !important; border-bottom: 1.5px solid #000 !important; }
+
+            /* Spacing helpers */
+            .receipt-area p, .receipt-area span { font-size: 11px !important; }
+            .receipt-area .text-center { text-align: center !important; }
+            .receipt-area .text-right { text-align: right !important; }
+            .receipt-area .text-left { text-align: left !important; }
+            .receipt-area .uppercase { text-transform: uppercase !important; }
+            .receipt-area .italic { font-style: italic !important; }
+            .receipt-area .mt-8 { margin-top: 16px !important; }
+            .receipt-area .space-y-4 > * + * { margin-top: 8px !important; }
+            .receipt-area .space-y-1 > * + * { margin-top: 2px !important; }
           }
-          .receipt-divider { border-top: 1px dashed #000; margin: 8px 0; }
-          .flex-between { display: flex; justify-content: space-between; width: 100%; }
         `}</style>
 
         {/* Controls */}
@@ -641,7 +733,6 @@ const XReading = () => {
               {loading ? 'Processing...' : 'Generate'}
             </button>
             <button onClick={handlePrint} className="px-6 h-12 bg-[#172554] text-white rounded-md font-bold uppercase text-xs">Print</button>
-            {/* DEBUG TOGGLE — remove in production */}
             {rawApiResponse && (
               <button
                 onClick={() => setShowDebug(!showDebug)}
@@ -660,7 +751,7 @@ const XReading = () => {
           </div>
         )}
 
-        {/* Debug Panel — shows raw API response so you can verify key names */}
+        {/* Debug Panel */}
         {showDebug && rawApiResponse && (
           <div className="mb-4 p-4 bg-zinc-900 text-green-400 rounded-lg text-[11px] font-mono overflow-auto max-h-64 print:hidden">
             <p className="text-yellow-400 font-black mb-2 text-xs">⚡ RAW API RESPONSE (Debug — remove in production):</p>
@@ -676,15 +767,25 @@ const XReading = () => {
               <p className="text-sm text-zinc-400 font-bold uppercase">Generating report...</p>
             </div>
           ) : reportData ? (
-            <div className="receipt-area bg-white w-full max-w-[80mm] p-8 shadow-2xl border border-zinc-100 font-mono text-slate-800">
+            <div className="receipt-area bg-white w-full max-w-[80mm] p-8 shadow-2xl border border-zinc-100 text-slate-800" style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
               <div className="text-center space-y-1">
-                <h1 className="font-black text-[14px] uppercase leading-tight">Lucky Boba Milktea Food and Beverage Trading</h1>
-                <p className="text-[10px] uppercase font-bold">Main Branch - QC</p>
+                {/* Store name & branch — bold but not superbold */}
+                <h1 className="store-name uppercase leading-tight" style={{ fontWeight: 800, fontSize: '26px', letterSpacing: '0.04em' }}>
+                  LUCKY BOBA MILKTEA FOOD AND BEVERAGE TRADING
+                </h1>
+                <p className="store-branch uppercase" style={{ fontWeight: 500, fontSize: '13px' }}>
+                  MAIN BRANCH – QC
+                </p>
                 <div className="receipt-divider"></div>
-                <h2 className="font-black text-[11px] uppercase tracking-widest">
+                {/* ✅ ONLY THIS IS SUPERBOLD */}
+                <h2
+                  className="report-title uppercase tracking-widest"
+                  style={{ fontWeight: 900, fontSize: '15px', letterSpacing: '0.12em' }}
+                >
                   {reportData.report_type?.replace(/_/g, ' ') || 'REPORT'}
                 </h2>
-                <div className="text-left text-[10px] space-y-0.5 mt-2">
+                <div className="receipt-divider"></div>
+                <div className="text-left text-[10px] space-y-0.5 mt-2" style={{ fontWeight: 700 }}>
                   <div className="flex-between"><span>DATE</span><span>{selectedDate}</span></div>
                   <div className="flex-between"><span>REPORT TIME</span><span>{new Date().toLocaleTimeString()}</span></div>
                   <div className="flex-between"><span>TERMINAL</span><span>POS-01</span></div>
@@ -704,24 +805,23 @@ const XReading = () => {
                 }
               })()}
 
-              <div className="mt-8 text-center space-y-4">
+              <div className="mt-8 text-center space-y-4" style={{ fontWeight: 700 }}>
                 <div className="receipt-divider"></div>
                 <div className="pt-2">
-                  <p className="text-[10px] font-bold uppercase">{reportData?.prepared_by || cashierName}</p>
+                  <p className="text-[10px] uppercase">{reportData?.prepared_by || cashierName}</p>
                   <p className="text-[10px] leading-none">____________________</p>
                   <p className="text-[8px] uppercase mt-1">Prepared By</p>
                 </div>
                 <div className="pt-1">
                   <p className="text-[10px]">____________________</p>
                   <p className="text-[8px] uppercase mt-1">Signed By</p>
-                  <p className="text-[7px] mt-0.5 opacity-70">(MANAGER OR SUPERVISOR)</p>
                 </div>
               </div>
             </div>
           ) : (
             <div className="flex flex-col items-center text-center opacity-50 mt-20 print:hidden">
               <h2 className="text-xl font-bold text-slate-700">No Report Selected</h2>
-              <p className="text-sm text-zinc-400 mt-2">Click the <strong>MENU</strong> button above to select a report.</p>
+              <p className="text-sm text-zinc-400 mt-2">Click the MENU button above to select a report.</p>
             </div>
           )}
         </div>
