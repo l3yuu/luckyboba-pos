@@ -46,9 +46,12 @@ const Dashboard = () => {
   const { user, isLoading: authLoading } = useAuth();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [stats, setStats] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [stats, setStats] = useState<DashboardData | null>(() => {
+    const cached = localStorage.getItem('dashboard_stats');
+    return cached ? JSON.parse(cached) : null;
+  });
+  const [loading, setLoading] = useState(!stats);
+  const [isInitialLoad, setIsInitialLoad] = useState(!stats);
   const isFetching = useRef(false);
 
   useEffect(() => {
@@ -59,11 +62,23 @@ const Dashboard = () => {
 
   const fetchStats = useCallback(async (force = false) => {
     if (isFetching.current && !force) return;
+
+    // Cache Check: If data is fresh (< 5 mins) and not forced, skip fetch
+    if (!force && stats) {
+      const lastFetch = localStorage.getItem('dashboard_stats_timestamp');
+      if (lastFetch && Date.now() - Number(lastFetch) < 5 * 60 * 1000) {
+        setLoading(false);
+        return;
+      }
+    }
+
     isFetching.current = true;
     setLoading(true);
     try {
       const response = await api.get('/dashboard/stats');
       setStats(response.data);
+      localStorage.setItem('dashboard_stats', JSON.stringify(response.data));
+      localStorage.setItem('dashboard_stats_timestamp', Date.now().toString());
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
     } finally {
@@ -71,7 +86,7 @@ const Dashboard = () => {
       setIsInitialLoad(false);
       isFetching.current = false;
     }
-  }, []);
+  }, [stats]);
 
   // Fetch whenever user lands on or returns to the dashboard tab
   useEffect(() => {
