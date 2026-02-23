@@ -124,3 +124,5 @@ const UserRow = ({ user, loading, onEdit, onDelete }: UserRowProps) => (
     </td>
   </tr>
 );
+
+export default UsersTab;  

@@ -289,3 +289,5 @@ export const DeleteUserModal = ({ user, loading, onConfirm, onCancel }: DeleteUs
     </ModalOverlay>
   );
 };
+
+export default { ModalOverlay, ModalCloseBtn, UserFormModal, DeleteUserModal, ViewBranchModal, BranchFormModal };

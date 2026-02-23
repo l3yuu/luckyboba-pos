@@ -59,3 +59,5 @@ export const OverviewTab = ({ totalRevenue, todayRevenue, activeBranches, active
     </div>
   </section>
 );
+
+export default OverviewTab;

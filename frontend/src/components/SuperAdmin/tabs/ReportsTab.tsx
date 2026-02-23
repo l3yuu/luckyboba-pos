@@ -28,3 +28,5 @@ export const ReportsTab = () => (
     </div>
   </section>
 );
+
+export default ReportsTab;
