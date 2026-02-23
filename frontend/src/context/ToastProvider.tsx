@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { ToastContext } from './ToastContext';
-import { Toast } from '../components/toast';
+// 👇 FIXED: Changed 'toast' to 'Toast'
+import { Toast } from '../components/Toast';
 
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
