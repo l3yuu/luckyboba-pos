@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import { useState, useEffect } from 'react';
 import logo from '../assets/logo.png';
 import type { User, CreateUserData, UpdateUserData } from '../types/user';
@@ -1275,3 +1276,8 @@ const SystemStatusIcon = () => (
 );
 
 export default SuperAdminDashboard;
+=======
+﻿import { SuperAdminDashboard } from '../components/SuperAdmin';
+
+export default SuperAdminDashboard;
+>>>>>>> 0118529b0111183a0a4e5752f0f0149a49ca0c84
