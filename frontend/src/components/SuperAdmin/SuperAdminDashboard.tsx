@@ -216,7 +216,7 @@ const SuperAdminDashboard: React.FC = () => {
             onDeleteBranch={handleDeleteBranch}
           />
         );
-        // kalbo
+        // kalbohaha
       case 'users':
         return (
           <UsersTab
