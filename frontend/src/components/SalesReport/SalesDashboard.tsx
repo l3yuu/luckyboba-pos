@@ -148,7 +148,7 @@ const SalesDashboard = () => {
 
   const { weekly: weeklySalesData, today_hourly: todayData, stats: statistics } = analytics;
 
-  const weeklyTotal = weeklySalesData.reduce((acc, d) => acc + d.value, 0);
+const weeklyTotal = weeklySalesData.reduce((acc, d) => acc + Number(d.value), 0);
 
   const dateRange = {
     start: weeklySalesData.length > 0 ? `${weeklySalesData[0].date}, 2026` : '—',
@@ -287,23 +287,23 @@ const SalesDashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-h-[300px]">
 
           {/* Stats cards */}
-          <div className="grid grid-cols-2 gap-4 content-start">
-            {([
-              { label: 'Beginning Sales', value: `₱ ${statistics.beginning_sales.toLocaleString('en-US', { minimumFractionDigits: 2 })}` },
-              { label: 'Today Sales',     value: `₱ ${statistics.today_sales.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,     highlight: true },
-              { label: 'Ending Sales',    value: `₱ ${statistics.ending_sales.toLocaleString('en-US', { minimumFractionDigits: 2 })}` },
-              { label: 'Cancelled Sales', value: `₱ ${statistics.cancelled_sales.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, color: 'text-red-500' },
-              { label: 'Beginning OR',    value: statistics.beginning_or },
-              { label: 'Ending OR',       value: statistics.ending_or },
-            ] as { label: string; value: string; highlight?: boolean; color?: string }[]).map((item, i) => (
-              <div key={i} className="bg-white p-5 rounded-3xl border border-zinc-100 shadow-sm flex flex-col justify-center">
-                <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">{item.label}</p>
-                <p className={`text-lg font-black ${item.color ?? (item.highlight ? 'text-emerald-500' : 'text-[#3b2063]')}`}>
-                  {item.value}
-                </p>
-              </div>
-            ))}
-          </div>
+<div className="grid grid-cols-2 gap-4 content-start">
+  {([
+    { label: 'Beginning Sales', value: `₱ ${(statistics.beginning_sales ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}` },
+    { label: 'Today Sales',     value: `₱ ${(statistics.today_sales ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,     highlight: true },
+    { label: 'Ending Sales',    value: `₱ ${(statistics.ending_sales ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}` },
+    { label: 'Cancelled Sales', value: `₱ ${(statistics.cancelled_sales ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, color: 'text-red-500' },
+    { label: 'Beginning OR',    value: statistics.beginning_or ?? '—' },
+    { label: 'Ending OR',       value: statistics.ending_or ?? '—' },
+  ] as { label: string; value: string; highlight?: boolean; color?: string }[]).map((item, i) => (
+    <div key={i} className="bg-white p-5 rounded-3xl border border-zinc-100 shadow-sm flex flex-col justify-center">
+      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">{item.label}</p>
+      <p className={`text-lg font-black ${item.color ?? (item.highlight ? 'text-emerald-500' : 'text-[#3b2063]')}`}>
+        {item.value}
+      </p>
+    </div>
+  ))}
+</div>
 
           {/* Today's bar chart */}
           <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-100 shadow-sm flex flex-col">
