@@ -1,5 +1,4 @@
 import React, { useEffect } from 'react';
-
 interface ToastProps {
   message: string;
   type?: 'error' | 'success' | 'warning';

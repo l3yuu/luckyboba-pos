@@ -1,10 +1,9 @@
 "use client"
 
-import { useState, useEffect } from 'react';
-import api from '../../services/api';
 import { Loader2, Clock } from 'lucide-react';
+import { useCache } from '../../UseCache';
+import type { StockTransaction } from '../../GlobalCache';
 
-// FIX: Define a proper interface instead of using 'any'
 interface LogEntry {
   id: number;
   product_name: string;
@@ -18,24 +17,11 @@ interface InventoryHistoryModalProps {
   onClose: () => void;
 }
 
-// FIX: Export the component so Fast Refresh works
 const InventoryHistoryModal: React.FC<InventoryHistoryModalProps> = ({ onClose }) => {
-  const [history, setHistory] = useState<LogEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { all, loading, ready } = useCache();
 
-  useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        const res = await api.get('/inventory/history');
-        setHistory(res.data);
-      } catch (err) {
-        console.error("History fetch failed", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchHistory();
-  }, []);
+  const history = all<LogEntry & StockTransaction>('stock_transactions');
+  const isLoading = !ready || loading;
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -45,8 +31,8 @@ const InventoryHistoryModal: React.FC<InventoryHistoryModalProps> = ({ onClose }
             <Clock className="text-[#3b2063]" size={20} />
             <h2 className="text-[#3b2063] font-black uppercase tracking-widest text-sm">Stock History</h2>
           </div>
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-200 text-zinc-400 hover:text-zinc-600 transition-colors font-bold text-xl"
           >
             ×
@@ -54,7 +40,7 @@ const InventoryHistoryModal: React.FC<InventoryHistoryModalProps> = ({ onClose }
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
-          {loading ? (
+          {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12">
               <Loader2 className="animate-spin text-[#3b2063] mb-4" size={32} />
               <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Loading Logs...</p>
@@ -73,8 +59,10 @@ const InventoryHistoryModal: React.FC<InventoryHistoryModalProps> = ({ onClose }
                 {history.map((log) => (
                   <tr key={log.id} className="text-xs hover:bg-zinc-50/50 transition-colors">
                     <td className="py-4 text-zinc-500 font-medium">
-                      {new Date(log.created_at).toLocaleDateString()} <br/>
-                      <span className="text-[9px] opacity-60">{new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      {new Date(log.created_at).toLocaleDateString()}<br />
+                      <span className="text-[9px] opacity-60">
+                        {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
                     </td>
                     <td className="py-4 font-bold text-[#3b2063] uppercase">{log.product_name}</td>
                     <td className={`py-4 text-center font-black ${log.quantity_change > 0 ? 'text-emerald-500' : 'text-red-500'}`}>
@@ -95,8 +83,8 @@ const InventoryHistoryModal: React.FC<InventoryHistoryModalProps> = ({ onClose }
         </div>
 
         <div className="p-4 bg-zinc-50 border-t border-zinc-100 rounded-b-2xl flex justify-end">
-          <button 
-            onClick={onClose} 
+          <button
+            onClick={onClose}
             className="px-6 py-2 bg-white border border-zinc-200 text-zinc-600 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:bg-zinc-100 transition-all"
           >
             Close

@@ -26,7 +26,7 @@ use App\Http\Controllers\Api\VoucherController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\Api\BranchController;
-
+use App\Http\Controllers\Api\CacheController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -43,6 +43,11 @@ Route::post('/login', [AuthenticatedSessionController::class, 'store']);
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum'])->group(function () {
+
+Route::get('/cache/all',             [CacheController::class, 'all']);
+Route::post('/cache/reload/{table}', [CacheController::class, 'reload']);
+Route::get('/cache/stats',           [CacheController::class, 'stats']);
+
 
     // --- 1. SYSTEM CORE & DASHBOARD ---
     Route::get('/user', fn (Request $request) => $request->user());

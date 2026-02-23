@@ -7,7 +7,6 @@ import { isAxiosError } from 'axios';
 import { useToast } from '../../context/ToastContext';
 import { getCache, setCache, clearCache } from '../../utils/cache';
 import { Trash2, AlertCircle } from 'lucide-react';
-
 interface InventoryCategory {
   id: number;
   name: string;

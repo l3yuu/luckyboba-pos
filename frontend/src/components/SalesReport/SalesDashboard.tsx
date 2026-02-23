@@ -86,7 +86,6 @@ const SalesDashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ============================================================
