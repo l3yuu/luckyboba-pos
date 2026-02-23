@@ -42,6 +42,10 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showCashInRequired, setShowCashInRequired] = useState(false);
   const [showEodLockedModal, setShowEodLockedModal] = useState(false);
+  
+  // NEW STATE: To block Z-Reading if EOD is not done
+  const [showZReadingBlockedModal, setShowZReadingBlockedModal] = useState(false);
+  
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isEodLocked, setIsEodLocked] = useState(false);
 
@@ -158,6 +162,15 @@ const Sidebar: React.FC<SidebarProps> = ({
     setInventoryDropdownOpen(false);
   };
 
+  // --- NEW: Helper function to correctly open the POS section when redirecting from modals ---
+  const openPosDropdownAndSetTab = (tabId: string) => {
+    setCurrentTab(tabId);
+    setPosDropdownOpen(true);
+    setSalesReportDropdownOpen(false);
+    setMenuItemsDropdownOpen(false);
+    setInventoryDropdownOpen(false);
+  };
+
   const handleLogout = async () => {
     setIsLoggingOut(true);
     setShowLogoutConfirm(false);
@@ -194,8 +207,27 @@ const Sidebar: React.FC<SidebarProps> = ({
             <h3 className="text-[#3b2063] font-black uppercase text-xl tracking-tight mb-2">Menu Locked</h3>
             <p className="text-zinc-500 text-sm font-medium mb-8 leading-relaxed px-2">Shift not started. Please input 'Cash In' first to initialize your drawer.</p>
             <div className="flex flex-col w-full gap-3">
-              <button onClick={() => { setShowCashInRequired(false); setCurrentTab('cash-in'); }} className="w-full py-4 bg-[#3b2063] text-white rounded-2xl font-black uppercase tracking-widest text-[11px] hover:bg-[#2a1647] transition-all active:scale-95 shadow-lg shadow-purple-100">Go to Cash In</button>
+              {/* FIXED: Uses openPosDropdownAndSetTab */}
+              <button onClick={() => { setShowCashInRequired(false); openPosDropdownAndSetTab('cash-in'); }} className="w-full py-4 bg-[#3b2063] text-white rounded-2xl font-black uppercase tracking-widest text-[11px] hover:bg-[#2a1647] transition-all active:scale-95 shadow-lg shadow-purple-100">Go to Cash In</button>
               <button onClick={() => setShowCashInRequired(false)} className="w-full py-4 bg-white text-zinc-400 border border-zinc-100 rounded-2xl font-black uppercase tracking-widest text-[11px] hover:bg-zinc-50 transition-all active:scale-95">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- Z-READING BLOCKED MODAL --- */}
+      {showZReadingBlockedModal && (
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-10 shadow-2xl border border-zinc-100 flex flex-col items-center text-center transition-all animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mb-6">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="#d97706" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            </div>
+            <h3 className="text-[#3b2063] font-black uppercase text-xl tracking-tight mb-2">EOD Required</h3>
+            <p className="text-zinc-500 text-sm font-medium mb-8 leading-relaxed px-2">You cannot generate a Z-Reading until the End of Day (EOD) Cash Count has been completed.</p>
+            <div className="flex flex-col w-full gap-3">
+              {/* FIXED: Uses openPosDropdownAndSetTab */}
+              <button onClick={() => { setShowZReadingBlockedModal(false); openPosDropdownAndSetTab('cash-count'); }} className="w-full py-4 bg-[#3b2063] text-white rounded-2xl font-black uppercase tracking-widest text-[11px] hover:bg-[#2a1647] transition-all active:scale-95 shadow-lg shadow-purple-100">Go to Cash Count</button>
+              <button onClick={() => setShowZReadingBlockedModal(false)} className="w-full py-4 bg-white text-zinc-400 border border-zinc-100 rounded-2xl font-black uppercase tracking-widest text-[11px] hover:bg-zinc-50 transition-all active:scale-95">Cancel</button>
             </div>
           </div>
         </div>
@@ -204,7 +236,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       {/* --- TERMINAL CLOSED MODAL (EOD DONE) --- */}
       {showEodLockedModal && (
         <div className="fixed inset-0 z-100 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="bg-white w-full max-sm rounded-[2.5rem] p-10 shadow-2xl border border-zinc-100 flex flex-col items-center text-center transition-all animate-in zoom-in-95 duration-200">
+          <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-10 shadow-2xl border border-zinc-100 flex flex-col items-center text-center transition-all animate-in zoom-in-95 duration-200">
             <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mb-6">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="#be2525" className="w-8 h-8"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.546 1.16 3.743 1.16 5.289 0m-5.289-8c1.546-1.159 3.743-1.159 5.289 0m-5.289 4h5.29" /></svg>
             </div>
@@ -278,16 +310,22 @@ const Sidebar: React.FC<SidebarProps> = ({
                             } else {
                               navigate('/pos');
                             }
+                          } else if (item.id === 'z-reading') {
+                            if (!isEodLocked) {
+                              setShowZReadingBlockedModal(true);
+                            } else {
+                              setCurrentTab(item.id);
+                            }
                           } else {
                             setCurrentTab(item.id);
                           }
                           if (window.innerWidth < 768) setSidebarOpen(false); 
                         }} 
                         className={`text-left px-4 py-2 rounded-xl text-[11px] font-bold uppercase tracking-wider transition-colors 
-                          ${item.id === 'menu' && (isMenuLocked || isEodLocked) ? 'opacity-40 grayscale cursor-not-allowed' : ''} 
+                          ${(item.id === 'menu' && (isMenuLocked || isEodLocked)) || (item.id === 'z-reading' && !isEodLocked) ? 'opacity-40 grayscale cursor-not-allowed' : ''} 
                           ${currentTab === item.id ? 'text-[#3b2063] bg-[#f0ebff]' : `text-zinc-400 ${hoverClasses}`}`}
                       >
-                        {item.label} {(item.id === 'menu' && (isMenuLocked || isEodLocked)) && '🔒'}
+                        {item.label} {(item.id === 'menu' && (isMenuLocked || isEodLocked)) && '🔒'} {(item.id === 'z-reading' && !isEodLocked) && '🔒'}
                       </button>
                     ))}
                   </div>
