@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import TopNavbar from '../TopNavbar';
+import { useToast } from '../../context/ToastContext';
 
 // Updated Mock Data: Barcodes fixed to AO1-AO20 and AB1-AB7
 const MOCK_MENU_DATA = [
@@ -260,13 +261,64 @@ const MOCK_MENU_DATA = [
   { id: 213, name: "HERSHEYS FRAPPE (L)", barcode: "HS1", category: "FRAPPE SERIES -> LARGE", unitCost: 59.00, sellingPrice: 130.00, totalCost: 0.00 },
   { id: 214, name: "RED VELVET FRAPPE (L)", barcode: "FSL3", category: "FRAPPE SERIES -> LARGE", unitCost: 61.00, sellingPrice: 130.00, totalCost: 0.00 },
   { id: 215, name: "SALTED CARAMEL FRAPPE (L)", barcode: "FSL6", category: "FRAPPE SERIES -> LARGE", unitCost: 59.00, sellingPrice: 130.00, totalCost: 0.00 },
-  { id: 216, name: "TARO FRAPPE (L)", barcode: "FSL1", category: "FRAPPE SERIES -> LARGE", unitCost: 63.00, sellingPrice: 130.00, totalCost: 0.00 },
+  { id: 216, name: "TARO FRAPPE (L)", barcode: "FSL1", category: "FRAPPE SERIES -> LARGE", unitCost: 63.00, sellingPrice: 130.00, totalCost: 0.00 }
 ];
 
-  
 function MenuList() {
+  const { showToast } = useToast();
   const [filterName, setFilterName] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
+  // ... rest of the code remains the same ...
+  const [newItem, setNewItem] = useState({
+    name: '',
+    barcode: '',
+    category: '',
+    unitCost: '',
+    sellingPrice: '',
+    totalCost: ''
+  });
+
+  const handleAddItem = () => {
+    setShowAddModal(true);
+  };
+
+  const handleAddItemSubmit = (e: { preventDefault: () => void; }) => {
+    e.preventDefault();
+    
+    // Validation
+    if (!newItem.name || !newItem.barcode || !newItem.category) {
+      showToast('Please fill in all required fields', 'error');
+      return;
+    }
+    
+    // Add new item to MOCK_MENU_DATA
+    const itemToAdd = {
+      id: Math.max(...MOCK_MENU_DATA.map(item => item.id)) + 1,
+      name: newItem.name,
+      barcode: newItem.barcode,
+      category: newItem.category,
+      unitCost: parseFloat(newItem.unitCost) || 0,
+      sellingPrice: parseFloat(newItem.sellingPrice) || 0,
+      totalCost: parseFloat(newItem.totalCost) || 0
+    };
+    MOCK_MENU_DATA.push(itemToAdd);
+    showToast(`Item "${itemToAdd.name}" has been added successfully`, 'success');
+    setShowAddModal(false);
+    setNewItem({
+      name: '',
+      barcode: '',
+      category: '',
+      unitCost: '',
+      sellingPrice: '',
+      totalCost: ''
+    });
+  };
+
+  const handleAddItemChange = (e: { target: { name: string; value: string } }) => {
+    const { name, value } = e.target;
+    setNewItem({ ...newItem, [name]: value });
+  };
 
   // Extract unique categories for the dropdown and sort them
   const categories = [...new Set(MOCK_MENU_DATA.map(item => item.category.trim()))].sort();
@@ -355,10 +407,10 @@ function MenuList() {
 
             {/* Action Buttons */}
             <div className="flex gap-2 w-full xl:w-auto">
-              <button className="flex-1 xl:flex-none px-6 h-10 bg-[#1e40af] text-white rounded-md font-bold uppercase text-[10px] tracking-widest hover:bg-[#1e3a8a] shadow-sm transition-all flex items-center justify-center min-w-[100px]">
+              <button className="flex-1 xl:flex-none px-6 h-10 bg-[#3b2063] text-white rounded-md font-bold uppercase text-[10px] tracking-widest hover:bg-[#2a1745] shadow-sm transition-all flex items-center justify-center min-w-[100px]">
                 SEARCH
               </button>
-              <button className="flex-1 xl:flex-none px-6 h-10 bg-emerald-500 text-white rounded-md font-bold uppercase text-[10px] tracking-widest hover:bg-emerald-600 shadow-sm transition-all flex items-center justify-center min-w-[100px]">
+              <button className="flex-1 xl:flex-none px-6 h-10 bg-[#3b2063] text-white rounded-md font-bold uppercase text-[10px] tracking-widest hover:bg-[#2a1745] shadow-sm transition-all flex items-center justify-center min-w-[100px]" onClick={handleAddItem}>
                 ADD ITEM
               </button>
             </div>
@@ -366,14 +418,134 @@ function MenuList() {
           </div>
         </div>
 
+        {/* === ADD ITEM MODAL === */}
+        {showAddModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+            <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+              {/* Modal Header */}
+              <div className="bg-[#3b2063] px-6 py-4 flex justify-between items-center">
+                <h2 className="text-white font-black text-xs uppercase tracking-[0.2em]">Add New Item</h2>
+                <button 
+                  onClick={() => setShowAddModal(false)}
+                  className="text-white/70 hover:text-white transition-colors"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2 block">Item Name</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={newItem.name}
+                    onChange={handleAddItemChange}
+                    className="w-full px-4 py-3 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 h-10"
+                    placeholder="Enter item name"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2 block">Barcode</label>
+                  <input
+                    type="text"
+                    name="barcode"
+                    value={newItem.barcode}
+                    onChange={handleAddItemChange}
+                    className="w-full px-4 py-3 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 h-10"
+                    placeholder="Enter barcode"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2 block">Category</label>
+                  <select
+                    name="category"
+                    value={newItem.category}
+                    onChange={handleAddItemChange}
+                    className="w-full px-4 py-3 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 h-10 cursor-pointer"
+                  >
+                    <option value="">Select Category</option>
+                    {categories.map((cat, index) => (
+                      <option key={index} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2 block">Unit Cost</label>
+                  <input
+                    type="number"
+                    name="unitCost"
+                    value={newItem.unitCost}
+                    onChange={handleAddItemChange}
+                    className="w-full px-4 py-3 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 h-10"
+                    placeholder="Enter unit cost"
+                    step="0.01"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2 block">Selling Price</label>
+                  <input
+                    type="number"
+                    name="sellingPrice"
+                    value={newItem.sellingPrice}
+                    onChange={handleAddItemChange}
+                    className="w-full px-4 py-3 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 h-10"
+                    placeholder="Enter selling price"
+                    step="0.01"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-2 block">Total Cost</label>
+                  <input
+                    type="number"
+                    name="totalCost"
+                    value={newItem.totalCost}
+                    onChange={handleAddItemChange}
+                    className="w-full px-4 py-3 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 h-10"
+                    placeholder="Enter total cost"
+                    step="0.01"
+                  />
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="flex gap-3 px-6 pb-6">
+                <button 
+                  onClick={handleAddItemSubmit}
+                  className="flex-1 bg-[#3b2063] hover:bg-[#2a1745] text-white py-3 rounded-lg font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 shadow-md transition-all"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                  </svg>
+                  Add Item
+                </button>
+                <button 
+                  onClick={() => setShowAddModal(false)}
+                  className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-500 py-3 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-2">
-          <button className="px-6 py-2 bg-[#1e40af] text-white rounded-md font-bold uppercase text-[10px] tracking-widest hover:bg-[#1e3a8a] shadow-sm transition-all">
+          <button className="px-6 py-2 bg-[#3b2063] text-white rounded-md font-bold uppercase text-[10px] tracking-widest hover:bg-[#2a1745] shadow-sm transition-all">
             PRINT
           </button>
-          <button className="px-6 py-2 bg-[#1e40af] text-white rounded-md font-bold uppercase text-[10px] tracking-widest hover:bg-[#1e3a8a] shadow-sm transition-all">
+          <button className="px-6 py-2 bg-[#3b2063] text-white rounded-md font-bold uppercase text-[10px] tracking-widest hover:bg-[#2a1745] shadow-sm transition-all">
             LIST WITH KITS
           </button>
-          <button className="px-6 py-2 bg-[#1e40af] text-white rounded-md font-bold uppercase text-[10px] tracking-widest hover:bg-[#1e3a8a] shadow-sm transition-all">
+          <button className="px-6 py-2 bg-[#3b2063] text-white rounded-md font-bold uppercase text-[10px] tracking-widest hover:bg-[#2a1745] shadow-sm transition-all">
             LIST W/O KITS
           </button>
         </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import TopNavbar from '../TopNavbar';
 import { ArrowLeft, Ticket, Plus, Printer, X, Save, Upload, FileText } from 'lucide-react';
+import { useToast } from '../../context/ToastContext';
 
 interface Voucher {
   id: number;
@@ -13,6 +14,7 @@ interface Voucher {
 }
 
 const AddVouchers = ({ onBack }: { onBack: () => void }) => {
+  const { showToast } = useToast();
   const [isModalOpen, setIsModalOpen] = useState(false);
   
   // --- STATE WITH NEW DATA STRUCTURE ---
@@ -45,7 +47,10 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
   });
 
   const handleAddVoucher = () => {
-    if (!newVoucher.number || !newVoucher.value) return;
+    if (!newVoucher.number || !newVoucher.value) {
+      showToast('Please fill in all required fields', 'error');
+      return;
+    }
 
     const entry: Voucher = {
       id: Date.now(),
@@ -60,11 +65,12 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
     setVouchers([entry, ...vouchers]);
     setNewVoucher({ number: '', value: '', type: 'Percentage' });
     setIsModalOpen(false);
+    showToast(`Voucher "${entry.code}" has been added successfully`, 'success');
   };
 
   const handleImport = () => {
     // Placeholder for import logic
-    alert("Import functionality would open file picker here.");
+    showToast('Import functionality is not yet implemented', 'error');
   };
 
   return (
@@ -86,14 +92,14 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
           
           <div className="flex gap-2">
             {/* PRINT BUTTON */}
-            <button className="px-6 py-2.5 bg-[#1e40af] text-white rounded-lg font-black text-[10px] uppercase tracking-widest hover:bg-[#1e3a8a] flex items-center gap-2 shadow-lg transition-all active:scale-95">
+            <button className="px-6 py-2.5 bg-[#3b2063] text-white rounded-lg font-black text-[10px] uppercase tracking-widest hover:bg-[#291645] flex items-center gap-2 shadow-lg transition-all active:scale-95">
               <Printer size={14} strokeWidth={3} /> Print Vouchers
             </button>
             
             {/* ADD BUTTON */}
             <button 
               onClick={() => setIsModalOpen(true)}
-              className="px-6 py-2.5 bg-[#10b981] text-white rounded-lg font-black text-[10px] uppercase tracking-widest hover:bg-[#059669] flex items-center gap-2 shadow-lg transition-all active:scale-95"
+              className="px-6 py-2.5 bg-[#3b2063] text-white rounded-lg font-black text-[10px] uppercase tracking-widest hover:bg-[#291645] flex items-center gap-2 shadow-lg transition-all active:scale-95"
             >
               <Plus size={14} strokeWidth={3} /> Add Vouchers
             </button>
@@ -200,7 +206,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
               <div className="flex flex-col gap-3 pt-4">
                 <button 
                   onClick={handleAddVoucher}
-                  className="w-full bg-[#10b981] hover:bg-[#059669] text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
+                  className="w-full bg-[#3b2063] hover:bg-[#291645] text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
                 >
                   <Save size={14} /> Add New
                 </button>
@@ -214,7 +220,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
                   </button>
                   <button 
                     onClick={handleImport}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+                    className="flex-1 bg-[#3b2063] hover:bg-[#291645] text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
                   >
                     <Upload size={14} /> Import
                   </button>

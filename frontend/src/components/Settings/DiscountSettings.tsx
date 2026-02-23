@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import TopNavbar from '../TopNavbar';
 import { Plus, Search, Trash2, ArrowLeft, Save, X } from 'lucide-react';
+import { useToast } from '../../context/ToastContext';
 
 interface DiscountSettingsProps {
   onBack: () => void;
@@ -15,6 +16,7 @@ interface DiscountItem {
 }
 
 const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
+  const { showToast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -44,7 +46,10 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
   });
 
   const handleSave = () => {
-    if (!newDiscount.name || !newDiscount.amount) return;
+    if (!newDiscount.name || !newDiscount.amount) {
+      showToast('Please fill in all required fields', 'error');
+      return;
+    }
 
     const entry: DiscountItem = {
       id: Date.now(),
@@ -57,24 +62,31 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
     setDiscounts([entry, ...discounts]); // Add to top of list
     setNewDiscount({ name: '', amount: '', type: 'Global-Percent' }); // Reset
     setIsModalOpen(false); // Close modal
+    showToast(`Discount "${entry.name}" has been created successfully`, 'success');
   };
 
   const handleStatusToggle = (discount: DiscountItem) => {
     setSelectedDiscount(discount);
     setIsConfirmModalOpen(true);
+    
   };
 
   const confirmStatusToggle = () => {
     if (!selectedDiscount) return;
     
+    const newStatus = selectedDiscount.status === 'ON' ? 'OFF' : 'ON';
+    
     setDiscounts(discounts.map(d => 
       d.id === selectedDiscount.id 
-        ? { ...d, status: d.status === 'ON' ? 'OFF' : 'ON' } 
+        ? { ...d, status: newStatus } 
         : d
     ));
     
     setIsConfirmModalOpen(false);
     setSelectedDiscount(null);
+    
+    const completedAction = newStatus === 'ON' ? 'activated' : 'deactivated';
+    showToast(`Discount "${selectedDiscount.name}" has been ${completedAction}`, newStatus === 'ON' ? 'success' : 'error');
   };
 
   const cancelStatusToggle = () => {
@@ -96,6 +108,8 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
     setDiscounts(discounts.filter(d => d.id !== discountToDelete.id));
     setIsDeleteConfirmOpen(false);
     setDiscountToDelete(null);
+    
+    showToast(`Discount "${discountToDelete.name}" has been deleted successfully`, 'error');
   };
 
   const cancelDelete = () => {
@@ -191,8 +205,9 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
                     <td className="px-4 py-4 text-center">
                       <button 
                         onClick={() => handleDeleteClick(discount)}
-                        className="bg-red-600 hover:bg-red-700 text-white p-2 rounded-lg transition-colors shadow-sm active:scale-95 mx-auto flex items-center justify-center">
-                        <Trash2 size={14} />
+                        className="px-3 py-1 bg-transparent text-red-500 text-xs font-medium rounded hover:bg-zinc-200 transition-colors"
+                      >
+                        <Trash2 className="w-5 h-5" />
                       </button>
                     </td>
                   </tr>
