@@ -79,8 +79,14 @@ public function itemsReport(Request $request)
 
         try {
             $report = $this->salesService->getXReading($request->date);
+            
+            // SAFELY EXTRACT LOGGED-IN USER FROM SANCTUM
+            $user = auth('sanctum')->user() ?? $request->user();
+            $report['prepared_by'] = $user ? $user->name : 'System Admin';
+
             return response()->json($report);
         } catch (\Exception $e) {
+            \Log::error("X-Reading Error: " . $e->getMessage());
             return response()->json(['message' => 'Error generating X-Reading'], 500);
         }
     }
@@ -92,7 +98,9 @@ public function itemsReport(Request $request)
         try {
             $report = $this->salesService->generateZReading($request->date);
 
-            // CHANGE: Use array syntax $report['key'] instead of object syntax $report->key
+            // SAFELY EXTRACT LOGGED-IN USER FROM SANCTUM
+            $user = auth('sanctum')->user() ?? $request->user();
+
             return response()->json([
                 'reading_date'      => $report['reading_date'] ?? $request->date,
                 'gross_sales'       => (float)($report['gross_sales'] ?? 0),
@@ -101,6 +109,7 @@ public function itemsReport(Request $request)
                 'cash_total'        => (float)($report['cash_total'] ?? 0),
                 'non_cash_total'    => (float)($report['non_cash_total'] ?? 0),
                 'generated_at'      => $report['generated_at'] ?? now()->toDateTimeString(),
+                'prepared_by'       => $user ? $user->name : 'System Admin' // <-- Add this line
             ]);
         } catch (\Exception $e) {
             Log::error("Z-Reading Error: " . $e->getMessage());

@@ -19,6 +19,9 @@ const DrinkIcon = ({ className }: { className?: string }) => (
     </svg>
 );
 
+// Helper to generate a random 10-digit OR number (or sequential if coming from backend)
+const generateORNumber = () => String(Math.floor(Math.random() * 10000000) + 22253).padStart(10, '0');
+
 const SalesOrder = () => {
     const navigate = useNavigate();
     const { showToast } = useToast();
@@ -39,9 +42,8 @@ const SalesOrder = () => {
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [qty, setQty] = useState(1);
     const [remarks, setRemarks] = useState('');
-
-    // ── CHANGE 1: Replace per-item `charges` state with a single ORDER-LEVEL charge ──
-    // null = walk-in, 'grab' = entire order is GrabFood, 'panda' = entire order is FoodPanda
+    
+    const [orNumber, setOrNumber] = useState(generateORNumber());
     const [orderCharge, setOrderCharge] = useState<'grab' | 'panda' | null>(null);
 
     const [sugarLevel, setSugarLevel] = useState('100%');
@@ -97,8 +99,11 @@ const SalesOrder = () => {
     const isOz = selectedCategory?.name === "HOT DRINKS" || selectedCategory?.name === "HOT COFFEE";
 
     const getAddOnsSinkers = () => categories.find(c => c.name === "Add Ons Sinkers")?.menu_items || [];
-    const formatDate = (date: Date) => date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-    const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    
+    // Formatting matching the official receipt look
+    const formattedDate = currentDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+    const formattedTime = currentDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    
     const handleNavClick = (label: string) => { if (label === 'Home') navigate('/dashboard'); };
     const handleCategoryClick = (cat: Category) => { setSelectedCategory(cat); setCategorySize(null); };
     const handleBack = () => {
@@ -106,7 +111,6 @@ const SalesOrder = () => {
         else setSelectedCategory(null);
     };
 
-    // ── CHANGE 2: handleItemClick no longer sets charges per-item (orderCharge handles it) ──
     const handleItemClick = (item: MenuItem) => {
         setSelectedItem(item);
         setQty(1);
@@ -121,11 +125,9 @@ const SalesOrder = () => {
     const closeModal = () => { setSelectedItem(null); setIsAddOnModalOpen(false); };
     const adjustQty = (delta: number) => setQty(prev => Math.max(1, prev + delta));
 
-    // ── CHANGE 3: toggleOrderCharge — sets charge for ENTIRE order + updates existing cart items ──
     const toggleOrderCharge = (type: 'grab' | 'panda') => {
         const next = orderCharge === type ? null : type;
         setOrderCharge(next);
-        // Retroactively update ALL existing cart items
         setCart(prevCart => prevCart.map(item => {
             const hadCharge = item.charges.grab || item.charges.panda;
             const baseFinalPrice = hadCharge ? item.finalPrice - (10 * item.qty) : item.finalPrice;
@@ -156,12 +158,11 @@ const SalesOrder = () => {
     const toggleAddOn = (addOnName: string) =>
         setSelectedAddOns(prev => prev.includes(addOnName) ? prev.filter(a => a !== addOnName) : [...prev, addOnName]);
 
-    // ── CHANGE 4: addToOrder uses orderCharge instead of per-item charges ──
     const addToOrder = () => {
         if (!selectedItem || !selectedCategory) return;
         let basePrice = Number(selectedItem.price);
         let extraCost = 0;
-        if (orderCharge) extraCost += 10; // auto-apply order-level charge
+        if (orderCharge) extraCost += 10;
         if (isDrink && size === 'L') extraCost += 20;
         if (isWings && categorySize) {
             const pricing: Record<string, number> = { '3pc': 100, '4pc': 120, '6pc': 195, '12pc': 390 };
@@ -194,7 +195,7 @@ const SalesOrder = () => {
         const itemToRemove = cart[index];
         const newCart = cart.filter((_, i) => i !== index);
         setCart(newCart);
-        if (newCart.length === 0) setOrderCharge(null); // clear charge when cart empties
+        if (newCart.length === 0) setOrderCharge(null);
         showToast(`${itemToRemove.name} removed from order`, 'warning');
     };
 
@@ -249,9 +250,11 @@ const SalesOrder = () => {
                 console.error("Failed to update local stats", e);
             }
 
+            // Print then clear the cart and generate the NEXT receipt number
             window.print();
             setCart([]);
             setOrderCharge(null);
+            setOrNumber(generateORNumber());
             setIsConfirmModalOpen(false);
             showToast('Order confirmed and receipt printed!', 'success');
         } catch (error) {
@@ -265,9 +268,10 @@ const SalesOrder = () => {
 
     const subtotal = cart.reduce((acc, item) => acc + item.finalPrice, 0);
     const totalCount = cart.reduce((acc, item) => acc + item.qty, 0);
-    const mediumDrinks = cart.filter(item => item.size === 'M');
-    const largeDrinks = cart.filter(item => item.size === 'L');
-    const otherItems = cart.filter(item => !item.size);
+    
+    // VAT Calculations
+    const vatableSales = subtotal / 1.12;
+    const vatAmount = subtotal - vatableSales;
 
     const filteredCategories = categories.map(cat => ({
         ...cat,
@@ -282,31 +286,81 @@ const SalesOrder = () => {
 
     return (
         <>
-            <style>
-                {`@media print {
-                    @page { size: 80mm auto; margin: 0; }
-                    html, body { width: 80mm; margin: 0; padding: 0; }
-                    body * { visibility: hidden; }
-                    .printable-receipt-container, .printable-receipt-container * { visibility: visible; }
-                    .printable-receipt-container {
-                        position: absolute; left: 0; top: 0; width: 100%;
-                        margin: 0; padding: 5mm 4mm; box-sizing: border-box;
-                        background: white; color: black;
-                        font-family: 'Courier New', Courier, monospace;
-                        font-size: 11px; font-weight: 600; line-height: 1.2;
-                    }
-                    .receipt-header { text-align: center; margin-bottom: 8px; border-bottom: 1px dashed black; padding-bottom: 5px; }
-                    .receipt-header h1 { font-size: 16px; margin: 0; font-weight: 800; }
-                    .receipt-header p { margin: 0; font-size: 10px; }
-                    .group-header { font-weight: 800; border-bottom: 1px solid black; margin: 8px 0 2px 0; font-size: 10px; text-transform: uppercase; }
-                    .item-row { display: flex; justify-content: space-between; margin-bottom: 2px; font-weight: 700; }
-                    .modifier-row { display: flex; justify-content: space-between; font-size: 10px; padding-left: 8px; color: #000; font-weight: normal; }
-                    .total-section { border-top: 2px dashed black; margin-top: 10px; padding-top: 5px; font-weight: 900; font-size: 14px; }
-                    .total-section .item-row { margin-bottom: 0; }
-                    .footer-text { text-align: center; font-size: 9px; margin-top: 15px; padding-top: 5px; border-top: 1px dashed black; font-style: italic; }
-                }`}
-            </style>
+<style>
+    {`
+        /* ── Screen-only helpers ── */
+        .flex-between { display: flex; justify-content: space-between; width: 100%; align-items: flex-end; }
+        .receipt-divider { border-top: 1px dashed #000; margin: 6px 0; width: 100%; display: block; }
 
+        /* ── Print styles ── */
+        @media print {
+            @page { 
+                margin: 0; 
+            }
+
+            body * { visibility: hidden; }
+            nav, header, aside, button, .print\\:hidden { display: none !important; }
+
+            html, body {
+                /* Keep canvas size to the driver's max, but shrink content */
+                width: 70mm !important; 
+                margin: 0 !important;
+                padding: 0 !important;
+                background: white !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                height: auto !important; 
+            }
+
+            .printable-receipt-container, .printable-receipt-container * { visibility: visible !important; }
+            
+            .printable-receipt-container {
+                position: absolute !important;
+                top: 0 !important; 
+                left: 0 !important;
+                width: 100% !important; 
+                margin: 0 !important;
+                padding: 0 !important;
+                height: auto !important; 
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            .receipt-area {
+                /* Shrink the content box to 65mm to prevent right-side clipping */
+                width: 65mm !important; 
+                max-width: 65mm !important;
+                /* Add a little extra padding on the right for safety (Top Right Bottom Left) */
+                padding: 4mm 4mm 15mm 2mm !important;
+                margin: 0 !important;
+                box-sizing: border-box !important;
+                background: white !important;
+                color: #000 !important;
+                font-family: Arial, Helvetica, sans-serif !important;
+                font-size: 11px !important;
+                line-height: 1.35 !important;
+                box-shadow: none !important;
+                border: none !important;
+                border-radius: 0 !important;
+                height: auto !important; 
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            p, div, tr, td, th, span {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
+            .flex-between {
+                display: flex !important;
+                justify-content: space-between !important;
+                width: 100% !important;
+                align-items: flex-end !important;
+            }
+        }
+    `}
+</style>
             <div className="flex flex-col h-screen w-screen bg-[#f8f6ff] relative overflow-hidden font-sans print:hidden">
                 
                 {/* ── MODAL: ITEM SELECTION ── */}
@@ -557,8 +611,8 @@ const SalesOrder = () => {
                         <div className="flex-1 bg-white border border-zinc-100 rounded-xl flex items-center justify-center text-[#3b2063] font-black uppercase text-[10px]">Main Branch - QC</div>
                         <div className="flex-1 bg-[#3b2063] rounded-xl flex items-center justify-center text-white text-center">
                             <div>
-                                <div className="text-[10px] font-bold uppercase leading-none opacity-80">{formatDate(currentDate)}</div>
-                                <div className="text-sm font-black leading-none">{formatTime(currentDate)}</div>
+                                <div className="text-[10px] font-bold uppercase leading-none opacity-80">{formattedDate}</div>
+                                <div className="text-sm font-black leading-none">{formattedTime}</div>
                             </div>
                         </div>
                     </div>
@@ -631,7 +685,6 @@ const SalesOrder = () => {
                     <div className="w-96 bg-white border-l border-zinc-200 flex flex-col shrink-0 shadow-2xl z-30">
                         <div className="bg-zinc-50 border-b border-zinc-200 p-4 text-center">
                             <h2 className="text-[#3b2063] font-black uppercase text-xs">Current Order</h2>
-                            {/* Order-level charge badge in cart header */}
                             {orderCharge && (
                                 <div className={`mt-2 inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black ${orderCharge === 'grab' ? 'bg-green-100 text-green-700' : 'bg-pink-100 text-pink-700'}`}>
                                     {orderCharge === 'grab' ? 'GrabFood Order' : 'FoodPanda Order'}
@@ -649,7 +702,6 @@ const SalesOrder = () => {
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-1.5 flex-wrap">
                                                     <p className="font-bold text-xs text-[#3b2063]">{item.name}</p>
-                                                    {/* ✅ ALL items show the icon based on orderCharge (not per-item) */}
                                                     {orderCharge === 'grab' && (
                                                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="8" viewBox="0 0 522.6 201.3" className="shrink-0" aria-hidden>
                                                             <path fill="#00b45e" d="M415.9 63.4V0h13v54.5c-3.6 1.8-8.5 5.2-13 8.9zm-22.6 19.1c4-4.8 8.1-9.6 13-13.7V0h-13v82.5zm-150.6 50.4c0 16.9 6.7 33 19 45.3 12.2 12.2 28.3 19 45.3 19 7.2 0 14.6-1.5 19.8-4.1v-13c-6.1 2.6-13.5 4.1-19.8 4.1-27.8 0-51.2-23.4-51.2-51.2v-11.7c0-27.8 23.5-51.2 51.2-51.2 13.8 0 26.7 5.3 36.3 14.9 9.6 9.6 14.9 22.5 14.9 36.3v76h13v-78.5c-.8-16.6-7.9-32.1-19.9-43.7-12.1-11.6-27.8-18-44.3-18-16.9 0-33 6.7-45.3 19-12.2 12.2-19 28.3-19 45.3v11.5zm194.6-31.2c5.9-5.9 13.5-9.2 21-9.2 16.1 0 28.6 12.6 28.6 28.6v11.7c0 16.1-12.6 28.6-28.6 28.6-7.8 0-15.3-4.3-21.2-12-5.2-6.8-8.6-16.1-9.1-24.4l-10.5 13c2.1 9.8 7.2 19.3 14.5 25.9 7.5 6.8 16.9 10.6 26.3 10.6 23 0 41.7-18.7 41.7-41.6v-11.7c0-10.9-4.4-21.3-12.4-29.2-8-8-18.4-12.4-29.3-12.4-6.9 0-17.8 2.5-30.8 14.2-3.5 3.5-11.7 11.7-16.7 17.5-8.4 9.2-20.5 22.9-30.9 36.8v20.3c11.5-14.8 18.1-23.1 29-35.6 9.6-11.4 21.6-25.1 28.4-31.1zM130.1 77.2V61.8c-11.8-6.3-24.6-9.1-41.6-9.1-17.4 0-33.9 6.4-46.4 17.9-12.6 11.6-19.5 26.8-19.5 43v4.2c0 33.6 26.9 60.9 60.1 60.9 26.9 0 38-8.8 40.8-11.6V128h-44v13h31.8v19.6h-.1c-4.1 1.6-12.6 5-28.5 5-12.6 0-24.5-4.9-33.3-13.9-8.9-9-13.7-21-13.7-34v-4.2c0-25.9 24.2-47.9 52.9-47.9 19.7.1 31.5 3.4 41.5 11.6zm94.8 15.3c4.9 0 9.1.8 12.5 2.4 1.6-4 3.3-7.4 5.7-11.4-3.5-2.5-12-4.1-18.2-4.1-23.7 0-41.6 17.9-41.6 41.7v76h13v-76c0-16.8 11.7-28.6 28.6-28.6zM0 113.6v4.2c0 22.6 8.6 43.6 24.1 59.3 15.5 15.6 36.3 24.2 58.5 24.2 17.9 0 33.7-4 47.1-12 11-6.6 15.9-13.2 16.3-13.8v-70H79.5v13H133v53.1c-6.3 6.3-21.2 16.8-50.3 16.8-19 0-36.6-7.3-49.6-20.5-12.9-13.1-20-30.9-20-50v-4.2c0-18.1 8.1-36.1 22.3-49.4 14.5-13.6 33.4-21.1 53.2-21.1 18.5 0 31.3 2.8 41.6 9.1V37.6C119.4 33 106.5 31 88.5 31 40.5 31 0 68.8 0 113.6zm348.5 83.5v-76c0-23.4-18.3-41.7-41.7-41.7-10.9 0-21.3 4.4-29.3 12.4s-12.4 18.4-12.4 29.2v11.7c0 22.6 19.1 41.6 41.6 41.6 6.2 0 14.6-1.5 19.8-5.8V155c-5.1 4.1-12.4 6.5-19.8 6.5-16 0-28.6-12.6-28.6-28.6v-11.7c0-16.1 12.6-28.6 28.6-28.6 16.1 0 28.6 12.6 28.6 28.6v76h13.2zM224.9 69.9c8.8 0 16.5 1.9 23.4 5.8 3.2-4.1 6.5-7.3 9-9.8-7.3-5.6-19.7-9-32.3-9-18.1 0-34.5 6.5-46.2 18.4-11.6 11.7-18 28-18 45.9v76h13v-76c-.1-30.2 20.9-51.3 51.1-51.3zm278.7 6c-12.2-12.2-28.3-19-45.3-19-12.4 0-24.8 4.6-31.7 9.2-14.2 9.4-25.8 19.7-46.8 46.8v19.5c17.8-23.2 34.6-41.4 47.4-51.5 8.4-6.7 20.3-10.9 31.1-10.9 27.8 0 51.2 23.5 51.2 51.2v11.7c0 13.7-5.4 26.6-15.2 36.3-9.7 9.6-22.5 14.9-36 14.9-22.8 0-42.9-15.7-48.3-37l-9.2 11.1c6.7 22.4 30.9 38.9 57.5 38.9 17 0 33-6.8 45.3-19 12.2-12.3 19-28.3 19-45.3v-11.7c0-16.9-6.8-33-19-45.2z"/>
@@ -716,54 +768,93 @@ const SalesOrder = () => {
                 </div>
             </div>
 
-            {/* ── PRINTABLE RECEIPT ── */}
+            {/* ── PRINTABLE CUSTOMER RECEIPT (BIR STYLE) ── */}
             <div className="printable-receipt-container hidden print:block">
-                <div className="receipt-header">
-                    <h1>LUCKY BOBA</h1>
-                    <p>Main Branch - Quezon City</p>
-                    <p>{formatDate(currentDate)} | {formatTime(currentDate)}</p>
-                    <p>Cashier: {cashierName ?? 'Admin'}</p>
-                    {orderCharge && <p style={{fontWeight:900}}>[ {orderCharge === 'grab' ? 'GRABFOOD' : 'FOODPANDA'} ORDER ]</p>}
-                </div>
-                <div className="receipt-body">
-                    {mediumDrinks.length > 0 && (
-                        <div>
-                            <div className="group-header">Medium Drinks</div>
-                            {mediumDrinks.map((item, i) => (
-                                <div key={i} style={{ marginBottom: '4px' }}>
-                                    <div className="item-row"><span>{item.qty}x {item.name}</span><span>{item.finalPrice.toFixed(2)}</span></div>
-                                    {item.sugarLevel != null && <div className="modifier-row">• Sugar {item.sugarLevel}</div>}
-                                    {item.options?.map(o => <div key={o} className="modifier-row">• {o}</div>)}
+                <div className="receipt-area bg-white w-full max-w-[65mm] p-4 text-slate-800" style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
+
+                    {/* Store Header */}
+                    <div className="text-center">
+                        <h1 className="uppercase leading-tight" style={{ fontWeight: 700, fontSize: '24px' }}>
+                            LUCKY BOBA MILKTEA<br />FOOD AND BEVERAGE<br />TRADING
+                        </h1>
+                        <p style={{ fontWeight: 500, fontSize: '17px', marginTop: '4px' }}>Quezon City</p>
+                        
+                        <h2 style={{ fontWeight: 800, fontSize: '17px', margin: '8px 0' }}>
+                            OR # {orNumber}
+                        </h2>
+                        
+                        <p style={{ fontWeight: 500, fontSize: '13px', marginBottom: '8px' }}>
+                            {formattedDate} {formattedTime}
+                        </p>
+                    </div>
+
+                    {/* Meta details - Changed to weight 500 (Medium) */}
+                    <div className="text-[12px] space-y-0.5 mb-2" style={{ fontWeight: 500 }}>
+                        <div className="flex-between"><span># 1</span><span>Total Guests: 1</span></div>
+                        <div className="flex-between"><span>Regular: 1</span><span>Senior: 0</span></div>
+                        <div className="flex-between"><span>PWD: 0</span><span>Diplomat: 0</span></div>
+                        <div className="mt-1">Cashier: {cashierName ?? 'Admin'}</div>
+                        {orderCharge && (
+                            <div className="mt-1">Order Type: {orderCharge === 'grab' ? 'GRABFOOD' : 'FOODPANDA'}</div>
+                        )}
+                    </div>
+
+                    {/* Items List - Changed to weight 500 (Medium) */}
+                    <div className="mt-2 mb-2 text-[12px]" style={{ fontWeight: 500 }}>
+                        {cart.map((item, i) => (
+                            <div key={i} className="mb-1">
+                                <div className="uppercase" style={{ fontWeight: 600 }}>{item.name} {item.size ? `(${item.size})` : ''}</div>
+                                <div className="flex-between">
+                                    <span>{item.qty} X {(item.finalPrice / item.qty).toFixed(2)}</span>
+                                    <span>{item.finalPrice.toFixed(2)}</span>
                                 </div>
-                            ))}
+                                {item.sugarLevel != null && <div className="pl-2 text-[10px] opacity-120">• Sugar {item.sugarLevel}</div>}
+                                {item.options?.map(o => <div key={o} className="pl-2 text-[10px] opacity-120">• {o}</div>)}
+                                {item.addOns?.map(a => <div key={a} className="pl-2 text-[10px] opacity-120">• + {a}</div>)}
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* Subtotals & Totals */}
+                    <div className="text-[12px] space-y-0.5 border-t border-dashed border-black pt-2" style={{ fontWeight: 500 }}>
+                        <div className="flex-between"><span>Total Items</span><span>{totalCount}</span></div>
+                        <div className="flex-between"><span>Sub Total</span><span>{subtotal.toFixed(2)}</span></div>
+                        <div className="flex-between"><span>Service Charge</span><span>0.00</span></div>
+                        <div className="flex-between text-[15px] mt-1" style={{ fontWeight: 800 }}>
+                            <span>TOTAL</span><span>{subtotal.toFixed(2)}</span>
                         </div>
-                    )}
-                    {largeDrinks.length > 0 && (
-                        <div>
-                            <div className="group-header">Large Drinks</div>
-                            {largeDrinks.map((item, i) => (
-                                <div key={i} style={{ marginBottom: '4px' }}>
-                                    <div className="item-row"><span>{item.qty}x {item.name}</span><span>{item.finalPrice.toFixed(2)}</span></div>
-                                    {item.sugarLevel != null && <div className="modifier-row">• Sugar {item.sugarLevel}</div>}
-                                    {item.options?.map(o => <div key={o} className="modifier-row">• {o}</div>)}
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                    {otherItems.length > 0 && (
-                        <div>
-                            <div className="group-header">Food & Others</div>
-                            {otherItems.map((item, i) => (
-                                <div key={i} className="item-row"><span>{item.qty}x {item.name}</span><span>{item.finalPrice.toFixed(2)}</span></div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-                <div className="total-section">
-                    <div className="item-row"><span>TOTAL</span><span>₱ {subtotal.toFixed(2)}</span></div>
-                </div>
-                <div className="footer-text">
-                    Thank you for ordering!<br />Follow us @LuckyBoba
+                    </div>
+
+                    {/* Tendered Breakdown */}
+                    <div className="text-[12px] mt-2 space-y-0.5" style={{ fontWeight: 500 }}>
+                        <div>Tendered:</div>
+                        <div className="flex-between pl-2"><span>Amount</span><span>{subtotal.toFixed(2)}</span></div>
+                        <div className="flex-between pl-2"><span>Type</span><span>CASH</span></div>
+                    </div>
+
+                    {/* VAT Info */}
+                    <div className="text-[11px] mt-2 space-y-0.5" style={{ fontWeight: 500 }}>
+                        <div className="flex-between"><span>VATable Sales(V)</span><span>{vatableSales.toFixed(2)}</span></div>
+                        <div className="flex-between"><span>VAT Amount</span><span>{vatAmount.toFixed(2)}</span></div>
+                        <div className="flex-between"><span>VAT Exempt Sales(E)</span><span>0.00</span></div>
+                        <div className="flex-between"><span>Zero-Rated Sales(Z)</span><span>0.00</span></div>
+                    </div>
+
+                    {/* Customer Info Form */}
+                    <div className="text-[12px] mt-4 space-y-1" style={{ fontWeight: 500 }}>
+                        <div className="flex justify-between items-end"><span>Name:</span><span className="border-b border-black w-[70%]"></span></div>
+                        <div className="flex justify-between items-end"><span>TIN/ID/SC:</span><span className="border-b border-black w-[70%]"></span></div>
+                        <div className="flex justify-between items-end"><span>Address:</span><span className="border-b border-black w-[70%]"></span></div>
+                        <div className="flex justify-between items-end"><span>Signature:</span><span className="border-b border-black w-[70%]"></span></div>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="mt-6 text-center text-[12px] uppercase opacity-200" style={{ fontWeight: 500 }}>
+                        FOR FRANCHISE<br />
+                        EMAIL OR CONTACT US ON<br />
+                        luckybobafranchising@gmail.com<br />
+                        09260029894
+                    </div>
                 </div>
             </div>
         </> 

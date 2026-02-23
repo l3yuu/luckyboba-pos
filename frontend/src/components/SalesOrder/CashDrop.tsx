@@ -177,58 +177,91 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
 
   return (
     <>
-      <style>
+<style>
         {`
           /* SCREEN: Hide the receipt naturally */
           .printable-receipt { 
               display: none; 
           }
 
+          /* ── Print styles ── */
           @media print {
-            @page { size: 80mm auto; margin: 0; }
-            
-            /* PRINT: Force the page background to white */
-            html, body {
-                background: white !important;
-                margin: 0 !important;
-                padding: 0 !important;
-            }
-            
-            /* PRINT: Safely hide the entire Dashboard UI */
-            #main-ui { 
-                display: none !important; 
+            @page { 
+                /* Let the Windows driver dictate the 3276mm length */
+                margin: 0; 
             }
 
-            /* PRINT: Force show only the receipt, pinned to the top-left */
+            /* PRINT: Safely hide the entire Dashboard UI */
+            body * { visibility: hidden; }
+            nav, header, aside, button, #main-ui, .print\\:hidden { display: none !important; }
+
+            /* PRINT: Force the page background to white */
+            html, body {
+                width: 70mm !important; 
+                margin: 0 !important;
+                padding: 0 !important;
+                background: white !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+                height: auto !important; 
+            }
+
+            /* PRINT: Force show only the receipt */
+            .printable-receipt, .printable-receipt * { visibility: visible !important; }
+
             .printable-receipt { 
                 display: block !important;
                 position: absolute !important; 
                 left: 0 !important; 
                 top: 0 !important; 
-                width: 80mm !important; 
-                padding: 5mm !important;
+                
+                /* Limit to 65mm safe width so it doesn't get cut on the right */
+                width: 65mm !important; 
+                max-width: 65mm !important;
+                
+                /* 4mm side padding, 15mm bottom padding for the cutter */
+                padding: 5mm 4mm 15mm 2mm !important; 
+                margin: 0 !important;
+                box-sizing: border-box !important;
+                
                 background: white !important; 
-                color: black !important; 
-                font-family: 'Courier New', monospace;
+                color: #000 !important; 
+                font-family: Arial, Helvetica, sans-serif !important;
+                font-size: 11px !important;
+                line-height: 1.35 !important;
+                box-shadow: none !important;
+                border: none !important;
+                
+                height: auto !important; 
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
             }
             
+            p, div, tr, td, th, span {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+
             /* Utility classes for the receipt layout */
-            .printable-receipt * { visibility: visible !important; }
-            .receipt-divider { border-top: 1px dashed #000 !important; margin: 8px 0; width: 100%; }
-            .flex-between { display: flex !important; justify-content: space-between !important; width: 100%; }
+            .receipt-divider { border-top: 1px dashed #000 !important; margin: 8px 0; width: 100%; display: block !important; }
+            .flex-between { display: flex !important; justify-content: space-between !important; width: 100% !important; align-items: flex-end !important; }
+            
+            /* Tables */
+            table { width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; font-size: 11px !important; }
+            td { padding: 3px 0 !important; vertical-align: top !important; font-size: 11px !important; word-wrap: break-word !important; }
           }
         `}
       </style>
 
       {/* X-READING STYLE RECEIPT (ONLY VISIBLE ON PRINT) */}
       {printData && (
-        <div className="printable-receipt font-mono text-slate-800">
+        <div className="printable-receipt text-slate-800">
           <div className="text-center space-y-1">
             <h1 className="font-black text-[14px] uppercase leading-tight">Lucky Boba Milktea Food and Beverage Trading</h1>
             <p className="text-[10px] uppercase font-bold">Main Branch - QC</p>
             <div className="receipt-divider"></div>
             <h2 className="font-black text-[11px] uppercase tracking-widest">Cash Drop Receipt</h2>
-            <div className="text-left text-[10px] space-y-0.5 mt-2 uppercase">
+            <div className="text-left text-[12px] space-y-0.5 mt-2 uppercase">
               <div className="flex-between"><span>Date</span> <span>{printData.date}</span></div>
               <div className="flex-between"><span>Time</span> <span>{printData.time}</span></div>
               <div className="flex-between"><span>Terminal</span> <span>POS-01</span></div>
@@ -262,7 +295,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
           </div>
 
           {printData.remarks !== '-' && (
-            <div className="mt-2 text-[9px] italic text-zinc-600 border-t border-dotted border-black pt-2 uppercase">
+            <div className="mt-2 text-[12px] italic text-zinc-600 border-t border-dotted border-black pt-2 uppercase">
               Note: {printData.remarks}
             </div>
           )}
