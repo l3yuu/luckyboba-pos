@@ -1,121 +1,167 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import logo from '../assets/logo.png';
-
-import { useBranches } from '../hooks/useBranches';
-import { useUsers }    from '../hooks/useUsers';
-
-import UserService from '../services/UserService';
-
-import { OverviewTab }  from '../components/SuperAdmin/tabs/OverviewTab';
-import BranchesTab      from '../components/SuperAdmin/tabs/BranchesTab';
-import { UsersTab }     from '../components/SuperAdmin/tabs/UsersTab';
-import { ReportsTab }   from '../components/SuperAdmin/tabs/ReportsTab';
-import { SettingsTab }  from '../components/SuperAdmin/tabs/SettingsTab';
-
+import type { Branch } from '../services/BranchService';
+import { useUsers } from '../hooks/useUsers';
 import {
-  DashboardIcon,
-  BranchIcon,
-  UsersIcon,
-  ReportsIcon,
-  SettingsIcon,
-} from '../components/SuperAdmin/icons';
+  OverviewTab,
+  BranchesTab,
+  UsersTab,
+  ReportsTab,
+  SettingsTab,
+} from '../components/SuperAdmin/tabs';
+import * as Icons from '../components/SuperAdmin/icons';
 
-// ── Types ──────────────────────────────────────────────────────────────────
-
-type Tab = 'overview' | 'branches' | 'users' | 'reports' | 'settings';
-
-const TAB_TITLES: Record<Tab, string> = {
-  overview: 'Dashboard Overview',
-  branches: 'Branch Management',
-  users:    'User Management',
-  reports:  'System Reports',
-  settings: 'System Settings',
+// Types
+type BranchFormState = {
+  id: number | null;
+  name: string;
+  location: string;
+  status: 'active' | 'inactive';
+  total_sales: number;
+  today_sales: number;
 };
 
-const NAV_ITEMS: { id: Tab; label: string; Icon: () => React.ReactElement }[] = [
-  { id: 'overview', label: 'Overview',  Icon: DashboardIcon },
-  { id: 'branches', label: 'Branches',  Icon: BranchIcon    },
-  { id: 'users',    label: 'Users',     Icon: UsersIcon     },
-  { id: 'reports',  label: 'Reports',   Icon: ReportsIcon   },
-  { id: 'settings', label: 'Settings',  Icon: SettingsIcon  },
+// Mock Data
+const mockBranches: Branch[] = [
+  { id: 1, name: 'Lucky Boba - SM City', location: 'SM City Cebu', status: 'active', total_sales: 125000, today_sales: 4500, created_at: '', updated_at: '' },
+  { id: 2, name: 'Lucky Boba - Ayala', location: 'Ayala Center', status: 'active', total_sales: 98000, today_sales: 3200, created_at: '', updated_at: '' },
+  { id: 3, name: 'Lucky Boba - IT Park', location: 'Cebu IT Park', status: 'active', total_sales: 87500, today_sales: 2800, created_at: '', updated_at: '' },
+  { id: 4, name: 'Lucky Boba - Banilad', location: 'Banilad Town Center', status: 'inactive', total_sales: 45000, today_sales: 0, created_at: '', updated_at: '' },
 ];
 
-// ── Component ──────────────────────────────────────────────────────────────
-
 const SuperAdminDashboard: React.FC = () => {
-  const [activeTab, setActiveTab]   = useState<Tab>('overview');
-  const [isSidebarOpen, setSidebar] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'branches' | 'users' | 'reports' | 'settings'>('overview');
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [branches, setBranches] = useState<Branch[]>(mockBranches);
+  const [branchFormState, setBranchFormState] = useState<BranchFormState>({
+    id: null,
+    name: '',
+    location: '',
+    status: 'active',
+    total_sales: 0,
+    today_sales: 0,
+  });
+  const [isCreateBranchModalOpen, setIsCreateBranchModalOpen] = useState(false);
+  const [isUpdateBranchModalOpen, setIsUpdateBranchModalOpen] = useState(false);
+  const [viewBranch, setViewBranch] = useState<Branch | null>(null);
 
-  const branches = useBranches();
-  const users    = useUsers();
-
-  const { fetchBranches } = branches;
-  const { fetchUsers }    = users;
-
-  useEffect(() => {
-    if (activeTab === 'overview' || activeTab === 'branches') fetchBranches();
-  }, [activeTab, fetchBranches]);
-
-  useEffect(() => {
-    if (activeTab === 'users') fetchUsers();
-  }, [activeTab, fetchUsers]);
-
-  // Derived stats for the overview
-  const totalRevenue   = branches.branches.reduce((s, b) => s + (parseFloat(String(b.total_sales)) || 0), 0);
-  const todayRevenue   = branches.branches.reduce((s, b) => s + (parseFloat(String(b.today_sales)) || 0), 0);
-  const activeBranches = branches.branches.filter(b => b.status === 'active').length;
-  const activeUsers    = users.users.filter(u => u.status === 'ACTIVE').length;
-
-  const handleTabChange = (tab: Tab) => {
-    setActiveTab(tab);
-    if (window.innerWidth < 768) setSidebar(false);
-  };
+  const usersHook = useUsers();
 
   const handleLogout = () => {
-    UserService.logout();
-    window.location.reload();
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('lucky_boba_token');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user_role');
+    localStorage.removeItem('lucky_boba_authenticated');
+    sessionStorage.clear();
+    window.location.href = '/login';
   };
 
-  // ── Tab content ────────────────────────────────────────────────────────────
+  const handleCreateBranch = () => {
+    setBranchFormState({ id: null, name: '', location: '', status: 'active', total_sales: 0, today_sales: 0 });
+    setIsCreateBranchModalOpen(true);
+  };
+
+  const handleEditBranch = (branch: Branch) => {
+    setBranchFormState({
+      id: branch.id,
+      name: branch.name,
+      location: branch.location,
+      status: branch.status,
+      total_sales: branch.total_sales,
+      today_sales: branch.today_sales,
+    });
+    setIsUpdateBranchModalOpen(true);
+  };
+
+  const handleSaveBranch = () => {
+    if (branchFormState.id === null) {
+      const newBranch: Branch = {
+        id: branches.length > 0 ? Math.max(...branches.map(b => b.id)) + 1 : 1,
+        name: branchFormState.name,
+        location: branchFormState.location,
+        status: branchFormState.status,
+        total_sales: branchFormState.total_sales,
+        today_sales: branchFormState.today_sales,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      setBranches([...branches, newBranch]);
+    } else {
+      setBranches(branches.map((b) =>
+        b.id === branchFormState.id
+          ? {
+              ...b,
+              name: branchFormState.name,
+              location: branchFormState.location,
+              status: branchFormState.status,
+              total_sales: branchFormState.total_sales,
+              today_sales: branchFormState.today_sales,
+              updated_at: new Date().toISOString(),
+            }
+          : b
+      ));
+    }
+    setIsCreateBranchModalOpen(false);
+    setIsUpdateBranchModalOpen(false);
+  };
+
+  const handleDeleteBranch = (id: number) => {
+    setBranches((prev) => prev.filter((branch) => branch.id !== id));
+  };
+
+  const totalRevenue = branches.reduce((sum, b) => sum + b.total_sales, 0);
+  const todayRevenue = branches.reduce((sum, b) => sum + b.today_sales, 0);
+  const activeBranches = branches.filter(b => b.status === 'active').length;
+  const activeUsers = usersHook.users.filter((u: { status: string }) => u.status === 'ACTIVE').length;
+
+  const navItems = [
+    { id: 'overview',  label: 'Overview',  icon: <Icons.DashboardIcon /> },
+    { id: 'branches',  label: 'Branches',  icon: <Icons.BranchIcon /> },
+    { id: 'users',     label: 'Users',     icon: <Icons.UsersIcon /> },
+    { id: 'reports',   label: 'Reports',   icon: <Icons.ReportsIcon /> },
+    { id: 'settings',  label: 'Settings',  icon: <Icons.SettingsIcon /> },
+  ];
+
+  const overviewProps = {
+    totalRevenue,
+    todayRevenue,
+    activeBranches,
+    activeUsers,
+    branches,
+    loading: false,
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'overview':
-        return (
-          <OverviewTab
-            totalRevenue={totalRevenue}
-            todayRevenue={todayRevenue}
-            activeBranches={activeBranches}
-            activeUsers={activeUsers}
-            branches={branches.branches}
-            loading={branches.loading}
-          />
-        );
+        return <OverviewTab {...overviewProps} />;
       case 'branches':
         return (
           <BranchesTab
-            branches={branches.branches}
-            onCreateBranch={branches.openCreate}
-            onEditBranch={branches.openEdit}
-            onDeleteBranch={(id: number) => {
-              const branch = branches.branches.find(b => b.id === id);
-              if (branch) branches.deleteBranch(branch);
-            }}
+            branches={branches}
+            onCreateBranch={handleCreateBranch}
+            onEditBranch={handleEditBranch}
+            onDeleteBranch={handleDeleteBranch}
           />
         );
-      case 'users':    return <UsersTab    {...users}    />;
-      case 'reports':  return <ReportsTab />;
-      case 'settings': return <SettingsTab />;
+      case 'users':
+        return <UsersTab {...usersHook} />;
+      case 'reports':
+        return <ReportsTab />;
+      case 'settings':
+        return <SettingsTab />;
+      default:
+        return <OverviewTab {...overviewProps} />;
     }
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col md:flex-row h-screen bg-[#f8f6ff] text-zinc-900 font-sans overflow-hidden">
-
-      {/* Mobile top bar */}
+      {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-zinc-200">
         <img src={logo} alt="Logo" className="h-8 w-auto object-contain" />
-        <button onClick={() => setSidebar(!isSidebarOpen)} className="p-2 text-[#3b2063]">
+        <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-2 text-[#3b2063]">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
           </svg>
@@ -133,25 +179,26 @@ const SuperAdminDashboard: React.FC = () => {
         <div className="flex flex-col flex-1 overflow-y-auto">
           <div className="px-6 pt-10 flex flex-col items-center shrink-0">
             <img src={logo} alt="Lucky Boba Logo" className="w-55 h-auto object-contain mb-2 hidden md:block" />
-            <p className="text-[#3b2063] font-black uppercase text-[9px] tracking-[0.3em] opacity-60 mb-2 text-center">Super Admin</p>
-            <div className="bg-[#fbbf24] text-[#3b2063] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-8">
-              Master Control
-            </div>
+            <div className="text-[#3b2063] font-black uppercase text-[9px] tracking-[0.3em] opacity-60 mb-2 text-center">Super Admin</div>
+            <div className="bg-[#fbbf24] text-[#3b2063] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-8">Master Control</div>
           </div>
 
           <nav className="w-full px-6 space-y-2 pb-6">
-            {NAV_ITEMS.map(({ id, label, Icon }) => (
+            {navItems.map((item) => (
               <button
-                key={id}
-                onClick={() => handleTabChange(id)}
+                key={item.id}
+                onClick={() => {
+                  setActiveTab(item.id as typeof activeTab);
+                  if (window.innerWidth < 768) setSidebarOpen(false);
+                }}
                 className={`w-full px-5 py-3 rounded-2xl font-black text-[13px] uppercase tracking-wider flex items-center transition-all duration-200 ${
-                  activeTab === id
+                  activeTab === item.id
                     ? 'bg-[#f0ebff] text-[#3b2063]'
                     : 'text-zinc-400 hover:bg-[#f0ebff] hover:text-[#3b2063]'
                 }`}
               >
-                <span className="w-4 h-4 mr-3"><Icon /></span>
-                {label}
+                <span className="w-4 h-4 mr-3">{item.icon}</span>
+                {item.label}
               </button>
             ))}
           </nav>
@@ -167,23 +214,26 @@ const SuperAdminDashboard: React.FC = () => {
             </svg>
             Logout
           </button>
-          <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 text-center mt-4">Lucky Boba 2026</p>
+          <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 text-center mt-4">Lucky Boba 2026</div>
         </div>
 
-        <button onClick={() => setSidebar(false)} className="md:hidden absolute top-4 right-4 text-zinc-400 text-xs font-bold">CLOSE</button>
+        <button onClick={() => setSidebarOpen(false)} className="md:hidden absolute top-4 right-4 text-zinc-400 text-xs font-bold">CLOSE</button>
       </aside>
 
-      {/* Mobile overlay */}
       {isSidebarOpen && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 md:hidden" onClick={() => setSidebar(false)} />
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Main */}
+      {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-6 md:px-10 py-6 md:py-8 gap-4">
           <div>
             <h1 className="text-xl md:text-4xl font-black text-[#3b2063] uppercase tracking-tight">
-              {TAB_TITLES[activeTab]}
+              {activeTab === 'overview'  && 'Dashboard Overview'}
+              {activeTab === 'branches'  && 'Branch Management'}
+              {activeTab === 'users'     && 'User Management'}
+              {activeTab === 'reports'   && 'System Reports'}
+              {activeTab === 'settings'  && 'System Settings'}
             </h1>
             <p className="text-zinc-400 font-bold text-[9px] md:text-[10px] uppercase tracking-[0.2em] mt-1">
               Super Administrator Panel
@@ -192,6 +242,162 @@ const SuperAdminDashboard: React.FC = () => {
         </header>
 
         {renderContent()}
+
+        {/* Branch Create / Edit Modal */}
+        {(isCreateBranchModalOpen || isUpdateBranchModalOpen) && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+            <div className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl p-6 space-y-5">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-lg font-black text-[#3b2063] uppercase tracking-wider">
+                  {isCreateBranchModalOpen ? 'Add Branch' : 'Edit Branch'}
+                </h2>
+                <button
+                  onClick={() => { setIsCreateBranchModalOpen(false); setIsUpdateBranchModalOpen(false); }}
+                  className="text-zinc-400 hover:text-zinc-600"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <form onSubmit={(e) => { e.preventDefault(); handleSaveBranch(); }} className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Branch Name</label>
+                  <input
+                    type="text"
+                    value={branchFormState.name}
+                    onChange={(e) => setBranchFormState(f => ({ ...f, name: e.target.value }))}
+                    className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Location</label>
+                  <input
+                    type="text"
+                    value={branchFormState.location}
+                    onChange={(e) => setBranchFormState(f => ({ ...f, location: e.target.value }))}
+                    className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Status</label>
+                    <select
+                      value={branchFormState.status}
+                      onChange={(e) => setBranchFormState(f => ({ ...f, status: e.target.value as 'active' | 'inactive' }))}
+                      className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
+                    >
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Today's Sales</label>
+                    <input
+                      type="number"
+                      value={branchFormState.today_sales}
+                      onChange={(e) => setBranchFormState(f => ({ ...f, today_sales: Number(e.target.value) }))}
+                      className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
+                      min="0"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Total Sales</label>
+                  <input
+                    type="number"
+                    value={branchFormState.total_sales}
+                    onChange={(e) => setBranchFormState(f => ({ ...f, total_sales: Number(e.target.value) }))}
+                    className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
+                    min="0"
+                  />
+                </div>
+
+                <div className="pt-2 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => { setIsCreateBranchModalOpen(false); setIsUpdateBranchModalOpen(false); }}
+                    className="px-4 py-2 rounded-2xl border border-zinc-200 text-xs font-bold uppercase text-zinc-500 hover:bg-zinc-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-6 py-2 rounded-2xl bg-[#3b2063] text-white text-xs font-black uppercase tracking-widest hover:bg-[#2a174a]"
+                  >
+                    {isCreateBranchModalOpen ? 'Create Branch' : 'Save Changes'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* View Branch Modal */}
+        {viewBranch && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+            <div className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl p-6 space-y-5">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-lg font-black text-[#3b2063] uppercase tracking-wider">Branch Details</h2>
+                <button onClick={() => setViewBranch(null)} className="text-zinc-400 hover:text-zinc-600">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Branch Name</p>
+                  <p className="text-sm font-bold text-[#3b2063]">{viewBranch.name}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Location</p>
+                  <p className="text-sm font-bold text-[#3b2063]">{viewBranch.location}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Status</p>
+                    <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase ${
+                      viewBranch.status === 'active' ? 'bg-emerald-100 text-emerald-600' : 'bg-zinc-100 text-zinc-500'
+                    }`}>
+                      {viewBranch.status}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Branch ID</p>
+                    <p className="text-sm font-bold text-[#3b2063]">#{viewBranch.id}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Today's Sales</p>
+                    <p className="text-lg font-black text-emerald-500">₱{viewBranch.today_sales.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Total Sales</p>
+                    <p className="text-lg font-black text-[#3b2063]">₱{viewBranch.total_sales.toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-end">
+                <button
+                  onClick={() => setViewBranch(null)}
+                  className="px-6 py-2 rounded-2xl bg-[#3b2063] text-white text-xs font-black uppercase tracking-widest hover:bg-[#2a174a]"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
