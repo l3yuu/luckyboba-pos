@@ -52,6 +52,7 @@ const Dashboard = () => {
   });
   const [loading, setLoading] = useState(!stats);
   const [isInitialLoad, setIsInitialLoad] = useState(!stats);
+  const [isStale, setIsStale] = useState(() => localStorage.getItem('dashboard_stats_timestamp') === '0');
   const isFetching = useRef(false);
 
   useEffect(() => {
@@ -84,6 +85,7 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
       setIsInitialLoad(false);
+      setIsStale(false);
       isFetching.current = false;
     }
   }, [stats]);
@@ -94,7 +96,7 @@ const Dashboard = () => {
     void (async () => { await fetchStats(); })();
   }, [user, activeTab, fetchStats]);
 
-  if (authLoading) return <DashboardSkeleton />;
+  if (authLoading || isStale || !stats) return <DashboardSkeleton />;
   if (!user) return null;
 
   const goToDashboardFresh = () => {
@@ -109,7 +111,7 @@ const Dashboard = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <DashboardStats stats={stats} isInitialLoad={isInitialLoad} />;
+        return <DashboardStats stats={stats} isInitialLoad={isInitialLoad} isStale={isStale} />;
 
       case 'cash-in': 
         return <CashIn onSuccess={refreshStats} />;
@@ -146,7 +148,7 @@ const Dashboard = () => {
       case 'expense':            return <Expense />;
       case 'settings':           return <Settings />;
       default:
-        return <DashboardStats stats={stats} isInitialLoad={isInitialLoad} />;
+        return <DashboardStats stats={stats} isInitialLoad={isInitialLoad} isStale={isStale} />;
     }
   };
 
@@ -205,10 +207,12 @@ const Dashboard = () => {
 // --- DashboardStats ---
 const DashboardStats = ({ 
   stats, 
-  isInitialLoad 
+  isInitialLoad,
+  isStale = false
 }: { 
   stats: DashboardData | null; 
   isInitialLoad: boolean;
+  isStale?: boolean;
 }) => {
   const cards = [
     { label: "Cash in today",     value: stats?.cash_in_today ?? 0 },
@@ -245,8 +249,8 @@ const DashboardStats = ({
         ))}
       </div>
       <div className="mt-6 md:mt-8 grid gap-4 md:gap-6 grid-cols-1 xl:grid-cols-2">
-        <TopSellerList title="Top 5 sellers today"    sellers={stats?.top_seller_today ?? []}    loading={isInitialLoad} />
-        <TopSellerList title="Top 5 sellers all time" sellers={stats?.top_seller_all_time ?? []} loading={isInitialLoad} />
+        <TopSellerList title="Top 5 sellers today"    sellers={stats?.top_seller_today ?? []}    loading={isInitialLoad || isStale} />
+        <TopSellerList title="Top 5 sellers all time" sellers={stats?.top_seller_all_time ?? []} loading={isInitialLoad || isStale} />
       </div>
     </section>
   );

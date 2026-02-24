@@ -4,12 +4,16 @@ import { router } from './routes';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastProvider } from './context/ToastProvider';
 import { prefetchAll } from './utils/prefetch'; // ✅ import
+import { useAuth } from './hooks/useAuth';
 
 function App() {
-  // ✅ Fire and forget — runs once on app load
+  const { user, isLoading } = useAuth();
+
   useEffect(() => {
-    prefetchAll();
-  }, []);
+    if (user && !isLoading) {
+      prefetchAll();
+    }
+  }, [user, isLoading]);
 
   return (
     <ErrorBoundary 

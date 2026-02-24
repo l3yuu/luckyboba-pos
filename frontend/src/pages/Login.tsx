@@ -14,7 +14,8 @@ const Login: React.FC = () => {
   const { showToast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // Toggle State
+  const [lockoutTimer, setLockoutTimer] = useState<number>(0);
   const [searchParams, setSearchParams] = useSearchParams();
 
   const { login, isLoading, error, user } = useAuth();
@@ -50,6 +51,22 @@ useEffect(() => {
       showToast(error, "error");
     }
   }, [error, showToast]);
+
+  // Check for lockout on mount and update timer
+  useEffect(() => {
+    const checkLockout = () => {
+      const lockoutEnd = localStorage.getItem('login_lockout_end');
+      if (lockoutEnd) {
+        const remaining = Math.ceil((parseInt(lockoutEnd) - Date.now()) / 1000);
+        setLockoutTimer(remaining > 0 ? remaining : 0);
+      } else {
+        setLockoutTimer(0);
+      }
+    };
+    checkLockout();
+    const interval = setInterval(checkLockout, 1000);
+    return () => clearInterval(interval);
+  }, [error]); // Re-check if error changes (e.g. failed login attempt)
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.getModifierState('CapsLock')) {
@@ -108,6 +125,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                 className="w-full px-6 py-4 rounded-2xl border border-white/20 focus:border-[#3b2063] focus:ring-4 focus:ring-[#3b2063]/10 outline-none transition-all bg-white/80 placeholder:text-zinc-400"
                 placeholder="name@luckyboba.com"
                 required
+                disabled={lockoutTimer > 0}
               />
             </div>
 
@@ -124,6 +142,7 @@ const handleSubmit = async (e: React.FormEvent) => {
                   className="w-full px-6 py-4 rounded-2xl border border-white/20 focus:border-[#3b2063] focus:ring-4 focus:ring-[#3b2063]/10 outline-none transition-all bg-white/80 placeholder:text-zinc-400"
                   placeholder="••••••••"
                   required
+                  disabled={lockoutTimer > 0}
                 />
                 <button
                   type="button"
@@ -148,10 +167,10 @@ const handleSubmit = async (e: React.FormEvent) => {
           <div className="flex items-center p-8 pt-2 pb-12">
             <button
               type="submit"
-              disabled={isLoading}
-              className="w-full bg-[#3b2063] text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-[#2a174a] active:scale-[0.98] transition-all shadow-xl shadow-purple-900/40 disabled:opacity-50"
+              disabled={isLoading || lockoutTimer > 0}
+              className="w-full bg-[#3b2063] text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-[#2a174a] active:scale-[0.98] transition-all shadow-xl shadow-purple-900/40 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Authenticating...' : 'Sign In'}
+              {isLoading ? 'Authenticating...' : lockoutTimer > 0 ? `Locked (${lockoutTimer}s)` : 'Sign In'}
             </button>
           </div>
         </form>

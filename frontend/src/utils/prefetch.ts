@@ -2,8 +2,10 @@ import api from '../services/api';
 import { setCache } from './cache';
 
 export const prefetchAll = async () => {
+  // Prevent prefetching if no token is present (e.g. on Login screen)
+  if (!localStorage.getItem('lucky_boba_token')) return;
+
   await Promise.allSettled([
-    api.get('/dashboard/stats').then(r => setCache('dashboard-stats', r.data, 2 * 60 * 1000)),
     api.get('/inventory').then(r => setCache('inventory', r.data)),
     api.get('/categories').then(r => setCache('categories', r.data)),
     // ✅ Map to POItem shape before caching
