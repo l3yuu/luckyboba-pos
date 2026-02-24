@@ -4,7 +4,6 @@ import api from '../services/api';
 import { useState, useEffect, useCallback } from 'react'; 
 import axios from 'axios'; 
 import type { LoginCredentials, User } from '../types/user'; 
-import { prefetchAll } from '../utils/prefetch';
 
 const AUTH_KEYS = [
     'lucky_boba_token',
@@ -19,9 +18,17 @@ const MAX_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_DURATION = 2 * 60 * 1000; 
 
 export const useAuth = () => {
-    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [isLoading, setIsLoading] = useState<boolean>(() => !localStorage.getItem('lucky_boba_token'));
     const [error, setError] = useState<string | null>(null);
-    const [user, setUser] = useState<User | null>(null);
+    const [user, setUser] = useState<User | null>(() => {
+        const token = localStorage.getItem('lucky_boba_token');
+        const name = localStorage.getItem('lucky_boba_user_name');
+        const role = localStorage.getItem('lucky_boba_user_role');
+        if (token && name) {
+            return { name, role: role || 'cashier' } as User;
+        }
+        return null;
+    });
 
     const clearSession = useCallback(() => {
         AUTH_KEYS.forEach(key => localStorage.removeItem(key));
@@ -102,8 +109,6 @@ export const useAuth = () => {
             localStorage.setItem('lucky_boba_user_name', userData.name);
             localStorage.setItem('lucky_boba_user_role', userData.role || 'cashier');
             
-            prefetchAll();
-
             localStorage.removeItem('login_attempts');
             localStorage.removeItem('login_lockout_end');
 

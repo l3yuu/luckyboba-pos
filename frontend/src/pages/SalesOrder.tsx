@@ -12,6 +12,7 @@ import {
     WINGS_QUANTITIES 
 } from '../types/index'; 
 import { useToast } from '../hooks/useToast';
+import api from '../services/api';
 
 const DrinkIcon = ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" className={className} fill="currentColor">
@@ -236,19 +237,18 @@ const SalesOrder = () => {
             const result = await response.json();
             if (!response.ok) throw new Error(result.message || 'Failed to create order');
 
-            // Optimistic Dashboard Update
-            try {
-                const cachedStats = localStorage.getItem('dashboard_stats');
-                if (cachedStats) {
-                    const stats = JSON.parse(cachedStats);
-                    stats.total_sales_today = Number(stats.total_sales_today || 0) + subtotal;
-                    stats.total_orders_today = Number(stats.total_orders_today || 0) + totalCount;
-                    localStorage.setItem('dashboard_stats', JSON.stringify(stats));
-                    localStorage.setItem('dashboard_stats_timestamp', Date.now().toString());
-                }
-            } catch (e) {
-                console.error("Failed to update local stats", e);
-            }
+            // Fire-and-forget background refresh so UI doesn't wait
+            Promise.all([
+                api.get('/dashboard/stats'),
+                api.get('/inventory')
+            ]).then(([statsRes, inventoryRes]) => {
+                localStorage.setItem('dashboard_stats', JSON.stringify(statsRes.data));
+                localStorage.setItem('dashboard_stats_timestamp', Date.now().toString());
+                localStorage.setItem('inventory', JSON.stringify(inventoryRes.data));
+            }).catch(e => {
+                console.error("Failed to fetch fresh data", e);
+                localStorage.setItem('dashboard_stats_timestamp', '0');
+            });
 
             // Print then clear the cart and generate the NEXT receipt number
             window.print();
