@@ -1,16 +1,48 @@
 import type { User } from '../../../types/user';
 import type { useUsers } from '../../../hooks/useUsers';
 import { UserFormModal, DeleteUserModal } from './Modals';
+import { useToast } from '../../../context/ToastContext';
 
 type UsersTabProps = ReturnType<typeof useUsers>;
 
 export const UsersTab = (props: UsersTabProps) => {
+  const { showToast } = useToast();
+
   const {
     users, loading, error,
     isModalOpen, editingUser, form, setForm, formError, isSubmitting,
     userToDelete, fetchUsers, openCreate, openEdit, closeModal,
     handleSubmit, handleDeleteClick, handleConfirmDelete, cancelDelete,
   } = props;
+
+  // ── Wrap callbacks to fire toasts after success ──────────────────────────
+
+  const handleSubmitWithToast = async (e: React.FormEvent) => {
+    await handleSubmit(e);
+    // Only toast if no formError was set (indicates success)
+    // We check after a tick since formError state updates async
+    setTimeout(() => {
+      if (!props.formError) {
+        showToast(
+          editingUser
+            ? `${form.name} has been updated.`
+            : `${form.name} has been added successfully.`,
+          'success'
+        );
+      }
+    }, 100);
+  };
+
+  const handleConfirmDeleteWithToast = async () => {
+    const userName = userToDelete?.name ?? 'User';
+    await handleConfirmDelete();
+    // If no error state was set, deletion succeeded
+    setTimeout(() => {
+      if (!props.error) {
+        showToast(`${userName} has been deleted.`, 'warning');
+      }
+    }, 100);
+  };
 
   return (
     <section className="flex-1 px-6 md:px-10 pb-10 overflow-auto">
@@ -74,13 +106,13 @@ export const UsersTab = (props: UsersTabProps) => {
         setForm={setForm}
         formError={formError}
         isSubmitting={isSubmitting}
-        onSubmit={handleSubmit}
+        onSubmit={handleSubmitWithToast}
         onClose={closeModal}
       />
       <DeleteUserModal
         user={userToDelete}
         loading={loading}
-        onConfirm={handleConfirmDelete}
+        onConfirm={handleConfirmDeleteWithToast}
         onCancel={cancelDelete}
       />
     </section>
@@ -125,4 +157,4 @@ const UserRow = ({ user, loading, onEdit, onDelete }: UserRowProps) => (
   </tr>
 );
 
-export default UsersTab;  
+export default UsersTab;

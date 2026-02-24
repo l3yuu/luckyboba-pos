@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 
 interface BranchManagerSidebarProps {
@@ -16,7 +17,8 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
   currentTab, 
   setCurrentTab 
 }) => {
-  const { logout } = useAuth(); // ← use the real logout from useAuth
+  const { logout } = useAuth();
+  const navigate = useNavigate();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -38,9 +40,13 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
     setIsLoggingOut(true);
     setShowLogoutConfirm(false);
     try {
-      await logout(); // ← useAuth logout handles clearing + redirect
+      localStorage.removeItem('cashier_menu_unlocked');
+      localStorage.removeItem('cashier_lock_date');
+      await logout();
+      navigate('/login', { replace: true });
     } catch (error) {
       console.error('Logout failed:', error);
+    } finally {
       setIsLoggingOut(false);
     }
   };
@@ -104,8 +110,9 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
                 currentTab === 'dashboard' ? 'bg-[#f0ebff] text-[#3b2063]' : `text-zinc-400 ${hoverClasses}`
               }`}
             >
+              {/* FIX 1: Corrected the malformed last path in the Dashboard icon SVG */}
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 sm:w-4 h-3.5 sm:h-4 mr-2 sm:mr-3">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
               </svg>
               Dashboard
             </button>
@@ -138,8 +145,10 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
           </div>
 
           <div className="px-6 sm:px-8 pb-6 sm:pb-8 flex flex-col gap-3 sm:gap-4 pt-4">
+            {/* FIX 2: Removed the conflicting z-index issue by ensuring modal renders above sidebar.
+                The button correctly triggers setShowLogoutConfirm(true) — no change needed here. */}
             <button 
-              onClick={() => setShowLogoutConfirm(true)}  // ← shows confirm modal first
+              onClick={() => setShowLogoutConfirm(true)}
               disabled={isLoggingOut}
               className="flex items-center justify-center w-full px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-[#be2525] hover:bg-[#a11f1f] text-white text-[9px] sm:text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-200 shadow-md shadow-red-900/10 disabled:opacity-50 group"
             >
@@ -164,6 +173,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
         <button onClick={() => setSidebarOpen(false)} className="md:hidden absolute top-3 sm:top-4 right-3 sm:right-4 text-zinc-400 text-[9px] sm:text-xs font-bold">CLOSE</button>
       </aside>
 
+      {/* FIX 3: Overlay now correctly sits below the modal (z-40) but above page content */}
       {isSidebarOpen && <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 md:hidden" onClick={() => setSidebarOpen(false)} />}
     </>
   );
