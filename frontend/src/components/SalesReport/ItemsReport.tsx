@@ -25,17 +25,23 @@ interface ReportResponse {
 }
 
 // ============================================================
-// CONSTANTS
+// HELPER — defined outside component so it's never in TDZ
+// ============================================================
+
+const buildCacheKey = (from: string, to: string, type: string) =>
+  `${CACHE_KEY_PREFIX}${from}_${to}_${type}`;
+
+const getLocalToday = () => {
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60000;
+  return new Date(now.getTime() - offset).toISOString().split('T')[0];
+};
+
+// ============================================================
+// COMPONENT
 // ============================================================
 
 const ItemsReport = () => {
-  // FIX: Calculate actual local date instead of UTC to avoid "Yesterday" bug
-  const getLocalToday = () => {
-    const now = new Date();
-    const offset = now.getTimezoneOffset() * 60000;
-    return new Date(now.getTime() - offset).toISOString().split('T')[0];
-  };
-
   const today = getLocalToday();
   const phCurrency = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
 
@@ -44,46 +50,45 @@ const ItemsReport = () => {
   const [reportType, setReportType] = useState<'item-list' | 'category-summary'>('item-list');
   const [loading, setLoading] = useState(false);
   const [_error, _setError] = useState<string | null>(null);
+
+  // ✅ FIX: buildCacheKey is a plain function defined above — no TDZ
   const [data, setData] = useState<ReportResponse | null>(() => {
-    const key = getCacheKey(today, today, 'item-list');
+    const key = buildCacheKey(today, today, 'item-list');
     const saved = localStorage.getItem(key);
     return saved ? JSON.parse(saved) : null;
   });
 
-  // Generate unique cache key
-  const getCacheKey = useCallback((from: string, to: string, type: string) => {
-    return `${CACHE_KEY_PREFIX}${from}_${to}_${type}`;
-  }, []);
+  // Memoised wrapper (stable ref for useEffect deps)
+  const getCacheKey = useCallback(
+    (from: string, to: string, type: string) => buildCacheKey(from, to, type),
+    []
+  );
 
   // --- DATA LOADING & CACHING ---
-  
+
   const fetchReport = useCallback(async () => {
     const key = getCacheKey(fromDate, toDate, reportType);
-    
     setLoading(true);
     try {
       const response = await api.get('/reports/items-report', {
-        params: { from: fromDate, to: toDate, type: reportType }
+        params: { from: fromDate, to: toDate, type: reportType },
       });
-      
       localStorage.setItem(key, JSON.stringify(response.data));
       setData(response.data);
     } catch (error) {
-      console.error("Error fetching fresh report:", error);
+      console.error('Error fetching fresh report:', error);
     } finally {
       setLoading(false);
     }
   }, [fromDate, toDate, reportType, getCacheKey]);
 
-  // Load cache or fetch fresh data on mount/filter change
   useEffect(() => {
     const key = getCacheKey(fromDate, toDate, reportType);
     const savedData = localStorage.getItem(key);
-    
     if (savedData) {
       setData(JSON.parse(savedData));
     } else {
-      fetchReport(); // Auto-fetch if no cache exists for today
+      fetchReport();
     }
   }, [fromDate, toDate, reportType, getCacheKey, fetchReport]);
 
@@ -114,10 +119,6 @@ const ItemsReport = () => {
     XLSX.utils.book_append_sheet(wb, ws, 'Report');
     XLSX.writeFile(wb, `items_report_${fromDate}_to_${toDate}.xlsx`);
   }, [data, fromDate, toDate, reportType]);
-
-  // ============================================================
-  // PRINT
-  // ============================================================
 
   const handlePrint = () => {
     if (!data || data.items.length === 0) {
@@ -155,11 +156,10 @@ const ItemsReport = () => {
             .receipt-divider { border-top: 1px dashed #000 !important; margin: 8px 0; width: 100%; }
             .flex-between { display: flex !important; justify-content: space-between !important; width: 100%; }
           }
-          .printable-receipt * { visibility: visible !important; }
-          .receipt-divider { border-top: 1px dashed #000 !important; margin: 8px 0; width: 100%; }
-          .flex-between { display: flex !important; justify-content: space-between !important; width: 100%; }
-        }
-      `}</style>
+          .receipt-divider { border-top: 1px dashed #000; margin: 8px 0; width: 100%; }
+          .flex-between { display: flex; justify-content: space-between; width: 100%; }
+        `}
+      </style>
 
       {/* RECEIPT PREVIEW */}
       <div className="printable-receipt text-slate-800">
@@ -200,7 +200,7 @@ const ItemsReport = () => {
               ))}
             </tbody>
           </table>
-          <div className="receipt-divider"></div>
+          <div className="receipt-divider" />
           <div className="space-y-1 mt-2">
             <div className="flex-between text-[10px]"><span>TOTAL ITEMS SOLD</span><span className="font-bold">{data?.total_qty || 0}</span></div>
             <div className="flex-between font-black text-[12px] pt-1 border-t border-black"><span>TOTAL REVENUE</span><span>{phCurrency.format(data?.grand_total || 0)}</span></div>
@@ -252,14 +252,21 @@ const ItemsReport = () => {
                   <option value="category-summary">Category Summary</option>
                 </select>
               </div>
-              <button onClick={fetchReport} disabled={loading} className="w-full xl:w-40 p-3 bg-[#3b2063] text-white rounded-xl font-black uppercase text-xs tracking-widest hover:opacity-90 active:scale-95 disabled:opacity-50 h-12.5 shadow-lg transition-all">
-                {loading ? "Syncing..." : "Generate"}
+              <button onClick={fetchReport} disabled={loading}
+                className="w-full xl:w-40 p-3 bg-[#3b2063] text-white rounded-xl font-black uppercase text-xs tracking-widest hover:opacity-90 active:scale-95 disabled:opacity-50 h-12.5 shadow-lg transition-all">
+                {loading ? 'Syncing...' : 'Generate'}
               </button>
-              <button onClick={generateExcel} disabled={!data || data.items.length === 0} className="w-full xl:w-12 h-12.5 p-3 bg-zinc-100 text-[#3b2063] rounded-xl flex items-center justify-center hover:bg-zinc-200 transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
+              <button onClick={generateExcel} disabled={!data || data.items.length === 0}
+                className="w-full xl:w-12 h-12.5 p-3 bg-zinc-100 text-[#3b2063] rounded-xl flex items-center justify-center hover:bg-zinc-200 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
               </button>
-              <button onClick={handlePrint} disabled={!data || data.items.length === 0} className="w-full xl:w-12 h-12.5 p-3 bg-zinc-100 text-[#3b2063] rounded-xl flex items-center justify-center hover:bg-zinc-200 transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.89 8.1 14.7c1.88 1.1 4.72.5 5.51-1.34L15.35 9.48c.66-1.53.12-3.3-1.25-3.95L12.7 4.88c-1.41-.67-3.1-.22-3.9 1.07L6.64 9.41c-.62 1.01-.59 2.3.08 3.28ZM19.5 21h-15" /></svg>
+              <button onClick={handlePrint} disabled={!data || data.items.length === 0}
+                className="w-full xl:w-12 h-12.5 p-3 bg-zinc-100 text-[#3b2063] rounded-xl flex items-center justify-center hover:bg-zinc-200 transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.89 8.1 14.7c1.88 1.1 4.72.5 5.51-1.34L15.35 9.48c.66-1.53.12-3.3-1.25-3.95L12.7 4.88c-1.41-.67-3.1-.22-3.9 1.07L6.64 9.41c-.62 1.01-.59 2.3.08 3.28ZM19.5 21h-15" />
+                </svg>
               </button>
             </div>
 
@@ -289,7 +296,9 @@ const ItemsReport = () => {
                     </tr>
                   ))}
                   {!loading && (!data || data.items.length === 0) && (
-                    <tr><td colSpan={3} className="px-8 py-10 text-center text-zinc-400 font-bold uppercase text-xs">No records found</td></tr>
+                    <tr>
+                      <td colSpan={3} className="px-8 py-10 text-center text-zinc-400 font-bold uppercase text-xs">No records found</td>
+                    </tr>
                   )}
                 </tbody>
                 <tfoot className="bg-zinc-50 font-black text-[#3b2063]">
@@ -303,11 +312,10 @@ const ItemsReport = () => {
             </div>
             {loading && data && (
               <div className="absolute top-0 left-0 right-0 h-1 bg-purple-200">
-                <div className="h-full bg-[#3b2063] animate-pulse"></div>
+                <div className="h-full bg-[#3b2063] animate-pulse" />
               </div>
             )}
           </div>
-
         </div>
       </div>
     </>

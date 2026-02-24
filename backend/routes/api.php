@@ -113,6 +113,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/export-items',      [ReportController::class, 'exportItems']);
         Route::get('/sales-summary',     [ReportController::class, 'getSalesSummary']);
         Route::get('/sales-detailed',    [ReportController::class, 'getSalesDetailed']);
+        Route::get('/dashboard-data', [SalesDashboardController::class, 'dashboardData']);
     });
 
     // ── 8. SETTINGS & MAINTENANCE ───────────────────────────────────────────
