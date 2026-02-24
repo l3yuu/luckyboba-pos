@@ -18,7 +18,8 @@ use Illuminate\Support\Facades\Route;
 | Public API Routes
 |--------------------------------------------------------------------------
 */
-Route::post('/login', [AuthenticatedSessionController::class, 'store']);
+Route::post('/login', [AuthenticatedSessionController::class, 'store'])
+    ->middleware('throttle:5,2');
 Route::get('/users', function () { return User::all(); });
 
 /*

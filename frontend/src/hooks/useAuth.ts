@@ -1,9 +1,11 @@
+"use client"
+
 import api from '../services/api';
 import { useState, useEffect, useCallback } from 'react'; 
 import axios from 'axios'; 
 import type { LoginCredentials, User } from '../types/user'; 
+import { prefetchAll } from '../utils/prefetch';
 
-// Constants to avoid typos - UPDATED to include User Info
 const AUTH_KEYS = [
     'lucky_boba_token',
     'lucky_boba_authenticated',
@@ -12,6 +14,9 @@ const AUTH_KEYS = [
     'dashboard_stats',
     'dashboard_stats_timestamp'
 ];
+
+const MAX_LOGIN_ATTEMPTS = 5;
+const LOCKOUT_DURATION = 2 * 60 * 1000; 
 
 export const useAuth = () => {
     const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -50,35 +55,85 @@ export const useAuth = () => {
     }, [clearSession]);
 
     useEffect(() => {
+        const interceptor = api.interceptors.response.use(
+            (response) => response,
+            (error) => {
+                if (error.response?.status === 401) {
+                    clearSession();
+                }
+                return Promise.reject(error);
+            }
+        );
+
         checkAuth();
-    }, [checkAuth]);
+
+        return () => {
+            api.interceptors.response.eject(interceptor);
+        };
+    }, [checkAuth, clearSession]);
 
     const login = async (credentials: LoginCredentials): Promise<User | null> => {
+        // Check for client-side rate limiting
+        const lockoutEnd = localStorage.getItem('login_lockout_end');
+        if (lockoutEnd) {
+            const remaining = parseInt(lockoutEnd) - Date.now();
+            if (remaining > 0) {
+                setError(`Too many attempts. Please wait ${Math.ceil(remaining / 60000)} minute(s).`);
+                return null;
+            }
+            localStorage.removeItem('login_lockout_end');
+            localStorage.removeItem('login_attempts');
+        }
+
         setIsLoading(true);
         setError(null);
         
         try {
             const response = await api.post('/login', credentials);
+            if (response.data.success === false) {
+                throw new Error(response.data.message || 'Invalid credentials.');
+            }
+
             const { token, user: userData } = response.data;
             
             // PERSIST AUTH DATA
             localStorage.setItem('lucky_boba_token', token);
             localStorage.setItem('lucky_boba_authenticated', 'true');
-            
-            // NEW: PERSIST USER INFO FOR NAVBAR
             localStorage.setItem('lucky_boba_user_name', userData.name);
             localStorage.setItem('lucky_boba_user_role', userData.role || 'cashier');
             
+            prefetchAll();
+
+            localStorage.removeItem('login_attempts');
+            localStorage.removeItem('login_lockout_end');
+
             setUser(userData);
             setIsLoading(false);
             return userData;
+
         } catch (err: unknown) { 
+            // Handle failed attempts safely
+            const attempts = parseInt(localStorage.getItem('login_attempts') || '0') + 1;
+            localStorage.setItem('login_attempts', attempts.toString());
+
+            if (attempts >= MAX_LOGIN_ATTEMPTS) {
+                localStorage.setItem('login_lockout_end', (Date.now() + LOCKOUT_DURATION).toString());
+                setError('Too many failed attempts. Please wait 2 minutes.');
+                setIsLoading(false);
+                return null;
+            }
+
             clearSession();
+            
+            // Update error mapping to catch our custom Error thrown above
             if (axios.isAxiosError(err)) {
                 setError(err.response?.data?.message || 'Invalid credentials.');
+            } else if (err instanceof Error) {
+                setError(err.message); // This displays the Laravel error cleanly
             } else {
                 setError('An unexpected error occurred');
             }
+            
             setIsLoading(false);
             return null;
         }
