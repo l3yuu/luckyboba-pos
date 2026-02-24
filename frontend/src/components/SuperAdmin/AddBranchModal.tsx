@@ -1,7 +1,8 @@
 // src/components/SuperAdmin/AddBranchModal.tsx
 
-import { useState } from 'react';
-import BranchService, { type CreateBranchData } from '../../services/BranchService';
+import React, { useState } from 'react';
+import { BranchService } from '../../services/BranchService';
+import type { BranchPayload } from '../../services/BranchService';
 
 interface AddBranchModalProps {
   isOpen: boolean;
@@ -10,7 +11,7 @@ interface AddBranchModalProps {
 }
 
 const AddBranchModal: React.FC<AddBranchModalProps> = ({ isOpen, onClose, onSuccess }) => {
-  const [formData, setFormData] = useState<CreateBranchData>({
+  const [formData, setFormData] = useState<BranchPayload>({  // ← was CreateBranchData
     name: '',
     location: '',
     status: 'active',
@@ -21,7 +22,7 @@ const AddBranchModal: React.FC<AddBranchModalProps> = ({ isOpen, onClose, onSucc
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData((prev: BranchPayload) => ({ ...prev, [name]: value }));  // ← typed prev
     setError(null);
   };
 
@@ -29,7 +30,6 @@ const AddBranchModal: React.FC<AddBranchModalProps> = ({ isOpen, onClose, onSucc
     e.preventDefault();
     setError(null);
 
-    // Validation
     if (!formData.name.trim()) {
       setError('Branch name is required');
       return;
@@ -43,38 +43,20 @@ const AddBranchModal: React.FC<AddBranchModalProps> = ({ isOpen, onClose, onSucc
     setIsLoading(true);
 
     try {
-      await BranchService.createBranch(formData);
-      
-      // Reset form
-      setFormData({
-        name: '',
-        location: '',
-        status: 'active',
-      });
+      await BranchService.create(formData);  // ← was createBranch, correct method is create
 
-      // Call success callback
+      setFormData({ name: '', location: '', status: 'active' });
       onSuccess();
-      
-      // Close modal
       onClose();
     } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message || 'Failed to create branch');
-      } else {
-        setError('Failed to create branch');
-      }
+      setError(err instanceof Error ? err.message : 'Failed to create branch');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleCancel = () => {
-    // Reset form and error
-    setFormData({
-      name: '',
-      location: '',
-      status: 'active',
-    });
+    setFormData({ name: '', location: '', status: 'active' });
     setError(null);
     onClose();
   };
@@ -94,20 +76,13 @@ const AddBranchModal: React.FC<AddBranchModalProps> = ({ isOpen, onClose, onSucc
             disabled={isLoading}
             className="text-zinc-400 hover:text-zinc-600 disabled:opacity-50"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={2}
-              stroke="currentColor"
-              className="w-5 h-5"
-            >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        {/* Error Message */}
+        {/* Error */}
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
             <p className="text-sm text-red-600">{error}</p>
@@ -116,7 +91,6 @@ const AddBranchModal: React.FC<AddBranchModalProps> = ({ isOpen, onClose, onSucc
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Branch Name */}
           <div>
             <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
               Branch Name
@@ -133,7 +107,6 @@ const AddBranchModal: React.FC<AddBranchModalProps> = ({ isOpen, onClose, onSucc
             />
           </div>
 
-          {/* Location */}
           <div>
             <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
               Location
@@ -150,9 +123,7 @@ const AddBranchModal: React.FC<AddBranchModalProps> = ({ isOpen, onClose, onSucc
             />
           </div>
 
-          {/* Status and Info Row */}
           <div className="grid grid-cols-2 gap-3">
-            {/* Status */}
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
                 Status
@@ -169,7 +140,6 @@ const AddBranchModal: React.FC<AddBranchModalProps> = ({ isOpen, onClose, onSucc
               </select>
             </div>
 
-            {/* Today's Sales (Read-only, always 0 for new branch) */}
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
                 Today's Sales
@@ -183,7 +153,6 @@ const AddBranchModal: React.FC<AddBranchModalProps> = ({ isOpen, onClose, onSucc
             </div>
           </div>
 
-          {/* Total Sales (Read-only, always 0 for new branch) */}
           <div>
             <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">
               Total Sales
@@ -196,14 +165,12 @@ const AddBranchModal: React.FC<AddBranchModalProps> = ({ isOpen, onClose, onSucc
             />
           </div>
 
-          {/* Info Note */}
           <div className="bg-[#f0ebff] border border-zinc-200 rounded-2xl p-3">
             <p className="text-[10px] font-bold text-zinc-500 leading-relaxed">
-              <span className="text-[#3b2063]">💡 Note:</span> Sales totals will automatically update when transactions are assigned to this branch via triggers.
+              <span className="text-[#3b2063]">💡 Note:</span> Sales totals will automatically update when transactions are assigned to this branch.
             </p>
           </div>
 
-          {/* Action Buttons */}
           <div className="pt-2 flex justify-end gap-3">
             <button
               type="button"
