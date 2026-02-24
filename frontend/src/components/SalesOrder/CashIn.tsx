@@ -59,14 +59,16 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
       });
 
       if (response.data.success) {
+        // Unlock immediately in storage so Sidebar picks it up
+        localStorage.setItem('cashier_menu_unlocked', 'true');
+        localStorage.setItem('cashier_lock_date', new Date().toDateString());
+
         showToast(response.data.message || "Cash In recorded successfully!", "success");
         setReceiptData(getCurrentDateTime());
         setIsFlipped(true); 
         setShowKeyboard(false);
 
-        setTimeout(() => {
-          if (onSuccess) onSuccess();
-        }, 750);
+        if (onSuccess) onSuccess();
       }
     } catch (error: unknown) {
       const err = error as AxiosError<{ message?: string }>;

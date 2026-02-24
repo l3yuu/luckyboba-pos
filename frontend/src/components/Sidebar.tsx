@@ -303,7 +303,11 @@ const Sidebar: React.FC<SidebarProps> = ({
                         key={item.id} 
                         onClick={() => { 
                           if (item.id === 'menu') {
-                            if (isMenuLocked) {
+                            // Double check storage to allow immediate access after Cash In
+                            const isUnlockedNow = localStorage.getItem('cashier_menu_unlocked') === 'true' && 
+                                                localStorage.getItem('cashier_lock_date') === new Date().toDateString();
+
+                            if (isMenuLocked && !isUnlockedNow) {
                               setShowCashInRequired(true);
                             } else if (isEodLocked) {
                               setShowEodLockedModal(true);
