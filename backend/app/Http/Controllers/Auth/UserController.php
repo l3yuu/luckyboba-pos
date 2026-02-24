@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Auth;
 
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Branch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Exception;
 
 class UserController extends Controller
@@ -240,14 +242,58 @@ class UserController extends Controller
         try {
             $user = User::findOrFail($id);
 
+            // Block deleting superadmin
             if ($user->role === 'superadmin') {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Cannot delete super admin users',
+                    'message' => 'Cannot delete super admin users.',
                 ], 403);
             }
 
-            $user->delete();
+            // Block self-deletion
+            if (Auth::id() === $user->id) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You cannot delete your own account.',
+                ], 403);
+            }
+
+            DB::transaction(function () use ($user) {
+
+                // 1. Delete Sanctum tokens (uses tokenable_id, NOT user_id)
+                DB::table('personal_access_tokens')
+                    ->where('tokenable_type', get_class($user))
+                    ->where('tokenable_id', $user->id)
+                    ->delete();
+
+                // 2. Nullify user_id on tables that reference users
+                //    hasColumn check prevents crash if a table doesn't exist yet
+                $tablesWithUserId = [
+                    'sales',
+                    'cash_counts',
+                    'cash_transactions',
+                    'expenses',
+                    'purchase_orders',
+                    'audit_logs',
+                    'sessions',
+                ];
+
+                $schema = DB::getSchemaBuilder();
+
+                foreach ($tablesWithUserId as $table) {
+                    if (
+                        $schema->hasTable($table) &&
+                        $schema->hasColumn($table, 'user_id')
+                    ) {
+                        DB::table($table)
+                            ->where('user_id', $user->id)
+                            ->update(['user_id' => null]);
+                    }
+                }
+
+                // 3. Delete the user
+                $user->delete();
+            });
 
             return response()->json([
                 'success' => true,

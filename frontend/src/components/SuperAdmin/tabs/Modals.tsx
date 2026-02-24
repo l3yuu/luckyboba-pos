@@ -46,7 +46,9 @@ interface BranchFormModalProps {
   onClose: () => void;
 }
 
-export const BranchFormModal = ({ isOpen, isCreate, formState, setFormState, loading, error, onSave, onClose }: BranchFormModalProps) => {
+export const BranchFormModal = ({
+  isOpen, isCreate, formState, setFormState, loading, error, onSave, onClose,
+}: BranchFormModalProps) => {
   if (!isOpen) return null;
   return (
     <ModalOverlay>
@@ -63,21 +65,29 @@ export const BranchFormModal = ({ isOpen, isCreate, formState, setFormState, loa
         <form onSubmit={(e) => { e.preventDefault(); onSave(); }} className="space-y-4">
           <div>
             <label className={labelCls}>Branch Name</label>
-            <input className={inputCls} type="text" required disabled={loading}
+            <input
+              className={inputCls} type="text" required disabled={loading}
+              placeholder="e.g. Lucky Boba – SM City"
               value={formState.name}
-              onChange={e => setFormState(f => ({ ...f, name: e.target.value }))} />
+              onChange={e => setFormState((f: BranchFormState) => ({ ...f, name: e.target.value }))}
+            />
           </div>
           <div>
             <label className={labelCls}>Location</label>
-            <input className={inputCls} type="text" required disabled={loading}
+            <input
+              className={inputCls} type="text" required disabled={loading}
+              placeholder="e.g. SM City Cebu"
               value={formState.location}
-              onChange={e => setFormState(f => ({ ...f, location: e.target.value }))} />
+              onChange={e => setFormState((f: BranchFormState) => ({ ...f, location: e.target.value }))}
+            />
           </div>
           <div>
             <label className={labelCls}>Status</label>
-            <select className={inputCls} disabled={loading}
+            <select
+              className={inputCls} disabled={loading}
               value={formState.status}
-              onChange={e => setFormState(f => ({ ...f, status: e.target.value as 'active' | 'inactive' }))}>
+              onChange={e => setFormState((f: BranchFormState) => ({ ...f, status: e.target.value as 'active' | 'inactive' }))}
+            >
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
             </select>
@@ -124,10 +134,12 @@ export const ViewBranchModal = ({ branch, onClose }: ViewBranchModalProps) => {
           <ModalCloseBtn onClick={onClose} />
         </div>
         <div className="space-y-4">
-          {[
-            { label: 'Branch Name', value: branch.name },
-            { label: 'Location',    value: branch.location },
-          ].map(({ label, value }) => (
+          {(
+            [
+              { label: 'Branch Name', value: branch.name },
+              { label: 'Location',    value: branch.location },
+            ] as { label: string; value: string }[]
+          ).map(({ label, value }) => (
             <div key={label}>
               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">{label}</p>
               <p className="text-sm font-bold text-[#3b2063]">{value}</p>
@@ -136,7 +148,9 @@ export const ViewBranchModal = ({ branch, onClose }: ViewBranchModalProps) => {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Status</p>
-              <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase ${branch.status === 'active' ? 'bg-emerald-100 text-emerald-600' : 'bg-zinc-100 text-zinc-500'}`}>
+              <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase ${
+                branch.status === 'active' ? 'bg-emerald-100 text-emerald-600' : 'bg-zinc-100 text-zinc-500'
+              }`}>
                 {branch.status}
               </span>
             </div>
@@ -157,7 +171,8 @@ export const ViewBranchModal = ({ branch, onClose }: ViewBranchModalProps) => {
           </div>
         </div>
         <div className="pt-2 flex justify-end">
-          <button onClick={onClose} className="px-6 py-2 rounded-2xl bg-[#3b2063] text-white text-xs font-black uppercase tracking-widest hover:bg-[#2a174a]">
+          <button onClick={onClose}
+            className="px-6 py-2 rounded-2xl bg-[#3b2063] text-white text-xs font-black uppercase tracking-widest hover:bg-[#2a174a]">
             Close
           </button>
         </div>
@@ -181,7 +196,9 @@ interface UserFormModalProps {
   onClose: () => void;
 }
 
-export const UserFormModal = ({ isOpen, editingUser, form, setForm, formError, isSubmitting, onSubmit, onClose }: UserFormModalProps) => {
+export const UserFormModal = ({
+  isOpen, editingUser, form, setForm, formError, isSubmitting, onSubmit, onClose,
+}: UserFormModalProps) => {
   if (!isOpen) return null;
   return (
     <ModalOverlay>
@@ -199,33 +216,39 @@ export const UserFormModal = ({ isOpen, editingUser, form, setForm, formError, i
           <div>
             <label className={labelCls}>Full Name</label>
             <input className={inputCls} type="text" required disabled={isSubmitting}
-              value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+              value={form.name}
+              onChange={e => setForm((f: UserFormState) => ({ ...f, name: e.target.value }))} />
           </div>
           <div>
             <label className={labelCls}>Email</label>
             <input className={inputCls} type="email" required disabled={isSubmitting}
-              value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
+              value={form.email}
+              onChange={e => setForm((f: UserFormState) => ({ ...f, email: e.target.value }))} />
           </div>
           <div>
             <label className={labelCls}>{editingUser ? 'Reset Password (optional)' : 'Password'}</label>
             <input className={inputCls} type="password" disabled={isSubmitting} required={!editingUser}
               placeholder={editingUser ? 'Leave blank to keep current' : 'Set initial password'}
-              value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />
+              value={form.password}
+              onChange={e => setForm((f: UserFormState) => ({ ...f, password: e.target.value }))} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelCls}>Role</label>
               <select className={inputCls} disabled={isSubmitting}
-                value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value as User['role'] }))}>
+                value={form.role}
+                onChange={e => setForm((f: UserFormState) => ({ ...f, role: e.target.value as User['role'] }))}>
                 <option value="superadmin">Super Admin</option>
                 <option value="admin">Admin</option>
                 <option value="manager">Manager</option>
+                <option value="cashier">Cashier</option>
               </select>
             </div>
             <div>
               <label className={labelCls}>Status</label>
               <select className={inputCls} disabled={isSubmitting}
-                value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as User['status'] }))}>
+                value={form.status}
+                onChange={e => setForm((f: UserFormState) => ({ ...f, status: e.target.value as User['status'] }))}>
                 <option value="ACTIVE">Active</option>
                 <option value="INACTIVE">Inactive</option>
               </select>
@@ -235,7 +258,8 @@ export const UserFormModal = ({ isOpen, editingUser, form, setForm, formError, i
             <label className={labelCls}>Branch</label>
             <input className={inputCls} type="text" disabled={isSubmitting}
               placeholder="e.g. SM City, Ayala, All Branches"
-              value={form.branch} onChange={e => setForm(f => ({ ...f, branch: e.target.value }))} />
+              value={form.branch}
+              onChange={e => setForm((f: UserFormState) => ({ ...f, branch: e.target.value }))} />
           </div>
           <div className="pt-2 flex justify-end gap-3">
             <button type="button" onClick={onClose} disabled={isSubmitting}

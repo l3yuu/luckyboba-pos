@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import logo from '../assets/logo.png';
 import type { Branch } from '../services/BranchService';
+import { useBranches, type BranchFormState, EMPTY_BRANCH_FORM } from '../hooks/useBranches';
 import { useUsers } from '../hooks/useUsers';
 import {
   OverviewTab,
@@ -11,138 +12,123 @@ import {
 } from '../components/SuperAdmin/tabs';
 import * as Icons from '../components/SuperAdmin/icons';
 
-// Types
-type BranchFormState = {
-  id: number | null;
-  name: string;
-  location: string;
-  status: 'active' | 'inactive';
-  total_sales: number;
-  today_sales: number;
-};
-
-// Mock Data
-const mockBranches: Branch[] = [
-  { id: 1, name: 'Lucky Boba - SM City', location: 'SM City Cebu', status: 'active', total_sales: 125000, today_sales: 4500, created_at: '', updated_at: '' },
-  { id: 2, name: 'Lucky Boba - Ayala', location: 'Ayala Center', status: 'active', total_sales: 98000, today_sales: 3200, created_at: '', updated_at: '' },
-  { id: 3, name: 'Lucky Boba - IT Park', location: 'Cebu IT Park', status: 'active', total_sales: 87500, today_sales: 2800, created_at: '', updated_at: '' },
-  { id: 4, name: 'Lucky Boba - Banilad', location: 'Banilad Town Center', status: 'inactive', total_sales: 45000, today_sales: 0, created_at: '', updated_at: '' },
-];
+type TabId = 'overview' | 'branches' | 'users' | 'reports' | 'settings';
 
 const SuperAdminDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'branches' | 'users' | 'reports' | 'settings'>('overview');
+  const [activeTab, setActiveTab]       = useState<TabId>('overview');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
-  const [branches, setBranches] = useState<Branch[]>(mockBranches);
-  const [branchFormState, setBranchFormState] = useState<BranchFormState>({
-    id: null,
-    name: '',
-    location: '',
-    status: 'active',
-    total_sales: 0,
-    today_sales: 0,
-  });
-  const [isCreateBranchModalOpen, setIsCreateBranchModalOpen] = useState(false);
-  const [isUpdateBranchModalOpen, setIsUpdateBranchModalOpen] = useState(false);
-  const [viewBranch, setViewBranch] = useState<Branch | null>(null);
+
+  // ── Real API hooks ──────────────────────────────────────────────────────
+  const {
+    branches,
+    loading: branchLoading,
+    error:   branchError,
+    createBranch,
+    updateBranch,
+    deleteBranch,
+  } = useBranches();
 
   const usersHook = useUsers();
 
+  // ── Modal state ─────────────────────────────────────────────────────────
+  const [form, setForm]         = useState<BranchFormState>(EMPTY_BRANCH_FORM);
+  const [showCreate, setShowCreate] = useState(false);
+  const [showEdit, setShowEdit]     = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
+  const [viewBranch, setViewBranch] = useState<Branch | null>(null);
+
+  // ── Helpers ─────────────────────────────────────────────────────────────
+  const closeModal = () => {
+    setShowCreate(false);
+    setShowEdit(false);
+    setModalError(null);
+  };
+
   const handleLogout = () => {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('lucky_boba_token');
-    localStorage.removeItem('token');
-    localStorage.removeItem('user_role');
-    localStorage.removeItem('lucky_boba_authenticated');
+    ['auth_token', 'lucky_boba_token', 'token', 'user_role', 'lucky_boba_authenticated']
+      .forEach(k => localStorage.removeItem(k));
     sessionStorage.clear();
     window.location.href = '/login';
   };
 
-  const handleCreateBranch = () => {
-    setBranchFormState({ id: null, name: '', location: '', status: 'active', total_sales: 0, today_sales: 0 });
-    setIsCreateBranchModalOpen(true);
+  // ── Branch CRUD ─────────────────────────────────────────────────────────
+  const openCreate = () => {
+    setForm(EMPTY_BRANCH_FORM);
+    setModalError(null);
+    setShowCreate(true);
   };
 
-  const handleEditBranch = (branch: Branch) => {
-    setBranchFormState({
-      id: branch.id,
-      name: branch.name,
-      location: branch.location,
-      status: branch.status,
-      total_sales: branch.total_sales,
-      today_sales: branch.today_sales,
-    });
-    setIsUpdateBranchModalOpen(true);
+  const openEdit = (branch: Branch) => {
+    setForm({ id: branch.id, name: branch.name, location: branch.location, status: branch.status });
+    setModalError(null);
+    setShowEdit(true);
   };
 
-  const handleSaveBranch = () => {
-    if (branchFormState.id === null) {
-      const newBranch: Branch = {
-        id: branches.length > 0 ? Math.max(...branches.map(b => b.id)) + 1 : 1,
-        name: branchFormState.name,
-        location: branchFormState.location,
-        status: branchFormState.status,
-        total_sales: branchFormState.total_sales,
-        today_sales: branchFormState.today_sales,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      setBranches([...branches, newBranch]);
-    } else {
-      setBranches(branches.map((b) =>
-        b.id === branchFormState.id
-          ? {
-              ...b,
-              name: branchFormState.name,
-              location: branchFormState.location,
-              status: branchFormState.status,
-              total_sales: branchFormState.total_sales,
-              today_sales: branchFormState.today_sales,
-              updated_at: new Date().toISOString(),
-            }
-          : b
-      ));
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setModalError(null);
+    const payload = { name: form.name, location: form.location, status: form.status };
+
+    try {
+      if (form.id === null) {
+        await createBranch(payload);
+      } else {
+        await updateBranch(form.id, payload);
+      }
+      closeModal();
+    } catch (err: unknown) {
+      setModalError(err instanceof Error ? err.message : 'Something went wrong.');
     }
-    setIsCreateBranchModalOpen(false);
-    setIsUpdateBranchModalOpen(false);
   };
 
-  const handleDeleteBranch = (id: number) => {
-    setBranches((prev) => prev.filter((branch) => branch.id !== id));
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Delete this branch? This cannot be undone.')) return;
+    try {
+      await deleteBranch(id);
+    } catch {
+      // error is surfaced via branchError banner
+    }
   };
 
-  const totalRevenue = branches.reduce((sum, b) => sum + b.total_sales, 0);
-  const todayRevenue = branches.reduce((sum, b) => sum + b.today_sales, 0);
+  // ── Derived stats ────────────────────────────────────────────────────────
+  const totalRevenue   = branches.reduce((s, b) => s + (parseFloat(String(b.total_sales)) || 0), 0);
+  const todayRevenue   = branches.reduce((s, b) => s + (parseFloat(String(b.today_sales)) || 0), 0);
   const activeBranches = branches.filter(b => b.status === 'active').length;
-  const activeUsers = usersHook.users.filter((u: { status: string }) => u.status === 'ACTIVE').length;
+  const activeUsers    = usersHook.users.filter((u: { status: string }) => u.status === 'ACTIVE').length;
 
   const navItems = [
-    { id: 'overview',  label: 'Overview',  icon: <Icons.DashboardIcon /> },
-    { id: 'branches',  label: 'Branches',  icon: <Icons.BranchIcon /> },
-    { id: 'users',     label: 'Users',     icon: <Icons.UsersIcon /> },
-    { id: 'reports',   label: 'Reports',   icon: <Icons.ReportsIcon /> },
-    { id: 'settings',  label: 'Settings',  icon: <Icons.SettingsIcon /> },
+    { id: 'overview', label: 'Overview', icon: <Icons.DashboardIcon /> },
+    { id: 'branches', label: 'Branches', icon: <Icons.BranchIcon /> },
+    { id: 'users',    label: 'Users',    icon: <Icons.UsersIcon /> },
+    { id: 'reports',  label: 'Reports',  icon: <Icons.ReportsIcon /> },
+    { id: 'settings', label: 'Settings', icon: <Icons.SettingsIcon /> },
   ];
 
-  const overviewProps = {
-    totalRevenue,
-    todayRevenue,
-    activeBranches,
-    activeUsers,
-    branches,
-    loading: false,
-  };
+  const isModalOpen = showCreate || showEdit;
 
+  // ── Render ───────────────────────────────────────────────────────────────
   const renderContent = () => {
     switch (activeTab) {
       case 'overview':
-        return <OverviewTab {...overviewProps} />;
+        return (
+          <OverviewTab
+            totalRevenue={totalRevenue}
+            todayRevenue={todayRevenue}
+            activeBranches={activeBranches}
+            activeUsers={activeUsers}
+            branches={branches}
+            loading={branchLoading}
+          />
+        );
       case 'branches':
         return (
           <BranchesTab
             branches={branches}
-            onCreateBranch={handleCreateBranch}
-            onEditBranch={handleEditBranch}
-            onDeleteBranch={handleDeleteBranch}
+            loading={branchLoading}
+            error={branchError}
+            onCreateBranch={openCreate}
+            onEditBranch={openEdit}
+            onDeleteBranch={handleDelete}
           />
         );
       case 'users':
@@ -151,17 +137,16 @@ const SuperAdminDashboard: React.FC = () => {
         return <ReportsTab />;
       case 'settings':
         return <SettingsTab />;
-      default:
-        return <OverviewTab {...overviewProps} />;
     }
   };
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-[#f8f6ff] text-zinc-900 font-sans overflow-hidden">
+
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-zinc-200">
         <img src={logo} alt="Logo" className="h-8 w-auto object-contain" />
-        <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-2 text-[#3b2063]">
+        <button onClick={() => setSidebarOpen(p => !p)} className="p-2 text-[#3b2063]">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
           </svg>
@@ -184,11 +169,11 @@ const SuperAdminDashboard: React.FC = () => {
           </div>
 
           <nav className="w-full px-6 space-y-2 pb-6">
-            {navItems.map((item) => (
+            {navItems.map(item => (
               <button
                 key={item.id}
                 onClick={() => {
-                  setActiveTab(item.id as typeof activeTab);
+                  setActiveTab(item.id as TabId);
                   if (window.innerWidth < 768) setSidebarOpen(false);
                 }}
                 className={`w-full px-5 py-3 rounded-2xl font-black text-[13px] uppercase tracking-wider flex items-center transition-all duration-200 ${
@@ -207,7 +192,7 @@ const SuperAdminDashboard: React.FC = () => {
         <div className="shrink-0 px-6 pb-8">
           <button
             onClick={handleLogout}
-            className="flex items-center justify-center w-full px-6 py-4 rounded-2xl bg-[#be2525] hover:bg-[#a11f1f] text-white text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-200 shadow-md shadow-red-900/10 group"
+            className="flex items-center justify-center w-full px-6 py-4 rounded-2xl bg-[#be2525] hover:bg-[#a11f1f] text-white text-[11px] font-black uppercase tracking-[0.2em] transition-all shadow-md group"
           >
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4 mr-3 group-hover:-translate-x-1 transition-transform">
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
@@ -224,114 +209,102 @@ const SuperAdminDashboard: React.FC = () => {
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Main Content */}
+      {/* Main */}
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-6 md:px-10 py-6 md:py-8 gap-4">
           <div>
             <h1 className="text-xl md:text-4xl font-black text-[#3b2063] uppercase tracking-tight">
-              {activeTab === 'overview'  && 'Dashboard Overview'}
-              {activeTab === 'branches'  && 'Branch Management'}
-              {activeTab === 'users'     && 'User Management'}
-              {activeTab === 'reports'   && 'System Reports'}
-              {activeTab === 'settings'  && 'System Settings'}
+              {activeTab === 'overview' && 'Dashboard Overview'}
+              {activeTab === 'branches' && 'Branch Management'}
+              {activeTab === 'users'    && 'User Management'}
+              {activeTab === 'reports'  && 'System Reports'}
+              {activeTab === 'settings' && 'System Settings'}
             </h1>
             <p className="text-zinc-400 font-bold text-[9px] md:text-[10px] uppercase tracking-[0.2em] mt-1">
               Super Administrator Panel
             </p>
           </div>
+
+          {branchLoading && (
+            <div className="flex items-center gap-2 text-[#3b2063]">
+              <div className="w-4 h-4 border-2 border-[#3b2063] border-t-transparent rounded-full animate-spin" />
+              <span className="text-[10px] font-bold uppercase tracking-widest">Loading…</span>
+            </div>
+          )}
         </header>
+
+        {/* Global error banner */}
+        {branchError && (
+          <div className="mx-6 md:mx-10 mb-4 p-4 bg-red-50 border border-red-200 rounded-2xl">
+            <p className="text-sm text-red-600 font-bold">{branchError}</p>
+          </div>
+        )}
 
         {renderContent()}
 
         {/* Branch Create / Edit Modal */}
-        {(isCreateBranchModalOpen || isUpdateBranchModalOpen) && (
+        {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
             <div className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl p-6 space-y-5">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between">
                 <h2 className="text-lg font-black text-[#3b2063] uppercase tracking-wider">
-                  {isCreateBranchModalOpen ? 'Add Branch' : 'Edit Branch'}
+                  {showCreate ? 'Add Branch' : 'Edit Branch'}
                 </h2>
-                <button
-                  onClick={() => { setIsCreateBranchModalOpen(false); setIsUpdateBranchModalOpen(false); }}
-                  className="text-zinc-400 hover:text-zinc-600"
-                >
+                <button onClick={closeModal} disabled={branchLoading} className="text-zinc-400 hover:text-zinc-600 disabled:opacity-50">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
 
-              <form onSubmit={(e) => { e.preventDefault(); handleSaveBranch(); }} className="space-y-4">
+              {modalError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
+                  <p className="text-sm text-red-600 font-bold">{modalError}</p>
+                </div>
+              )}
+
+              <form onSubmit={handleSave} className="space-y-4">
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Branch Name</label>
                   <input
-                    type="text"
-                    value={branchFormState.name}
-                    onChange={(e) => setBranchFormState(f => ({ ...f, name: e.target.value }))}
+                    type="text" required disabled={branchLoading}
+                    placeholder="e.g. Lucky Boba – SM City"
+                    value={form.name}
+                    onChange={e => setForm((f: BranchFormState) => ({ ...f, name: e.target.value }))}
                     className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
-                    required
                   />
                 </div>
-
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Location</label>
                   <input
-                    type="text"
-                    value={branchFormState.location}
-                    onChange={(e) => setBranchFormState(f => ({ ...f, location: e.target.value }))}
+                    type="text" required disabled={branchLoading}
+                    placeholder="e.g. SM City Cebu"
+                    value={form.location}
+                    onChange={e => setForm((f: BranchFormState) => ({ ...f, location: e.target.value }))}
                     className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
-                    required
                   />
                 </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Status</label>
-                    <select
-                      value={branchFormState.status}
-                      onChange={(e) => setBranchFormState(f => ({ ...f, status: e.target.value as 'active' | 'inactive' }))}
-                      className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
-                    >
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Today's Sales</label>
-                    <input
-                      type="number"
-                      value={branchFormState.today_sales}
-                      onChange={(e) => setBranchFormState(f => ({ ...f, today_sales: Number(e.target.value) }))}
-                      className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
-                      min="0"
-                    />
-                  </div>
-                </div>
-
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Total Sales</label>
-                  <input
-                    type="number"
-                    value={branchFormState.total_sales}
-                    onChange={(e) => setBranchFormState(f => ({ ...f, total_sales: Number(e.target.value) }))}
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Status</label>
+                  <select
+                    disabled={branchLoading}
+                    value={form.status}
+                    onChange={e => setForm((f: BranchFormState) => ({ ...f, status: e.target.value as 'active' | 'inactive' }))}
                     className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
-                    min="0"
-                  />
-                </div>
-
-                <div className="pt-2 flex justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => { setIsCreateBranchModalOpen(false); setIsUpdateBranchModalOpen(false); }}
-                    className="px-4 py-2 rounded-2xl border border-zinc-200 text-xs font-bold uppercase text-zinc-500 hover:bg-zinc-50"
                   >
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+                <div className="pt-2 flex justify-end gap-3">
+                  <button type="button" onClick={closeModal} disabled={branchLoading}
+                    className="px-4 py-2 rounded-2xl border border-zinc-200 text-xs font-bold uppercase text-zinc-500 hover:bg-zinc-50 disabled:opacity-50">
                     Cancel
                   </button>
-                  <button
-                    type="submit"
-                    className="px-6 py-2 rounded-2xl bg-[#3b2063] text-white text-xs font-black uppercase tracking-widest hover:bg-[#2a174a]"
-                  >
-                    {isCreateBranchModalOpen ? 'Create Branch' : 'Save Changes'}
+                  <button type="submit" disabled={branchLoading}
+                    className="px-6 py-2 rounded-2xl bg-[#3b2063] text-white text-xs font-black uppercase tracking-widest hover:bg-[#2a174a] disabled:opacity-50 flex items-center gap-2">
+                    {branchLoading && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                    {showCreate ? 'Create Branch' : 'Save Changes'}
                   </button>
                 </div>
               </form>
@@ -343,7 +316,7 @@ const SuperAdminDashboard: React.FC = () => {
         {viewBranch && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
             <div className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl p-6 space-y-5">
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center justify-between">
                 <h2 className="text-lg font-black text-[#3b2063] uppercase tracking-wider">Branch Details</h2>
                 <button onClick={() => setViewBranch(null)} className="text-zinc-400 hover:text-zinc-600">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
@@ -351,7 +324,6 @@ const SuperAdminDashboard: React.FC = () => {
                   </svg>
                 </button>
               </div>
-
               <div className="space-y-4">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Branch Name</p>
@@ -378,26 +350,24 @@ const SuperAdminDashboard: React.FC = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Today's Sales</p>
-                    <p className="text-lg font-black text-emerald-500">₱{viewBranch.today_sales.toLocaleString()}</p>
+                    <p className="text-lg font-black text-emerald-500">₱{(parseFloat(String(viewBranch.today_sales)) || 0).toLocaleString()}</p>
                   </div>
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Total Sales</p>
-                    <p className="text-lg font-black text-[#3b2063]">₱{viewBranch.total_sales.toLocaleString()}</p>
+                    <p className="text-lg font-black text-[#3b2063]">₱{(parseFloat(String(viewBranch.total_sales)) || 0).toLocaleString()}</p>
                   </div>
                 </div>
               </div>
-
               <div className="pt-2 flex justify-end">
-                <button
-                  onClick={() => setViewBranch(null)}
-                  className="px-6 py-2 rounded-2xl bg-[#3b2063] text-white text-xs font-black uppercase tracking-widest hover:bg-[#2a174a]"
-                >
+                <button onClick={() => setViewBranch(null)}
+                  className="px-6 py-2 rounded-2xl bg-[#3b2063] text-white text-xs font-black uppercase tracking-widest hover:bg-[#2a174a]">
                   Close
                 </button>
               </div>
             </div>
           </div>
         )}
+
       </main>
     </div>
   );

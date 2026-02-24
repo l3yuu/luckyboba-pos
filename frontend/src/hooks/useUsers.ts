@@ -1,64 +1,95 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { User, UserRole } from '../types/user';
 
+// ── Types ──────────────────────────────────────────────────────────────────
+
 export interface UserForm {
-  name: string;
-  email: string;
-  role: UserRole;  // was: string
-  branch?: string;
-  password?: string;
-  status: 'ACTIVE' | 'INACTIVE';
+  name:      string;
+  email:     string;
+  role:      UserRole;
+  branch:    string;
+  password:  string;
+  status:    'ACTIVE' | 'INACTIVE';
 }
 
 const EMPTY_FORM: UserForm = {
-  name: '',
-  email: '',
-  role: 'staff' as UserRole,  // make sure 'staff' is a valid UserRole
-  branch: '',
+  name:     '',
+  email:    '',
+  role:     'cashier',
+  branch:   '',
   password: '',
-  status: 'ACTIVE',
+  status:   'ACTIVE',
+};
+
+// ── API helpers ────────────────────────────────────────────────────────────
+
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api';
+
+const getHeaders = (): Record<string, string> => {
+  const token =
+    localStorage.getItem('auth_token') ??
+    localStorage.getItem('lucky_boba_token') ??
+    localStorage.getItem('token') ??
+    '';
+  return {
+    'Content-Type': 'application/json',
+    Accept: 'application/json',
+    Authorization: `Bearer ${token}`,
+  };
+};
+
+interface LaravelUserResponse {
+  success: boolean;
+  message?: string;
+  errors?:  Record<string, string[]>;
+  data:     User | User[];
+}
+
+const extractError = (json: LaravelUserResponse, fallback: string): string => {
+  if (json?.errors) return Object.values(json.errors).flat().join(' ');
+  return json?.message ?? fallback;
 };
 
 // ── Hook ───────────────────────────────────────────────────────────────────
 
-export const useUsers= () => {
-  const [users, setUsers]           = useState<User[]>([]);
-  const [loading, setLoading]       = useState(false);
-  const [error, setError]           = useState<string | null>(null);
+export const useUsers = () => {
+  const [users, setUsers]         = useState<User[]>([]);
+  const [loading, setLoading]     = useState(false);
+  const [error, setError]         = useState<string | null>(null);
 
   // Modal state
-  const [isModalOpen, setIsModalOpen]     = useState(false);
-  const [editingUser, setEditingUser]     = useState<User | null>(null);
-  const [form, setForm]                   = useState<UserForm>(EMPTY_FORM);
-  const [formError, setFormError]         = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting]   = useState(false);
+  const [isModalOpen, setIsModalOpen]   = useState(false);
+  const [editingUser, setEditingUser]   = useState<User | null>(null);
+  const [form, setForm]                 = useState<UserForm>(EMPTY_FORM);
+  const [formError, setFormError]       = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Delete confirmation state
-  const [userToDelete, setUserToDelete]   = useState<User | null>(null);
+  // Delete state
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
-  // ── Fetch ────────────────────────────────────────────────────────────────
+  // ── Fetch all users ──────────────────────────────────────────────────────
 
   const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
+      const res  = await fetch(`${API_BASE}/users`, { headers: getHeaders() });
+      const json = (await res.json()) as LaravelUserResponse;
 
-      // TODO: Replace with real API call, e.g.:
-      // const data = await UserService.getAllUsers();
-      // setUsers(data);
+      if (!res.ok || !json.success) {
+        throw new Error(extractError(json, 'Failed to load users'));
+      }
 
-      // Mock data — remove when API is ready
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      setUsers([
-        { id: 1, name: 'Bina', email: 'admin@luckyboba.com', role: 'superadmin', status: 'ACTIVE' },
-        { id: 2, name: 'Staff User', email: 'staff@luckyboba.com', role: 'manager', status: 'ACTIVE' },
-      ]);
-    } catch {
-      setError('Failed to load users. Please try again.');
+      setUsers(json.data as User[]);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load users');
     } finally {
       setLoading(false);
     }
   }, []);
+
+  // Auto-fetch on mount
+  useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
   // ── Modal helpers ────────────────────────────────────────────────────────
 
@@ -69,18 +100,19 @@ export const useUsers= () => {
     setIsModalOpen(true);
   };
 
-const openEdit = (user: User) => {
-  setEditingUser(user);
-  setForm({
-    name:     user.name,
-    email:    user.email,
-    role:     user.role,
-    branch:   user.branch ?? '',
-    status:   user.status,  // add this
-  });
-  setFormError(null);
-  setIsModalOpen(true);
-};
+  const openEdit = (user: User) => {
+    setEditingUser(user);
+    setForm({
+      name:     user.name,
+      email:    user.email,
+      role:     user.role,
+      branch:   user.branch ?? '',
+      password: '',           // never pre-fill password
+      status:   user.status,
+    });
+    setFormError(null);
+    setIsModalOpen(true);
+  };
 
   const closeModal = () => {
     setIsModalOpen(false);
@@ -89,49 +121,60 @@ const openEdit = (user: User) => {
     setFormError(null);
   };
 
-  // ── Submit (create or update) ────────────────────────────────────────────
+  // ── Create or Update ─────────────────────────────────────────────────────
 
-  const handleSubmit = async () => {
-    // Basic validation
-    if (!form.name.trim())  return setFormError('Name is required.');
-    if (!form.email.trim()) return setFormError('Email is required.');
-    if (!form.role.trim())  return setFormError('Role is required.');
-    if (!editingUser && !form.password?.trim()) return setFormError('Password is required for new users.');
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    // Client-side validation
+    if (!form.name.trim())  { setFormError('Name is required.');  return; }
+    if (!form.email.trim()) { setFormError('Email is required.'); return; }
+    if (!editingUser && !form.password?.trim()) {
+      setFormError('Password is required for new users.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setFormError(null);
 
     try {
-      setIsSubmitting(true);
-      setFormError(null);
+      // Build payload — only include password if provided
+      const payload: Record<string, string> = {
+        name:   form.name,
+        email:  form.email,
+        role:   form.role,
+        status: form.status,
+        branch: form.branch,
+      };
+      if (form.password?.trim()) payload.password = form.password;
 
-      // TODO: Replace with real API calls:
-      // if (editingUser) await UserService.updateUser(editingUser.id, form);
-      // else             await UserService.createUser(form);
+      const url    = editingUser
+        ? `${API_BASE}/users/${editingUser.id}`
+        : `${API_BASE}/users`;
+      const method = editingUser ? 'PUT' : 'POST';
 
-      // Mock — remove when API is ready
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      const res  = await fetch(url, {
+        method,
+        headers: getHeaders(),
+        body:    JSON.stringify(payload),
+      });
+      const json = (await res.json()) as LaravelUserResponse;
+
+      if (!res.ok || !json.success) {
+        throw new Error(extractError(json, 'Failed to save user'));
+      }
+
+      const saved = json.data as User;
 
       if (editingUser) {
-        setUsers((prev) =>
-          prev.map((u) =>
-            u.id === editingUser.id
-              ? { ...u, ...form }
-              : u
-          )
-        );
+        setUsers(prev => prev.map(u => (u.id === saved.id ? saved : u)));
       } else {
-        const newUser: User = {
-          id:     Math.floor(Math.random() * 10000),
-          name:   form.name,
-          email:  form.email,
-          role:   form.role,
-          branch: form.branch,
-          status: 'ACTIVE',
-        };
-        setUsers((prev) => [...prev, newUser]);
+        setUsers(prev => [saved, ...prev]);
       }
 
       closeModal();
-    } catch {
-      setFormError('Something went wrong. Please try again.');
+    } catch (e: unknown) {
+      setFormError(e instanceof Error ? e.message : 'Something went wrong.');
     } finally {
       setIsSubmitting(false);
     }
@@ -139,51 +182,67 @@ const openEdit = (user: User) => {
 
   // ── Delete ───────────────────────────────────────────────────────────────
 
-  const handleDeleteClick = (user: User) => {
-    setUserToDelete(user);
-  };
+  const handleDeleteClick = (user: User) => setUserToDelete(user);
 
   const handleConfirmDelete = async () => {
     if (!userToDelete) return;
+    setLoading(true);
     try {
-      setLoading(true);
+      const res  = await fetch(`${API_BASE}/users/${userToDelete.id}`, {
+        method:  'DELETE',
+        headers: getHeaders(),
+      });
+      const json = (await res.json()) as LaravelUserResponse;
 
-      // TODO: Replace with real API call:
-      // await UserService.deleteUser(userToDelete.id);
+      if (!res.ok || !json.success) {
+        throw new Error(extractError(json, 'Failed to delete user'));
+      }
 
-      // Mock — remove when API is ready
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      setUsers((prev) => prev.filter((u) => u.id !== userToDelete.id));
-
+      setUsers(prev => prev.filter(u => u.id !== userToDelete.id));
       setUserToDelete(null);
-    } catch {
-      setError('Failed to delete user. Please try again.');
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to delete user');
     } finally {
       setLoading(false);
     }
   };
 
-  const cancelDelete = () => {
-    setUserToDelete(null);
+  const cancelDelete = () => setUserToDelete(null);
+
+  // ── Toggle status ─────────────────────────────────────────────────────────
+
+  const toggleStatus = async (user: User) => {
+    try {
+      const res  = await fetch(`${API_BASE}/users/${user.id}/toggle-status`, {
+        method:  'PATCH',
+        headers: getHeaders(),
+      });
+      const json = (await res.json()) as LaravelUserResponse;
+
+      if (!res.ok || !json.success) {
+        throw new Error(extractError(json, 'Failed to toggle status'));
+      }
+
+      const updated = json.data as User;
+      setUsers(prev => prev.map(u => (u.id === updated.id ? updated : u)));
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to toggle status');
+    }
   };
 
-  // ── Return ───────────────────────────────────────────────────────────────
+  // ── Return ────────────────────────────────────────────────────────────────
 
   return {
-    // state
     users,
     loading,
     error,
-    // modal
     isModalOpen,
     editingUser,
     form,
     setForm,
     formError,
     isSubmitting,
-    // delete
     userToDelete,
-    // actions
     fetchUsers,
     openCreate,
     openEdit,
@@ -192,5 +251,6 @@ const openEdit = (user: User) => {
     handleDeleteClick,
     handleConfirmDelete,
     cancelDelete,
+    toggleStatus,
   };
 };

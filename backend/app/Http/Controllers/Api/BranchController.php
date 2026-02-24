@@ -5,12 +5,15 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Carbon\Carbon;
+
 
 class BranchController extends Controller
 {
     /**
-     * Display a listing of all branches
+     * GET /api/branches
      */
     public function index()
     {
@@ -19,62 +22,68 @@ class BranchController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $branches,
-                'message' => 'Branches retrieved successfully'
+                'data'    => $branches,
+                'message' => 'Branches retrieved successfully',
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve branches',
-                'error' => $e->getMessage()
+                'error'   => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Store a newly created branch
+     * POST /api/branches
      */
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255|unique:branches,name',
+            'name'     => 'required|string|max:255|unique:branches,name',
             'location' => 'required|string|max:255',
-            'status' => 'required|in:active,inactive',
+            'status'   => 'required|in:active,inactive',
+        ], [
+            'name.required'     => 'Branch name is required.',
+            'name.unique'       => 'A branch with this name already exists.',
+            'location.required' => 'Location is required.',
+            'status.required'   => 'Status is required.',
+            'status.in'         => 'Status must be active or inactive.',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors'  => $validator->errors(),
             ], 422);
         }
 
         try {
             $branch = Branch::create([
-                'name' => $request->name,
-                'location' => $request->location,
-                'status' => $request->status,
+                'name'        => $request->name,
+                'location'    => $request->location,
+                'status'      => $request->status,
                 'total_sales' => 0.00,
                 'today_sales' => 0.00,
             ]);
 
             return response()->json([
                 'success' => true,
-                'data' => $branch,
-                'message' => 'Branch created successfully'
+                'data'    => $branch,
+                'message' => 'Branch created successfully',
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create branch',
-                'error' => $e->getMessage()
+                'error'   => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Display the specified branch
+     * GET /api/branches/{id}
      */
     public function show($id)
     {
@@ -83,79 +92,303 @@ class BranchController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $branch,
-                'message' => 'Branch retrieved successfully'
+                'data'    => $branch,
+                'message' => 'Branch retrieved successfully',
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Branch not found',
-                'error' => $e->getMessage()
+                'error'   => $e->getMessage(),
             ], 404);
         }
     }
 
     /**
-     * Update the specified branch
+     * PUT /api/branches/{id}
      */
     public function update(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'sometimes|required|string|max:255|unique:branches,name,' . $id,
+            'name'     => 'sometimes|required|string|max:255|unique:branches,name,' . $id,
             'location' => 'sometimes|required|string|max:255',
-            'status' => 'sometimes|required|in:active,inactive',
+            'status'   => 'sometimes|required|in:active,inactive',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors' => $validator->errors()
+                'errors'  => $validator->errors(),
             ], 422);
         }
 
         try {
             $branch = Branch::findOrFail($id);
-            
             $branch->update($request->only(['name', 'location', 'status']));
 
             return response()->json([
                 'success' => true,
-                'data' => $branch,
-                'message' => 'Branch updated successfully'
+                'data'    => $branch->fresh(),
+                'message' => 'Branch updated successfully',
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update branch',
-                'error' => $e->getMessage()
+                'error'   => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Remove the specified branch
+     * DELETE /api/branches/{id}
      */
     public function destroy($id)
     {
         try {
             $branch = Branch::findOrFail($id);
-            
-            // Check if branch has sales (you'll need Sale model for this)
-            // For now, just allow deletion
-            
+
+            // Guard: prevent deleting a branch that has users or sales
+            $hasUsers = $branch->users()->exists();
+            $hasSales = method_exists($branch, 'sales') && $branch->sales()->exists();
+
+            if ($hasUsers || $hasSales) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot delete a branch that still has users or sales records. Mark it as inactive instead.',
+                ], 400);
+            }
+
             $branch->delete();
 
             return response()->json([
                 'success' => true,
-                'message' => 'Branch deleted successfully'
+                'message' => 'Branch deleted successfully',
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete branch',
-                'error' => $e->getMessage()
+                'error'   => $e->getMessage(),
             ], 500);
         }
     }
+
+    /**
+     * GET /api/branches/performance
+     */
+    public function performance()
+    {
+        try {
+            $data = DB::table('branch_performance')->get();
+
+            return response()->json([
+                'success' => true,
+                'data'    => $data,
+                'message' => 'Branch performance retrieved successfully',
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve branch performance',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * GET /api/branches/today-sales
+     */
+    public function todaySales()
+    {
+        try {
+            $data = DB::table('today_sales_by_branch')->get();
+
+            return response()->json([
+                'success' => true,
+                'data'    => $data,
+                'message' => "Today's sales retrieved successfully",
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => "Failed to retrieve today's sales",
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * GET /api/branches/{id}/daily-sales
+     */
+    public function dailySales($id)
+    {
+        try {
+            $data = DB::table('daily_sales_by_branch')
+                ->where('branch_id', $id)
+                ->orderBy('sale_date', 'desc')
+                ->limit(30)
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data'    => $data,
+                'message' => 'Daily sales retrieved successfully',
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve daily sales',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * POST /api/branches/{id}/refresh-totals
+     */
+    public function refreshTotals($id)
+    {
+        try {
+            DB::statement('CALL update_branch_totals(?)', [$id]);
+            $branch = Branch::findOrFail($id);
+
+            return response()->json([
+                'success' => true,
+                'data'    => $branch,
+                'message' => 'Branch totals refreshed successfully',
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to refresh branch totals',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * GET /api/branches/{id}/sales-summary
+     */
+    public function salesSummary($id)
+    {
+        try {
+            $branch = Branch::findOrFail($id);
+
+            $summary = [
+                'branch_id'             => $branch->id,
+                'branch_name'           => $branch->name,
+                'location'              => $branch->location,
+                'status'                => $branch->status,
+                'total_sales'           => (float) $branch->total_sales,
+                'today_sales'           => (float) $branch->today_sales,
+                'transactions_today'    => $branch->sales()->whereDate('created_at', today())->count(),
+                'total_transactions'    => $branch->sales()->count(),
+                'avg_transaction_value' => (float) ($branch->sales()->avg('total_amount') ?? 0),
+                'payment_methods'       => $branch->sales()
+                    ->select('payment_method', DB::raw('COUNT(*) as count'), DB::raw('SUM(total_amount) as total'))
+                    ->groupBy('payment_method')
+                    ->get(),
+            ];
+
+            return response()->json([
+                'success' => true,
+                'data'    => $summary,
+                'message' => 'Branch sales summary retrieved successfully',
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve sales summary',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function analytics($id)
+{
+    try {
+        $branch = \App\Models\Branch::findOrFail($id);
+
+        $today     = Carbon::today();
+        $weekStart = Carbon::today()->subDays(6)->startOfDay();
+
+        // ── Weekly sales (last 7 days) ───────────────────────────────────────
+        $weeklyRaw = DB::table('sales')
+            ->selectRaw('DATE(created_at) as date, SUM(total_amount) as total, COUNT(*) as count')
+            ->where('branch_id', $id)
+            ->where('status', 'completed')
+            ->whereBetween('created_at', [$weekStart, Carbon::now()])
+            ->groupByRaw('DATE(created_at)')
+            ->orderBy('date')
+            ->get()
+            ->keyBy('date');
+
+        // Build a full 7-day array (fill missing days with 0)
+        $weeklySales = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $date  = Carbon::today()->subDays($i);
+            $key   = $date->toDateString();
+            $weeklySales[] = [
+                'date'      => $key,
+                'day_label' => $date->format('D'),   // Mon, Tue …
+                'total'     => isset($weeklyRaw[$key]) ? (float) $weeklyRaw[$key]->total : 0,
+                'count'     => isset($weeklyRaw[$key]) ? (int) $weeklyRaw[$key]->count : 0,
+            ];
+        }
+
+        // ── Today's hourly breakdown ─────────────────────────────────────────
+        $hourlyRaw = DB::table('sales')
+            ->selectRaw('HOUR(created_at) as hour, SUM(total_amount) as total, COUNT(*) as count')
+            ->where('branch_id', $id)
+            ->where('status', 'completed')
+            ->whereDate('created_at', $today)
+            ->groupByRaw('HOUR(created_at)')
+            ->orderBy('hour')
+            ->get()
+            ->keyBy('hour');
+
+        // Show business hours 8 AM – 10 PM
+        $todayHourly = [];
+        for ($h = 8; $h <= 22; $h++) {
+            $label = $h <= 12
+                ? ($h === 12 ? '12 PM' : "{$h} AM")
+                : (($h - 12) . ' PM');
+
+            $todayHourly[] = [
+                'hour'  => $h,
+                'label' => $label,
+                'total' => isset($hourlyRaw[$h]) ? (float) $hourlyRaw[$h]->total : 0,
+                'count' => isset($hourlyRaw[$h]) ? (int) $hourlyRaw[$h]->count : 0,
+            ];
+        }
+
+        // ── Summary stats ────────────────────────────────────────────────────
+        $weeklyTotal = collect($weeklySales)->sum('total');
+        $todayTotal  = collect($todayHourly)->sum('total');
+        $txCount     = collect($weeklySales)->sum('count');
+        $avgOrder    = $txCount > 0 ? $weeklyTotal / $txCount : 0;
+
+        return response()->json([
+            'success' => true,
+            'data'    => [
+                'branch_id'          => (int) $id,
+                'weekly_sales'       => $weeklySales,
+                'today_hourly'       => $todayHourly,
+                'weekly_total'       => round($weeklyTotal, 2),
+                'today_total'        => round($todayTotal, 2),
+                'avg_order_value'    => round($avgOrder, 2),
+                'total_transactions' => (int) $txCount,
+            ],
+        ], 200);
+
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to load analytics',
+            'error'   => $e->getMessage(),
+        ], 500);
+    }
+}
 }

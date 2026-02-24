@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import BranchService, { type Branch } from '../services/BranchService';
-import { useToast } from './useToast';
+import { useState, useEffect, useCallback } from 'react';
+import { BranchService, type Branch, type BranchPayload } from '../services/BranchService';
 
+// Exported so Modals.tsx can import it
 export interface BranchFormState {
   id: number | null;
   name: string;
@@ -9,100 +9,85 @@ export interface BranchFormState {
   status: 'active' | 'inactive';
 }
 
-const EMPTY_FORM: BranchFormState = { id: null, name: '', location: '', status: 'active' };
+export const EMPTY_BRANCH_FORM: BranchFormState = {
+  id: null,
+  name: '',
+  location: '',
+  status: 'active',
+};
 
 export const useBranches = () => {
-  const { showToast } = useToast();
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState<string | null>(null);
 
-  const [branches, setBranches]                     = useState<Branch[]>([]);
-  const [loading, setLoading]                       = useState(false);
-  const [error, setError]                           = useState<string | null>(null);
-  const [formState, setFormState]                   = useState<BranchFormState>(EMPTY_FORM);
-  const [isCreateModalOpen, setIsCreateModalOpen]   = useState(false);
-  const [isUpdateModalOpen, setIsUpdateModalOpen]   = useState(false);
-  const [viewBranch, setViewBranch]                 = useState<Branch | null>(null);
-
-  // ── Fetch ──────────────────────────────────────────────────────────────────
-  const fetchBranches = async () => {
+  const fetchBranches = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-      setBranches(await BranchService.getAllBranches());
-    } catch {
-      const msg = 'Failed to load branches. Please try again.';
+      const data = await BranchService.getAll();
+      setBranches(data);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to load branches');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchBranches(); }, [fetchBranches]);
+
+  const createBranch = async (payload: BranchPayload): Promise<void> => {
+    setLoading(true);
+    setError(null);
+    try {
+      const created = await BranchService.create(payload);
+      setBranches(prev => [created, ...prev]);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Failed to create branch';
       setError(msg);
-      showToast(msg, 'error');
+      throw e;
     } finally {
       setLoading(false);
     }
   };
 
-  // ── Modal helpers ──────────────────────────────────────────────────────────
-  const openCreate = () => {
-    setFormState(EMPTY_FORM);
+  const updateBranch = async (id: number, payload: Partial<BranchPayload>): Promise<void> => {
+    setLoading(true);
     setError(null);
-    setIsCreateModalOpen(true);
-  };
-
-  const openEdit = (branch: Branch) => {
-    setFormState({ id: branch.id, name: branch.name, location: branch.location, status: branch.status });
-    setError(null);
-    setIsUpdateModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsCreateModalOpen(false);
-    setIsUpdateModalOpen(false);
-  };
-
-  // ── Save (create or update) ────────────────────────────────────────────────
-  const saveBranch = async () => {
     try {
-      setLoading(true);
-      setError(null);
-      const payload = { name: formState.name, location: formState.location, status: formState.status };
-
-      if (formState.id === null) {
-        await BranchService.createBranch(payload);
-        showToast('Branch created successfully!', 'success');
-      } else {
-        await BranchService.updateBranch(formState.id, payload);
-        showToast('Branch updated successfully!', 'success');
-      }
-
-      await fetchBranches();
-      closeModal();
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to save branch';
+      const updated = await BranchService.update(id, payload);
+      setBranches(prev => prev.map(b => (b.id === id ? updated : b)));
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Failed to update branch';
       setError(msg);
-      showToast(msg, 'error');
+      throw e;
     } finally {
       setLoading(false);
     }
   };
 
-  // ── Delete ─────────────────────────────────────────────────────────────────
-  const deleteBranch = async (branch: Branch) => {
-    if (!window.confirm(`Delete "${branch.name}"? This cannot be undone.`)) return;
+  const deleteBranch = async (id: number): Promise<void> => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      await BranchService.deleteBranch(branch.id);
-      showToast('Branch deleted successfully!', 'success');
-      await fetchBranches();
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Failed to delete branch', 'error');
+      await BranchService.remove(id);
+      setBranches(prev => prev.filter(b => b.id !== id));
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Failed to delete branch';
+      setError(msg);
+      throw e;
     } finally {
       setLoading(false);
     }
   };
 
   return {
-    // state
-    branches, loading, error,
-    formState, setFormState,
-    isCreateModalOpen, isUpdateModalOpen,
-    viewBranch, setViewBranch,
-    // actions
-    fetchBranches, openCreate, openEdit, closeModal, saveBranch, deleteBranch,
+    branches,
+    loading,
+    error,
+    fetchBranches,
+    createBranch,
+    updateBranch,
+    deleteBranch,
   };
 };

@@ -8,19 +8,27 @@ use Tests\TestCase;
 
 class UserApiTest extends TestCase
 {
-    use RefreshDatabase; // ensures a clean DB for every test
+    use RefreshDatabase;
 
     #[\PHPUnit\Framework\Attributes\Test]
     public function can_get_all_users(): void
     {
-        // Arrange — create exactly 3 users
+        // Arrange — create an admin to authenticate as
+        /** @var User $admin */
+        $admin = User::factory()->create([
+            'role'   => 'superadmin',
+            'status' => 'ACTIVE',
+        ]);
+
+        // Create 3 additional users
         User::factory()->count(3)->create();
 
-        // Act
-        $response = $this->getJson('/api/users');
+        // Act — authenticate with Sanctum before hitting the route
+        $response = $this->actingAs($admin, 'sanctum')
+                         ->getJson('/api/users');
 
-        // Assert
+        // Assert — response is 200 and data array has 4 users (admin + 3)
         $response->assertStatus(200)
-                 ->assertJsonCount(3);
+                 ->assertJsonCount(4, 'data');
     }
 }
