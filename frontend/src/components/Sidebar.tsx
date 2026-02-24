@@ -42,11 +42,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showCashInRequired, setShowCashInRequired] = useState(false);
   const [showEodLockedModal, setShowEodLockedModal] = useState(false);
-  
-  // NEW STATE: To block Z-Reading if EOD is not done
   const [showZReadingBlockedModal, setShowZReadingBlockedModal] = useState(false);
   
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [, setCurrentDate] = useState(new Date());
   const [isEodLocked, setIsEodLocked] = useState(false);
 
   // --- CACHE INITIALIZATION ---
@@ -54,10 +52,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     const cachedStatus = localStorage.getItem('cashier_menu_unlocked');
     const cachedDate = localStorage.getItem('cashier_lock_date');
     const today = new Date().toDateString();
-    
-    if (cachedStatus === 'true' && cachedDate === today) {
-        return false;
-    }
+    if (cachedStatus === 'true' && cachedDate === today) return false;
     return true; 
   });
 
@@ -87,15 +82,13 @@ const Sidebar: React.FC<SidebarProps> = ({
         const response = await api.get('/cash-transactions/status');
         const hasCashedIn = response.data.hasCashedIn;
         const today = new Date().toDateString();
-
         setIsMenuLocked(!hasCashedIn);
-
         if (hasCashedIn) {
-            localStorage.setItem('cashier_menu_unlocked', 'true');
-            localStorage.setItem('cashier_lock_date', today);
+          localStorage.setItem('cashier_menu_unlocked', 'true');
+          localStorage.setItem('cashier_lock_date', today);
         } else {
-            localStorage.removeItem('cashier_menu_unlocked');
-            localStorage.removeItem('cashier_lock_date');
+          localStorage.removeItem('cashier_menu_unlocked');
+          localStorage.removeItem('cashier_lock_date');
         }
       } catch (error) {
         console.error("Error checking cash-in status:", error);
@@ -103,9 +96,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     };
     checkStatus();
   }, [currentTab]);
-
-  const formatDate = (date: Date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   
   // --- MENU DATA ---
   const posMenuItems: MenuItem[] = [
@@ -162,7 +152,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     setInventoryDropdownOpen(false);
   };
 
-  // --- NEW: Helper function to correctly open the POS section when redirecting from modals ---
   const openPosDropdownAndSetTab = (tabId: string) => {
     setCurrentTab(tabId);
     setPosDropdownOpen(true);
@@ -197,6 +186,27 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <>
+      {/* ── HIDDEN SCROLLBAR STYLES ── */}
+      <style>{`
+        .sidebar-scroll {
+          overflow-y: scroll;
+          /* Always reserve scrollbar width so layout never shifts */
+          scrollbar-gutter: stable;
+        }
+        /* Hide scrollbar track visually across all browsers */
+        .sidebar-scroll::-webkit-scrollbar {
+          width: 0px;
+          background: transparent;
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+          background: transparent;
+        }
+        .sidebar-scroll {
+          -ms-overflow-style: none;  /* IE/Edge */
+          scrollbar-width: none;     /* Firefox */
+        }
+      `}</style>
+
       {/* --- MENU LOCKED MODAL (CASH IN REQUIRED) --- */}
       {showCashInRequired && (
         <div className="fixed inset-0 z-100 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300">
@@ -207,7 +217,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             <h3 className="text-[#3b2063] font-black uppercase text-xl tracking-tight mb-2">Menu Locked</h3>
             <p className="text-zinc-500 text-sm font-medium mb-8 leading-relaxed px-2">Shift not started. Please input 'Cash In' first to initialize your drawer.</p>
             <div className="flex flex-col w-full gap-3">
-              {/* FIXED: Uses openPosDropdownAndSetTab */}
               <button onClick={() => { setShowCashInRequired(false); openPosDropdownAndSetTab('cash-in'); }} className="w-full py-4 bg-[#3b2063] text-white rounded-2xl font-black uppercase tracking-widest text-[11px] hover:bg-[#2a1647] transition-all active:scale-95 shadow-lg shadow-purple-100">Go to Cash In</button>
               <button onClick={() => setShowCashInRequired(false)} className="w-full py-4 bg-white text-zinc-400 border border-zinc-100 rounded-2xl font-black uppercase tracking-widest text-[11px] hover:bg-zinc-50 transition-all active:scale-95">Cancel</button>
             </div>
@@ -225,7 +234,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             <h3 className="text-[#3b2063] font-black uppercase text-xl tracking-tight mb-2">EOD Required</h3>
             <p className="text-zinc-500 text-sm font-medium mb-8 leading-relaxed px-2">You cannot generate a Z-Reading until the End of Day (EOD) Cash Count has been completed.</p>
             <div className="flex flex-col w-full gap-3">
-              {/* FIXED: Uses openPosDropdownAndSetTab */}
               <button onClick={() => { setShowZReadingBlockedModal(false); openPosDropdownAndSetTab('cash-count'); }} className="w-full py-4 bg-[#3b2063] text-white rounded-2xl font-black uppercase tracking-widest text-[11px] hover:bg-[#2a1647] transition-all active:scale-95 shadow-lg shadow-purple-100">Go to Cash Count</button>
               <button onClick={() => setShowZReadingBlockedModal(false)} className="w-full py-4 bg-white text-zinc-400 border border-zinc-100 rounded-2xl font-black uppercase tracking-widest text-[11px] hover:bg-zinc-50 transition-all active:scale-95">Cancel</button>
             </div>
@@ -266,9 +274,24 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
       )}
 
-      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-zinc-200 transform transition-transform duration-300 md:relative md:translate-x-0 flex flex-col justify-between rounded-r-4xl md:rounded-r-3xl overflow-hidden ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="flex flex-col flex-1 overflow-y-auto no-scrollbar">
-          <div className="px-6 pt-10 flex flex-col items-center shrink-0">
+      {/*
+        ── SIDEBAR SHELL ──
+        Key fix: overflow-hidden is REMOVED from <aside> so the scrollbar gutter
+        doesn't fight with border-radius clipping. The inner scroll area handles
+        overflow instead, with scrollbar-gutter: stable so width never shifts.
+      */}
+      <aside className={`
+        fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-zinc-200
+        transform transition-transform duration-300
+        md:relative md:translate-x-0
+        flex flex-col
+        rounded-r-4xl md:rounded-r-3xl
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+
+        {/* ── SCROLLABLE NAV AREA — takes all available space, hides scrollbar visually ── */}
+        <div className="flex-1 sidebar-scroll min-h-0">
+          <div className="px-6 pt-10 flex flex-col items-center">
             <img src={logo} alt="Lucky Boba Logo" className="w-55 h-auto object-contain mb-2 hidden md:block" />
             <div className="text-[#3b2063] font-black uppercase text-[9px] tracking-[0.3em] opacity-60 mb-8 text-center">POS System</div>
           </div>
@@ -278,7 +301,9 @@ const Sidebar: React.FC<SidebarProps> = ({
               onClick={() => { setCurrentTab('dashboard'); closeAllDropdowns(); if (window.innerWidth < 768) setSidebarOpen(false); }}
               className={`w-full px-5 py-3 rounded-2xl font-black text-[13px] uppercase tracking-wider flex items-center transition-all duration-200 ${currentTab === 'dashboard' ? 'bg-[#f0ebff] text-[#3b2063]' : `text-zinc-400 ${hoverClasses}`}`}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 mr-3"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" /></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 mr-3">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
+              </svg>
               Dashboard
             </button>
 
@@ -291,10 +316,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                   }`}
                 >
                   <div className="flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 mr-3"><path strokeLinecap="round" strokeLinejoin="round" d={dropdown.icon} /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 mr-3">
+                      <path strokeLinecap="round" strokeLinejoin="round" d={dropdown.icon} />
+                    </svg>
                     {dropdown.label}
                   </div>
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={`w-3 h-3 transition-transform duration-300 ${dropdown.state ? 'rotate-180' : 'rotate-0'}`}><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={`w-3 h-3 transition-transform duration-300 ${dropdown.state ? 'rotate-180' : 'rotate-0'}`}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                  </svg>
                 </button>
                 <div className={`overflow-hidden transition-all duration-300 ease-in-out ${dropdown.state ? 'max-h-125 opacity-100 mt-2 translate-y-0 scale-100' : 'max-h-0 opacity-0 -translate-y-2 scale-95'}`}>
                   <div className="flex flex-col space-y-1 pl-4 border-l-2 border-[#f0ebff] ml-5">
@@ -303,7 +332,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                         key={item.id} 
                         onClick={() => { 
                           if (item.id === 'menu') {
-                            if (isMenuLocked) {
+                            const isUnlockedNow = localStorage.getItem('cashier_menu_unlocked') === 'true' && 
+                                                  localStorage.getItem('cashier_lock_date') === new Date().toDateString();
+                            if (isMenuLocked && !isUnlockedNow) {
                               setShowCashInRequired(true);
                             } else if (isEodLocked) {
                               setShowEodLockedModal(true);
@@ -325,7 +356,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                           ${(item.id === 'menu' && (isMenuLocked || isEodLocked)) || (item.id === 'z-reading' && !isEodLocked) ? 'opacity-40 grayscale cursor-not-allowed' : ''} 
                           ${currentTab === item.id ? 'text-[#3b2063] bg-[#f0ebff]' : `text-zinc-400 ${hoverClasses}`}`}
                       >
-                        {item.label} {(item.id === 'menu' && (isMenuLocked || isEodLocked)) && '🔒'} {(item.id === 'z-reading' && !isEodLocked) && '🔒'}
+                        {item.label}
+                        {(item.id === 'menu' && (isMenuLocked || isEodLocked)) && ' 🔒'}
+                        {(item.id === 'z-reading' && !isEodLocked) && ' 🔒'}
                       </button>
                     ))}
                   </div>
@@ -333,41 +366,48 @@ const Sidebar: React.FC<SidebarProps> = ({
               </div>
             ))}
 
-            <button onClick={() => { setCurrentTab('expense'); closeAllDropdowns(); if (window.innerWidth < 768) setSidebarOpen(false); }} className={`w-full px-5 py-3 rounded-2xl font-black text-[13px] uppercase tracking-wider flex items-center transition-all duration-200 ${currentTab === 'expense' ? 'bg-[#f0ebff] text-[#3b2063]' : `text-zinc-400 ${hoverClasses}`}`}>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 mr-3"><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" /></svg>
+            <button
+              onClick={() => { setCurrentTab('expense'); closeAllDropdowns(); if (window.innerWidth < 768) setSidebarOpen(false); }}
+              className={`w-full px-5 py-3 rounded-2xl font-black text-[13px] uppercase tracking-wider flex items-center transition-all duration-200 ${currentTab === 'expense' ? 'bg-[#f0ebff] text-[#3b2063]' : `text-zinc-400 ${hoverClasses}`}`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 mr-3">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm3 0h.008v.008H18V10.5Zm-12 0h.008v.008H6V10.5Z" />
+              </svg>
               Expense
             </button>
-            <button onClick={() => { setCurrentTab('settings'); closeAllDropdowns(); if (window.innerWidth < 768) setSidebarOpen(false); }} className={`w-full px-5 py-3 rounded-2xl font-black text-[13px] uppercase tracking-wider flex items-center transition-all duration-200 ${currentTab === 'settings' ? 'bg-[#f0ebff] text-[#3b2063]' : `text-zinc-400 ${hoverClasses}`}`}>
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 mr-3"><path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.559.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.894.149c-.424.07-.764.383-.929.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 0 1-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527a1.125 1.125 0 0 1-1.45-.12l-.773-.774a1.125 1.125 0 0 1-.12-1.45l.527-.737c.25-.35.272-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 0 1 .12-1.45l.773-.773a1.125 1.125 0 0 1 1.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
+
+            <button
+              onClick={() => { setCurrentTab('settings'); closeAllDropdowns(); if (window.innerWidth < 768) setSidebarOpen(false); }}
+              className={`w-full px-5 py-3 rounded-2xl font-black text-[13px] uppercase tracking-wider flex items-center transition-all duration-200 ${currentTab === 'settings' ? 'bg-[#f0ebff] text-[#3b2063]' : `text-zinc-400 ${hoverClasses}`}`}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 mr-3">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10.343 3.94c.09-.542.56-.94 1.11-.94h1.093c.55 0 1.02.398 1.11.94l.149.894c.07.424.384.764.78.93.398.164.855.142 1.205-.108l.737-.527a1.125 1.125 0 0 1 1.45.12l.773.774c.39.389.44 1.002.12 1.45l-.527.737c-.25.35-.272.806-.107 1.204.165.397.505.71.93.78l.893.15c.543.09.94.559.94 1.109v1.094c0 .55-.397 1.02-.94 1.11l-.894.149c-.424.07-.764.383-.929.78-.165.398-.143.854.107 1.204l.527.738c.32.447.269 1.06-.12 1.45l-.774.773a1.125 1.125 0 0 1-1.449.12l-.738-.527c-.35-.25-.806-.272-1.203-.107-.397.165-.71.505-.781.929l-.149.894c-.09.542-.56.94-1.11.94h-1.094c-.55 0-1.019-.398-1.11-.94l-.148-.894c-.071-.424-.384-.764-.781-.93-.398-.164-.854-.142-1.204.108l-.738.527a1.125 1.125 0 0 1-1.45-.12l-.773-.774a1.125 1.125 0 0 1-.12-1.45l.527-.737c.25-.35.272-.806.108-1.204-.165-.397-.505-.71-.93-.78l-.894-.15c-.542-.09-.94-.56-.94-1.109v-1.094c0-.55.398-1.02.94-1.11l.894-.149c.424-.07.765-.383.93-.78.165-.398.143-.854-.108-1.204l-.526-.738a1.125 1.125 0 0 1 .12-1.45l.773-.773a1.125 1.125 0 0 1 1.45-.12l.737.527c.35.25.807.272 1.204.107.397-.165.71-.505.78-.929l.15-.894Z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+              </svg>
               Settings
             </button>
           </nav>
         </div>
 
-        {/* BOTTOM SECTION - Clock UI */}
-        <div className="shrink-0 bg-white border-t border-zinc-50">
-          <div className="px-8 pt-6 pb-2">
-            <div className="bg-[#f8f6ff] rounded-2xl p-4 text-center border border-zinc-100">
-              <div className="text-[11px] font-black uppercase text-[#3b2063] tracking-wider mb-1">
-                {formatDate(currentDate)}
-              </div>
-              <div className="text-lg font-black text-slate-700 tracking-tight">
-                {formatTime(currentDate)}
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div className="px-8 pb-8 flex flex-col gap-6 bg-white pt-4 z-10">
+        {/* ── FOOTER — fixed at bottom, never scrolls away ── */}
+        <div className="shrink-0 px-8 pb-8 pt-4 bg-white border-t border-zinc-50 flex flex-col gap-4">
           <button 
             onClick={() => setShowLogoutConfirm(true)} 
             disabled={isLoggingOut} 
             className="flex items-center justify-center w-full px-6 py-4 rounded-2xl bg-[#be2525] hover:bg-[#a11f1f] text-white text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-200 shadow-md shadow-red-900/10 disabled:opacity-70 group"
           >
             {isLoggingOut ? (
-              <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+              <svg className="animate-spin h-4 w-4 text-white" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
             ) : (
-              <><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4 mr-3 group-hover:-translate-x-1 transition-transform"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>Logout</>
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4 mr-3 group-hover:-translate-x-1 transition-transform">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                </svg>
+                Logout
+              </>
             )}
           </button>
           <div className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 text-center">Lucky Boba &copy; 2026</div>
@@ -375,7 +415,12 @@ const Sidebar: React.FC<SidebarProps> = ({
       </aside>
 
       {/* MOBILE OVERLAY */}
-      {isSidebarOpen && <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden" onClick={() => setSidebarOpen(false)} />}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
     </>
   );
 };
