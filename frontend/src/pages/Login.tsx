@@ -6,7 +6,6 @@ import { useAuth } from '../hooks/useAuth';
 import type { LoginCredentials } from '../types/user';
 import { useToast } from '../hooks/useToast';
 
-// Asset Imports
 import logo from '../assets/logo.png';
 import backgroundImage from '../assets/background_image.png';
 
@@ -14,28 +13,26 @@ const Login: React.FC = () => {
   const { showToast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false); // Toggle State
+  const [showPassword, setShowPassword] = useState(false);
   const [lockoutTimer, setLockoutTimer] = useState<number>(0);
   const [searchParams, setSearchParams] = useSearchParams();
 
   const { login, isLoading, error, user } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect if already logged in
-useEffect(() => {
-  const token = localStorage.getItem('lucky_boba_token');
-  if (token && user) {
-    if (user.role === 'superadmin') {
-      navigate('/super-admin', { replace: true });
-    } else if (user.role === 'manager' || user.role === 'admin') {
-      navigate('/branch-manager', { replace: true });
-    } else {
-      navigate('/dashboard', { replace: true });
+  // ✅ Added !isLoading check so we don't redirect while auth is still resolving
+  useEffect(() => {
+    if (!isLoading && user) {
+      if (user.role === 'superadmin') {
+        navigate('/super-admin', { replace: true });
+      } else if (user.role === 'manager' || user.role === 'admin') {
+        navigate('/branch-manager', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     }
-  }
-}, [navigate, user]);
+  }, [navigate, user, isLoading]);
 
-  // Handle session expiry toast
   useEffect(() => {
     if (searchParams.get('reason') === 'expired') {
       showToast("Your session has expired. Please log in again.", "warning");
@@ -45,14 +42,12 @@ useEffect(() => {
     }
   }, [searchParams, showToast, setSearchParams]);
 
-  // Show error toast
   useEffect(() => {
     if (error) {
       showToast(error, "error");
     }
   }, [error, showToast]);
 
-  // Check for lockout on mount and update timer
   useEffect(() => {
     const checkLockout = () => {
       const lockoutEnd = localStorage.getItem('login_lockout_end');
@@ -66,7 +61,7 @@ useEffect(() => {
     checkLockout();
     const interval = setInterval(checkLockout, 1000);
     return () => clearInterval(interval);
-  }, [error]); // Re-check if error changes (e.g. failed login attempt)
+  }, [error]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.getModifierState('CapsLock')) {
@@ -74,24 +69,24 @@ useEffect(() => {
     }
   };
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  const credentials: LoginCredentials = { email, password };
-  const loggedInUser = await login(credentials);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const credentials: LoginCredentials = { email, password };
+    const loggedInUser = await login(credentials);
 
-  if (loggedInUser) {
-    localStorage.setItem('user_role', loggedInUser.role);
-    showToast(`Welcome back, ${loggedInUser.name}!`, "success");
+    if (loggedInUser) {
+      localStorage.setItem('user_role', loggedInUser.role);
+      showToast(`Welcome back, ${loggedInUser.name}!`, "success");
 
-    if (loggedInUser.role === 'superadmin') {
-      navigate('/super-admin', { replace: true });
-    } else if (loggedInUser.role === 'manager' || loggedInUser.role === 'admin') {
-      navigate('/branch-manager', { replace: true });
-    } else {
-      navigate('/dashboard', { replace: true });
+      if (loggedInUser.role === 'superadmin') {
+        navigate('/super-admin', { replace: true });
+      } else if (loggedInUser.role === 'manager' || loggedInUser.role === 'admin') {
+        navigate('/branch-manager', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     }
-  }
-};
+  };
 
   return (
     <div
