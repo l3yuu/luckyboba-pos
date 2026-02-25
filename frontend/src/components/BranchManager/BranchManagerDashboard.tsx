@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import SidebarBm from '../SidebarBm';
 import logo from '../../assets/logo.png';
 import DashboardStats from './DashboardStats';
 import UserManagement from './UserManagement';
@@ -105,16 +104,7 @@ const BranchManagerDashboard = () => {
           </svg>
         </button>
       </div>
-
-      {/* Sidebar */}
-      <SidebarBm 
-        isSidebarOpen={isSidebarOpen} 
-        setSidebarOpen={setSidebarOpen} 
-        logo={logo} 
-        currentTab={activeTab}
-        setCurrentTab={setActiveTab}
-      />
-
+      
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col overflow-hidden">
         {activeTab === 'dashboard' && (
