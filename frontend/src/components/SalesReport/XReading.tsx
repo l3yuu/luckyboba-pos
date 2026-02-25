@@ -294,9 +294,9 @@ const XReading = () => {
                     {item.add_ons && item.add_ons.length > 0 && (
                       <tr>
                         <td colSpan={3} className="pb-2 pl-2">
-                          <div className="border-l-2 border-zinc-200 pl-2">
+                          <div className="border-l-2 border-zinc-400 pl-2">
                             {item.add_ons.map((addon, aIdx) => (
-                              <div key={aIdx} className="text-[10px] text-zinc-1000 flex justify-between">
+                              <div key={aIdx} className="text-[10px] text-zinc-3000 flex justify-between">
                                 <span>+ {addon.name}</span>
                                 <span className="text-black">x{addon.qty}</span>
                               </div>
