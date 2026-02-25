@@ -109,6 +109,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
 
   const confirmDelete = async () => {
     if (!discountToDelete) return;
+<<<<<<< HEAD
     try {
       await api.delete(`/discounts/${discountToDelete.id}`);
       const updated = discounts.filter((d: DiscountItem) => d.id !== discountToDelete.id);
@@ -121,6 +122,15 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
       setIsDeleteConfirmOpen(false);
       setDiscountToDelete(null);
     }
+=======
+    
+    console.log('Deleting discount:', discountToDelete);
+    setDiscounts(discounts.filter(d => d.id !== discountToDelete.id));
+    setIsDeleteConfirmOpen(false);
+    setDiscountToDelete(null);
+    
+    showToast(`Discount "${discountToDelete.name}" has been deleted successfully`, 'success');
+>>>>>>> 1140a589a204efaaab9a4b990678e4abe1e61471
   };
 
   const cancelDelete = () => {
