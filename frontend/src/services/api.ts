@@ -1,48 +1,41 @@
-/**
- * MOCK API SERVICE
- * Satisfies ESLint by avoiding 'any'
- */
+import axios from 'axios';
 
-const SIMULATED_DELAY = 1000;
-
-const api = {
-  get: async (url: string) => {
-    console.log(`[Mock GET]: ${url}`);
-    await new Promise((resolve) => setTimeout(resolve, SIMULATED_DELAY));
-
-    if (url.includes('/users')) {
-      return {
-        data: [
-          { id: 1, name: 'Bina', email: 'admin@luckyboba.com', role: 'superadmin', status: 'ACTIVE' },
-          { id: 2, name: 'Staff Member', email: 'staff@luckyboba.com', role: 'manager', status: 'ACTIVE' },
-        ],
-      };
+const api = axios.create({
+    baseURL: import.meta.env.VITE_API_BASE_URL,
+    headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-Build-Version': 'lucky-boba-v2'
     }
-    return { data: [] };
-  },
+});
 
-  // Changed 'any' to 'Record<string, unknown>'
-  post: async (url: string, body: Record<string, unknown>) => {
-    console.log(`[Mock POST]: ${url}`, body);
-    await new Promise((resolve) => setTimeout(resolve, SIMULATED_DELAY));
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem('lucky_boba_token');
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+}, (error) => Promise.reject(error));
 
-    return {
-      data: { ...body, id: Math.floor(Math.random() * 1000), status: 'OPEN' },
-    };
-  },
-
-  // Changed 'any' to 'Record<string, unknown>'
-  patch: async (url: string, body: Record<string, unknown>) => {
-    console.log(`[Mock PATCH]: ${url}`, body);
-    await new Promise((resolve) => setTimeout(resolve, SIMULATED_DELAY));
-    return { data: { ...body } };
-  },
-
-  delete: async (url: string) => {
-    console.log(`[Mock DELETE]: ${url}`);
-    await new Promise((resolve) => setTimeout(resolve, SIMULATED_DELAY));
-    return { data: { success: true } };
-  },
-};
+// Handle Session Expiry (401)
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            // Clear all Lucky Boba keys
+            localStorage.removeItem('lucky_boba_token');
+            localStorage.removeItem('lucky_boba_authenticated');
+            localStorage.removeItem('dashboard_stats');
+            localStorage.removeItem('dashboard_stats_timestamp');
+            
+            if (!window.location.pathname.includes('/login')) {
+                // Attach 'reason' so the Login page knows to show a toast
+                window.location.href = '/login?reason=expired';
+            }
+        }
+        return Promise.reject(error);
+    }
+);
 
 export default api;

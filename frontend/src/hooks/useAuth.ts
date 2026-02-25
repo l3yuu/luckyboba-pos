@@ -1,37 +1,92 @@
-import { useState } from 'react';
+import api from '../services/api';
+import { useState, useEffect, useCallback } from 'react'; 
+import axios from 'axios'; 
+import type { LoginCredentials, User } from '../types/user'; 
+
+// Constants to avoid typos
+const AUTH_KEYS = [
+    'lucky_boba_token',
+    'lucky_boba_authenticated',
+    'dashboard_stats',
+    'dashboard_stats_timestamp'
+];
 
 export const useAuth = () => {
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [isSuccess, setIsSuccess] = useState(false);
+    const [isLoading, setIsLoading] = useState<boolean>(true);
+    const [error, setError] = useState<string | null>(null);
+    const [user, setUser] = useState<User | null>(null);
 
-  const login = async (email: string, pass: string) => {
-    setIsLoading(true);
-    setError(null);
-    setIsSuccess(false);
+    const clearSession = useCallback(() => {
+        AUTH_KEYS.forEach(key => localStorage.removeItem(key));
+        setUser(null);
+    }, []);
 
-    // Mock network delay (1.5s)
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    const checkAuth = useCallback(async (): Promise<User | null> => {
+        const token = localStorage.getItem('lucky_boba_token');
+        
+        if (!token) {
+            setIsLoading(false);
+            return null;
+        }
 
-    // Simple check
-    if (email === 'admin@luckyboba.com' && pass === 'password123') {
-      localStorage.setItem('auth_token', 'mock-boba-token-123'); 
-      
-      setIsSuccess(true);
-      setIsLoading(false);
-      return true;
-    } else {
-      setError('Invalid credentials. Try admin@luckyboba.com / password123');
-      setIsLoading(false);
-      return false;
-    }
-  };
+        try {
+            const response = await api.get('/user');
+            const userData = response.data;
+            setUser(userData);
+            return userData;
+        } catch {
+            clearSession();
+            return null;
+        } finally {
+            setIsLoading(false);
+        }
+    }, [clearSession]);
 
-  // --- ADD A LOGOUT FUNCTION ---
-  const logout = () => {
-    localStorage.removeItem('auth_token');
-    window.location.href = '/login'; 
-  };
+    useEffect(() => {
+        checkAuth();
+    }, [checkAuth]);
 
-  return { login, logout, isLoading, error, isSuccess };
+    const login = async (credentials: LoginCredentials): Promise<User | null> => {
+        setIsLoading(true);
+        setError(null);
+        
+        try {
+            const response = await api.post('/login', credentials);
+            const { token, user: userData, dashboard_stats } = response.data;
+            
+            localStorage.setItem('lucky_boba_token', token);
+            localStorage.setItem('lucky_boba_authenticated', 'true');
+            
+            if (dashboard_stats) {
+                localStorage.setItem('dashboard_stats', JSON.stringify(dashboard_stats));
+                localStorage.setItem('dashboard_stats_timestamp', Date.now().toString());
+            }
+            
+            setUser(userData);
+            setIsLoading(false); // Make sure to reset loading after success
+            return userData;
+        } catch (err: unknown) { 
+            clearSession(); // Safety measure if login fails
+            if (axios.isAxiosError(err)) {
+                setError(err.response?.data?.message || 'Invalid credentials.');
+            } else {
+                setError('An unexpected error occurred');
+            }
+            setIsLoading(false);
+            return null;
+        }
+    };
+
+    const logout = async (): Promise<boolean> => {
+        try {
+            await api.post('/logout');
+            return true;
+        } catch {
+            return false;
+        } finally {
+            clearSession();
+        }
+    };
+
+    return { login, logout, isLoading, error, user };
 };

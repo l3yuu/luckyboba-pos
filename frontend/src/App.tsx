@@ -3,6 +3,9 @@ import { router } from './routes';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 function App() {
+  // CSRF Handshake removed to support Bearer Token authentication.
+  // This prevents the 419 Page Expired error on Railway/Brave.
+
   return (
     <ErrorBoundary 
       fallback={
