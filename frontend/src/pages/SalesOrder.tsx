@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import logo from '../assets/logo.png';
 
 import { 
     type MenuItem, 
@@ -21,6 +22,7 @@ const DrinkIcon = ({ className }: { className?: string }) => (
 );
 
 const generateORNumber = () => String(Math.floor(Math.random() * 10000000) + 22253).padStart(10, '0');
+const generateQueueNumber = () => String(Math.floor(Math.random() * 999) + 1).padStart(3, '0');
 
 const SalesOrder = () => {
     const navigate = useNavigate();
@@ -44,12 +46,16 @@ const SalesOrder = () => {
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false); 
     
+    // --- PAYMENT STATES ---
+    const [cashTendered, setCashTendered] = useState<number | ''>('');
+
     const [qty, setQty] = useState(1);
     const [remarks, setRemarks] = useState('');
     
-    const [printTarget, setPrintTarget] = useState<'receipt' | 'stickers' | null>(null);
+    const [printTarget, setPrintTarget] = useState<'receipt' | 'stickers' | 'kitchen' | null>(null);
 
     const [orNumber, setOrNumber] = useState(generateORNumber());
+    const [queueNumber, setQueueNumber] = useState(generateQueueNumber());
     const [orderCharge, setOrderCharge] = useState<'grab' | 'panda' | null>(null);
 
     const [sugarLevel, setSugarLevel] = useState('100%');
@@ -225,7 +231,8 @@ const SalesOrder = () => {
                 })),
                 subtotal: subtotal,
                 total: subtotal,
-                cashier_name: cashierName ?? 'Admin'
+                cashier_name: cashierName ?? 'Admin',
+                cash_tendered: cashTendered
             };
 
             const response = await fetch('http://localhost:8000/api/sales', {
@@ -264,6 +271,11 @@ const SalesOrder = () => {
         setTimeout(() => window.print(), 100);
     };
 
+    const handlePrintKitchen = () => {
+        setPrintTarget('kitchen');
+        setTimeout(() => window.print(), 100);
+    };
+
     const handlePrintStickers = () => {
         setPrintTarget('stickers');
         setTimeout(() => window.print(), 100);
@@ -273,6 +285,8 @@ const SalesOrder = () => {
         setCart([]);
         setOrderCharge(null);
         setOrNumber(generateORNumber());
+        setQueueNumber(generateQueueNumber());
+        setCashTendered('');
         setIsSuccessModalOpen(false);
         setPrintTarget(null);
     };
@@ -281,14 +295,18 @@ const SalesOrder = () => {
     const totalCount = cart.reduce((acc, item) => acc + item.qty, 0);
     const hasStickers = cart.some(item => item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L');
     
+    // --- FINANCIAL CALCULATIONS ---
     const vatableSales = subtotal / 1.12;
     const vatAmount = subtotal - vatableSales;
+    const amtDue = subtotal; 
+    const change = typeof cashTendered === 'number' ? Math.max(0, cashTendered - amtDue) : 0;
 
     const filteredCategories = categories.map(cat => ({
         ...cat,
         menu_items: cat.menu_items.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
     })).filter(cat => cat.name.toLowerCase().includes(searchQuery.toLowerCase()) || cat.menu_items.length > 0);
     
+    // ── STICKER GENERATOR (SMART AUTO-RESIZING & BRANCH) ──
     const renderStickers = () => {
         const stickers: React.ReactNode[] = [];
         let drinkIndex = 1;
@@ -302,14 +320,10 @@ const SalesOrder = () => {
             const isStickerItem = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
             
             if (isStickerItem) {
-                // 1. Count how many extra lines are going to be printed
                 const extraCount = (item.options?.length || 0) + (item.addOns?.length || 0) + (item.remarks ? 1 : 0);
-                
-                // 2. Set dynamic layout conditions
                 const isCrowded = extraCount >= 3;
                 const isVeryCrowded = extraCount >= 5;
 
-                // 3. Assign smaller Tailwind classes if there are too many add-ons
                 const paddingClass = isVeryCrowded ? "p-0.5" : "p-1";
                 const titleSize = isVeryCrowded ? "text-[10px]" : isCrowded ? "text-[11px]" : "text-[12px]";
                 const nameSize = isVeryCrowded ? "text-[8.5px]" : isCrowded ? "text-[10px]" : "text-xs";
@@ -324,16 +338,16 @@ const SalesOrder = () => {
                         className={`sticker-area page-break bg-white text-black flex flex-col justify-between items-center h-full w-full ${paddingClass}`} 
                         style={{ fontFamily: "Arial, Helvetica, sans-serif" }}
                     >
-                        {/* TOP SECTION: BRAND, BRANCH & OR NUMBER */}
+                        {/* TOP SECTION: BRAND, BRANCH & QUEUE/OR NUMBER */}
                         <div className="w-full text-center flex flex-col items-center">
                             <div className={`font-black uppercase leading-none ${titleSize}`}>
                                 LUCKY BOBA
                             </div>
-                            <div className={`font-bold uppercase leading-none opacity-80 tracking-widest ${isVeryCrowded ? 'text-[5px] mt-0.5' : 'text-[6.5px] mt-1'}`}>
+                            <div className={`font-bold uppercase leading-none opacity-120 tracking-widest ${isVeryCrowded ? 'text-[5px] mt-0.5' : 'text-[6.5px] mt-1'}`}>
                                 Main Branch - QC
                             </div>
-                            <div className={`w-full flex justify-between items-center font-bold border-b-[1.5px] border-black px-1 ${isVeryCrowded ? 'text-[6.5px] pb-0 mb-0.5 mt-0.5' : 'text-[7.5px] pb-0.5 mb-1 mt-1'}`}>
-                                <span>OR: {orNumber}</span>
+                            <div className={`w-full flex justify-between items-center font-bold border-b-[1.5px] border-black px-1 ${isVeryCrowded ? 'text-[10px] pb-0 mb-0.5 mt-0.5' : 'text-[10px] pb-0.5 mb-1 mt-1'}`}>
+                                <span>Q: {queueNumber} | OR: {orNumber.slice(-6)}</span>
                                 <span>{drinkIndex}/{totalDrinks}</span>
                             </div>
                         </div>
@@ -358,7 +372,7 @@ const SalesOrder = () => {
                         </div>
                         
                         {/* BOTTOM SECTION: DATE & TIME */}
-                        <div className={`w-full font-semibold text-center border-t border-zinc-200 ${isVeryCrowded ? 'text-[5.5px] pt-0.5 mt-0.5' : 'text-[6.5px] pt-1 mt-1'}`}>
+                        <div className={`w-full font-bold text-center border-t border-zinc-800 ${isVeryCrowded ? 'text-[8.5px] pt-0.5 mt-0.5' : 'text-[8.5px] pt-1 mt-1'}`}>
                             {formattedDate} {formattedTime}
                         </div>
                     </div>
@@ -379,67 +393,77 @@ const SalesOrder = () => {
 
     return (
         <>
-<style>
-    {`
-@media print {
-    @page {
-        size: 38.5mm 50.8mm; /* Fixed the 38.5.8mm typo! */
-        margin: 0;
-    }
+        <style>
+            {`
+        @media print {
+            @page {
+                /* DYNAMIC PAGE SIZE: Uses sticker dimensions for stickers, and 80mm continuous roll for receipts/kitchen */
+                ${printTarget === 'stickers' ? 'size: 38.5mm 50.8mm;' : 'size: 80mm auto;'}
+                margin: 0 !important;
+            }
 
-    body * { visibility: hidden; }
-    nav, header, aside, button, .print\\:hidden { display: none !important; }
+            /* Kill default browser margins that might push content right */
+            html, body {
+                margin: 0 !important;
+                padding: 0 !important;
+            }
 
-    .printable-receipt-container, .printable-receipt-container * { 
-        visibility: visible !important; 
-    }
+            body * { visibility: hidden; }
+            nav, header, aside, button, .print\\:hidden { display: none !important; }
 
-    .printable-receipt-container {
-        position: absolute !important;
-        left: 0 !important;
-        top: 0 !important; /* Set back to 0 so it aligns perfectly */
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
+            .printable-receipt-container, .printable-receipt-container * { 
+                visibility: visible !important; 
+            }
 
-    /* --- RECEIPT PRINTER STYLES (80mm) --- */
-    .receipt-area {
-        width: 72mm !important;
-        max-width: 72mm !important;
-        padding: 4mm !important;
-        margin: 0 !important;
-        box-sizing: border-box !important;
-        color: #000 !important;
-        font-family: Arial, Helvetica, sans-serif !important;
-        font-size: 11px !important;
-        line-height: 1.35 !important;
-    }
+            .printable-receipt-container {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important; 
+                width: 100% !important;
+                /* FIX: Dynamically change max-width so stickers aren't forced to 78mm */
+                max-width: ${printTarget === 'stickers' ? '38.5mm' : '76mm'} !important; 
+                margin: 0 !important;
+                padding: 0 !important;
+                /* Removed overflow: hidden so multi-page stickers don't get trapped */
+            }
 
-    /* --- LABEL PRINTER STYLES --- */
-    .sticker-area {
-        width: 38.5mm !important;
-        height: 50.8mm !important; 
-        padding: 2mm !important; 
-        margin: 0 !important;
-        box-sizing: border-box !important;
-        color: #000 !important;
-        
-        /* Flexbox modified to stretch content across the whole height */
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: space-between !important; /* Pushes top to top, bottom to bottom */
-        align-items: center !important;     
-        text-align: center !important;      
-        
-        font-family: Arial, Helvetica, sans-serif !important;
-        overflow: hidden !important;
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-    }
-}
-    `}
-</style>
+            /* --- RECEIPT & KITCHEN PRINTER STYLES (80mm) --- */
+            .receipt-area {
+                width: 66mm !important; /* Shrunk to 66mm to guarantee NO right-side cutting */
+                margin: 0 auto !important; /* Perfectly centers it inside the safe area */
+                padding: 2mm 0 !important; 
+                box-sizing: border-box !important;
+                color: #000 !important;
+                font-family: Arial, Helvetica, sans-serif !important;
+                font-size: 12px !important;
+                line-height: 1.4 !important;
+            }
+
+            /* --- LABEL PRINTER STYLES --- */
+            .sticker-area {
+                width: 38.5mm !important;
+                height: 50.8mm !important; 
+                padding: 2mm !important; 
+                margin: 0 auto !important;
+                box-sizing: border-box !important;
+                color: #000 !important;
+                
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important; 
+                align-items: center !important;     
+                text-align: center !important;      
+                
+                font-family: Arial, Helvetica, sans-serif !important;
+                overflow: hidden !important;
+                
+                /* FIX: Force each new sticker onto its own physical label */
+                page-break-after: always !important;
+                break-after: page !important;
+            }
+        }
+            `}
+        </style>
             <div className="flex flex-col h-screen w-screen bg-[#f8f6ff] relative overflow-hidden font-sans print:hidden">
                 {/* ── MODAL: ITEM SELECTION ── */}
                 {selectedItem && !isAddOnModalOpen && !isConfirmModalOpen && !isSuccessModalOpen && (
@@ -575,48 +599,124 @@ const SalesOrder = () => {
                     </div>
                 )}
 
-                {/* ── MODAL: CONFIRM ORDER ── */}
+                {/* ── MODAL: CONFIRM ORDER & PAYMENT ── */}
                 {isConfirmModalOpen && (
                     <div className="fixed inset-0 z-120 flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
-                        <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden">
-                            <div className="bg-[#3b2063] p-6 text-white text-center">
-                                <h2 className="text-xl font-black uppercase tracking-widest">Confirm Order</h2>
+                        <div className="bg-white w-full max-w-5xl rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden max-h-[95vh]">
+                            <div className="bg-[#3b2063] p-5 text-white text-center shrink-0">
+                                <h2 className="text-xl font-black uppercase tracking-widest">Payment Details</h2>
                                 <p className="text-white/60 text-xs mt-1 uppercase">{cashierName ?? 'Admin'}</p>
                             </div>
-                            <div className="p-6 flex-1 overflow-y-auto max-h-[60vh] custom-scrollbar bg-zinc-50">
-                                {cart.length === 0 ? (
-                                    <p className="text-center text-zinc-400 font-bold text-sm py-8">Cart is empty.</p>
-                                ) : (
-                                    <div className="space-y-4">
-                                        {cart.map((item, i) => (
-                                            <div key={i} className="flex justify-between items-start border-b border-zinc-200 pb-3 last:border-0">
-                                                <div>
-                                                    <p className="font-bold text-sm text-[#3b2063]">{item.qty}x {item.name}</p>
-                                                    <div className="text-[10px] text-zinc-500 mt-1 ml-2">
-                                                        {item.sugarLevel != null && <p key="sugar">• Sugar {item.sugarLevel}</p>}
-                                                        {item.options?.map(o => <p key={o}>• {o}</p>)}
-                                                        {item.addOns?.map(a => <p key={a}>• + {a}</p>)}
+
+                            <div className="flex flex-col md:flex-row flex-1 min-h-[50vh] max-h-[80vh]">
+                                {/* LEFT SIDE: Order Items & Order Summary Breakdown */}
+                                <div className="flex-1 flex flex-col bg-zinc-50 border-r border-zinc-200 overflow-hidden">
+                                    {/* Cart Items (Scrollable) */}
+                                    <div className="flex-1 p-6 overflow-y-auto custom-scrollbar border-b border-zinc-200">
+                                        <h3 className="font-black text-sm text-[#3b2063] uppercase mb-4 tracking-wider">Cart Items</h3>
+                                        {cart.length === 0 ? (
+                                            <p className="text-center text-zinc-400 font-bold text-sm py-8">Cart is empty.</p>
+                                        ) : (
+                                            <div className="space-y-4">
+                                                {cart.map((item, i) => (
+                                                    <div key={i} className="flex justify-between items-start pb-3 border-b border-zinc-100 last:border-0">
+                                                        <div>
+                                                            <p className="font-bold text-sm text-[#3b2063]">{item.qty}x {item.name}</p>
+                                                            <div className="text-[10px] text-zinc-500 mt-1 ml-2">
+                                                                {item.sugarLevel != null && <p>• Sugar {item.sugarLevel}</p>}
+                                                                {item.options?.map(o => <p key={o}>• {o}</p>)}
+                                                                {item.addOns?.map(a => <p key={a}>• + {a}</p>)}
+                                                            </div>
+                                                        </div>
+                                                        <p className="font-black text-sm text-[#3b2063]">₱ {item.finalPrice.toFixed(2)}</p>
                                                     </div>
-                                                </div>
-                                                <p className="font-black text-sm">₱ {item.finalPrice.toFixed(2)}</p>
+                                                ))}
                                             </div>
-                                        ))}
+                                        )}
                                     </div>
-                                )}
-                            </div>
-                            <div className="p-6 bg-white border-t border-zinc-100 space-y-3">
-                                <div className="flex justify-between items-end mb-4">
-                                    <span className="text-xs font-bold text-zinc-400 uppercase">Total Amount</span>
-                                    <span className="text-3xl font-black text-[#3b2063]">₱ {subtotal.toFixed(2)}</span>
+
+                                    {/* Order Summary Breakdown (Fixed) */}
+                                    <div className="p-6 bg-white shrink-0">
+                                        <h3 className="font-black text-xs text-zinc-400 uppercase tracking-widest mb-3">Order Summary</h3>
+                                        <div className="space-y-1.5 text-[11px] font-bold text-zinc-600 mb-4">
+                                            <div className="flex justify-between"><span>Quantity (Items)</span><span>{totalCount}</span></div>
+                                            <div className="flex justify-between"><span>Sub Total</span><span>₱ {subtotal.toFixed(2)}</span></div>
+                                            <div className="flex justify-between"><span>VATable Sales</span><span>₱ {vatableSales.toFixed(2)}</span></div>
+                                            <div className="flex justify-between"><span>VAT Amount</span><span>₱ {vatAmount.toFixed(2)}</span></div>
+                                            <div className="flex justify-between"><span>VAT Exempt Sales</span><span>₱ 0.00</span></div>
+                                            <div className="flex justify-between text-red-400"><span>Discount</span><span>₱ 0.00</span></div>
+                                            <div className="flex justify-between"><span>Service Charge</span><span>₱ 0.00</span></div>
+                                            <div className="flex justify-between"><span>Voucher Charge</span><span>₱ 0.00</span></div>
+                                        </div>
+                                        <div className="flex justify-between items-center text-[#3b2063] border-t border-zinc-200 pt-3">
+                                            <span className="font-black uppercase tracking-wider text-sm">Amt Due</span>
+                                            <span className="text-2xl font-black">₱ {amtDue.toFixed(2)}</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <button onClick={handleConfirmOrder} disabled={cart.length === 0 || submitting}
-                                    className="w-full bg-[#3b2063] text-white py-4 rounded-xl font-black uppercase tracking-widest disabled:bg-zinc-300">
-                                    {submitting ? 'Saving Order...' : 'Pay & Submit'}
-                                </button>
-                                <button onClick={() => setIsConfirmModalOpen(false)}
-                                    className="w-full bg-white border-2 border-zinc-100 text-zinc-500 py-4 rounded-xl font-bold uppercase tracking-widest">
-                                    Cancel
-                                </button>
+
+                                {/* RIGHT SIDE: Payment Input & Quick Cash (NOW SCROLLABLE) */}
+                                <div className="flex-1 p-6 bg-white flex flex-col justify-between overflow-y-auto custom-scrollbar">
+                                    <div>
+                                        <h3 className="font-black text-sm text-[#3b2063] uppercase mb-3 tracking-wider">Cash Tendered</h3>
+                                        
+                                        {/* Main Input Field */}
+                                        <div className="relative mb-4">
+                                            <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-2xl text-zinc-400">₱</span>
+                                            <input 
+                                                type="number" 
+                                                value={cashTendered}
+                                                onChange={(e) => setCashTendered(e.target.value ? Number(e.target.value) : '')}
+                                                className="w-full bg-zinc-50 border-2 border-zinc-200 rounded-2xl py-4 pl-12 pr-4 text-3xl font-black text-[#3b2063] outline-none focus:border-[#3b2063] transition-colors"
+                                                placeholder="0.00"
+                                            />
+                                        </div>
+
+                                        {/* Quick Cash Buttons */}
+                                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
+                                            <button 
+                                                onClick={() => setCashTendered(amtDue)}
+                                                className="col-span-2 lg:col-span-4 bg-green-100 hover:bg-green-500 hover:text-white text-green-700 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-sm"
+                                            >
+                                                Exact Amount (₱ {amtDue.toFixed(2)})
+                                            </button>
+                                            {[100, 200, 500, 1000].map(amount => (
+                                                <button 
+                                                    key={amount}
+                                                    onClick={() => setCashTendered(amount)}
+                                                    className="bg-[#f0ebff] hover:bg-[#3b2063] hover:text-white text-[#3b2063] py-3 rounded-xl font-black text-base transition-all shadow-sm"
+                                                >
+                                                    ₱ {amount}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        
+                                        {/* Change Display */}
+                                        <div className="flex justify-between items-center bg-zinc-50 p-4 rounded-2xl border border-zinc-100 mb-2">
+                                            <span className="font-black text-zinc-500 uppercase text-sm tracking-widest">Change</span>
+                                            <span className={`text-3xl font-black ${change > 0 ? 'text-green-500' : 'text-zinc-300'}`}>
+                                                ₱ {change.toFixed(2)}
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Action Buttons */}
+                                    <div className="space-y-2 mt-4 shrink-0">
+                                        <button 
+                                            onClick={handleConfirmOrder} 
+                                            disabled={cart.length === 0 || submitting || cashTendered === '' || (typeof cashTendered === 'number' && cashTendered < amtDue)}
+                                            className="w-full bg-[#3b2063] text-white py-4 rounded-xl font-black text-base uppercase tracking-widest shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed transition-colors"
+                                        >
+                                            {submitting ? 'Processing...' : 'Pay & Submit'}
+                                        </button>
+                                        <button 
+                                            onClick={() => { setIsConfirmModalOpen(false); setCashTendered(''); }}
+                                            className="w-full bg-white border-2 border-zinc-100 text-zinc-500 py-3 rounded-xl font-bold uppercase tracking-widest hover:bg-zinc-50 transition-colors"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -637,12 +737,21 @@ const SalesOrder = () => {
                             </div>
                             
                             <div className="p-6 space-y-3">
+                                {/* RECEIPT BUTTON */}
                                 <button onClick={handlePrintReceipt}
                                     className="w-full bg-zinc-100 text-zinc-700 py-4 rounded-xl font-bold uppercase flex justify-center items-center gap-2 hover:bg-zinc-200 transition-colors">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0v3.398c0 .796.604 1.48 1.389 1.554a41.349 41.349 0 0 1 7.722 0c.785.074 1.389-.758 1.389-1.554V7.034Z" /></svg>
-                                    Print Main Receipt
+                                    Print Customer Receipt
+                                </button>
+                                
+                                {/* KITCHEN BUTTON */}
+                                <button onClick={handlePrintKitchen}
+                                    className="w-full bg-[#fce7f3] text-[#be185d] border border-[#be185d]/20 py-4 rounded-xl font-black uppercase tracking-wider flex justify-center items-center gap-2 hover:bg-[#fbcfe8] transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.866 8.21 8.21 0 0 0 3 2.48Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 18a3.75 3.75 0 0 0 .495-7.468 5.99 5.99 0 0 0-1.925 3.547 5.975 5.975 0 0 1-2.133-1.001A3.75 3.75 0 0 0 12 18Z" /></svg>
+                                    Print Kitchen Ticket
                                 </button>
 
+                                {/* STICKER BUTTON */}
                                 {hasStickers && (
                                     <button onClick={handlePrintStickers}
                                         className="w-full bg-[#f0ebff] text-[#3b2063] border border-[#3b2063]/20 py-4 rounded-xl font-black uppercase tracking-wider flex justify-center items-center gap-2 hover:bg-[#e4dbff] transition-colors">
@@ -802,74 +911,159 @@ const SalesOrder = () => {
             {/* ── PRINT TARGET 1: RECEIPT (80mm) ── */}
             {printTarget === 'receipt' && (
                 <div className="printable-receipt-container hidden print:block">
-                    <div className="receipt-area bg-white text-slate-800">
-                        <div className="text-center">
-                            <h1 className="uppercase leading-tight" style={{ fontWeight: 700, fontSize: '24px' }}>
-                                LUCKY BOBA MILKTEA<br />FOOD AND BEVERAGE<br />TRADING
+                    <div className="receipt-area bg-white text-black">
+                        <div className="text-center mb-4 border-b border-black pb-3">
+
+                            {/* --- LOGO ADDED HERE --- */}
+                            <img 
+                                src={logo} 
+                                alt="Lucky Boba Logo" 
+                                className="w-48 h-auto mx-auto mb-2 grayscale" 
+                                style={{ filter: 'grayscale(100%) contrast(1.2)' }} 
+                            />
+
+                            <h1 className="uppercase leading-tight font-bold text-xl">
+                                LUCKY BOBA MILKTEA
                             </h1>
-                            <p style={{ fontWeight: 500, fontSize: '17px', margin: '4px 0 0 0' }}>Quezon City</p>
-                            <h2 style={{ fontWeight: 800, fontSize: '17px', margin: '8px 0' }}>
+                            <p className="text-base mt-1">Quezon City</p>
+
+                            
+                            <h2 className="text-lg mt-2">
                                 OR # {orNumber}
                             </h2>
-                            <p style={{ fontWeight: 500, fontSize: '13px', margin: '0 0 8px 0' }}>
+                            <p className="text-sm mt-1">
                                 {formattedDate} {formattedTime}
                             </p>
                         </div>
-                        <div className="text-[12px] space-y-0.5 mb-2" style={{ fontWeight: 500 }}>
-                            <div className="flex-between"><span># 1</span><span>Total Guests: 1</span></div>
-                            <div className="flex-between"><span>Regular: 1</span><span>Senior: 0</span></div>
+                        <div className="text-xs space-y-1 mb-3">
+                            <div className="flex justify-between w-full"><span># 1</span><span>Total Guests: 1</span></div>
+                            <div className="flex justify-between w-full"><span>Regular: 1</span><span>Senior: 0</span></div>
                             <div className="mt-1">Cashier: {cashierName ?? 'Admin'}</div>
                             {orderCharge && <div className="mt-1">Order Type: {orderCharge === 'grab' ? 'GRABFOOD' : 'FOODPANDA'}</div>}
                         </div>
-                        <div className="mt-2 mb-2 text-[12px]" style={{ fontWeight: 500 }}>
+                        <div className="mt-3 mb-3 text-xs border-t border-dashed border-black pt-3">
                             {cart.map((item, i) => (
-                                <div key={i} className="mb-1">
-                                    <div className="uppercase" style={{ fontWeight: 600 }}>{item.name} {item.size ? `(${item.size})` : ''}</div>
-                                    <div className="flex-between">
+                                <div key={i} className="mb-2">
+                                    <div className="uppercase">{item.name} {item.size ? `(${item.size})` : ''}</div>
+                                    <div className="flex justify-between w-full mt-0.5">
                                         <span>{item.qty} X {(item.finalPrice / item.qty).toFixed(2)}</span>
                                         <span>{item.finalPrice.toFixed(2)}</span>
                                     </div>
-                                    {item.sugarLevel != null && <div className="pl-2 text-[10px] opacity-120">• Sugar {item.sugarLevel}</div>}
-                                    {item.options?.map(o => <div key={o} className="pl-2 text-[10px] opacity-120">• {o}</div>)}
-                                    {item.addOns?.map(a => <div key={a} className="pl-2 text-[10px] opacity-120">• + {a}</div>)}
+                                    {item.sugarLevel != null && <div className="pl-2 text-[10px] text-black-900">• Sugar {item.sugarLevel}</div>}
+                                    {item.options?.map(o => <div key={o} className="pl-2 text-[10px] text-black-900">• {o}</div>)}
+                                    {item.addOns?.map(a => <div key={a} className="pl-2 text-[10px] text-black-900">• + {a}</div>)}
+                                    {item.remarks && <div className="pl-2 text-[10px] text-black-900 italic">• Note: {item.remarks}</div>}
                                 </div>
                             ))}
                         </div>
-                        <div className="text-[12px] space-y-0.5 border-t border-dashed border-black pt-2" style={{ fontWeight: 500 }}>
-                            <div className="flex-between"><span>Total Items</span><span>{totalCount}</span></div>
-                            <div className="flex-between"><span>Sub Total</span><span>{subtotal.toFixed(2)}</span></div>
-                            <div className="flex-between text-[15px] mt-1" style={{ fontWeight: 800 }}>
-                                <span>TOTAL</span><span>{subtotal.toFixed(2)}</span>
+                        <div className="text-xs space-y-1 border-t border-dashed border-black pt-2">
+                            <div className="flex justify-between w-full"><span>Total Items</span><span>{totalCount}</span></div>
+                            <div className="flex justify-between w-full"><span>Sub Total</span><span>{subtotal.toFixed(2)}</span></div>
+                            <div className="flex justify-between w-full text-base font-bold mt-1">
+                                <span>TOTAL DUE</span><span>{subtotal.toFixed(2)}</span>
                             </div>
                         </div>
-                        <div className="text-[12px] mt-2 space-y-0.5" style={{ fontWeight: 500 }}>
-                            <div>Tendered:</div>
-                            <div className="flex-between pl-2"><span>Amount</span><span>{subtotal.toFixed(2)}</span></div>
-                            <div className="flex-between pl-2"><span>Type</span><span>CASH</span></div>
+
+                        {/* RECEIPT PAYMENT SECTION */}
+                        <div className="text-xs mt-2 space-y-1 border-b border-dashed border-black pb-3">
+                            <div className="flex justify-between w-full"><span>Cash (Tendered)</span><span>{typeof cashTendered === 'number' ? cashTendered.toFixed(2) : subtotal.toFixed(2)}</span></div>
+                            <div className="flex justify-between w-full"><span>Change</span><span>{change.toFixed(2)}</span></div>
                         </div>
-                        <div className="text-[11px] mt-2 space-y-0.5" style={{ fontWeight: 500 }}>
-                            <div className="flex-between"><span>VATable Sales(V)</span><span>{vatableSales.toFixed(2)}</span></div>
-                            <div className="flex-between"><span>VAT Amount</span><span>{vatAmount.toFixed(2)}</span></div>
-                            <div className="flex-between"><span>VAT Exempt Sales(E)</span><span>0.00</span></div>
-                            <div className="flex-between"><span>Zero-Rated Sales(Z)</span><span>0.00</span></div>
+
+                        <div className="text-[11px] mt-3 space-y-1">
+                            <div className="flex justify-between w-full"><span>VATable Sales(V)</span><span>{vatableSales.toFixed(2)}</span></div>
+                            <div className="flex justify-between w-full"><span>VAT Amount</span><span>{vatAmount.toFixed(2)}</span></div>
+                            <div className="flex justify-between w-full"><span>VAT Exempt Sales(E)</span><span>0.00</span></div>
+                            <div className="flex justify-between w-full"><span>Zero-Rated Sales(Z)</span><span>0.00</span></div>
                         </div>
-                        <div className="text-[12px] mt-4 space-y-1" style={{ fontWeight: 500 }}>
-                            <div className="flex justify-between items-end"><span>Name:</span><span className="border-b border-black w-[70%]"></span></div>
-                            <div className="flex justify-between items-end"><span>TIN/ID/SC:</span><span className="border-b border-black w-[70%]"></span></div>
-                            <div className="flex justify-between items-end"><span>Address:</span><span className="border-b border-black w-[70%]"></span></div>
-                            <div className="flex justify-between items-end"><span>Signature:</span><span className="border-b border-black w-[70%]"></span></div>
+                        <div className="text-xs mt-5 space-y-2">
+                            <div className="flex justify-between items-end w-full"><span>Name:</span><span className="border-b border-black w-[70%]"></span></div>
+                            <div className="flex justify-between items-end w-full"><span>TIN/ID/SC:</span><span className="border-b border-black w-[70%]"></span></div>
+                            <div className="flex justify-between items-end w-full"><span>Address:</span><span className="border-b border-black w-[70%]"></span></div>
+                            <div className="flex justify-between items-end w-full"><span>Signature:</span><span className="border-b border-black w-[70%]"></span></div>
                         </div>
-                        <div className="mt-6 text-center text-[12px] uppercase opacity-200" style={{ fontWeight: 500 }}>
+
+                        <div className="mt-6 mb-4 text-center text-xs uppercase">
                             FOR FRANCHISE<br />
                             EMAIL OR CONTACT US ON<br />
                             luckybobafranchising@gmail.com<br />
                             09260029894
                         </div>
+
+                        {/* CUSTOMER QUEUE NUMBER (BOTTOM ANNOUNCEMENT) */}
+                        <div className="mt-6 py-4 text-center">
+                            <p className="text-sm tracking-widest uppercase mb-1">Your Order Number Is:</p>
+                            <h2 className="font-black text-4xl">#{queueNumber}</h2>
+                            <p className="text-[10px] mt-2 uppercase text-gray-500">Please wait for your number to be called</p>
+                        </div>
                     </div>
                 </div>
             )}
 
-            {/* ── PRINT TARGET 2: STICKERS ── */}
+            {/* ── PRINT TARGET 2: KITCHEN TICKET (80mm) ── */}
+            {printTarget === 'kitchen' && (
+                <div className="printable-receipt-container hidden print:block">
+                    <div className="receipt-area bg-white text-black">
+                        <div className="text-center mb-4 border-b-4 border-black pb-3">
+                            <h1 className="uppercase leading-tight font-black text-3xl mb-1">KITCHEN TICKET</h1>
+                            <h2 className="font-bold text-lg mt-1 uppercase tracking-widest">Main Branch - QC</h2>
+                            
+                            {/* MASSIVE KITCHEN QUEUE NUMBER */}
+                            <div className="py-3 my-3 text-black">
+                                <p className="text-sm tracking-widest uppercase mb-1">Queue</p>
+                                {/* This is the only massive/bold thing left */}
+                                <h2 className="font-black text-5xl tracking-widest">#{queueNumber}</h2>
+                            </div>
+
+                            <h2 className="text-m mt-1">OR # {orNumber}</h2>
+                            <p className="text-sm mt-1">{formattedDate} {formattedTime}</p>
+                            
+                            {orderCharge && (
+                                <div className="mt-3 text-sm border-4 border-black text-black py-1 uppercase tracking-widest">
+                                    {orderCharge === 'grab' ? 'GRABFOOD' : 'FOODPANDA'}
+                                </div>
+                            )}
+                        </div>
+                        
+                        <div className="mt-2">
+                            {cart.map((item, i) => (
+                                <div key={i} className="mb-4 border-b-2 border-dashed border-gray-400 pb-3">
+                                    <div className="flex items-start">
+                                        {/* Quantity remains slightly bold so it stands out */}
+                                        <span className="font-bold text-m mr-3">{item.qty}x</span>
+                                        <div className="flex-1">
+                                            {/* Drink Name */}
+                                            <div className="uppercase text-sm leading-tight mb-1">{item.name} {item.size ? `(${item.size})` : ''}</div>
+                                            
+                                            {item.sugarLevel != null && (
+                                                <div className="text-sm mt-1 text-black-800">Sugar: {item.sugarLevel}</div>
+                                            )}
+                                            
+                                            {/* Safely check options and addOns arrays */}
+                                            {item.options && item.options.length > 0 && (
+                                                <div className="text-sm text-black-800">Options: {item.options.join(', ')}</div>
+                                            )}
+                                            
+                                            {item.addOns && item.addOns.length > 0 && (
+                                                <div className="text-sm text-black-800">Add: {item.addOns.join(', ')}</div>
+                                            )}
+                                            
+                                            {item.remarks && (
+                                                <div className="text-sm italic mt-2 border-t border-gray-200 pt-1">
+                                                    Note: {item.remarks}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="text-center text-sm mt-4 uppercase tracking-widest text-black-800">--- END OF TICKET ---</div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── PRINT TARGET 3: STICKERS ── */}
             {printTarget === 'stickers' && (
                 <div className="printable-receipt-container hidden print:block">
                     {renderStickers()}
