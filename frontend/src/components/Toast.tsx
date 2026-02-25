@@ -12,12 +12,7 @@ interface ToastProps {
   showProgress?: boolean;
 }
 
-<<<<<<< HEAD
-export const Toast: React.FC<ToastProps> = ({ message, type = 'error', duration = 5000, onClose }) => {
-
-=======
-export const Toast: React.FC<ToastProps> = ({ message, type = 'error', onClose }) => {
->>>>>>> 1140a589a204efaaab9a4b990678e4abe1e61471
+export const Toast: React.FC<ToastProps> = ({ message, type = 'error', duration = 3000, onClose }) => {
   useEffect(() => {
     const timer = setTimeout(onClose, duration);
     return () => clearTimeout(timer);
@@ -58,15 +53,10 @@ export const Toast: React.FC<ToastProps> = ({ message, type = 'error', onClose }
   const current = config[type];
 
   return (
-<<<<<<< HEAD
-    <div className="fixed top-6 right-6 z-[9999] animate-in fade-in slide-in-from-top-4 slide-in-from-right-4 duration-300">
-      <div className={`flex items-start gap-4 p-4 pr-5 rounded-[2rem] border ${current.border} shadow-2xl shadow-zinc-200/50 bg-white min-w-[320px] max-w-md`}>
-=======
     <div className={`fixed top-6 right-6 z-9999 animate-in fade-in slide-in-from-top-4 duration-300`}>
       <div className={`flex items-center gap-4 p-4 pr-6 rounded-2xl border shadow-xl bg-white min-w-75`}>
         {/* Status Indicator Dot */}
         <div className={`h-2 w-2 rounded-full animate-pulse ${type === 'error' ? 'bg-red-500' : 'bg-[#3b2063]'}`} />
->>>>>>> 1140a589a204efaaab9a4b990678e4abe1e61471
         
         {/* Dynamic Icon Box */}
         <div className={`p-3 rounded-2xl ${current.bg} shrink-0`}>
