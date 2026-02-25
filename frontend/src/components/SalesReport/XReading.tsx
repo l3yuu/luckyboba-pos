@@ -214,23 +214,23 @@ const XReading = () => {
     });
 
     return (
-      <div className="my-2 pt-2">
+      <div className="my-2 pt-0.5">
         <div className="receipt-divider"></div>
-        <table className="w-full border-collapse" style={{ fontSize: '11px' }}>
+        <table className="w-full border-collapse" style={{ fontSize: '12px' }}>
           <thead>
             <tr style={{ borderBottom: '2px solid black' }}>
               <th className="text-left pb-1 w-[40%]" style={{ fontWeight: 700 }}>HOUR</th>
-              <th className="text-center pb-1 w-[20%]" style={{ fontWeight: 700 }}>QTY</th>
-              <th className="text-right pb-1 w-[40%]" style={{ fontWeight: 700 }}>AMOUNT</th>
+              <th className="text-center pb-1 w-[10%]" style={{ fontWeight: 700 }}>QTY</th>
+              <th className="text-right pb-1 w-[30%]" style={{ fontWeight: 700 }}>AMOUNT</th>
             </tr>
           </thead>
           <tbody>
             {HOUR_LABELS.map((label, h) => {
               const data = salesMap.get(h) ?? { total: 0, count: 0 };
               return (
-                <tr key={h} style={{ borderBottom: '1px dotted #ccc' }}>
+                <tr key={h} style={{ borderBottom: '1px solid black' }}>
                   <td style={{ padding: '3px 0', fontWeight: 600 }}>{label}</td>
-                  <td className="text-center" style={{ padding: '3px 0', fontWeight: 600 }}>{data.count}</td>
+                  <td className="text-center" style={{ padding: '5px 0', fontWeight: 600 }}>{data.count}</td>
                   <td className="text-right" style={{ padding: '3px 0', fontWeight: 600 }}>{phCurrency.format(data.total)}</td>
                 </tr>
               );
@@ -529,53 +529,54 @@ const XReading = () => {
             /* ── Print styles ── */
             @media print {
               @page { 
-                margin: 0; 
+                size: 80mm auto; 
+                margin: 0 !important; 
               }
 
               body * { visibility: hidden; }
               nav, header, aside, button, .print\\:hidden, .TopNavbar, .TopNavbar * { display: none !important; }
 
+              /* Kill default browser margins */
               html, body {
-                width: 70mm !important; 
+                width: 80mm !important; /* Force browser to acknowledge the physical 80mm width */
                 margin: 0 !important;
                 padding: 0 !important;
                 background: white !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
-                height: auto !important; 
               }
 
-              .printable-receipt-container, .printable-receipt-container * { visibility: visible !important; }
+              .printable-receipt-container, .printable-receipt-container * { 
+                visibility: visible !important; 
+              }
               
+              /* TRUE CENTER FIX FOR 3276mm */
               .printable-receipt-container {
                 position: absolute !important;
-                top: 0 !important; 
                 left: 0 !important;
-                width: 100% !important; 
+                top: 0 !important; 
+                width: 80mm !important; /* Lock exactly to paper width */
+                display: flex !important;
+                justify-content: center !important; /* Force perfect horizontal centering */
                 margin: 0 !important;
                 padding: 0 !important;
-                height: auto !important; 
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
               }
 
               .receipt-area {
-                width: 65mm !important; 
-                max-width: 65mm !important;
-                padding: 4mm 4mm 15mm 2mm !important;
-                margin: 0 !important;
+                width: 64mm !important; /* Shrunk by 2mm to absorb table stretching */
+                max-width: 64mm !important;
+                margin: 0 !important; 
+                padding: 2mm 0 !important; 
                 box-sizing: border-box !important;
                 background: white !important;
                 color: #000 !important;
                 font-family: Arial, Helvetica, sans-serif !important;
-                font-size: 11px !important;
+                font-size: 11px !important; 
                 line-height: 1.35 !important;
                 box-shadow: none !important;
                 border: none !important;
                 border-radius: 0 !important;
-                height: auto !important; 
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
+                overflow: hidden !important; /* PREVENT ANY CONTENT FROM SPILLING RIGHT */
               }
 
               p, div, tr, td, th, span {
@@ -590,14 +591,35 @@ const XReading = () => {
                 align-items: flex-end !important;
               }
 
-              /* Tables - Fixed to prevent overlaps */
-              table { width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; font-size: 11px !important; }
-              th { text-align: left !important; border-bottom: 2px solid #000 !important; padding-bottom: 4px !important; text-transform: uppercase !important; font-weight: 700 !important; font-size: 10px !important; word-wrap: break-word !important; }
-              td { padding: 3px 0 !important; vertical-align: top !important; font-size: 10px !important; font-weight: 500 !important; word-wrap: break-word !important; }
+              /* STRICT TABLE LOCKDOWN */
+              table { 
+                width: 100% !important; 
+                max-width: 100% !important;
+                border-collapse: collapse !important; 
+                table-layout: fixed !important; /* Forces columns to obey their set percentages */
+                font-size: 11px !important; 
+              }
+              th { 
+                text-align: left !important; 
+                border-bottom: 2px solid #000 !important; 
+                padding-bottom: 4px !important; 
+                text-transform: uppercase !important; 
+                font-weight: 700 !important; 
+                font-size: 10px !important; 
+                word-wrap: break-word !important; /* Force text wrap */
+                overflow-wrap: break-word !important;
+              }
+              td { 
+                padding: 3px 0 !important; 
+                vertical-align: top !important; 
+                font-size: 10px !important; 
+                font-weight: 500 !important; 
+                word-wrap: break-word !important; /* Force text wrap */
+                overflow-wrap: break-word !important;
+              }
             }
           `}
         </style>
-
         {/* Controls */}
         <div className="bg-white p-3 rounded-lg shadow-sm border border-zinc-200 mb-6 flex flex-col xl:flex-row items-center gap-4 relative z-50 print:hidden">
           <div className="relative" ref={menuRef}>
