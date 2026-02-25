@@ -6,8 +6,6 @@ interface ToastProps {
 }
 
 export const Toast: React.FC<ToastProps> = ({ message, type = 'error', onClose }) => {
-  console.log('Toast rendering:', { message, type });
-
   useEffect(() => {
     const timer = setTimeout(onClose, 5000);
     return () => clearTimeout(timer);
@@ -21,14 +19,10 @@ export const Toast: React.FC<ToastProps> = ({ message, type = 'error', onClose }
   };
 
   return (
-    <div className={`fixed top-6 right-6 z-[9999] animate-in fade-in slide-in-from-top-4 duration-300`}>
-      <div className={`flex items-center gap-4 p-4 pr-6 rounded-2xl border shadow-xl bg-white min-w-[300px]`}>
+    <div className={`fixed top-6 right-6 z-9999 animate-in fade-in slide-in-from-top-4 duration-300`}>
+      <div className={`flex items-center gap-4 p-4 pr-6 rounded-2xl border shadow-xl bg-white min-w-75`}>
         {/* Status Indicator Dot */}
-        <div className={`h-2 w-2 rounded-full animate-pulse ${
-          type === 'error' ? 'bg-red-500' : 
-          type === 'success' ? 'bg-emerald-500' : 
-          'bg-[#3b2063]'
-        }`} />
+        <div className={`h-2 w-2 rounded-full animate-pulse ${type === 'error' ? 'bg-red-500' : 'bg-[#3b2063]'}`} />
         
         <div className="flex-1">
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-0.5">

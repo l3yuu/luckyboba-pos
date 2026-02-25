@@ -109,7 +109,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
     setIsDeleteConfirmOpen(false);
     setDiscountToDelete(null);
     
-    showToast(`Discount "${discountToDelete.name}" has been deleted successfully`, 'error');
+    showToast(`Discount "${discountToDelete.name}" has been deleted successfully`, 'success');
   };
 
   const cancelDelete = () => {

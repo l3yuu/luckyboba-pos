@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../hooks/useAuth';
 
-interface SidebarBmProps {
+interface BranchManagerSidebarProps {
   isSidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   logo: string;
@@ -8,13 +9,14 @@ interface SidebarBmProps {
   setCurrentTab: (tab: string) => void;
 }
 
-const SidebarBm: React.FC<SidebarBmProps> = ({ 
+const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({ 
   isSidebarOpen, 
   setSidebarOpen, 
   logo, 
   currentTab, 
-  setCurrentTab,
+  setCurrentTab 
 }) => {
+  const { logout } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
 
   // --- MENU DATA ---
@@ -45,13 +47,13 @@ const SidebarBm: React.FC<SidebarBmProps> = ({
   ];
 
   // --- DROPDOWN STATES ---
-  const [isSalesReportDropdownOpen, setSalesReportDropdownOpen] = useState(() => 
+  const [isSalesReportDropdownOpen, setSalesReportDropdownOpen] = useState(() =>
     salesReportItems.some(item => item.id === currentTab)
   );
-  const [isMenuItemsDropdownOpen, setMenuItemsDropdownOpen] = useState(() => 
+  const [isMenuItemsDropdownOpen, setMenuItemsDropdownOpen] = useState(() =>
     menuManagementItems.some(item => item.id === currentTab)
   );
-  const [isInventoryDropdownOpen, setInventoryDropdownOpen] = useState(() => 
+  const [isInventoryDropdownOpen, setInventoryDropdownOpen] = useState(() =>
     inventoryItems.some(item => item.id === currentTab)
   );
 
@@ -68,11 +70,11 @@ const SidebarBm: React.FC<SidebarBmProps> = ({
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
 
-  const handleLogout = () => {
-    setTimeout(() => {
-      localStorage.removeItem('auth_token');
-      window.location.reload();
-    }, 800);
+  const handleLogout = async () => {
+    await logout();
+    ['cashier_menu_unlocked', 'cashier_lock_date'].forEach(k => localStorage.removeItem(k));
+    sessionStorage.clear();
+    window.location.href = '/login';
   };
 
   const hoverClasses = 'hover:bg-[#f0ebff] hover:text-[#3b2063]';
@@ -93,7 +95,7 @@ const SidebarBm: React.FC<SidebarBmProps> = ({
             <div className="text-[#3b2063] font-black uppercase text-[8px] sm:text-[9px] tracking-[0.3em] opacity-60 mb-2 text-center">Branch Manager</div>
             <div className="bg-[#fbbf24] text-[#3b2063] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-6 sm:mb-8">Branch Control</div>
           </div>
-          
+
           <nav className="w-full px-4 sm:px-6 space-y-2 pb-6">
             {/* 1. DASHBOARD */}
             <button
@@ -268,11 +270,14 @@ const SidebarBm: React.FC<SidebarBmProps> = ({
           </div>
 
           <div className="px-6 sm:px-8 pb-6 sm:pb-8 flex flex-col gap-3 sm:gap-4">
-            <button onClick={handleLogout} className="flex items-center justify-center w-full px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-[#be2525] hover:bg-[#a11f1f] text-white text-[9px] sm:text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-200 shadow-md shadow-red-900/10 group">
-              <>
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-3.5 sm:w-4 h-3.5 sm:h-4 mr-2 sm:mr-3 group-hover:-translate-x-1 transition-transform"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
-                Logout
-              </>
+            <button
+              onClick={handleLogout}
+              className="flex items-center justify-center w-full px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-[#be2525] hover:bg-[#a11f1f] text-white text-[9px] sm:text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-200 shadow-md shadow-red-900/10 group"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-3.5 sm:w-4 h-3.5 sm:h-4 mr-2 sm:mr-3 group-hover:-translate-x-1 transition-transform">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+              </svg>
+              Logout
             </button>
             <div className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-zinc-400 text-center">Lucky Boba &copy; 2026</div>
           </div>
@@ -281,9 +286,11 @@ const SidebarBm: React.FC<SidebarBmProps> = ({
         <button onClick={() => setSidebarOpen(false)} className="md:hidden absolute top-3 sm:top-4 right-3 sm:right-4 text-zinc-400 text-[9px] sm:text-xs font-bold">CLOSE</button>
       </aside>
 
-      {isSidebarOpen && <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 md:hidden" onClick={() => setSidebarOpen(false)} />}
+      {isSidebarOpen && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
     </>
   );
 };
 
-export default SidebarBm;
+export default BranchManagerSidebar;

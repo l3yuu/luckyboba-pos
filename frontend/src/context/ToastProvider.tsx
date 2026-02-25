@@ -1,93 +1,22 @@
-import { useState, useCallback, type ReactNode } from 'react';
-import { ToastContext, type ToastType } from './ToastContext';
+import React, { useState, useCallback } from 'react';
+import { ToastContext } from './ToastContext';
+import { Toast } from '../components/Toast';
 
-interface Toast {
-  id: number;
-  message: string;
-  type: ToastType;
-  exiting: boolean;
-}
+export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' } | null>(null);
 
-export const ToastProvider = ({ children }: { children: ReactNode }) => {
-  const [toasts, setToasts] = useState<Toast[]>([]);
-
-  const showToast = useCallback((message: string, type: ToastType) => {
-    const id = Date.now();
-    setToasts(prev => [...prev, { id, message, type, exiting: false }]);
-    setTimeout(() => {
-      setToasts(prev => prev.map(t => t.id === id ? { ...t, exiting: true } : t));
-    }, 2700);
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id));
-    }, 3200);
+  const showToast = useCallback((message: string, type: 'success' | 'error' | 'warning' = 'success') => {
+    setToast({ message, type });
   }, []);
 
-  const dismiss = useCallback((id: number) => {
-    setToasts(prev => prev.map(t => t.id === id ? { ...t, exiting: true } : t));
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 400);
+  const hideToast = useCallback(() => {
+    setToast(null);
   }, []);
 
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <style>{`
-        @keyframes toast-in {
-          0%   { transform: translateY(-120%); opacity: 0; }
-          60%  { transform: translateY(6px);   opacity: 1; }
-          100% { transform: translateY(0);     opacity: 1; }
-        }
-        @keyframes toast-out {
-          0%   { transform: translateY(0);      opacity: 1; }
-          100% { transform: translateY(-120%);  opacity: 0; }
-        }
-        @keyframes toast-progress {
-          from { width: 100%; }
-          to   { width: 0%; }
-        }
-        .toast-enter { animation: toast-in  0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-        .toast-exit  { animation: toast-out 0.4s ease-in forwards; }
-      `}</style>
-      <div style={{
-        position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)',
-        zIndex: 99999, display: 'flex', flexDirection: 'column', alignItems: 'center',
-        gap: '10px', pointerEvents: 'none', minWidth: '300px',
-      }}>
-        {toasts.map(toast => (
-          <div
-            key={toast.id}
-            className={toast.exiting ? 'toast-exit' : 'toast-enter'}
-            style={{
-              pointerEvents: 'all', display: 'flex', alignItems: 'center', gap: '10px',
-              padding: '12px 18px', borderRadius: '12px', minWidth: '300px', maxWidth: '420px',
-              position: 'relative', overflow: 'hidden', boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
-              background: toast.type === 'success' ? '#f0fdf4' : '#fff1f2',
-              border: `1.5px solid ${toast.type === 'success' ? '#86efac' : '#fca5a5'}`,
-            }}
-          >
-            <span style={{ fontSize: '16px', flexShrink: 0 }}>
-              {toast.type === 'success' ? '✅' : '🗑️'}
-            </span>
-            <span style={{
-              flex: 1, fontSize: '12px', fontWeight: 700, fontFamily: 'sans-serif',
-              color: toast.type === 'success' ? '#15803d' : '#b91c1c',
-            }}>
-              {toast.message}
-            </span>
-            <button
-              onClick={() => dismiss(toast.id)}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px',
-                color: '#9ca3af', padding: '0 2px', flexShrink: 0, lineHeight: 1,
-              }}
-            >✕</button>
-            <div style={{
-              position: 'absolute', bottom: 0, left: 0, height: '3px', borderRadius: '0 0 0 12px',
-              background: toast.type === 'success' ? '#16a34a' : '#dc2626',
-              animation: 'toast-progress 3s linear forwards',
-            }} />
-          </div>
-        ))}
-      </div>
+      {toast && <Toast message={toast.message} type={toast.type} onClose={hideToast} />}
     </ToastContext.Provider>
   );
 };

@@ -1,10 +1,35 @@
 import { useState } from 'react';
-import SidebarBm from '../components/SidebarBm.tsx';
+import BranchManagerSidebar from '../components/BranchManagerSidebar';
 import logo from '../assets/logo.png';
 import { Users, Plus, Trash2, Edit3, X, Save, Shield } from 'lucide-react';
 import { positionOptions } from '../types/branchManagerUser';
 import type { BranchManagerUser } from '../types/branchManagerUser';
-import { getComponentForTab } from '../utils/componentRegistry';
+
+// --- Import Sales Report Components ---
+import SalesDashboard from '../components/Sales Report/SalesDashboard';
+import ItemsReport from '../components/Sales Report/ItemsReport';
+import XReading from '../components/Sales Report/XReading';
+import ZReading from '../components/Sales Report/ZReading';
+import MallAccredReport from '../components/Sales Report/MallAccredReport';
+
+// --- Import Menu Management Components ---
+import MenuList from '../components/Menu Items/MenuList';
+import CategoryList from '../components/Menu Items/CategoryList';
+import SubCategoryList from '../components/Menu Items/Sub-CategoryList';
+
+// --- Import Inventory Components ---
+import InventoryDashboard from '../components/Inventory/InventoryDashboard';
+import InventoryCategoryList from '../components/Inventory/InventoryCategoryList';
+import InventoryList from '../components/Inventory/InventoryList';
+import InventoryReport from '../components/Inventory/InventoryReport';
+import ItemChecker from '../components/Inventory/ItemChecker';
+import ItemSerials from '../components/Inventory/ItemSerials';
+import PurchaseOrder from '../components/Inventory/PurchaseOrder';
+import StockTransfer from '../components/Inventory/StockTransfer';
+import Supplier from '../components/Inventory/Supplier';
+
+// --- Import Settings Component ---
+import Settings from '../components/Settings';
 
 const BranchManagerDashboard = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -12,14 +37,61 @@ const BranchManagerDashboard = () => {
 
   const renderContent = () => {
     switch (activeTab) {
+      // --- MAIN DASHBOARD ---
       case 'dashboard':
         return <DashboardStats />;
+
+      // --- USER MANAGEMENT ---
       case 'users':
         return <UserManagement />;
-      default: {
-        const Component = getComponentForTab(activeTab);
-        return Component ? <Component /> : <DashboardStats />;
-      }
+
+      // --- SALES REPORT TABS ---
+      case 'sales-dashboard':
+        return <SalesDashboard />;
+      case 'items-report':
+        return <ItemsReport />;
+      case 'x-reading':
+        return <XReading />;
+      case 'z-reading':
+        return <ZReading />;
+      case 'mall-accred':
+        return <MallAccredReport />;
+
+      // --- MENU ITEMS TABS ---
+      case 'menu-list':
+        return <MenuList />;
+      case 'category-list':
+        return <CategoryList />;
+      case 'sub-category-list':
+        return <SubCategoryList />;
+
+      // --- INVENTORY TABS ---
+      case 'inventory-dashboard':
+        return <InventoryDashboard />;
+      case 'inventory-list':
+        return <InventoryList />;
+      case 'inventory-category':
+        return <InventoryCategoryList />;
+      case 'supplier':
+        return <Supplier />;
+      case 'item-checker':
+        return <ItemChecker />;
+      case 'item-serials':
+        return <ItemSerials />;
+      case 'purchase-order':
+        return <PurchaseOrder />;
+      case 'stock-transfer':
+        return <StockTransfer />;
+      case 'inventory-report':
+        return <InventoryReport />;
+
+      // --- SETTINGS TAB ---
+      case 'settings':
+        return <Settings />;
+
+      // --- FALLBACK ---
+      default:
+        return <DashboardStats />;
     }
   };
 
@@ -40,7 +112,7 @@ const BranchManagerDashboard = () => {
       </div>
 
       {/* --- Sidebar --- */}
-      <SidebarBm 
+      <BranchManagerSidebar
         isSidebarOpen={isSidebarOpen} 
         setSidebarOpen={setSidebarOpen} 
         logo={logo} 
@@ -144,14 +216,12 @@ const UserManagement = () => {
     position: 'CASHIER'
   });
 
-
   const handleAddUser = () => {
     if (!newUser.username || !newUser.name || !newUser.password) return;
     if (newUser.password !== newUser.passwordConfirm) {
       alert("Passwords do not match!");
       return;
     }
-    
     const entry: BranchManagerUser = {
       id: Date.now(),
       username: newUser.username,
@@ -160,7 +230,6 @@ const UserManagement = () => {
       lastLogin: "Never",
       status: "Active"
     };
-
     setUsers([...users, entry]);
     setNewUser({ name: '', username: '', password: '', passwordConfirm: '', position: 'CASHIER' });
     setIsModalOpen(false);
@@ -168,33 +237,15 @@ const UserManagement = () => {
 
   const handleEditUser = (user: BranchManagerUser) => {
     setEditingUser(user);
-    setNewUser({
-      name: user.name,
-      username: user.username,
-      password: '',
-      passwordConfirm: '',
-      position: user.position
-    });
+    setNewUser({ name: user.name, username: user.username, password: '', passwordConfirm: '', position: user.position });
     setIsModalOpen(true);
   };
 
   const handleUpdateUser = () => {
     if (!editingUser) return;
-    
-    const updatedUsers = users.map(u => 
-      u.id === editingUser.id 
-        ? { 
-            ...u, 
-            name: newUser.name,
-            username: newUser.username,
-            position: newUser.position,
-            ...(newUser.password && { 
-              // In a real app, you'd hash the password
-            })
-          }
-        : u
+    const updatedUsers = users.map(u =>
+      u.id === editingUser.id ? { ...u, name: newUser.name, username: newUser.username, position: newUser.position } : u
     );
-
     setUsers(updatedUsers);
     setEditingUser(null);
     setNewUser({ name: '', username: '', password: '', passwordConfirm: '', position: 'CASHIER' });
@@ -214,13 +265,9 @@ const UserManagement = () => {
 
   const confirmStatusToggle = () => {
     if (!selectedUser) return;
-    
-    setUsers(users.map(u => 
-      u.id === selectedUser.id 
-        ? { ...u, status: u.status === 'Active' ? 'Inactive' : 'Active' } 
-        : u
+    setUsers(users.map(u =>
+      u.id === selectedUser.id ? { ...u, status: u.status === 'Active' ? 'Inactive' : 'Active' } : u
     ));
-    
     setIsConfirmModalOpen(false);
     setSelectedUser(null);
   };
@@ -296,18 +343,10 @@ const UserManagement = () => {
                     </button>
                   </td>
                   <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-center">
-                    <button 
-                      onClick={() => handleEditUser(user)}
-                      className="text-blue-500 hover:text-blue-700 p-1 sm:p-2 transition-colors inline-block"
-                      title="Edit User"
-                    >
+                    <button onClick={() => handleEditUser(user)} className="text-blue-500 hover:text-blue-700 p-1 sm:p-2 transition-colors inline-block" title="Edit User">
                       <Edit3 size={14} />
                     </button>
-                    <button 
-                      onClick={() => handleDeleteUser(user.id)}
-                      className="text-red-400 hover:text-red-600 p-1 sm:p-2 transition-colors inline-block ml-1 sm:ml-2"
-                      title="Delete User"
-                    >
+                    <button onClick={() => handleDeleteUser(user.id)} className="text-red-400 hover:text-red-600 p-1 sm:p-2 transition-colors inline-block ml-1 sm:ml-2" title="Delete User">
                       <Trash2 size={14} />
                     </button>
                   </td>
@@ -325,66 +364,35 @@ const UserManagement = () => {
               <h2 className="text-white font-black text-[10px] sm:text-xs uppercase tracking-[0.2em]">
                 {editingUser ? 'Edit User' : 'Create New Account'}
               </h2>
-              <button onClick={closeModal} className="text-white/70 hover:text-white">
-                <X size={20} />
-              </button>
+              <button onClick={closeModal} className="text-white/70 hover:text-white"><X size={20} /></button>
             </div>
 
             <div className="p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6">
               <div>
-                <h3 className="text-[#1e40af] font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] mb-3 sm:mb-4 border-b border-zinc-100 pb-2">
-                  Profile Details
-                </h3>
+                <h3 className="text-[#1e40af] font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] mb-3 sm:mb-4 border-b border-zinc-100 pb-2">Profile Details</h3>
                 <div className="space-y-1 sm:space-y-2">
                   <label className="text-[9px] sm:text-[10px] font-black text-zinc-400 uppercase tracking-widest">Name</label>
-                  <input 
-                    type="text" 
-                    value={newUser.name}
-                    onChange={(e) => setNewUser({...newUser, name: e.target.value})}
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-[10px] sm:text-xs font-bold text-slate-700 outline-none focus:border-blue-500 transition-all"
-                    placeholder="Enter full name"
-                  />
+                  <input type="text" value={newUser.name} onChange={(e) => setNewUser({...newUser, name: e.target.value})} className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-[10px] sm:text-xs font-bold text-slate-700 outline-none focus:border-blue-500 transition-all" placeholder="Enter full name" />
                 </div>
               </div>
 
               <div>
-                <h3 className="text-[#1e40af] font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] mb-3 sm:mb-4 border-b border-zinc-100 pb-2">
-                  Login Details
-                </h3>
+                <h3 className="text-[#1e40af] font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] mb-3 sm:mb-4 border-b border-zinc-100 pb-2">Login Details</h3>
                 <div className="space-y-3 sm:space-y-4">
                   <div className="space-y-1 sm:space-y-2">
                     <label className="text-[9px] sm:text-[10px] font-black text-zinc-400 uppercase tracking-widest">Username</label>
-                    <input 
-                      type="text" 
-                      value={newUser.username}
-                      onChange={(e) => setNewUser({...newUser, username: e.target.value})}
-                      className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-[10px] sm:text-xs font-bold text-slate-700 outline-none focus:border-blue-500 transition-all"
-                      placeholder="Enter username"
-                    />
+                    <input type="text" value={newUser.username} onChange={(e) => setNewUser({...newUser, username: e.target.value})} className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-[10px] sm:text-xs font-bold text-slate-700 outline-none focus:border-blue-500 transition-all" placeholder="Enter username" />
                   </div>
 
                   {!editingUser && (
                     <>
                       <div className="space-y-1 sm:space-y-2">
                         <label className="text-[9px] sm:text-[10px] font-black text-zinc-400 uppercase tracking-widest">Password</label>
-                        <input 
-                          type="password" 
-                          value={newUser.password}
-                          onChange={(e) => setNewUser({...newUser, password: e.target.value})}
-                          className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-[10px] sm:text-xs font-bold text-slate-700 outline-none focus:border-blue-500 transition-all"
-                          placeholder="••••••••"
-                        />
+                        <input type="password" value={newUser.password} onChange={(e) => setNewUser({...newUser, password: e.target.value})} className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-[10px] sm:text-xs font-bold text-slate-700 outline-none focus:border-blue-500 transition-all" placeholder="••••••••" />
                       </div>
-
                       <div className="space-y-1 sm:space-y-2">
                         <label className="text-[9px] sm:text-[10px] font-black text-zinc-400 uppercase tracking-widest">Password Again</label>
-                        <input 
-                          type="password" 
-                          value={newUser.passwordConfirm}
-                          onChange={(e) => setNewUser({...newUser, passwordConfirm: e.target.value})}
-                          className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-[10px] sm:text-xs font-bold text-slate-700 outline-none focus:border-blue-500 transition-all"
-                          placeholder="••••••••"
-                        />
+                        <input type="password" value={newUser.passwordConfirm} onChange={(e) => setNewUser({...newUser, passwordConfirm: e.target.value})} className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-[10px] sm:text-xs font-bold text-slate-700 outline-none focus:border-blue-500 transition-all" placeholder="••••••••" />
                       </div>
                     </>
                   )}
@@ -392,47 +400,27 @@ const UserManagement = () => {
                   {editingUser && (
                     <div className="space-y-1 sm:space-y-2">
                       <label className="text-[9px] sm:text-[10px] font-black text-zinc-400 uppercase tracking-widest">New Password (optional)</label>
-                      <input 
-                        type="password" 
-                        value={newUser.password}
-                        onChange={(e) => setNewUser({...newUser, password: e.target.value})}
-                        className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-[10px] sm:text-xs font-bold text-slate-700 outline-none focus:border-blue-500 transition-all"
-                        placeholder="Leave blank to keep current password"
-                      />
+                      <input type="password" value={newUser.password} onChange={(e) => setNewUser({...newUser, password: e.target.value})} className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-[10px] sm:text-xs font-bold text-slate-700 outline-none focus:border-blue-500 transition-all" placeholder="Leave blank to keep current password" />
                     </div>
                   )}
 
                   <div className="space-y-1 sm:space-y-2">
                     <label className="text-[9px] sm:text-[10px] font-black text-zinc-400 uppercase tracking-widest">Position</label>
                     <div className="relative">
-                      <select 
-                        value={newUser.position}
-                        onChange={(e) => setNewUser({...newUser, position: e.target.value})}
-                        className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-[10px] sm:text-xs font-bold text-slate-700 outline-none focus:border-blue-500 cursor-pointer appearance-none"
-                      >
-                        {positionOptions.map(pos => (
-                          <option key={pos} value={pos}>{pos}</option>
-                        ))}
+                      <select value={newUser.position} onChange={(e) => setNewUser({...newUser, position: e.target.value})} className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-[10px] sm:text-xs font-bold text-slate-700 outline-none focus:border-blue-500 cursor-pointer appearance-none">
+                        {positionOptions.map(pos => (<option key={pos} value={pos}>{pos}</option>))}
                       </select>
-                      <div className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
-                        <Shield size={14} />
-                      </div>
+                      <div className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400"><Shield size={14} /></div>
                     </div>
                   </div>
                 </div>
               </div>
 
               <div className="flex gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-zinc-100">
-                <button 
-                  onClick={editingUser ? handleUpdateUser : handleAddUser}
-                  className="flex-1 bg-[#3b2063] hover:bg-[#291645] text-white py-2 sm:py-3 rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-normal sm:tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 min-w-28 sm:min-w-32"
-                >
+                <button onClick={editingUser ? handleUpdateUser : handleAddUser} className="flex-1 bg-[#3b2063] hover:bg-[#291645] text-white py-2 sm:py-3 rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-normal sm:tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 min-w-28 sm:min-w-32">
                   <Save size={14} /> {editingUser ? 'Update User' : 'Add Account'}
                 </button>
-                <button 
-                  onClick={closeModal}
-                  className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-500 py-2 sm:py-3 rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-normal sm:tracking-[0.2em] transition-all min-w-20 sm:min-w-28"
-                >
+                <button onClick={closeModal} className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-500 py-2 sm:py-3 rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-normal sm:tracking-[0.2em] transition-all min-w-20 sm:min-w-28">
                   Cancel
                 </button>
               </div>
@@ -441,62 +429,33 @@ const UserManagement = () => {
         </div>
       )}
 
-      {/* === CONFIRM STATUS TOGGLE MODAL === */}
       {isConfirmModalOpen && selectedUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className={`px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center ${
-              selectedUser.status === 'Active' ? 'bg-emerald-500' : 'bg-red-500'
-            }`}>
-              <h2 className="text-white font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em]">
-                Confirm Status Change
-              </h2>
-              <button onClick={cancelStatusToggle} className="text-white/70 hover:text-white transition-colors">
-                <X size={20} />
-              </button>
+            <div className={`px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center ${selectedUser.status === 'Active' ? 'bg-emerald-500' : 'bg-red-500'}`}>
+              <h2 className="text-white font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em]">Confirm Status Change</h2>
+              <button onClick={cancelStatusToggle} className="text-white/70 hover:text-white transition-colors"><X size={20} /></button>
             </div>
 
             <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
               <div className="text-center space-y-2">
-                <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center ${
-                  selectedUser.status === 'Active' ? 'bg-emerald-100' : 'bg-red-100'
-                }`}>
+                <div className={`w-16 h-16 mx-auto rounded-full flex items-center justify-center ${selectedUser.status === 'Active' ? 'bg-emerald-100' : 'bg-red-100'}`}>
                   {selectedUser.status === 'Active' ? (
-                    <svg className="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
+                    <svg className="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                   ) : (
-                    <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
-                    </svg>
+                    <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" /></svg>
                   )}
                 </div>
-                <h3 className="text-lg font-bold text-slate-800">
-                  {selectedUser.status === 'Active' ? 'Activate User?' : 'Deactivate User?'}
-                </h3>
-                <p className="text-sm text-slate-600">
-                  Are you sure you want to {selectedUser.status === 'Active' ? 'activate' : 'deactivate'} the user:
-                </p>
-                <p className="text-sm font-black text-[#3b2063] uppercase">
-                  {selectedUser.name} ({selectedUser.username})
-                </p>
+                <h3 className="text-lg font-bold text-slate-800">{selectedUser.status === 'Active' ? 'Activate User?' : 'Deactivate User?'}</h3>
+                <p className="text-sm text-slate-600">Are you sure you want to {selectedUser.status === 'Active' ? 'activate' : 'deactivate'} the user:</p>
+                <p className="text-sm font-black text-[#3b2063] uppercase">{selectedUser.name} ({selectedUser.username})</p>
               </div>
 
               <div className="flex gap-2 sm:gap-3 pt-2">
-                <button 
-                  onClick={confirmStatusToggle}
-                  className={`flex-1 py-2 sm:py-3 rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 text-white ${
-                    selectedUser.status === 'Active' 
-                      ? 'bg-emerald-500 hover:bg-emerald-600' 
-                      : 'bg-red-500 hover:bg-red-600'
-                  }`}
-                >
+                <button onClick={confirmStatusToggle} className={`flex-1 py-2 sm:py-3 rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 text-white ${selectedUser.status === 'Active' ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-red-500 hover:bg-red-600'}`}>
                   {selectedUser.status === 'Active' ? 'ACTIVATE' : 'DEACTIVATE'}
                 </button>
-                <button 
-                  onClick={cancelStatusToggle}
-                  className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-500 py-2 sm:py-3 rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-all"
-                >
+                <button onClick={cancelStatusToggle} className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-500 py-2 sm:py-3 rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-all">
                   Cancel
                 </button>
               </div>
