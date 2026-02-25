@@ -289,9 +289,6 @@ const SalesOrder = () => {
         menu_items: cat.menu_items.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
     })).filter(cat => cat.name.toLowerCase().includes(searchQuery.toLowerCase()) || cat.menu_items.length > 0);
     
-    // ── STICKER GENERATOR (UPDATED FOR SMALLER LABELS) ──
-// ── STICKER GENERATOR (UPDATED FOR BRANCH & MAXIMIZED LAYOUT) ──
-// ── STICKER GENERATOR (SMART AUTO-RESIZING) ──
     const renderStickers = () => {
         const stickers: React.ReactNode[] = [];
         let drinkIndex = 1;
@@ -322,49 +319,49 @@ const SalesOrder = () => {
 
                 for (let i = 0; i < item.qty; i++) {
                     stickers.push(
-<div 
-    key={`sticker-${cartIndex}-${i}`} 
-    className={`sticker-area page-break bg-white text-black flex flex-col justify-between items-center h-full w-full ${paddingClass}`} 
-    style={{ fontFamily: "Arial, Helvetica, sans-serif" }}
->
-    {/* TOP SECTION: BRAND, BRANCH & OR NUMBER */}
-    <div className="w-full text-center flex flex-col items-center">
-        <div className={`font-black uppercase leading-none ${titleSize}`}>
-            LUCKY BOBA
-        </div>
-        <div className={`font-bold uppercase leading-none opacity-80 tracking-widest ${isVeryCrowded ? 'text-[5px] mt-0.5' : 'text-[6.5px] mt-1'}`}>
-            Main Branch - QC
-        </div>
-        <div className={`w-full flex justify-between items-center font-bold border-b-[1.5px] border-black px-1 ${isVeryCrowded ? 'text-[6.5px] pb-0 mb-0.5 mt-0.5' : 'text-[7.5px] pb-0.5 mb-1 mt-1'}`}>
-            <span>OR: {orNumber}</span>
-            <span>{drinkIndex}/{totalDrinks}</span>
-        </div>
-    </div>
-    
-    {/* MIDDLE SECTION: DRINK NAME & ADD-ONS */}
-    <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
-        <div className={`w-full font-black uppercase leading-tight ${nameSize} ${marginClass}`}>
-            {item.name} {item.size ? `(${item.size})` : ''}
-        </div>
-        
-        <div className={`w-full text-center font-bold ${addOnSize} ${gapClass}`}>
-            {item.sugarLevel != null && <div>Sugar: {item.sugarLevel}</div>}
-            {item.options?.map(opt => <div key={opt}>{opt}</div>)}
-            {item.addOns?.map(a => <div key={a}>+ {a}</div>)}
-        </div>
-        
-        {item.remarks && (
-            <div className={`w-full text-center font-bold border-t border-dashed border-gray-400 ${isVeryCrowded ? 'mt-0.5 pt-0.5' : 'mt-1 pt-1'} ${addOnSize}`}>
-                Note: {item.remarks}
-            </div>
-        )}
-    </div>
-    
-    {/* BOTTOM SECTION: DATE & TIME */}
-    <div className={`w-full font-semibold text-center border-t border-zinc-200 ${isVeryCrowded ? 'text-[5.5px] pt-0.5 mt-0.5' : 'text-[6.5px] pt-1 mt-1'}`}>
-        {formattedDate} {formattedTime}
-    </div>
-</div>
+                    <div 
+                        key={`sticker-${cartIndex}-${i}`} 
+                        className={`sticker-area page-break bg-white text-black flex flex-col justify-between items-center h-full w-full ${paddingClass}`} 
+                        style={{ fontFamily: "Arial, Helvetica, sans-serif" }}
+                    >
+                        {/* TOP SECTION: BRAND, BRANCH & OR NUMBER */}
+                        <div className="w-full text-center flex flex-col items-center">
+                            <div className={`font-black uppercase leading-none ${titleSize}`}>
+                                LUCKY BOBA
+                            </div>
+                            <div className={`font-bold uppercase leading-none opacity-80 tracking-widest ${isVeryCrowded ? 'text-[5px] mt-0.5' : 'text-[6.5px] mt-1'}`}>
+                                Main Branch - QC
+                            </div>
+                            <div className={`w-full flex justify-between items-center font-bold border-b-[1.5px] border-black px-1 ${isVeryCrowded ? 'text-[6.5px] pb-0 mb-0.5 mt-0.5' : 'text-[7.5px] pb-0.5 mb-1 mt-1'}`}>
+                                <span>OR: {orNumber}</span>
+                                <span>{drinkIndex}/{totalDrinks}</span>
+                            </div>
+                        </div>
+                        
+                        {/* MIDDLE SECTION: DRINK NAME & ADD-ONS */}
+                        <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
+                            <div className={`w-full font-black uppercase leading-tight ${nameSize} ${marginClass}`}>
+                                {item.name} {item.size ? `(${item.size})` : ''}
+                            </div>
+                            
+                            <div className={`w-full text-center font-bold ${addOnSize} ${gapClass}`}>
+                                {item.sugarLevel != null && <div>Sugar: {item.sugarLevel}</div>}
+                                {item.options?.map(opt => <div key={opt}>{opt}</div>)}
+                                {item.addOns?.map(a => <div key={a}>+ {a}</div>)}
+                            </div>
+                            
+                            {item.remarks && (
+                                <div className={`w-full text-center font-bold border-t border-dashed border-gray-400 ${isVeryCrowded ? 'mt-0.5 pt-0.5' : 'mt-1 pt-1'} ${addOnSize}`}>
+                                    Note: {item.remarks}
+                                </div>
+                            )}
+                        </div>
+                        
+                        {/* BOTTOM SECTION: DATE & TIME */}
+                        <div className={`w-full font-semibold text-center border-t border-zinc-200 ${isVeryCrowded ? 'text-[5.5px] pt-0.5 mt-0.5' : 'text-[6.5px] pt-1 mt-1'}`}>
+                            {formattedDate} {formattedTime}
+                        </div>
+                    </div>
                     );
                     drinkIndex++;
                 }
