@@ -96,7 +96,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
             <div className="bg-[#fbbf24] text-[#3b2063] px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-6 sm:mb-8">Branch Control</div>
           </div>
 
-          <nav className="w-full px-4 sm:px-6 space-y-2 pb-6">
+          <nav className="w-full px-4 sm:px-6 space-y-2 pb-6">    
             {/* 1. DASHBOARD */}
             <button
               onClick={() => {
