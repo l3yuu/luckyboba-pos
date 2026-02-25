@@ -15,7 +15,7 @@ import TopNavbar from '../TopNavbar';
 import { getCache, setCache } from '../../utils/cache';
 
 const CACHE_KEY = 'cash-drop-history';
-const CACHE_TTL = 5 * 60 * 1000; // 5 min
+const CACHE_TTL = 5 * 60 * 1000;
 
 const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
   const denominations = [1000, 500, 200, 100, 50, 20, 10, 5, 1, 0.25];
@@ -43,21 +43,18 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
 
   const fetchTodaysDrops = async () => {
     if (getCache<Transaction[]>(CACHE_KEY)) return;
-
     try {
       const response = await api.get<BackendTransaction[]>('/cash-transactions', {
         params: { type: 'cash_drop', date: new Date().toISOString().split('T')[0] }
       });
-      
       const mappedData: Transaction[] = response.data.map((tx) => ({
         id: tx.id,
         time: new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         date: new Date(tx.created_at).toLocaleDateString(),
         total: parseFloat(tx.amount),
         remarks: tx.note || '-',
-        breakdown: {} 
+        breakdown: {}
       }));
-      
       setCache<Transaction[]>(CACHE_KEY, mappedData, CACHE_TTL);
       setTransactions(mappedData);
     } catch (error) {
@@ -77,7 +74,6 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
     }, 0);
   };
 
-  // Focus handlers no longer auto-show keyboard — just track active input
   const handleCountFocus = (denom: number) => {
     if (isEodLocked) return;
     setActiveInput({ type: 'count', id: denom });
@@ -95,25 +91,21 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
   const handleInputChange = (inputVal: string) => {
     if (!activeInput || isEodLocked) return;
     if (activeInput.type === 'count' && activeInput.id !== undefined) {
-      const cleanValue = inputVal.replace(/[^0-9.]/g, ''); 
+      const cleanValue = inputVal.replace(/[^0-9.]/g, '');
       setCounts(prev => ({ ...prev, [activeInput.id!]: cleanValue }));
     } else if (activeInput.type === 'remarks') {
       setRemarks(inputVal);
     }
   };
 
-  const onKeyboardChange = (input: string) => {
-    handleInputChange(input);
-  };
-
+  const onKeyboardChange = (input: string) => handleInputChange(input);
   const onKeyPress = (button: string) => {
     if (button === "{enter}") setShowKeyboard(false);
   };
 
   const handleSubmit = async () => {
     const total = getGrandTotal(counts);
-    if (total <= 0 || isLoading || isEodLocked) return; 
-
+    if (total <= 0 || isLoading || isEodLocked) return;
     setIsLoading(true);
 
     const breakdownString = denominations
@@ -136,9 +128,9 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
           id: response.data.data.id,
           date: now.toLocaleDateString(),
           time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          total: total,
+          total,
           remarks: remarks || '-',
-          breakdown: { ...counts } 
+          breakdown: { ...counts }
         };
 
         const updatedHistory = [newTx, ...transactions];
@@ -149,14 +141,8 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
         setRemarks('');
         setShowKeyboard(false);
         if (keyboardRef.current) keyboardRef.current.setInput("");
-        
-        // Notify parent (bust dashboard cache) but do NOT redirect
-        // Notify parent immediately — don't wait for print dialog.
-        // onafterprint is unreliable across browsers and Electron.
-        if (onSuccess) onSuccess();
 
-        // Print after a short delay so the receipt DOM is ready,
-        // but this is fully decoupled from the dashboard refresh.
+        if (onSuccess) onSuccess();
         handlePrint(newTx);
       }
     } catch (err: unknown) {
@@ -177,151 +163,240 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
 
   return (
     <>
-<style>
+      <style>
         {`
-          /* SCREEN: Hide the receipt naturally */
-          .printable-receipt { 
-              display: none; 
-          }
+          /* SCREEN: hide receipt */
+          .printable-receipt { display: none; }
 
-          /* ── Print styles ── */
           @media print {
-            @page { 
-                /* Let the Windows driver dictate the 3276mm length */
-                margin: 0; 
+            @page {
+              size: 80mm auto;
+              margin: 0 !important;
             }
 
-            /* PRINT: Safely hide the entire Dashboard UI */
+            html, body {
+              margin: 0 !important;
+              padding: 0 !important;
+              background: white !important;
+            }
+
             body * { visibility: hidden; }
             nav, header, aside, button, #main-ui, .print\\:hidden { display: none !important; }
 
-            /* PRINT: Force the page background to white */
-            html, body {
-                width: 70mm !important; 
-                margin: 0 !important;
-                padding: 0 !important;
-                background: white !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
-                height: auto !important; 
+            .printable-receipt,
+            .printable-receipt * { visibility: visible !important; }
+
+            /* Outer wrapper — full page width, capped at 76mm */
+            .printable-receipt {
+              display: block !important;
+              position: absolute !important;
+              left: 0 !important;
+              top: 0 !important;
+              width: 100% !important;
+              max-width: 76mm !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              background: white !important;
             }
 
-            /* PRINT: Force show only the receipt */
-            .printable-receipt, .printable-receipt * { visibility: visible !important; }
-
-            .printable-receipt { 
-                display: block !important;
-                position: absolute !important; 
-                left: 0 !important; 
-                top: 0 !important; 
-                
-                /* Limit to 65mm safe width so it doesn't get cut on the right */
-                width: 65mm !important; 
-                max-width: 65mm !important;
-                
-                /* 4mm side padding, 15mm bottom padding for the cutter */
-                padding: 5mm 4mm 15mm 2mm !important; 
-                margin: 0 !important;
-                box-sizing: border-box !important;
-                
-                background: white !important; 
-                color: #000 !important; 
-                font-family: Arial, Helvetica, sans-serif !important;
-                font-size: 11px !important;
-                line-height: 1.35 !important;
-                box-shadow: none !important;
-                border: none !important;
-                
-                height: auto !important; 
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
+            /* Inner content — centered at 66mm, same as sales order .receipt-area */
+            .receipt-area {
+              width: 66mm !important;
+              margin: 0 auto !important;
+              padding: 3mm 0 15mm 0 !important;
+              box-sizing: border-box !important;
+              background: white !important;
+              color: #000 !important;
+              font-family: Arial, Helvetica, sans-serif !important;
+              font-size: 11px !important;
+              line-height: 1.35 !important;
             }
-            
+
+            .receipt-area * {
+              font-family: Arial, Helvetica, sans-serif !important;
+              color: #000 !important;
+              box-sizing: border-box !important;
+            }
+
+            /* Layout helpers */
+            .rp-center { text-align: center !important; }
+            .rp-left   { text-align: left !important; }
+            .rp-right  { text-align: right !important; }
+
+            .rp-divider {
+              display: block !important;
+              border: none !important;
+              border-top: 1px dashed #000 !important;
+              margin: 6px 0 !important;
+              width: 100% !important;
+            }
+
+            .rp-row {
+              display: flex !important;
+              justify-content: space-between !important;
+              align-items: baseline !important;
+              width: 100% !important;
+              font-size: 11px !important;
+              padding: 1px 0 !important;
+              text-transform: uppercase !important;
+            }
+
+            .rp-total {
+              display: flex !important;
+              justify-content: space-between !important;
+              align-items: center !important;
+              width: 100% !important;
+              font-size: 12px !important;
+              font-weight: 900 !important;
+              padding: 4px 0 !important;
+              border-top: 1px solid #000 !important;
+              margin-top: 4px !important;
+            }
+
+            .rp-sig-block {
+              margin-top: 40px !important;
+              display: flex !important;
+              flex-direction: column !important;
+              gap: 28px !important;
+              text-align: center !important;
+            }
+
             p, div, tr, td, th, span {
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
             }
 
-            /* Utility classes for the receipt layout */
-            .receipt-divider { border-top: 1px dashed #000 !important; margin: 8px 0; width: 100%; display: block !important; }
-            .flex-between { display: flex !important; justify-content: space-between !important; width: 100% !important; align-items: flex-end !important; }
-            
-            /* Tables */
-            table { width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; font-size: 11px !important; }
-            td { padding: 3px 0 !important; vertical-align: top !important; font-size: 11px !important; word-wrap: break-word !important; }
+            table {
+              width: 100% !important;
+              border-collapse: collapse !important;
+              table-layout: fixed !important;
+            }
+            td {
+              padding: 2px 0 !important;
+              vertical-align: top !important;
+              font-size: 11px !important;
+              word-wrap: break-word !important;
+              color: #000 !important;
+            }
           }
         `}
       </style>
 
-      {/* X-READING STYLE RECEIPT (ONLY VISIBLE ON PRINT) */}
+      {/* RECEIPT — only rendered when printData is set, only visible on print */}
       {printData && (
-        <div className="printable-receipt text-slate-800">
-          <div className="text-center space-y-1">
-            <h1 className="font-black text-[14px] uppercase leading-tight">Lucky Boba Milktea Food and Beverage Trading</h1>
-            <p className="text-[10px] uppercase font-bold">Main Branch - QC</p>
-            <div className="receipt-divider"></div>
-            <h2 className="font-black text-[11px] uppercase tracking-widest">Cash Drop Receipt</h2>
-            <div className="text-left text-[12px] space-y-0.5 mt-2 uppercase">
-              <div className="flex-between"><span>Date</span> <span>{printData.date}</span></div>
-              <div className="flex-between"><span>Time</span> <span>{printData.time}</span></div>
-              <div className="flex-between"><span>Terminal</span> <span>POS-01</span></div>
-            </div>
-          </div>
+        <div className="printable-receipt">
+          <div className="receipt-area">
 
-          <div className="my-4 pt-2">
-            <div className="receipt-divider"></div>
-            <p className="text-[10px] font-black mb-2 uppercase opacity-70 tracking-tighter">Details Breakdown</p>
-            <table className="w-full text-[10px]">
+            {/* Store header */}
+            <div className="rp-center" style={{ marginBottom: 6 }}>
+              <div style={{ fontWeight: 900, fontSize: 13, textTransform: 'uppercase', lineHeight: 1.2 }}>
+                Lucky Boba Milktea Food and Beverage Trading
+              </div>
+              <div style={{ fontWeight: 700, fontSize: 10, textTransform: 'uppercase', marginTop: 2 }}>
+                Main Branch - QC
+              </div>
+            </div>
+
+            <div className="rp-divider" />
+
+            <div className="rp-center" style={{ marginBottom: 6 }}>
+              <div style={{ fontWeight: 900, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                Cash Drop Receipt
+              </div>
+            </div>
+
+            {/* Date / Time / Terminal */}
+            <div style={{ marginBottom: 4 }}>
+              <div className="rp-row"><span>Date</span><span>{printData.date}</span></div>
+              <div className="rp-row"><span>Time</span><span>{printData.time}</span></div>
+              <div className="rp-row"><span>Terminal</span><span>POS-01</span></div>
+            </div>
+
+            <div className="rp-divider" />
+
+            {/* Breakdown label */}
+            <div style={{ fontWeight: 900, fontSize: 10, textTransform: 'uppercase', opacity: 0.6, letterSpacing: '-0.02em', marginBottom: 4 }}>
+              Details Breakdown
+            </div>
+
+            {/* Breakdown table */}
+            <table>
               <tbody>
                 {denominations.map(denom => {
                   const qty = parseFloat(printData.breakdown[denom] || '0');
                   if (qty <= 0) return null;
-                  const label = denom < 1 ? denom.toString().replace('0.', '.') : denom.toLocaleString();
+                  const label = denom < 1
+                    ? denom.toString().replace('0.', '.')
+                    : denom.toLocaleString();
                   return (
                     <tr key={denom}>
-                      <td className="py-0.5 uppercase">{label}</td>
-                      <td className="py-0.5 text-center">x{qty}</td>
-                      <td className="py-0.5 text-right font-bold">₱{(qty * denom).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                      <td style={{ textTransform: 'uppercase' }}>{label}</td>
+                      <td style={{ textAlign: 'center' }}>x{qty}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 700 }}>
+                        ₱{(qty * denom).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
-            <div className="receipt-divider"></div>
-            <div className="flex-between font-black text-[12px] py-1 border-t border-black mt-1">
+
+            <div className="rp-divider" />
+
+            {/* Grand total */}
+            <div className="rp-total">
               <span>GRAND TOTAL</span>
               <span>₱{printData.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
             </div>
-          </div>
 
-          {printData.remarks !== '-' && (
-            <div className="mt-2 text-[12px] italic text-zinc-600 border-t border-dotted border-black pt-2 uppercase">
-              Note: {printData.remarks}
-            </div>
-          )}
+            {/* Remarks */}
+            {printData.remarks !== '-' && (
+              <div style={{
+                marginTop: 8,
+                fontSize: 11,
+                fontStyle: 'italic',
+                textTransform: 'uppercase',
+                borderTop: '1px dotted #000',
+                paddingTop: 6,
+                color: '#444'
+              }}>
+                Note: {printData.remarks}
+              </div>
+            )}
 
-          <div className="mt-10 flex flex-col gap-8 text-center">
-            <div>
-               <p className="text-[9px] font-bold uppercase underline underline-offset-4">{localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')!).name : 'System Admin'}</p>
-               <p className="text-[8px] uppercase tracking-widest mt-1">Prepared By</p>
+            {/* Signatures */}
+            <div className="rp-sig-block">
+              <div>
+                <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', textDecoration: 'underline' }}>
+                  {localStorage.getItem('user')
+                    ? JSON.parse(localStorage.getItem('user')!).name
+                    : 'System Admin'}
+                </div>
+                <div style={{ fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 3 }}>
+                  Prepared By
+                </div>
+              </div>
+              <div>
+                <div style={{ fontSize: 9 }}>____________________</div>
+                <div style={{ fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 3 }}>
+                  Received By (Auditor)
+                </div>
+              </div>
             </div>
-            <div>
-               <p className="text-[9px]">____________________</p>
-               <p className="text-[8px] uppercase tracking-widest mt-1">Received By (Auditor)</p>
-            </div>
+
           </div>
         </div>
       )}
 
-      {/* ORIGINAL DASHBOARD UI - Wrapped in ID for Print Hiding */}
+      {/* MAIN UI */}
       <div id="main-ui" className="flex flex-col h-full w-full bg-[#f8f6ff] animate-in fade-in zoom-in duration-300 relative overflow-hidden">
         <TopNavbar />
 
         <div className={`flex-1 flex flex-row items-start justify-center p-6 gap-6 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-87.5' : ''}`}>
-          
+
           <div className="bg-white w-full flex-1 rounded-[2.5rem] shadow-xl shadow-purple-900/5 border border-zinc-100 flex flex-col relative overflow-hidden shrink-0 h-full">
             <div className="absolute top-0 left-0 w-full h-3 bg-[#3b2063] opacity-10 z-10"></div>
-            
+
             <div className="flex-1 overflow-y-auto p-8 w-full scroll-smooth">
               <h2 className="text-[#3b2063] font-black text-base tracking-[0.4em] uppercase mb-2 text-center">Terminal 01</h2>
               <p className="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-8 text-center">Cashier: Admin</p>
@@ -341,9 +416,9 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
                     <div key={denom} className="grid grid-cols-4 gap-4 items-center px-4 py-2 hover:bg-zinc-50 rounded-2xl">
                       <div className="text-right font-black text-[#3b2063] text-lg">{denom.toLocaleString()}</div>
                       <div className="text-center text-zinc-300 font-bold text-xs">X</div>
-                      <input 
-                        type="text" 
-                        inputMode="none" 
+                      <input
+                        type="text"
+                        inputMode="none"
                         value={qty}
                         onFocus={() => handleCountFocus(denom)}
                         onChange={(e) => handleInputChange(e.target.value)}
@@ -368,7 +443,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2">Remarks</label>
-                  <textarea 
+                  <textarea
                     value={remarks}
                     inputMode="none"
                     onFocus={handleRemarksFocus}
@@ -378,9 +453,9 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
                     className={`w-full p-4 rounded-2xl border-2 border-zinc-100 focus:border-[#3b2063] resize-none h-16 ${isEodLocked ? 'bg-zinc-50 cursor-not-allowed opacity-50' : 'bg-[#f8f6ff]'}`}
                   />
                 </div>
-                <button 
-                  onClick={handleSubmit} 
-                  disabled={isLoading || isEodLocked} 
+                <button
+                  onClick={handleSubmit}
+                  disabled={isLoading || isEodLocked}
                   className={`w-full py-5 rounded-3xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-transform ${isEodLocked ? 'bg-zinc-300 text-zinc-500 cursor-not-allowed' : 'bg-[#3b2063] text-white'}`}
                 >
                   {isLoading ? 'SUBMITTING...' : isEodLocked ? 'TERMINAL LOCKED' : 'SUBMIT CASH DROP'}
@@ -410,7 +485,9 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
                       <td className="px-6 py-4 text-sm font-black text-[#3b2063] text-right">₱{tx.total.toLocaleString()}</td>
                       <td className="px-6 py-4 text-center">
                         <button onClick={() => handlePrint(tx)} className="p-2 bg-emerald-100 text-emerald-600 rounded-xl hover:bg-emerald-200 transition-colors">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18" /></svg>
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18" />
+                          </svg>
                         </button>
                       </td>
                     </tr>
@@ -426,9 +503,9 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
           </div>
         </div>
 
-        {/* Keyboard toggle button */}
-        <button 
-          onClick={() => !isEodLocked && setShowKeyboard(prev => !prev)} 
+        {/* Keyboard toggle */}
+        <button
+          onClick={() => !isEodLocked && setShowKeyboard(prev => !prev)}
           className={`fixed bottom-8 right-8 z-60 p-4 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 ${isEodLocked ? 'bg-zinc-300 cursor-not-allowed' : (showKeyboard ? 'bg-red-500 text-white' : 'bg-[#3b2063] text-white')}`}
         >
           {showKeyboard ? (
@@ -445,7 +522,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
           </div>
           <div className="p-2">
             <Keyboard
-              keyboardRef={r => { if(r) keyboardRef.current = r; }}
+              keyboardRef={r => { if (r) keyboardRef.current = r; }}
               layoutName={layoutName}
               onChange={onKeyboardChange}
               onKeyPress={onKeyPress}
