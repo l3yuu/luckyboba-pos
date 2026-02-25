@@ -2,7 +2,6 @@ import { useState } from 'react';
 import BranchManagerSidebar from '../components/BranchManagerSidebar';
 import logo from '../assets/logo.png';
 import { Users, Plus, Trash2, Edit3, X, Save, Shield } from 'lucide-react';
-import { positionOptions } from '../types/branchManagerUser';
 import type { BranchManagerUser } from '../types/branchManagerUser';
 import { useToast } from '../context/ToastContext';
 
