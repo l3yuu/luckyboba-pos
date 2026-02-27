@@ -59,7 +59,7 @@ const SalesOrder = () => {
     const [orderCharge, setOrderCharge] = useState<'grab' | 'panda' | null>(null);
 
     const [sugarLevel, setSugarLevel] = useState('100%');
-    const [size, setSize] = useState('M');
+    const [size, setSize] = useState<'M' | 'L' | 'none'>('M');
     const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
     const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
     const [cart, setCart] = useState<CartItem[]>([]);
@@ -113,7 +113,6 @@ const SalesOrder = () => {
         };
 
         fetchAddOns();
-
         fetchCashierName();
         fetchMenu();
         const timer = setInterval(() => setCurrentDate(new Date()), 1000);
@@ -123,6 +122,7 @@ const SalesOrder = () => {
     const isDrink = selectedCategory?.type === 'drink';
     const isWings = selectedCategory?.name === "CHICKEN WINGS";
     const isOz = selectedCategory?.name === "HOT DRINKS" || selectedCategory?.name === "HOT COFFEE";
+    const needsSizePicker = (isDrink || isWings || isOz) && !categorySize;
     
     const [addOnsData, setAddOnsData] = useState<{ id: number; name: string; price: number }[]>([]);
 
@@ -136,17 +136,45 @@ const SalesOrder = () => {
         else setSelectedCategory(null);
     };
 
+    /**
+     * Filter items by the DB `size` column when a size has been picked.
+     * - If the user picked the M size label → show items where size === 'M' OR size === 'none'
+     * - If the user picked the L size label → show items where size === 'L' OR size === 'none'
+     * - For wings / no-size categories → show all items
+     */
+    const getFilteredItems = (items: MenuItem[]): MenuItem[] => {
+        if (!categorySize || isWings) return items;
+
+        const cupSizeM = selectedCategory?.cup?.size_m || 'M';
+        const cupSizeL = selectedCategory?.cup?.size_l || 'L';
+
+        if (categorySize === cupSizeM) {
+            // Show M items (and 'none' items that don't have a pair)
+            return items.filter(item => item.size === 'M' || item.size === 'none');
+        }
+        if (categorySize === cupSizeL) {
+            // Show L items (and 'none' items that don't have a pair)
+            return items.filter(item => item.size === 'L' || item.size === 'none');
+        }
+
+        return items;
+    };
+
     const handleItemClick = (item: MenuItem) => {
         setSelectedItem(item);
         setQty(1);
         setRemarks('');
         setSugarLevel('100%');
-        const cup = selectedCategory?.cup;
-        setSize(
-            categorySize === (cup?.size_l || 'L') 
-                ? (cup?.size_l || 'L') 
-                : (cup?.size_m || 'M')
-        );
+
+        // Derive size from the item's DB size field when possible
+        if (item.size === 'M' || item.size === 'L') {
+            setSize(item.size);
+        } else {
+            // Fallback: infer from which size button was pressed
+            const cupSizeL = selectedCategory?.cup?.size_l || 'L';
+            setSize(categorySize === cupSizeL ? 'L' : 'M');
+        }
+
         setSelectedOptions([]);
         setSelectedAddOns([]);
         setIsAddOnModalOpen(false);
@@ -193,8 +221,10 @@ const SalesOrder = () => {
         let basePrice = Number(selectedItem.price);
         let extraCost = 0;
         if (orderCharge) extraCost += 10;
-        const cupSizeL = selectedCategory?.cup?.size_l || 'L';
-        if (isDrink && size === cupSizeL) extraCost += 20;
+
+        // +20 upcharge for Large — only when the item itself is L
+        if (isDrink && size === 'L') extraCost += 20;
+
         if (isWings && categorySize) {
             const pricing: Record<string, number> = { '3pc': 100, '4pc': 120, '6pc': 195, '12pc': 390 };
             basePrice = pricing[categorySize] || 0;
@@ -205,6 +235,12 @@ const SalesOrder = () => {
                 if (addon) extraCost += Number(addon.price);
             });
         }
+
+        const cartSize: 'M' | 'L' | 'none' = isDrink ? size : 'none';
+
+        // categorySize IS the full cup label (e.g. "SM", "SL", "PCM", "UL") — store it directly
+        const cupSizeLabel: string | undefined = (isDrink || isOz) && categorySize ? categorySize : undefined;
+
         setCart([...cart, { 
             ...selectedItem, 
             name: isWings ? `${selectedItem.name} (${categorySize})` : selectedItem.name, 
@@ -212,7 +248,8 @@ const SalesOrder = () => {
             remarks, 
             charges: { grab: orderCharge === 'grab', panda: orderCharge === 'panda' },
             sugarLevel: isDrink ? sugarLevel : undefined, 
-            size: isDrink ? size : undefined, 
+            size: cartSize,
+            cupSizeLabel,
             options: isDrink ? selectedOptions : undefined, 
             addOns: isDrink ? selectedAddOns : undefined, 
             finalPrice: (basePrice + extraCost) * qty 
@@ -241,7 +278,7 @@ const SalesOrder = () => {
                     quantity: item.qty,
                     unit_price: Number(item.price),
                     total_price: item.finalPrice,
-                    size: item.size || null,
+                    size: item.size !== 'none' ? item.size : null,
                     sugar_level: item.sugarLevel || null,
                     options: item.options || [],
                     add_ons: item.addOns || [],
@@ -312,7 +349,14 @@ const SalesOrder = () => {
 
     const subtotal = cart.reduce((acc, item) => acc + item.finalPrice, 0);
     const totalCount = cart.reduce((acc, item) => acc + item.qty, 0);
-    const hasStickers = cart.some(item => item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L');
+
+    /**
+     * A cart item gets a sticker if it's a drink (has sugarLevel set)
+     * OR if it has an explicit M/L size from the DB.
+     */
+    const hasStickers = cart.some(item => 
+        item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L'
+    );
     
     // --- FINANCIAL CALCULATIONS ---
     const vatableSales = subtotal / 1.12;
@@ -325,7 +369,7 @@ const SalesOrder = () => {
         menu_items: cat.menu_items.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
     })).filter(cat => cat.name.toLowerCase().includes(searchQuery.toLowerCase()) || cat.menu_items.length > 0);
     
-    // ── STICKER GENERATOR (SMART AUTO-RESIZING & BRANCH) ──
+    // ── STICKER GENERATOR ──
     const renderStickers = () => {
         const stickers: React.ReactNode[] = [];
         let drinkIndex = 1;
@@ -350,6 +394,8 @@ const SalesOrder = () => {
                 const gapClass = isVeryCrowded ? "space-y-0 leading-none" : "space-y-0.5 leading-tight";
                 const marginClass = isVeryCrowded ? "mb-0" : "mb-1";
 
+                const sizeLabel = item.cupSizeLabel ? `(${item.cupSizeLabel})` : '';
+
                 for (let i = 0; i < item.qty; i++) {
                     stickers.push(
                     <div 
@@ -357,7 +403,6 @@ const SalesOrder = () => {
                         className={`sticker-area page-break bg-white text-black flex flex-col justify-between items-center h-full w-full ${paddingClass}`} 
                         style={{ fontFamily: "Arial, Helvetica, sans-serif" }}
                     >
-                        {/* TOP SECTION: BRAND, BRANCH & QUEUE/OR NUMBER */}
                         <div className="w-full text-center flex flex-col items-center">
                             <div className={`font-black uppercase leading-none ${titleSize}`}>
                                 LUCKY BOBA
@@ -371,10 +416,9 @@ const SalesOrder = () => {
                             </div>
                         </div>
                         
-                        {/* MIDDLE SECTION: DRINK NAME & ADD-ONS */}
                         <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
                             <div className={`w-full font-black uppercase leading-tight ${nameSize} ${marginClass}`}>
-                                {item.name} {item.size ? `(${item.size})` : ''}
+                                {item.name} {sizeLabel}
                             </div>
                             
                             <div className={`w-full text-center font-bold ${addOnSize} ${gapClass}`}>
@@ -390,7 +434,6 @@ const SalesOrder = () => {
                             )}
                         </div>
                         
-                        {/* BOTTOM SECTION: DATE & TIME */}
                         <div className={`w-full font-bold text-center border-t border-zinc-800 ${isVeryCrowded ? 'text-[8.5px] pt-0.5 mt-0.5' : 'text-[8.5px] pt-1 mt-1'}`}>
                             {formattedDate} {formattedTime}
                         </div>
@@ -416,40 +459,25 @@ const SalesOrder = () => {
             {`
         @media print {
             @page {
-                /* DYNAMIC PAGE SIZE: Uses sticker dimensions for stickers, and 80mm continuous roll for receipts/kitchen */
                 ${printTarget === 'stickers' ? 'size: 38.5mm 50.8mm;' : 'size: 80mm auto;'}
                 margin: 0 !important;
             }
-
-            /* Kill default browser margins that might push content right */
-            html, body {
-                margin: 0 !important;
-                padding: 0 !important;
-            }
-
+            html, body { margin: 0 !important; padding: 0 !important; }
             body * { visibility: hidden; }
             nav, header, aside, button, .print\\:hidden { display: none !important; }
-
-            .printable-receipt-container, .printable-receipt-container * { 
-                visibility: visible !important; 
-            }
-
+            .printable-receipt-container, .printable-receipt-container * { visibility: visible !important; }
             .printable-receipt-container {
                 position: absolute !important;
                 left: 0 !important;
                 top: 0 !important; 
                 width: 100% !important;
-                /* FIX: Dynamically change max-width so stickers aren't forced to 78mm */
                 max-width: ${printTarget === 'stickers' ? '38.5mm' : '76mm'} !important; 
                 margin: 0 !important;
                 padding: 0 !important;
-                /* Removed overflow: hidden so multi-page stickers don't get trapped */
             }
-
-            /* --- RECEIPT & KITCHEN PRINTER STYLES (80mm) --- */
             .receipt-area {
-                width: 66mm !important; /* Shrunk to 66mm to guarantee NO right-side cutting */
-                margin: 0 auto !important; /* Perfectly centers it inside the safe area */
+                width: 66mm !important;
+                margin: 0 auto !important;
                 padding: 2mm 0 !important; 
                 box-sizing: border-box !important;
                 color: #000 !important;
@@ -457,8 +485,6 @@ const SalesOrder = () => {
                 font-size: 12px !important;
                 line-height: 1.4 !important;
             }
-
-            /* --- LABEL PRINTER STYLES --- */
             .sticker-area {
                 width: 38.5mm !important;
                 height: 50.8mm !important; 
@@ -466,17 +492,13 @@ const SalesOrder = () => {
                 margin: 0 auto !important;
                 box-sizing: border-box !important;
                 color: #000 !important;
-                
                 display: flex !important;
                 flex-direction: column !important;
                 justify-content: space-between !important; 
                 align-items: center !important;     
                 text-align: center !important;      
-                
                 font-family: Arial, Helvetica, sans-serif !important;
                 overflow: hidden !important;
-                
-                /* FIX: Force each new sticker onto its own physical label */
                 page-break-after: always !important;
                 break-after: page !important;
             }
@@ -628,9 +650,7 @@ const SalesOrder = () => {
                             </div>
 
                             <div className="flex flex-col md:flex-row flex-1 min-h-[50vh] max-h-[80vh]">
-                                {/* LEFT SIDE: Order Items & Order Summary Breakdown */}
                                 <div className="flex-1 flex flex-col bg-zinc-50 border-r border-zinc-200 overflow-hidden">
-                                    {/* Cart Items (Scrollable) */}
                                     <div className="flex-1 p-6 overflow-y-auto custom-scrollbar border-b border-zinc-200">
                                         <h3 className="font-black text-sm text-[#3b2063] uppercase mb-4 tracking-wider">Cart Items</h3>
                                         {cart.length === 0 ? (
@@ -640,7 +660,10 @@ const SalesOrder = () => {
                                                 {cart.map((item, i) => (
                                                     <div key={i} className="flex justify-between items-start pb-3 border-b border-zinc-100 last:border-0">
                                                         <div>
-                                                            <p className="font-bold text-sm text-[#3b2063]">{item.qty}x {item.name}</p>
+                                                            <p className="font-bold text-sm text-[#3b2063]">
+                                                                {item.qty}x {item.name}
+                                                                {item.cupSizeLabel && <span className="ml-1 opacity-60">({item.cupSizeLabel})</span>}
+                                                            </p>
                                                             <div className="text-[10px] text-zinc-500 mt-1 ml-2">
                                                                 {item.sugarLevel != null && <p>• Sugar {item.sugarLevel}</p>}
                                                                 {item.options?.map(o => <p key={o}>• {o}</p>)}
@@ -654,7 +677,6 @@ const SalesOrder = () => {
                                         )}
                                     </div>
 
-                                    {/* Order Summary Breakdown (Fixed) */}
                                     <div className="p-6 bg-white shrink-0">
                                         <h3 className="font-black text-xs text-zinc-400 uppercase tracking-widest mb-3">Order Summary</h3>
                                         <div className="space-y-1.5 text-[11px] font-bold text-zinc-600 mb-4">
@@ -674,12 +696,10 @@ const SalesOrder = () => {
                                     </div>
                                 </div>
 
-                                {/* RIGHT SIDE: Payment Input & Quick Cash (NOW SCROLLABLE) */}
                                 <div className="flex-1 p-6 bg-white flex flex-col justify-between overflow-y-auto custom-scrollbar">
                                     <div>
                                         <h3 className="font-black text-sm text-[#3b2063] uppercase mb-3 tracking-wider">Cash Tendered</h3>
                                         
-                                        {/* Main Input Field */}
                                         <div className="relative mb-4">
                                             <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-2xl text-zinc-400">₱</span>
                                             <input 
@@ -691,7 +711,6 @@ const SalesOrder = () => {
                                             />
                                         </div>
 
-                                        {/* Quick Cash Buttons */}
                                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
                                             <button 
                                                 onClick={() => setCashTendered(amtDue)}
@@ -710,7 +729,6 @@ const SalesOrder = () => {
                                             ))}
                                         </div>
                                         
-                                        {/* Change Display */}
                                         <div className="flex justify-between items-center bg-zinc-50 p-4 rounded-2xl border border-zinc-100 mb-2">
                                             <span className="font-black text-zinc-500 uppercase text-sm tracking-widest">Change</span>
                                             <span className={`text-3xl font-black ${change > 0 ? 'text-green-500' : 'text-zinc-300'}`}>
@@ -719,7 +737,6 @@ const SalesOrder = () => {
                                         </div>
                                     </div>
 
-                                    {/* Action Buttons */}
                                     <div className="space-y-2 mt-4 shrink-0">
                                         <button 
                                             onClick={handleConfirmOrder} 
@@ -756,21 +773,18 @@ const SalesOrder = () => {
                             </div>
                             
                             <div className="p-6 space-y-3">
-                                {/* RECEIPT BUTTON */}
                                 <button onClick={handlePrintReceipt}
                                     className="w-full bg-zinc-100 text-zinc-700 py-4 rounded-xl font-bold uppercase flex justify-center items-center gap-2 hover:bg-zinc-200 transition-colors">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0v3.398c0 .796.604 1.48 1.389 1.554a41.349 41.349 0 0 1 7.722 0c.785.074 1.389-.758 1.389-1.554V7.034Z" /></svg>
                                     Print Customer Receipt
                                 </button>
                                 
-                                {/* KITCHEN BUTTON */}
                                 <button onClick={handlePrintKitchen}
                                     className="w-full bg-[#fce7f3] text-[#be185d] border border-[#be185d]/20 py-4 rounded-xl font-black uppercase tracking-wider flex justify-center items-center gap-2 hover:bg-[#fbcfe8] transition-colors">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.866 8.21 8.21 0 0 0 3 2.48Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 18a3.75 3.75 0 0 0 .495-7.468 5.99 5.99 0 0 0-1.925 3.547 5.975 5.975 0 0 1-2.133-1.001A3.75 3.75 0 0 0 12 18Z" /></svg>
                                     Print Kitchen Ticket
                                 </button>
 
-                                {/* STICKER BUTTON */}
                                 {hasStickers && (
                                     <button onClick={handlePrintStickers}
                                         className="w-full bg-[#f0ebff] text-[#3b2063] border border-[#3b2063]/20 py-4 rounded-xl font-black uppercase tracking-wider flex justify-center items-center gap-2 hover:bg-[#e4dbff] transition-colors">
@@ -830,9 +844,13 @@ const SalesOrder = () => {
                                         {selectedCategory.name} {categorySize && <span className="opacity-50"> &bull; {categorySize}</span>}
                                     </h2>
                                 </div>
-                                {(isDrink || isOz || isWings) && !categorySize ? (
+
+                                {/* SIZE / QUANTITY PICKER */}
+                                {needsSizePicker ? (
                                     <div className="flex flex-col items-center justify-center h-full gap-6">
-                                        <h3 className="text-xl font-bold text-zinc-400 uppercase">{isWings ? "Select Quantity" : "Select Size"}</h3>
+                                        <h3 className="text-xl font-bold text-zinc-400 uppercase">
+                                            {isWings ? "Select Quantity" : "Select Size"}
+                                        </h3>
                                         {isWings ? (
                                             <div className="grid grid-cols-2 gap-6 w-full max-w-2xl">
                                                 {WINGS_QUANTITIES.map((qty) => (
@@ -842,109 +860,112 @@ const SalesOrder = () => {
                                                     </button>
                                                 ))}
                                             </div>
-                                            ) : (
-                                                <div className="flex gap-6 w-full max-w-lg">
-                                                    {/* MEDIUM / SMALL Button */}
-                                                    <button 
-                                                        onClick={() => setCategorySize(selectedCategory?.cup?.size_m || 'M')} 
-                                                        className="flex-1 h-56 bg-white rounded-3xl shadow-lg border-2 border-transparent hover:border-[#3b2063] transition-all flex flex-col items-center justify-center group font-black uppercase text-[#3b2063]"
-                                                    >
-                                                        <DrinkIcon className="w-16 h-16 mb-3 opacity-80" />
-                                                        <span className="text-base">Medium</span>
-                                                        <span className="mt-2 bg-[#3b2063]/10 text-[#3b2063] text-[11px] font-black px-3 py-1 rounded-full tracking-widest">
-                                                            {selectedCategory?.cup?.size_m || 'M'} Cup
-                                                        </span>
-                                                    </button>
+                                        ) : (
+                                            <div className="flex gap-6 w-full max-w-lg">
+                                                {/* MEDIUM button */}
+                                                <button 
+                                                    onClick={() => setCategorySize(selectedCategory?.cup?.size_m || 'M')} 
+                                                    className="flex-1 h-56 bg-white rounded-3xl shadow-lg border-2 border-transparent hover:border-[#3b2063] transition-all flex flex-col items-center justify-center group font-black uppercase text-[#3b2063]"
+                                                >
+                                                    <DrinkIcon className="w-16 h-16 mb-3 opacity-80" />
+                                                    <span className="text-3xl font-black tracking-widest">
+                                                        {selectedCategory?.cup?.size_m || 'M'}
+                                                    </span>
+                                                    <span className="mt-2 bg-[#3b2063]/10 text-[#3b2063] text-[11px] font-black px-3 py-1 rounded-full tracking-widest">
+                                                        Medium
+                                                    </span>
+                                                </button>
 
-                                                    {/* LARGE Button */}
-                                                    <button 
-                                                        onClick={() => setCategorySize(selectedCategory?.cup?.size_l || 'L')} 
-                                                        className="flex-1 h-56 bg-white rounded-3xl shadow-xl border-2 border-transparent hover:border-[#3b2063] hover:scale-105 transition-all flex flex-col items-center justify-center group font-black uppercase text-[#3b2063]"
-                                                    >
-                                                        <DrinkIcon className="w-24 h-24 mb-3" />
-                                                        <span className="text-base">Large</span>
-                                                        <span className="mt-2 bg-[#3b2063]/10 text-[#3b2063] text-[11px] font-black px-3 py-1 rounded-full tracking-widest">
-                                                            {selectedCategory?.cup?.size_l || 'L'} Cup
-                                                        </span>
-                                                    </button>
-                                                </div>
-                                            )}
+                                                {/* LARGE button */}
+                                                <button 
+                                                    onClick={() => setCategorySize(selectedCategory?.cup?.size_l || 'L')} 
+                                                    className="flex-1 h-56 bg-white rounded-3xl shadow-xl border-2 border-transparent hover:border-[#3b2063] hover:scale-105 transition-all flex flex-col items-center justify-center group font-black uppercase text-[#3b2063]"
+                                                >
+                                                    <DrinkIcon className="w-24 h-24 mb-3" />
+                                                    <span className="text-3xl font-black tracking-widest">
+                                                        {selectedCategory?.cup?.size_l || 'L'}
+                                                    </span>
+                                                    <span className="mt-2 bg-[#3b2063]/10 text-[#3b2063] text-[11px] font-black px-3 py-1 rounded-full tracking-widest">
+                                                        Large
+                                                    </span>
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 ) : (
+                                    /* ITEM GRID — filtered by DB size field */
                                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 pb-20">
-                                        {selectedCategory.menu_items.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase())).map((item) => (
-                                            <button key={item.id} onClick={() => handleItemClick(item)} className="bg-white hover:bg-[#3b2063] hover:text-white text-[#3b2063] p-4 rounded-2xl shadow-sm border border-[#3b2063] h-24 text-xs uppercase font-bold text-center">
+                                        {getFilteredItems(
+                                            selectedCategory.menu_items.filter(item =>
+                                                item.name.toLowerCase().includes(searchQuery.toLowerCase())
+                                            )
+                                        ).map((item) => (
+                                            <button key={item.id} onClick={() => handleItemClick(item)}
+                                                className="bg-white hover:bg-[#3b2063] hover:text-white text-[#3b2063] p-4 rounded-2xl shadow-sm border border-[#3b2063] h-24 text-xs uppercase font-bold text-center">
                                                 {item.name}
                                             </button>
                                         ))}
                                     </div>
                                 )}
                             </div>
-                            ) : (
-                                <div className="pb-20 animate-in fade-in zoom-in duration-300 space-y-6">
-                                    {[
-                                        { label: 'Food', type: 'food', color: 'bg-orange-500', border: 'border-orange-200', hover: 'hover:bg-orange-500' },
-                                        { label: 'Drinks', type: 'drink', color: 'bg-[#3b2063]', border: 'border-[#3b2063]/20', hover: 'hover:bg-[#3b2063]' },
-                                        { label: 'Promo', type: 'promo', color: 'bg-emerald-600', border: 'border-emerald-200', hover: 'hover:bg-emerald-600' },
-                                    ].map(({ label, type, color, hover }) => {
-                                        const groupCats = filteredCategories.filter(cat => 
-                                            type === 'food' 
-                                                ? (cat.type === 'food' || cat.type === 'wings')
-                                                : cat.type === type
-                                        );
-                                        if (groupCats.length === 0) return null;
+                        ) : (
+                            <div className="pb-20 animate-in fade-in zoom-in duration-300 space-y-6">
+                                {[
+                                    { label: 'Food', type: 'food', color: 'bg-orange-500', hover: 'hover:bg-orange-500' },
+                                    { label: 'Drinks', type: 'drink', color: 'bg-[#3b2063]', hover: 'hover:bg-[#3b2063]' },
+                                    { label: 'Promo', type: 'promo', color: 'bg-emerald-600', hover: 'hover:bg-emerald-600' },
+                                ].map(({ label, type, color, hover }) => {
+                                    const groupCats = filteredCategories.filter(cat => 
+                                        type === 'food' 
+                                            ? (cat.type === 'food' || cat.type === 'wings')
+                                            : cat.type === type
+                                    );
+                                    if (groupCats.length === 0) return null;
 
-                                        return (
-                                            <div key={type}>
-                                                {/* Group Header */}
-                                                <div className="flex items-center gap-3 mb-3 px-1">
-                                                    <span className={`${color} text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-sm`}>
-                                                        {label}
-                                                    </span>
-                                                    <div className="flex-1 h-px bg-zinc-600"></div>
-                                                    <span className="text-[12px] text-zinc-800 font-bold">{groupCats.length} categories</span>
-                                                </div>
-
-                                                {/* Category Buttons */}
-                                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                                                    {groupCats.map((cat) => (
-                                                        <button
-                                                            key={cat.id}
-                                                            onClick={() => handleCategoryClick(cat)}
-                                                            className={`bg-white ${hover} hover:text-white text-[#3b2063] font-bold text-[15px] uppercase p-3 rounded-2xl h-24 shadow-sm border border-[#3b2063] transition-all`}
-                                                        >
-                                                            {cat.name}
-                                                        </button>
-                                                    ))}
-                                                </div>
+                                    return (
+                                        <div key={type}>
+                                            <div className="flex items-center gap-3 mb-3 px-1">
+                                                <span className={`${color} text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-sm`}>
+                                                    {label}
+                                                </span>
+                                                <div className="flex-1 h-px bg-zinc-600"></div>
+                                                <span className="text-[12px] text-zinc-800 font-bold">{groupCats.length} categories</span>
                                             </div>
-                                        );
-                                    })}
-
-                                    {/* Fallback for any uncategorized */}
-                                    {(() => {
-                                        const known = ['food', 'wings', 'drink', 'promo'];
-                                        const others = filteredCategories.filter(cat => !known.includes(cat.type));
-                                        if (others.length === 0) return null;
-                                        return (
-                                            <div>
-                                                <div className="flex items-center gap-3 mb-3 px-1">
-                                                    <span className="bg-zinc-400 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">Other</span>
-                                                    <div className="flex-1 h-px bg-zinc-200"></div>
-                                                </div>
-                                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                                                    {others.map((cat) => (
-                                                        <button key={cat.id} onClick={() => handleCategoryClick(cat)}
-                                                            className="bg-white hover:bg-[#3b2063] hover:text-white text-[#3b2063] font-bold text-[15px] uppercase p-3 rounded-2xl h-24 shadow-sm border border-[#3b2063] transition-all">
-                                                            {cat.name}
-                                                        </button>
-                                                    ))}
-                                                </div>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                                                {groupCats.map((cat) => (
+                                                    <button key={cat.id} onClick={() => handleCategoryClick(cat)}
+                                                        className={`bg-white ${hover} hover:text-white text-[#3b2063] font-bold text-[15px] uppercase p-3 rounded-2xl h-24 shadow-sm border border-[#3b2063] transition-all`}>
+                                                        {cat.name}
+                                                    </button>
+                                                ))}
                                             </div>
-                                        );
-                                    })()}
-                                </div>
-                            )} 
+                                        </div>
+                                    );
+                                })}
+
+                                {(() => {
+                                    const known = ['food', 'wings', 'drink', 'promo'];
+                                    const others = filteredCategories.filter(cat => !known.includes(cat.type));
+                                    if (others.length === 0) return null;
+                                    return (
+                                        <div>
+                                            <div className="flex items-center gap-3 mb-3 px-1">
+                                                <span className="bg-zinc-400 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">Other</span>
+                                                <div className="flex-1 h-px bg-zinc-200"></div>
+                                            </div>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                                                {others.map((cat) => (
+                                                    <button key={cat.id} onClick={() => handleCategoryClick(cat)}
+                                                        className="bg-white hover:bg-[#3b2063] hover:text-white text-[#3b2063] font-bold text-[15px] uppercase p-3 rounded-2xl h-24 shadow-sm border border-[#3b2063] transition-all">
+                                                        {cat.name}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                        )} 
                     </div>
 
                     {/* ── SIDEBAR CART ── */}
@@ -960,7 +981,10 @@ const SalesOrder = () => {
                                     {cart.map((item, index) => (
                                         <div key={index} className="flex justify-between items-start gap-2 bg-zinc-50 p-3 rounded-xl border border-zinc-100 group">
                                             <div className="flex-1 min-w-0">
-                                                <p className="font-bold text-xs text-[#3b2063]">{item.name}</p>
+                                                <p className="font-bold text-xs text-[#3b2063]">
+                                                    {item.name}
+                                                    {item.cupSizeLabel && <span className="ml-1 opacity-60 font-normal">({item.cupSizeLabel})</span>}
+                                                </p>
                                                 <div className="flex flex-wrap gap-1 mt-1">
                                                     {item.sugarLevel != null && <span className="bg-[#3b2063]/10 text-[#3b2063] text-[9px] px-1.5 py-0.5 rounded font-bold">Sugar {item.sugarLevel}</span>}
                                                     {item.options?.map(opt => <span key={opt} className="bg-blue-100 text-blue-700 text-[9px] px-1.5 py-0.5 rounded font-bold">{opt}</span>)}
@@ -1005,27 +1029,11 @@ const SalesOrder = () => {
                 <div className="printable-receipt-container hidden print:block">
                     <div className="receipt-area bg-white text-black">
                         <div className="text-center mb-4 border-b border-black pb-3">
-
-                            {/* --- LOGO ADDED HERE --- */}
-                            <img 
-                                src={logo} 
-                                alt="Lucky Boba Logo" 
-                                className="w-48 h-auto mx-auto mb-2 grayscale" 
-                                style={{ filter: 'grayscale(100%) contrast(1.2)' }} 
-                            />
-
-                            <h1 className="uppercase leading-tight font-bold text-xl">
-                                LUCKY BOBA MILKTEA
-                            </h1>
+                            <img src={logo} alt="Lucky Boba Logo" className="w-48 h-auto mx-auto mb-2 grayscale" style={{ filter: 'grayscale(100%) contrast(1.2)' }} />
+                            <h1 className="uppercase leading-tight font-bold text-xl">LUCKY BOBA MILKTEA</h1>
                             <p className="text-base mt-1">Quezon City</p>
-
-                            
-                            <h2 className="text-lg mt-2">
-                                OR # {orNumber}
-                            </h2>
-                            <p className="text-sm mt-1">
-                                {formattedDate} {formattedTime}
-                            </p>
+                            <h2 className="text-lg mt-2">OR # {orNumber}</h2>
+                            <p className="text-sm mt-1">{formattedDate} {formattedTime}</p>
                         </div>
                         <div className="text-xs space-y-1 mb-3">
                             <div className="flex justify-between w-full"><span># 1</span><span>Total Guests: 1</span></div>
@@ -1036,32 +1044,29 @@ const SalesOrder = () => {
                         <div className="mt-3 mb-3 text-xs border-t border-dashed border-black pt-3">
                             {cart.map((item, i) => (
                                 <div key={i} className="mb-2">
-                                    <div className="uppercase">{item.name} {item.size ? `(${item.size})` : ''}</div>
+                                    <div className="uppercase">
+                                        {item.name} {item.cupSizeLabel ? `(${item.cupSizeLabel})` : ''}
+                                    </div>
                                     <div className="flex justify-between w-full mt-0.5">
                                         <span>{item.qty} X {(item.finalPrice / item.qty).toFixed(2)}</span>
                                         <span>{item.finalPrice.toFixed(2)}</span>
                                     </div>
-                                    {item.sugarLevel != null && <div className="pl-2 text-[10px] text-black-900">• Sugar {item.sugarLevel}</div>}
-                                    {item.options?.map(o => <div key={o} className="pl-2 text-[10px] text-black-900">• {o}</div>)}
-                                    {item.addOns?.map(a => <div key={a} className="pl-2 text-[10px] text-black-900">• + {a}</div>)}
-                                    {item.remarks && <div className="pl-2 text-[10px] text-black-900 italic">• Note: {item.remarks}</div>}
+                                    {item.sugarLevel != null && <div className="pl-2 text-[10px]">• Sugar {item.sugarLevel}</div>}
+                                    {item.options?.map(o => <div key={o} className="pl-2 text-[10px]">• {o}</div>)}
+                                    {item.addOns?.map(a => <div key={a} className="pl-2 text-[10px]">• + {a}</div>)}
+                                    {item.remarks && <div className="pl-2 text-[10px] italic">• Note: {item.remarks}</div>}
                                 </div>
                             ))}
                         </div>
                         <div className="text-xs space-y-1 border-t border-dashed border-black pt-2">
                             <div className="flex justify-between w-full"><span>Total Items</span><span>{totalCount}</span></div>
                             <div className="flex justify-between w-full"><span>Sub Total</span><span>{subtotal.toFixed(2)}</span></div>
-                            <div className="flex justify-between w-full text-base font-bold mt-1">
-                                <span>TOTAL DUE</span><span>{subtotal.toFixed(2)}</span>
-                            </div>
+                            <div className="flex justify-between w-full text-base font-bold mt-1"><span>TOTAL DUE</span><span>{subtotal.toFixed(2)}</span></div>
                         </div>
-
-                        {/* RECEIPT PAYMENT SECTION */}
                         <div className="text-xs mt-2 space-y-1 border-b border-dashed border-black pb-3">
                             <div className="flex justify-between w-full"><span>Cash (Tendered)</span><span>{typeof cashTendered === 'number' ? cashTendered.toFixed(2) : subtotal.toFixed(2)}</span></div>
                             <div className="flex justify-between w-full"><span>Change</span><span>{change.toFixed(2)}</span></div>
                         </div>
-
                         <div className="text-[11px] mt-3 space-y-1">
                             <div className="flex justify-between w-full"><span>VATable Sales(V)</span><span>{vatableSales.toFixed(2)}</span></div>
                             <div className="flex justify-between w-full"><span>VAT Amount</span><span>{vatAmount.toFixed(2)}</span></div>
@@ -1074,15 +1079,9 @@ const SalesOrder = () => {
                             <div className="flex justify-between items-end w-full"><span>Address:</span><span className="border-b border-black w-[70%]"></span></div>
                             <div className="flex justify-between items-end w-full"><span>Signature:</span><span className="border-b border-black w-[70%]"></span></div>
                         </div>
-
                         <div className="mt-6 mb-4 text-center text-xs uppercase">
-                            FOR FRANCHISE<br />
-                            EMAIL OR CONTACT US ON<br />
-                            luckybobafranchising@gmail.com<br />
-                            09260029894
+                            FOR FRANCHISE<br />EMAIL OR CONTACT US ON<br />luckybobafranchising@gmail.com<br />09260029894
                         </div>
-
-                        {/* CUSTOMER QUEUE NUMBER (BOTTOM ANNOUNCEMENT) */}
                         <div className="mt-6 py-4 text-center">
                             <p className="text-sm tracking-widest uppercase mb-1">Your Order Number Is:</p>
                             <h2 className="font-black text-4xl">#{queueNumber}</h2>
@@ -1099,58 +1098,37 @@ const SalesOrder = () => {
                         <div className="text-center mb-4 border-b-4 border-black pb-3">
                             <h1 className="uppercase leading-tight font-black text-3xl mb-1">KITCHEN TICKET</h1>
                             <h2 className="font-bold text-lg mt-1 uppercase tracking-widest">Main Branch - QC</h2>
-                            
-                            {/* MASSIVE KITCHEN QUEUE NUMBER */}
                             <div className="py-3 my-3 text-black">
                                 <p className="text-sm tracking-widest uppercase mb-1">Queue</p>
-                                {/* This is the only massive/bold thing left */}
                                 <h2 className="font-black text-5xl tracking-widest">#{queueNumber}</h2>
                             </div>
-
                             <h2 className="text-m mt-1">OR # {orNumber}</h2>
                             <p className="text-sm mt-1">{formattedDate} {formattedTime}</p>
-                            
                             {orderCharge && (
                                 <div className="mt-3 text-sm border-4 border-black text-black py-1 uppercase tracking-widest">
                                     {orderCharge === 'grab' ? 'GRABFOOD' : 'FOODPANDA'}
                                 </div>
                             )}
                         </div>
-                        
                         <div className="mt-2">
                             {cart.map((item, i) => (
                                 <div key={i} className="mb-4 border-b-2 border-dashed border-gray-400 pb-3">
                                     <div className="flex items-start">
-                                        {/* Quantity remains slightly bold so it stands out */}
                                         <span className="font-bold text-m mr-3">{item.qty}x</span>
                                         <div className="flex-1">
-                                            {/* Drink Name */}
-                                            <div className="uppercase text-sm leading-tight mb-1">{item.name} {item.size ? `(${item.size})` : ''}</div>
-                                            
-                                            {item.sugarLevel != null && (
-                                                <div className="text-sm mt-1 text-black-800">Sugar: {item.sugarLevel}</div>
-                                            )}
-                                            
-                                            {/* Safely check options and addOns arrays */}
-                                            {item.options && item.options.length > 0 && (
-                                                <div className="text-sm text-black-800">Options: {item.options.join(', ')}</div>
-                                            )}
-                                            
-                                            {item.addOns && item.addOns.length > 0 && (
-                                                <div className="text-sm text-black-800">Add: {item.addOns.join(', ')}</div>
-                                            )}
-                                            
-                                            {item.remarks && (
-                                                <div className="text-sm italic mt-2 border-t border-gray-200 pt-1">
-                                                    Note: {item.remarks}
-                                                </div>
-                                            )}
+                                            <div className="uppercase text-sm leading-tight mb-1">
+                                                {item.name} {item.cupSizeLabel ? `(${item.cupSizeLabel})` : ''}
+                                            </div>
+                                            {item.sugarLevel != null && <div className="text-sm mt-1">Sugar: {item.sugarLevel}</div>}
+                                            {item.options && item.options.length > 0 && <div className="text-sm">Options: {item.options.join(', ')}</div>}
+                                            {item.addOns && item.addOns.length > 0 && <div className="text-sm">Add: {item.addOns.join(', ')}</div>}
+                                            {item.remarks && <div className="text-sm italic mt-2 border-t border-gray-200 pt-1">Note: {item.remarks}</div>}
                                         </div>
                                     </div>
                                 </div>
                             ))}
                         </div>
-                        <div className="text-center text-sm mt-4 uppercase tracking-widest text-black-800">--- END OF TICKET ---</div>
+                        <div className="text-center text-sm mt-4 uppercase tracking-widest">--- END OF TICKET ---</div>
                     </div>
                 </div>
             )}
