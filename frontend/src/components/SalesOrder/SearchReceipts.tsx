@@ -10,6 +10,24 @@ import { useToast } from '../../hooks/useToast';
 
 const CACHE_KEY = 'lucky_boba_receipt_cache';
 
+// SKELETON COMPONENT FOR LOADING STATE
+const TableSkeleton = () => (
+  <>
+    {[...Array(5)].map((_, i) => (
+      <tr key={`skeleton-${i}`} className="animate-pulse">
+        <td className="px-6 py-4">
+          <div className="h-4 w-24 bg-zinc-100 rounded mb-2"></div>
+          <div className="h-3 w-16 bg-zinc-50 rounded"></div>
+        </td>
+        <td className="px-6 py-4"><div className="h-4 w-12 bg-zinc-100 rounded mx-auto"></div></td>
+        <td className="px-6 py-4"><div className="h-4 w-8 bg-zinc-100 rounded mx-auto"></div></td>
+        <td className="px-6 py-4"><div className="h-4 w-20 bg-zinc-100 rounded ml-auto"></div></td>
+        <td className="px-6 py-4"><div className="h-8 w-8 bg-zinc-100 rounded-lg mx-auto"></div></td>
+      </tr>
+    ))}
+  </>
+);
+
 const SearchReceipts = () => {
   const { showToast } = useToast();
 
@@ -68,26 +86,45 @@ const SearchReceipts = () => {
       }
   }, [searchQuery, selectedDate]);
 
+  // Debounce Effect for Search Query
   useEffect(() => {
-    const cachedResults = sessionStorage.getItem(`${CACHE_KEY}_results`);
-    const cachedQuery = sessionStorage.getItem(`${CACHE_KEY}_query`);
-    const cachedDate = sessionStorage.getItem(`${CACHE_KEY}_date`);
+    if (!searchQuery && !hasSearched) return;
 
-    if (cachedResults) {
-      try {
-        const parsed = JSON.parse(cachedResults);
-        setSearchResults(parsed);
-        setSearchQuery(cachedQuery || '');
-        if (cachedDate) setSelectedDate(cachedDate);
-        setHasSearched(true);
-      } catch {
+    const delayDebounceFn = setTimeout(() => {
+      handleSearch(searchQuery, selectedDate);
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchQuery, selectedDate, handleSearch, hasSearched]);
+
+  // Enhanced Cache Initialization with validation
+  useEffect(() => {
+      const cachedResults = sessionStorage.getItem(`${CACHE_KEY}_results`);
+      const cachedQuery = sessionStorage.getItem(`${CACHE_KEY}_query`);
+      const cachedDate = sessionStorage.getItem(`${CACHE_KEY}_date`);
+
+      if (cachedResults) {
+        try {
+          const parsed = JSON.parse(cachedResults);
+          
+          if (Array.isArray(parsed)) {
+            setSearchResults(parsed);
+            setSearchQuery(cachedQuery || '');
+            if (cachedDate) setSelectedDate(cachedDate);
+            setHasSearched(true);
+          } else {
+            throw new Error("Invalid cache format");
+          }
+        } catch (error) {
+          console.error("Cache parsing failed:", error);
+          sessionStorage.removeItem(`${CACHE_KEY}_results`);
+          handleSearch('', selectedDate);
+        }
+      } else {
         handleSearch('', selectedDate);
       }
-    } else {
-      handleSearch('', selectedDate);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
   const handleRefresh = () => {
     const today = new Date().toISOString().split('T')[0];
@@ -173,7 +210,6 @@ const SearchReceipts = () => {
                 className="outline-none text-[#3b2063] font-bold bg-transparent cursor-pointer text-sm"
               />
             </div>
-            {/* TODAY BUTTON REMOVED FROM HERE */}
           </div>
 
           <button onClick={() => handleSearch()} disabled={isLoading} className="bg-[#3b2063] hover:bg-[#2a1647] text-white px-8 py-4 md:py-0 rounded-2xl font-black text-xs uppercase transition-all active:scale-95 disabled:opacity-50 min-w-30">
@@ -185,7 +221,6 @@ const SearchReceipts = () => {
           </button>
         </div>
 
-        {/* Stats Cards */}
         <div className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-white p-5 rounded-3xl border border-zinc-100 shadow-sm">
                 <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">Gross Total</p>
@@ -228,10 +263,10 @@ const SearchReceipts = () => {
                 </thead>
                 <tbody className="divide-y divide-zinc-50">
                   {isLoading ? (
-                    <tr><td colSpan={5} className="py-20 text-center text-zinc-400 italic">Fetching audit data...</td></tr>
+                    <TableSkeleton />
                   ) : searchResults.length > 0 ? (
-                    searchResults.map((item) => (
-                     <tr key={item.id} className="hover:bg-[#f8f6ff] transition-colors group">
+                      searchResults.map((item) => (
+                        <tr key={item.sale_id} className="hover:bg-[#f8f6ff] transition-colors group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                             <span className="font-black text-[#3b2063] text-sm">#{item.si_number}</span>
@@ -261,7 +296,7 @@ const SearchReceipts = () => {
                         )}
                       </td>
                     </tr>
-                   ))
+                    ))
                   ) : (
                     <tr>
                       <td colSpan={5} className="py-20 text-center text-zinc-300 uppercase font-bold text-xs">
@@ -275,7 +310,6 @@ const SearchReceipts = () => {
         </div>
       </div>
 
-      {/* VOID MODAL */}
       {isReasonModalOpen && (
         <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8 border border-zinc-100">

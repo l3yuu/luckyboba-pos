@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             SubCategorySeeder::class,
             VoucherSeeder::class,
             MenuSeeder::class,
+            AddOnSeeder::class,
         ]);
 
         // 2. Add system configurations or initial balances

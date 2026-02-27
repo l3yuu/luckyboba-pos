@@ -6,7 +6,7 @@ use App\Http\Controllers\Api\{
     InventoryDashboardController, InventoryReportController, ItemSerialController,
     MenuController, MenuListController, PurchaseOrderController, ReceiptController,
     ReportController, SalesController, SalesDashboardController, SettingsController,
-    SubCategoryController, UploadController, VoucherController
+    SubCategoryController, UploadController, VoucherController, AddOnController
 };
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Models\User;
@@ -63,6 +63,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/menu', [MenuController::class, 'index']);
     Route::post('/menu/clear-cache', [MenuController::class, 'clearCache']);
     Route::apiResource('menu-list', MenuListController::class)->only(['index', 'store']);
+    Route::get('/add-ons', [AddOnController::class, 'index']);
 
     Route::apiResource('categories', CategoryController::class);
     Route::apiResource('sub-categories', SubCategoryController::class);
