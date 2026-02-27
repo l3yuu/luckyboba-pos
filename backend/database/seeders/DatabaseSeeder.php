@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
         // These are required for the POS to actually function
         $this->call([
             UserSeeder::class, 
+            CupSeeder::class,
             CategorySeeder::class,
             SubCategorySeeder::class,
             VoucherSeeder::class,

@@ -141,7 +141,12 @@ const SalesOrder = () => {
         setQty(1);
         setRemarks('');
         setSugarLevel('100%');
-        setSize(isDrink && categorySize === 'L' ? 'L' : 'M');
+        const cup = selectedCategory?.cup;
+        setSize(
+            categorySize === (cup?.size_l || 'L') 
+                ? (cup?.size_l || 'L') 
+                : (cup?.size_m || 'M')
+        );
         setSelectedOptions([]);
         setSelectedAddOns([]);
         setIsAddOnModalOpen(false);
@@ -188,7 +193,8 @@ const SalesOrder = () => {
         let basePrice = Number(selectedItem.price);
         let extraCost = 0;
         if (orderCharge) extraCost += 10;
-        if (isDrink && size === 'L') extraCost += 20;
+        const cupSizeL = selectedCategory?.cup?.size_l || 'L';
+        if (isDrink && size === cupSizeL) extraCost += 20;
         if (isWings && categorySize) {
             const pricing: Record<string, number> = { '3pc': 100, '4pc': 120, '6pc': 195, '12pc': 390 };
             basePrice = pricing[categorySize] || 0;
@@ -826,7 +832,7 @@ const SalesOrder = () => {
                                 </div>
                                 {(isDrink || isOz || isWings) && !categorySize ? (
                                     <div className="flex flex-col items-center justify-center h-full gap-6">
-                                        <h3 className="text-xl font-bold text-zinc-400 uppercase">{isWings ? "Select Quantity" : "Select Size/Qty"}</h3>
+                                        <h3 className="text-xl font-bold text-zinc-400 uppercase">{isWings ? "Select Quantity" : "Select Size"}</h3>
                                         {isWings ? (
                                             <div className="grid grid-cols-2 gap-6 w-full max-w-2xl">
                                                 {WINGS_QUANTITIES.map((qty) => (
@@ -836,16 +842,33 @@ const SalesOrder = () => {
                                                     </button>
                                                 ))}
                                             </div>
-                                        ) : (
-                                            <div className="flex gap-6 w-full max-w-lg">
-                                                <button onClick={() => setCategorySize('M')} className="flex-1 h-56 bg-white rounded-3xl shadow-lg border-2 border-transparent hover:border-[#3b2063] transition-all flex flex-col items-center justify-center group font-black uppercase text-[#3b2063]">
-                                                    <DrinkIcon className="w-16 h-16 mb-4 opacity-80" /><span>Medium / Sm</span>
-                                                </button>
-                                                <button onClick={() => setCategorySize('L')} className="flex-1 h-56 bg-white rounded-3xl shadow-xl border-2 border-transparent hover:border-[#3b2063] hover:scale-105 transition-all flex flex-col items-center justify-center group font-black uppercase text-[#3b2063]">
-                                                    <DrinkIcon className="w-24 h-24 mb-4" /><span>Large / Lg</span>
-                                                </button>
-                                            </div>
-                                        )}
+                                            ) : (
+                                                <div className="flex gap-6 w-full max-w-lg">
+                                                    {/* MEDIUM / SMALL Button */}
+                                                    <button 
+                                                        onClick={() => setCategorySize(selectedCategory?.cup?.size_m || 'M')} 
+                                                        className="flex-1 h-56 bg-white rounded-3xl shadow-lg border-2 border-transparent hover:border-[#3b2063] transition-all flex flex-col items-center justify-center group font-black uppercase text-[#3b2063]"
+                                                    >
+                                                        <DrinkIcon className="w-16 h-16 mb-3 opacity-80" />
+                                                        <span className="text-base">Medium</span>
+                                                        <span className="mt-2 bg-[#3b2063]/10 text-[#3b2063] text-[11px] font-black px-3 py-1 rounded-full tracking-widest">
+                                                            {selectedCategory?.cup?.size_m || 'M'} Cup
+                                                        </span>
+                                                    </button>
+
+                                                    {/* LARGE Button */}
+                                                    <button 
+                                                        onClick={() => setCategorySize(selectedCategory?.cup?.size_l || 'L')} 
+                                                        className="flex-1 h-56 bg-white rounded-3xl shadow-xl border-2 border-transparent hover:border-[#3b2063] hover:scale-105 transition-all flex flex-col items-center justify-center group font-black uppercase text-[#3b2063]"
+                                                    >
+                                                        <DrinkIcon className="w-24 h-24 mb-3" />
+                                                        <span className="text-base">Large</span>
+                                                        <span className="mt-2 bg-[#3b2063]/10 text-[#3b2063] text-[11px] font-black px-3 py-1 rounded-full tracking-widest">
+                                                            {selectedCategory?.cup?.size_l || 'L'} Cup
+                                                        </span>
+                                                    </button>
+                                                </div>
+                                            )}
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 pb-20">
@@ -857,15 +880,71 @@ const SalesOrder = () => {
                                     </div>
                                 )}
                             </div>
-                        ) : (
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 pb-20 animate-in fade-in zoom-in duration-300">
-                                {filteredCategories.map((cat) => (
-                                    <button key={cat.id} onClick={() => handleCategoryClick(cat)} className="bg-white hover:bg-[#3b2063] hover:text-white text-[#3b2063] font-bold text-[15px] uppercase p-3 rounded-2xl h-24 shadow-sm border border-[#3b2063] transition-all">
-                                        {cat.name}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
+                            ) : (
+                                <div className="pb-20 animate-in fade-in zoom-in duration-300 space-y-6">
+                                    {[
+                                        { label: 'Food', type: 'food', color: 'bg-orange-500', border: 'border-orange-200', hover: 'hover:bg-orange-500' },
+                                        { label: 'Drinks', type: 'drink', color: 'bg-[#3b2063]', border: 'border-[#3b2063]/20', hover: 'hover:bg-[#3b2063]' },
+                                        { label: 'Promo', type: 'promo', color: 'bg-emerald-600', border: 'border-emerald-200', hover: 'hover:bg-emerald-600' },
+                                    ].map(({ label, type, color, hover }) => {
+                                        const groupCats = filteredCategories.filter(cat => 
+                                            type === 'food' 
+                                                ? (cat.type === 'food' || cat.type === 'wings')
+                                                : cat.type === type
+                                        );
+                                        if (groupCats.length === 0) return null;
+
+                                        return (
+                                            <div key={type}>
+                                                {/* Group Header */}
+                                                <div className="flex items-center gap-3 mb-3 px-1">
+                                                    <span className={`${color} text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-sm`}>
+                                                        {label}
+                                                    </span>
+                                                    <div className="flex-1 h-px bg-zinc-600"></div>
+                                                    <span className="text-[12px] text-zinc-800 font-bold">{groupCats.length} categories</span>
+                                                </div>
+
+                                                {/* Category Buttons */}
+                                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                                                    {groupCats.map((cat) => (
+                                                        <button
+                                                            key={cat.id}
+                                                            onClick={() => handleCategoryClick(cat)}
+                                                            className={`bg-white ${hover} hover:text-white text-[#3b2063] font-bold text-[15px] uppercase p-3 rounded-2xl h-24 shadow-sm border border-[#3b2063] transition-all`}
+                                                        >
+                                                            {cat.name}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+
+                                    {/* Fallback for any uncategorized */}
+                                    {(() => {
+                                        const known = ['food', 'wings', 'drink', 'promo'];
+                                        const others = filteredCategories.filter(cat => !known.includes(cat.type));
+                                        if (others.length === 0) return null;
+                                        return (
+                                            <div>
+                                                <div className="flex items-center gap-3 mb-3 px-1">
+                                                    <span className="bg-zinc-400 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">Other</span>
+                                                    <div className="flex-1 h-px bg-zinc-200"></div>
+                                                </div>
+                                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                                                    {others.map((cat) => (
+                                                        <button key={cat.id} onClick={() => handleCategoryClick(cat)}
+                                                            className="bg-white hover:bg-[#3b2063] hover:text-white text-[#3b2063] font-bold text-[15px] uppercase p-3 rounded-2xl h-24 shadow-sm border border-[#3b2063] transition-all">
+                                                            {cat.name}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+                            )} 
                     </div>
 
                     {/* ── SIDEBAR CART ── */}

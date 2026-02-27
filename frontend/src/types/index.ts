@@ -8,10 +8,20 @@ export interface MenuItem {
     category_id: number;
 }
 
+export interface Cup {
+    id: number;
+    name: string;
+    size_m: string;
+    size_l: string;
+    code: string;
+}
+
 export interface Category {
     id: number;
     name: string;
     type: string;
+    cup_id: number | null;
+    cup: Cup | null;
     menu_items: MenuItem[];
 }
 
