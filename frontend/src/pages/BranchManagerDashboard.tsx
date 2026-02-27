@@ -269,14 +269,14 @@ const UserManagement = () => {
             </div>
             <div className="p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6">
               <div>
-                <h3 className="text-[#1e40af] font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] mb-3 sm:mb-4 border-b border-zinc-100 pb-2">Profile Details</h3>
+                <h3 className="text-[#3b2063] font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] mb-3 sm:mb-4 border-b border-zinc-100 pb-2">Profile Details</h3>
                 <div className="space-y-1 sm:space-y-2">
                   <label className="text-[9px] sm:text-[10px] font-black text-zinc-400 uppercase tracking-widest">Name</label>
                   <input type="text" value={newUser.name} onChange={(e) => setNewUser({...newUser, name: e.target.value})} className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-[10px] sm:text-xs font-bold text-slate-700 outline-none focus:border-blue-500 transition-all" placeholder="Enter full name" />
                 </div>
               </div>
               <div>
-                <h3 className="text-[#1e40af] font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] mb-3 sm:mb-4 border-b border-zinc-100 pb-2">Login Details</h3>
+                <h3 className="text-[#3b2063] font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] mb-3 sm:mb-4 border-b border-zinc-100 pb-2">Login Details</h3>
                 <div className="space-y-3 sm:space-y-4">
                   <div className="space-y-1 sm:space-y-2">
                     <label className="text-[9px] sm:text-[10px] font-black text-zinc-400 uppercase tracking-widest">Username</label>

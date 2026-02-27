@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import logo from '../assets/logo.png';
 import type { User, CreateUserData, UpdateUserData } from '../types/user';
 import UserService from '../services/UserService';
+import { useToast } from '../context/ToastContext';
 
 // Import Settings Components
 import SalesSettings from '../components/Settings/SalesSettings';
@@ -42,6 +43,7 @@ const mockBranches: Branch[] = [
 ];
 
 const SuperAdminDashboard: React.FC = () => {
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<'overview' | 'branches' | 'users' | 'reports' | 'settings'>('overview');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
@@ -98,9 +100,11 @@ const SuperAdminDashboard: React.FC = () => {
       setLoading(true);
       const newUser = await UserService.createUser(data);
       setUsers((prev) => [newUser, ...prev]);
+      showToast(`User "${data.name}" has been created successfully`, 'success');
       return newUser;
     } catch (err: unknown) {
       setError((err instanceof Error ? err.message : 'Failed to create user') || 'Failed to create user');
+      showToast('Failed to create user. Please try again.', 'error');
       throw err;
     } finally {
       setLoading(false);
@@ -112,9 +116,11 @@ const SuperAdminDashboard: React.FC = () => {
       setLoading(true);
       const updatedUser = await UserService.updateUser(id, data);
       setUsers((prev) => prev.map((u) => (u.id === id ? updatedUser : u)));
+      showToast(`User "${data.name}" has been updated successfully`, 'success');
       return updatedUser;
     } catch (err: unknown) {
       setError((err instanceof Error ? err.message : 'Failed to update user') || 'Failed to update user');
+      showToast('Failed to update user. Please try again.', 'error');
       throw err;
     } finally {
       setLoading(false);
@@ -126,8 +132,10 @@ const SuperAdminDashboard: React.FC = () => {
       setLoading(true);
       await UserService.deleteUser(id);
       setUsers((prev) => prev.filter((u) => u.id !== id));
+      showToast('User has been deleted successfully', 'error');
     } catch (err: unknown) {
       setError((err instanceof Error ? err.message : 'Failed to delete user') || 'Failed to delete user');
+      showToast('Failed to delete user. Please try again.', 'error');
       throw err;
     } finally {
       setLoading(false);

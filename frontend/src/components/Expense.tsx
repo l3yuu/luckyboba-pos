@@ -88,8 +88,8 @@ const Expense = () => {
           </div>
 
           <div className="flex gap-2 w-full xl:w-auto">
-            <button className="flex-1 xl:flex-none px-8 h-10 bg-[#1e40af] text-white rounded-md font-black uppercase text-[10px] tracking-widest hover:bg-[#1e3a8a] shadow-md transition-all">SEARCH</button>
-            <button onClick={() => setIsAddModalOpen(true)} className="flex-1 xl:flex-none px-8 h-10 bg-[#10b981] text-white rounded-md font-black uppercase text-[10px] tracking-widest hover:bg-[#059669] shadow-md transition-all">ADD NEW</button>
+            <button className="flex-1 xl:flex-none px-8 h-10 bg-[#3b2063] text-white rounded-md font-black uppercase text-[10px] tracking-widest shadow-md transition-all">SEARCH</button>
+            <button onClick={() => setIsAddModalOpen(true)} className="flex-1 xl:flex-none px-8 h-10 bg-[#3b2063] text-white rounded-md font-black uppercase text-[10px] tracking-widest shadow-md transition-all">ADD NEW</button>
           </div>
         </div>
 
@@ -164,7 +164,7 @@ const Expense = () => {
       {isAddModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="bg-[#1e40af] p-4 text-center">
+            <div className="bg-[#3b2063] p-4 text-center">
               <h2 className="text-white font-black uppercase tracking-[0.2em] text-sm">Add Expense</h2>
             </div>
 
@@ -197,14 +197,14 @@ const Expense = () => {
 
               <div>
                 <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest block mb-1">Amount</label>
-                <input type="number" placeholder="0.00" className="w-full px-4 py-2 rounded-md border border-zinc-200 bg-zinc-50 text-sm font-black text-[#1e40af] outline-none focus:border-blue-500" value={newExpense.amount} onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})} />
+                <input type="number" placeholder="0.00" className="w-full px-4 py-2 rounded-md border border-zinc-200 bg-zinc-50 text-sm font-black text-[#3b2063] outline-none focus:border-blue-500" value={newExpense.amount} onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})} />
               </div>
 
               <div className="flex gap-3 pt-4">
                 <button onClick={() => setIsAddModalOpen(false)} className="flex-1 px-6 py-3 bg-zinc-100 text-zinc-500 rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-zinc-200 transition-all">
                   Back
                 </button>
-                <button onClick={handleSaveExpense} className="flex-1 px-6 py-3 bg-[#1e40af] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#1e3a8a] shadow-lg shadow-blue-900/20 transition-all">
+                <button onClick={handleSaveExpense} className="flex-1 px-6 py-3 bg-[#3b2063] text-white rounded-lg font-black uppercase text-[10px] tracking-widest shadow-lg shadow-blue-900/20 transition-all">
                   Save
                 </button>
               </div>

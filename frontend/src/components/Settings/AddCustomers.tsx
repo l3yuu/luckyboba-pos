@@ -17,10 +17,45 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
   const [activeTab, setActiveTab] = useState<TabType>('CUSTOMER' as TabType);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
+  const [newCustomerForm, setNewCustomerForm] = useState({
+    cardNumber: '',
+    fullName: '',
+    email: '',
+    phoneNumber: ''
+  });
   const [customers, setCustomers] = useState([
     { card: '1001', name: 'John Doe', transaction: '2026-02-10', email: 'john@example.com', phone: '09123456789', points: 120 },
     { card: '1002', name: 'Jane Smith', transaction: '2026-02-11', email: 'jane@example.com', phone: '09987654321', points: 50 },
   ]);
+
+  // Input handlers for number-only fields
+  const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, ''); // Remove non-numeric characters
+    setNewCustomerForm(prev => ({ ...prev, cardNumber: value }));
+  };
+
+  const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, ''); // Remove non-numeric characters
+    // Limit to exactly 11 numbers
+    setNewCustomerForm(prev => ({ ...prev, phoneNumber: value.slice(0, 11) }));
+  };
+
+  const handleFullNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewCustomerForm(prev => ({ ...prev, fullName: e.target.value }));
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewCustomerForm(prev => ({ ...prev, email: e.target.value }));
+  };
+
+  const resetForm = () => {
+    setNewCustomerForm({
+      cardNumber: '',
+      fullName: '',
+      email: '',
+      phoneNumber: ''
+    });
+  };
 
   // Conditional rendering based on active tab
   if (activeTab === 'REPORT') {
@@ -129,8 +164,12 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
                 </label>
                 <input
                   type="text"
+                  value={newCustomerForm.cardNumber}
+                  onChange={handleCardNumberChange}
                   className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#00000] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
                   placeholder="Enter card number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                 />
               </div>
 
@@ -140,6 +179,8 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
                 </label>
                 <input
                   type="text"
+                  value={newCustomerForm.fullName}
+                  onChange={handleFullNameChange}
                   className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#00000] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
                   placeholder="Enter customer name"
                 />
@@ -151,6 +192,8 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
                 </label>
                 <input
                   type="email"
+                  value={newCustomerForm.email}
+                  onChange={handleEmailChange}
                   className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#00000] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
                   placeholder="Enter email address"
                 />
@@ -162,8 +205,12 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
                 </label>
                 <input
                   type="tel"
+                  value={newCustomerForm.phoneNumber}
+                  onChange={handlePhoneNumberChange}
                   className="w-full px-4 py-2.5 rounded-2xl border border-zinc-200 text-sm font-bold text-[#00000] bg-zinc-50 focus:outline-none focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10"
                   placeholder="Enter phone number"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                 />
               </div>
 
@@ -179,34 +226,33 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
                   type="button"
                   onClick={(e) => {
                     e.preventDefault();
-                    const form = e.currentTarget.closest('form');
-                    if (form) {
-                      const cardNumber = (form.querySelector('input[type="text"]') as HTMLInputElement)?.value;
-                      const fullName = (form.querySelectorAll('input[type="text"]')[1] as HTMLInputElement)?.value;
-                      const email = (form.querySelector('input[type="email"]') as HTMLInputElement)?.value;
-                      const phone = (form.querySelector('input[type="tel"]') as HTMLInputElement)?.value;
-                      
-                      if (!cardNumber || !fullName || !email || !phone) {
-                        showToast('Please fill in all required fields', 'error');
-                        return;
-                      }
-                      
-                      const newCustomer = {
-                        card: cardNumber,
-                        name: fullName,
-                        transaction: new Date().toISOString().split('T')[0],
-                        email: email,
-                        phone: phone,
-                        points: 0
-                      };
-                      
-                      setCustomers([...customers, newCustomer]);
-                      setIsAddCustomerModalOpen(false);
-                      showToast(`Customer "${fullName}" has been added successfully`, 'success');
-                      
-                      // Reset form
-                      form.reset();
+                    
+                    if (!newCustomerForm.cardNumber || !newCustomerForm.fullName || !newCustomerForm.email || !newCustomerForm.phoneNumber) {
+                      showToast('Please fill in all required fields', 'error');
+                      return;
                     }
+                    
+                    // Validate phone number is exactly 11 digits
+                    if (newCustomerForm.phoneNumber.length !== 11) {
+                      showToast('Phone number must be exactly 11 digits', 'error');
+                      return;
+                    }
+                    
+                    const newCustomer = {
+                      card: newCustomerForm.cardNumber,
+                      name: newCustomerForm.fullName,
+                      transaction: new Date().toISOString().split('T')[0],
+                      email: newCustomerForm.email,
+                      phone: newCustomerForm.phoneNumber,
+                      points: 0
+                    };
+                    
+                    setCustomers([...customers, newCustomer]);
+                    setIsAddCustomerModalOpen(false);
+                    showToast(`Customer "${newCustomerForm.fullName}" has been added successfully`, 'success');
+                    
+                    // Reset form
+                    resetForm();
                   }}
                   className="px-6 py-2 rounded-2xl bg-[#3b2063] text-white text-xs font-black uppercase tracking-widest hover:bg-[#291645]"
                 >

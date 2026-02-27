@@ -109,7 +109,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
     setIsDeleteConfirmOpen(false);
     setDiscountToDelete(null);
     
-    showToast(`Discount "${discountToDelete.name}" has been deleted successfully`, 'success');
+    showToast(`Discount "${discountToDelete.name}" has been deleted successfully`, 'error');
   };
 
   const cancelDelete = () => {
@@ -244,7 +244,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="bg-[#1e40af] px-6 py-4 flex justify-between items-center">
+            <div className="bg-[#3b2063] px-6 py-4 flex justify-between items-center">
               <h2 className="text-white font-black text-xs uppercase tracking-[0.2em]">New Discount Entry</h2>
               <button onClick={() => setIsModalOpen(false)} className="text-white/70 hover:text-white transition-colors">
                 <X size={20} />
