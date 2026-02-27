@@ -102,65 +102,74 @@ class UserController extends Controller
      * POST /api/users
      */
     public function store(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|max:255|unique:users,email',
-            'password' => 'required|string|min:6',
-            'role'     => 'required|in:superadmin,admin,manager,cashier',
-            'branch'   => 'nullable|string|max:255',
-            'status'   => 'required|in:ACTIVE,INACTIVE',
-        ]);
+{
+    $validator = Validator::make($request->all(), [
+        'name'     => 'required|string|max:255',
+        'email'    => 'required|email|max:255|unique:users,email',
+        'password' => 'required|string|min:6',
+        'role'     => 'required|in:superadmin,admin,manager,cashier',
+        'branch'   => 'nullable|string|max:255',
+        'status'   => 'required|in:ACTIVE,INACTIVE',
+    ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors'  => $validator->errors()
-            ], 422);
-        }
+    if ($validator->fails()) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Validation failed',
+            'errors'  => $validator->errors()
+        ], 422);
+    }
 
-        try {
-            $branchId = null;
+    try {
+        $creator = auth()->user();
+        $isBranchManager = in_array($creator->role, ['branch_manager', 'manager', 'admin']);
 
-            if ($request->filled('branch')) {
-                $branch = Branch::where('name', $request->branch)->first();
+        $branchId = null;
+        $branchName = null;
 
-                if (!$branch) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Branch not found',
-                        'error'   => "No branch found with the name: {$request->branch}"
-                    ], 404);
-                }
+        if ($isBranchManager && !$request->filled('branch')) {
+            // ✅ Inherit branch from the creator
+            $branchId   = $creator->branch_id;
+            $branchName = $creator->branch_name;
+        } elseif ($request->filled('branch')) {
+            $branch = Branch::where('name', $request->branch)->first();
 
-                $branchId = $branch->id;
+            if (!$branch) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Branch not found',
+                    'error'   => "No branch found with the name: {$request->branch}"
+                ], 404);
             }
 
-            $user = User::create([
-                'name'        => $request->name,
-                'email'       => $request->email,
-                'password'    => Hash::make($request->password),
-                'role'        => $request->role,
-                'status'      => $request->status,
-                'branch_name' => $request->branch,
-                'branch_id'   => $branchId,
-            ]);
-
-            return response()->json([
-                'success' => true,
-                'data'    => $this->transformUser($user),
-                'message' => 'User created successfully'
-            ], 201);
-
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create user',
-                'error'   => $e->getMessage()
-            ], 500);
+            $branchId   = $branch->id;
+            $branchName = $branch->name;
         }
+
+        $user = User::create([
+            'name'        => $request->name,
+            'email'       => $request->email,
+            'password'    => Hash::make($request->password),
+            'role'        => $request->role,
+            'status'      => $request->status,
+            'branch_name' => $branchName,
+            'branch_id'   => $branchId,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'data'    => $this->transformUser($user),
+            'message' => 'User created successfully'
+        ], 201);
+
+    } catch (Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to create user',
+            'error'   => $e->getMessage()
+        ], 500);
     }
+}
 
     /**
      * PUT /api/users/{id}

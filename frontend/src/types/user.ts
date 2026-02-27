@@ -11,6 +11,7 @@ export interface User {
   status: UserStatus;
   branch?: string;       // ADD this
   branch_name?: string;
+  branch_id?: number;    // ADD this
   email_verified_at?: string | null;
 }
 

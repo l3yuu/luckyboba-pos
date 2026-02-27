@@ -31,8 +31,13 @@ const SalesOrder = () => {
     const [cashierName] = useState<string>(() =>
         localStorage.getItem('lucky_boba_user_name') ?? 'Admin'
     );
-    const [branchName] = useState<string>(() => 
-  localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'
+    const [branchName] = useState<string>(() =>
+        localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'
+    );
+    const [branchId] = useState<number | null>(() => {  // ✅ add here
+        const id = localStorage.getItem('lucky_boba_user_branch_id');
+        return id ? Number(id) : null;
+    }
 );
     const [currentDate, setCurrentDate] = useState(new Date());
     const [searchQuery, setSearchQuery] = useState('');
@@ -211,29 +216,33 @@ useEffect(() => {
     };
 
     const handleConfirmOrder = async () => {
-        if (cart.length === 0) return;
-        setSubmitting(true);
-        const token = localStorage.getItem('lucky_boba_token');
-        try {
-            const orderData = {
-                items: cart.map(item => ({
-                    menu_item_id: item.id,
-                    name: item.name,
-                    quantity: item.qty,
-                    unit_price: Number(item.price),
-                    total_price: item.finalPrice,
-                    size: item.size || null,
-                    sugar_level: item.sugarLevel || null,
-                    options: item.options || [],
-                    add_ons: item.addOns || [],
-                    remarks: item.remarks || null,
-                    charges: { grab: item.charges.grab, panda: item.charges.panda }
-                })),
-                subtotal: subtotal,
-                total: subtotal,
-                cashier_name: cashierName ?? 'Admin',
-                cash_tendered: cashTendered
-            };
+    if (cart.length === 0) return;
+    setSubmitting(true);
+    const token = localStorage.getItem('lucky_boba_token');
+    const branchId = localStorage.getItem('lucky_boba_user_branch_id'); // ✅ add this
+    console.log('Token:', token);
+    console.log('Branch ID:', branchId); // ✅ add this to confirm it's not null
+    try {
+        const orderData = {
+            branch_id: branchId ? Number(branchId) : null, // ✅ add this
+            items: cart.map(item => ({
+                menu_item_id: item.id,
+                name: item.name,
+                quantity: item.qty,
+                unit_price: Number(item.price),
+                total_price: item.finalPrice,
+                size: item.size || null,
+                sugar_level: item.sugarLevel || null,
+                options: item.options || [],
+                add_ons: item.addOns || [],
+                remarks: item.remarks || null,
+                charges: { grab: item.charges.grab, panda: item.charges.panda }
+            })),
+            subtotal: subtotal,
+            total: subtotal,
+            cashier_name: cashierName ?? 'Admin',
+            cash_tendered: cashTendered
+        };
 
             const response = await fetch('http://localhost:8000/api/sales', {
                 method: 'POST',

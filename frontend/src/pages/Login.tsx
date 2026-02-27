@@ -75,11 +75,13 @@ useEffect(() => {
     e.preventDefault();
     const credentials: LoginCredentials = { email, password };
     const loggedInUser = await login(credentials);
-    console.log('Logged in user role:', loggedInUser?.role); // 👈 add this
+    console.log('Full user object:', loggedInUser);
+    console.log('Logged in user role:', loggedInUser?.role);
 
     if (loggedInUser) {
-      localStorage.setItem('user_role', loggedInUser.role);
-      showToast(`Welcome back, ${loggedInUser.name}!`, "success");
+    localStorage.setItem('user_role', loggedInUser.role);
+    localStorage.setItem('lucky_boba_user_branch_id', String(loggedInUser.branch_id ?? ''));
+    showToast(`Welcome back, ${loggedInUser.name}!`, "success");
 
       if (loggedInUser.role === 'superadmin') {
   navigate('/super-admin', { replace: true });

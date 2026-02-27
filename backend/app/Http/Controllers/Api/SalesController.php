@@ -48,6 +48,7 @@ public function store(Request $request)
         // Prioritize frontend name, then database name, then fallback
         $cashierName = $request->input('cashier_name') ?? ($user ? $user->name : 'System Admin');
         $userId = $user ? $user->id : null;
+        $branchId = $user ? $user->branch_id : null;
 
         try {
             DB::beginTransaction();
@@ -71,6 +72,7 @@ public function store(Request $request)
 
             $sale = Sale::create([
                 'user_id' => $userId,
+                'branch_id'      => $branchId,
                 'total_amount' => $validated['total'],
                 'invoice_number' => $invoiceNumber,
                 'status' => 'completed',
@@ -117,6 +119,7 @@ public function store(Request $request)
                 'cashier_name' => $cashierName, // Now uses the correct name
                 'total_amount' => $validated['total'],
                 'sale_id'      => $sale->id,
+                'branch_id'    => $branchId,
             ]);
 
             DB::commit();
@@ -143,10 +146,17 @@ public function store(Request $request)
     }
 
     public function index()
-    {
-        $sales = Sale::with('items', 'user')->latest()->paginate(20);
-        return response()->json($sales);
+{
+    $user = auth('sanctum')->user();
+    $query = Sale::with('items', 'user')->latest();
+
+    if ($user && !in_array($user->role, ['superadmin', 'admin'])) {
+        $query->where('branch_id', $user->branch_id);
     }
+
+    $sales = $query->paginate(20);
+    return response()->json($sales);
+}
 
     public function cancel(Request $request, $id)
     {

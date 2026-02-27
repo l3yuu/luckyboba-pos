@@ -262,8 +262,8 @@ const SearchReceipts = () => {
                   {isLoading ? (
                     <TableSkeleton />
                   ) : searchResults.length > 0 ? (
-                      searchResults.map((item) => (
-                        <tr key={item.sale_id} className="hover:bg-[#f8f6ff] transition-colors group">
+                      searchResults.map((item, index) => (
+    <tr key={item.sale_id ?? index} className="hover:bg-[#f8f6ff] transition-colors group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <span className="font-black text-[#3b2063] text-sm">#{item.si_number}</span>

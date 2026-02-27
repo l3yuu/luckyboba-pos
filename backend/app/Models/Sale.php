@@ -13,17 +13,18 @@ class Sale extends Model
     use HasFactory;
 
     protected $fillable = [
-        'total_amount',
-        'payment_method',
-        'charge_type', 
-        'pax',
-        'user_id',
-        'is_synced',
-        'invoice_number',
-        'status',           // (completed, cancelled)
-        'cancellation_reason', // Added for void audit
-        'cancelled_at'         // Added for timestamp tracking
-    ];
+    'total_amount',
+    'payment_method',
+    'charge_type', 
+    'pax',
+    'user_id',
+    'branch_id', 
+    'is_synced',
+    'invoice_number',
+    'status',
+    'cancellation_reason',
+    'cancelled_at'
+];
 
     /**
      * The attributes that should be cast.
