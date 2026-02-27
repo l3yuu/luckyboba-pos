@@ -72,8 +72,6 @@ const SalesOrder = () => {
 useEffect(() => {
     const token = localStorage.getItem('lucky_boba_token');
 
-    // ❌ DELETE fetchCashierName entirely — localStorage already has the data
-
     const fetchMenu = async () => {
         try {
             const response = await fetch('http://localhost:8000/api/menu', {
@@ -91,9 +89,20 @@ useEffect(() => {
         }
     };
 
-    // ❌ DELETE fetchCashierName() call here too
+    const fetchAddOns = async () => {
+        try {
+            const response = await fetch('http://localhost:8000/api/add-ons', {
+                headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+            });
+            const data = await response.json();
+            if (Array.isArray(data)) setAddOnsData(data);
+        } catch (error) {
+            console.error("Error fetching add-ons:", error);
+        }
+    };
 
     fetchMenu();
+    fetchAddOns();
     const timer = setInterval(() => setCurrentDate(new Date()), 1000);
     return () => clearInterval(timer);
 }, []);
@@ -101,9 +110,9 @@ useEffect(() => {
     const isDrink = selectedCategory?.type === 'drink';
     const isWings = selectedCategory?.name === "CHICKEN WINGS";
     const isOz = selectedCategory?.name === "HOT DRINKS" || selectedCategory?.name === "HOT COFFEE";
-
-    const getAddOnsSinkers = () => categories.find(c => c.name === "Add Ons Sinkers")?.menu_items || [];
     
+    const [addOnsData, setAddOnsData] = useState<{ id: number; name: string; price: number }[]>([]);
+
     const formattedDate = currentDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
     const formattedTime = currentDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     
@@ -172,7 +181,6 @@ useEffect(() => {
             basePrice = pricing[categorySize] || 0;
         }
         if (isDrink) {
-            const addOnsData = getAddOnsSinkers();
             selectedAddOns.forEach(name => {
                 const addon = addOnsData.find(a => a.name === name);
                 if (addon) extraCost += Number(addon.price);
@@ -573,7 +581,7 @@ useEffect(() => {
                             </div>
                             <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
                                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                    {getAddOnsSinkers().map((addon) => (
+                                    {addOnsData.map((addon) => (
                                         <button key={addon.id} onClick={() => toggleAddOn(addon.name)}
                                             className={`p-3 rounded-xl text-left border-2 transition-all h-24 flex flex-col justify-between ${selectedAddOns.includes(addon.name) ? 'bg-[#3b2063] border-[#3b2063] text-white' : 'bg-white border-zinc-100 text-zinc-500 hover:bg-zinc-50'}`}>
                                             <span className="text-[10px] font-black uppercase leading-tight">{addon.name}</span>

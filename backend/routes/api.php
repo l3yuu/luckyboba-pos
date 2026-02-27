@@ -7,7 +7,7 @@ use App\Http\Controllers\Api\{
     MenuController, MenuListController, PurchaseOrderController, ReceiptController,
     ReportController, SalesController, SalesDashboardController, SettingsController,
     SubCategoryController, UploadController, VoucherController, BranchController,
-    CacheController,
+    CacheController,    AddOnController
 };
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\UserController;
@@ -66,6 +66,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/menu/clear-cache',  [MenuController::class, 'clearCache']);
     Route::apiResource('menu-list',   MenuListController::class)->only(['index', 'store']);
     Route::apiResource('categories',  CategoryController::class);
+    // --- 4. CATALOG & MENU MANAGEMENT ---
+    Route::get('/menu', [MenuController::class, 'index']);
+    Route::post('/menu/clear-cache', [MenuController::class, 'clearCache']);
+    Route::apiResource('menu-list', MenuListController::class)->only(['index', 'store']);
+    Route::get('/add-ons', [AddOnController::class, 'index']);
+
+    Route::apiResource('categories', CategoryController::class);
     Route::apiResource('sub-categories', SubCategoryController::class);
     Route::get('/sub-categories/filter/{categoryId}', [SubCategoryController::class, 'getByCategory']);
 

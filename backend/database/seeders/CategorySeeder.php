@@ -10,32 +10,48 @@ class CategorySeeder extends Seeder
     public function run(): void
     {
         $categories = [
-            "Add Ons Sinkers", "AFFORDA-BOWLS", "ALA CARTE SNACKS", "ALL DAY MEALS", "CARD",
-            "CHEESECAKE MILK TEA", "CHICKEN WINGS", "CLASSIC MILKTEA", "COFFEE FRAPPE", "COMBO MEALS",
-            "CREAM CHEESE M. TEA", "FLAVORED MILK TEA", "FP COFFEE BUNDLES", "FP/GF FET2 CLASSIC", "FRAPPE SERIES",
-            "FREEBIES", "FRUIT SODA SERIES", "GF DUO BUNDLES", "GRAND OPENING PROMO", "GREEN TEA SERIES",
-            "HOT COFFEE", "HOT DRINKS", "ICED COFFEE", "NOVA SERIES", "OKINAWA BROWN SUGAR",
-            "PROMOS", "PUMPKIN SPICE", "ROCK SALT & CHEESE", "WAFFLE", "YAKULT SERIES", "YOGURT SERIES"
+            // FOOD
+            "CHICKEN WINGS"       => 'wings',
+            "ALA CARTE SNACKS"    => 'food',
+            "ALL DAY MEALS"       => 'food',
+            "COMBO MEALS"         => 'food',
+            "AFFORDA-BOWLS"       => 'food',
+            "WAFFLE"              => 'food',
+
+            // DRINKS
+            "CHEESECAKE MILK TEA" => 'drink',
+            "CLASSIC MILKTEA"     => 'drink',
+            "COFFEE FRAPPE"       => 'drink',
+            "CREAM CHEESE M. TEA" => 'drink',
+            "FLAVORED MILK TEA"   => 'drink',
+            "FP COFFEE BUNDLES"   => 'drink',
+            "FP/GF FET2 CLASSIC"  => 'drink',
+            "FRAPPE SERIES"       => 'drink',
+            "FRUIT SODA SERIES"   => 'drink',
+            "GF DUO BUNDLES"      => 'drink',
+            "GREEN TEA SERIES"    => 'drink',
+            "HOT COFFEE"          => 'drink',
+            "HOT DRINKS"          => 'drink',
+            "ICED COFFEE"         => 'drink',
+            "NOVA SERIES"         => 'drink',
+            "OKINAWA BROWN SUGAR" => 'drink',
+            "PUMPKIN SPICE"       => 'drink',
+            "ROCK SALT & CHEESE"  => 'drink',
+            "YAKULT SERIES"       => 'drink',
+            "YOGURT SERIES"       => 'drink',
+
+            // PROMOS
+            "CARD"                => 'promo',
+            "FREEBIES"            => 'promo',
+            "PROMOS"              => 'promo',
+            "GRAND OPENING PROMO" => 'promo',
         ];
 
-        foreach ($categories as $cat) {
+        foreach ($categories as $name => $type) {
             Category::updateOrCreate(
-                ['name' => $cat], // Prevents duplicates if you run it twice
-                ['type' => $this->getCategoryType($cat)]
+                ['name' => $name],
+                ['type' => $type]
             );
         }
-    }
-
-    private function getCategoryType($name) 
-    {
-        // Identifying which ones are drinks for your frontend logic
-        $drinks = [
-            "CHEESECAKE MILK TEA", "CLASSIC MILKTEA", "COFFEE FRAPPE", 
-            "CREAM CHEESE M. TEA", "FLAVORED MILK TEA", "FRAPPE SERIES", 
-            "GREEN TEA SERIES", "ICED COFFEE", "OKINAWA BROWN SUGAR", 
-            "ROCK SALT & CHEESE", "YAKULT SERIES"
-        ];
-
-        return in_array($name, $drinks) ? 'drink' : 'standard';
     }
 }
