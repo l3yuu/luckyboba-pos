@@ -124,27 +124,16 @@ class MenuSeeder extends Seeder
 
             'CLASSIC MILKTEA' => [
                 ['name' => "CLASSIC M. TEA",           'price' => 70.00,  'barcode' => 'CMM1',  'size' => 'M'],
-                ['name' => "CLASSIC M. TEA",           'price' => 90.00,  'barcode' => 'CML1',  'size' => 'L'],
                 ['name' => "CLASSIC PEARL M. TEA",     'price' => 70.00,  'barcode' => 'CMM2',  'size' => 'M'],
-                ['name' => "CLASSIC PEARL M. TEA",     'price' => 90.00,  'barcode' => 'CML2',  'size' => 'L'],
                 ['name' => "CLASSIC BUDDY M. TEA",     'price' => 105.00, 'barcode' => 'CMM3',  'size' => 'M'],
-                ['name' => "CLASSIC BUDDY M. TEA",     'price' => 125.00, 'barcode' => 'CML3',  'size' => 'L'],
                 ['name' => "CLASSIC DUO M. TEA",       'price' => 115.00, 'barcode' => 'CMM4',  'size' => 'M'],
-                ['name' => "CLASSIC DUO M. TEA",       'price' => 135.00, 'barcode' => 'CML4',  'size' => 'L'],
                 ['name' => "CLASSIC CRM. CHEESE",      'price' => 115.00, 'barcode' => 'CMM5',  'size' => 'M'],
-                ['name' => "CLASSIC CRM. CHEESE",      'price' => 135.00, 'barcode' => 'CML5',  'size' => 'L'],
                 ['name' => "CLASSIC C. CAKE M. TEA",   'price' => 115.00, 'barcode' => 'CMM6',  'size' => 'M'],
-                ['name' => "CLASSIC C. CAKE M. TEA",   'price' => 135.00, 'barcode' => 'CML6',  'size' => 'L'],
                 ['name' => "CLASSIC RSC M. TEA",       'price' => 115.00, 'barcode' => 'CMM7',  'size' => 'M'],
-                ['name' => "CLASSIC RSC M. TEA",       'price' => 135.00, 'barcode' => 'CML7',  'size' => 'L'],
                 ['name' => "CLASSIC M. TEA + OREO",    'price' => 85.00,  'barcode' => 'CMM8',  'size' => 'M'],
-                ['name' => "CLASSIC M. TEA + OREO",    'price' => 105.00, 'barcode' => 'CML8',  'size' => 'L'],
                 ['name' => "CLASSIC M. TEA + PUDDING", 'price' => 95.00,  'barcode' => 'CMM9',  'size' => 'M'],
-                ['name' => "CLASSIC M. TEA + PUDDING", 'price' => 115.00, 'barcode' => 'CML9',  'size' => 'L'],
                 ['name' => "CL PUDDING + B.PEARL",     'price' => 110.00, 'barcode' => 'CMM10', 'size' => 'M'],
-                ['name' => "CL PUDDING + B.PEARL",     'price' => 130.00, 'barcode' => 'CML10', 'size' => 'L'],
                 ['name' => "CL PUDDING + MWP",         'price' => 110.00, 'barcode' => 'CMM11', 'size' => 'M'],
-                ['name' => "CL PUDDING + MWP",         'price' => 130.00, 'barcode' => 'CML11', 'size' => 'L'],
             ],
 
             'COFFEE FRAPPE' => [
@@ -446,7 +435,7 @@ class MenuSeeder extends Seeder
 
             $category = Category::updateOrCreate(
                 ['name' => $categoryName],
-                ['type' => $this->determineType($categoryName), 'cup_id' => $cupId]
+                ['cup_id' => $cupId]  
             );
 
             foreach ($items as $item) {
@@ -463,21 +452,4 @@ class MenuSeeder extends Seeder
         }
     }
 
-    private function determineType(string $name): string
-    {
-        $name = strtoupper($name);
-
-        $drinkKeywords = [
-            'MILKTEA', 'MILK TEA', 'COFFEE', 'DRINKS', 'TEA',
-            'SODA', 'YOGURT', 'YAKULT', 'NOVA', 'FRAPPE', 'BROWN SUGAR',
-        ];
-
-        foreach ($drinkKeywords as $key) {
-            if (str_contains($name, $key)) return 'drink';
-        }
-
-        if (str_contains($name, 'WINGS')) return 'wings';
-
-        return 'standard';
-    }
 }

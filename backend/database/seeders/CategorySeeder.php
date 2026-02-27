@@ -18,7 +18,7 @@ class CategorySeeder extends Seeder
 
         $categories = [
             // FOOD
-            "CHICKEN WINGS"       => ['type' => 'wings', 'cup_id' => null],
+            "CHICKEN WINGS"       => ['type' => 'food', 'cup_id' => null],
             "ALA CARTE SNACKS"    => ['type' => 'food',  'cup_id' => null],
             "ALL DAY MEALS"       => ['type' => 'food',  'cup_id' => null],
             "COMBO MEALS"         => ['type' => 'food',  'cup_id' => null],

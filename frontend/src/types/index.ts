@@ -2,11 +2,7 @@
 
 export const SUGAR_LEVELS = ['0%', '25%', '50%', '75%', '100%'] as const;
 
-export const EXTRA_OPTIONS = [
-    'NO ICE', '-ICE', '+ICE', 'WARM',
-    'NO PRL', 'W/ PRL',
-    'LESS SWEET', 'EXTRA SWEET',
-] as const;
+export const EXTRA_OPTIONS = ['NO ICE', '-ICE', '+ICE', 'NO PRL', 'W/ PRL'];
 
 export const WINGS_QUANTITIES = ['3pc', '4pc', '6pc', '12pc'] as const;
 
