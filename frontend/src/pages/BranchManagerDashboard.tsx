@@ -229,7 +229,11 @@ const UserManagement = () => {
                   <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-[10px] sm:text-xs font-black text-[#3b2063] uppercase">{user.username}</td>
                   <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-slate-700">{user.name}</td>
                   <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-slate-500">
-                    <span className="bg-zinc-100 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded border border-zinc-200 text-[9px] sm:text-[10px] font-black uppercase tracking-wider">{user.position}</span>
+                    <span className={`px-1.5 sm:px-2 py-0.5 sm:py-1 rounded border text-[9px] sm:text-[10px] font-black uppercase tracking-wider ${
+                      user.position === 'SYSTEM ADMIN' 
+                        ? 'bg-[#3b2063] text-white border-[#3b2063]' 
+                        : 'bg-zinc-100 text-slate-500 border-zinc-200' 
+                    }`}>{user.position}</span>
                   </td>
                   <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-[10px] sm:text-xs font-bold text-zinc-400 text-center">{user.lastLogin}</td>
                   <td className="px-3 sm:px-4 md:px-6 py-3 sm:py-4 text-center">
