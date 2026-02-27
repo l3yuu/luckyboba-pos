@@ -21,8 +21,8 @@ const DrinkIcon = ({ className }: { className?: string }) => (
     </svg>
 );
 
-const generateORNumber = () => String(Math.floor(Math.random() * 10000000) + 22253).padStart(10, '0');
-const generateQueueNumber = () => String(Math.floor(Math.random() * 999) + 1).padStart(3, '0');
+const generateORNumber = (count = 1) => String(count).padStart(10, '0');
+const generateQueueNumber = (count = 1) => String(count).padStart(3, '0');
 
 const SalesOrder = () => {
     const navigate = useNavigate();
@@ -51,11 +51,16 @@ const SalesOrder = () => {
     const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false); 
     
     const [cashTendered, setCashTendered] = useState<number | ''>('');
+    const [paymentMethod, setPaymentMethod] = useState<'cash' | 'gcash' | 'paymaya' | 'credit' | 'debit'>('cash');
+    const [referenceNumber, setReferenceNumber] = useState('');
     const [qty, setQty] = useState(1);
     const [remarks, setRemarks] = useState('');
     const [printTarget, setPrintTarget] = useState<'receipt' | 'stickers' | 'kitchen' | null>(null);
-    const [orNumber, setOrNumber] = useState(generateORNumber());
-    const [queueNumber, setQueueNumber] = useState(generateQueueNumber());
+    const [printedReceipt, setPrintedReceipt] = useState(false);
+    const [printedKitchen, setPrintedKitchen] = useState(false);
+    const [printedStickers, setPrintedStickers] = useState(false);
+    const [orNumber, setOrNumber] = useState(generateORNumber(1));
+    const [queueNumber, setQueueNumber] = useState(generateQueueNumber(1));
     const [orderCharge, setOrderCharge] = useState<'grab' | 'panda' | null>(null);
     const [sugarLevel, setSugarLevel] = useState('100%');
     const [size, setSize] = useState<'M' | 'L' | 'none'>('M');
@@ -272,7 +277,10 @@ const SalesOrder = () => {
                 subtotal,
                 total: subtotal,
                 cashier_name: cashierName ?? 'Admin',
-                cash_tendered: cashTendered
+                payment_method: paymentMethod,                                           // ← add
+                cash_tendered: paymentMethod === 'cash' ? cashTendered : amtDue,        // ← update
+                change: paymentMethod === 'cash' ? change : 0,                          // ← add
+                reference_number: paymentMethod !== 'cash' ? referenceNumber : null,    // ← add
             };
             const response = await fetch('http://localhost:8000/api/sales', {
                 method: 'POST',
@@ -284,6 +292,9 @@ const SalesOrder = () => {
             Promise.all([api.get('/dashboard/stats'), api.get('/inventory')]).catch(e => console.error("Failed to fetch fresh data", e));
             setIsConfirmModalOpen(false);
             setIsSuccessModalOpen(true);
+            setPrintedReceipt(false);    // ← add
+            setPrintedKitchen(false);    // ← add
+            setPrintedStickers(false);   // ← add
             showToast('Order saved successfully!', 'success');
         } catch (error) {
             console.error('Error creating order:', error);
@@ -291,14 +302,23 @@ const SalesOrder = () => {
         } finally { setSubmitting(false); }
     };
 
-    const handlePrintReceipt = () => { setPrintTarget('receipt'); setTimeout(() => window.print(), 100); };
-    const handlePrintKitchen = () => { setPrintTarget('kitchen'); setTimeout(() => window.print(), 100); };
-    const handlePrintStickers = () => { setPrintTarget('stickers'); setTimeout(() => window.print(), 100); };
+    const handlePrintReceipt = () => { setPrintTarget('receipt'); setPrintedReceipt(true); setTimeout(() => window.print(), 100); };
+    const handlePrintKitchen = () => { setPrintTarget('kitchen'); setPrintedKitchen(true); setTimeout(() => window.print(), 100); };
+    const handlePrintStickers = () => { setPrintTarget('stickers'); setPrintedStickers(true); setTimeout(() => window.print(), 100); };
 
     const handleNewOrder = () => {
-        setCart([]); setOrderCharge(null);
-        setOrNumber(generateORNumber()); setQueueNumber(generateQueueNumber());
-        setCashTendered(''); setIsSuccessModalOpen(false); setPrintTarget(null);
+        setCart([]);
+        setOrderCharge(null);
+        setOrNumber(prev => generateORNumber(parseInt(prev) + 1));
+        setQueueNumber(prev => generateQueueNumber(parseInt(prev) + 1));
+        setCashTendered('');
+        setPaymentMethod('cash');
+        setReferenceNumber('');
+        setPrintedReceipt(false);    // ← add
+        setPrintedKitchen(false);    // ← add
+        setPrintedStickers(false);   // ← add
+        setIsSuccessModalOpen(false);
+        setPrintTarget(null);
     };
 
     const subtotal = cart.reduce((acc, item) => acc + item.finalPrice, 0);
@@ -589,37 +609,109 @@ const SalesOrder = () => {
                             </div>
                             <div className="flex-1 p-6 bg-white flex flex-col justify-between overflow-y-auto">
                                 <div>
-                                    <h3 className="font-black text-sm text-[#3b2063] uppercase mb-3 tracking-wider">Cash Tendered</h3>
-                                    <div className="relative mb-4">
-                                        <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-2xl text-zinc-400">₱</span>
-                                        <input type="number" value={cashTendered}
-                                            onChange={(e) => setCashTendered(e.target.value ? Number(e.target.value) : '')}
-                                            className="w-full bg-white border-2 border-zinc-300 rounded-2xl py-4 pl-12 pr-4 text-3xl font-black text-[#3b2063] outline-none focus:border-[#3b2063] transition-colors"
-                                            placeholder="0.00" />
-                                    </div>
-                                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
-                                        <button onClick={() => setCashTendered(amtDue)} className="col-span-2 lg:col-span-4 bg-green-100 hover:bg-green-500 hover:text-white text-green-700 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-sm border-2 border-green-200">
-                                            Exact Amount (₱ {amtDue.toFixed(2)})
-                                        </button>
-                                        {[100, 200, 500, 1000].map(amount => (
-                                            <button key={amount} onClick={() => setCashTendered(amount)} className="bg-[#f0ebff] hover:bg-[#3b2063] hover:text-white text-[#3b2063] py-3 rounded-xl font-black text-base transition-all border-2 border-[#3b2063]/20">
-                                                ₱ {amount}
+                                    {/* Payment Method */}
+                                    <h3 className="font-black text-sm text-[#3b2063] uppercase mb-3 tracking-wider">Payment Method</h3>
+                                    <div className="grid grid-cols-3 gap-2 mb-5">
+                                        {([
+                                            { id: 'cash',    label: 'Cash',    icon: '💵' },
+                                            { id: 'gcash',   label: 'GCash',   icon: '📱' },
+                                            { id: 'paymaya', label: 'Maya',    icon: '💙' },
+                                            { id: 'credit',  label: 'Credit',  icon: '💳' },
+                                            { id: 'debit',   label: 'Debit',   icon: '🏦' },
+                                        ] as const).map(({ id, label, icon }) => (
+                                            <button
+                                                key={id}
+                                                onClick={() => { setPaymentMethod(id); setReferenceNumber(''); setCashTendered(''); }}
+                                                className={`py-3 rounded-xl font-black text-[11px] uppercase tracking-wider transition-all border-2 flex flex-col items-center gap-1
+                                                    ${paymentMethod === id
+                                                        ? 'bg-[#3b2063] text-white border-[#3b2063]'
+                                                        : 'bg-[#f0ebff] text-[#3b2063] border-[#3b2063]/20 hover:bg-[#e4dbff]'}`}
+                                            >
+                                                <span className="text-lg">{icon}</span>
+                                                {label}
                                             </button>
                                         ))}
                                     </div>
-                                    <div className="flex justify-between items-center bg-white p-4 rounded-2xl border-2 border-zinc-300 mb-2">
-                                        <span className="font-black text-zinc-500 uppercase text-sm tracking-widest">Change</span>
-                                        <span className={`text-3xl font-black ${change > 0 ? 'text-green-500' : 'text-zinc-300'}`}>₱ {change.toFixed(2)}</span>
-                                    </div>
+
+                                    {/* CASH FIELDS */}
+                                    {paymentMethod === 'cash' && (
+                                        <>
+                                            <h3 className="font-black text-sm text-[#3b2063] uppercase mb-3 tracking-wider">Cash Tendered</h3>
+                                            <div className="relative mb-4">
+                                                <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-2xl text-zinc-400">₱</span>
+                                                <input
+                                                    type="number"
+                                                    value={cashTendered}
+                                                    onChange={(e) => setCashTendered(e.target.value ? Number(e.target.value) : '')}
+                                                    className="w-full bg-white border-2 border-zinc-300 rounded-2xl py-4 pl-12 pr-4 text-3xl font-black text-[#3b2063] outline-none focus:border-[#3b2063] transition-colors"
+                                                    placeholder="0.00"
+                                                />
+                                            </div>
+                                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
+                                                <button
+                                                    onClick={() => setCashTendered(amtDue)}
+                                                    className="col-span-2 lg:col-span-4 bg-green-100 hover:bg-green-500 hover:text-white text-green-700 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-sm border-2 border-green-200"
+                                                >
+                                                    Exact Amount (₱ {amtDue.toFixed(2)})
+                                                </button>
+                                                {[100, 200, 500, 1000].map(amount => (
+                                                    <button
+                                                        key={amount}
+                                                        onClick={() => setCashTendered(amount)}
+                                                        className="bg-[#f0ebff] hover:bg-[#3b2063] hover:text-white text-[#3b2063] py-3 rounded-xl font-black text-base transition-all border-2 border-[#3b2063]/20"
+                                                    >
+                                                        ₱ {amount}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <div className="flex justify-between items-center bg-white p-4 rounded-2xl border-2 border-zinc-300 mb-2">
+                                                <span className="font-black text-zinc-500 uppercase text-sm tracking-widest">Change</span>
+                                                <span className={`text-3xl font-black ${change > 0 ? 'text-green-500' : 'text-zinc-300'}`}>
+                                                    ₱ {change.toFixed(2)}
+                                                </span>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {/* GCASH / PAYMAYA / CARD FIELDS */}
+                                    {paymentMethod !== 'cash' && (
+                                        <>
+                                            <h3 className="font-black text-sm text-[#3b2063] uppercase mb-3 tracking-wider">
+                                                {paymentMethod === 'credit' || paymentMethod === 'debit' ? 'Approval Code' : 'Reference Number'}
+                                            </h3>
+                                            <input
+                                                type="text"
+                                                value={referenceNumber}
+                                                onChange={(e) => setReferenceNumber(e.target.value)}
+                                                className="w-full bg-white border-2 border-zinc-300 rounded-2xl py-4 px-5 text-xl font-black text-[#3b2063] outline-none focus:border-[#3b2063] transition-colors mb-4 tracking-widest"
+                                                placeholder={paymentMethod === 'credit' || paymentMethod === 'debit' ? 'e.g. ABC123' : 'e.g. 1234567890'}
+                                            />
+                                            <div className="flex justify-between items-center bg-[#f0ebff] p-4 rounded-2xl border-2 border-[#3b2063]/10">
+                                                <span className="font-black text-[#3b2063]/60 uppercase text-sm tracking-widest">Amount Due</span>
+                                                <span className="text-3xl font-black text-[#3b2063]">₱ {amtDue.toFixed(2)}</span>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
+
+                                {/* ACTION BUTTONS */}
                                 <div className="space-y-2 mt-4 shrink-0">
-                                    <button onClick={handleConfirmOrder}
-                                        disabled={cart.length === 0 || submitting || cashTendered === '' || (typeof cashTendered === 'number' && cashTendered < amtDue)}
-                                        className="w-full bg-[#3b2063] text-white py-4 rounded-xl font-black text-base uppercase tracking-widest shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed transition-colors">
+                                    <button
+                                        onClick={handleConfirmOrder}
+                                        disabled={
+                                            cart.length === 0 ||
+                                            submitting ||
+                                            (paymentMethod === 'cash' && (cashTendered === '' || (typeof cashTendered === 'number' && cashTendered < amtDue))) ||
+                                            (paymentMethod !== 'cash' && referenceNumber.trim() === '')
+                                        }
+                                        className="w-full bg-[#3b2063] text-white py-4 rounded-xl font-black text-base uppercase tracking-widest shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed transition-colors"
+                                    >
                                         {submitting ? 'Processing...' : 'Pay & Submit'}
                                     </button>
-                                    <button onClick={() => { setIsConfirmModalOpen(false); setCashTendered(''); }}
-                                        className="w-full bg-white border-2 border-zinc-300 text-zinc-500 py-3 rounded-xl font-bold uppercase tracking-widest hover:bg-zinc-50 transition-colors">
+                                    <button
+                                        onClick={() => { setIsConfirmModalOpen(false); setCashTendered(''); setPaymentMethod('cash'); setReferenceNumber(''); }}
+                                        className="w-full bg-white border-2 border-zinc-300 text-zinc-500 py-3 rounded-xl font-bold uppercase tracking-widest hover:bg-zinc-50 transition-colors"
+                                    >
                                         Cancel
                                     </button>
                                 </div>
@@ -645,24 +737,93 @@ const SalesOrder = () => {
                             <p className="text-white/80 font-bold mt-1 text-sm">OR: {orNumber}</p>
                         </div>
                         <div className="p-6 space-y-3 bg-white">
-                            <button onClick={handlePrintReceipt} className="w-full bg-white text-zinc-700 border-2 border-zinc-300 py-4 rounded-xl font-bold uppercase flex justify-center items-center gap-2 hover:bg-zinc-100 transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0v3.398c0 .796.604 1.48 1.389 1.554a41.349 41.349 0 0 1 7.722 0c.785.074 1.389-.758 1.389-1.554V7.034Z" /></svg>
-                                Print Customer Receipt
+
+                            {/* Print Customer Receipt */}
+                            <button
+                                onClick={handlePrintReceipt}
+                                className={`w-full py-4 rounded-xl font-bold uppercase flex justify-center items-center gap-2 transition-colors border-2
+                                    ${printedReceipt
+                                        ? 'bg-green-50 text-green-600 border-green-300'
+                                        : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100'}`}
+                            >
+                                {printedReceipt ? (
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                                ) : (
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0v3.398c0 .796.604 1.48 1.389 1.554a41.349 41.349 0 0 1 7.722 0c.785.074 1.389-.758 1.389-1.554V7.034Z" /></svg>
+                                )}
+                                {printedReceipt ? 'Receipt Printed ✓' : 'Print Customer Receipt'}
                             </button>
-                            <button onClick={handlePrintKitchen} className="w-full bg-[#fce7f3] text-[#be185d] border-2 border-[#be185d]/30 py-4 rounded-xl font-black uppercase tracking-wider flex justify-center items-center gap-2 hover:bg-[#fbcfe8] transition-colors">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.866 8.21 8.21 0 0 0 3 2.48Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 18a3.75 3.75 0 0 0 .495-7.468 5.99 5.99 0 0 0-1.925 3.547 5.975 5.975 0 0 1-2.133-1.001A3.75 3.75 0 0 0 12 18Z" /></svg>
-                                Print Kitchen Ticket
+
+                            {/* Print Kitchen Ticket */}
+                            <button
+                                onClick={handlePrintKitchen}
+                                className={`w-full py-4 rounded-xl font-black uppercase tracking-wider flex justify-center items-center gap-2 transition-colors border-2
+                                    ${printedKitchen
+                                        ? 'bg-green-50 text-green-600 border-green-300'
+                                        : 'bg-[#fce7f3] text-[#be185d] border-[#be185d]/30 hover:bg-[#fbcfe8]'}`}
+                            >
+                                {printedKitchen ? (
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                                ) : (
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.866 8.21 8.21 0 0 0 3 2.48Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 18a3.75 3.75 0 0 0 .495-7.468 5.99 5.99 0 0 0-1.925 3.547 5.975 5.975 0 0 1-2.133-1.001A3.75 3.75 0 0 0 12 18Z" /></svg>
+                                )}
+                                {printedKitchen ? 'Kitchen Ticket Printed ✓' : 'Print Kitchen Ticket'}
                             </button>
+
+                            {/* Print Drink Stickers — only shown if order has drinks */}
                             {hasStickers && (
-                                <button onClick={handlePrintStickers} className="w-full bg-[#f0ebff] text-[#3b2063] border-2 border-[#3b2063]/30 py-4 rounded-xl font-black uppercase tracking-wider flex justify-center items-center gap-2 hover:bg-[#e4dbff] transition-colors">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" /></svg>
-                                    Print Drink Stickers
+                                <button
+                                    onClick={handlePrintStickers}
+                                    className={`w-full py-4 rounded-xl font-black uppercase tracking-wider flex justify-center items-center gap-2 transition-colors border-2
+                                        ${printedStickers
+                                            ? 'bg-green-50 text-green-600 border-green-300'
+                                            : 'bg-[#f0ebff] text-[#3b2063] border-[#3b2063]/30 hover:bg-[#e4dbff]'}`}
+                                >
+                                    {printedStickers ? (
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                                    ) : (
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" /></svg>
+                                    )}
+                                    {printedStickers ? 'Stickers Printed ✓' : 'Print Drink Stickers'}
                                 </button>
                             )}
-                            <div className="border-t border-zinc-200 my-2 pt-3">
-                                <button onClick={handleNewOrder} className="w-full bg-[#3b2063] text-white py-4 rounded-xl font-black uppercase tracking-widest shadow-lg hover:bg-[#2a1647] transition-colors">
-                                    Start New Order
-                                </button>
+
+                            {/* Progress hint — shows which are still pending */}
+                            {(() => {
+                                const required = [
+                                    { label: 'Receipt',        done: printedReceipt  },
+                                    { label: 'Kitchen Ticket', done: printedKitchen  },
+                                    ...(hasStickers ? [{ label: 'Stickers', done: printedStickers }] : []),
+                                ];
+                                const pending = required.filter(r => !r.done);
+                                const allDone = pending.length === 0;
+                                return (
+                                    <div className={`text-[10px] font-bold uppercase tracking-widest px-2 py-2 rounded-xl ${allDone ? 'text-green-600 bg-green-50' : 'text-zinc-400 bg-zinc-50'}`}>
+                                        {allDone
+                                            ? '✓ All prints done — ready for next order'
+                                            : `Still needed: ${pending.map(p => p.label).join(', ')}`}
+                                    </div>
+                                );
+                            })()}
+
+                            {/* Start New Order — locked until all required prints are done */}
+                            <div className="border-t border-zinc-200 pt-3">
+                                {(() => {
+                                    const allPrinted = printedReceipt && printedKitchen && (!hasStickers || printedStickers);
+                                    return (
+                                        <button
+                                            onClick={handleNewOrder}
+                                            disabled={!allPrinted}
+                                            title={!allPrinted ? 'Please print all required documents first' : ''}
+                                            className={`w-full py-4 rounded-xl font-black uppercase tracking-widest shadow-lg transition-all
+                                                ${allPrinted
+                                                    ? 'bg-[#3b2063] text-white hover:bg-[#2a1647] cursor-pointer'
+                                                    : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'}`}
+                                        >
+                                            {allPrinted ? 'Start New Order →' : `Print All First (${[!printedReceipt, !printedKitchen, hasStickers && !printedStickers].filter(Boolean).length} left)`}
+                                        </button>
+                                    );
+                                })()}
                             </div>
                         </div>
                     </div>
@@ -903,7 +1064,7 @@ const SalesOrder = () => {
             </div>
         </div>
 
-        {/* ══════════════════════════════════
+{/* ══════════════════════════════════
             PRINT: RECEIPT (80mm)
         ══════════════════════════════════ */}
         {printTarget === 'receipt' && (
@@ -942,10 +1103,51 @@ const SalesOrder = () => {
                         <div className="flex justify-between w-full"><span>Sub Total</span><span>{subtotal.toFixed(2)}</span></div>
                         <div className="flex justify-between w-full text-base font-bold mt-1"><span>TOTAL DUE</span><span>{subtotal.toFixed(2)}</span></div>
                     </div>
+
+                    {/* ── PAYMENT METHOD SECTION ── */}
                     <div className="text-xs mt-2 space-y-1 border-b border-dashed border-black pb-3">
-                        <div className="flex justify-between w-full"><span>Cash (Tendered)</span><span>{typeof cashTendered === 'number' ? cashTendered.toFixed(2) : subtotal.toFixed(2)}</span></div>
-                        <div className="flex justify-between w-full"><span>Change</span><span>{change.toFixed(2)}</span></div>
+                        <div className="flex justify-between w-full">
+                            <span>Payment Method</span>
+                            <span className="uppercase font-bold">
+                                {paymentMethod === 'cash'    && 'Cash'}
+                                {paymentMethod === 'gcash'   && 'GCash'}
+                                {paymentMethod === 'paymaya' && 'Maya'}
+                                {paymentMethod === 'credit'  && 'Credit Card'}
+                                {paymentMethod === 'debit'   && 'Debit Card'}
+                            </span>
+                        </div>
+
+                        {/* Cash: show tendered + change */}
+                        {paymentMethod === 'cash' && (
+                            <>
+                                <div className="flex justify-between w-full">
+                                    <span>Cash (Tendered)</span>
+                                    <span>{typeof cashTendered === 'number' ? cashTendered.toFixed(2) : subtotal.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between w-full">
+                                    <span>Change</span>
+                                    <span>{change.toFixed(2)}</span>
+                                </div>
+                            </>
+                        )}
+
+                        {/* GCash / PayMaya: show reference number */}
+                        {(paymentMethod === 'gcash' || paymentMethod === 'paymaya') && (
+                            <div className="flex justify-between w-full">
+                                <span>Reference #</span>
+                                <span className="font-bold">{referenceNumber || '—'}</span>
+                            </div>
+                        )}
+
+                        {/* Credit / Debit: show approval code */}
+                        {(paymentMethod === 'credit' || paymentMethod === 'debit') && (
+                            <div className="flex justify-between w-full">
+                                <span>Approval Code</span>
+                                <span className="font-bold">{referenceNumber || '—'}</span>
+                            </div>
+                        )}
                     </div>
+
                     <div className="text-[11px] mt-3 space-y-1">
                         <div className="flex justify-between w-full"><span>VATable Sales(V)</span><span>{vatableSales.toFixed(2)}</span></div>
                         <div className="flex justify-between w-full"><span>VAT Amount</span><span>{vatAmount.toFixed(2)}</span></div>
@@ -969,7 +1171,6 @@ const SalesOrder = () => {
                 </div>
             </div>
         )}
-
         {/* ══════════════════════════════════
             PRINT: KITCHEN TICKET (80mm)
         ══════════════════════════════════ */}
