@@ -85,14 +85,18 @@ const SearchReceipts = () => {
       }
   }, [searchQuery, selectedDate]);
 
+  // Debounce Effect: handleSearch is a stable dependency thanks to useCallback
   useEffect(() => {
     if (!searchQuery && !hasSearched) return;
+
     const delayDebounceFn = setTimeout(() => {
       handleSearch(searchQuery, selectedDate);
     }, 500);
+
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery, selectedDate, handleSearch, hasSearched]);
 
+  // Cache Initialization: Added handleSearch and selectedDate to dependencies
   useEffect(() => {
       const cachedResults = sessionStorage.getItem(`${CACHE_KEY}_results`);
       const cachedQuery = sessionStorage.getItem(`${CACHE_KEY}_query`);
@@ -101,6 +105,7 @@ const SearchReceipts = () => {
       if (cachedResults) {
         try {
           const parsed = JSON.parse(cachedResults);
+          
           if (Array.isArray(parsed)) {
             setSearchResults(parsed);
             setSearchQuery(cachedQuery || '');
@@ -117,7 +122,7 @@ const SearchReceipts = () => {
       } else {
         handleSearch('', selectedDate);
       }
-    }, []);
+    }, [handleSearch, selectedDate]); // Dependencies added here to fix the error
 
   const handleRefresh = () => {
     const today = new Date().toISOString().split('T')[0];
@@ -163,10 +168,11 @@ const SearchReceipts = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const val = e.target.value;
       setSearchQuery(val);
+      
       if (keyboardRef.current) {
         (keyboardRef.current as unknown as { setInput: (s: string) => void }).setInput(val);
       }
-  };
+    };
 
   return (
     <div className="flex flex-col h-full w-full bg-[#f8f6ff] animate-in fade-in zoom-in duration-300 relative overflow-hidden">
@@ -183,8 +189,7 @@ const SearchReceipts = () => {
               onChange={handleInputChange}
               onFocus={() => setShowKeyboard(true)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              // Updated placeholder
-              placeholder="Search OR Number..." 
+              placeholder="Search OR Number..."
               className="flex-1 h-12 px-4 outline-none text-[#3b2063] font-bold placeholder:text-zinc-300 bg-transparent"
             />
           </div>
@@ -247,8 +252,7 @@ const SearchReceipts = () => {
               <table className="w-full text-left relative">
                 <thead className="sticky top-0 bg-white z-10 shadow-sm">
                   <tr className="border-b border-zinc-100">
-                    {/* Updated Column Header */}
-                    <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">OR # / Status</th> 
+                    <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">OR # / Status</th>
                     <th className="px-6 py-4 text-center text-[10px] font-bold text-zinc-400 uppercase tracking-widest">TRML #</th>
                     <th className="px-6 py-4 text-center text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Items</th>
                     <th className="px-6 py-4 text-right text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Total Sales</th>
@@ -258,19 +262,21 @@ const SearchReceipts = () => {
                 <tbody className="divide-y divide-zinc-50">
                   {isLoading ? (
                     <TableSkeleton />
-                  ) : searchResults.length > 0 ? (
-                      searchResults.map((item) => (
-                        <tr key={item.sale_id} className="hover:bg-[#f8f6ff] transition-colors group">
+                ) : searchResults.length > 0 ? (
+                  searchResults.map((item, index) => (
+                    <tr 
+                      key={item.sale_id || item.si_number || `receipt-${index}`} 
+                      className="hover:bg-[#f8f6ff] transition-colors group"
+                    >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                            {/* Updated SI to OR label */}
-                            <span className="font-black text-[#3b2063] text-sm">#{item.si_number}</span>
-                            <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase ${item.status === 'cancelled' ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>
-                                {item.status === 'cancelled' ? 'Voided' : 'Paid'}
-                            </span>
+                          <span className="font-black text-[#3b2063] text-sm">#{item.si_number}</span>
+                          <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase ${item.status === 'cancelled' ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                            {item.status === 'cancelled' ? 'Voided' : 'Paid'}
+                          </span>
                         </div>
                         <p className="text-[10px] text-zinc-400 font-medium">
-                          {item.created_at ? new Date(item.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'N/A'}
+                          {item.created_at ? new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
                         </p>
                       </td>
                       <td className="px-6 py-4 text-center font-bold text-zinc-600">{item.terminal}</td>
@@ -282,17 +288,17 @@ const SearchReceipts = () => {
                       </td>
                       <td className="px-6 py-4 text-center">
                         {item.status !== 'cancelled' && (
-                            <button 
-                                onClick={() => { setSelectedSaleId(item.sale_id); setIsReasonModalOpen(true); }} 
-                                className="bg-red-50 text-red-500 hover:bg-red-500 hover:text-white p-2 rounded-lg transition-all active:scale-90"
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
+                          <button
+                            onClick={() => { setSelectedSaleId(item.sale_id); setIsReasonModalOpen(true); }}
+                            className="bg-red-50 text-red-500 hover:bg-red-500 hover:text-white p-2 rounded-lg transition-all active:scale-90"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
                         )}
                       </td>
                     </tr>
-                    ))
-                  ) : (
+                  ))
+                ) : (
                     <tr>
                       <td colSpan={5} className="py-20 text-center text-zinc-300 uppercase font-bold text-xs">
                         {hasSearched ? "No matching records found" : "Search to see transaction audit"}

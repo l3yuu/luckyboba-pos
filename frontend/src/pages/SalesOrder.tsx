@@ -423,6 +423,14 @@ const SalesOrder = () => {
                                     </div>
                                 )}
                             </div>
+
+                            {/* --- UPDATED CAUTION MESSAGE --- */}
+                            <div className="w-full text-center mt-auto mb-0.5">
+                                <p className={`font-black uppercase whitespace-nowrap tracking-tighter ${isVeryCrowded ? 'text-[5.5px]' : 'text-[7px]'}`}>
+                                    Best consume within 30 minutes
+                                </p>
+                            </div>
+
                             <div className={`w-full font-bold text-center border-t border-zinc-800 ${isVeryCrowded ? 'text-[8.5px] pt-0.5 mt-0.5' : 'text-[8.5px] pt-1 mt-1'}`}>
                                 {formattedDate} {formattedTime}
                             </div>
