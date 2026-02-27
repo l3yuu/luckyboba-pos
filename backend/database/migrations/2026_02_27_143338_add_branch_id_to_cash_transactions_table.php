@@ -8,21 +8,24 @@ use Illuminate\Support\Facades\DB;
 return new class extends Migration
 {
     public function up(): void
-    {
-        Schema::table('cash_transactions', function (Blueprint $table) {
-            $table->unsignedBigInteger('branch_id')->nullable()->after('user_id');
-            $table->foreign('branch_id')->references('id')->on('branches')->nullOnDelete();
-        });
+{
+    Schema::table('cash_transactions', function (Blueprint $table) {
+        $table->unsignedBigInteger('branch_id')->nullable()->after('user_id');
+        $table->foreign('branch_id')->references('id')->on('branches')->nullOnDelete();
+    });
 
-        // Backfill existing rows from their user's branch
-        DB::statement('
-            UPDATE cash_transactions ct
-            JOIN users u ON ct.user_id = u.id
-            SET ct.branch_id = u.branch_id
-            WHERE ct.user_id IS NOT NULL
-            AND u.branch_id IS NOT NULL
-        ');
-    }
+    // ✅ SQLite-compatible backfill using subquery instead of JOIN
+    DB::statement('
+        UPDATE cash_transactions
+        SET branch_id = (
+            SELECT users.branch_id
+            FROM users
+            WHERE users.id = cash_transactions.user_id
+            AND users.branch_id IS NOT NULL
+        )
+        WHERE user_id IS NOT NULL
+    ');
+}
 
     public function down(): void
     {

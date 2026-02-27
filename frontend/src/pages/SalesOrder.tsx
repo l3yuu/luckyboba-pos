@@ -34,11 +34,6 @@ const SalesOrder = () => {
     const [branchName] = useState<string>(() =>
         localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'
     );
-    const [branchId] = useState<number | null>(() => {  // ✅ add here
-        const id = localStorage.getItem('lucky_boba_user_branch_id');
-        return id ? Number(id) : null;
-    }
-);
     const [currentDate, setCurrentDate] = useState(new Date());
     const [searchQuery, setSearchQuery] = useState('');
     const [categories, setCategories] = useState<Category[]>(() => {
