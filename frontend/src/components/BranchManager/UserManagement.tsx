@@ -29,14 +29,7 @@ const UserManagement: React.FC = () => {
   });
 
   const positionOptions = [
-    "SYSTEM ADMIN",
-    "SUPERVISOR", 
     "CASHIER",
-    "WAITER",
-    "DISCOUNT",
-    "INVENTORY CLERK",
-    "ORDERS",
-    "VOID"
   ];
 
   const handleAddUser = () => {

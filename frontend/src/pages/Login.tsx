@@ -21,17 +21,19 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
 
   // ✅ Added !isLoading check so we don't redirect while auth is still resolving
-  useEffect(() => {
-    if (!isLoading && user) {
-      if (user.role === 'superadmin') {
-        navigate('/super-admin', { replace: true });
-      } else if (user.role === 'manager' || user.role === 'admin') {
-        navigate('/branch-manager', { replace: true });
-      } else {
-        navigate('/dashboard', { replace: true });
-      }
+useEffect(() => {
+  if (!isLoading && user) {
+    // Only redirect if we're not in the middle of logging in
+    if (user.role === 'superadmin') {
+      navigate('/super-admin', { replace: true });
+    } else if (user.role === 'manager' || user.role === 'admin' || user.role === 'branch_manager') {
+      navigate('/branch-manager', { replace: true });
+    } else if (user.role === 'cashier') {
+      navigate('/dashboard', { replace: true });
     }
-  }, [navigate, user, isLoading]);
+    // Don't add an else fallback here — unknown roles stay on login
+  }
+}, [navigate, user, isLoading]);
 
   useEffect(() => {
     if (searchParams.get('reason') === 'expired') {
@@ -73,18 +75,19 @@ const Login: React.FC = () => {
     e.preventDefault();
     const credentials: LoginCredentials = { email, password };
     const loggedInUser = await login(credentials);
+    console.log('Logged in user role:', loggedInUser?.role); // 👈 add this
 
     if (loggedInUser) {
       localStorage.setItem('user_role', loggedInUser.role);
       showToast(`Welcome back, ${loggedInUser.name}!`, "success");
 
       if (loggedInUser.role === 'superadmin') {
-        navigate('/super-admin', { replace: true });
-      } else if (loggedInUser.role === 'manager' || loggedInUser.role === 'admin') {
-        navigate('/branch-manager', { replace: true });
-      } else {
-        navigate('/dashboard', { replace: true });
-      }
+  navigate('/super-admin', { replace: true });
+} else if (loggedInUser.role === 'manager' || loggedInUser.role === 'admin' || loggedInUser.role === 'branch_manager') {
+  navigate('/branch-manager', { replace: true });
+} else {
+  navigate('/dashboard', { replace: true });
+}
     }
   };
 

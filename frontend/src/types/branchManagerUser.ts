@@ -8,12 +8,5 @@ export interface BranchManagerUser {
 }
 
 export const positionOptions = [
-  "SYSTEM ADMIN",
-  "SUPERVISOR", 
   "CASHIER",
-  "WAITER",
-  "DISCOUNT",
-  "INVENTORY CLERK",
-  "ORDERS",
-  "VOID"
 ];

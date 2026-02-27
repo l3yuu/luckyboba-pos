@@ -33,14 +33,7 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
   });
 
   const positionOptions = [
-    "SYSTEM ADMIN",
-    "SUPERVISOR",
     "CASHIER",
-    "WAITER",
-    "DISCOUNT",
-    "INVENTORY CLERK",
-    "ORDERS",
-    "VOID"
   ];
 
   const handleAddUser = () => {

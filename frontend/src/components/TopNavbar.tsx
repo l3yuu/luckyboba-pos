@@ -11,21 +11,19 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked }) => {
   const [isNotifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
-  // --- OPTIMIZED: INITIALIZE STATE DIRECTLY FROM LOCALSTORAGE ---
-  // This avoids the "cascading render" error by setting the name before the first paint.
-const [cashierName] = useState(() => {
-    if (typeof window !== 'undefined') {
-      // 1. Check for the name we just added to useAuth
-      const name = localStorage.getItem('lucky_boba_user_name');
-      
-      // 2. Fallback to role if name is missing
-      const role = localStorage.getItem('lucky_boba_user_role');
-
-      if (name) return name.toUpperCase();
-      if (role) return role.toUpperCase();
-    }
-    return 'SYSTEM ADMIN';
-  });
+const [cashierInfo] = useState(() => {
+  if (typeof window !== 'undefined') {
+    const name = localStorage.getItem('lucky_boba_user_name');
+    const role = localStorage.getItem('lucky_boba_user_role');
+    const branch = localStorage.getItem('lucky_boba_user_branch'); // 👈 add this
+    return {
+      name: name ? name.toUpperCase() : 'SYSTEM ADMIN',
+      role: role ? role.toUpperCase() : '',
+      branch: branch ? branch.toUpperCase() : 'MAIN BRANCH',
+    };
+  }
+  return { name: 'SYSTEM ADMIN', role: '', branch: 'MAIN BRANCH' };
+});
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -40,20 +38,23 @@ const [cashierName] = useState(() => {
 
   return (
     <header className="flex-none bg-white border-b border-zinc-200 px-8 py-4 flex items-center justify-between shadow-sm z-20">
+      <div className="flex flex-col">
+  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Branch</span>
+  <span className="text-[#3b2063] font-black text-xs uppercase tracking-wider">
+    {cashierInfo.branch}
+  </span>
+</div>
       <div className="flex items-center gap-6">
         <div className="flex flex-col">
-          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Branch</span>
-          <span className="text-[#3b2063] font-black text-xs uppercase tracking-wider">Main Branch - QC</span>
-        </div>
-        
-        <div className="h-8 w-px bg-zinc-100"></div>
-        
-        <div className="flex flex-col">
-          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Cashier</span>
-          <span className="text-[#3b2063] font-black text-xs uppercase tracking-wider">
-            {cashierName}
-          </span>
-        </div>
+  <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Cashier</span>
+  <span className="text-[#3b2063] font-black text-xs uppercase tracking-wider">
+    {cashierInfo.name}
+  </span>
+  <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">
+    {cashierInfo.role}
+  </span>
+</div>
+
 
         {/* --- DYNAMIC TERMINAL LOCKED BADGE --- */}
         {isEodLocked && (

@@ -4,6 +4,7 @@ import logo from '../assets/logo.png';
 import { Users, Plus, Trash2, Edit3, X, Save, Shield } from 'lucide-react';
 import type { BranchManagerUser } from '../types/branchManagerUser';
 import { useToast } from '../context/ToastContext';
+import CashierManagement from '../components/CashierManager';
 
 // --- Import Sales Report Components ---
 import SalesDashboard from '../components/SalesReport/SalesDashboard';
@@ -47,7 +48,7 @@ const BranchManagerDashboard = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard': return <DashboardStats />;
-      case 'users': return <UserManagement />;
+      case 'users': return <CashierManagement />;
       case 'sales-dashboard': return <SalesDashboard />;
       case 'items-report': return <ItemsReport />;
       case 'x-reading': return <XReading />;
@@ -148,14 +149,7 @@ const UserManagement = () => {
   const [newUser, setNewUser] = useState({ name: '', username: '', password: '', passwordConfirm: '', position: 'CASHIER' });
 
   const positionOptions = [
-    "SYSTEM ADMIN",
-    "SUPERVISOR", 
     "CASHIER",
-    "WAITER",
-    "DISCOUNT",
-    "INVENTORY CLERK",
-    "ORDERS",
-    "VOID"
   ];
 
   const handleAddUser = () => {

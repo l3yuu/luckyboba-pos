@@ -28,7 +28,12 @@ const SalesOrder = () => {
     const navigate = useNavigate();
     const { showToast } = useToast();
     
-    const [cashierName, setCashierName] = useState<string | null>(null);
+    const [cashierName] = useState<string>(() =>
+        localStorage.getItem('lucky_boba_user_name') ?? 'Admin'
+    );
+    const [branchName] = useState<string>(() => 
+  localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'
+);
     const [currentDate, setCurrentDate] = useState(new Date());
     const [searchQuery, setSearchQuery] = useState('');
     const [categories, setCategories] = useState<Category[]>(() => {
@@ -64,47 +69,34 @@ const SalesOrder = () => {
     const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
     const [cart, setCart] = useState<CartItem[]>([]);
 
-    useEffect(() => {
-        const token = localStorage.getItem('lucky_boba_token');
+useEffect(() => {
+    const token = localStorage.getItem('lucky_boba_token');
 
-        const fetchCashierName = async () => {
-            if (!token) { setCashierName('Admin'); return; }
-            try {
-                const response = await fetch('http://localhost:8000/api/user', {
-                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-                });
-                if (response.ok) {
-                    const user = await response.json();
-                    const name = user?.name || user?.username || user?.full_name || user?.display_name;
-                    setCashierName(name?.trim() || 'Admin');
-                } else {
-                    setCashierName('Admin');
-                }
-            } catch { setCashierName('Admin'); }
-        };
+    // ❌ DELETE fetchCashierName entirely — localStorage already has the data
 
-        const fetchMenu = async () => {
-            try {
-                const response = await fetch('http://localhost:8000/api/menu', {
-                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-                });
-                const data = await response.json();
-                if (Array.isArray(data)) {
-                    setCategories(data);
-                    localStorage.setItem('pos_menu_cache', JSON.stringify(data));
-                }
-                setLoading(false);
-            } catch (error) {
-                console.error("Error fetching menu:", error);
-                setLoading(false);
+    const fetchMenu = async () => {
+        try {
+            const response = await fetch('http://localhost:8000/api/menu', {
+                headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+            });
+            const data = await response.json();
+            if (Array.isArray(data)) {
+                setCategories(data);
+                localStorage.setItem('pos_menu_cache', JSON.stringify(data));
             }
-        };
+            setLoading(false);
+        } catch (error) {
+            console.error("Error fetching menu:", error);
+            setLoading(false);
+        }
+    };
 
-        fetchCashierName();
-        fetchMenu();
-        const timer = setInterval(() => setCurrentDate(new Date()), 1000);
-        return () => clearInterval(timer);
-    }, []);
+    // ❌ DELETE fetchCashierName() call here too
+
+    fetchMenu();
+    const timer = setInterval(() => setCurrentDate(new Date()), 1000);
+    return () => clearInterval(timer);
+}, []);
 
     const isDrink = selectedCategory?.type === 'drink';
     const isWings = selectedCategory?.name === "CHICKEN WINGS";
@@ -344,8 +336,8 @@ const SalesOrder = () => {
                                 LUCKY BOBA
                             </div>
                             <div className={`font-bold uppercase leading-none opacity-120 tracking-widest ${isVeryCrowded ? 'text-[5px] mt-0.5' : 'text-[6.5px] mt-1'}`}>
-                                Main Branch - QC
-                            </div>
+    {branchName.toUpperCase()}
+</div>
                             <div className={`w-full flex justify-between items-center font-bold border-b-[1.5px] border-black px-1 ${isVeryCrowded ? 'text-[10px] pb-0 mb-0.5 mt-0.5' : 'text-[10px] pb-0.5 mb-1 mt-1'}`}>
                                 <span>Q: {queueNumber} | OR: {orNumber.slice(-6)}</span>
                                 <span>{drinkIndex}/{totalDrinks}</span>
@@ -788,7 +780,7 @@ const SalesOrder = () => {
                             className="flex-1 bg-transparent px-4 font-bold text-zinc-700 outline-none uppercase placeholder:text-zinc-300 text-sm" />
                     </div>
                     <div className="flex flex-col gap-2 w-56">
-                        <div className="flex-1 bg-white border border-zinc-100 rounded-xl flex items-center justify-center text-[#3b2063] font-black uppercase text-[10px]">Main Branch - QC</div>
+                        <div className="flex-1 bg-white border border-zinc-100 rounded-xl flex items-center justify-center text-[#3b2063] font-black uppercase text-[10px]">{branchName}</div>
                         <div className="flex-1 bg-[#3b2063] rounded-xl flex items-center justify-center text-white text-center">
                             <div>
                                 <div className="text-[10px] font-bold uppercase leading-none opacity-80">{formattedDate}</div>
@@ -925,7 +917,7 @@ const SalesOrder = () => {
                             <h1 className="uppercase leading-tight font-bold text-xl">
                                 LUCKY BOBA MILKTEA
                             </h1>
-                            <p className="text-base mt-1">Quezon City</p>
+                            <p className="text-base mt-1">{branchName}</p>
 
                             
                             <h2 className="text-lg mt-2">
@@ -1006,7 +998,7 @@ const SalesOrder = () => {
                     <div className="receipt-area bg-white text-black">
                         <div className="text-center mb-4 border-b-4 border-black pb-3">
                             <h1 className="uppercase leading-tight font-black text-3xl mb-1">KITCHEN TICKET</h1>
-                            <h2 className="font-bold text-lg mt-1 uppercase tracking-widest">Main Branch - QC</h2>
+                            <h2 className="font-bold text-lg mt-1 uppercase tracking-widest">{branchName}</h2>
                             
                             {/* MASSIVE KITCHEN QUEUE NUMBER */}
                             <div className="py-3 my-3 text-black">

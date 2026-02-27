@@ -1,6 +1,6 @@
 // src/types/user.ts
 
-export type UserRole = 'superadmin' | 'admin' | 'manager' | 'cashier';
+export type UserRole = 'superadmin' | 'admin' | 'manager' | 'cashier' | 'branch_manager';
 export type UserStatus = 'ACTIVE' | 'INACTIVE';
 
 export interface User {
