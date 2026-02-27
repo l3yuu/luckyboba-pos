@@ -16,12 +16,13 @@ class DashboardController extends Controller
         $this->dashboardService = $dashboardService;
     }
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        // Every time this is called, it uses the Service logic
-        // If clearTodayCache() was called by SalesController, this will fetch fresh data
-        $stats = $this->dashboardService->getHomeStats();
-        
+        $user = $request->user();
+        $branchId = $user->role !== 'superadmin' ? $user->branch_id : null;
+
+        $stats = $this->dashboardService->getHomeStats($branchId);
+
         return response()->json($stats);
     }
 
