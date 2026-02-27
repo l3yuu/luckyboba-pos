@@ -3,22 +3,22 @@ import Sidebar from "../components/Sidebar";
 import logo from '../assets/logo.png';
 
 // --- Import POS Components ---
-import CashIn from '../components/Sales Order/CashIn'; 
-import CashDrop from '../components/Sales Order/CashDrop';
-import SearchReceipts from '../components/Sales Order/SearchReceipts';
-import CashCount from '../components/Sales Order/CashCount';
+import CashIn from '../components/SalesOrder/CashIn'; 
+import CashDrop from '../components/SalesOrder/CashDrop';
+import SearchReceipts from '../components/SalesOrder/SearchReceipts';
+import CashCount from '../components/SalesOrder/CashCount';
 
 // --- Import Sales Report Components ---
-import SalesDashboard from '../components/Sales Report/SalesDashboard';
-import ItemsReport from '../components/Sales Report/ItemsReport';
-import XReading from '../components/Sales Report/XReading';
-import ZReading from '../components/Sales Report/ZReading';
-import MallAccredReport from '../components/Sales Report/MallAccredReport';
+import SalesDashboard from '../components/SalesReport/SalesDashboard';
+import ItemsReport from '../components/SalesReport/ItemsReport';
+import XReading from '../components/SalesReport/XReading';
+import ZReading from '../components/SalesReport/ZReading';
+import MallAccredReport from '../components/SalesReport/MallAccredReport';
 
 // --- Import Menu Management Components ---
-import MenuList from '../components/Menu Items/MenuList';
-import CategoryList from '../components/Menu Items/CategoryList';
-import SubCategoryList from '../components/Menu Items/Sub-CategoryList';
+import MenuList from '../components/MenuItems/MenuList';
+import CategoryList from '../components/MenuItems/CategoryList';
+import SubCategoryList from '../components/MenuItems/Sub-CategoryList';
 
 // --- Import Expense Component ---
 import Expense from '../components/Expense';

@@ -7,16 +7,16 @@ import type { BranchManagerUser } from '../types/branchManagerUser';
 import { useToast } from '../context/ToastContext';
 
 // --- Import Sales Report Components ---
-import SalesDashboard from '../components/Sales Report/SalesDashboard';
-import ItemsReport from '../components/Sales Report/ItemsReport';
-import XReading from '../components/Sales Report/XReading';
-import ZReading from '../components/Sales Report/ZReading';
-import MallAccredReport from '../components/Sales Report/MallAccredReport';
+import SalesDashboard from '../components/SalesReport/SalesDashboard';
+import ItemsReport from '../components/SalesReport/ItemsReport';
+import XReading from '../components/SalesReport/XReading';
+import ZReading from '../components/SalesReport/ZReading';
+import MallAccredReport from '../components/SalesReport/MallAccredReport';
 
 // --- Import Menu Management Components ---
-import MenuList from '../components/Menu Items/MenuList';
-import CategoryList from '../components/Menu Items/CategoryList';
-import SubCategoryList from '../components/Menu Items/Sub-CategoryList';
+import MenuList from '../components/MenuItems/MenuList';
+import CategoryList from '../components/MenuItems/CategoryList';
+import SubCategoryList from '../components/MenuItems/Sub-CategoryList';
 
 // --- Import Inventory Components ---
 import InventoryDashboard from '../components/Inventory/InventoryDashboard';
