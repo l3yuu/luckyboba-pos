@@ -18,6 +18,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
 }) => {
   const { logout } = useAuth();
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   // --- MENU DATA ---
   const salesReportItems = [
@@ -75,6 +76,18 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
     ['cashier_menu_unlocked', 'cashier_lock_date'].forEach(k => localStorage.removeItem(k));
     sessionStorage.clear();
     window.location.href = '/login';
+  };
+
+  const handleLogoutClick = () => {
+    setIsLogoutModalOpen(true);
+  };
+
+  const confirmLogout = () => {
+    handleLogout();
+  };
+
+  const cancelLogout = () => {
+    setIsLogoutModalOpen(false);
   };
 
   const hoverClasses = 'hover:bg-[#f0ebff] hover:text-[#3b2063]';
@@ -271,7 +284,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
 
           <div className="px-6 sm:px-8 pb-6 sm:pb-8 flex flex-col gap-3 sm:gap-4">
             <button
-              onClick={handleLogout}
+              onClick={handleLogoutClick}
               className="flex items-center justify-center w-full px-4 sm:px-6 py-3 sm:py-4 rounded-xl sm:rounded-2xl bg-[#be2525] hover:bg-[#a11f1f] text-white text-[9px] sm:text-[11px] font-black uppercase tracking-[0.2em] transition-all duration-200 shadow-md shadow-red-900/10 group"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-3.5 sm:w-4 h-3.5 sm:h-4 mr-2 sm:mr-3 group-hover:-translate-x-1 transition-transform">
@@ -288,6 +301,48 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
 
       {isSidebarOpen && (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
+      )}
+
+      {/* --- Logout Confirmation Modal --- */}
+      {isLogoutModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-red-500 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center">
+              <h2 className="text-white font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em]">Confirm Logout</h2>
+              <button onClick={cancelLogout} className="text-white/70 hover:text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+              <div className="text-center space-y-2">
+                <div className="w-16 h-16 mx-auto rounded-full bg-red-100 flex items-center justify-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8 text-red-500">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-slate-800">Logout from System?</h3>
+                <p className="text-sm text-slate-600">Are you sure you want to logout from the Branch Manager system?</p>
+                <p className="text-xs text-zinc-500">You will need to login again to access the system.</p>
+              </div>
+              <div className="flex gap-2 sm:gap-3 pt-2">
+                <button
+                  onClick={confirmLogout}
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 sm:py-3 rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                  </svg>
+                  Logout
+                </button>
+                <button onClick={cancelLogout} className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-500 py-2 sm:py-3 rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-all">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

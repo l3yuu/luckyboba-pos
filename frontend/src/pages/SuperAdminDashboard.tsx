@@ -60,6 +60,7 @@ const SuperAdminDashboard: React.FC = () => {
   });
   const [isCreateBranchModalOpen, setIsCreateBranchModalOpen] = useState(false);
   const [isUpdateBranchModalOpen, setIsUpdateBranchModalOpen] = useState(false);
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
   // Fetch users on mount
   useEffect(() => {
@@ -83,6 +84,12 @@ const SuperAdminDashboard: React.FC = () => {
   };
 
   const handleLogout = () => {
+    setIsLogoutModalOpen(true);
+  };
+
+  const confirmLogout = () => {
+    showToast('Logging out... Goodbye!', 'success');
+    
     // Clear all possible token locations
     localStorage.removeItem('auth_token');
     localStorage.removeItem('lucky_boba_token');
@@ -91,8 +98,10 @@ const SuperAdminDashboard: React.FC = () => {
     localStorage.removeItem('lucky_boba_authenticated');
     sessionStorage.clear();
     
-    // Redirect to login
-    window.location.href = '/login';
+    // Redirect to login after a short delay to allow toast to show
+    setTimeout(() => {
+      window.location.href = '/login';
+    }, 1000);
   };
 
   const handleCreateUser = async (data: CreateUserData) => {
@@ -544,13 +553,78 @@ const SuperAdminDashboard: React.FC = () => {
             </div>
           </div>
         )}
+
       </main>
+      {isLogoutModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-2 sm:p-4 animate-in fade-in duration-200">
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="bg-red-500 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center">
+              <h2 className="text-white font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em]">Confirm Logout</h2>
+              <button
+                onClick={() => setIsLogoutModalOpen(false)}
+                className="text-white/70 hover:text-white transition-colors"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                  className="w-5 h-5"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+              <div className="text-center space-y-2">
+                <div className="w-16 h-16 mx-auto rounded-full bg-red-100 flex items-center justify-center">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                    stroke="currentColor"
+                    className="w-8 h-8 text-red-500"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-bold text-slate-800">Logout from System?</h3>
+                <p className="text-sm text-slate-600">Are you sure you want to logout from the Super Admin system?</p>
+                <p className="text-xs text-zinc-500">You will need to login again to access the system.</p>
+              </div>
+              <div className="flex gap-2 sm:gap-3 pt-2">
+                <button
+                  onClick={() => setIsLogoutModalOpen(false)}
+                  className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-500 py-2 sm:py-3 rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmLogout}
+                  className="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 sm:py-3 rounded-xl font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                    stroke="currentColor"
+                    className="w-4 h-4"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" />
+                  </svg>
+                  Logout
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
-
-// Rest of the component remains the same...
-// (OverviewTab, BranchesTab, UsersTab, ReportsTab, and Icons)
 
 const OverviewTab = ({ totalRevenue, todayRevenue, activeBranches, activeUsers, branches }: {
   totalRevenue: number;
@@ -564,7 +638,7 @@ const OverviewTab = ({ totalRevenue, todayRevenue, activeBranches, activeUsers, 
     <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
       {[
         { label: "Total Revenue", value: `₱${totalRevenue.toLocaleString()}`, highlight: true },
-        { label: "Today's Sales", value: `₱${todayRevenue.toLocaleString()}` },
+        { label: "Today's Sales", value: `₱${todayRevenue.toLocaleString()}`, highlight: true },
         { label: "Active Branches", value: activeBranches.toString() },
         { label: "Active Users", value: activeUsers.toString() },
       ].map((stat, i) => (
