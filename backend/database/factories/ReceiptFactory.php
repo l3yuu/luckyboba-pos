@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Sale;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -16,11 +17,13 @@ class ReceiptFactory extends Factory
      */
     public function definition(): array {
         return [
-            'si_number' => 'SI-' . $this->faker->unique()->numberBetween(1000, 9999),
+            // Updated to match your new OR-0000000001 format
+            'si_number' => 'OR-' . str_pad($this->faker->unique()->numberBetween(1, 9999), 10, '0', STR_PAD_LEFT),
             'terminal' => '01',
             'items_count' => $this->faker->numberBetween(1, 10),
-            'cashier_name' => 'ADMIN',
+            'cashier_name' => $this->faker->randomElement(['Bina Admin', 'Cashier Ichigo', 'Admin']),
             'total_amount' => $this->faker->randomFloat(2, 50, 2000),
+            'sale_id' => Sale::factory(), // Connects to a fake sale automatically
             'created_at' => now(),
         ];
     }
