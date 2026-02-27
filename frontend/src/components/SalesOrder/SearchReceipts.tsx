@@ -7,7 +7,6 @@ import { useToast } from '../../hooks/useToast';
 
 const CACHE_KEY = 'lucky_boba_receipt_cache';
 
-// SKELETON COMPONENT FOR LOADING STATE
 const TableSkeleton = () => (
   <>
     {[...Array(5)].map((_, i) => (
@@ -76,18 +75,14 @@ const SearchReceipts = () => {
     }
   }, [searchQuery, selectedDate]);
 
-  // Debounce Effect for Search Query
   useEffect(() => {
     if (!searchQuery && !hasSearched) return;
-
     const delayDebounceFn = setTimeout(() => {
       handleSearch(searchQuery, selectedDate);
     }, 500);
-
     return () => clearTimeout(delayDebounceFn);
   }, [searchQuery, selectedDate, handleSearch, hasSearched]);
 
-  // Enhanced Cache Initialization with validation
   useEffect(() => {
       const cachedResults = sessionStorage.getItem(`${CACHE_KEY}_results`);
       const cachedQuery = sessionStorage.getItem(`${CACHE_KEY}_query`);
@@ -96,7 +91,6 @@ const SearchReceipts = () => {
       if (cachedResults) {
         try {
           const parsed = JSON.parse(cachedResults);
-          
           if (Array.isArray(parsed)) {
             setSearchResults(parsed);
             setSearchQuery(cachedQuery || '');
@@ -113,7 +107,6 @@ const SearchReceipts = () => {
       } else {
         handleSearch('', selectedDate);
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
   const handleRefresh = () => {
@@ -160,11 +153,10 @@ const SearchReceipts = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const val = e.target.value;
       setSearchQuery(val);
-      
       if (keyboardRef.current) {
         (keyboardRef.current as unknown as { setInput: (s: string) => void }).setInput(val);
       }
-    };
+  };
 
   return (
     <div className="flex flex-col h-full w-full bg-[#f8f6ff] animate-in fade-in zoom-in duration-300 relative overflow-hidden">
@@ -181,7 +173,8 @@ const SearchReceipts = () => {
               value={searchQuery}
               onChange={handleInputChange}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder="Search SI#..."
+              // Updated placeholder
+              placeholder="Search OR Number..." 
               className="flex-1 h-12 px-4 outline-none text-[#3b2063] font-bold placeholder:text-zinc-300 bg-transparent"
             />
           </div>
@@ -251,7 +244,8 @@ const SearchReceipts = () => {
               <table className="w-full text-left relative">
                 <thead className="sticky top-0 bg-white z-10 shadow-sm">
                   <tr className="border-b border-zinc-100">
-                    <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">SI # / Status</th>
+                    {/* Updated Column Header */}
+                    <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">OR # / Status</th> 
                     <th className="px-6 py-4 text-center text-[10px] font-bold text-zinc-400 uppercase tracking-widest">TRML #</th>
                     <th className="px-6 py-4 text-center text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Items</th>
                     <th className="px-6 py-4 text-right text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Total Sales</th>
@@ -266,12 +260,11 @@ const SearchReceipts = () => {
     <tr key={item.sale_id ?? index} className="hover:bg-[#f8f6ff] transition-colors group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <span className="font-black text-[#3b2063] text-sm">#{item.si_number}</span>
-                          <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase ${
-                            item.status === 'cancelled' ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'
-                          }`}>
-                            {item.status === 'cancelled' ? 'Voided' : 'Paid'}
-                          </span>
+                            {/* Updated SI to OR label */}
+                            <span className="font-black text-[#3b2063] text-sm">#{item.si_number}</span>
+                            <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase ${item.status === 'cancelled' ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                                {item.status === 'cancelled' ? 'Voided' : 'Paid'}
+                            </span>
                         </div>
                         <p className="text-[10px] text-zinc-400 font-medium">
                           {item.created_at ? new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}

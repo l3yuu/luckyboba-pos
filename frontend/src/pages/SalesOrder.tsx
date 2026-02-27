@@ -21,7 +21,7 @@ const DrinkIcon = ({ className }: { className?: string }) => (
     </svg>
 );
 
-const generateORNumber = (count = 1) => String(count).padStart(10, '0');
+const generateORNumber = (count = 1) => `OR-${String(count).padStart(10, '0')}`;
 const generateQueueNumber = (count = 1) => String(count).padStart(3, '0');
 
 const SalesOrder = () => {
@@ -72,6 +72,25 @@ const SalesOrder = () => {
     useEffect(() => {
         const token = localStorage.getItem('lucky_boba_token');
 
+        const fetchLatestSequence = async () => {
+            try {
+                const response = await fetch('http://localhost:8000/api/receipts/next-sequence', {
+                    headers: { 
+                        'Authorization': `Bearer ${token}`, 
+                        'Accept': 'application/json' 
+                    }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    // This ensures OR-000000000X and Queue 00X are synced with DB
+                    setOrNumber(generateORNumber(data.next_sequence));
+                    setQueueNumber(generateQueueNumber(data.next_sequence));
+                }
+            } catch (error) {
+                console.error("Failed to sync OR sequence:", error);
+            }
+        };
+
         const fetchCashierName = async () => {
             if (!token) { setCashierName('Admin'); return; }
             try {
@@ -113,9 +132,12 @@ const SalesOrder = () => {
             } catch (error) { console.error("Error fetching add-ons:", error); }
         };
 
+        // Initialize all data
+        fetchLatestSequence();
         fetchAddOns();
         fetchCashierName();
         fetchMenu();
+
         const timer = setInterval(() => setCurrentDate(new Date()), 1000);
         return () => clearInterval(timer);
     }, []);
@@ -261,6 +283,7 @@ const SalesOrder = () => {
         try {
             const orderData = {
                 branch_id: branchId ? Number(branchId) : null,
+                si_number: orNumber, // This sends "OR-0000000001"
                 items: cart.map(item => ({
                     menu_item_id: item.id,
                     name: item.name,
@@ -274,51 +297,79 @@ const SalesOrder = () => {
                     remarks: item.remarks || null,
                     charges: { grab: item.charges.grab, panda: item.charges.panda }
                 })),
-                subtotal,
+                subtotal: subtotal,
                 total: subtotal,
                 cashier_name: cashierName ?? 'Admin',
-                payment_method: paymentMethod,                                           // ← add
-                cash_tendered: paymentMethod === 'cash' ? cashTendered : amtDue,        // ← update
-                change: paymentMethod === 'cash' ? change : 0,                          // ← add
-                reference_number: paymentMethod !== 'cash' ? referenceNumber : null,    // ← add
+                payment_method: paymentMethod, 
+                reference_number: referenceNumber || null,
             };
+
             const response = await fetch('http://localhost:8000/api/sales', {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                headers: { 
+                    'Authorization': `Bearer ${token}`, 
+                    'Content-Type': 'application/json', 
+                    'Accept': 'application/json' 
+                },
                 body: JSON.stringify(orderData)
             });
+
             const result = await response.json();
             if (!response.ok) throw new Error(result.message || 'Failed to create order');
-            Promise.all([api.get('/dashboard/stats'), api.get('/inventory')]).catch(e => console.error("Failed to fetch fresh data", e));
+
+            // Refresh dashboard stats and inventory in the background
+            Promise.all([
+                api.get('/dashboard/stats'), 
+                api.get('/inventory')
+            ]).catch(e => console.error("Failed to fetch fresh data", e));
+
             setIsConfirmModalOpen(false);
             setIsSuccessModalOpen(true);
-            setPrintedReceipt(false);    // ← add
-            setPrintedKitchen(false);    // ← add
-            setPrintedStickers(false);   // ← add
+            
+            // Reset print states for the new successful order
+            setPrintedReceipt(false);
+            setPrintedKitchen(false);
+            setPrintedStickers(false);
+
             showToast('Order saved successfully!', 'success');
         } catch (error) {
             console.error('Error creating order:', error);
             showToast(error instanceof Error ? error.message : 'Failed to create order. Please try again.', 'error');
-        } finally { setSubmitting(false); }
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const handlePrintReceipt = () => { setPrintTarget('receipt'); setPrintedReceipt(true); setTimeout(() => window.print(), 100); };
     const handlePrintKitchen = () => { setPrintTarget('kitchen'); setPrintedKitchen(true); setTimeout(() => window.print(), 100); };
     const handlePrintStickers = () => { setPrintTarget('stickers'); setPrintedStickers(true); setTimeout(() => window.print(), 100); };
 
-    const handleNewOrder = () => {
+    const handleNewOrder = async () => {
         setCart([]);
         setOrderCharge(null);
-        setOrNumber(prev => generateORNumber(parseInt(prev) + 1));
-        setQueueNumber(prev => generateQueueNumber(parseInt(prev) + 1));
         setCashTendered('');
         setPaymentMethod('cash');
         setReferenceNumber('');
-        setPrintedReceipt(false);    // ← add
-        setPrintedKitchen(false);    // ← add
-        setPrintedStickers(false);   // ← add
         setIsSuccessModalOpen(false);
         setPrintTarget(null);
+        setPrintedReceipt(false);
+        setPrintedKitchen(false);
+        setPrintedStickers(false);
+
+        // FIX: Re-fetch the actual next sequence from the DB to avoid NaN
+        const token = localStorage.getItem('lucky_boba_token');
+        try {
+            const response = await fetch('http://localhost:8000/api/receipts/next-sequence', {
+                headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setOrNumber(generateORNumber(data.next_sequence));
+                setQueueNumber(generateQueueNumber(data.next_sequence));
+            }
+        } catch (error) {
+            console.error("Failed to sync sequence for new order:", error);
+        }
     };
 
     const subtotal = cart.reduce((acc, item) => acc + item.finalPrice, 0);
@@ -994,7 +1045,9 @@ const SalesOrder = () => {
                     )}
                 </div>
 
-                {/* ── RIGHT: CART SIDEBAR ── */}
+            {/* ══════════════════════════════════
+                    SIDEBAR CART — modal panel aesthetic
+                ══════════════════════════════════ */}
                 <div className="w-96 bg-white border-l-2 border-zinc-200 flex flex-col shrink-0 shadow-2xl z-30">
                     <div className="bg-[#3b2063] p-4 text-white flex items-center justify-between shrink-0">
                         <div>
@@ -1003,7 +1056,8 @@ const SalesOrder = () => {
                         </div>
                         <div className="text-center">
                             <div className="text-[9px] font-bold uppercase tracking-widest opacity-60 leading-none">Current Order</div>
-                            <div className="text-[11px] font-black uppercase leading-tight mt-0.5">OR # {orNumber.slice(-6)}</div>
+                            {/* Updated: Using orNumber directly to show the full OR string */}
+                            <div className="text-[11px] font-black uppercase leading-tight mt-0.5">{orNumber}</div>
                         </div>
                         <div className="text-right">
                             <div className="text-[9px] font-bold uppercase tracking-widest opacity-60 leading-none">Items</div>

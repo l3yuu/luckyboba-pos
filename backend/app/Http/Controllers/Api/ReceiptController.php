@@ -17,6 +17,26 @@ class ReceiptController extends Controller
      *   status       → Status
      *   created_at   → Date_Time
      */
+
+    public function getNextSequence()
+    {
+        // Find the latest si_number that starts with 'OR-'
+        $latest = Receipt::where('si_number', 'LIKE', 'OR-%')
+            // This sorts by the number after 'OR-' numerically
+            ->orderByRaw('CAST(SUBSTRING(si_number, 4) AS UNSIGNED) DESC')
+            ->first();
+
+        if (!$latest) {
+            return response()->json(['next_sequence' => 1]);
+        }
+
+        // 'OR-' is 3 characters. substr(..., 3) starts at the 4th character.
+        // Example: "OR-0000000001" -> "0000000001" -> 1
+        $lastNumber = (int) substr($latest->si_number, 3);
+
+        return response()->json(['next_sequence' => $lastNumber + 1]);
+    }
+
     public function search(Request $request)
 {
     $query = $request->input('query');

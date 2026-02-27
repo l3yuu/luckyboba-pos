@@ -13,18 +13,19 @@ class Sale extends Model
     use HasFactory;
 
     protected $fillable = [
-    'total_amount',
-    'payment_method',
-    'charge_type', 
-    'pax',
-    'user_id',
-    'branch_id', 
-    'is_synced',
-    'invoice_number',
-    'status',
-    'cancellation_reason',
-    'cancelled_at'
-];
+        'total_amount',
+        'payment_method',
+        'reference_number',   // ADDED: To store GCash/Maya/Card codes
+        'charge_type', 
+        'pax',
+        'user_id',
+        'branch_id',
+        'is_synced',
+        'invoice_number',     // Stores the official OR string (OR-000...)
+        'status',             // (completed, cancelled)
+        'cancellation_reason',
+        'cancelled_at'
+    ];
 
     /**
      * The attributes that should be cast.
@@ -33,6 +34,20 @@ class Sale extends Model
         'cancelled_at' => 'datetime',
         'total_amount' => 'decimal:2',
     ];
+
+    /**
+     * The accessors to append to the model's array form.
+     */
+    protected $appends = ['or_number'];
+
+    /**
+     * Accessor for OR Number.
+     * Maps the content of invoice_number to a logical or_number property.
+     */
+    public function getOrNumberAttribute()
+    {
+        return $this->invoice_number;
+    }
 
     public function items(): HasMany
     {

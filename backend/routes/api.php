@@ -53,6 +53,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
 
     Route::get('/receipts/search', [ReceiptController::class, 'search']);
+    Route::get('/receipts/next-sequence', [ReceiptController::class, 'getNextSequence']);
 
     // ── 3. END OF DAY (EOD) ──────────────────────────────────────────────────
     Route::prefix('cash-counts')->group(function () {

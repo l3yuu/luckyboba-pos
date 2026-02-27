@@ -21,9 +21,13 @@ class SalesController extends Controller
         $this->dashboardService = $dashboardService;
     }
 
-public function store(Request $request)
+    /**
+     * Store a newly created sale in storage.
+     */
+    public function store(Request $request)
     {
         $validated = $request->validate([
+            'si_number' => 'required|string', // MUST add this line
             'items' => 'required|array|min:1',
             'items.*.menu_item_id' => 'required|exists:menu_items,id',
             'items.*.name' => 'required|string',
@@ -38,65 +42,55 @@ public function store(Request $request)
             'items.*.charges' => 'nullable|array',
             'subtotal' => 'required|numeric|min:0',
             'total' => 'required|numeric|min:0',
-            'cashier_name' => 'nullable|string', // <-- ADDED: Allows frontend to send the name
+            'cashier_name' => 'nullable|string',
+            'payment_method' => 'nullable|string',
+            'reference_number' => 'nullable|string',
         ]);
 
-        // 1. EXTRACT USER DATA (Bulletproof Method)
-        // Explicitly check the Sanctum guard to ensure the token is read properly
         $user = auth('sanctum')->user();
-        
-        // Prioritize frontend name, then database name, then fallback
         $cashierName = $request->input('cashier_name') ?? ($user ? $user->name : 'System Admin');
         $userId = $user ? $user->id : null;
         $branchId = $user ? $user->branch_id : null;
+        
+        // Explicitly use the OR number sent from React
+        $officialOR = $validated['si_number']; 
 
         try {
             DB::beginTransaction();
 
-            // 2. PRE-CALCULATIONS
             $chargeType = null;
             $totalQty = 0; 
             
             foreach ($validated['items'] as $item) {
                 $totalQty += $item['quantity'];
-                
                 if (isset($item['charges'])) {
                     if ($item['charges']['grab'] ?? false) $chargeType = 'grab';
                     if ($item['charges']['panda'] ?? false) $chargeType = 'panda';
                 }
             }
 
-            // 3. CREATE THE MAIN SALE RECORD
-            $todayCount = Sale::whereDate('created_at', now()->today())->count();
-            $invoiceNumber = 'LB-' . date('Ymd') . '-' . str_pad($todayCount + 1, 4, '0', STR_PAD_LEFT);
-
+            // 1. Create Sale
             $sale = Sale::create([
                 'user_id' => $userId,
                 'branch_id'      => $branchId,
                 'total_amount' => $validated['total'],
-                'invoice_number' => $invoiceNumber,
+                'invoice_number' => $officialOR, // Save OR here
                 'status' => 'completed',
-                'payment_method' => 'cash',
+                'payment_method' => $request->input('payment_method', 'cash'),
+                'reference_number' => $request->input('reference_number'),
                 'charge_type' => $chargeType,
                 'pax' => 1,
                 'is_synced' => false,
             ]);
 
-            // 4. CREATE SALE ITEMS AND DEDUCT INVENTORY
+            // 2. Create Sale Items
             foreach ($validated['items'] as $item) {
-                
-                // Logic to set the unit price to 135 for Large items in the DB
-                $unitPrice = (float)$item['unit_price'];
-                if (($item['size'] ?? null) === 'L') {
-                    $unitPrice += 20;
-                }
-
                 SaleItem::create([
                     'sale_id' => $sale->id, 
                     'menu_item_id' => $item['menu_item_id'],
                     'product_name' => $item['name'],
                     'quantity' => $item['quantity'],
-                    'price' => $unitPrice, 
+                    'price' => (float)$item['unit_price'] + (($item['size'] ?? null) === 'L' ? 20 : 0), 
                     'final_price' => $item['total_price'],
                     'size' => $item['size'] ?? null,
                     'sugar_level' => $item['sugar_level'] ?? null,
@@ -104,19 +98,18 @@ public function store(Request $request)
                     'add_ons' => $item['add_ons'] ?? null,
                 ]);
 
-                // Deduct from inventory
                 $menuItem = MenuItem::find($item['menu_item_id']);
                 if ($menuItem) {
                     $menuItem->decrement('quantity', $item['quantity']);
                 }
             }
 
-            // 5. CREATE RECEIPT WITH DYNAMIC CASHIER NAME
+            // 3. Create Receipt
             Receipt::create([
-                'si_number'    => $invoiceNumber,
+                'si_number'    => $officialOR, // Save OR here
                 'terminal'     => '01',
                 'items_count'  => $totalQty,
-                'cashier_name' => $cashierName, // Now uses the correct name
+                'cashier_name' => $cashierName,
                 'total_amount' => $validated['total'],
                 'sale_id'      => $sale->id,
                 'branch_id'    => $branchId,
@@ -127,24 +120,20 @@ public function store(Request $request)
 
             return response()->json([
                 'status'  => 'success',
-                'message' => 'Sale created and stock deducted',
-                'si_number' => $invoiceNumber,
+                'si_number' => $officialOR,
                 'sale'    => $sale->load('items'),
-                'cashier' => $cashierName
             ], 201);
 
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Sale creation failed: ' . $e->getMessage());
-            
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Failed to create sale',
-                'error'   => $e->getMessage()
-            ], 500);
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }
 
+    /**
+     * List all sales.
+     */
     public function index()
 {
     $user = auth('sanctum')->user();
@@ -158,6 +147,9 @@ public function store(Request $request)
     return response()->json($sales);
 }
 
+    /**
+     * Void/Cancel a sale.
+     */
     public function cancel(Request $request, $id)
     {
         $request->validate([
@@ -173,6 +165,7 @@ public function store(Request $request)
                 return response()->json(['message' => 'Sale already cancelled'], 400);
             }
 
+            // Restore inventory for all items in the sale
             foreach ($sale->items as $item) {
                 $menuItem = MenuItem::find($item->menu_item_id);
                 if ($menuItem) {
@@ -182,7 +175,7 @@ public function store(Request $request)
                 }
             }
 
-            // 1. Update Sale Table (This is the primary record)
+            // Update Sale Status
             $sale->update([
                 'status' => 'cancelled',
                 'cancellation_reason' => $request->reason,
