@@ -4,19 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use App\Services\DashboardService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
-    protected $dashboardService;
-
-    public function __construct(DashboardService $dashboardService)
-    {
-        $this->dashboardService = $dashboardService;
-    }
-
     public function login(Request $request)
     {
         $request->validate([
@@ -36,13 +28,9 @@ class AuthController extends Controller
         // Generate the Bearer Token
         $token = $user->createToken('lucky_boba_token')->plainTextToken;
 
-        // Preload dashboard stats into cache
-        $stats = $this->dashboardService->getHomeStats();
-
         return response()->json([
             'user' => $user,
             'token' => $token,
-            'dashboard_stats' => $stats, // Include stats in login response
         ]);
     }
 

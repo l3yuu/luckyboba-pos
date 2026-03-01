@@ -12,20 +12,30 @@ class MenuItem extends Model
 
     protected $fillable = [
         'category_id', 
-        'sub_category_id',  // Add this if you have the column
+        'sub_category_id',
         'name', 
         'price', 
+        'cost',
+        'quantity',
         'barcode'
     ];
 
     protected $casts = [
         'price' => 'float',
+        'cost' => 'float',
+        'quantity' => 'integer',
         'category_id' => 'integer',
-        'sub_category_id' => 'integer', // Add this
+        'sub_category_id' => 'integer',
     ];
 
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    // ADD THIS: Relationship to the SubCategory
+    public function subCategory(): BelongsTo
+    {
+        return $this->belongsTo(SubCategory::class, 'sub_category_id');
     }
 }

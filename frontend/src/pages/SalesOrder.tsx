@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+"use client"
 
-// IMPORT TYPES AND CONSTANTS
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import logo from '../assets/logo.png';
+
 import { 
     type MenuItem, 
     type Category, 
@@ -10,54 +12,103 @@ import {
     EXTRA_OPTIONS, 
     WINGS_QUANTITIES 
 } from '../types/index'; 
+import { useToast } from '../hooks/useToast';
+import api from '../services/api';
 
-// === CUSTOM ICON COMPONENT ===
 const DrinkIcon = ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" className={className} fill="currentColor">
         <path d="m187.4 22.88l-21.5 4.54l22.7 108.08c7.2-.7 14.6-1.2 22-1.6zM256 147.7c-41.2 0-82.3 3.7-123.5 11.1l-11.6 1.1l4.3 22.1l10.6-2.1c20.1-3.2 40.1-6.3 61.2-7.4l8.4 40.1h22.2l-8.4-42.2c51.6-2.1 104.4 1.1 157.1 9.5l10.6 2.1l4.2-22.1l-11.6-1.1c-41.2-7.4-82.3-11.1-123.5-11.1m-119.1 51.6l26.4 281.3l8.3 1c56.2 9.5 112.3 10.6 168.5 0l8.1-1l26.5-281.3h-22.1l-3.6 37.8H232.2l42.3 202.3l-24.3-9.5l-40.4-192.8h-47.3l-3.6-37.8zm188.8 155.3c7.4 0 13.5 6 13.5 13.5s-6.1 13.5-13.5 13.5c-7.5 0-13.5-6-13.5-13.5s6-13.5 13.5-13.5M292 380.2c7.4 0 13.6 6.1 13.6 13.5c0 7.5-6.2 13-13.6 13s-13.6-5.5-13.6-13c0-7.4 6.2-13.5 13.6-13.5m-74.2 5.1c7.5 0 13.5 6.1 13.5 13.5c0 7.9-6 13.2-13.5 13.2c-7.4 0-13.5-5.3-13.5-13.2c0-7.4 6.1-13.5 13.5-13.5m107 7.8c7.5 0 13.6 6 13.6 13.6c0 7.4-6.1 13.7-13.6 13.7c-7.4 0-13.5-6.3-13.5-13.7c0-7.6 6.1-13.6 13.5-13.6m-140.9 10.5c7.5 0 13.5 5.2 13.5 12.6s-6 13.7-13.5 13.7s-13.5-6.3-13.5-13.7s6-12.6 13.5-12.6m111.2 12.6c7.5 0 13.5 6.3 13.5 13.7s-6 13.7-13.5 13.7s-13.5-6.3-13.5-13.7s6-13.7 13.5-13.7m-76.1 7.4c7.5 0 13.6 6.3 13.6 13.7S226.5 451 219 451c-7.4 0-13.5-6.3-13.5-13.7s6.1-13.7 13.5-13.7m-32.7 14.8c7.5 0 13.5 5.2 13.5 12.6s-6 13.7-13.5 13.7c-7.4 0-13.5-6.3-13.5-13.7s6.1-12.6 13.5-12.6m134.7 2.1c7.5 0 13.5 6.3 13.5 13.7s-6 13.7-13.5 13.7s-13.5-6.3-13.5-13.7s6-13.7 13.5-13.7m-66.5 4.2c7.4 0 13.5 5.3 13.5 12.7c0 7.3-6.1 13.7-13.5 13.7c-7.5 0-13.5-6.4-13.5-13.7c0-7.4 6-12.7 13.5-12.7" strokeWidth="13" stroke="currentColor" />
     </svg>
 );
 
+const generateORNumber = (count = 1) => `OR-${String(count).padStart(10, '0')}`;
+const generateQueueNumber = (count = 1) => String(count).padStart(3, '0');
+
 const SalesOrder = () => {
     const navigate = useNavigate();
+    const { showToast } = useToast();
+    
+    const [cashierName, setCashierName] = useState<string | null>(null);
     const [currentDate, setCurrentDate] = useState(new Date());
     const [searchQuery, setSearchQuery] = useState('');
-
-    const [categories, setCategories] = useState<Category[]>([]);
+    const [categories, setCategories] = useState<Category[]>(() => {
+        const cached = localStorage.getItem('pos_menu_cache');
+        return cached ? JSON.parse(cached) : [];
+    });
     const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
     const [categorySize, setCategorySize] = useState<string | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(!localStorage.getItem('pos_menu_cache'));
     const [submitting, setSubmitting] = useState(false);
-
     const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+    
     const [isAddOnModalOpen, setIsAddOnModalOpen] = useState(false);
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-
+    const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false); 
+    
+    const [cashTendered, setCashTendered] = useState<number | ''>('');
+    const [paymentMethod, setPaymentMethod] = useState<'cash' | 'gcash' | 'paymaya' | 'credit' | 'debit'>('cash');
+    const [referenceNumber, setReferenceNumber] = useState('');
     const [qty, setQty] = useState(1);
     const [remarks, setRemarks] = useState('');
-    const [charges, setCharges] = useState({ grab: false, panda: false });
-    const [, setOrderChargeType] = useState<'grab' | 'panda' | null>(null);
-
+    const [printTarget, setPrintTarget] = useState<'receipt' | 'stickers' | 'kitchen' | null>(null);
+    const [printedReceipt, setPrintedReceipt] = useState(false);
+    const [printedKitchen, setPrintedKitchen] = useState(false);
+    const [printedStickers, setPrintedStickers] = useState(false);
+    const [orNumber, setOrNumber] = useState(generateORNumber(1));
+    const [queueNumber, setQueueNumber] = useState(generateQueueNumber(1));
+    const [orderCharge, setOrderCharge] = useState<'grab' | 'panda' | null>(null);
     const [sugarLevel, setSugarLevel] = useState('100%');
-    const [size, setSize] = useState('M');
+    const [size, setSize] = useState<'M' | 'L' | 'none'>('M');
     const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
     const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
-
     const [cart, setCart] = useState<CartItem[]>([]);
+    const [addOnsData, setAddOnsData] = useState<{ id: number; name: string; price: number }[]>([]);
 
     useEffect(() => {
+        const token = localStorage.getItem('lucky_boba_token');
+
+        const fetchLatestSequence = async () => {
+            try {
+                const response = await fetch('http://localhost:8000/api/receipts/next-sequence', {
+                    headers: { 
+                        'Authorization': `Bearer ${token}`, 
+                        'Accept': 'application/json' 
+                    }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    // This ensures OR-000000000X and Queue 00X are synced with DB
+                    setOrNumber(generateORNumber(data.next_sequence));
+                    setQueueNumber(generateQueueNumber(data.next_sequence));
+                }
+            } catch (error) {
+                console.error("Failed to sync OR sequence:", error);
+            }
+        };
+
+        const fetchCashierName = async () => {
+            if (!token) { setCashierName('Admin'); return; }
+            try {
+                const response = await fetch('http://localhost:8000/api/user', {
+                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+                });
+                if (response.ok) {
+                    const user = await response.json();
+                    const name = user?.name || user?.username || user?.full_name || user?.display_name;
+                    setCashierName(name?.trim() || 'Admin');
+                } else { setCashierName('Admin'); }
+            } catch { setCashierName('Admin'); }
+        };
+
         const fetchMenu = async () => {
-            const token = localStorage.getItem('lucky_boba_token');
             try {
                 const response = await fetch('http://localhost:8000/api/menu', {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Accept': 'application/json',
-                    }
+                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
                 });
                 const data = await response.json();
                 if (Array.isArray(data)) {
                     setCategories(data);
+                    localStorage.setItem('pos_menu_cache', JSON.stringify(data));
                 }
                 setLoading(false);
             } catch (error) {
@@ -65,50 +116,79 @@ const SalesOrder = () => {
                 setLoading(false);
             }
         };
+
+        const fetchAddOns = async () => {
+            try {
+                const response = await fetch('http://localhost:8000/api/add-ons', {
+                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+                });
+                const data = await response.json();
+                if (Array.isArray(data)) setAddOnsData(data);
+            } catch (error) { console.error("Error fetching add-ons:", error); }
+        };
+
+        // Initialize all data
+        fetchLatestSequence();
+        fetchAddOns();
+        fetchCashierName();
         fetchMenu();
 
         const timer = setInterval(() => setCurrentDate(new Date()), 1000);
         return () => clearInterval(timer);
     }, []);
 
-    // LOGIC HELPERS
     const isDrink = selectedCategory?.type === 'drink';
     const isWings = selectedCategory?.name === "CHICKEN WINGS";
     const isOz = selectedCategory?.name === "HOT DRINKS" || selectedCategory?.name === "HOT COFFEE";
+    const categoryHasOnlyOneSize = selectedCategory?.cup?.size_l === null || 
+        (selectedCategory?.menu_items?.every(item => item.size === 'L') ?? false) ||
+        (selectedCategory?.menu_items?.every(item => item.size === 'M') ?? false);
 
-    const getAddOnsSinkers = () => categories.find(c => c.name === "Add Ons Sinkers")?.menu_items || [];
-    const formatDate = (date: Date) => date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-    const formatTime = (date: Date) => date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    const needsSizePicker = (isDrink || isWings || isOz) && !categorySize && !categoryHasOnlyOneSize;
 
+    const formattedDate = currentDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+    const formattedTime = currentDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    
     const handleNavClick = (label: string) => { if (label === 'Home') navigate('/dashboard'); };
 
-    const handleCategoryClick = (cat: Category) => {
-        setSelectedCategory(cat);
-        setCategorySize(null);
+    const handleCategoryClick = (cat: Category) => { 
+        setSelectedCategory(cat); 
+        setCategorySize(null); 
+        const allL = cat.menu_items?.every(item => item.size === 'L');
+        const allM = cat.menu_items?.every(item => item.size === 'M');
+        const noSizeL = cat.cup?.size_l === null;
+        if (allL) setCategorySize(cat.cup?.size_l || cat.cup?.size_m || 'L');
+        else if (allM || noSizeL) setCategorySize(cat.cup?.size_m || 'M');
     };
 
     const handleBack = () => {
-        if ((isDrink || isWings || isOz) && categorySize) {
+        if ((isDrink || isWings || isOz) && categorySize && !categoryHasOnlyOneSize) {
             setCategorySize(null);
         } else {
             setSelectedCategory(null);
+            setCategorySize(null);
         }
     };
 
-    const cartHasGrab = cart.some(item => item.charges.grab);
-    const cartHasPanda = cart.some(item => item.charges.panda);
+    const getFilteredItems = (items: MenuItem[]): MenuItem[] => {
+        if (!categorySize || isWings) return items;
+        const cupSizeM = selectedCategory?.cup?.size_m || 'M';
+        const cupSizeL = selectedCategory?.cup?.size_l || 'L';
+        if (categorySize === cupSizeM) return items.filter(item => item.size === 'M' || item.size === 'none');
+        if (categorySize === cupSizeL) return items.filter(item => item.size === 'L' || item.size === 'none');
+        return items;
+    };
 
     const handleItemClick = (item: MenuItem) => {
         setSelectedItem(item);
         setQty(1);
         setRemarks('');
-        setCharges(
-            cartHasGrab ? { grab: true, panda: false }
-                : cartHasPanda ? { grab: false, panda: true }
-                    : { grab: false, panda: false }
-        );
         setSugarLevel('100%');
-        setSize(isDrink && categorySize === 'L' ? 'L' : 'M');
+        if (item.size === 'M' || item.size === 'L') setSize(item.size);
+        else {
+            const cupSizeL = selectedCategory?.cup?.size_l || 'L';
+            setSize(categorySize === cupSizeL ? 'L' : 'M');
+        }
         setSelectedOptions([]);
         setSelectedAddOns([]);
         setIsAddOnModalOpen(false);
@@ -117,10 +197,17 @@ const SalesOrder = () => {
     const closeModal = () => { setSelectedItem(null); setIsAddOnModalOpen(false); };
     const adjustQty = (delta: number) => setQty(prev => Math.max(1, prev + delta));
 
-    const toggleCharge = (type: 'grab' | 'panda') => {
-        setCharges(prev => ({
-            grab: type === 'grab' ? !prev.grab : false,
-            panda: type === 'panda' ? !prev.panda : false
+    const toggleOrderCharge = (type: 'grab' | 'panda') => {
+        const next = orderCharge === type ? null : type;
+        setOrderCharge(next);
+        setCart(prevCart => prevCart.map(item => {
+            const hadCharge = item.charges.grab || item.charges.panda;
+            const baseFinalPrice = hadCharge ? item.finalPrice - (10 * item.qty) : item.finalPrice;
+            return {
+                ...item,
+                charges: { grab: next === 'grab', panda: next === 'panda' },
+                finalPrice: next ? baseFinalPrice + (10 * item.qty) : baseFinalPrice,
+            };
         }));
     };
 
@@ -140,581 +227,1081 @@ const SalesOrder = () => {
         });
     };
 
-    const toggleAddOn = (addOnName: string) => setSelectedAddOns(prev => prev.includes(addOnName) ? prev.filter(a => a !== addOnName) : [...prev, addOnName]);
+    const toggleAddOn = (addOnName: string) =>
+        setSelectedAddOns(prev => prev.includes(addOnName) ? prev.filter(a => a !== addOnName) : [...prev, addOnName]);
 
     const addToOrder = () => {
         if (!selectedItem || !selectedCategory) return;
         let basePrice = Number(selectedItem.price);
         let extraCost = 0;
-        if (charges.grab || charges.panda) extraCost += 10;
-        if (isDrink && size === 'L') extraCost += 20;
+        if (orderCharge) extraCost += 10;
         if (isWings && categorySize) {
             const pricing: Record<string, number> = { '3pc': 100, '4pc': 120, '6pc': 195, '12pc': 390 };
             basePrice = pricing[categorySize] || 0;
         }
         if (isDrink) {
-            const addOnsData = getAddOnsSinkers();
             selectedAddOns.forEach(name => {
                 const addon = addOnsData.find(a => a.name === name);
                 if (addon) extraCost += Number(addon.price);
             });
         }
+        const cartSize: 'M' | 'L' | 'none' = isDrink ? size : 'none';
+        const cupSizeLabel: string | undefined = (isDrink || isOz) && categorySize ? categorySize : undefined;
         setCart([...cart, { 
             ...selectedItem, 
             name: isWings ? `${selectedItem.name} (${categorySize})` : selectedItem.name, 
-            qty, 
-            remarks, 
-            charges, 
+            qty, remarks, 
+            charges: { grab: orderCharge === 'grab', panda: orderCharge === 'panda' },
             sugarLevel: isDrink ? sugarLevel : undefined, 
-            size: isDrink ? size : undefined, 
+            size: cartSize, cupSizeLabel,
             options: isDrink ? selectedOptions : undefined, 
             addOns: isDrink ? selectedAddOns : undefined, 
             finalPrice: (basePrice + extraCost) * qty 
         }]);
         closeModal();
+        showToast(`${selectedItem.name} added to order`, 'success');
     };
 
-    const removeFromCart = (index: number) => setCart(prev => prev.filter((_, i) => i !== index));
-    
+    const removeFromCart = (index: number) => {
+        const itemToRemove = cart[index];
+        const newCart = cart.filter((_, i) => i !== index);
+        setCart(newCart);
+        if (newCart.length === 0) setOrderCharge(null);
+        showToast(`${itemToRemove.name} removed from order`, 'warning');
+    };
+
     const handleConfirmOrder = async () => {
+
         if (cart.length === 0) return;
-        
         setSubmitting(true);
         const token = localStorage.getItem('lucky_boba_token');
-
         try {
             const orderData = {
+                si_number: orNumber, // This sends "OR-0000000001"
                 items: cart.map(item => ({
                     menu_item_id: item.id,
                     name: item.name,
                     quantity: item.qty,
                     unit_price: Number(item.price),
                     total_price: item.finalPrice,
-                    size: item.size || null,
+                    size: item.size !== 'none' ? item.size : null,
                     sugar_level: item.sugarLevel || null,
                     options: item.options || [],
                     add_ons: item.addOns || [],
                     remarks: item.remarks || null,
-                    charges: {
-                        grab: item.charges.grab,
-                        panda: item.charges.panda
-                    }
+                    charges: { grab: item.charges.grab, panda: item.charges.panda }
                 })),
                 subtotal: subtotal,
-                total: subtotal
+                total: subtotal,
+                cashier_name: cashierName ?? 'Admin',
+                payment_method: paymentMethod, 
+                reference_number: referenceNumber || null,
             };
 
             const response = await fetch('http://localhost:8000/api/sales', {
                 method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
+                headers: { 
+                    'Authorization': `Bearer ${token}`, 
+                    'Content-Type': 'application/json', 
+                    'Accept': 'application/json' 
                 },
                 body: JSON.stringify(orderData)
             });
 
             const result = await response.json();
+            if (!response.ok) throw new Error(result.message || 'Failed to create order');
 
-            if (!response.ok) {
-                throw new Error(result.message || 'Failed to create order');
-            }
+            // Refresh dashboard stats and inventory in the background
+            const today = new Date().toISOString().split('T')[0];
+            Promise.all([
+            api.get('/dashboard/stats'), 
+            api.get('/inventory'),
+            // 🔥 Prefetch receipts so SearchReceipts loads instantly
+            api.get('/receipts/search', { params: { query: '', date: today } })
+                .then(response => {
+                const data = Array.isArray(response.data) ? response.data : (response.data.data || []);
+                sessionStorage.setItem('lucky_boba_receipt_cache_results', JSON.stringify(data));
+                sessionStorage.setItem('lucky_boba_receipt_cache_query', '');
+                sessionStorage.setItem('lucky_boba_receipt_cache_date', today);
+                })
+            ]).catch(e => console.error("Failed to fetch fresh data", e));
 
-            // Print receipt after successful order
-            window.print();
-            
-            // Clear cart and close modal
-            setCart([]);
             setIsConfirmModalOpen(false);
+            setIsSuccessModalOpen(true);
             
-            // Show success message
-            alert('Order confirmed successfully!');
-            
+            // Reset print states for the new successful order
+            setPrintedReceipt(false);
+            setPrintedKitchen(false);
+            setPrintedStickers(false);
+
+            showToast('Order saved successfully!', 'success');
         } catch (error) {
             console.error('Error creating order:', error);
-            alert('Failed to create order. Please try again.');
+            showToast(error instanceof Error ? error.message : 'Failed to create order. Please try again.', 'error');
         } finally {
             setSubmitting(false);
         }
     };
 
+    const handlePrintReceipt = () => { setPrintTarget('receipt'); setPrintedReceipt(true); setTimeout(() => window.print(), 100); };
+    const handlePrintKitchen = () => { setPrintTarget('kitchen'); setPrintedKitchen(true); setTimeout(() => window.print(), 100); };
+    const handlePrintStickers = () => { setPrintTarget('stickers'); setPrintedStickers(true); setTimeout(() => window.print(), 100); };
+
+    const handleNewOrder = async () => {
+        setCart([]);
+        setOrderCharge(null);
+        setCashTendered('');
+        setPaymentMethod('cash');
+        setReferenceNumber('');
+        setIsSuccessModalOpen(false);
+        setPrintTarget(null);
+        setPrintedReceipt(false);
+        setPrintedKitchen(false);
+        setPrintedStickers(false);
+
+        // FIX: Re-fetch the actual next sequence from the DB to avoid NaN
+        const token = localStorage.getItem('lucky_boba_token');
+        try {
+            const response = await fetch('http://localhost:8000/api/receipts/next-sequence', {
+                headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setOrNumber(generateORNumber(data.next_sequence));
+                setQueueNumber(generateQueueNumber(data.next_sequence));
+            }
+        } catch (error) {
+            console.error("Failed to sync sequence for new order:", error);
+        }
+    };
+
     const subtotal = cart.reduce((acc, item) => acc + item.finalPrice, 0);
     const totalCount = cart.reduce((acc, item) => acc + item.qty, 0);
-
-    const mediumDrinks = cart.filter(item => item.size === 'M');
-    const largeDrinks = cart.filter(item => item.size === 'L');
-    const otherItems = cart.filter(item => !item.size);
+    const hasStickers = cart.some(item => item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L');
+    const vatableSales = subtotal / 1.12;
+    const vatAmount = subtotal - vatableSales;
+    const amtDue = subtotal; 
+    const change = typeof cashTendered === 'number' ? Math.max(0, cashTendered - amtDue) : 0;
 
     const filteredCategories = categories.map(cat => ({
         ...cat,
-        menu_items: cat.menu_items.filter(item => 
-            item.name.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-    })).filter(cat => 
-        cat.name.toLowerCase().includes(searchQuery.toLowerCase()) || cat.menu_items.length > 0
+        menu_items: cat.menu_items.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    })).filter(cat => cat.name.toLowerCase().includes(searchQuery.toLowerCase()) || cat.menu_items.length > 0);
+
+    // ── STICKER GENERATOR ──
+    const renderStickers = () => {
+        const stickers: React.ReactNode[] = [];
+        let drinkIndex = 1;
+        const totalDrinks = cart.reduce((acc, item) => {
+            const isStickerItem = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
+            return acc + (isStickerItem ? item.qty : 0);
+        }, 0);
+        cart.forEach((item, cartIndex) => {
+            const isStickerItem = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
+            if (isStickerItem) {
+                const extraCount = (item.options?.length || 0) + (item.addOns?.length || 0) + (item.remarks ? 1 : 0);
+                const isCrowded = extraCount >= 3;
+                const isVeryCrowded = extraCount >= 5;
+                const paddingClass = isVeryCrowded ? "p-0.5" : "p-1";
+                const titleSize = isVeryCrowded ? "text-[10px]" : isCrowded ? "text-[11px]" : "text-[12px]";
+                const nameSize = isVeryCrowded ? "text-[8.5px]" : isCrowded ? "text-[10px]" : "text-xs";
+                const addOnSize = isVeryCrowded ? "text-[6px]" : isCrowded ? "text-[7px]" : "text-[9px]";
+                const gapClass = isVeryCrowded ? "space-y-0 leading-none" : "space-y-0.5 leading-tight";
+                const marginClass = isVeryCrowded ? "mb-0" : "mb-1";
+                const sizeLabel = item.cupSizeLabel ? `(${item.cupSizeLabel})` : '';
+                for (let i = 0; i < item.qty; i++) {
+                    stickers.push(
+                        <div key={`sticker-${cartIndex}-${i}`} className={`sticker-area page-break bg-white text-black flex flex-col justify-between items-center h-full w-full ${paddingClass}`} style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
+                            <div className="w-full text-center flex flex-col items-center">
+                                <div className={`font-black uppercase leading-none ${titleSize}`}>LUCKY BOBA</div>
+                                <div className={`font-bold uppercase leading-none opacity-120 tracking-widest ${isVeryCrowded ? 'text-[5px] mt-0.5' : 'text-[6.5px] mt-1'}`}>Main Branch - QC</div>
+                                <div className={`w-full flex justify-between items-center font-bold border-b-[1.5px] border-black px-1 ${isVeryCrowded ? 'text-[10px] pb-0 mb-0.5 mt-0.5' : 'text-[10px] pb-0.5 mb-1 mt-1'}`}>
+                                    <span>Q: {queueNumber} | OR: {orNumber.slice(-6)}</span>
+                                    <span>{drinkIndex}/{totalDrinks}</span>
+                                </div>
+                            </div>
+                            <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
+                                <div className={`w-full font-black uppercase leading-tight ${nameSize} ${marginClass}`}>{item.name} {sizeLabel}</div>
+                                <div className={`w-full text-center font-bold ${addOnSize} ${gapClass}`}>
+                                    {item.sugarLevel != null && <div>Sugar: {item.sugarLevel}</div>}
+                                    {item.options?.map(opt => <div key={opt}>{opt}</div>)}
+                                    {item.addOns?.map(a => <div key={a}>+ {a}</div>)}
+                                </div>
+                                {item.remarks && (
+                                    <div className={`w-full text-center font-bold border-t border-dashed border-gray-400 ${isVeryCrowded ? 'mt-0.5 pt-0.5' : 'mt-1 pt-1'} ${addOnSize}`}>
+                                        Note: {item.remarks}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* --- UPDATED CAUTION MESSAGE --- */}
+                            <div className="w-full text-center mt-auto mb-0.5">
+                                <p className={`font-black uppercase whitespace-nowrap tracking-tighter ${isVeryCrowded ? 'text-[5.5px]' : 'text-[7px]'}`}>
+                                    Best consume within 30 minutes
+                                </p>
+                            </div>
+
+                            <div className={`w-full font-bold text-center border-t border-zinc-800 ${isVeryCrowded ? 'text-[8.5px] pt-0.5 mt-0.5' : 'text-[8.5px] pt-1 mt-1'}`}>
+                                {formattedDate} {formattedTime}
+                            </div>
+                        </div>
+                    );
+                    drinkIndex++;
+                }
+            }
+        });
+        return stickers;
+    };
+
+    if (loading) return (
+        <div className="h-screen flex items-center justify-center font-black text-[#3b2063] bg-[#f8f6ff]">
+            <div className="text-center">
+                <DrinkIcon className="w-16 h-16 mx-auto mb-4 text-[#3b2063] opacity-30 animate-pulse" />
+                <div className="text-sm tracking-widest uppercase opacity-50">Loading Menu...</div>
+            </div>
+        </div>
     );
-    
-    if (loading) return <div className="h-screen flex items-center justify-center font-black text-[#3b2063]">LUCKY BOBA IS LOADING...</div>;
+
+    // ── TYPE BADGE COLORS ──
+    const typeBadge = {
+        food:  { pill: 'bg-orange-500 text-white',   card: 'hover:bg-orange-500 hover:border-orange-500 hover:text-white' },
+        wings: { pill: 'bg-orange-500 text-white',   card: 'hover:bg-orange-500 hover:border-orange-500 hover:text-white' },
+        drink: { pill: 'bg-[#3b2063] text-white',    card: 'hover:bg-[#3b2063] hover:border-[#3b2063] hover:text-white' },
+        promo: { pill: 'bg-emerald-600 text-white',  card: 'hover:bg-emerald-600 hover:border-emerald-600 hover:text-white' },
+    };
 
     return (
         <>
-            <style>
-                {`@media print { @page { size: 60mm auto; margin: 0; } html, body { width: 60mm; margin: 0; padding: 0; } body * { visibility: hidden; } .printable-receipt-container, .printable-receipt-container * { visibility: visible; } .printable-receipt-container { position: absolute; left: 0; top: 0; width: 100%; margin: 0; padding: 5mm 4mm; box-sizing: border-box; background: white; color: black; font-family: 'Courier New', Courier, monospace; font-size: 11px; font-weight: 600; line-height: 1.2; } .receipt-header { text-align: center; margin-bottom: 8px; border-bottom: 1px dashed black; padding-bottom: 5px; } .receipt-header h1 { font-size: 16px; margin: 0; font-weight: 800; } .receipt-header p { margin: 0; font-size: 10px; } .group-header { font-weight: 800; border-bottom: 1px solid black; margin: 8px 0 2px 0; font-size: 10px; text-transform: uppercase; } .item-row { display: flex; justify-content: space-between; margin-bottom: 2px; font-weight: 700; } .modifier-row { display: flex; justify-content: space-between; font-size: 10px; padding-left: 8px; color: #000; font-weight: normal; } .total-section { border-top: 2px dashed black; margin-top: 10px; padding-top: 5px; font-weight: 900; font-size: 14px; } .total-section .item-row { margin-bottom: 0; } .footer-text { text-align: center; font-size: 9px; margin-top: 15px; padding-top: 5px; border-top: 1px dashed black; font-style: italic; } }`}
-            </style>
+        <style>{`
+            @media print {
+                @page { ${printTarget === 'stickers' ? 'size: 38.5mm 50.8mm;' : 'size: 80mm auto;'} margin: 0 !important; }
+                html, body { margin: 0 !important; padding: 0 !important; }
+                body * { visibility: hidden; }
+                nav, header, aside, button, .print\\:hidden { display: none !important; }
+                .printable-receipt-container, .printable-receipt-container * { visibility: visible !important; }
+                .printable-receipt-container { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; max-width: ${printTarget === 'stickers' ? '38.5mm' : '76mm'} !important; margin: 0 !important; padding: 0 !important; }
+                .receipt-area { width: 66mm !important; margin: 0 auto !important; padding: 2mm 0 !important; box-sizing: border-box !important; color: #000 !important; font-family: Arial, Helvetica, sans-serif !important; font-size: 12px !important; line-height: 1.4 !important; }
+                .sticker-area { width: 38.5mm !important; height: 50.8mm !important; padding: 2mm !important; margin: 0 auto !important; box-sizing: border-box !important; color: #000 !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; align-items: center !important; text-align: center !important; font-family: Arial, Helvetica, sans-serif !important; overflow: hidden !important; page-break-after: always !important; break-after: page !important; }
+            }
+        `}</style>
 
-            <div className="flex flex-col h-screen w-screen bg-[#f8f6ff] relative overflow-hidden font-sans print:hidden">
-                
-                {/* MODAL: ITEM SELECTION */}
-                {selectedItem && !isAddOnModalOpen && !isConfirmModalOpen && (
-                    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-                        <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-                            
-                            <div className="bg-[#3b2063] p-5 text-white text-center relative shrink-0">
-                                <h2 className="text-lg font-black uppercase tracking-wider">{selectedItem.name}</h2>
-                                <button onClick={closeModal} className="absolute top-5 right-6 text-white/50 hover:text-white transition-colors">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+        <div className="flex flex-col h-screen w-screen bg-[#f0edf8] relative overflow-hidden font-sans print:hidden">
+
+            {/* ══════════════════════════════════
+                MODAL: ITEM SELECTION
+            ══════════════════════════════════ */}
+            {selectedItem && !isAddOnModalOpen && !isConfirmModalOpen && !isSuccessModalOpen && (
+                <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                        <div className="bg-[#3b2063] p-5 text-white text-center relative shrink-0">
+                            <h2 className="text-lg font-black uppercase tracking-wider">{selectedItem.name}</h2>
+                            <button onClick={closeModal} className="absolute top-5 right-6 text-white/50 hover:text-white transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-5 overflow-y-auto bg-white">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="bg-white p-3 rounded-2xl border-2 border-zinc-200">
+                                    <span className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest block mb-1">Barcode</span>
+                                    <span className="text-sm font-black text-[#3b2063]">{selectedItem.barcode}</span>
+                                </div>
+                                <div className="bg-white p-3 rounded-2xl border-2 border-zinc-200">
+                                    <span className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest block mb-1">Total Unit Price</span>
+                                    <span className="text-sm font-black text-[#3b2063]">₱ {Number(selectedItem.price).toFixed(2)}</span>
+                                </div>
+                            </div>
+                            <div className="flex items-center justify-between bg-white rounded-2xl p-2 border-2 border-zinc-200">
+                                <button onClick={() => adjustQty(-1)} className="w-12 h-12 bg-zinc-100 rounded-xl border border-zinc-300 text-[#3b2063] hover:text-red-500 transition-colors flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" /></svg>
+                                </button>
+                                <input type="text" value={qty} readOnly className="bg-transparent text-center font-black text-2xl text-[#3b2063] w-20 outline-none" />
+                                <button onClick={() => adjustQty(1)} className="w-12 h-12 bg-[#3b2063] rounded-xl shadow-lg text-white transition-colors flex items-center justify-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
                                 </button>
                             </div>
-
-                            <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar">
-                                
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="bg-zinc-50 p-3 rounded-2xl border border-zinc-100">
-                                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block mb-1">Barcode</span>
-                                        <span className="text-sm font-black text-[#3b2063]">{selectedItem.barcode}</span>
+                            {isDrink && (
+                                <>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
+                                        <div className="flex gap-2">
+                                            {SUGAR_LEVELS.map((level) => (
+                                                <button key={level} onClick={() => setSugarLevel(level)}
+                                                    className={`flex-1 py-2 rounded-xl text-[10px] font-black transition-all ${sugarLevel === level ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
+                                                    {level}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
-                                    <div className="bg-zinc-50 p-3 rounded-2xl border border-zinc-100">
-                                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest block mb-1">Total Unit Price</span>
-                                        <span className="text-sm font-black text-[#3b2063]">₱ {Number(selectedItem.price).toFixed(2)}</span>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center justify-between bg-zinc-50 rounded-2xl p-2 border border-zinc-100">
-                                    <button onClick={() => adjustQty(-1)} className="w-12 h-12 bg-white rounded-xl shadow-sm border border-zinc-200 text-[#3b2063] hover:text-red-500 transition-colors flex items-center justify-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" /></svg>
-                                    </button>
-                                    <input type="text" value={qty} readOnly className="bg-transparent text-center font-black text-2xl text-[#3b2063] w-20 outline-none" />
-                                    <button onClick={() => adjustQty(1)} className="w-12 h-12 bg-[#3b2063] rounded-xl shadow-lg text-white transition-colors flex items-center justify-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                                    </button>
-                                </div>
-
-                                {isDrink && (
-                                    <>
-                                        <div>
-                                            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
-                                            <div className="flex gap-2">
-                                                {SUGAR_LEVELS.map((level) => (
-                                                    <button
-                                                        key={level}
-                                                        onClick={() => setSugarLevel(level)}
-                                                        className={`flex-1 py-2 rounded-xl text-[10px] font-black transition-all ${
-                                                            sugarLevel === level 
-                                                            ? 'bg-[#3b2063] text-white shadow-md' 
-                                                            : 'bg-zinc-50 text-zinc-400 border border-zinc-100 hover:bg-zinc-100'
-                                                        }`}
-                                                    >
-                                                        {level}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        <div>
-                                            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2 mb-2 block">Extra</label>
-                                            <button 
-                                                onClick={() => setIsAddOnModalOpen(true)}
-                                                className="w-full py-4 rounded-xl border-2 border-dashed border-[#3b2063]/30 bg-[#f0ebff]/50 hover:bg-[#f0ebff] text-[#3b2063] font-black uppercase tracking-wider text-xs flex items-center justify-center transition-all group"
-                                            >
-                                                <span className="mr-2">
-                                                    {selectedAddOns.length > 0 
-                                                        ? `${selectedAddOns.length} Add-on(s) Selected` 
-                                                        : 'Select Add-ons'}
-                                                </span>
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4 group-hover:translate-x-1 transition-transform">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
-                                                </svg>
-                                            </button>
-                                        </div>
-
-                                        <div>
-                                            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2 mb-2 block">Options (Free)</label>
-                                            <div className="flex flex-wrap gap-2">
-                                                {EXTRA_OPTIONS.map((opt) => (
-                                                    <button
-                                                        key={opt}
-                                                        onClick={() => toggleOption(opt)}
-                                                        className={`px-3 py-2 rounded-xl text-[10px] font-bold uppercase transition-all ${
-                                                            selectedOptions.includes(opt)
-                                                            ? 'bg-[#3b2063] text-white shadow-md'
-                                                            : 'bg-zinc-50 text-zinc-400 border border-zinc-100 hover:bg-zinc-100'
-                                                        }`}
-                                                    >
-                                                        {opt}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
-
-                                <div>
-                                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2 mb-2 block">Charges (+10.00)</label>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <button
-                                            type="button"
-                                            onClick={() => !cartHasPanda && toggleCharge('grab')}
-                                            disabled={cartHasPanda}
-                                            className={`p-3 rounded-2xl border-2 transition-all flex items-center justify-center gap-2 ${cartHasPanda ? 'border-zinc-100 bg-zinc-50 text-zinc-300 opacity-60 cursor-not-allowed' : charges.grab ? 'border-green-500 bg-green-50 text-green-700' : 'border-zinc-100 bg-zinc-50 text-zinc-400 hover:border-green-200'}`}
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="12" viewBox="0 0 522.6 201.3" className="shrink-0" aria-hidden>
-                                                <path fill="#00b45e" d="M415.9 63.4V0h13v54.5c-3.6 1.8-8.5 5.2-13 8.9zm-22.6 19.1c4-4.8 8.1-9.6 13-13.7V0h-13v82.5zm-150.6 50.4c0 16.9 6.7 33 19 45.3 12.2 12.2 28.3 19 45.3 19 7.2 0 14.6-1.5 19.8-4.1v-13c-6.1 2.6-13.5 4.1-19.8 4.1-27.8 0-51.2-23.4-51.2-51.2v-11.7c0-27.8 23.5-51.2 51.2-51.2 13.8 0 26.7 5.3 36.3 14.9 9.6 9.6 14.9 22.5 14.9 36.3v76h13v-78.5c-.8-16.6-7.9-32.1-19.9-43.7-12.1-11.6-27.8-18-44.3-18-16.9 0-33 6.7-45.3 19-12.2 12.2-19 28.3-19 45.3v11.5zm194.6-31.2c5.9-5.9 13.5-9.2 21-9.2 16.1 0 28.6 12.6 28.6 28.6v11.7c0 16.1-12.6 28.6-28.6 28.6-7.8 0-15.3-4.3-21.2-12-5.2-6.8-8.6-16.1-9.1-24.4l-10.5 13c2.1 9.8 7.2 19.3 14.5 25.9 7.5 6.8 16.9 10.6 26.3 10.6 23 0 41.7-18.7 41.7-41.6v-11.7c0-10.9-4.4-21.3-12.4-29.2-8-8-18.4-12.4-29.3-12.4-6.9 0-17.8 2.5-30.8 14.2-3.5 3.5-11.7 11.7-16.7 17.5-8.4 9.2-20.5 22.9-30.9 36.8v20.3c11.5-14.8 18.1-23.1 29-35.6 9.6-11.4 21.6-25.1 28.4-31.1zM130.1 77.2V61.8c-11.8-6.3-24.6-9.1-41.6-9.1-17.4 0-33.9 6.4-46.4 17.9-12.6 11.6-19.5 26.8-19.5 43v4.2c0 33.6 26.9 60.9 60.1 60.9 26.9 0 38-8.8 40.8-11.6V128h-44v13h31.8v19.6h-.1c-4.1 1.6-12.6 5-28.5 5-12.6 0-24.5-4.9-33.3-13.9-8.9-9-13.7-21-13.7-34v-4.2c0-25.9 24.2-47.9 52.9-47.9 19.7.1 31.5 3.4 41.5 11.6zm94.8 15.3c4.9 0 9.1.8 12.5 2.4 1.6-4 3.3-7.4 5.7-11.4-3.5-2.5-12-4.1-18.2-4.1-23.7 0-41.6 17.9-41.6 41.7v76h13v-76c0-16.8 11.7-28.6 28.6-28.6zM0 113.6v4.2c0 22.6 8.6 43.6 24.1 59.3 15.5 15.6 36.3 24.2 58.5 24.2 17.9 0 33.7-4 47.1-12 11-6.6 15.9-13.2 16.3-13.8v-70H79.5v13H133v53.1c-6.3 6.3-21.2 16.8-50.3 16.8-19 0-36.6-7.3-49.6-20.5-12.9-13.1-20-30.9-20-50v-4.2c0-18.1 8.1-36.1 22.3-49.4 14.5-13.6 33.4-21.1 53.2-21.1 18.5 0 31.3 2.8 41.6 9.1V37.6C119.4 33 106.5 31 88.5 31 40.5 31 0 68.8 0 113.6zm348.5 83.5v-76c0-23.4-18.3-41.7-41.7-41.7-10.9 0-21.3 4.4-29.3 12.4s-12.4 18.4-12.4 29.2v11.7c0 22.6 19.1 41.6 41.6 41.6 6.2 0 14.6-1.5 19.8-5.8V155c-5.1 4.1-12.4 6.5-19.8 6.5-16 0-28.6-12.6-28.6-28.6v-11.7c0-16.1 12.6-28.6 28.6-28.6 16.1 0 28.6 12.6 28.6 28.6v76h13.2zM224.9 69.9c8.8 0 16.5 1.9 23.4 5.8 3.2-4.1 6.5-7.3 9-9.8-7.3-5.6-19.7-9-32.3-9-18.1 0-34.5 6.5-46.2 18.4-11.6 11.7-18 28-18 45.9v76h13v-76c-.1-30.2 20.9-51.3 51.1-51.3zm278.7 6c-12.2-12.2-28.3-19-45.3-19-12.4 0-24.8 4.6-31.7 9.2-14.2 9.4-25.8 19.7-46.8 46.8v19.5c17.8-23.2 34.6-41.4 47.4-51.5 8.4-6.7 20.3-10.9 31.1-10.9 27.8 0 51.2 23.5 51.2 51.2v11.7c0 13.7-5.4 26.6-15.2 36.3-9.7 9.6-22.5 14.9-36 14.9-22.8 0-42.9-15.7-48.3-37l-9.2 11.1c6.7 22.4 30.9 38.9 57.5 38.9 17 0 33-6.8 45.3-19 12.2-12.3 19-28.3 19-45.3v-11.7c0-16.9-6.8-33-19-45.2z"/>
-                                            </svg>
-                                            <span className="font-bold text-xs uppercase">Grab Food</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => !cartHasGrab && toggleCharge('panda')}
-                                            disabled={cartHasGrab}
-                                            className={`p-3 rounded-2xl border-2 transition-all flex items-center justify-center gap-2 ${cartHasGrab ? 'border-zinc-100 bg-zinc-50 text-zinc-300 opacity-60 cursor-not-allowed' : charges.panda ? 'border-pink-500 bg-pink-50 text-pink-700' : 'border-zinc-100 bg-zinc-50 text-zinc-400 hover:border-pink-200'}`}
-                                        >
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 48 48" className="shrink-0" aria-hidden>
-                                                <path fill="#d70f64" d="M44,24c0-0.129-0.017-0.253-0.019-0.381c-0.01-0.414-0.028-0.827-0.062-1.234	c-0.028-0.348-0.068-0.691-0.114-1.033c-0.023-0.168-0.049-0.335-0.077-0.502c-0.454-2.859-1.497-5.519-3.027-7.838	c1.104-0.892,1.67-2.305,1.67-3.864c0-2.94-2.368-5.146-5.336-5.146c-1.785,0-3.315,0.771-4.234,2.061C30.142,4.754,27.163,4,24,4	c-3.161,0-6.14,0.753-8.797,2.059C14.277,4.766,12.756,4,10.966,4C8.065,3.969,5.682,6.267,5.63,9.146	c0.024,1.457,0.628,2.841,1.671,3.861c-1.536,2.329-2.582,5-3.033,7.872c-0.033,0.201-0.065,0.401-0.092,0.603	c-0.035,0.276-0.067,0.552-0.09,0.832c-0.042,0.473-0.066,0.949-0.072,1.426C4.012,23.828,4,23.912,4,24	c0,0.021,0.003,0.041,0.003,0.062c0,0.027-0.003,0.055-0.003,0.082c0.003,10.084,7.584,18.392,17.396,19.667	C22.25,43.923,23.115,44,24,44c0,0,0,0,0,0c0.04,0,0.078-0.006,0.117-0.006c0.792-0.005,1.569-0.066,2.336-0.16	C36.337,42.627,43.994,34.284,44,24.15c0-0.029-0.003-0.058-0.003-0.087C43.997,24.042,44,24.021,44,24z M24,42	c-9.925,0-18-8.075-18-18S14.075,6,24,6s18,8.075,18,18S33.925,42,24,42z"/>
-                                                <path fill="#d70f64" d="M23.997,33.25c2.73,0,5.003-1.912,5.003-4.262H19c0,2.351,2.118,4.262,5.003,4.262H23.997z"/>
-                                                <path fill="#d70f64" d="M24.034,27.536c0.302,0.145,3.415-1.03,3.415-2.506c0-0.885-2.52-1.03-3.415-1.03	c-0.896,0-3.404,0.145-3.404,1.03c-0.146,1.476,3.113,2.651,3.41,2.506H24.034z"/>
-                                                <path fill="#d70f64" d="M35.545,15.13c-1.775-1.219-5.627-1.831-7.111,0.156c0,0-1.926,2.137,0,4.273 c1.926,2.137,3.259,4.285,3.707,5.966c0.448,1.831,1.181,2.443,2.52,2.443c1.338,0,3.998-2.137,4.44-5.654 C39.329,19.418,37.953,16.638,35.545,15.13z M32,20c-0.573,0-1-0.43-1-0.995s0.432-1,1-1s1,0.43,1,1C33,19.575,32.568,20,32,20z"/>
-                                                <path fill="#d70f64" d="M12.444,15.13c-1.78,1.219-3.852,3.667-3.555,7.184c0.297,3.517,2.967,5.654,4.446,5.654 c1.333,0,2.072-0.762,2.52-2.443c0.448-1.836,1.926-3.823,3.701-5.96c1.926-2.293,0-4.279,0-4.279 C18.077,13.299,14.224,13.911,12.444,15.13z M16.008,20v-0.005c-0.575,0-1.008-0.426-1.008-0.992S15.434,18,16.008,18 c0.574,0,1.003,0.431,1.003,1.003S16.577,20,16.008,20z"/>
-                                            </svg>
-                                            <span className="font-bold text-xs uppercase">Food Panda</span>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Extra</label>
+                                        <button onClick={() => setIsAddOnModalOpen(true)}
+                                            className="w-full py-4 rounded-xl border-2 border-dashed border-[#3b2063]/40 bg-[#f0ebff] hover:bg-[#e4dbff] text-[#3b2063] font-black uppercase tracking-wider text-xs flex items-center justify-center transition-all group">
+                                            <span className="mr-2">{selectedAddOns.length > 0 ? `${selectedAddOns.length} Add-on(s) Selected` : 'Select Add-ons'}</span>
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4 group-hover:translate-x-1 transition-transform"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
                                         </button>
                                     </div>
+                                    <div>
+                                        <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Options (Free)</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {EXTRA_OPTIONS.map((opt) => (
+                                                <button key={opt} onClick={() => toggleOption(opt)}
+                                                    className={`px-3 py-2 rounded-xl text-[10px] font-bold uppercase transition-all ${selectedOptions.includes(opt) ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
+                                                    {opt}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+                            <div>
+                                <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Charges (+10.00)</label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button type="button" onClick={() => orderCharge !== 'panda' && toggleOrderCharge('grab')} disabled={orderCharge === 'panda'}
+                                        className={`p-3 rounded-2xl border-2 transition-all flex items-center justify-center gap-2 ${orderCharge === 'panda' ? 'border-zinc-200 bg-white text-zinc-300 opacity-40' : orderCharge === 'grab' ? 'border-green-500 bg-green-50 text-green-700' : 'border-zinc-300 bg-white text-zinc-500 hover:border-green-300 hover:bg-green-50'}`}>
+                                        <span className="font-bold text-xs uppercase">Grab Food</span>
+                                    </button>
+                                    <button type="button" onClick={() => orderCharge !== 'grab' && toggleOrderCharge('panda')} disabled={orderCharge === 'grab'}
+                                        className={`p-3 rounded-2xl border-2 transition-all flex items-center justify-center gap-2 ${orderCharge === 'grab' ? 'border-zinc-200 bg-white text-zinc-300 opacity-40' : orderCharge === 'panda' ? 'border-pink-500 bg-pink-50 text-pink-700' : 'border-zinc-300 bg-white text-zinc-500 hover:border-pink-300 hover:bg-pink-50'}`}>
+                                        <span className="font-bold text-xs uppercase">Food Panda</span>
+                                    </button>
                                 </div>
-
-                                <div>
-                                    <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2 mb-2 block">Remarks</label>
-                                    <textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Additional notes..." className="w-full p-4 bg-zinc-50 rounded-2xl border border-zinc-200 text-sm font-bold text-[#3b2063] resize-none h-16 outline-none transition-all" />
-                                </div>
-
-                                <button onClick={addToOrder} className="w-full bg-[#3b2063] text-white py-4 rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-lg hover:bg-[#2a1647]">Add Order</button>
                             </div>
+                            <div>
+                                <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Remarks</label>
+                                <textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Additional notes..."
+                                    className="w-full p-4 bg-white rounded-2xl border-2 border-zinc-200 text-sm font-bold text-[#3b2063] resize-none h-16 outline-none focus:border-[#3b2063] transition-all" />
+                            </div>
+                            {(() => {
+                                const pearlOptions = ['NO PRL', 'W/ PRL'];
+                                const hasPearlSelected = selectedOptions.some(o => pearlOptions.includes(o));
+                                const canAdd = !isDrink || hasPearlSelected;
+                                return (
+                                    <button onClick={addToOrder} disabled={!canAdd} title={!canAdd ? 'Please select NO PRL or W/ PRL' : ''}
+                                        className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${canAdd ? 'bg-[#3b2063] text-white hover:bg-[#2a1647]' : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'}`}>
+                                        {canAdd ? 'Add Order' : 'Select Pearl Option'}
+                                    </button>
+                                );
+                            })()}
                         </div>
                     </div>
-                )}
+                </div>
+            )}
 
-                {/* MODAL: ADD-ONS */}
-                {isAddOnModalOpen && (
-                    <div className="fixed inset-0 z-110 flex items-center justify-center bg-black/50 backdrop-blur-md p-4">
-                        <div className="bg-white w-full max-w-lg rounded-4xl shadow-2xl flex flex-col h-[80vh]">
-                            <div className="bg-[#3b2063] p-6 text-white text-center relative shrink-0 rounded-t-4xl">
-                                <h2 className="text-lg font-black uppercase tracking-wider">Select Add-ons</h2>
-                                <button onClick={() => setIsAddOnModalOpen(false)} className="absolute top-6 right-6 text-white font-bold text-xs bg-white/20 px-3 py-1.5 rounded-lg">Done</button>
-                            </div>
-                            
-                            <div className="p-6 overflow-y-auto custom-scrollbar flex-1">
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                    {getAddOnsSinkers().map((addon) => (
-                                        <button
-                                            key={addon.id}
-                                            onClick={() => toggleAddOn(addon.name)}
-                                            className={`p-3 rounded-xl text-left border-2 transition-all h-24 flex flex-col justify-between ${
-                                                selectedAddOns.includes(addon.name)
-                                                ? 'bg-[#3b2063] border-[#3b2063] text-white'
-                                                : 'bg-white border-zinc-100 text-zinc-500 hover:bg-zinc-50'
-                                            }`}
-                                        >
-                                            <span className="text-[10px] font-black uppercase leading-tight">{addon.name}</span>
-                                            <span className="text-xs font-bold">₱{Number(addon.price).toFixed(2)}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                            
-                            <div className="p-4 border-t border-zinc-100 bg-zinc-50 rounded-b-4xl">
-                                <button onClick={() => setIsAddOnModalOpen(false)} className="w-full bg-[#3b2063] text-white py-4 rounded-xl font-black uppercase tracking-widest shadow-lg">Confirm Selection ({selectedAddOns.length})</button>
+            {/* ══════════════════════════════════
+                MODAL: ADD-ONS
+            ══════════════════════════════════ */}
+            {isAddOnModalOpen && (
+                <div className="fixed inset-0 z-110 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-white w-full max-w-lg rounded-4xl shadow-2xl flex flex-col h-[80vh]">
+                        <div className="bg-[#3b2063] p-6 text-white text-center relative shrink-0 rounded-t-4xl">
+                            <h2 className="text-lg font-black uppercase tracking-wider">Select Add-ons</h2>
+                            <button onClick={() => setIsAddOnModalOpen(false)} className="absolute top-6 right-6 text-white font-bold text-xs bg-white/20 px-3 py-1.5 rounded-lg">Done</button>
+                        </div>
+                        <div className="p-6 overflow-y-auto flex-1 bg-white">
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                {addOnsData.map((addon) => (
+                                    <button key={addon.id} onClick={() => toggleAddOn(addon.name)}
+                                        className={`p-3 rounded-xl text-left border-2 transition-all h-24 flex flex-col justify-between ${selectedAddOns.includes(addon.name) ? 'bg-[#3b2063] border-[#3b2063] text-white' : 'bg-white border-zinc-300 text-zinc-600 hover:border-[#3b2063]/40 hover:bg-[#f0ebff]'}`}>
+                                        <span className="text-[10px] font-black uppercase leading-tight">{addon.name}</span>
+                                        <span className="text-xs font-bold">₱{Number(addon.price).toFixed(2)}</span>
+                                    </button>
+                                ))}
                             </div>
                         </div>
+                        <div className="p-4 border-t border-zinc-200 bg-white rounded-b-4xl">
+                            <button onClick={() => setIsAddOnModalOpen(false)} className="w-full bg-[#3b2063] text-white py-4 rounded-xl font-black uppercase tracking-widest shadow-lg">
+                                Confirm Selection ({selectedAddOns.length})
+                            </button>
+                        </div>
                     </div>
-                )}
+                </div>
+            )}
 
-                {/* MODAL: CONFIRM ORDER */}
-                {isConfirmModalOpen && (
-                    <div className="fixed inset-0 z-120 flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
-                        <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden">
-                            <div className="bg-[#3b2063] p-6 text-white text-center">
-                                <h2 className="text-xl font-black uppercase tracking-widest">Confirm Order</h2>
-                            </div>
-
-                            <div className="p-6 flex-1 overflow-y-auto max-h-[60vh] custom-scrollbar bg-zinc-50">
-                                {cart.length === 0 ? <p className="text-center text-zinc-400 font-bold text-sm py-8">Cart is empty.</p> : (
-                                    <div className="space-y-4">
-                                        {cart.map((item, i) => (
-                                            <div key={i} className="flex justify-between items-start border-b border-zinc-200 pb-3 last:border-0">
-                                                <div>
-                                                    <p className="font-bold text-sm text-[#3b2063]">{item.qty}x {item.name}</p>
-                                                    <div className="text-[10px] text-zinc-500 mt-1 ml-2">
-                                                        {item.sugarLevel != null && <p key="sugar">• Sugar {item.sugarLevel}</p>}
-                                                        {item.options?.map(o => <p key={o}>• {o}</p>)}
-                                                        {item.addOns?.map(a => <p key={a}>• + {a}</p>)}
+            {/* ══════════════════════════════════
+                MODAL: CONFIRM ORDER & PAYMENT
+            ══════════════════════════════════ */}
+            {isConfirmModalOpen && (
+                <div className="fixed inset-0 z-120 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-white w-full max-w-5xl rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden max-h-[95vh]">
+                        <div className="bg-[#3b2063] p-5 text-white text-center shrink-0">
+                            <h2 className="text-xl font-black uppercase tracking-widest">Payment Details</h2>
+                            <p className="text-white/60 text-xs mt-1 uppercase">{cashierName ?? 'Admin'}</p>
+                        </div>
+                        <div className="flex flex-col md:flex-row flex-1 min-h-[50vh] max-h-[80vh]">
+                            <div className="flex-1 flex flex-col bg-white border-r border-zinc-200 overflow-hidden">
+                                <div className="flex-1 p-6 overflow-y-auto border-b border-zinc-200">
+                                    <h3 className="font-black text-sm text-[#3b2063] uppercase mb-4 tracking-wider">Cart Items</h3>
+                                    {cart.length === 0 ? <p className="text-center text-zinc-400 font-bold text-sm py-8">Cart is empty.</p> : (
+                                        <div className="space-y-4">
+                                            {cart.map((item, i) => (
+                                                <div key={i} className="flex justify-between items-start pb-3 border-b border-zinc-200 last:border-0">
+                                                    <div>
+                                                        <p className="font-bold text-sm text-[#3b2063]">
+                                                            {item.qty}x {item.name}
+                                                            {item.cupSizeLabel && <span className="ml-1 opacity-60">({item.cupSizeLabel})</span>}
+                                                        </p>
+                                                        <div className="text-[10px] text-zinc-500 mt-1 ml-2">
+                                                            {item.sugarLevel != null && <p>• Sugar {item.sugarLevel}</p>}
+                                                            {item.options?.map(o => <p key={o}>• {o}</p>)}
+                                                            {item.addOns?.map(a => <p key={a}>• + {a}</p>)}
+                                                        </div>
                                                     </div>
+                                                    <p className="font-black text-sm text-[#3b2063]">₱ {item.finalPrice.toFixed(2)}</p>
                                                 </div>
-                                                <p className="font-black text-sm">₱ {item.finalPrice.toFixed(2)}</p>
-                                            </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="p-6 bg-white shrink-0 border-t border-zinc-200">
+                                    <h3 className="font-black text-xs text-zinc-400 uppercase tracking-widest mb-3">Order Summary</h3>
+                                    <div className="space-y-1.5 text-[11px] font-bold text-zinc-600 mb-4">
+                                        <div className="flex justify-between"><span>Quantity (Items)</span><span>{totalCount}</span></div>
+                                        <div className="flex justify-between"><span>Sub Total</span><span>₱ {subtotal.toFixed(2)}</span></div>
+                                        <div className="flex justify-between"><span>VATable Sales</span><span>₱ {vatableSales.toFixed(2)}</span></div>
+                                        <div className="flex justify-between"><span>VAT Amount</span><span>₱ {vatAmount.toFixed(2)}</span></div>
+                                        <div className="flex justify-between"><span>VAT Exempt Sales</span><span>₱ 0.00</span></div>
+                                        <div className="flex justify-between text-red-400"><span>Discount</span><span>₱ 0.00</span></div>
+                                        <div className="flex justify-between"><span>Service Charge</span><span>₱ 0.00</span></div>
+                                    </div>
+                                    <div className="flex justify-between items-center text-[#3b2063] border-t border-zinc-200 pt-3">
+                                        <span className="font-black uppercase tracking-wider text-sm">Amt Due</span>
+                                        <span className="text-2xl font-black">₱ {amtDue.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex-1 p-6 bg-white flex flex-col justify-between overflow-y-auto">
+                                <div>
+                                    {/* Payment Method */}
+                                    <h3 className="font-black text-sm text-[#3b2063] uppercase mb-3 tracking-wider">Payment Method</h3>
+                                    <div className="grid grid-cols-3 gap-2 mb-5">
+                                        {([
+                                            { id: 'cash',    label: 'Cash',    icon: '💵' },
+                                            { id: 'gcash',   label: 'GCash',   icon: '📱' },
+                                            { id: 'paymaya', label: 'Maya',    icon: '💙' },
+                                            { id: 'credit',  label: 'Credit',  icon: '💳' },
+                                            { id: 'debit',   label: 'Debit',   icon: '🏦' },
+                                        ] as const).map(({ id, label, icon }) => (
+                                            <button
+                                                key={id}
+                                                onClick={() => { setPaymentMethod(id); setReferenceNumber(''); setCashTendered(''); }}
+                                                className={`py-3 rounded-xl font-black text-[11px] uppercase tracking-wider transition-all border-2 flex flex-col items-center gap-1
+                                                    ${paymentMethod === id
+                                                        ? 'bg-[#3b2063] text-white border-[#3b2063]'
+                                                        : 'bg-[#f0ebff] text-[#3b2063] border-[#3b2063]/20 hover:bg-[#e4dbff]'}`}
+                                            >
+                                                <span className="text-lg">{icon}</span>
+                                                {label}
+                                            </button>
                                         ))}
                                     </div>
-                                )}
-                            </div>
 
-                            <div className="p-6 bg-white border-t border-zinc-100 space-y-3">
-                                <div className="flex justify-between items-end mb-4">
-                                    <span className="text-xs font-bold text-zinc-400 uppercase">Total Amount</span>
-                                    <span className="text-3xl font-black text-[#3b2063]">₱ {subtotal.toFixed(2)}</span>
+                                    {/* CASH FIELDS */}
+                                    {paymentMethod === 'cash' && (
+                                        <>
+                                            <h3 className="font-black text-sm text-[#3b2063] uppercase mb-3 tracking-wider">Cash Tendered</h3>
+                                            <div className="relative mb-4">
+                                                <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-2xl text-zinc-400">₱</span>
+                                                <input
+                                                    type="number"
+                                                    value={cashTendered}
+                                                    onChange={(e) => setCashTendered(e.target.value ? Number(e.target.value) : '')}
+                                                    className="w-full bg-white border-2 border-zinc-300 rounded-2xl py-4 pl-12 pr-4 text-3xl font-black text-[#3b2063] outline-none focus:border-[#3b2063] transition-colors"
+                                                    placeholder="0.00"
+                                                />
+                                            </div>
+                                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
+                                                <button
+                                                    onClick={() => setCashTendered(amtDue)}
+                                                    className="col-span-2 lg:col-span-4 bg-green-100 hover:bg-green-500 hover:text-white text-green-700 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-sm border-2 border-green-200"
+                                                >
+                                                    Exact Amount (₱ {amtDue.toFixed(2)})
+                                                </button>
+                                                {[100, 200, 500, 1000].map(amount => (
+                                                    <button
+                                                        key={amount}
+                                                        onClick={() => setCashTendered(amount)}
+                                                        className="bg-[#f0ebff] hover:bg-[#3b2063] hover:text-white text-[#3b2063] py-3 rounded-xl font-black text-base transition-all border-2 border-[#3b2063]/20"
+                                                    >
+                                                        ₱ {amount}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                            <div className="flex justify-between items-center bg-white p-4 rounded-2xl border-2 border-zinc-300 mb-2">
+                                                <span className="font-black text-zinc-500 uppercase text-sm tracking-widest">Change</span>
+                                                <span className={`text-3xl font-black ${change > 0 ? 'text-green-500' : 'text-zinc-300'}`}>
+                                                    ₱ {change.toFixed(2)}
+                                                </span>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {/* GCASH / PAYMAYA / CARD FIELDS */}
+                                    {paymentMethod !== 'cash' && (
+                                        <>
+                                            <h3 className="font-black text-sm text-[#3b2063] uppercase mb-3 tracking-wider">
+                                                {paymentMethod === 'credit' || paymentMethod === 'debit' ? 'Approval Code' : 'Reference Number'}
+                                            </h3>
+                                            <input
+                                                type="text"
+                                                value={referenceNumber}
+                                                onChange={(e) => setReferenceNumber(e.target.value)}
+                                                className="w-full bg-white border-2 border-zinc-300 rounded-2xl py-4 px-5 text-xl font-black text-[#3b2063] outline-none focus:border-[#3b2063] transition-colors mb-4 tracking-widest"
+                                                placeholder={paymentMethod === 'credit' || paymentMethod === 'debit' ? 'e.g. ABC123' : 'e.g. 1234567890'}
+                                            />
+                                            <div className="flex justify-between items-center bg-[#f0ebff] p-4 rounded-2xl border-2 border-[#3b2063]/10">
+                                                <span className="font-black text-[#3b2063]/60 uppercase text-sm tracking-widest">Amount Due</span>
+                                                <span className="text-3xl font-black text-[#3b2063]">₱ {amtDue.toFixed(2)}</span>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
-                                <button 
-                                    onClick={handleConfirmOrder} 
-                                    disabled={cart.length === 0 || submitting} 
-                                    className="w-full bg-[#3b2063] text-white py-4 rounded-xl font-black uppercase tracking-widest disabled:bg-zinc-300"
-                                >
-                                    {submitting ? 'Processing...' : 'Print Receipt'}
-                                </button>
-                                <button onClick={() => { setIsConfirmModalOpen(false); setOrderChargeType(null); }} className="w-full bg-white border-2 border-zinc-100 text-zinc-500 py-4 rounded-xl font-bold uppercase tracking-widest">Cancel</button>
-                            </div>
-                        </div>
-                    </div>
-                )}
 
-                {/* HEADER */}
-                <div className="flex gap-4 p-4 border-b border-zinc-200 bg-white items-stretch h-24 shrink-0 shadow-sm z-20">
-                    <div className="flex gap-2">
-                        {['Home', 'Cat', 'Kit', 'Bar', 'Bill'].map((label) => (
-                            <button key={label} onClick={() => handleNavClick(label)} className="bg-[#3b2063] text-white w-20 h-full rounded-2xl font-bold text-xs uppercase tracking-wider shadow-md hover:bg-[#2a1647] transition-all flex flex-col items-center justify-center gap-1">
-                                {label}
-                            </button>
-                        ))}
-                    </div>
-                    <div className="flex-1 bg-zinc-50 rounded-2xl p-2 flex gap-2 shadow-inner border border-zinc-200">
-                        <input 
-                            type="text" 
-                            placeholder="Search Item..." 
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="flex-1 bg-transparent px-4 font-bold text-zinc-700 outline-none uppercase placeholder:text-zinc-300 text-sm" 
-                        />
-                    </div>
-                    <div className="flex flex-col gap-2 w-56">
-                        <div className="flex-1 bg-white border border-zinc-100 rounded-xl flex items-center justify-center text-[#3b2063] font-black uppercase text-[10px]">Main Branch - QC</div>
-                        <div className="flex-1 bg-[#3b2063] rounded-xl flex items-center justify-center text-white text-center">
-                            <div>
-                                <div className="text-[10px] font-bold uppercase leading-none opacity-80">{formatDate(currentDate)}</div>
-                                <div className="text-sm font-black leading-none">{formatTime(currentDate)}</div>
+                                {/* ACTION BUTTONS */}
+                                <div className="space-y-2 mt-4 shrink-0">
+                                    <button
+                                        onClick={handleConfirmOrder}
+                                        disabled={
+                                            cart.length === 0 ||
+                                            submitting ||
+                                            (paymentMethod === 'cash' && (cashTendered === '' || (typeof cashTendered === 'number' && cashTendered < amtDue))) ||
+                                            (paymentMethod !== 'cash' && referenceNumber.trim() === '')
+                                        }
+                                        className="w-full bg-[#3b2063] text-white py-4 rounded-xl font-black text-base uppercase tracking-widest shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed transition-colors"
+                                    >
+                                        {submitting ? 'Processing...' : 'Pay & Submit'}
+                                    </button>
+                                    <button
+                                        onClick={() => { setIsConfirmModalOpen(false); setCashTendered(''); setPaymentMethod('cash'); setReferenceNumber(''); }}
+                                        className="w-full bg-white border-2 border-zinc-300 text-zinc-500 py-3 rounded-xl font-bold uppercase tracking-widest hover:bg-zinc-50 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
+            )}
 
-                {/* MAIN BODY */}
-                <div className="flex flex-1 overflow-hidden relative z-10">
-                    <div className="flex-1 overflow-y-auto p-6 bg-[#f8f6ff]">
-                        {selectedCategory ? (
-                            <div className="flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-300">
-                                <div className="flex items-center gap-4 mb-6 sticky top-0 z-10 bg-[#f8f6ff] py-2">
-                                    <button onClick={handleBack} className="bg-white p-3 rounded-xl shadow-sm border border-zinc-200 text-[#3b2063]">
-                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
-                                    </button>
-                                    <h2 className="text-[#3b2063] font-black text-xl uppercase tracking-wide">
-                                        {selectedCategory.name} {categorySize && <span className="opacity-50"> &bull; {categorySize}</span>}
+            {/* ══════════════════════════════════
+                MODAL: SUCCESS / PRINT OPTIONS
+            ══════════════════════════════════ */}
+            {isSuccessModalOpen && (
+                <div className="fixed inset-0 z-130 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                    <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden text-center">
+                        <div className="bg-green-500 p-8 text-white">
+                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={4} stroke="#22c55e" className="w-8 h-8">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                                </svg>
+                            </div>
+                            <h2 className="text-2xl font-black uppercase tracking-widest">Saved!</h2>
+                            <p className="text-white/80 font-bold mt-1 text-sm">OR: {orNumber}</p>
+                        </div>
+                        <div className="p-6 space-y-3 bg-white">
+
+                            {/* Print Customer Receipt */}
+                            <button
+                                onClick={handlePrintReceipt}
+                                className={`w-full py-4 rounded-xl font-bold uppercase flex justify-center items-center gap-2 transition-colors border-2
+                                    ${printedReceipt
+                                        ? 'bg-green-50 text-green-600 border-green-300'
+                                        : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100'}`}
+                            >
+                                {printedReceipt ? (
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                                ) : (
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0v3.398c0 .796.604 1.48 1.389 1.554a41.349 41.349 0 0 1 7.722 0c.785.074 1.389-.758 1.389-1.554V7.034Z" /></svg>
+                                )}
+                                {printedReceipt ? 'Receipt Printed ✓' : 'Print Customer Receipt'}
+                            </button>
+
+                            {/* Print Kitchen Ticket */}
+                            <button
+                                onClick={handlePrintKitchen}
+                                className={`w-full py-4 rounded-xl font-black uppercase tracking-wider flex justify-center items-center gap-2 transition-colors border-2
+                                    ${printedKitchen
+                                        ? 'bg-green-50 text-green-600 border-green-300'
+                                        : 'bg-[#fce7f3] text-[#be185d] border-[#be185d]/30 hover:bg-[#fbcfe8]'}`}
+                            >
+                                {printedKitchen ? (
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                                ) : (
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.866 8.21 8.21 0 0 0 3 2.48Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 18a3.75 3.75 0 0 0 .495-7.468 5.99 5.99 0 0 0-1.925 3.547 5.975 5.975 0 0 1-2.133-1.001A3.75 3.75 0 0 0 12 18Z" /></svg>
+                                )}
+                                {printedKitchen ? 'Kitchen Ticket Printed ✓' : 'Print Kitchen Ticket'}
+                            </button>
+
+                            {/* Print Drink Stickers — only shown if order has drinks */}
+                            {hasStickers && (
+                                <button
+                                    onClick={handlePrintStickers}
+                                    className={`w-full py-4 rounded-xl font-black uppercase tracking-wider flex justify-center items-center gap-2 transition-colors border-2
+                                        ${printedStickers
+                                            ? 'bg-green-50 text-green-600 border-green-300'
+                                            : 'bg-[#f0ebff] text-[#3b2063] border-[#3b2063]/30 hover:bg-[#e4dbff]'}`}
+                                >
+                                    {printedStickers ? (
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                                    ) : (
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" /></svg>
+                                    )}
+                                    {printedStickers ? 'Stickers Printed ✓' : 'Print Drink Stickers'}
+                                </button>
+                            )}
+
+                            {/* Progress hint — shows which are still pending */}
+                            {(() => {
+                                const required = [
+                                    { label: 'Receipt',        done: printedReceipt  },
+                                    { label: 'Kitchen Ticket', done: printedKitchen  },
+                                    ...(hasStickers ? [{ label: 'Stickers', done: printedStickers }] : []),
+                                ];
+                                const pending = required.filter(r => !r.done);
+                                const allDone = pending.length === 0;
+                                return (
+                                    <div className={`text-[10px] font-bold uppercase tracking-widest px-2 py-2 rounded-xl ${allDone ? 'text-green-600 bg-green-50' : 'text-zinc-400 bg-zinc-50'}`}>
+                                        {allDone
+                                            ? '✓ All prints done — ready for next order'
+                                            : `Still needed: ${pending.map(p => p.label).join(', ')}`}
+                                    </div>
+                                );
+                            })()}
+
+                            {/* Start New Order — locked until all required prints are done */}
+                            <div className="border-t border-zinc-200 pt-3">
+                                {(() => {
+                                    const allPrinted = printedReceipt && printedKitchen && (!hasStickers || printedStickers);
+                                    return (
+                                        <button
+                                            onClick={handleNewOrder}
+                                            disabled={!allPrinted}
+                                            title={!allPrinted ? 'Please print all required documents first' : ''}
+                                            className={`w-full py-4 rounded-xl font-black uppercase tracking-widest shadow-lg transition-all
+                                                ${allPrinted
+                                                    ? 'bg-[#3b2063] text-white hover:bg-[#2a1647] cursor-pointer'
+                                                    : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'}`}
+                                        >
+                                            {allPrinted ? 'Start New Order →' : `Print All First (${[!printedReceipt, !printedKitchen, hasStickers && !printedStickers].filter(Boolean).length} left)`}
+                                        </button>
+                                    );
+                                })()}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ══════════════════════════════════
+                HEADER — matches modal header style
+            ══════════════════════════════════ */}
+            <div className="flex gap-3 px-4 py-3 bg-white border-b border-zinc-200 items-center h-20 shrink-0 shadow-sm z-20">
+                {/* Home button — mirrors modal's purple header bar */}
+                <button onClick={() => handleNavClick('Home')}
+                    className="bg-[#3b2063] text-white h-full px-5 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-md hover:bg-[#2a1647] transition-all flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                    </svg>
+                    Home
+                </button>
+
+                {/* Search — styled like modal input fields */}
+                <div className="flex-1 bg-zinc-50 rounded-2xl border-2 border-zinc-200 flex items-center px-4 gap-2 h-full focus-within:border-[#3b2063] transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-zinc-400 shrink-0">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 15.803a7.5 7.5 0 0 0 10.607 0Z" />
+                    </svg>
+                    <input type="text" placeholder="Search item..." value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="flex-1 bg-transparent font-bold text-zinc-700 outline-none uppercase placeholder:text-zinc-300 text-sm" />
+                </div>
+
+                {/* Branch & Time — mirroring the modal info cards */}
+                <div className="flex gap-2 h-full">
+                    <div className="bg-[#f0ebff] border-2 border-[#3b2063]/20 rounded-2xl flex items-center justify-center px-4">
+                        <div className="text-center">
+                            <div className="text-[9px] font-black uppercase text-[#3b2063]/50 tracking-widest leading-none">Branch</div>
+                            <div className="text-[11px] font-black text-[#3b2063] uppercase leading-tight mt-0.5">Main - QC</div>
+                        </div>
+                    </div>
+                    <div className="bg-[#3b2063] rounded-2xl flex items-center justify-center px-4 min-w-22.5 shadow-md">
+                        <div className="text-center text-white">
+                            <div className="text-[9px] font-bold uppercase opacity-60 leading-none">{formattedDate}</div>
+                            <div className="text-[13px] font-black leading-tight mt-0.5">{formattedTime}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* ══════════════════════════════════
+                MAIN BODY
+            ══════════════════════════════════ */}
+            <div className="flex flex-1 overflow-hidden relative z-10">
+
+                {/* ── LEFT: MENU AREA ── */}
+                <div className="flex-1 overflow-y-auto p-5 bg-[#f0edf8]">
+                    {selectedCategory ? (
+                        <div className="flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-300">
+                            {/* Back bar — styled like modal header section */}
+                            <div className="flex items-center gap-3 mb-5 sticky top-0 z-10 bg-[#f0edf8] py-2">
+                                <button onClick={handleBack}
+                                    className="bg-white p-3 rounded-2xl shadow-sm border-2 border-zinc-200 text-[#3b2063] hover:border-[#3b2063] hover:bg-[#f0ebff] transition-all">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                                    </svg>
+                                </button>
+                                <div>
+                                    <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-none mb-0.5">Category</div>
+                                    <h2 className="text-[#3b2063] font-black text-lg uppercase tracking-wide leading-none">
+                                        {selectedCategory.name}
+                                        {categorySize && <span className="ml-2 text-sm opacity-40 font-bold">• {categorySize}</span>}
                                     </h2>
                                 </div>
-                                
-                                {/* SIZE/QTY SELECTION BEFORE ITEMS */}
-                                {(isDrink || isOz || isWings) && !categorySize ? (
-                                    <div className="flex flex-col items-center justify-center h-full gap-6">
-                                        <h3 className="text-xl font-bold text-zinc-400 uppercase">
-                                            {isWings ? "Select Quantity" : "Select Size/Qty"}
-                                        </h3>
-                                        
-                                        {isWings ? (
-                                            <div className="grid grid-cols-2 gap-6 w-full max-w-2xl">
-                                                {WINGS_QUANTITIES.map((qty) => (
-                                                    <button 
-                                                        key={qty}
-                                                        onClick={() => setCategorySize(qty)}
-                                                        className="h-48 bg-white rounded-3xl shadow-lg border-2 border-transparent hover:border-[#3b2063] transition-all flex flex-col items-center justify-center group font-black uppercase text-[#3b2063] text-2xl"
-                                                    >
-                                                        {qty}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div className="flex gap-6 w-full max-w-lg">
-                                                <button onClick={() => setCategorySize('M')} className="flex-1 h-56 bg-white rounded-3xl shadow-lg border-2 border-transparent hover:border-[#3b2063] transition-all flex flex-col items-center justify-center group font-black uppercase text-[#3b2063]">
-                                                    <DrinkIcon className="w-16 h-16 mb-4 opacity-80" />
-                                                    <span>Medium / Sm</span>
-                                                </button>
-                                                <button onClick={() => setCategorySize('L')} className="flex-1 h-56 bg-white rounded-3xl shadow-xl border-2 border-transparent hover:border-[#3b2063] hover:scale-105 transition-all flex flex-col items-center justify-center group font-black uppercase text-[#3b2063]">
-                                                    <DrinkIcon className="w-24 h-24 mb-4" />
-                                                    <span>Large / Lg</span>
-                                                </button>
-                                            </div>
-                                        )}
+                            </div>
+
+                            {/* SIZE / QTY PICKER — card style matching modals */}
+                            {needsSizePicker ? (
+                                <div className="flex flex-col items-center justify-center flex-1 gap-5">
+                                    <div className="text-center">
+                                        <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Step</div>
+                                        <h3 className="text-xl font-black text-[#3b2063] uppercase">{isWings ? 'Select Quantity' : 'Select Size'}</h3>
                                     </div>
-                                ) : (
-                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 pb-20">
-                                        {selectedCategory.menu_items
-                                            .filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
-                                            .map((item) => (
-                                                <button key={item.id} onClick={() => handleItemClick(item)} className="bg-white hover:bg-[#3b2063] hover:text-white text-[#3b2063] p-4 rounded-2xl shadow-sm border border-zinc-100 h-24 text-xs uppercase font-bold text-center">
-                                                    {item.name}
+                                    {isWings ? (
+                                        <div className="grid grid-cols-2 gap-4 w-full max-w-2xl">
+                                            {WINGS_QUANTITIES.map((qty) => (
+                                                <button key={qty} onClick={() => setCategorySize(qty)}
+                                                    className="h-44 bg-white rounded-3xl shadow-md border-2 border-zinc-200 hover:border-[#3b2063] hover:shadow-xl hover:scale-105 transition-all flex flex-col items-center justify-center font-black uppercase text-[#3b2063] text-2xl">
+                                                    {qty}
                                                 </button>
                                             ))}
+                                        </div>
+                                    ) : (
+                                        <div className="flex gap-5 w-full max-w-md">
+                                            <button onClick={() => setCategorySize(selectedCategory?.cup?.size_m || 'M')}
+                                                className="flex-1 h-56 bg-white rounded-3xl shadow-md border-2 border-zinc-200 hover:border-[#3b2063] hover:shadow-xl hover:scale-105 transition-all flex flex-col items-center justify-center font-black text-[#3b2063]">
+                                                <DrinkIcon className="w-14 h-14 mb-3 opacity-70" />
+                                                <span className="text-3xl font-black tracking-widest">{selectedCategory?.cup?.size_m || 'M'}</span>
+                                                <span className="mt-2 bg-[#3b2063]/10 text-[#3b2063] text-[10px] font-black px-3 py-1 rounded-full tracking-widest">Medium</span>
+                                            </button>
+                                            {selectedCategory?.cup?.size_l && (
+                                                <button onClick={() => setCategorySize(selectedCategory?.cup?.size_l || 'L')}
+                                                    className="flex-1 h-56 bg-white rounded-3xl shadow-md border-2 border-zinc-200 hover:border-[#3b2063] hover:shadow-xl hover:scale-105 transition-all flex flex-col items-center justify-center font-black text-[#3b2063]">
+                                                    <DrinkIcon className="w-20 h-20 mb-3 opacity-90" />
+                                                    <span className="text-3xl font-black tracking-widest">{selectedCategory?.cup?.size_l || 'L'}</span>
+                                                    <span className="mt-2 bg-[#3b2063]/10 text-[#3b2063] text-[10px] font-black px-3 py-1 rounded-full tracking-widest">Large</span>
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            ) : (
+                                /* ITEM GRID — same card language as modals */
+                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 pb-20">
+                                    {getFilteredItems(
+                                        selectedCategory.menu_items.filter(item =>
+                                            item.name.toLowerCase().includes(searchQuery.toLowerCase())
+                                        )
+                                    ).map((item) => (
+                                        <button key={item.id} onClick={() => handleItemClick(item)}
+                                            className="group bg-white hover:bg-[#3b2063] text-[#3b2063] hover:text-white p-4 rounded-2xl shadow-sm border-2 border-zinc-200 hover:border-[#3b2063] h-24 text-xs uppercase font-black text-center transition-all hover:shadow-lg hover:scale-[1.03] active:scale-100 flex items-center justify-center">
+                                            {item.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        /* CATEGORY GROUP LIST */
+                        <div className="pb-20 animate-in fade-in zoom-in duration-300 space-y-7">
+                            {[
+                                { label: 'Food',   types: ['food', 'wings'], colorKey: 'food'  },
+                                { label: 'Drinks', types: ['drink'],         colorKey: 'drink' },
+                                { label: 'Promo',  types: ['promo'],         colorKey: 'promo' },
+                            ].map(({ label, types, colorKey }) => {
+                                const groupCats = filteredCategories.filter(cat => types.includes(cat.type));
+                                if (groupCats.length === 0) return null;
+                                const { pill, card } = typeBadge[colorKey as keyof typeof typeBadge];
+                                return (
+                                    <div key={colorKey}>
+                                        {/* Section header — card-style divider */}
+                                        <div className="flex items-center gap-3 mb-3 px-1">
+                                            <span className={`${pill} text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-sm`}>{label}</span>
+                                            <div className="flex-1 h-px bg-zinc-300/60"></div>
+                                            <span className="text-[11px] text-zinc-400 font-bold">{groupCats.length} categories</span>
+                                        </div>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                                            {groupCats.map((cat) => (
+                                                <button key={cat.id} onClick={() => handleCategoryClick(cat)}
+                                                    className={`bg-white ${card} font-black text-[13px] uppercase p-4 rounded-2xl h-24 shadow-sm border-2 border-zinc-200 transition-all hover:shadow-lg hover:scale-[1.03] active:scale-100 text-[#3b2063] flex items-center justify-center text-center`}>
+                                                    {cat.name}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
-                                )}
+                                );
+                            })}
+
+                            {/* "Other" catch-all */}
+                            {(() => {
+                                const known = ['food', 'wings', 'drink', 'promo'];
+                                const others = filteredCategories.filter(cat => !known.includes(cat.type));
+                                if (others.length === 0) return null;
+                                return (
+                                    <div>
+                                        <div className="flex items-center gap-3 mb-3 px-1">
+                                            <span className="bg-zinc-400 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">Other</span>
+                                            <div className="flex-1 h-px bg-zinc-300/60"></div>
+                                        </div>
+                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                                            {others.map((cat) => (
+                                                <button key={cat.id} onClick={() => handleCategoryClick(cat)}
+                                                    className="bg-white hover:bg-[#3b2063] hover:text-white text-[#3b2063] font-black text-[13px] uppercase p-4 rounded-2xl h-24 shadow-sm border-2 border-zinc-200 hover:border-[#3b2063] transition-all hover:shadow-lg hover:scale-[1.03] active:scale-100 flex items-center justify-center text-center">
+                                                    {cat.name}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    )}
+                </div>
+
+            {/* ══════════════════════════════════
+                    SIDEBAR CART — modal panel aesthetic
+                ══════════════════════════════════ */}
+                <div className="w-96 bg-white border-l-2 border-zinc-200 flex flex-col shrink-0 shadow-2xl z-30">
+
+                    {/* Cart header — mimics modal purple header */}
+                    <div className="bg-[#3b2063] p-4 text-white flex items-center justify-between shrink-0">
+                        <div>
+                            <div className="text-[9px] font-bold uppercase tracking-widest opacity-60 leading-none">Cashier</div>
+                            <div className="text-[11px] font-black uppercase leading-tight mt-0.5">{cashierName ?? 'Admin'}</div>
+                        </div>
+                        <div className="text-center">
+                            <div className="text-[9px] font-bold uppercase tracking-widest opacity-60 leading-none">Current Order</div>
+                            {/* Updated: Using orNumber directly to show the full OR string */}
+                            <div className="text-[11px] font-black uppercase leading-tight mt-0.5">{orNumber}</div>
+                        </div>
+                        <div className="text-right">
+                            <div className="text-[9px] font-bold uppercase tracking-widest opacity-60 leading-none">Items</div>
+                            <div className="text-[15px] font-black leading-tight mt-0.5">{totalCount}</div>
+                        </div>
+                    </div>
+
+                    {/* Cart items — modal card-row style */}
+                    <div className="flex-1 overflow-y-auto p-4 bg-white">
+                        {cart.length === 0 ? (
+                            <div className="flex flex-col items-center justify-center h-full text-center gap-3">
+                                <DrinkIcon className="w-12 h-12 text-zinc-200" />
+                                <p className="text-zinc-300 font-black uppercase text-[10px] tracking-widest">No Items Yet</p>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 pb-20 animate-in fade-in zoom-in duration-300">
-                                {filteredCategories.map((cat) => (
-                                    <button key={cat.id} onClick={() => handleCategoryClick(cat)} className="bg-white hover:bg-[#3b2063] hover:text-white text-[#3b2063] font-bold text-[10px] uppercase p-3 rounded-2xl h-24 shadow-sm border border-zinc-100 transition-all">
-                                        {cat.name}
-                                    </button>
+                            <div className="space-y-2">
+                                {cart.map((item, index) => (
+                                    <div key={index} className="flex justify-between items-start gap-2 bg-zinc-50 p-3 rounded-2xl border-2 border-zinc-100 hover:border-zinc-200 transition-colors group">
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-black text-xs text-[#3b2063] leading-tight">
+                                                <span className="text-zinc-400 mr-1">×{item.qty}</span>
+                                                {item.name}
+                                                {item.cupSizeLabel && <span className="ml-1 opacity-50 font-bold">({item.cupSizeLabel})</span>}
+                                            </p>
+                                            <div className="flex flex-wrap gap-1 mt-1.5">
+                                                {item.sugarLevel != null && <span className="bg-[#3b2063]/10 text-[#3b2063] text-[9px] px-1.5 py-0.5 rounded-lg font-bold">🍬 {item.sugarLevel}</span>}
+                                                {item.options?.map(opt => <span key={opt} className="bg-blue-100 text-blue-700 text-[9px] px-1.5 py-0.5 rounded-lg font-bold">{opt}</span>)}
+                                                {item.addOns?.map(addon => <span key={addon} className="bg-amber-100 text-amber-700 text-[9px] px-1.5 py-0.5 rounded-lg font-bold">+{addon}</span>)}
+                                                {item.charges?.grab && <span className="bg-green-100 text-green-700 text-[9px] px-1.5 py-0.5 rounded-lg font-bold">🛵 Grab</span>}
+                                                {item.charges?.panda && <span className="bg-pink-100 text-pink-700 text-[9px] px-1.5 py-0.5 rounded-lg font-bold">🐼 Panda</span>}
+                                                {item.remarks && <span className="bg-zinc-200 text-zinc-600 text-[9px] px-1.5 py-0.5 rounded-lg font-bold italic">📝 {item.remarks}</span>}
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-col items-end gap-1.5 shrink-0">
+                                            <button type="button" onClick={() => removeFromCart(index)}
+                                                className="p-1.5 rounded-xl text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-colors">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
+                                            </button>
+                                            <p className="font-black text-sm text-[#3b2063]">₱{item.finalPrice.toFixed(2)}</p>
+                                        </div>
+                                    </div>
                                 ))}
                             </div>
                         )}
                     </div>
 
-                    {/* SIDEBAR CART */}
-                    <div className="w-96 bg-white border-l border-zinc-200 flex flex-col shrink-0 shadow-2xl z-30">
-                        <div className="bg-zinc-50 border-b border-zinc-200 p-4 text-center">
-                            <h2 className="text-[#3b2063] font-black uppercase text-xs">Current Order</h2>
-                        </div>
-                        <div className="flex-1 overflow-y-auto p-4 bg-white relative">
-                            {cart.length === 0 ? <p className="text-center mt-20 text-zinc-200 font-black uppercase text-[10px]">No Items</p> : (
-                                <div className="space-y-2">
-                                    {cart.map((item, index) => (
-                                        <div key={index} className="flex justify-between items-start gap-2 bg-zinc-50 p-3 rounded-xl border border-zinc-100 group">
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center gap-1.5 flex-wrap">
-                                                    <p className="font-bold text-xs text-[#3b2063]">{item.name}</p>
-                                                    {item.charges.grab && (
-                                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="8" viewBox="0 0 522.6 201.3" className="shrink-0" aria-hidden>
-                                                            <path fill="#00b45e" d="M415.9 63.4V0h13v54.5c-3.6 1.8-8.5 5.2-13 8.9zm-22.6 19.1c4-4.8 8.1-9.6 13-13.7V0h-13v82.5zm-150.6 50.4c0 16.9 6.7 33 19 45.3 12.2 12.2 28.3 19 45.3 19 7.2 0 14.6-1.5 19.8-4.1v-13c-6.1 2.6-13.5 4.1-19.8 4.1-27.8 0-51.2-23.4-51.2-51.2v-11.7c0-27.8 23.5-51.2 51.2-51.2 13.8 0 26.7 5.3 36.3 14.9 9.6 9.6 14.9 22.5 14.9 36.3v76h13v-78.5c-.8-16.6-7.9-32.1-19.9-43.7-12.1-11.6-27.8-18-44.3-18-16.9 0-33 6.7-45.3 19-12.2 12.2-19 28.3-19 45.3v11.5zm194.6-31.2c5.9-5.9 13.5-9.2 21-9.2 16.1 0 28.6 12.6 28.6 28.6v11.7c0 16.1-12.6 28.6-28.6 28.6-7.8 0-15.3-4.3-21.2-12-5.2-6.8-8.6-16.1-9.1-24.4l-10.5 13c2.1 9.8 7.2 19.3 14.5 25.9 7.5 6.8 16.9 10.6 26.3 10.6 23 0 41.7-18.7 41.7-41.6v-11.7c0-10.9-4.4-21.3-12.4-29.2-8-8-18.4-12.4-29.3-12.4-6.9 0-17.8 2.5-30.8 14.2-3.5 3.5-11.7 11.7-16.7 17.5-8.4 9.2-20.5 22.9-30.9 36.8v20.3c11.5-14.8 18.1-23.1 29-35.6 9.6-11.4 21.6-25.1 28.4-31.1zM130.1 77.2V61.8c-11.8-6.3-24.6-9.1-41.6-9.1-17.4 0-33.9 6.4-46.4 17.9-12.6 11.6-19.5 26.8-19.5 43v4.2c0 33.6 26.9 60.9 60.1 60.9 26.9 0 38-8.8 40.8-11.6V128h-44v13h31.8v19.6h-.1c-4.1 1.6-12.6 5-28.5 5-12.6 0-24.5-4.9-33.3-13.9-8.9-9-13.7-21-13.7-34v-4.2c0-25.9 24.2-47.9 52.9-47.9 19.7.1 31.5 3.4 41.5 11.6zm94.8 15.3c4.9 0 9.1.8 12.5 2.4 1.6-4 3.3-7.4 5.7-11.4-3.5-2.5-12-4.1-18.2-4.1-23.7 0-41.6 17.9-41.6 41.7v76h13v-76c0-16.8 11.7-28.6 28.6-28.6zM0 113.6v4.2c0 22.6 8.6 43.6 24.1 59.3 15.5 15.6 36.3 24.2 58.5 24.2 17.9 0 33.7-4 47.1-12 11-6.6 15.9-13.2 16.3-13.8v-70H79.5v13H133v53.1c-6.3 6.3-21.2 16.8-50.3 16.8-19 0-36.6-7.3-49.6-20.5-12.9-13.1-20-30.9-20-50v-4.2c0-18.1 8.1-36.1 22.3-49.4 14.5-13.6 33.4-21.1 53.2-21.1 18.5 0 31.3 2.8 41.6 9.1V37.6C119.4 33 106.5 31 88.5 31 40.5 31 0 68.8 0 113.6zm348.5 83.5v-76c0-23.4-18.3-41.7-41.7-41.7-10.9 0-21.3 4.4-29.3 12.4s-12.4 18.4-12.4 29.2v11.7c0 22.6 19.1 41.6 41.6 41.6 6.2 0 14.6-1.5 19.8-5.8V155c-5.1 4.1-12.4 6.5-19.8 6.5-16 0-28.6-12.6-28.6-28.6v-11.7c0-16.1 12.6-28.6 28.6-28.6 16.1 0 28.6 12.6 28.6 28.6v76h13.2zM224.9 69.9c8.8 0 16.5 1.9 23.4 5.8 3.2-4.1 6.5-7.3 9-9.8-7.3-5.6-19.7-9-32.3-9-18.1 0-34.5 6.5-46.2 18.4-11.6 11.7-18 28-18 45.9v76h13v-76c-.1-30.2 20.9-51.3 51.1-51.3zm278.7 6c-12.2-12.2-28.3-19-45.3-19-12.4 0-24.8 4.6-31.7 9.2-14.2 9.4-25.8 19.7-46.8 46.8v19.5c17.8-23.2 34.6-41.4 47.4-51.5 8.4-6.7 20.3-10.9 31.1-10.9 27.8 0 51.2 23.5 51.2 51.2v11.7c0 13.7-5.4 26.6-15.2 36.3-9.7 9.6-22.5 14.9-36 14.9-22.8 0-42.9-15.7-48.3-37l-9.2 11.1c6.7 22.4 30.9 38.9 57.5 38.9 17 0 33-6.8 45.3-19 12.2-12.3 19-28.3 19-45.3v-11.7c0-16.9-6.8-33-19-45.2z"/>
-                                                        </svg>
-                                                    )}
-                                                    {item.charges.panda && (
-                                                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 48 48" className="shrink-0" aria-hidden>
-                                                            <path fill="#d70f64" d="M44,24c0-0.129-0.017-0.253-0.019-0.381c-0.01-0.414-0.028-0.827-0.062-1.234	c-0.028-0.348-0.068-0.691-0.114-1.033c-0.023-0.168-0.049-0.335-0.077-0.502c-0.454-2.859-1.497-5.519-3.027-7.838	c1.104-0.892,1.67-2.305,1.67-3.864c0-2.94-2.368-5.146-5.336-5.146c-1.785,0-3.315,0.771-4.234,2.061C30.142,4.754,27.163,4,24,4	c-3.161,0-6.14,0.753-8.797,2.059C14.277,4.766,12.756,4,10.966,4C8.065,3.969,5.682,6.267,5.63,9.146	c0.024,1.457,0.628,2.841,1.671,3.861c-1.536,2.329-2.582,5-3.033,7.872c-0.033,0.201-0.065,0.401-0.092,0.603	c-0.035,0.276-0.067,0.552-0.09,0.832c-0.042,0.473-0.066,0.949-0.072,1.426C4.012,23.828,4,23.912,4,24	c0,0.021,0.003,0.041,0.003,0.062c0,0.027-0.003,0.055-0.003,0.082c0.003,10.084,7.584,18.392,17.396,19.667	C22.25,43.923,23.115,44,24,44c0,0,0,0,0,0c0.04,0,0.078-0.006,0.117-0.006c0.792-0.005,1.569-0.066,2.336-0.16	C36.337,42.627,43.994,34.284,44,24.15c0-0.029-0.003-0.058-0.003-0.087C43.997,24.042,44,24.021,44,24z M24,42	c-9.925,0-18-8.075-18-18S14.075,6,24,6s18,8.075,18,18S33.925,42,24,42z"/><path fill="#d70f64" d="M23.997,33.25c2.73,0,5.003-1.912,5.003-4.262H19c0,2.351,2.118,4.262,5.003,4.262H23.997z"/><path fill="#d70f64" d="M24.034,27.536c0.302,0.145,3.415-1.03,3.415-2.506c0-0.885-2.52-1.03-3.415-1.03	c-0.896,0-3.404,0.145-3.404,1.03c-0.146,1.476,3.113,2.651,3.41,2.506H24.034z"/><path fill="#d70f64" d="M35.545,15.13c-1.775-1.219-5.627-1.831-7.111,0.156c0,0-1.926,2.137,0,4.273 c1.926,2.137,3.259,4.285,3.707,5.966c0.448,1.831,1.181,2.443,2.52,2.443c1.338,0,3.998-2.137,4.44-5.654 C39.329,19.418,37.953,16.638,35.545,15.13z M32,20c-0.573,0-1-0.43-1-0.995s0.432-1,1-1s1,0.43,1,1C33,19.575,32.568,20,32,20z"/><path fill="#d70f64" d="M12.444,15.13c-1.78,1.219-3.852,3.667-3.555,7.184c0.297,3.517,2.967,5.654,4.446,5.654 c1.333,0,2.072-0.762,2.52-2.443c0.448-1.836,1.926-3.823,3.701-5.96c1.926-2.293,0-4.279,0-4.279 C18.077,13.299,14.224,13.911,12.444,15.13z M16.008,20v-0.005c-0.575,0-1.008-0.426-1.008-0.992S15.434,18,16.008,18 c0.574,0,1.003,0.431,1.003,1.003S16.577,20,16.008,20z"/>
-                                                        </svg>
-                                                    )}
-                                                </div>
-                                                <div className="flex flex-wrap gap-1 mt-1">
-                                                    {item.sugarLevel != null && (
-                                                        <span className="bg-[#3b2063]/10 text-[#3b2063] text-[9px] px-1.5 py-0.5 rounded font-bold">Sugar {item.sugarLevel}</span>
-                                                    )}
-                                                    {item.options?.map(opt => <span key={opt} className="bg-blue-100 text-blue-700 text-[9px] px-1.5 py-0.5 rounded font-bold">{opt}</span>)}
-                                                    {item.addOns?.map(addon => <span key={addon} className="bg-yellow-100 text-yellow-700 text-[9px] px-1.5 py-0.5 rounded font-bold">{addon}</span>)}
-                                                </div>
-                                            </div>
-                                            <div className="flex flex-col items-end gap-1 shrink-0">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeFromCart(index)}
-                                                    className="p-2.5 rounded-xl text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-colors"
-                                                    aria-label="Remove item"
-                                                >
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                        <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
-                                                        <line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>
-                                                    </svg>
-                                                </button>
-                                                <p className="font-black text-sm">₱ {item.finalPrice.toFixed(2)}</p>
-                                                <p className="text-[10px] text-zinc-400 font-bold">x {item.qty}</p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                        <div className="bg-[#3b2063] text-white p-6 rounded-t-4xl">
-                            <div className="flex justify-between items-end border-b border-white/10 pb-4">
-                                <span className="text-[10px] font-bold uppercase opacity-70">Subtotal</span>
-                                <span className="text-3xl font-black">₱ {subtotal.toFixed(2)}</span>
+                    {/* Cart footer — modal bottom-panel style */}
+                    <div className="bg-[#3b2063] text-white p-5 rounded-t-3xl shadow-2xl shrink-0">
+                        <div className="flex justify-between items-end mb-4 pb-4 border-b border-white/10">
+                            <div>
+                                <div className="text-[9px] font-bold uppercase opacity-60 tracking-widest leading-none">Subtotal</div>
+                                <div className="text-[10px] font-bold opacity-40 uppercase mt-0.5">{totalCount} item{totalCount !== 1 ? 's' : ''}</div>
                             </div>
-                            <div className="pt-2 flex justify-between items-center mt-2">
-                                <button onClick={() => { setOrderChargeType(null); setIsConfirmModalOpen(true); }} disabled={cart.length === 0} className="text-xs font-bold uppercase bg-white text-[#3b2063] px-4 py-2 rounded-full disabled:opacity-50">Confirm Order</button>
-                                <div className="text-right">
-                                    <span className="text-xs font-bold uppercase opacity-60">Admin User</span>
-                                    <span className="block text-[10px] opacity-40 uppercase">Items: {totalCount}</span>
-                                </div>
-                            </div>
+                            <span className="text-3xl font-black">₱ {subtotal.toFixed(2)}</span>
                         </div>
+                        <button onClick={() => setIsConfirmModalOpen(true)} disabled={cart.length === 0}
+                            className="w-full py-4 bg-white text-[#3b2063] font-black uppercase tracking-widest text-sm rounded-2xl shadow-md disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#f0ebff] transition-colors">
+                            {cart.length === 0 ? 'Add Items to Order' : 'Confirm Order →'}
+                        </button>
                     </div>
                 </div>
             </div>
+        </div>
 
-            {/* PRINTABLE RECEIPT */}
+{/* ══════════════════════════════════
+            PRINT: RECEIPT (80mm)
+        ══════════════════════════════════ */}
+        {printTarget === 'receipt' && (
             <div className="printable-receipt-container hidden print:block">
-                <div className="receipt-header">
-                    <h1>LUCKY BOBA</h1>
-                    <p>Main Branch - Quezon City</p>
-                    <p>{formatDate(currentDate)} | {formatTime(currentDate)}</p>
-                </div>
-
-                <div className="receipt-body">
-                    {mediumDrinks.length > 0 && (
-                        <div>
-                            <div className="group-header">Medium Drinks</div>
-                            {mediumDrinks.map((item, i) => (
-                                <div key={i} style={{ marginBottom: '4px' }}>
-                                    <div className="item-row">
-                                        <span>{item.qty}x {item.name}</span>
-                                        <span>{item.finalPrice.toFixed(2)}</span>
-                                    </div>
-                                    {item.sugarLevel != null && <div className="modifier-row">• Sugar {item.sugarLevel}</div>}
-                                    {item.options?.map(o => <div key={o} className="modifier-row">• {o}</div>)}
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {largeDrinks.length > 0 && (
-                        <div>
-                            <div className="group-header">Large Drinks</div>
-                            {largeDrinks.map((item, i) => (
-                                <div key={i} style={{ marginBottom: '4px' }}>
-                                    <div className="item-row">
-                                        <span>{item.qty}x {item.name}</span>
-                                        <span>{item.finalPrice.toFixed(2)}</span>
-                                    </div>
-                                    {item.sugarLevel != null && <div className="modifier-row">• Sugar {item.sugarLevel}</div>}
-                                    {item.options?.map(o => <div key={o} className="modifier-row">• {o}</div>)}
-                                </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {otherItems.length > 0 && (
-                        <div>
-                            <div className="group-header">Food & Others</div>
-                            {otherItems.map((item, i) => (
-                                <div key={i} className="item-row">
-                                    <span>{item.qty}x {item.name}</span>
+                <div className="receipt-area bg-white text-black">
+                    <div className="text-center mb-4 border-b border-black pb-3">
+                        <img src={logo} alt="Lucky Boba Logo" className="w-48 h-auto mx-auto mb-2 grayscale" style={{ filter: 'grayscale(100%) contrast(1.2)' }} />
+                        <h1 className="uppercase leading-tight font-bold text-xl">LUCKY BOBA MILKTEA</h1>
+                        <p className="text-base mt-1">Quezon City</p>
+                        <h2 className="text-lg mt-2">OR # {orNumber}</h2>
+                        <p className="text-sm mt-1">{formattedDate} {formattedTime}</p>
+                    </div>
+                    <div className="text-xs space-y-1 mb-3">
+                        <div className="flex justify-between w-full"><span># 1</span><span>Total Guests: 1</span></div>
+                        <div className="flex justify-between w-full"><span>Regular: 1</span><span>Senior: 0</span></div>
+                        <div className="mt-1">Cashier: {cashierName ?? 'Admin'}</div>
+                        {orderCharge && <div className="mt-1">Order Type: {orderCharge === 'grab' ? 'GRABFOOD' : 'FOODPANDA'}</div>}
+                    </div>
+                    <div className="mt-3 mb-3 text-xs border-t border-dashed border-black pt-3">
+                        {cart.map((item, i) => (
+                            <div key={i} className="mb-2">
+                                <div className="uppercase">{item.name} {item.cupSizeLabel ? `(${item.cupSizeLabel})` : ''}</div>
+                                <div className="flex justify-between w-full mt-0.5">
+                                    <span>{item.qty} X {(item.finalPrice / item.qty).toFixed(2)}</span>
                                     <span>{item.finalPrice.toFixed(2)}</span>
                                 </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                                {item.sugarLevel != null && <div className="pl-2 text-[10px]">• Sugar {item.sugarLevel}</div>}
+                                {item.options?.map(o => <div key={o} className="pl-2 text-[10px]">• {o}</div>)}
+                                {item.addOns?.map(a => <div key={a} className="pl-2 text-[10px]">• + {a}</div>)}
+                                {item.remarks && <div className="pl-2 text-[10px] italic">• Note: {item.remarks}</div>}
+                            </div>
+                        ))}
+                    </div>
+                    <div className="text-xs space-y-1 border-t border-dashed border-black pt-2">
+                        <div className="flex justify-between w-full"><span>Total Items</span><span>{totalCount}</span></div>
+                        <div className="flex justify-between w-full"><span>Sub Total</span><span>{subtotal.toFixed(2)}</span></div>
+                        <div className="flex justify-between w-full text-base font-bold mt-1"><span>TOTAL DUE</span><span>{subtotal.toFixed(2)}</span></div>
+                    </div>
 
-                <div className="total-section">
-                    <div className="item-row">
-                        <span>TOTAL</span>
-                        <span>₱ {subtotal.toFixed(2)}</span>
+                    {/* ── PAYMENT METHOD SECTION ── */}
+                    <div className="text-xs mt-2 space-y-1 border-b border-dashed border-black pb-3">
+                        <div className="flex justify-between w-full">
+                            <span>Payment Method</span>
+                            <span className="uppercase font-bold">
+                                {paymentMethod === 'cash'    && 'Cash'}
+                                {paymentMethod === 'gcash'   && 'GCash'}
+                                {paymentMethod === 'paymaya' && 'Maya'}
+                                {paymentMethod === 'credit'  && 'Credit Card'}
+                                {paymentMethod === 'debit'   && 'Debit Card'}
+                            </span>
+                        </div>
+
+                        {/* Cash: show tendered + change */}
+                        {paymentMethod === 'cash' && (
+                            <>
+                                <div className="flex justify-between w-full">
+                                    <span>Cash (Tendered)</span>
+                                    <span>{typeof cashTendered === 'number' ? cashTendered.toFixed(2) : subtotal.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between w-full">
+                                    <span>Change</span>
+                                    <span>{change.toFixed(2)}</span>
+                                </div>
+                            </>
+                        )}
+
+                        {/* GCash / PayMaya: show reference number */}
+                        {(paymentMethod === 'gcash' || paymentMethod === 'paymaya') && (
+                            <div className="flex justify-between w-full">
+                                <span>Reference #</span>
+                                <span className="font-bold">{referenceNumber || '—'}</span>
+                            </div>
+                        )}
+
+                        {/* Credit / Debit: show approval code */}
+                        {(paymentMethod === 'credit' || paymentMethod === 'debit') && (
+                            <div className="flex justify-between w-full">
+                                <span>Approval Code</span>
+                                <span className="font-bold">{referenceNumber || '—'}</span>
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="text-[11px] mt-3 space-y-1">
+                        <div className="flex justify-between w-full"><span>VATable Sales(V)</span><span>{vatableSales.toFixed(2)}</span></div>
+                        <div className="flex justify-between w-full"><span>VAT Amount</span><span>{vatAmount.toFixed(2)}</span></div>
+                        <div className="flex justify-between w-full"><span>VAT Exempt Sales(E)</span><span>0.00</span></div>
+                        <div className="flex justify-between w-full"><span>Zero-Rated Sales(Z)</span><span>0.00</span></div>
+                    </div>
+                    <div className="text-xs mt-5 space-y-2">
+                        <div className="flex justify-between items-end w-full"><span>Name:</span><span className="border-b border-black w-[70%]"></span></div>
+                        <div className="flex justify-between items-end w-full"><span>TIN/ID/SC:</span><span className="border-b border-black w-[70%]"></span></div>
+                        <div className="flex justify-between items-end w-full"><span>Address:</span><span className="border-b border-black w-[70%]"></span></div>
+                        <div className="flex justify-between items-end w-full"><span>Signature:</span><span className="border-b border-black w-[70%]"></span></div>
+                    </div>
+                    <div className="mt-6 mb-4 text-center text-xs uppercase">
+                        FOR FRANCHISE<br />EMAIL OR CONTACT US ON<br />luckybobafranchising@gmail.com<br />09260029894
+                    </div>
+                    <div className="mt-6 py-4 text-center">
+                        <p className="text-sm tracking-widest uppercase mb-1">Your Order Number Is:</p>
+                        <h2 className="font-black text-4xl">#{queueNumber}</h2>
+                        <p className="text-[10px] mt-2 uppercase text-gray-500">Please wait for your number to be called</p>
                     </div>
                 </div>
-
-                <div className="footer-text">
-                    Thank you for ordering!<br />
-                    Follow us @LuckyBoba
+            </div>
+        )}
+        {/* ══════════════════════════════════
+            PRINT: KITCHEN TICKET (80mm)
+        ══════════════════════════════════ */}
+        {printTarget === 'kitchen' && (
+            <div className="printable-receipt-container hidden print:block">
+                <div className="receipt-area bg-white text-black">
+                    <div className="text-center mb-4 border-b-4 border-black pb-3">
+                        <h1 className="uppercase leading-tight font-black text-3xl mb-1">KITCHEN TICKET</h1>
+                        <h2 className="font-bold text-lg mt-1 uppercase tracking-widest">Main Branch - QC</h2>
+                        <div className="py-3 my-3 text-black">
+                            <p className="text-sm tracking-widest uppercase mb-1">Queue</p>
+                            <h2 className="font-black text-5xl tracking-widest">#{queueNumber}</h2>
+                        </div>
+                        <h2 className="text-m mt-1">OR # {orNumber}</h2>
+                        <p className="text-sm mt-1">{formattedDate} {formattedTime}</p>
+                        {orderCharge && (
+                            <div className="mt-3 text-sm border-4 border-black text-black py-1 uppercase tracking-widest">
+                                {orderCharge === 'grab' ? 'GRABFOOD' : 'FOODPANDA'}
+                            </div>
+                        )}
+                    </div>
+                    <div className="mt-2">
+                        {cart.map((item, i) => (
+                            <div key={i} className="mb-4 border-b-2 border-dashed border-gray-400 pb-3">
+                                <div className="flex items-start">
+                                    <span className="font-bold text-m mr-3">{item.qty}x</span>
+                                    <div className="flex-1">
+                                        <div className="uppercase text-sm leading-tight mb-1">{item.name} {item.cupSizeLabel ? `(${item.cupSizeLabel})` : ''}</div>
+                                        {item.sugarLevel != null && <div className="text-sm mt-1">Sugar: {item.sugarLevel}</div>}
+                                        {item.options && item.options.length > 0 && <div className="text-sm">Options: {item.options.join(', ')}</div>}
+                                        {item.addOns && item.addOns.length > 0 && <div className="text-sm">Add: {item.addOns.join(', ')}</div>}
+                                        {item.remarks && <div className="text-sm italic mt-2 border-t border-gray-200 pt-1">Note: {item.remarks}</div>}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="text-center text-sm mt-4 uppercase tracking-widest">--- END OF TICKET ---</div>
                 </div>
             </div>
+        )}
+
+        {/* ══════════════════════════════════
+            PRINT: STICKERS
+        ══════════════════════════════════ */}
+        {printTarget === 'stickers' && (
+            <div className="printable-receipt-container hidden print:block">
+                {renderStickers()}
+            </div>
+        )}
         </>
     );
 };

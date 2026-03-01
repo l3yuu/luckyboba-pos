@@ -5,26 +5,25 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Category extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'type'];
+    protected $fillable = ['name', 'type', 'cup_id'];
 
-    /**
-     * For the React Frontend (api.php)
-     */
-    public function menu_items(): HasMany 
+    public function cup(): BelongsTo
+    {
+        return $this->belongsTo(Cup::class);
+    }
+
+    public function menu_items(): HasMany
     {
         return $this->hasMany(MenuItem::class);
     }
 
-    /**
-     * For the MenuSeeder.php
-     * Used by: $category->menuItems()->updateOrCreate(...)
-     */
-    public function menuItems(): HasMany 
+    public function menuItems(): HasMany
     {
         return $this->hasMany(MenuItem::class);
     }

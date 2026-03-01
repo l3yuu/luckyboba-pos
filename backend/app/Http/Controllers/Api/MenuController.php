@@ -11,8 +11,9 @@ class MenuController extends Controller
     public function index()
     {
         try {
-            return Cache::remember('menu_data_v1', 600, function () {
-                return Category::with('menu_items')
+            return Cache::remember('menu_data_v2', 600, function () {
+                return Category::with(['menu_items', 'cup'])
+                    ->orderBy('name', 'asc')
                     ->get();
             });
         } catch (\Exception $e) {
@@ -27,6 +28,7 @@ class MenuController extends Controller
     public function clearCache()
     {
         Cache::forget('menu_data_v1');
+        Cache::forget('menu_data_v2');
         return response()->json(['message' => 'Menu cache cleared successfully']);
     }
 }
