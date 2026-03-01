@@ -29,7 +29,6 @@ class DashboardController extends Controller
     {
         return response()->json([
             'user' => $request->user(),
-            'stats' => $this->dashboardService->getHomeStats(),
         ]);
     }
 }

@@ -1,10 +1,19 @@
+import { useEffect } from 'react';
 import { RouterProvider } from 'react-router-dom';
 import { router } from './routes'; 
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { ToastProvider } from './context/ToastProvider';
+import { prefetchAll } from './utils/prefetch'; // ✅ import
+import { useAuth } from './hooks/useAuth';
 
 function App() {
-  // CSRF Handshake removed to support Bearer Token authentication.
-  // This prevents the 419 Page Expired error on Railway/Brave.
+  const { user, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (user && !isLoading) {
+      prefetchAll();
+    }
+  }, [user, isLoading]);
 
   return (
     <ErrorBoundary 
@@ -20,7 +29,9 @@ function App() {
         </div>
       }
     >
-      <RouterProvider router={router} />
+      <ToastProvider>
+        <RouterProvider router={router} />
+      </ToastProvider>
     </ErrorBoundary>
   );
 }

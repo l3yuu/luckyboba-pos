@@ -3,11 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
+use App\Models\MenuItem;
+use App\Models\Receipt;
 use App\Models\Sale;
 use App\Models\SaleItem;
-use App\Models\Receipt;
 use App\Services\DashboardService;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -17,13 +18,16 @@ class SalesController extends Controller
 
     public function __construct(DashboardService $dashboardService)
     {
-        // Injecting the service so we can clear cache after a sale
         $this->dashboardService = $dashboardService;
     }
 
+    /**
+     * Store a newly created sale in storage.
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'si_number' => 'required|string', // MUST add this line
             'items' => 'required|array|min:1',
             'items.*.menu_item_id' => 'required|exists:menu_items,id',
             'items.*.name' => 'required|string',
@@ -38,13 +42,24 @@ class SalesController extends Controller
             'items.*.charges' => 'nullable|array',
             'subtotal' => 'required|numeric|min:0',
             'total' => 'required|numeric|min:0',
+            'cashier_name' => 'nullable|string',
+            'payment_method' => 'nullable|string',
+            'reference_number' => 'nullable|string',
         ]);
+
+        $user = auth('sanctum')->user();
+        $cashierName = $request->input('cashier_name') ?? ($user ? $user->name : 'System Admin');
+        $userId = $user ? $user->id : null;
+        
+        // Explicitly use the OR number sent from React
+        $officialOR = $validated['si_number']; 
 
         try {
             DB::beginTransaction();
 
             $chargeType = null;
             $totalQty = 0; 
+            
             foreach ($validated['items'] as $item) {
                 $totalQty += $item['quantity'];
                 if (isset($item['charges'])) {
@@ -53,68 +68,117 @@ class SalesController extends Controller
                 }
             }
 
+            // 1. Create Sale
             $sale = Sale::create([
-                'user_id' => auth()->id(),
+                'user_id' => $userId,
                 'total_amount' => $validated['total'],
-                'payment_method' => 'cash',
+                'invoice_number' => $officialOR, // Save OR here
+                'status' => 'completed',
+                'payment_method' => $request->input('payment_method', 'cash'),
+                'reference_number' => $request->input('reference_number'),
                 'charge_type' => $chargeType,
                 'pax' => 1,
                 'is_synced' => false,
             ]);
 
+            // 2. Create Sale Items
             foreach ($validated['items'] as $item) {
                 SaleItem::create([
-                    'sale_id' => $sale->id,
+                    'sale_id' => $sale->id, 
                     'menu_item_id' => $item['menu_item_id'],
                     'product_name' => $item['name'],
                     'quantity' => $item['quantity'],
-                    'price' => $item['unit_price'],
+                    'price' => (float)$item['unit_price'] + (($item['size'] ?? null) === 'L' ? 20 : 0), 
                     'final_price' => $item['total_price'],
                     'size' => $item['size'] ?? null,
                     'sugar_level' => $item['sugar_level'] ?? null,
                     'options' => $item['options'] ?? null,
                     'add_ons' => $item['add_ons'] ?? null,
                 ]);
+
+                $menuItem = MenuItem::find($item['menu_item_id']);
+                if ($menuItem) {
+                    $menuItem->decrement('quantity', $item['quantity']);
+                }
             }
 
-            $siNumber = 'SI-' . date('Ymd') . '-' . str_pad($sale->id, 4, '0', STR_PAD_LEFT);
-
+            // 3. Create Receipt
             Receipt::create([
-                'si_number'    => $siNumber,
+                'si_number'    => $officialOR, // Save OR here
                 'terminal'     => '01',
                 'items_count'  => $totalQty,
-                'cashier_name' => auth()->user()->name,
+                'cashier_name' => $cashierName,
                 'total_amount' => $validated['total'],
                 'sale_id'      => $sale->id,
             ]);
 
             DB::commit();
-
-            // CRITICAL: This clears the "Old" data so the Dashboard sees "New" data
             $this->dashboardService->clearTodayCache();
 
             return response()->json([
                 'status'  => 'success',
-                'message' => 'Sale and Receipt created successfully',
-                'si_number' => $siNumber,
+                'si_number' => $officialOR,
                 'sale'    => $sale->load('items'),
             ], 201);
 
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Sale creation failed: ' . $e->getMessage());
-            
-            return response()->json([
-                'status'  => 'error',
-                'message' => 'Failed to create sale',
-                'error'   => $e->getMessage()
-            ], 500);
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }
 
+    /**
+     * List all sales.
+     */
     public function index()
     {
         $sales = Sale::with('items', 'user')->latest()->paginate(20);
         return response()->json($sales);
+    }
+
+    /**
+     * Void/Cancel a sale.
+     */
+    public function cancel(Request $request, $id)
+    {
+        $request->validate([
+            'reason' => 'required|string|max:255'
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $sale = Sale::with('items')->findOrFail($id);
+
+            if ($sale->status === 'cancelled') {
+                return response()->json(['message' => 'Sale already cancelled'], 400);
+            }
+
+            // Restore inventory for all items in the sale
+            foreach ($sale->items as $item) {
+                $menuItem = MenuItem::find($item->menu_item_id);
+                if ($menuItem) {
+                    $menuItem->increment('quantity', $item->quantity);
+                } else {
+                    Log::warning("Inventory restore failed for sale #{$sale->invoice_number}: Item ID {$item->menu_item_id} not found.");
+                }
+            }
+
+            // Update Sale Status
+            $sale->update([
+                'status' => 'cancelled',
+                'cancellation_reason' => $request->reason,
+                'cancelled_at' => now(),
+            ]);
+
+            DB::commit();
+            $this->dashboardService->clearTodayCache();
+
+            return response()->json(['status' => 'success', 'message' => 'Voided successfully']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
     }
 }
