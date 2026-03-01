@@ -45,9 +45,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
     
     Route::prefix('cash-transactions')->group(function () {
+        Route::get('/status', [CashCountController::class, 'checkInitialCash']);
         Route::get('/', [CashTransactionController::class, 'index']);
         Route::post('/', [CashTransactionController::class, 'store']);
-        Route::get('/status', [CashCountController::class, 'checkInitialCash']);
     });
 
     Route::get('/receipts/search', [ReceiptController::class, 'search']);
