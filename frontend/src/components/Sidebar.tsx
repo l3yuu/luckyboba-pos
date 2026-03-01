@@ -79,7 +79,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   useEffect(() => {
     const checkStatus = async () => {
       try {
-        const response = await api.get('/cash-transactions/status');
+        const response = await api.get('/cash-transactions/status'); //
         const hasCashedIn = response.data.hasCashedIn;
         const today = new Date().toDateString();
         setIsMenuLocked(!hasCashedIn);
