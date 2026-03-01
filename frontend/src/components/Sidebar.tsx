@@ -94,8 +94,18 @@ const Sidebar: React.FC<SidebarProps> = ({
         console.error("Error checking cash-in status:", error);
       }
     };
-    checkStatus();
-  }, [currentTab]);
+      checkStatus();
+    }, [currentTab]);
+
+    useEffect(() => {
+    const handleEodCompleted = () => {
+      setIsEodLocked(true);
+      setIsMenuLocked(true);
+    };
+
+    window.addEventListener('eod-completed', handleEodCompleted);
+    return () => window.removeEventListener('eod-completed', handleEodCompleted);
+  }, []);
   
   // --- MENU DATA ---
   const posMenuItems: MenuItem[] = [

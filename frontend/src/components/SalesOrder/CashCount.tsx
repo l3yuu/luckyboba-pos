@@ -123,6 +123,8 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
         localStorage.setItem('cashier_menu_unlocked', 'false');
         setIsEodLocked(true);
 
+        window.dispatchEvent(new CustomEvent('eod-completed'));
+
         const now = new Date();
         const newTx: Transaction = {
           id: response.data.id,
