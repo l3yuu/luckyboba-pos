@@ -271,6 +271,7 @@ const SalesOrder = () => {
     };
 
     const handleConfirmOrder = async () => {
+
         if (cart.length === 0) return;
         setSubmitting(true);
         const token = localStorage.getItem('lucky_boba_token');
@@ -311,9 +312,18 @@ const SalesOrder = () => {
             if (!response.ok) throw new Error(result.message || 'Failed to create order');
 
             // Refresh dashboard stats and inventory in the background
+            const today = new Date().toISOString().split('T')[0];
             Promise.all([
-                api.get('/dashboard/stats'), 
-                api.get('/inventory')
+            api.get('/dashboard/stats'), 
+            api.get('/inventory'),
+            // 🔥 Prefetch receipts so SearchReceipts loads instantly
+            api.get('/receipts/search', { params: { query: '', date: today } })
+                .then(response => {
+                const data = Array.isArray(response.data) ? response.data : (response.data.data || []);
+                sessionStorage.setItem('lucky_boba_receipt_cache_results', JSON.stringify(data));
+                sessionStorage.setItem('lucky_boba_receipt_cache_query', '');
+                sessionStorage.setItem('lucky_boba_receipt_cache_date', today);
+                })
             ]).catch(e => console.error("Failed to fetch fresh data", e));
 
             setIsConfirmModalOpen(false);

@@ -45,10 +45,12 @@ class ReceiptController extends Controller
         $dbQuery = Receipt::query()
             ->leftJoin('sales', 'receipts.sale_id', '=', 'sales.id')
             ->select([
+                'receipts.sale_id',        
                 'receipts.si_number',
                 'receipts.total_amount',
                 'receipts.cashier_name',
                 'receipts.terminal',
+                'receipts.items_count',  
                 'receipts.created_at',
                 'sales.status',
                 'sales.cancellation_reason',
