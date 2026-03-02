@@ -86,7 +86,8 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT }}
           source: "frontend/dist/"
-          target: "public_html/backend/public/"
+          # CORRECTED PATH: Pointing to the specific addon domain folder
+          target: "domains/luckybobastores.com/public_html/backend/public/"
           strip_components: 2
 
       # 3. Finalize Backend via SSH
@@ -98,7 +99,9 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            cd public_html
+            # CORRECTED PATH: Navigating to the addon domain folder
+            cd domains/luckybobastores.com/public_html
+            
             # Force git to ignore local changes to the build folder
             git pull origin main
             
