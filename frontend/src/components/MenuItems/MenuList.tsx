@@ -172,7 +172,7 @@ const handleSubmit = async () => {
               <select
                 value={form.status}
                 onChange={(e) => handleChange('status', e.target.value)}
-                className="w-full px-3 py-2 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 h-10 cursor-pointer"
+                className="w-full px-3 py-2 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-[#3b2063] h-10 cursor-pointer"
               >
                 <option value="ACTIVE">ACTIVE</option>
                 <option value="INACTIVE">INACTIVE</option>
@@ -183,7 +183,7 @@ const handleSubmit = async () => {
               <select
                 value={form.type}
                 onChange={(e) => handleChange('type', e.target.value)}
-                className="w-full px-3 py-2 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 h-10 cursor-pointer"
+                className="w-full px-3 py-2 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-[#3b2063] h-10 cursor-pointer"
               >
                 <option value="FOOD">FOOD</option>
                 <option value="DRINK">DRINK</option>
@@ -201,7 +201,7 @@ const handleSubmit = async () => {
               value={form.name}
               onChange={(e) => handleChange('name', e.target.value)}
               placeholder="e.g. Brown Sugar Milk Tea"
-              className={`w-full px-3 py-2 rounded-md border bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 h-10
+              className={`w-full px-3 py-2 rounded-md border bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-[#3b2063] h-10
                 ${errors.name ? 'border-red-400 bg-red-50' : 'border-zinc-300'}`}
             />
             {errors.name && <p className="text-[10px] text-red-500 font-bold mt-1">{errors.name}</p>}
@@ -216,7 +216,7 @@ const handleSubmit = async () => {
                 value={form.barcode}
                 onChange={(e) => handleChange('barcode', e.target.value)}
                 placeholder="Optional"
-                className="w-full px-3 py-2 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 h-10"
+                className="w-full px-3 py-2 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-[#3b2063] h-10"
               />
             </div>
             <div className="flex-1">
@@ -226,7 +226,7 @@ const handleSubmit = async () => {
                 value={form.category}
                 onChange={(e) => handleChange('category', e.target.value)}
                 placeholder="e.g. Milk Tea"
-                className="w-full px-3 py-2 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 h-10"
+                className="w-full px-3 py-2 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-[#3b2063] h-10"
               />
             </div>
           </div>
@@ -244,7 +244,7 @@ const handleSubmit = async () => {
                   value={form.unitCost}
                   onChange={(e) => handleChange('unitCost', e.target.value)}
                   placeholder="0.00"
-                  className={`w-full pl-7 pr-3 py-2 rounded-md border bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 h-10
+                  className={`w-full pl-7 pr-3 py-2 rounded-md border bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-[#3b2063] h-10
                     ${errors.unitCost ? 'border-red-400 bg-red-50' : 'border-zinc-300'}`}
                 />
               </div>
@@ -264,7 +264,7 @@ const handleSubmit = async () => {
                   value={form.sellingPrice}
                   onChange={(e) => handleChange('sellingPrice', e.target.value)}
                   placeholder="0.00"
-                  className={`w-full pl-7 pr-3 py-2 rounded-md border bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 h-10
+                  className={`w-full pl-7 pr-3 py-2 rounded-md border bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-[#3b2063] h-10
                     ${errors.sellingPrice ? 'border-red-400 bg-red-50' : 'border-zinc-300'}`}
                 />
               </div>
@@ -282,7 +282,7 @@ const handleSubmit = async () => {
                   value={form.totalCost}
                   onChange={(e) => handleChange('totalCost', e.target.value)}
                   placeholder="0.00"
-                  className={`w-full pl-7 pr-3 py-2 rounded-md border bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 h-10
+                  className={`w-full pl-7 pr-3 py-2 rounded-md border bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-[#3b2063] h-10
                     ${errors.totalCost ? 'border-red-400 bg-red-50' : 'border-zinc-300'}`}
                 />
               </div>
@@ -304,7 +304,7 @@ const handleSubmit = async () => {
           <button
             onClick={handleSubmit}
             disabled={submitting}
-            className="flex-1 h-10 rounded-md bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[10px] uppercase tracking-widest transition-all shadow-sm disabled:opacity-60 flex items-center justify-center gap-2"
+            className="flex-1 h-10 rounded-md bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-[10px] uppercase tracking-widest transition-all shadow-sm disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {submitting ? (
               <>
@@ -383,7 +383,7 @@ function MenuList() {
         <TopNavbar />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#3b2063] mx-auto mb-4"></div>
             <p className="text-sm font-bold text-zinc-400 uppercase tracking-widest">Loading menu...</p>
           </div>
         </div>
@@ -424,7 +424,7 @@ function MenuList() {
                   type="text"
                   value={filterName}
                   onChange={(e) => setFilterName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 h-10"
+                  className="w-full px-3 py-2 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-[#3b2063] h-10"
                   placeholder="Search by name or barcode..."
                 />
               </div>
@@ -436,7 +436,7 @@ function MenuList() {
                   type="text"
                   value={filterCategory}
                   onChange={(e) => setFilterCategory(e.target.value)}
-                  className="w-full px-3 py-2 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 h-10"
+                  className="w-full px-3 py-2 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-[#3b2063] h-10"
                   placeholder="Search by category..."
                 />
               </div>
@@ -444,7 +444,7 @@ function MenuList() {
               {/* Filter By */}
               <div className="w-full xl:w-32">
                 <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1 block">Filter By</label>
-                <select className="w-full px-3 py-2 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 h-10 cursor-pointer">
+                <select className="w-full px-3 py-2 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-[#3b2063] h-10 cursor-pointer">
                   <option>ACTIVE</option>
                   <option>INACTIVE</option>
                 </select>
@@ -453,7 +453,7 @@ function MenuList() {
               {/* Limit By */}
               <div className="w-full xl:w-24">
                 <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1 block">Limit By</label>
-                <select className="w-full px-3 py-2 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 h-10 cursor-pointer">
+                <select className="w-full px-3 py-2 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-[#3b2063] h-10 cursor-pointer">
                   <option>50</option>
                   <option>100</option>
                   <option>All</option>
@@ -463,7 +463,7 @@ function MenuList() {
               {/* Type */}
               <div className="w-full xl:w-32">
                 <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1 block">Type</label>
-                <select className="w-full px-3 py-2 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-blue-500 h-10 cursor-pointer">
+                <select className="w-full px-3 py-2 rounded-md border border-zinc-300 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-[#3b2063] h-10 cursor-pointer">
                   <option>FOOD</option>
                   <option>DRINK</option>
                 </select>
@@ -471,12 +471,12 @@ function MenuList() {
 
               {/* Action Buttons */}
               <div className="flex gap-2 w-full xl:w-auto">
-                <button className="flex-1 xl:flex-none px-6 h-10 bg-[#1e40af] text-white rounded-md font-bold uppercase text-[10px] tracking-widest hover:bg-[#1e3a8a] shadow-sm transition-all flex items-center justify-center min-w-25">
+                <button className="flex-1 xl:flex-none px-6 h-10 bg-[#3b2063] text-white rounded-md font-bold uppercase text-[10px] tracking-widest hover:bg-[#2a1647] shadow-sm transition-all flex items-center justify-center min-w-25">
                   SEARCH
                 </button>
                 <button
                   onClick={() => setShowAddModal(true)}
-                  className="flex-1 xl:flex-none px-6 h-10 bg-emerald-500 text-white rounded-md font-bold uppercase text-[10px] tracking-widest hover:bg-emerald-600 shadow-sm transition-all flex items-center justify-center min-w-25"
+                  className="flex-1 xl:flex-none px-6 h-10 bg-[#3b2063] text-white rounded-md font-bold uppercase text-[10px] tracking-widest hover:bg-[#2a1647] shadow-sm transition-all flex items-center justify-center min-w-25"
                 >
                   ADD ITEM
                 </button>
@@ -487,13 +487,13 @@ function MenuList() {
 
           {/* Button Row */}
           <div className="flex gap-2 mb-4">
-            <button className="px-6 py-2 bg-[#1e40af] text-white rounded-md font-bold uppercase text-[10px] tracking-widest hover:bg-[#1e3a8a] shadow-sm transition-all">
+            <button className="px-6 py-2 bg-[#3b2063] text-white rounded-md font-bold uppercase text-[10px] tracking-widest hover:bg-[#2a1647] shadow-sm transition-all">
               PRINT
             </button>
-            <button className="px-6 py-2 bg-[#1e40af] text-white rounded-md font-bold uppercase text-[10px] tracking-widest hover:bg-[#1e3a8a] shadow-sm transition-all">
+            <button className="px-6 py-2 bg-[#3b2063] text-white rounded-md font-bold uppercase text-[10px] tracking-widest hover:bg-[#2a1647] shadow-sm transition-all">
               LIST WITH KITS
             </button>
-            <button className="px-6 py-2 bg-[#1e40af] text-white rounded-md font-bold uppercase text-[10px] tracking-widest hover:bg-[#1e3a8a] shadow-sm transition-all">
+            <button className="px-6 py-2 bg-[#3b2063] text-white rounded-md font-bold uppercase text-[10px] tracking-widest hover:bg-[#2a1647] shadow-sm transition-all">
               LIST W/O KITS
             </button>
           </div>
@@ -520,7 +520,7 @@ function MenuList() {
                         <td className="px-4 py-3 text-xs font-bold text-slate-500">{item.barcode || '-'}</td>
                         <td className="px-4 py-3 text-xs font-bold text-slate-500">{item.category || 'Uncategorized'}</td>
                         <td className="px-4 py-3 text-xs font-bold text-slate-700 text-right">₱ {Number(item.unitCost).toFixed(2)}</td>
-                        <td className="px-4 py-3 text-xs font-black text-blue-600 text-right">₱ {Number(item.sellingPrice).toFixed(2)}</td>
+                        <td className="px-4 py-3 text-xs font-black text-[#3b2063] text-right">₱ {Number(item.sellingPrice).toFixed(2)}</td>
                         <td className="px-4 py-3 text-xs font-bold text-slate-700 text-right">₱ {Number(item.totalCost).toFixed(2)}</td>
                       </tr>
                     ))

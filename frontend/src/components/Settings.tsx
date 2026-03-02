@@ -135,14 +135,14 @@ const Settings = () => {
     : 'Quezon City • System Configuration';
 
   const settingActions = [
-    { label: "Sales Settings", Icon: SettingsIcon, color: "#1e40af", iconColor: "#1e40af", action: () => setIsSalesSettingsOpen(true) },
-    { label: "Add Customers", Icon: UserPlus,      color: "#1e40af", iconColor: "#1e40af", action: () => setActiveSubView('add-customers') },
-    { label: "Discount",      Icon: Percent,       color: "#1e40af", iconColor: "#1e40af", action: () => setActiveSubView('discount') },
-    { label: "Export Data",   Icon: FileUp,        color: "#1e40af", iconColor: "#1e40af", action: () => setActiveSubView('export-data') },
-    { label: "Upload Data",   Icon: Upload,        color: "#1e40af", iconColor: "#1e40af", action: () => setActiveSubView('upload-data') },
-    { label: "Add Vouchers",  Icon: Ticket,        color: "#1e40af", iconColor: "#1e40af", action: () => setActiveSubView('add-vouchers') },
-    { label: "Import Data",   Icon: FileDown,      color: "#1e40af", iconColor: "#1e40af", action: () => setActiveSubView('import-data') },
-    { label: "Backup System", Icon: Database,      color: "#1e40af", iconColor: "#1e40af", action: () => setActiveSubView('backup-system') },
+    { label: "Sales Settings", Icon: SettingsIcon, color: "#3b2063", iconColor: "#3b2063", action: () => setIsSalesSettingsOpen(true) },
+    { label: "Add Customers", Icon: UserPlus,      color: "#3b2063", iconColor: "#3b2063", action: () => setActiveSubView('add-customers') },
+    { label: "Discount",      Icon: Percent,       color: "#3b2063", iconColor: "#3b2063", action: () => setActiveSubView('discount') },
+    { label: "Export Data",   Icon: FileUp,        color: "#3b2063", iconColor: "#3b2063", action: () => setActiveSubView('export-data') },
+    { label: "Upload Data",   Icon: Upload,        color: "#3b2063", iconColor: "#3b2063", action: () => setActiveSubView('upload-data') },
+    { label: "Add Vouchers",  Icon: Ticket,        color: "#3b2063", iconColor: "#3b2063", action: () => setActiveSubView('add-vouchers') },
+    { label: "Import Data",   Icon: FileDown,      color: "#3b2063", iconColor: "#3b2063", action: () => setActiveSubView('import-data') },
+    { label: "Backup System", Icon: Database,      color: "#3b2063", iconColor: "#3b2063", action: () => setActiveSubView('backup-system') },
   ];
 
   const renderContent = () => {
@@ -189,31 +189,31 @@ const Settings = () => {
         {renderContent()}
 
         <div className="mt-4 bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden shrink-0">
-          <div className="bg-[#1e40af] px-6 py-3 border-b border-zinc-200">
+          <div className="bg-[#3b2063] px-6 py-3 border-b border-zinc-200">
             <h2 className="text-white font-black text-[10px] uppercase tracking-[0.2em] text-center">System Audit & Security</h2>
           </div>
           <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="flex flex-col items-center text-center gap-2">
-              <div className="p-2 bg-[#1e40af] rounded-full text-white"><Clock size={16} /></div>
+              <div className="p-2 bg-[#3b2063] rounded-full text-white"><Clock size={16} /></div>
               <div>
                 <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Last Backup</p>
                 <p className="text-sm font-black text-slate-700 uppercase italic">{formatBackupDate(auditInfo.last_backup)}</p>
               </div>
             </div>
             <div className="flex flex-col items-center text-center gap-2 border-x border-zinc-100 px-4">
-              <div className="p-2 bg-[#1e40af] rounded-full text-white"><ShieldCheck size={16} /></div>
+              <div className="p-2 bg-[#3b2063] rounded-full text-white"><ShieldCheck size={16} /></div>
               <div>
                 <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Active Session</p>
-                <p className="text-sm font-black text-[#1e40af] uppercase mb-1">{auditInfo.active_session}</p>
-                <button onClick={() => setIsLogOpen(true)} className="text-[8px] font-black text-[#1e40af] border border-[#1e40af]/20 px-2 py-0.5 rounded hover:bg-[#1e40af] hover:text-white transition-all">VIEW LOGS</button>
+                <p className="text-sm font-black text-[#3b2063] uppercase mb-1">{auditInfo.active_session}</p>
+                <button onClick={() => setIsLogOpen(true)} className="text-[8px] font-black text-[#3b2063] border border-[#3b2063]/20 px-2 py-0.5 rounded hover:bg-[#3b2063] hover:text-white transition-all">VIEW LOGS</button>
               </div>
             </div>
             <div className="flex flex-col items-center text-center gap-2">
-              <div className="p-2 bg-[#1e40af] rounded-full text-white"><Activity size={16} /></div>
+              <div className="p-2 bg-[#3b2063] rounded-full text-white"><Activity size={16} /></div>
               <div>
                 <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">System Status</p>
                 <div className="flex items-center justify-center gap-2">
-                  <div className={`w-2 h-2 rounded-full animate-pulse ${auditInfo.system_status === 'Online' ? 'bg-[#1e40af]' : 'bg-red-500'}`} />
+                  <div className={`w-2 h-2 rounded-full animate-pulse ${auditInfo.system_status === 'Online' ? 'bg-[#3b2063]' : 'bg-red-500'}`} />
                   <p className={`text-sm font-black uppercase ${auditInfo.system_status === 'Online' ? 'text-slate-700' : 'text-red-500'}`}>{auditInfo.system_status}</p>
                 </div>
               </div>
@@ -225,7 +225,7 @@ const Settings = () => {
       {isLogOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-100 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="bg-[#1e40af] p-4 flex justify-between items-center">
+            <div className="bg-[#3b2063] p-4 flex justify-between items-center">
               <h3 className="text-white font-black text-xs uppercase tracking-widest">System Activity Log</h3>
               <div className="flex items-center gap-4">
                 <button onClick={handleExportLogs} className="text-white/80 hover:text-white transition-colors" title="Export Logs"><FileUp size={16} /></button>
@@ -240,7 +240,7 @@ const Settings = () => {
                     <div className="flex items-start gap-2">
                       {critical && <AlertTriangle className="text-red-500 mt-0.5" size={12} />}
                       <div>
-                        <p className={`text-[10px] font-black uppercase tracking-tight ${critical ? 'text-red-600' : 'text-[#1e40af]'}`}>{log.user}</p>
+                        <p className={`text-[10px] font-black uppercase tracking-tight ${critical ? 'text-red-600' : 'text-[#3b2063]'}`}>{log.user}</p>
                         <p className={`text-xs font-bold leading-tight ${critical ? 'text-red-700' : 'text-slate-600'}`}>{log.action}</p>
                       </div>
                     </div>

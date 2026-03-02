@@ -161,7 +161,7 @@ const InventoryList = () => {
             </button>
             <button 
               onClick={() => setIsAddModalOpen(true)} 
-              className="px-6 py-2 bg-[#10b981] text-white rounded-md font-bold text-[10px] uppercase tracking-widest shadow-sm hover:bg-[#0da673] transition-all"
+              className="px-6 py-2 bg-[#3b2063] text-white rounded-md font-bold text-[10px] uppercase tracking-widest shadow-sm hover:bg-[#2a1647] transition-all"
             >
               ADD NEW ITEM
             </button>
@@ -197,7 +197,7 @@ const InventoryList = () => {
                     <td className="px-6 py-4 text-xs font-bold text-slate-500 font-mono">{item.barcode || '-'}</td>
                     <td className={`px-6 py-4 text-xs font-black text-center ${item.quantity <= 10 ? 'text-red-500' : 'text-slate-700'}`}>{item.quantity}</td>
                     <td className="px-6 py-4 text-center">
-                      <button onClick={() => openUpdateModal(item)} className="bg-[#1e40af] text-white px-4 py-2 rounded-md font-bold text-[10px] uppercase tracking-widest hover:bg-[#1e3a8a] transition-all shadow-sm">RESTOCK</button>
+                      <button onClick={() => openUpdateModal(item)} className="bg-[#3b2063] text-white px-4 py-2 rounded-md font-bold text-[10px] uppercase tracking-widest hover:bg-[#2a1647] transition-all shadow-sm">RESTOCK</button>
                     </td>
                   </tr>
                 ))
@@ -219,11 +219,11 @@ const InventoryList = () => {
             </div>
             <div className="mb-6">
               <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2 block">Add Quantity</label>
-              <input type="number" value={addQty} onChange={(e) => setAddQty(e.target.value)} autoFocus onFocus={(e) => e.target.select()} className="w-full border-2 border-zinc-200 rounded-md px-4 py-3 text-slate-700 font-bold outline-none focus:border-[#1e40af] transition-all" placeholder="Enter quantity to add" min="1" />
+              <input type="number" value={addQty} onChange={(e) => setAddQty(e.target.value)} autoFocus onFocus={(e) => e.target.select()} className="w-full border-2 border-zinc-200 rounded-md px-4 py-3 text-slate-700 font-bold outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200" placeholder="Enter quantity to add" min="1" />
             </div>
             <div className="flex gap-3">
               <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3 border-2 border-zinc-200 text-slate-600 rounded-md font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all">Cancel</button>
-              <button onClick={handleUpdateStock} disabled={updating || !addQty || parseInt(addQty) <= 0} className="flex-1 py-3 bg-[#10b981] text-white rounded-md font-bold text-xs uppercase tracking-widest hover:bg-[#0da673] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">{updating ? 'Updating...' : 'Confirm'}</button>
+              <button onClick={handleUpdateStock} disabled={updating || !addQty || parseInt(addQty) <= 0} className="flex-1 py-3 bg-[#3b2063] text-white rounded-md font-bold text-xs uppercase tracking-widest hover:bg-[#2a1647] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">{updating ? 'Updating...' : 'Confirm'}</button>
             </div>
           </div>
         </div>
@@ -237,30 +237,30 @@ const InventoryList = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Product Name</label>
-                  <input required type="text" value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-[#10b981] transition-all" placeholder="e.g. Boba Milk Tea" />
+                  <input required type="text" value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200" placeholder="e.g. Boba Milk Tea" />
                 </div>
                 <div className="col-span-2">
                   <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Category</label>
-                    <select required value={newItem.category_id} onChange={e => setNewItem({...newItem, category_id: e.target.value})}>
+                    <select required value={newItem.category_id} onChange={e => setNewItem({...newItem, category_id: e.target.value})} className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all cursor-pointer">
                       <option value="" disabled>Select a category</option>
                       {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
                     </select>
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Barcode/SKU</label>
-                  <input type="text" value={newItem.barcode} onChange={e => setNewItem({...newItem, barcode: e.target.value})} className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-[#10b981] transition-all" placeholder="Optional" />
+                  <input type="text" value={newItem.barcode} onChange={e => setNewItem({...newItem, barcode: e.target.value})} className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200" placeholder="Optional" />
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Initial Stock</label>
-                  <input required type="number" value={newItem.quantity} onChange={e => setNewItem({...newItem, quantity: e.target.value})} className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-[#10b981] transition-all" min="0" />
+                  <input required type="number" value={newItem.quantity} onChange={e => setNewItem({...newItem, quantity: e.target.value})} className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200" min="0" />
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Cost Price (₱)</label>
-                  <input required type="number" step="0.01" value={newItem.cost} onChange={e => setNewItem({...newItem, cost: e.target.value})} className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-[#10b981] transition-all" min="0" />
+                  <input required type="number" step="0.01" value={newItem.cost} onChange={e => setNewItem({...newItem, cost: e.target.value})} className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200" min="0" />
                 </div>
                 <div>
                   <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Selling Price (₱)</label>
-                  <input required type="number" step="0.01" value={newItem.price} onChange={e => setNewItem({...newItem, price: e.target.value})} className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-[#10b981] transition-all" min="0" />
+                  <input required type="number" step="0.01" value={newItem.price} onChange={e => setNewItem({...newItem, price: e.target.value})} className="w-full border-2 border-zinc-100 rounded-lg px-4 py-2 text-sm font-bold outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200" min="0" />
                 </div>
               </div>
               <div className="flex gap-3 mt-8">

@@ -66,7 +66,7 @@ const ItemChecker = () => {
               type="text" 
               value={barcode}
               onChange={(e) => setBarcode(e.target.value)}
-              className="w-full px-4 py-4 rounded-2xl border-2 border-zinc-100 bg-zinc-50 text-center font-black text-2xl outline-none focus:border-[#3b2063] mb-4 transition-all" 
+              className="w-full px-4 py-4 rounded-2xl border-2 border-zinc-100 bg-zinc-50 text-center font-black text-2xl outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 mb-4 transition-all duration-200" 
               placeholder="00000000" 
             />
             <button 

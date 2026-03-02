@@ -274,7 +274,7 @@ function DeleteModal({
           <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
             <Trash2 size={22} className="text-red-600" />
           </div>
-          <p className="text-xs font-bold text-slate-700">Are you sure you want to delete <span className="text-[#1e40af]">"{subCategory.name}"</span>?</p>
+          <p className="text-xs font-bold text-slate-700">Are you sure you want to delete <span className="text-[#3b2063]">"{ subCategory.name}"</span>?</p>
           {subCategory.itemCount > 0 && (
             <p className="text-[10px] font-bold text-amber-500 uppercase tracking-widest">⚠ This sub-category has {subCategory.itemCount} linked item{subCategory.itemCount > 1 ? 's' : ''}.</p>
           )}
@@ -424,7 +424,7 @@ const SubCategoryList = () => {
             </div>
             <button
               onClick={() => setShowAddModal(true)}
-              className="bg-[#1e40af] hover:bg-[#1e3a8a] text-white px-6 h-10 rounded-md font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-md"
+              className="bg-[#3b2063] hover:bg-[#2a1647] text-white px-6 h-10 rounded-md font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all shadow-md"
             >
               <Plus size={14} /> Add Sub-Category
             </button>
@@ -434,7 +434,7 @@ const SubCategoryList = () => {
           <div className="flex-1 bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden flex flex-col relative">
             {isFetching && (
               <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center">
-                <Loader2 className="animate-spin text-[#1e40af]" size={32} />
+                <Loader2 className="animate-spin text-[#3b2063]" size={32} />
               </div>
             )}
             <div className="flex-1 overflow-auto">

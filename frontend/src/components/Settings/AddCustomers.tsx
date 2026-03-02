@@ -23,7 +23,7 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
           <button
             onClick={() => setActiveTab('CUSTOMER')}
             className={`px-6 py-2 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all ${
-              activeTab === 'CUSTOMER' ? 'bg-[#2a9d8f] text-white shadow-md' : 'bg-white text-zinc-400 border border-zinc-200'
+              activeTab === 'CUSTOMER' ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-400 border border-zinc-200'
             }`}
           >
             Customer
@@ -49,7 +49,7 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
               <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Card #</label>
               <input
                 type="text"
-                className="w-full px-4 py-2 bg-white border border-zinc-300 rounded-lg text-xs font-bold outline-none focus:border-blue-500"
+                className="w-full px-4 py-2 bg-white border border-zinc-300 rounded-lg text-xs font-bold outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200"
               />
             </div>
             <div className="flex flex-col gap-1">
@@ -58,12 +58,12 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 bg-white border border-zinc-300 rounded-lg text-xs font-bold outline-none focus:border-blue-500"
+                className="w-full px-4 py-2 bg-white border border-zinc-300 rounded-lg text-xs font-bold outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200"
               />
             </div>
           </div>
           <div className="flex gap-2 w-full md:w-auto">
-            <button className="flex-1 md:flex-none px-6 py-2 bg-[#1e40af] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#1e3a8a] flex items-center justify-center gap-2 shadow-md">
+            <button className="flex-1 md:flex-none px-6 py-2 bg-[#3b2063] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#2a1647] flex items-center justify-center gap-2 shadow-md">
               <Search size={14} strokeWidth={3} /> Search
             </button>
             <button className="flex-1 md:flex-none px-6 py-2 bg-[#3b2063] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#2a1647] flex items-center justify-center gap-2 shadow-md">
@@ -108,7 +108,7 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
           >
             <ArrowLeft size={14} strokeWidth={3} /> Back
           </button>
-          <button className="px-6 py-3 bg-[#10b981] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#059669] flex items-center gap-2 shadow-lg transition-all">
+          <button className="px-6 py-3 bg-[#3b2063] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#2a1647] flex items-center gap-2 shadow-lg transition-all">
             <Plus size={14} strokeWidth={3} /> Add New Customer
           </button>
         </div>

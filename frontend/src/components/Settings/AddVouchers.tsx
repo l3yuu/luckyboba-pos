@@ -246,13 +246,13 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
           <div className="flex gap-2">
             <button
               onClick={handlePrintVouchers}
-              className="px-6 py-2.5 bg-[#1e40af] text-white rounded-lg font-black text-[10px] uppercase tracking-widest hover:bg-[#1e3a8a] flex items-center gap-2 shadow-lg transition-all active:scale-95"
+              className="px-6 py-2.5 bg-[#3b2063] text-white rounded-lg font-black text-[10px] uppercase tracking-widest hover:bg-[#2a1647] flex items-center gap-2 shadow-lg transition-all active:scale-95"
             >
               <Printer size={14} strokeWidth={3} /> Print Vouchers
             </button>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="px-6 py-2.5 bg-[#10b981] text-white rounded-lg font-black text-[10px] uppercase tracking-widest hover:bg-[#059669] flex items-center gap-2 shadow-lg transition-all active:scale-95"
+              className="px-6 py-2.5 bg-[#3b2063] text-white rounded-lg font-black text-[10px] uppercase tracking-widest hover:bg-[#2a1647] flex items-center gap-2 shadow-lg transition-all active:scale-95"
             >
               <Plus size={14} strokeWidth={3} /> Add Vouchers
             </button>
@@ -345,7 +345,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
                   type="text"
                   value={newVoucher.number}
                   onChange={(e) => setNewVoucher({...newVoucher, number: e.target.value})}
-                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-blue-500 transition-all"
+                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all"
                   placeholder="e.g. VOUCHER-001"
                 />
               </div>
@@ -356,7 +356,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
                   type="text"
                   value={newVoucher.value}
                   onChange={(e) => setNewVoucher({...newVoucher, value: e.target.value})}
-                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-blue-500 transition-all"
+                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all"
                   placeholder="e.g. 20% or 100.00"
                 />
               </div>
@@ -366,7 +366,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
                 <select
                   value={newVoucher.type}
                   onChange={(e) => setNewVoucher({...newVoucher, type: e.target.value})}
-                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-blue-500 cursor-pointer"
+                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200 cursor-pointer"
                 >
                   <option value="Percentage">Percentage (%)</option>
                   <option value="Fixed Amount">Fixed Amount (₱)</option>
@@ -378,7 +378,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
                 <button
                   onClick={handleAddVoucher}
                   disabled={loading}
-                  className="w-full bg-[#10b981] hover:bg-[#059669] text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 disabled:opacity-50"
+                  className="w-full bg-[#3b2063] hover:bg-[#2a1647] text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 disabled:opacity-50"
                 >
                   <Save size={14} /> Add New
                 </button>
@@ -392,7 +392,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
                   </button>
                   <button
                     onClick={handleImport}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+                    className="flex-1 bg-[#3b2063] hover:bg-[#2a1647] text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
                   >
                     <Upload size={14} /> Import
                   </button>

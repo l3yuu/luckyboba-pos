@@ -212,7 +212,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
                       <input 
                         type="text" value={amount} onChange={handleAmountChange} 
                         placeholder={isEodLocked ? "LOCKED" : "0.00"} disabled={isEodLocked}
-                        className={`w-full text-[#3b2063] font-black text-3xl px-8 pl-14 py-5 rounded-3xl border-2 transition-all outline-none focus:ring-4 focus:ring-[#f0ebff] ${isEodLocked ? 'bg-zinc-50 border-zinc-100' : 'bg-white border-zinc-100 focus:border-[#3b2063]'}`}
+                        className={`w-full text-[#3b2063] font-black text-3xl px-8 pl-14 py-5 rounded-3xl border-2 transition-all duration-200 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 ${isEodLocked ? 'bg-zinc-50 border-zinc-100' : 'bg-white border-zinc-100'}`}
                       />
                     </div>
                   </div>

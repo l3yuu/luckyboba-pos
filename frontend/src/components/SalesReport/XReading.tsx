@@ -679,10 +679,10 @@ const XReading = () => {
           </div>
 
           <div className="flex gap-2">
-            <button onClick={handleGenerate} disabled={loading} className="px-6 h-12 bg-[#1e40af] text-white rounded-md font-bold uppercase text-xs disabled:opacity-50">
+            <button onClick={handleGenerate} disabled={loading} className="px-6 h-12 bg-[#3b2063] text-white rounded-md font-bold uppercase text-xs disabled:opacity-50">
               {loading ? 'Processing...' : 'Generate'}
             </button>
-            <button onClick={handlePrint} className="px-6 h-12 bg-[#172554] text-white rounded-md font-bold uppercase text-xs">Print</button>
+            <button onClick={handlePrint} className="px-6 h-12 bg-[#3b2063] text-white rounded-md font-bold uppercase text-xs">Print</button>
             {rawApiResponse && (
               <button
                 onClick={() => setShowDebug(!showDebug)}

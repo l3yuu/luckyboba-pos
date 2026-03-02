@@ -143,7 +143,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
               <div className="relative">
                 <input 
                   type="text" 
-                  className="border border-zinc-300 rounded-md bg-white pl-3 pr-8 py-1.5 text-xs outline-none focus:border-blue-500 shadow-sm w-64 font-bold text-slate-700"
+                  className="border border-zinc-300 rounded-md bg-white pl-3 pr-8 py-1.5 text-xs outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 shadow-sm w-64 font-bold text-slate-700 transition-all duration-200"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -181,7 +181,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
                         <button 
                           onClick={() => handleToggleStatus(discount.id)}
                           className={`px-4 py-1.5 text-white rounded text-[9px] font-black uppercase tracking-widest transition-colors shadow-sm ${
-                            discount.status === 'ON' ? 'bg-[#1e40af] hover:bg-blue-800' : 'bg-emerald-600 hover:bg-emerald-700'
+                            discount.status === 'ON' ? 'bg-[#3b2063] hover:bg-[#2a1647]' : 'bg-emerald-600 hover:bg-emerald-700'
                           }`}
                         >
                           {discount.status === 'ON' ? 'Deactivate' : 'Activate'}
@@ -210,7 +210,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
           <div className="p-4 bg-zinc-50 border-t border-zinc-200 flex justify-between items-center">
             <button 
               onClick={() => setIsModalOpen(true)}
-              className="px-6 py-2 bg-[#10b981] text-white rounded-lg font-black text-[10px] uppercase tracking-widest hover:bg-[#059669] flex items-center gap-2 shadow-md transition-all active:scale-95"
+              className="px-6 py-2 bg-[#3b2063] text-white rounded-lg font-black text-[10px] uppercase tracking-widest hover:bg-[#2a1647] flex items-center gap-2 shadow-md transition-all active:scale-95"
             >
               <Plus size={14} strokeWidth={3} /> Add Discount
             </button>
@@ -225,7 +225,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
       {isModalOpen && (
         <div className="fixed inset-0 z-110 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="bg-[#1e40af] px-6 py-4 flex justify-between items-center">
+            <div className="bg-[#3b2063] px-6 py-4 flex justify-between items-center">
               <h2 className="text-white font-black text-xs uppercase tracking-[0.2em]">New Discount Entry</h2>
               <button onClick={() => setIsModalOpen(false)} className="text-white/70 hover:text-white transition-colors"><X size={20} /></button>
             </div>
@@ -236,7 +236,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
                   type="text" 
                   value={newDiscount.name} 
                   onChange={e => setNewDiscount({...newDiscount, name: e.target.value})} 
-                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 focus:border-blue-500 outline-none transition-all" 
+                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 focus:border-[#3b2063] outline-none transition-all" 
                 />
               </div>
               <div className="space-y-1">
@@ -245,7 +245,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
                   type="number" 
                   value={newDiscount.amount} 
                   onChange={e => setNewDiscount({...newDiscount, amount: e.target.value})} 
-                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 focus:border-blue-500 outline-none transition-all" 
+                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 outline-none transition-all duration-200 duration-200" 
                 />
               </div>
               <div className="space-y-1">
@@ -253,7 +253,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
                 <select 
                   value={newDiscount.type} 
                   onChange={e => setNewDiscount({...newDiscount, type: e.target.value})} 
-                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 focus:border-blue-500 outline-none transition-all cursor-pointer"
+                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 outline-none transition-all duration-200 cursor-pointer"
                 >
                   <option value="Global-Percent">Global-Percent</option>
                   <option value="Item-Percent">Item-Percent</option>
@@ -264,7 +264,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
                 <button 
                   onClick={handleSave} 
                   disabled={isSubmitting}
-                  className="flex-1 bg-[#10b981] text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:bg-[#059669] transition-all active:scale-95 flex items-center justify-center gap-2"
+                  className="flex-1 bg-[#3b2063] text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:bg-[#2a1647] transition-all active:scale-95 flex items-center justify-center gap-2"
                 >
                   {isSubmitting ? <Loader2 size={14} className="animate-spin" /> : 'Save Entry'}
                 </button>
