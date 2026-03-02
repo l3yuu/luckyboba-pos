@@ -52,6 +52,8 @@ jobs:
       - name: Lint & Type Check
         run: cd frontend && npm run lint
       - name: Build Check
+        env:
+          VITE_API_BASE_URL: "https://luckybobastores.com/api"
         run: cd frontend && npm run build
 
   deploy:
@@ -67,6 +69,8 @@ jobs:
         with:
           node-version: '20'
       - name: Build Frontend
+        env:
+          VITE_API_BASE_URL: "https://luckybobastores.com/api"
         run: |
           cd frontend
           npm install
