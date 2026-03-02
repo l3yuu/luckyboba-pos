@@ -17,6 +17,8 @@ return [
         'http://localhost:3000',
         'https://luckyboba-pos.vercel.app', 
         'https://luckybobastores.com',
+        'https://www.luckybobastores.com',  // 👈 add www version
+        'https://luckyboba-qg9jh57q3-leumars-projects.vercel.app', // 👈 your current vercel URL
     ],
 
     'allowed_origins_patterns' => [],
