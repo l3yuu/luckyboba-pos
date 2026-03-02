@@ -5,6 +5,7 @@ import api from '../services/api';
 interface User {
   name: string;
   role: string;
+  branch?: string;
 }
 
 interface LoginCredentials {
