@@ -2,7 +2,6 @@
 
 import { Loader2, Clock } from 'lucide-react';
 import { useCache } from '../../UseCache';
-import type { StockTransaction } from '../../GlobalCache';
 
 interface LogEntry {
   id: number;
@@ -20,7 +19,7 @@ interface InventoryHistoryModalProps {
 const InventoryHistoryModal: React.FC<InventoryHistoryModalProps> = ({ onClose }) => {
   const { all, loading, ready } = useCache();
 
-  const history = all<LogEntry & StockTransaction>('stock_transactions');
+  const history = all<LogEntry>('stock_transactions');
   const isLoading = !ready || loading;
 
   return (
@@ -56,7 +55,7 @@ const InventoryHistoryModal: React.FC<InventoryHistoryModalProps> = ({ onClose }
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-50">
-                {history.map((log) => (
+                {history.map((log: LogEntry) => (
                   <tr key={log.id} className="text-xs hover:bg-zinc-50/50 transition-colors">
                     <td className="py-4 text-zinc-500 font-medium">
                       {new Date(log.created_at).toLocaleDateString()}<br />
