@@ -94,10 +94,17 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             cd public_html
+            # Force git to ignore local changes to the build folder
             git pull origin main
             
             cd backend
-            # Use 'composer' as a fallback if 'composer2' is missing
+            # Fallback for composer versions
             composer install --no-dev --optimize-autoloader || composer2 install --no-dev --optimize-autoloader
+            
+            # Run migrations to update the 'sales' and 'products' tables
             php artisan migrate --force
+            
+            # Clear caches so the new .env and routes are live
             php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
