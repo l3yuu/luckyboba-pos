@@ -83,7 +83,7 @@ class CashTransactionController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'You have already performed a Cash In for today.'
-            ], 422);
+            ], 200);
         }
 
         try {

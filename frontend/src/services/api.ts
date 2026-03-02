@@ -6,7 +6,8 @@ const api = axios.create({
         'Accept': 'application/json',
         'Content-Type': 'application/json',
         'X-Requested-With': 'XMLHttpRequest',
-        'X-Build-Version': 'lucky-boba-v2'
+        'X-Build-Version': 'lucky-boba-v2',
+        'ngrok-skip-browser-warning': 'true' 
     }
 });
 
@@ -18,7 +19,7 @@ api.interceptors.request.use((config) => {
     return config;
 }, (error) => Promise.reject(error));
 
-// Handle Session Expiry (401)
+// Handle Session Expiry (401) and Network Errors
 api.interceptors.response.use(
     (response) => response,
     (error) => {
@@ -35,6 +36,14 @@ api.interceptors.response.use(
                 window.location.href = '/login?reason=expired';
             }
         }
+
+        // Silently swallow network errors (server not running, no connection).
+        // Converts noisy AxiosError into a plain Error so callers can handle it
+        // without a red ERR_CONNECTION_REFUSED flooding the console.
+        if (!error.response && error.request) {
+            return Promise.reject(new Error('network_error'));
+        }
+
         return Promise.reject(error);
     }
 );

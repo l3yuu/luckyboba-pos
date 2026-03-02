@@ -13,15 +13,12 @@ return [
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
-        
-        'https://luckyboba-pos-frontend.up.railway.app', 
-        
-        // 2. Keep these for local development
         'http://localhost:5173',
         'http://localhost:3000',
-        
-        // 3. Optional: You can keep Vercel for now as a backup
         'https://luckyboba-pos.vercel.app', 
+        'https://luckybobastores.com',
+        'https://www.luckybobastores.com',  // 👈 add www version
+        'https://luckyboba-qg9jh57q3-leumars-projects.vercel.app', // 👈 your current vercel URL
     ],
 
     'allowed_origins_patterns' => [],

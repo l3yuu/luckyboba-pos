@@ -20,22 +20,25 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
   const [receiptData, setReceiptData] = useState<ReceiptData>({ date: '', time: '' });
   const keyboardRef = useRef<KeyboardRef | null>(null);
 
-  // FIX: Dynamically get the name using your actual storage key
   const cashierName = useMemo(() => {
     return localStorage.getItem('lucky_boba_user_name') || 'Staff';
   }, []);
 
-  const checkEodStatus = async () => {
-    try {
-      const response = await api.get<{ isEodDone: boolean }>('/cash-counts/status');
-      setIsEodLocked(response.data.isEodDone);
-    } catch (error) {
-      console.error("Failed to check EOD status:", error);
-    }
-  };
-
   useEffect(() => {
-    checkEodStatus();
+    let cancelled = false;
+
+    const fetchEodStatus = async () => {
+      try {
+        const response = await api.get<{ isEodDone: boolean }>('/cash-counts/status');
+        if (!cancelled) setIsEodLocked(response.data.isEodDone);
+      } catch {
+        // silently ignore
+      }
+    };
+
+    fetchEodStatus();
+
+    return () => { cancelled = true; };
   }, []);
 
   const getCurrentDateTime = (): ReceiptData => {
@@ -58,7 +61,6 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
       });
 
       if (response.data.success) {
-        // Unlock immediately in storage so Sidebar picks it up
         localStorage.setItem('cashier_menu_unlocked', 'true');
         localStorage.setItem('cashier_lock_date', new Date().toDateString());
 
@@ -68,10 +70,18 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
         setShowKeyboard(false);
 
         if (onSuccess) onSuccess();
+      } else {
+        showToast(response.data.message || "Cash In already recorded.", "warning");
       }
     } catch (error: unknown) {
       const err = error as AxiosError<{ message?: string }>;
+      const status = err.response?.status;
       const errorMessage = err.response?.data?.message || "Failed to record Cash In.";
+
+      if (status !== 422) {
+        console.error("Cash In error:", err);
+      }
+
       showToast(errorMessage, "error");
     } finally {
       setIsLoading(false);

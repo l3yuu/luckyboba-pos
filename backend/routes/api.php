@@ -50,6 +50,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/',        [CashTransactionController::class, 'index']);
         Route::post('/',       [CashTransactionController::class, 'store']);
         Route::get('/status',  [CashCountController::class, 'checkInitialCash']);
+        Route::get('/status', [CashCountController::class, 'checkInitialCash']);
+        Route::get('/', [CashTransactionController::class, 'index']);
+        Route::post('/', [CashTransactionController::class, 'store']);
     });
 
     Route::get('/receipts/search', [ReceiptController::class, 'search']);

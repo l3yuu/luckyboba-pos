@@ -7,6 +7,9 @@ import { useToast } from '../../hooks/useToast';
 
 const CACHE_KEY = 'lucky_boba_receipt_cache';
 
+// ← Module-level flag persists across tab switches (remounts)
+let hasInitialized = false;
+
 const TableSkeleton = () => (
   <>
     {[...Array(5)].map((_, i) => (
@@ -32,12 +35,13 @@ const SearchReceipts = () => {
   const [searchResults, setSearchResults] = useState<Receipt[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isVoiding, setIsVoiding] = useState(false); 
-  
+  const [isVoiding, setIsVoiding] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+
   const [isReasonModalOpen, setIsReasonModalOpen] = useState(false);
   const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
   const [cancelReason, setCancelReason] = useState('');
-  
+
   const keyboardRef = useRef<unknown>(null);
 
   const stats = useMemo(() => {
@@ -53,12 +57,16 @@ const SearchReceipts = () => {
   const handleSearch = useCallback(async (queryOverride?: string, dateOverride?: string) => {
     const activeQuery = typeof queryOverride === 'string' ? queryOverride : searchQuery;
     const activeDate = dateOverride || selectedDate;
+
     setIsLoading(true);
     setHasSearched(true);
 
     try {
       const response = await api.get('/receipts/search', {
-        params: { query: activeQuery, date: activeDate }
+        params: {
+          query: activeQuery,
+          date: activeDate
+        }
       });
 
       const data = Array.isArray(response.data) ? response.data : (response.data.data || []);
@@ -75,48 +83,58 @@ const SearchReceipts = () => {
     }
   }, [searchQuery, selectedDate]);
 
+  // Debounce Effect — only runs after initialization
   useEffect(() => {
+    if (!isReady) return;
     if (!searchQuery && !hasSearched) return;
+
     const delayDebounceFn = setTimeout(() => {
       handleSearch(searchQuery, selectedDate);
     }, 500);
+
     return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery, selectedDate, handleSearch, hasSearched]);
+  }, [searchQuery, selectedDate, handleSearch, hasSearched, isReady]);
 
+  // Cache Initialization — module-level flag prevents re-fetch on tab switch
   useEffect(() => {
-      const cachedResults = sessionStorage.getItem(`${CACHE_KEY}_results`);
-      const cachedQuery = sessionStorage.getItem(`${CACHE_KEY}_query`);
-      const cachedDate = sessionStorage.getItem(`${CACHE_KEY}_date`);
+    if (hasInitialized) return;
+    hasInitialized = true;
 
-      if (cachedResults) {
-        try {
-          const parsed = JSON.parse(cachedResults);
-          if (Array.isArray(parsed)) {
-            setSearchResults(parsed);
-            setSearchQuery(cachedQuery || '');
-            if (cachedDate) setSelectedDate(cachedDate);
-            setHasSearched(true);
-          } else {
-            throw new Error("Invalid cache format");
-          }
-        } catch (error) {
-          console.error("Cache parsing failed:", error);
-          sessionStorage.removeItem(`${CACHE_KEY}_results`);
-          handleSearch('', selectedDate);
+    const cachedResults = sessionStorage.getItem(`${CACHE_KEY}_results`);
+    const cachedQuery = sessionStorage.getItem(`${CACHE_KEY}_query`);
+    const cachedDate = sessionStorage.getItem(`${CACHE_KEY}_date`);
+
+    if (cachedResults) {
+      try {
+        const parsed = JSON.parse(cachedResults);
+        if (Array.isArray(parsed)) {
+          setSearchResults(parsed);
+          setSearchQuery(cachedQuery || '');
+          if (cachedDate) setSelectedDate(cachedDate);
+          setHasSearched(true);
+          setIsReady(true);
+        } else {
+          throw new Error("Invalid cache format");
         }
-      } else {
-        handleSearch('', selectedDate);
+      } catch {
+        sessionStorage.removeItem(`${CACHE_KEY}_results`);
+        handleSearch('', selectedDate).then(() => setIsReady(true));
       }
-    }, []);
+    } else {
+      handleSearch('', selectedDate).then(() => setIsReady(true));
+    }
+  }, [handleSearch, selectedDate]);
 
   const handleRefresh = () => {
     const today = new Date().toISOString().split('T')[0];
     sessionStorage.removeItem(`${CACHE_KEY}_query`);
     sessionStorage.removeItem(`${CACHE_KEY}_results`);
     sessionStorage.removeItem(`${CACHE_KEY}_date`);
+    hasInitialized = false; // ← reset so next mount re-fetches fresh
     setSearchQuery('');
     setSelectedDate(today);
-    handleSearch('', today);
+    setIsReady(false);
+    handleSearch('', today).then(() => setIsReady(true));
   };
 
   const handleConfirmCancel = async () => {
@@ -129,9 +147,9 @@ const SearchReceipts = () => {
       });
 
       if (response.status === 200) {
-        const updatedData = searchResults.map(item => 
-          item.sale_id === selectedSaleId 
-            ? { ...item, status: 'cancelled' as const, cancellation_reason: cancelReason } 
+        const updatedData = searchResults.map(item =>
+          item.sale_id === selectedSaleId
+            ? { ...item, status: 'cancelled' as const, cancellation_reason: cancelReason }
             : item
         );
 
@@ -151,11 +169,12 @@ const SearchReceipts = () => {
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const val = e.target.value;
-      setSearchQuery(val);
-      if (keyboardRef.current) {
-        (keyboardRef.current as unknown as { setInput: (s: string) => void }).setInput(val);
-      }
+    const val = e.target.value;
+    setSearchQuery(val);
+
+    if (keyboardRef.current) {
+      (keyboardRef.current as unknown as { setInput: (s: string) => void }).setInput(val);
+    }
   };
 
   return (
@@ -173,8 +192,7 @@ const SearchReceipts = () => {
               value={searchQuery}
               onChange={handleInputChange}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              // Updated placeholder
-              placeholder="Search OR Number..." 
+              placeholder="Search OR Number..."
               className="flex-1 h-12 px-4 outline-none text-[#3b2063] font-bold placeholder:text-zinc-300 bg-transparent"
             />
           </div>
@@ -239,32 +257,37 @@ const SearchReceipts = () => {
                 <span>Viewing: {new Date(selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
               </div>
             </div>
-            
-            <div className="flex-1 overflow-auto no-scrollbar">
-              <table className="w-full text-left relative">
-                <thead className="sticky top-0 bg-white z-10 shadow-sm">
-                  <tr className="border-b border-zinc-100">
-                    {/* Updated Column Header */}
-                    <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">OR # / Status</th> 
-                    <th className="px-6 py-4 text-center text-[10px] font-bold text-zinc-400 uppercase tracking-widest">TRML #</th>
-                    <th className="px-6 py-4 text-center text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Items</th>
-                    <th className="px-6 py-4 text-right text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Total Sales</th>
-                    <th className="px-6 py-4 text-center text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-50">
-                  {isLoading ? (
-                    <TableSkeleton />
-                  ) : searchResults.length > 0 ? (
-                      searchResults.map((item, index) => (
-    <tr key={item.sale_id ?? index} className="hover:bg-[#f8f6ff] transition-colors group">
+            <span className="text-[10px] font-bold text-zinc-400 uppercase bg-zinc-100 px-3 py-1 rounded-full">
+              {searchResults.length} Records Found
+            </span>
+          </div>
+
+          <div className="flex-1 overflow-auto no-scrollbar">
+            <table className="w-full text-left relative">
+              <thead className="sticky top-0 bg-white z-10 shadow-sm">
+                <tr className="border-b border-zinc-100">
+                  <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">OR # / Status</th>
+                  <th className="px-6 py-4 text-center text-[10px] font-bold text-zinc-400 uppercase tracking-widest">TRML #</th>
+                  <th className="px-6 py-4 text-center text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Items</th>
+                  <th className="px-6 py-4 text-right text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Total Sales</th>
+                  <th className="px-6 py-4 text-center text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-50">
+                {isLoading ? (
+                  <TableSkeleton />
+                ) : searchResults.length > 0 ? (
+                  searchResults.map((item, index) => (
+                    <tr
+                      key={item.sale_id || item.si_number || `receipt-${index}`}
+                      className="hover:bg-[#f8f6ff] transition-colors group"
+                    >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                            {/* Updated SI to OR label */}
-                            <span className="font-black text-[#3b2063] text-sm">#{item.si_number}</span>
-                            <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase ${item.status === 'cancelled' ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>
-                                {item.status === 'cancelled' ? 'Voided' : 'Paid'}
-                            </span>
+                          <span className="font-black text-[#3b2063] text-sm">#{item.si_number}</span>
+                          <span className={`text-[8px] font-black px-1.5 py-0.5 rounded uppercase ${item.status === 'cancelled' ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                            {item.status === 'cancelled' ? 'Voided' : 'Paid'}
+                          </span>
                         </div>
                         <p className="text-[10px] text-zinc-400 font-medium">
                           {item.created_at ? new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
@@ -288,17 +311,17 @@ const SearchReceipts = () => {
                         )}
                       </td>
                     </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={5} className="py-20 text-center text-zinc-300 uppercase font-bold text-xs">
-                        {hasSearched ? "No matching records found" : "Search to see transaction audit"}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="py-20 text-center text-zinc-300 uppercase font-bold text-xs">
+                      {hasSearched ? "No matching records found" : "Search to see transaction audit"}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
@@ -331,8 +354,7 @@ const SearchReceipts = () => {
           </div>
         </div>
       )}
-      </div>
-      </div>
+    </div>
   );
 };
 

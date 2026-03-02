@@ -124,6 +124,8 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
         localStorage.setItem('cashier_menu_unlocked', 'false');
         setIsEodLocked(true);
 
+        window.dispatchEvent(new CustomEvent('eod-completed'));
+
         const now = new Date();
         const newTx: Transaction = {
           id: response.data.id,
@@ -172,7 +174,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
   return (
     <>
       {isLoading && (
-        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-[#3b2063]/60 backdrop-blur-md animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-white animate-in fade-in duration-300">
            <div className="bg-white p-8 rounded-[2.5rem] shadow-2xl flex flex-col items-center gap-4 border border-purple-100 animate-in zoom-in-95 duration-200">
               <div className="relative">
                 <div className="w-12 h-12 border-4 border-zinc-100 border-t-[#3b2063] rounded-full animate-spin"></div>

@@ -43,20 +43,19 @@ class ReceiptController extends Controller
     $date  = $request->input('date');
     $user  = auth()->user(); // ✅ get the logged-in user
 
-    $dbQuery = Receipt::query()
-        ->leftJoin('sales', 'receipts.sale_id', '=', 'sales.id')
-        ->select([
-            'receipts.id',
-            'receipts.si_number',
-            'receipts.total_amount',
-            'receipts.cashier_name',
-            'receipts.terminal',
-            'receipts.created_at',
-            'receipts.sale_id',
-            'receipts.items_count',
-            'sales.status',
-            'sales.cancellation_reason',
-        ]);
+        $dbQuery = Receipt::query()
+            ->leftJoin('sales', 'receipts.sale_id', '=', 'sales.id')
+            ->select([
+                'receipts.sale_id',        
+                'receipts.si_number',
+                'receipts.total_amount',
+                'receipts.cashier_name',
+                'receipts.terminal',
+                'receipts.items_count',  
+                'receipts.created_at',
+                'sales.status',
+                'sales.cancellation_reason',
+            ]);
 
     // ✅ Filter by branch — superadmin sees all, others see only their branch
     if ($user->role !== 'superadmin' && $user->branch_id) {

@@ -219,9 +219,9 @@ const XReading = () => {
         <table className="w-full border-collapse" style={{ fontSize: '12px' }}>
           <thead>
             <tr style={{ borderBottom: '2px solid black' }}>
-              <th className="text-left pb-1 w-[40%]" style={{ fontWeight: 700 }}>HOUR</th>
-              <th className="text-center pb-1 w-[10%]" style={{ fontWeight: 700 }}>QTY</th>
-              <th className="text-right pb-1 w-[30%]" style={{ fontWeight: 700 }}>AMOUNT</th>
+              <th className="text-left pb-1 w-[40%]" style={{ fontWeight: 600 }}>HOUR</th>
+              <th className="text-center pb-1 w-[10%]" style={{ fontWeight: 600 }}>QTY</th>
+              <th className="text-right pb-1 w-[30%]" style={{ fontWeight: 600 }}>AMOUNT</th>
             </tr>
           </thead>
           <tbody>
@@ -229,9 +229,9 @@ const XReading = () => {
               const data = salesMap.get(h) ?? { total: 0, count: 0 };
               return (
                 <tr key={h} style={{ borderBottom: '1px solid black' }}>
-                  <td style={{ padding: '3px 0', fontWeight: 600 }}>{label}</td>
-                  <td className="text-center" style={{ padding: '5px 0', fontWeight: 600 }}>{data.count}</td>
-                  <td className="text-right" style={{ padding: '3px 0', fontWeight: 600 }}>{phCurrency.format(data.total)}</td>
+                  <td style={{ padding: '3px 0', fontWeight: 500 }}>{label}</td>
+                  <td className="text-center" style={{ padding: '5px 0', fontWeight: 500 }}>{data.count}</td>
+                  <td className="text-right" style={{ padding: '3px 0', fontWeight: 500 }}>{phCurrency.format(data.total)}</td>
                 </tr>
               );
             })}
@@ -279,7 +279,7 @@ const XReading = () => {
         <div className="receipt-divider"></div>
         {reportData.categories.map((cat, catIdx) => (
           <div key={catIdx} className="mb-4">
-            <p className="text-[12px] uppercase font-bold bg-zinc-100 px-2 py-0.5 mb-1 border-b border-black">
+            <p className="text-[15px] uppercase font-bold bg-zinc-100 px-2 py-0.5 mb-1 border-b border-black">
               {cat.category_name}
             </p>
             <table className="w-full text-[11px]">
