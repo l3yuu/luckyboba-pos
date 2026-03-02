@@ -23,7 +23,7 @@ const DrinkIcon = ({ className }: { className?: string }) => (
 
 const generateORNumber = (count = 1) => `OR-${String(count).padStart(10, '0')}`;
 const generateQueueNumber = (count = 1) => String(count).padStart(3, '0');
-
+//
 const SalesOrder = () => {
     const navigate = useNavigate();
     const { showToast } = useToast();
