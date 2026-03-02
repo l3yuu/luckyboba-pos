@@ -16,6 +16,7 @@ return [
         'http://localhost:5173',
         'http://localhost:3000',
         'https://luckyboba-pos.vercel.app', 
+        'https://luckybobastores.com',
     ],
 
     'allowed_origins_patterns' => [],
