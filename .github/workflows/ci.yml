@@ -59,7 +59,33 @@ jobs:
     needs: [laravel-backend, react-frontend]
     if: github.ref == 'refs/heads/main'
     steps:
-      - name: Deploy via SSH
+      - uses: actions/checkout@v4
+
+      # 1. Build React on GitHub (since server lacks npm)
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Build Frontend
+        run: |
+          cd frontend
+          npm install
+          npm run build
+
+      # 2. Upload the 'dist' folder to the server
+      - name: Upload Build to Hostinger
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "frontend/dist/"
+          target: "public_html/backend/public/"
+          strip_components: 2
+
+      # 3. Finalize Backend via SSH
+      - name: Update Backend via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -67,25 +93,11 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            # Navigate to the root of your Lucky Boba project
-            cd domains/yourdomain.com/public_html 
-            
-            # Pull changes
+            cd public_html
             git pull origin main
             
-            # 1. Update Backend (Laravel)
             cd backend
-            composer2 install --no-dev --optimize-autoloader
+            # Use 'composer' as a fallback if 'composer2' is missing
+            composer install --no-dev --optimize-autoloader || composer2 install --no-dev --optimize-autoloader
             php artisan migrate --force
             php artisan config:cache
-            php artisan route:cache
-            
-            # 2. Update Frontend (React)
-            cd ../frontend
-            npm install
-            npm run build
-            
-            # 3. Final Sync
-            # Ensure the React build (dist) is accessible by Laravel
-            rm -rf ../backend/public/dist
-            cp -r dist ../backend/public/
