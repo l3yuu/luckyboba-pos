@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import type { LoginCredentials } from '../types/user';
@@ -9,10 +9,21 @@ import { useToast } from '../hooks/useToast';
 import logo from '../assets/logo.png';
 import backgroundImage from '../assets/background_image.png';
 
+const ROLE_HOME: Record<string, string> = {
+  superadmin:     '/super-admin',
+  admin:          '/dashboard',
+  manager:        '/branch-manager',
+  branch_manager: '/branch-manager',
+  cashier:        '/dashboard',
+};
+
+const getHomeForRole = (role: string): string =>
+  ROLE_HOME[role.toLowerCase().trim()] ?? '/dashboard';
+
 const Login: React.FC = () => {
   const { showToast } = useToast();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail]               = useState('');
+  const [password, setPassword]         = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [lockoutTimer, setLockoutTimer] = useState<number>(0);
   const [searchParams, setSearchParams] = useSearchParams();
@@ -20,76 +31,65 @@ const Login: React.FC = () => {
   const { login, isLoading, error, user } = useAuth();
   const navigate = useNavigate();
 
-  // ✅ Added !isLoading check so we don't redirect while auth is still resolving
-useEffect(() => {
-  if (!isLoading && user) {
-    // Only redirect if we're not in the middle of logging in
-    if (user.role === 'superadmin') {
-      navigate('/super-admin', { replace: true });
-    } else if (user.role === 'manager' || user.role === 'admin' || user.role === 'branch_manager') {
-      navigate('/branch-manager', { replace: true });
-    } else if (user.role === 'cashier') {
-      navigate('/dashboard', { replace: true });
-    }
-    // Don't add an else fallback here — unknown roles stay on login
-  }
-}, [navigate, user, isLoading]);
+  // ── Track whether this render is from a fresh login submission ───────────
+  // This prevents the "already logged in" useEffect from double-navigating
+  // after handleSubmit already called navigate().
+  const didJustLogin = useRef(false);
 
+  // ── Only redirect if already logged in when the page first loads ─────────
+  // e.g. user manually types /login while still authenticated
+  useEffect(() => {
+    if (isLoading) return;           // wait for checkAuth to finish
+    if (didJustLogin.current) return; // handleSubmit already handled navigation
+    if (user) {
+      navigate(getHomeForRole(user.role), { replace: true });
+    }
+  }, [isLoading, user, navigate]);
+
+  // ── Session expired toast ────────────────────────────────────────────────
   useEffect(() => {
     if (searchParams.get('reason') === 'expired') {
-      showToast("Your session has expired. Please log in again.", "warning");
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete('reason');
-      setSearchParams(newParams, { replace: true });
+      showToast('Your session has expired. Please log in again.', 'warning');
+      const p = new URLSearchParams(searchParams);
+      p.delete('reason');
+      setSearchParams(p, { replace: true });
     }
   }, [searchParams, showToast, setSearchParams]);
 
+  // ── Error toast ──────────────────────────────────────────────────────────
   useEffect(() => {
-    if (error) {
-      showToast(error, "error");
-    }
+    if (error) showToast(error, 'error');
   }, [error, showToast]);
 
+  // ── Lockout countdown ────────────────────────────────────────────────────
   useEffect(() => {
-    const checkLockout = () => {
-      const lockoutEnd = localStorage.getItem('login_lockout_end');
-      if (lockoutEnd) {
-        const remaining = Math.ceil((parseInt(lockoutEnd) - Date.now()) / 1000);
-        setLockoutTimer(remaining > 0 ? remaining : 0);
-      } else {
-        setLockoutTimer(0);
-      }
+    const check = () => {
+      const end = localStorage.getItem('login_lockout_end');
+      setLockoutTimer(end ? Math.max(0, Math.ceil((parseInt(end) - Date.now()) / 1000)) : 0);
     };
-    checkLockout();
-    const interval = setInterval(checkLockout, 1000);
-    return () => clearInterval(interval);
+    check();
+    const id = setInterval(check, 1000);
+    return () => clearInterval(id);
   }, [error]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.getModifierState('CapsLock')) {
-      showToast("Caps Lock is ON", "warning");
-    }
+    if (e.getModifierState('CapsLock')) showToast('Caps Lock is ON', 'warning');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const credentials: LoginCredentials = { email, password };
     const loggedInUser = await login(credentials);
-    console.log('Full user object:', loggedInUser);
-    console.log('Logged in user role:', loggedInUser?.role);
 
     if (loggedInUser) {
-    localStorage.setItem('user_role', loggedInUser.role);
-    localStorage.setItem('lucky_boba_user_branch_id', String(loggedInUser.branch_id ?? ''));
-    showToast(`Welcome back, ${loggedInUser.name}!`, "success");
+      localStorage.setItem('user_role', loggedInUser.role);
+      localStorage.setItem('lucky_boba_user_branch_id', String(loggedInUser.branch_id ?? ''));
+      showToast(`Welcome back, ${loggedInUser.name}!`, 'success');
 
-      if (loggedInUser.role === 'superadmin') {
-  navigate('/super-admin', { replace: true });
-} else if (loggedInUser.role === 'manager' || loggedInUser.role === 'admin' || loggedInUser.role === 'branch_manager') {
-  navigate('/branch-manager', { replace: true });
-} else {
-  navigate('/dashboard', { replace: true });
-}
+      // Mark that we're handling navigation here so the useEffect above
+      // does not fire a second navigate() when user state updates
+      didJustLogin.current = true;
+      navigate(getHomeForRole(loggedInUser.role), { replace: true });
     }
   };
 
@@ -135,7 +135,7 @@ useEffect(() => {
               </label>
               <div className="relative">
                 <input
-                  type={showPassword ? "text" : "password"}
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onKeyDown={handleKeyDown}
@@ -170,7 +170,11 @@ useEffect(() => {
               disabled={isLoading || lockoutTimer > 0}
               className="w-full bg-[#3b2063] text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-[#2a174a] active:scale-[0.98] transition-all shadow-xl shadow-purple-900/40 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Authenticating...' : lockoutTimer > 0 ? `Locked (${lockoutTimer}s)` : 'Sign In'}
+              {isLoading
+                ? 'Authenticating...'
+                : lockoutTimer > 0
+                  ? `Locked (${lockoutTimer}s)`
+                  : 'Sign In'}
             </button>
           </div>
         </form>

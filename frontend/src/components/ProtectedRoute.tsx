@@ -2,15 +2,27 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import logo from '../assets/logo.png';
 
+type Role = 'superadmin' | 'admin' | 'manager' | 'cashier';
+
 interface ProtectedRouteProps {
-  allowedRoles?: Array<'superadmin' | 'admin' | 'manager' | 'cashier'>;
+  allowedRoles?: Role[];
 }
+
+const ROLE_HOME: Record<string, string> = {
+  superadmin:     '/super-admin',
+  admin:          '/dashboard',
+  manager:        '/branch-manager',
+  branch_manager: '/branch-manager',
+  cashier:        '/dashboard',
+};
 
 export const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
   const { user, isLoading } = useAuth();
   const location = useLocation();
 
-  // ── Loading state: wait for checkAuth to finish
+  // ── CRITICAL: never make any routing decision while auth is resolving ────
+  // Without this, the very first render (where user=null, isLoading=true)
+  // would fire the "not logged in" redirect to /login — causing the blink.
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#f8f6ff]">
@@ -29,48 +41,28 @@ export const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
     );
   }
 
-  // ── Not authenticated → redirect to login, preserving intended destination
+  // ── Not logged in (confirmed — isLoading is false) ───────────────────────
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // ── Role-based access: if roles are specified, check the user has one
+  // ── Role check ───────────────────────────────────────────────────────────
   if (allowedRoles && allowedRoles.length > 0) {
-    const userRole = user.role as string;
-    const hasAccess = allowedRoles.includes(userRole as 'superadmin' | 'admin' | 'manager' | 'cashier');
+    const userRole  = (user.role as string ?? '').toLowerCase().trim();
+    const hasAccess = allowedRoles.includes(userRole as Role);
 
     if (!hasAccess) {
-      // Redirect to appropriate dashboard based on role
-      const roleRedirects: Record<string, string> = {
-        superadmin: '/super-admin',
-        admin: '/dashboard',
-        manager: '/branch-manager',
-        cashier: '/dashboard',
-      };
-      const redirectTo = roleRedirects[userRole] ?? '/dashboard';
+      const redirectTo = ROLE_HOME[userRole] ?? '/login';
 
-      return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-[#f8f6ff] p-6 font-sans">
-          <div className="bg-white rounded-[2.5rem] shadow-2xl border border-zinc-100 p-10 max-w-sm w-full text-center space-y-6">
-            <img src={logo} alt="Lucky Boba" className="h-12 w-auto object-contain mx-auto opacity-60" />
-            <div className="w-16 h-16 bg-yellow-50 rounded-full flex items-center justify-center mx-auto">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="#d97706" className="w-8 h-8">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
-              </svg>
-            </div>
-            <div>
-              <h2 className="text-[#3b2063] font-black uppercase text-lg tracking-tight mb-2">Access Restricted</h2>
-              <p className="text-zinc-400 text-sm font-medium">
-                Your role <span className="font-black text-[#3b2063]">({userRole})</span> does not have permission to view this page.
-              </p>
-            </div>
-            <Navigate to={redirectTo} replace />
-          </div>
-        </div>
-      );
+      // Safety: if somehow we're already at the redirect target, just render.
+      // This prevents any possible infinite redirect loop.
+      if (location.pathname === redirectTo) {
+        return <Outlet />;
+      }
+
+      return <Navigate to={redirectTo} replace />;
     }
   }
 
-  // ── All checks passed → render the protected child routes
   return <Outlet />;
 };

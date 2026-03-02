@@ -1,7 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import SalesOrder from './pages/SalesOrder'; // Import from 'pages' based on your screenshot
+import SalesOrder from './pages/SalesOrder';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import BranchManagerDashboard from './pages/BranchManagerDashboard';
 import Calendar from './pages/Calendar';
@@ -9,43 +9,59 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { ErrorFallback } from './components/ErrorFallback';
 
 export const router = createBrowserRouter([
+  // ── Public ──────────────────────────────────────────────────────────────
   {
     path: '/login',
     element: <Login />,
     errorElement: <ErrorFallback />,
   },
+
+  // ── Super Admin only ─────────────────────────────────────────────────────
   {
-    element: <ProtectedRoute />,
+    element: <ProtectedRoute allowedRoles={['superadmin']} />,
     errorElement: <ErrorFallback />,
     children: [
-      {
-        path: '/dashboard',
-        element: <Dashboard />,
-      },
-      {
-        path: '/super-admin',
-        element: <SuperAdminDashboard />,
-      },
-      {
-        path: '/branch-manager',
-        element: <BranchManagerDashboard />,
-      },
-      {
-        path: '/calendar',
-        element: <Calendar />,
-      },
-      {
-        path: '/pos',         // New dedicated route for the Menu
-        element: <SalesOrder />, // Renders full screen without Sidebar
-      },
+      { path: '/super-admin', element: <SuperAdminDashboard /> },
     ],
   },
+
+  // ── Admin only ───────────────────────────────────────────────────────────
   {
-    path: '/',
-    element: <Navigate to="/login" replace />,
+    element: <ProtectedRoute allowedRoles={['admin']} />,
+    errorElement: <ErrorFallback />,
+    children: [
+      { path: '/dashboard', element: <Dashboard /> },
+    ],
   },
+
+  // ── Branch Manager only ──────────────────────────────────────────────────
   {
-    path: '*',
-    element: <ErrorFallback />,
+    element: <ProtectedRoute allowedRoles={['manager']} />,
+    errorElement: <ErrorFallback />,
+    children: [
+      { path: '/branch-manager', element: <BranchManagerDashboard /> },
+    ],
   },
+
+  // ── Cashier only ─────────────────────────────────────────────────────────
+  {
+    element: <ProtectedRoute allowedRoles={['cashier']} />,
+    errorElement: <ErrorFallback />,
+    children: [
+      { path: '/dashboard', element: <SalesOrder /> },
+    ],
+  },
+
+  // ── Shared: admin + manager ──────────────────────────────────────────────
+  {
+    element: <ProtectedRoute allowedRoles={['admin', 'manager']} />,
+    errorElement: <ErrorFallback />,
+    children: [
+      { path: '/calendar', element: <Calendar /> },
+    ],
+  },
+
+  // ── Root & catch-all ─────────────────────────────────────────────────────
+  { path: '/',  element: <Navigate to="/login" replace /> },
+  { path: '*',  element: <ErrorFallback /> },
 ]);
