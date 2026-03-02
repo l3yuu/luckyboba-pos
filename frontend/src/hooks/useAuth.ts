@@ -1,16 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
+import type { LoginCredentials } from '../types/user';
 import axios from 'axios';
 import api from '../services/api';
 
 interface User {
   name: string;
   role: string;
-  branch?: string;
-}
-
-interface LoginCredentials {
-  username: string;
-  password: string;
+  branch_id?: string;
 }
 
 const AUTH_KEYS = [

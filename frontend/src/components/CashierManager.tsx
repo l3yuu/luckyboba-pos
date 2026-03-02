@@ -35,7 +35,7 @@ const CashierManagement = () => {
     try {
       const data = await UserService.getAllUsers({
         role: 'cashier',
-        branch: currentUser?.branch ?? undefined,
+        branch: currentUser?.branch_id ?? undefined,
       });
       setUsers(data);
     } catch {
@@ -43,7 +43,7 @@ const CashierManagement = () => {
     } finally {
       setIsFetching(false);
     }
-  }, [currentUser?.branch, showToast]);
+  }, [currentUser?.branch_id, showToast]);
 
   useEffect(() => {
     fetchUsers();
@@ -78,7 +78,7 @@ const CashierManagement = () => {
         email: newUser.email,
         password: newUser.password,
         role: 'cashier',                          // always cashier
-        branch: currentUser?.branch ?? undefined, // scoped to branch
+        branch: currentUser?.branch_id ?? undefined, // scoped to branch
         status: 'ACTIVE',
       });
       showToast(`Cashier "${newUser.name}" added successfully`, 'success');
@@ -175,7 +175,7 @@ const CashierManagement = () => {
           <div>
             <h1 className="text-sm sm:text-xl font-black text-[#3b2063] uppercase tracking-wider">Cashier Management</h1>
             <p className="text-zinc-400 font-bold text-[10px] sm:text-xs uppercase tracking-wider mt-1">
-              {currentUser?.branch ? `Branch: ${currentUser.branch}` : 'System Access Control'}
+              {currentUser?.branch_id ? `Branch: ${currentUser.branch_id}` : 'System Access Control'}
             </p>
           </div>
         </div>
