@@ -424,7 +424,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
                         onChange={(e) => handleInputChange(e.target.value)}
                         placeholder="0"
                         disabled={isEodLocked}
-                        className={`w-full text-center font-bold text-lg py-2 rounded-xl border-2 border-zinc-100 focus:border-[#3b2063] ${isEodLocked ? 'bg-zinc-50 cursor-not-allowed opacity-50' : 'bg-[#f8f6ff]'}`}
+                        className={`w-full text-center font-bold text-lg py-2 rounded-xl border-2 border-zinc-100 focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 ${isEodLocked ? 'bg-zinc-50 cursor-not-allowed opacity-50' : 'bg-[#f8f6ff]'}`}
                       />
                       <div className="text-right font-black text-zinc-400 text-lg">
                         {rowTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -450,7 +450,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
                     onChange={(e) => handleInputChange(e.target.value)}
                     placeholder={isEodLocked ? "Terminal Locked" : "Enter notes..."}
                     disabled={isEodLocked}
-                    className={`w-full p-4 rounded-2xl border-2 border-zinc-100 focus:border-[#3b2063] resize-none h-16 ${isEodLocked ? 'bg-zinc-50 cursor-not-allowed opacity-50' : 'bg-[#f8f6ff]'}`}
+                    className={`w-full p-4 rounded-2xl border-2 border-zinc-100 focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 resize-none h-16 ${isEodLocked ? 'bg-zinc-50 cursor-not-allowed opacity-50' : 'bg-[#f8f6ff]'}`}
                   />
                 </div>
                 <button

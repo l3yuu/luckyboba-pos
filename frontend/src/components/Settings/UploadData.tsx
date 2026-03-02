@@ -239,7 +239,7 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
               <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Bulk Import</h1>
               <button 
                 onClick={downloadTemplate} 
-                className="flex items-center gap-2 text-[10px] font-black text-blue-600 uppercase tracking-widest hover:underline"
+                className="flex items-center gap-2 text-[10px] font-black text-[#3b2063] uppercase tracking-widest hover:underline"
               >
                 <Download size={14} /> Download Template
               </button>
@@ -346,7 +346,7 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
                   </thead>
                   <tbody className="divide-y divide-zinc-100">
                     {isLoadingHistory ? (
-                      <tr><td colSpan={3} className="p-12 text-center"><Loader2 className="animate-spin mx-auto text-blue-600" /></td></tr>
+                      <tr><td colSpan={3} className="p-12 text-center"><Loader2 className="animate-spin mx-auto text-[#3b2063]" /></td></tr>
                     ) : history.length > 0 ? history.map((log) => (
                       <tr key={log.id} className="hover:bg-zinc-50 transition-colors">
                         <td className="px-6 py-4 flex items-center gap-2 text-[11px] font-bold text-slate-500">
@@ -374,7 +374,7 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
             <button 
               onClick={handleUpload} 
               disabled={isUploading || !selectedFile} 
-              className="px-8 py-3 bg-[#1e40af] text-white rounded-lg font-black uppercase text-[10px] tracking-widest flex items-center gap-2 shadow-lg active:scale-95 disabled:bg-zinc-300 transition-all"
+              className="px-8 py-3 bg-[#3b2063] text-white rounded-lg font-black uppercase text-[10px] tracking-widest flex items-center gap-2 shadow-lg active:scale-95 disabled:bg-zinc-300 transition-all"
             >
               {isUploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
               {isUploading ? 'Importing...' : 'Confirm & Process'}

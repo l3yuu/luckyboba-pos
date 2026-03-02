@@ -164,7 +164,7 @@ const Expense = () => {
             <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest leading-none">Expenses</h1>
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Financial Tracking</p>
           </div>
-          <button onClick={() => setIsAddModalOpen(true)} className="px-6 py-2 bg-[#10b981] text-white rounded-md font-bold text-[10px] uppercase tracking-widest shadow-sm hover:bg-[#0da673] transition-all active:scale-95">ADD NEW EXPENSE</button>
+          <button onClick={() => setIsAddModalOpen(true)} className="px-6 py-2 bg-[#3b2063] text-white rounded-md font-bold text-[10px] uppercase tracking-widest shadow-sm hover:bg-[#2a1647] transition-all active:scale-95">ADD NEW EXPENSE</button>
         </div>
 
         {/* === TOP FILTER BAR === */}

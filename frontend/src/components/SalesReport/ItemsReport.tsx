@@ -227,27 +227,15 @@ const ItemsReport = () => {
 
               <div className="flex-1 w-full">
                 <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2 mb-1 block">From Date</label>
-                <input
-                  type="date" value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
-                  className="w-full p-3 rounded-xl border-2 border-zinc-100 bg-zinc-50 font-bold text-[#3b2063] outline-none focus:border-[#3b2063] transition-all"
-                />
+                <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-full p-3 rounded-xl border-2 border-zinc-100 bg-zinc-50 font-bold text-[#3b2063] outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200" />
               </div>
               <div className="flex-1 w-full">
                 <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2 mb-1 block">To Date</label>
-                <input
-                  type="date" value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                  className="w-full p-3 rounded-xl border-2 border-zinc-100 bg-zinc-50 font-bold text-[#3b2063] outline-none focus:border-[#3b2063] transition-all"
-                />
+                <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-full p-3 rounded-xl border-2 border-zinc-100 bg-zinc-50 font-bold text-[#3b2063] outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200" />
               </div>
               <div className="flex-1 w-full">
                 <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2 mb-1 block">Report Type</label>
-                <select
-                  value={reportType}
-                  onChange={(e) => setReportType(e.target.value as 'item-list' | 'category-summary')}
-                  className="w-full p-3 rounded-xl border-2 border-zinc-100 bg-zinc-50 font-bold text-[#3b2063] outline-none cursor-pointer focus:border-[#3b2063] transition-all appearance-none"
-                >
+                <select value={reportType} onChange={(e) => setReportType(e.target.value as 'item-list' | 'category-summary')} className="w-full p-3 rounded-xl border-2 border-zinc-100 bg-zinc-50 font-bold text-[#3b2063] outline-none cursor-pointer focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200 appearance-none">
                   <option value="item-list">Item List</option>
                   <option value="category-summary">Category Summary</option>
                 </select>

@@ -155,7 +155,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
           </div>
           <div className="space-y-1">
             <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Nonstock</label>
-            <select className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-[#3b2063] cursor-pointer">
+            <select className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-4 focus:border-[#3b2063] focus:ring-4 focus:ring-[#3b2063]/20 cursor-pointer">
               <option>YES</option>
               <option>NO</option>
             </select>
@@ -244,14 +244,14 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-1">
             <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Items with VAT</label>
-            <select className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-[#3b2063] cursor-pointer">
+            <select className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200 cursor-pointer">
               <option>VATABLE</option>
               <option>NOT-VATABLE</option>
             </select>
           </div>
           <div className="space-y-1">
             <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Items Active</label>
-            <select className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-[#3b2063] cursor-pointer">
+            <select className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200 cursor-pointer">
               <option>ACTIVE</option>
               <option>NOT-ACTIVE</option>
             </select>

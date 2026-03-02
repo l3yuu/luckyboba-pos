@@ -82,7 +82,7 @@ const ExportData = ({ onBack }: ExportDataProps) => {
   const reportGroups = [
     {
       title: "Sales Reports",
-      color: "bg-zinc-500",
+      color: "bg-[#3b2063]",
       items: [
         { label: "SALES", action: () => handleExportSales("SALES", "General_Sales") },
         { label: "SALES SUMMARY", action: () => handleExportSales("SUMMARY", "Sales_Summary") },
@@ -95,7 +95,7 @@ const ExportData = ({ onBack }: ExportDataProps) => {
     },
     {
       title: "Lists & Kits",
-      color: "bg-blue-600",
+      color: "bg-[#3b2063]",
       items: [
         { label: "FOOD LIST", action: handleExportFoodList },
         { label: "ALL LIST", action: () => showToast("Exporting system data...", "success") },
@@ -114,7 +114,7 @@ const ExportData = ({ onBack }: ExportDataProps) => {
         <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-6 relative">
           {loading && (
             <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center rounded-xl backdrop-blur-[1px]">
-              <Loader2 className="animate-spin text-[#1e40af]" size={24} />
+              <Loader2 className="animate-spin text-[#3b2063]" size={24} />
             </div>
           )}
           <div className="flex flex-col md:flex-row items-end gap-4">
@@ -125,7 +125,7 @@ const ExportData = ({ onBack }: ExportDataProps) => {
                   type="date" 
                   value={fromDate} 
                   onChange={(e) => setFromDate(e.target.value)} 
-                  className="w-full px-4 py-2 bg-zinc-50 border border-zinc-300 rounded-lg text-xs font-bold outline-none focus:border-blue-500 transition-all" 
+                  className="w-full px-4 py-3 border border-zinc-200 rounded-lg bg-white text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200"
                 />
               </div>
               <div className="flex flex-col gap-1">
@@ -134,14 +134,14 @@ const ExportData = ({ onBack }: ExportDataProps) => {
                   type="date" 
                   value={toDate} 
                   onChange={(e) => setToDate(e.target.value)} 
-                  className="w-full px-4 py-2 bg-zinc-50 border border-zinc-300 rounded-lg text-xs font-bold outline-none focus:border-blue-500 transition-all" 
+                  className="w-full px-4 py-3 border border-zinc-200 rounded-lg bg-white text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200"
                 />
               </div>
             </div>
             <button 
               onClick={() => handleExportSales("SALES", "General_Sales")}
               disabled={loading}
-              className="w-full md:w-auto px-8 py-2.5 bg-[#1e40af] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-blue-800 flex items-center justify-center gap-2 shadow-md disabled:opacity-50 transition-all"
+              className="w-full md:w-auto px-8 py-2.5 bg-[#3b2063] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#2a1647] flex items-center justify-center gap-2 shadow-md disabled:opacity-50 transition-all"
             >
               <Download size={14} strokeWidth={3} /> Generate
             </button>

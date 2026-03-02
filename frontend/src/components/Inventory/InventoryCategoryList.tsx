@@ -132,25 +132,14 @@ const InventoryCategoryList = () => {
             <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest leading-none">Category List</h1>
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Total Categories: {categories.length}</p>
           </div>
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="px-6 py-2 bg-[#10b981] text-white rounded-md font-bold text-[10px] uppercase tracking-widest shadow-sm hover:bg-[#0da673] transition-all active:scale-95"
-          >
-            NEW CATEGORY
-          </button>
+          <button onClick={() => setIsAddModalOpen(true)} className="px-6 py-2 bg-[#3b2063] text-white rounded-md font-bold text-[10px] uppercase tracking-widest shadow-sm hover:bg-[#2a1647] transition-all active:scale-95">NEW CATEGORY</button>
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-6">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Search:</span>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Find category..."
-                className="border border-zinc-300 rounded-md bg-white px-3 py-1.5 text-xs outline-none focus:border-blue-500 shadow-sm w-64 font-bold text-slate-700"
-              />
+              <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Find category..." className="border border-zinc-300 rounded-md bg-white px-3 py-1.5 text-xs outline-none focus:border-[#3b2063] shadow-sm w-64 font-bold text-slate-700" />
             </div>
           </div>
 
@@ -173,7 +162,7 @@ const InventoryCategoryList = () => {
                     <td className="px-4 py-4 text-xs font-bold text-zinc-400 text-center">{cat.description || '-'}</td>
                     <td className="px-4 py-4 text-xs font-black text-slate-700 text-center">{cat.menu_items_count}</td>
                     <td className="px-4 py-4 text-center flex gap-2 justify-center">
-                      <button onClick={() => openEditModal(cat)} className="bg-[#1e40af] text-white p-2 rounded-lg hover:bg-blue-700 shadow-sm transition-all"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" /></svg></button>
+                      <button onClick={() => openEditModal(cat)} className="bg-[#3b2063] text-white p-2 rounded-lg hover:bg-[#2a1647] shadow-sm transition-all"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" /></svg></button>
                       <button onClick={() => openDeleteModal(cat)} className="bg-red-600 text-white p-2 rounded-lg hover:bg-red-700 shadow-sm transition-all"><svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79" /></svg></button>
                     </td>
                   </tr>
@@ -209,7 +198,7 @@ const InventoryCategoryList = () => {
               </div>
               <div className="flex gap-4 mt-8">
                 <button onClick={() => setIsAddModalOpen(false)} className="flex-1 py-4 text-zinc-400 font-black text-[10px] uppercase tracking-widest hover:text-zinc-600 transition-colors">Cancel</button>
-                <button onClick={handleAddCategory} className="flex-2 py-4 bg-[#10b981] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-100 hover:bg-[#0da673] transition-all">Save Category</button>
+                <button onClick={handleAddCategory} className="flex-2 py-4 bg-[#3b2063] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-purple-100 hover:bg-[#2a1647] transition-all">Save Category</button>
               </div>
             </div>
           </div>

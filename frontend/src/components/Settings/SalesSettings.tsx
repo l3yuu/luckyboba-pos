@@ -142,7 +142,7 @@ const SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
               <div className="flex-1 overflow-y-auto pr-2 space-y-4">
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">BCODE</label>
-                  <input type="text" value={formData.bcode} onChange={(e) => setFormData({...formData, bcode: e.target.value})} className="w-full px-3 py-2 bg-white border border-zinc-300 rounded text-xs font-bold text-slate-700 outline-none focus:border-blue-500" />
+                  <input type="text" value={formData.bcode} onChange={(e) => setFormData({...formData, bcode: e.target.value})} className="w-full px-3 py-2 bg-white border border-zinc-300 rounded text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200" />
                 </div>
 
                 <div className="flex flex-col gap-1">
@@ -153,13 +153,13 @@ const SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1">
                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Service Charge</label>
-                    <select className="w-full px-3 py-2 bg-white border border-zinc-300 rounded text-xs font-bold text-slate-700 outline-none focus:border-blue-500" value={formData.serviceCharge} onChange={(e) => setFormData({...formData, serviceCharge: e.target.value})}>
+                    <select className="w-full px-3 py-2 bg-white border border-zinc-300 rounded text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200" value={formData.serviceCharge} onChange={(e) => setFormData({...formData, serviceCharge: e.target.value})}>
                       {['0%', '3%', '5%', '8%', '10%', '15%', '20%'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Voucher Surge</label>
-                    <select className="w-full px-3 py-2 bg-white border border-zinc-300 rounded text-xs font-bold text-slate-700 outline-none focus:border-blue-500" value={formData.voucherSurge} onChange={(e) => setFormData({...formData, voucherSurge: e.target.value})}>
+                    <select className="w-full px-3 py-2 bg-white border border-zinc-300 rounded text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200" value={formData.voucherSurge} onChange={(e) => setFormData({...formData, voucherSurge: e.target.value})}>
                       {['0%', '5%', '10%', '15%', '20%', '25%', '30%'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                   </div>
@@ -167,12 +167,12 @@ const SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
 
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">S.C / PWD Discount Charges</label>
-                  <input type="text" value={formData.scPwdDiscount} onChange={(e) => setFormData({...formData, scPwdDiscount: e.target.value})} className="w-full px-3 py-2 bg-white border border-zinc-300 rounded text-xs font-bold text-slate-700 outline-none focus:border-blue-500" />
+                  <input type="text" value={formData.scPwdDiscount} onChange={(e) => setFormData({...formData, scPwdDiscount: e.target.value})} className="w-full px-3 py-2 bg-white border border-zinc-300 rounded text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200" />
                 </div>
 
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Customer Points</label>
-                  <input type="number" value={formData.customerPoints} onChange={(e) => setFormData({...formData, customerPoints: parseInt(e.target.value) || 0})} className="w-full px-3 py-2 bg-white border border-zinc-300 rounded text-xs font-bold text-slate-700 outline-none focus:border-blue-500" />
+                  <input type="number" value={formData.customerPoints} onChange={(e) => setFormData({...formData, customerPoints: parseInt(e.target.value) || 0})} className="w-full px-3 py-2 bg-white border border-zinc-300 rounded text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200" />
                 </div>
 
                 <div className="bg-white p-3 rounded-lg border border-zinc-200 space-y-3">
@@ -197,7 +197,7 @@ const SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
               </div>
 
               <div className="flex gap-3 mt-6 pt-4 border-t border-zinc-200">
-                <button onClick={handleSave} disabled={loading} className="flex-1 px-4 py-3 bg-[#10b981] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#059669] flex items-center justify-center gap-2 shadow-md transition-all disabled:opacity-50">
+                <button onClick={handleSave} disabled={loading} className="flex-1 px-4 py-3 bg-[#3b2063] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#2a1647] flex items-center justify-center gap-2 shadow-md transition-all disabled:opacity-50">
                   {loading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} strokeWidth={2.5} />}
                   Save
                 </button>
@@ -237,7 +237,7 @@ const SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
               </div>
 
               <div className="flex gap-3 mt-8">
-                <button onClick={() => setIsEditing(true)} disabled={isSyncing} className="flex-1 px-4 py-3 bg-[#1e40af] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#1e3a8a] flex items-center justify-center gap-2 shadow-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+                <button onClick={() => setIsEditing(true)} disabled={isSyncing} className="flex-1 px-4 py-3 bg-[#3b2063] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#2a1647] flex items-center justify-center gap-2 shadow-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed">
                   <Pencil size={14} strokeWidth={2.5} />Edit
                 </button>
                 <button onClick={onClose} className="flex-1 px-4 py-3 bg-zinc-500 text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-zinc-600 flex items-center justify-center gap-2 shadow-lg transition-all">
