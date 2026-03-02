@@ -65,47 +65,32 @@ const SalesOrder = () => {
     const [addOnsData, setAddOnsData] = useState<{ id: number; name: string; price: number }[]>([]);
 
     useEffect(() => {
-        const token = localStorage.getItem('lucky_boba_token');
-
         const fetchLatestSequence = async () => {
             try {
-                const response = await fetch('http://localhost:8000/api/receipts/next-sequence', {
-                    headers: { 
-                        'Authorization': `Bearer ${token}`, 
-                        'Accept': 'application/json' 
-                    }
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    // This ensures OR-000000000X and Queue 00X are synced with DB
-                    setOrNumber(generateORNumber(data.next_sequence));
-                    setQueueNumber(generateQueueNumber(data.next_sequence));
-                }
+                const response = await api.get('/receipts/next-sequence');
+                const data = response.data;
+                setOrNumber(generateORNumber(data.next_sequence));
+                setQueueNumber(generateQueueNumber(data.next_sequence));
             } catch (error) {
                 console.error("Failed to sync OR sequence:", error);
             }
         };
 
         const fetchCashierName = async () => {
-            if (!token) { setCashierName('Admin'); return; }
             try {
-                const response = await fetch('http://localhost:8000/api/user', {
-                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-                });
-                if (response.ok) {
-                    const user = await response.json();
-                    const name = user?.name || user?.username || user?.full_name || user?.display_name;
-                    setCashierName(name?.trim() || 'Admin');
-                } else { setCashierName('Admin'); }
-            } catch { setCashierName('Admin'); }
+                const response = await api.get('/user');
+                const user = response.data;
+                const name = user?.name || user?.username || user?.full_name || user?.display_name;
+                setCashierName(name?.trim() || 'Admin');
+            } catch {
+                setCashierName('Admin');
+            }
         };
 
         const fetchMenu = async () => {
             try {
-                const response = await fetch('http://localhost:8000/api/menu', {
-                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-                });
-                const data = await response.json();
+                const response = await api.get('/menu');
+                const data = response.data;
                 if (Array.isArray(data)) {
                     setCategories(data);
                     localStorage.setItem('pos_menu_cache', JSON.stringify(data));
@@ -119,12 +104,12 @@ const SalesOrder = () => {
 
         const fetchAddOns = async () => {
             try {
-                const response = await fetch('http://localhost:8000/api/add-ons', {
-                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-                });
-                const data = await response.json();
+                const response = await api.get('/add-ons');
+                const data = response.data;
                 if (Array.isArray(data)) setAddOnsData(data);
-            } catch (error) { console.error("Error fetching add-ons:", error); }
+            } catch (error) {
+                console.error("Error fetching add-ons:", error);
+            }
         };
 
         // Initialize all data
@@ -271,13 +256,11 @@ const SalesOrder = () => {
     };
 
     const handleConfirmOrder = async () => {
-
         if (cart.length === 0) return;
         setSubmitting(true);
-        const token = localStorage.getItem('lucky_boba_token');
         try {
             const orderData = {
-                si_number: orNumber, // This sends "OR-0000000001"
+                si_number: orNumber,
                 items: cart.map(item => ({
                     menu_item_id: item.id,
                     name: item.name,
@@ -298,38 +281,25 @@ const SalesOrder = () => {
                 reference_number: referenceNumber || null,
             };
 
-            const response = await fetch('http://localhost:8000/api/sales', {
-                method: 'POST',
-                headers: { 
-                    'Authorization': `Bearer ${token}`, 
-                    'Content-Type': 'application/json', 
-                    'Accept': 'application/json' 
-                },
-                body: JSON.stringify(orderData)
-            });
-
-            const result = await response.json();
-            if (!response.ok) throw new Error(result.message || 'Failed to create order');
+            await api.post('/sales', orderData);
 
             // Refresh dashboard stats and inventory in the background
             const today = new Date().toISOString().split('T')[0];
             Promise.all([
-            api.get('/dashboard/stats'), 
-            api.get('/inventory'),
-            // 🔥 Prefetch receipts so SearchReceipts loads instantly
-            api.get('/receipts/search', { params: { query: '', date: today } })
-                .then(response => {
-                const data = Array.isArray(response.data) ? response.data : (response.data.data || []);
-                sessionStorage.setItem('lucky_boba_receipt_cache_results', JSON.stringify(data));
-                sessionStorage.setItem('lucky_boba_receipt_cache_query', '');
-                sessionStorage.setItem('lucky_boba_receipt_cache_date', today);
-                })
+                api.get('/dashboard/stats'), 
+                api.get('/inventory'),
+                api.get('/receipts/search', { params: { query: '', date: today } })
+                    .then(response => {
+                        const data = Array.isArray(response.data) ? response.data : (response.data.data || []);
+                        sessionStorage.setItem('lucky_boba_receipt_cache_results', JSON.stringify(data));
+                        sessionStorage.setItem('lucky_boba_receipt_cache_query', '');
+                        sessionStorage.setItem('lucky_boba_receipt_cache_date', today);
+                    })
             ]).catch(e => console.error("Failed to fetch fresh data", e));
 
             setIsConfirmModalOpen(false);
             setIsSuccessModalOpen(true);
             
-            // Reset print states for the new successful order
             setPrintedReceipt(false);
             setPrintedKitchen(false);
             setPrintedStickers(false);
@@ -359,17 +329,11 @@ const SalesOrder = () => {
         setPrintedKitchen(false);
         setPrintedStickers(false);
 
-        // FIX: Re-fetch the actual next sequence from the DB to avoid NaN
-        const token = localStorage.getItem('lucky_boba_token');
         try {
-            const response = await fetch('http://localhost:8000/api/receipts/next-sequence', {
-                headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
-            });
-            if (response.ok) {
-                const data = await response.json();
-                setOrNumber(generateORNumber(data.next_sequence));
-                setQueueNumber(generateQueueNumber(data.next_sequence));
-            }
+            const response = await api.get('/receipts/next-sequence');
+            const data = response.data;
+            setOrNumber(generateORNumber(data.next_sequence));
+            setQueueNumber(generateQueueNumber(data.next_sequence));
         } catch (error) {
             console.error("Failed to sync sequence for new order:", error);
         }
@@ -433,14 +397,11 @@ const SalesOrder = () => {
                                     </div>
                                 )}
                             </div>
-
-                            {/* --- UPDATED CAUTION MESSAGE --- */}
                             <div className="w-full text-center mt-auto mb-0.5">
                                 <p className={`font-black uppercase whitespace-nowrap tracking-tighter ${isVeryCrowded ? 'text-[5.5px]' : 'text-[7px]'}`}>
                                     Best consume within 30 minutes
                                 </p>
                             </div>
-
                             <div className={`w-full font-bold text-center border-t border-zinc-800 ${isVeryCrowded ? 'text-[8.5px] pt-0.5 mt-0.5' : 'text-[8.5px] pt-1 mt-1'}`}>
                                 {formattedDate} {formattedTime}
                             </div>
@@ -487,9 +448,7 @@ const SalesOrder = () => {
 
         <div className="flex flex-col h-screen w-screen bg-[#f0edf8] relative overflow-hidden font-sans print:hidden">
 
-            {/* ══════════════════════════════════
-                MODAL: ITEM SELECTION
-            ══════════════════════════════════ */}
+            {/* MODAL: ITEM SELECTION */}
             {selectedItem && !isAddOnModalOpen && !isConfirmModalOpen && !isSuccessModalOpen && (
                 <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
                     <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -587,9 +546,7 @@ const SalesOrder = () => {
                 </div>
             )}
 
-            {/* ══════════════════════════════════
-                MODAL: ADD-ONS
-            ══════════════════════════════════ */}
+            {/* MODAL: ADD-ONS */}
             {isAddOnModalOpen && (
                 <div className="fixed inset-0 z-110 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
                     <div className="bg-white w-full max-w-lg rounded-4xl shadow-2xl flex flex-col h-[80vh]">
@@ -617,9 +574,7 @@ const SalesOrder = () => {
                 </div>
             )}
 
-            {/* ══════════════════════════════════
-                MODAL: CONFIRM ORDER & PAYMENT
-            ══════════════════════════════════ */}
+            {/* MODAL: CONFIRM ORDER & PAYMENT */}
             {isConfirmModalOpen && (
                 <div className="fixed inset-0 z-120 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
                     <div className="bg-white w-full max-w-5xl rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden max-h-[95vh]">
@@ -671,7 +626,6 @@ const SalesOrder = () => {
                             </div>
                             <div className="flex-1 p-6 bg-white flex flex-col justify-between overflow-y-auto">
                                 <div>
-                                    {/* Payment Method */}
                                     <h3 className="font-black text-sm text-[#3b2063] uppercase mb-3 tracking-wider">Payment Method</h3>
                                     <div className="grid grid-cols-3 gap-2 mb-5">
                                         {([
@@ -695,7 +649,6 @@ const SalesOrder = () => {
                                         ))}
                                     </div>
 
-                                    {/* CASH FIELDS */}
                                     {paymentMethod === 'cash' && (
                                         <>
                                             <h3 className="font-black text-sm text-[#3b2063] uppercase mb-3 tracking-wider">Cash Tendered</h3>
@@ -735,7 +688,6 @@ const SalesOrder = () => {
                                         </>
                                     )}
 
-                                    {/* GCASH / PAYMAYA / CARD FIELDS */}
                                     {paymentMethod !== 'cash' && (
                                         <>
                                             <h3 className="font-black text-sm text-[#3b2063] uppercase mb-3 tracking-wider">
@@ -756,7 +708,6 @@ const SalesOrder = () => {
                                     )}
                                 </div>
 
-                                {/* ACTION BUTTONS */}
                                 <div className="space-y-2 mt-4 shrink-0">
                                     <button
                                         onClick={handleConfirmOrder}
@@ -783,9 +734,7 @@ const SalesOrder = () => {
                 </div>
             )}
 
-            {/* ══════════════════════════════════
-                MODAL: SUCCESS / PRINT OPTIONS
-            ══════════════════════════════════ */}
+            {/* MODAL: SUCCESS / PRINT OPTIONS */}
             {isSuccessModalOpen && (
                 <div className="fixed inset-0 z-130 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
                     <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden text-center">
@@ -799,14 +748,10 @@ const SalesOrder = () => {
                             <p className="text-white/80 font-bold mt-1 text-sm">OR: {orNumber}</p>
                         </div>
                         <div className="p-6 space-y-3 bg-white">
-
-                            {/* Print Customer Receipt */}
                             <button
                                 onClick={handlePrintReceipt}
                                 className={`w-full py-4 rounded-xl font-bold uppercase flex justify-center items-center gap-2 transition-colors border-2
-                                    ${printedReceipt
-                                        ? 'bg-green-50 text-green-600 border-green-300'
-                                        : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100'}`}
+                                    ${printedReceipt ? 'bg-green-50 text-green-600 border-green-300' : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100'}`}
                             >
                                 {printedReceipt ? (
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
@@ -816,13 +761,10 @@ const SalesOrder = () => {
                                 {printedReceipt ? 'Receipt Printed ✓' : 'Print Customer Receipt'}
                             </button>
 
-                            {/* Print Kitchen Ticket */}
                             <button
                                 onClick={handlePrintKitchen}
                                 className={`w-full py-4 rounded-xl font-black uppercase tracking-wider flex justify-center items-center gap-2 transition-colors border-2
-                                    ${printedKitchen
-                                        ? 'bg-green-50 text-green-600 border-green-300'
-                                        : 'bg-[#fce7f3] text-[#be185d] border-[#be185d]/30 hover:bg-[#fbcfe8]'}`}
+                                    ${printedKitchen ? 'bg-green-50 text-green-600 border-green-300' : 'bg-[#fce7f3] text-[#be185d] border-[#be185d]/30 hover:bg-[#fbcfe8]'}`}
                             >
                                 {printedKitchen ? (
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
@@ -832,14 +774,11 @@ const SalesOrder = () => {
                                 {printedKitchen ? 'Kitchen Ticket Printed ✓' : 'Print Kitchen Ticket'}
                             </button>
 
-                            {/* Print Drink Stickers — only shown if order has drinks */}
                             {hasStickers && (
                                 <button
                                     onClick={handlePrintStickers}
                                     className={`w-full py-4 rounded-xl font-black uppercase tracking-wider flex justify-center items-center gap-2 transition-colors border-2
-                                        ${printedStickers
-                                            ? 'bg-green-50 text-green-600 border-green-300'
-                                            : 'bg-[#f0ebff] text-[#3b2063] border-[#3b2063]/30 hover:bg-[#e4dbff]'}`}
+                                        ${printedStickers ? 'bg-green-50 text-green-600 border-green-300' : 'bg-[#f0ebff] text-[#3b2063] border-[#3b2063]/30 hover:bg-[#e4dbff]'}`}
                                 >
                                     {printedStickers ? (
                                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
@@ -850,7 +789,6 @@ const SalesOrder = () => {
                                 </button>
                             )}
 
-                            {/* Progress hint — shows which are still pending */}
                             {(() => {
                                 const required = [
                                     { label: 'Receipt',        done: printedReceipt  },
@@ -861,14 +799,11 @@ const SalesOrder = () => {
                                 const allDone = pending.length === 0;
                                 return (
                                     <div className={`text-[10px] font-bold uppercase tracking-widest px-2 py-2 rounded-xl ${allDone ? 'text-green-600 bg-green-50' : 'text-zinc-400 bg-zinc-50'}`}>
-                                        {allDone
-                                            ? '✓ All prints done — ready for next order'
-                                            : `Still needed: ${pending.map(p => p.label).join(', ')}`}
+                                        {allDone ? '✓ All prints done — ready for next order' : `Still needed: ${pending.map(p => p.label).join(', ')}`}
                                     </div>
                                 );
                             })()}
 
-                            {/* Start New Order — locked until all required prints are done */}
                             <div className="border-t border-zinc-200 pt-3">
                                 {(() => {
                                     const allPrinted = printedReceipt && printedKitchen && (!hasStickers || printedStickers);
@@ -878,9 +813,7 @@ const SalesOrder = () => {
                                             disabled={!allPrinted}
                                             title={!allPrinted ? 'Please print all required documents first' : ''}
                                             className={`w-full py-4 rounded-xl font-black uppercase tracking-widest shadow-lg transition-all
-                                                ${allPrinted
-                                                    ? 'bg-[#3b2063] text-white hover:bg-[#2a1647] cursor-pointer'
-                                                    : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'}`}
+                                                ${allPrinted ? 'bg-[#3b2063] text-white hover:bg-[#2a1647] cursor-pointer' : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'}`}
                                         >
                                             {allPrinted ? 'Start New Order →' : `Print All First (${[!printedReceipt, !printedKitchen, hasStickers && !printedStickers].filter(Boolean).length} left)`}
                                         </button>
@@ -892,11 +825,8 @@ const SalesOrder = () => {
                 </div>
             )}
 
-            {/* ══════════════════════════════════
-                HEADER — matches modal header style
-            ══════════════════════════════════ */}
+            {/* HEADER */}
             <div className="flex gap-3 px-4 py-3 bg-white border-b border-zinc-200 items-center h-20 shrink-0 shadow-sm z-20">
-                {/* Home button — mirrors modal's purple header bar */}
                 <button onClick={() => handleNavClick('Home')}
                     className="bg-[#3b2063] text-white h-full px-5 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-md hover:bg-[#2a1647] transition-all flex items-center gap-2">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
@@ -905,7 +835,6 @@ const SalesOrder = () => {
                     Home
                 </button>
 
-                {/* Search — styled like modal input fields */}
                 <div className="flex-1 bg-zinc-50 rounded-2xl border-2 border-zinc-200 flex items-center px-4 gap-2 h-full focus-within:border-[#3b2063] transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-zinc-400 shrink-0">
                         <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 15.803a7.5 7.5 0 0 0 10.607 0Z" />
@@ -915,7 +844,6 @@ const SalesOrder = () => {
                         className="flex-1 bg-transparent font-bold text-zinc-700 outline-none uppercase placeholder:text-zinc-300 text-sm" />
                 </div>
 
-                {/* Branch & Time — mirroring the modal info cards */}
                 <div className="flex gap-2 h-full">
                     <div className="bg-[#f0ebff] border-2 border-[#3b2063]/20 rounded-2xl flex items-center justify-center px-4">
                         <div className="text-center">
@@ -932,16 +860,13 @@ const SalesOrder = () => {
                 </div>
             </div>
 
-            {/* ══════════════════════════════════
-                MAIN BODY
-            ══════════════════════════════════ */}
+            {/* MAIN BODY */}
             <div className="flex flex-1 overflow-hidden relative z-10">
 
-                {/* ── LEFT: MENU AREA ── */}
+                {/* LEFT: MENU AREA */}
                 <div className="flex-1 overflow-y-auto p-5 bg-[#f0edf8]">
                     {selectedCategory ? (
                         <div className="flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-300">
-                            {/* Back bar — styled like modal header section */}
                             <div className="flex items-center gap-3 mb-5 sticky top-0 z-10 bg-[#f0edf8] py-2">
                                 <button onClick={handleBack}
                                     className="bg-white p-3 rounded-2xl shadow-sm border-2 border-zinc-200 text-[#3b2063] hover:border-[#3b2063] hover:bg-[#f0ebff] transition-all">
@@ -958,7 +883,6 @@ const SalesOrder = () => {
                                 </div>
                             </div>
 
-                            {/* SIZE / QTY PICKER — card style matching modals */}
                             {needsSizePicker ? (
                                 <div className="flex flex-col items-center justify-center flex-1 gap-5">
                                     <div className="text-center">
@@ -994,7 +918,6 @@ const SalesOrder = () => {
                                     )}
                                 </div>
                             ) : (
-                                /* ITEM GRID — same card language as modals */
                                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 pb-20">
                                     {getFilteredItems(
                                         selectedCategory.menu_items.filter(item =>
@@ -1010,7 +933,6 @@ const SalesOrder = () => {
                             )}
                         </div>
                     ) : (
-                        /* CATEGORY GROUP LIST */
                         <div className="pb-20 animate-in fade-in zoom-in duration-300 space-y-7">
                             {[
                                 { label: 'Food',   types: ['food', 'wings'], colorKey: 'food'  },
@@ -1022,7 +944,6 @@ const SalesOrder = () => {
                                 const { pill, card } = typeBadge[colorKey as keyof typeof typeBadge];
                                 return (
                                     <div key={colorKey}>
-                                        {/* Section header — card-style divider */}
                                         <div className="flex items-center gap-3 mb-3 px-1">
                                             <span className={`${pill} text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-sm`}>{label}</span>
                                             <div className="flex-1 h-px bg-zinc-300/60"></div>
@@ -1040,7 +961,6 @@ const SalesOrder = () => {
                                 );
                             })}
 
-                            {/* "Other" catch-all */}
                             {(() => {
                                 const known = ['food', 'wings', 'drink', 'promo'];
                                 const others = filteredCategories.filter(cat => !known.includes(cat.type));
@@ -1066,12 +986,8 @@ const SalesOrder = () => {
                     )}
                 </div>
 
-            {/* ══════════════════════════════════
-                    SIDEBAR CART — modal panel aesthetic
-                ══════════════════════════════════ */}
+                {/* SIDEBAR CART */}
                 <div className="w-96 bg-white border-l-2 border-zinc-200 flex flex-col shrink-0 shadow-2xl z-30">
-
-                    {/* Cart header — mimics modal purple header */}
                     <div className="bg-[#3b2063] p-4 text-white flex items-center justify-between shrink-0">
                         <div>
                             <div className="text-[9px] font-bold uppercase tracking-widest opacity-60 leading-none">Cashier</div>
@@ -1079,7 +995,6 @@ const SalesOrder = () => {
                         </div>
                         <div className="text-center">
                             <div className="text-[9px] font-bold uppercase tracking-widest opacity-60 leading-none">Current Order</div>
-                            {/* Updated: Using orNumber directly to show the full OR string */}
                             <div className="text-[11px] font-black uppercase leading-tight mt-0.5">{orNumber}</div>
                         </div>
                         <div className="text-right">
@@ -1088,7 +1003,6 @@ const SalesOrder = () => {
                         </div>
                     </div>
 
-                    {/* Cart items — modal card-row style */}
                     <div className="flex-1 overflow-y-auto p-4 bg-white">
                         {cart.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-full text-center gap-3">
@@ -1127,7 +1041,6 @@ const SalesOrder = () => {
                         )}
                     </div>
 
-                    {/* Cart footer — modal bottom-panel style */}
                     <div className="bg-[#3b2063] text-white p-5 rounded-t-3xl shadow-2xl shrink-0">
                         <div className="flex justify-between items-end mb-4 pb-4 border-b border-white/10">
                             <div>
@@ -1145,9 +1058,7 @@ const SalesOrder = () => {
             </div>
         </div>
 
-{/* ══════════════════════════════════
-            PRINT: RECEIPT (80mm)
-        ══════════════════════════════════ */}
+        {/* PRINT: RECEIPT (80mm) */}
         {printTarget === 'receipt' && (
             <div className="printable-receipt-container hidden print:block">
                 <div className="receipt-area bg-white text-black">
@@ -1184,8 +1095,6 @@ const SalesOrder = () => {
                         <div className="flex justify-between w-full"><span>Sub Total</span><span>{subtotal.toFixed(2)}</span></div>
                         <div className="flex justify-between w-full text-base font-bold mt-1"><span>TOTAL DUE</span><span>{subtotal.toFixed(2)}</span></div>
                     </div>
-
-                    {/* ── PAYMENT METHOD SECTION ── */}
                     <div className="text-xs mt-2 space-y-1 border-b border-dashed border-black pb-3">
                         <div className="flex justify-between w-full">
                             <span>Payment Method</span>
@@ -1197,8 +1106,6 @@ const SalesOrder = () => {
                                 {paymentMethod === 'debit'   && 'Debit Card'}
                             </span>
                         </div>
-
-                        {/* Cash: show tendered + change */}
                         {paymentMethod === 'cash' && (
                             <>
                                 <div className="flex justify-between w-full">
@@ -1211,16 +1118,12 @@ const SalesOrder = () => {
                                 </div>
                             </>
                         )}
-
-                        {/* GCash / PayMaya: show reference number */}
                         {(paymentMethod === 'gcash' || paymentMethod === 'paymaya') && (
                             <div className="flex justify-between w-full">
                                 <span>Reference #</span>
                                 <span className="font-bold">{referenceNumber || '—'}</span>
                             </div>
                         )}
-
-                        {/* Credit / Debit: show approval code */}
                         {(paymentMethod === 'credit' || paymentMethod === 'debit') && (
                             <div className="flex justify-between w-full">
                                 <span>Approval Code</span>
@@ -1228,7 +1131,6 @@ const SalesOrder = () => {
                             </div>
                         )}
                     </div>
-
                     <div className="text-[11px] mt-3 space-y-1">
                         <div className="flex justify-between w-full"><span>VATable Sales(V)</span><span>{vatableSales.toFixed(2)}</span></div>
                         <div className="flex justify-between w-full"><span>VAT Amount</span><span>{vatAmount.toFixed(2)}</span></div>
@@ -1252,9 +1154,8 @@ const SalesOrder = () => {
                 </div>
             </div>
         )}
-        {/* ══════════════════════════════════
-            PRINT: KITCHEN TICKET (80mm)
-        ══════════════════════════════════ */}
+
+        {/* PRINT: KITCHEN TICKET (80mm) */}
         {printTarget === 'kitchen' && (
             <div className="printable-receipt-container hidden print:block">
                 <div className="receipt-area bg-white text-black">
@@ -1294,9 +1195,7 @@ const SalesOrder = () => {
             </div>
         )}
 
-        {/* ══════════════════════════════════
-            PRINT: STICKERS
-        ══════════════════════════════════ */}
+        {/* PRINT: STICKERS */}
         {printTarget === 'stickers' && (
             <div className="printable-receipt-container hidden print:block">
                 {renderStickers()}
