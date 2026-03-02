@@ -283,7 +283,7 @@ const SalesOrder = () => {
 
             await api.post('/sales', orderData);
 
-            // Invalidate dashboard cache so it refetches fresh data on next visit
+            // Invalidate dashboard cache so it refetches fresh data on next visits
             localStorage.setItem('dashboard_stats_timestamp', '0');
 
             // Still warm up the cache in the background
