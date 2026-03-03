@@ -1,5 +1,8 @@
 import { useState } from 'react';
+<<<<<<< HEAD
 import TopNavbar from '../TopNavbar';
+=======
+>>>>>>> origin/main
 import { ArrowLeft, FileDown, Database, Upload, AlertCircle, Info, AlertTriangle } from 'lucide-react';
 
 const ImportData = ({ onBack }: { onBack: () => void }) => {
@@ -26,6 +29,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
         <button onClick={() => setActiveView(null)} className="p-2 bg-zinc-200 text-zinc-500 rounded-lg hover:bg-zinc-300 transition-all shadow-sm">
           <ArrowLeft size={20} strokeWidth={3} />
         </button>
+<<<<<<< HEAD
         <div className="flex items-center gap-3">
           <div className="p-2 bg-white rounded-lg shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
           <div>
@@ -33,6 +37,8 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
             <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">Upload CSV Data</p>
           </div>
         </div>
+=======
+>>>>>>> origin/main
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-8 flex flex-col items-center gap-6">
@@ -821,7 +827,11 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
               else if (label === "CUSTOMERS WALLET") setActiveView('CUSTOMERS_WALLET');
               else console.log(label);
             }}
+<<<<<<< HEAD
             className="bg-white text-[#3b2063] border border-zinc-200 p-6 rounded-xl font-black text-[11px] uppercase tracking-[0.15em] shadow-sm hover:bg-[#3b2063] hover:text-white transition-all flex items-center justify-center min-h-[80px]"
+=======
+            className="bg-white text-[#3b2063] border border-zinc-200 p-6 rounded-xl font-black text-[11px] uppercase tracking-[0.15em] shadow-sm hover:bg-[#3b2063] hover:text-white transition-all flex items-center justify-center min-h-20"
+>>>>>>> origin/main
           >
             {label}
           </button>
@@ -837,7 +847,10 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
 
   return (
     <div className="flex-1 bg-[#f8f6ff] h-full flex flex-col font-sans overflow-hidden">
+<<<<<<< HEAD
       <TopNavbar />
+=======
+>>>>>>> origin/main
       <div className="flex-1 overflow-y-auto p-6 flex flex-col">
         {activeView === 'CATEGORY' && renderImportCategory()}
         {activeView === 'SUB_CATEGORY' && renderImportSubCategory()}

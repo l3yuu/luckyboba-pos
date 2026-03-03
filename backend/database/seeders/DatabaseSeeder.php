@@ -2,24 +2,38 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
     /**
      * Seed the application's database.
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        // 1. Create foundational data ONLY
+        // These are required for the POS to actually function
+        $this->call([
+            UserSeeder::class, 
+            CupSeeder::class,
+            CategorySeeder::class,
+            SubCategorySeeder::class,
+            VoucherSeeder::class,
+            MenuSeeder::class,
+            AddOnSeeder::class,
         ]);
+
+        // 2. Add system configurations or initial balances
+        $this->call([
+            CashCountSeeder::class, // Seeds the starting drawer balance
+        ]);
+
+        /* | DELETED: CashTransaction factory
+         | DELETED: Sale factory logic
+         | DELETED: Receipt factory logic
+         | 
+         | The sales, sale_items, and receipts tables will now be EMPTY 
+         | until you make a real transaction in the Sales Order page.
+        */
     }
 }
