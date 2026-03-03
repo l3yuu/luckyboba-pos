@@ -19,15 +19,15 @@ class AuthenticationTest extends TestCase
             'password' => 'password',
         ]);
 
-        $this->assertAuthenticated();
-        $response->assertNoContent();
+        $response->assertOk();         
+        $this->assertAuthenticatedAs($user);
     }
 
     public function test_users_can_not_authenticate_with_invalid_password(): void
     {
         $user = User::factory()->create();
 
-        $this->post('/login', [
+        $this->postJson('/login', [
             'email' => $user->email,
             'password' => 'wrong-password',
         ]);
@@ -35,13 +35,19 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_users_can_logout(): void
-    {
-        $user = User::factory()->create();
+public function test_users_can_logout(): void
+{
+    $user = User::factory()->create();
+    
+    // Explicitly create a token for the user so currentAccessToken() isn't null
+    $token = $user->createToken('test-token')->plainTextToken;
 
-        $response = $this->actingAs($user)->post('/logout');
+    $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+        ->postJson('/api/logout');
 
-        $this->assertGuest();
-        $response->assertNoContent();
-    }
+    $response->assertStatus(200)
+             ->assertJson(['message' => 'Logged out successfully']);
+    
+    $this->assertCount(0, $user->tokens);
+}
 }
