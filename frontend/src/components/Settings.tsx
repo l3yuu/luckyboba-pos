@@ -52,6 +52,7 @@ const subViewLabels: Record<string, string> = {
 };
 
 const Settings = () => {
+  // --- UI STATES ---
   const [isSalesSettingsOpen, setIsSalesSettingsOpen] = useState(false);
   const [activeSubView, setActiveSubView] = useState<string | null>(null);
   const [isLogOpen, setIsLogOpen] = useState(false);
