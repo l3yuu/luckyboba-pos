@@ -2,27 +2,47 @@ import axios from 'axios';
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL,
-    // Note: withCredentials is NOT needed for Bearer Tokens
     headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
         'X-Requested-With': 'XMLHttpRequest',
-        'X-Build-Version': 'lucky-boba-v2'
+        'X-Build-Version': 'lucky-boba-v2',
+        'ngrok-skip-browser-warning': 'true' 
     }
 });
 
 api.interceptors.request.use((config) => {
-    // Grab the Bearer token from storage
     const token = localStorage.getItem('lucky_boba_token');
-
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
-        console.log("Bearer Token attached to header.");
-    } else {
-        console.warn("No Bearer Token found in storage.");
     }
-    
     return config;
 }, (error) => Promise.reject(error));
+
+// Handle Session Expiry (401) and Network Errors
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            localStorage.removeItem('lucky_boba_token');
+            localStorage.removeItem('lucky_boba_authenticated');
+            localStorage.removeItem('dashboard_stats');
+            localStorage.removeItem('dashboard_stats_timestamp');
+            
+            if (!window.location.pathname.includes('/login')) {
+                window.location.href = '/login?reason=expired';
+            }
+        }
+
+        // Silently swallow network errors (server not running, no connection).
+        // Converts noisy AxiosError into a plain Error so callers can handle it
+        // without a red ERR_CONNECTION_REFUSED flooding the console.
+        if (!error.response && error.request) {
+            return Promise.reject(new Error('network_error'));
+        }
+
+        return Promise.reject(error);
+    }
+);
 
 export default api;

@@ -10,24 +10,30 @@ class UserSeeder extends Seeder
 {
     public function run(): void
     {
-        // Create an Admin/Manager Account
-        User::create([
-            'name' => 'Bina Admin',
-            'email' => 'admin@luckyboba.com',
-            'password' => Hash::make('password123'),
-            'role' => 'admin', // Matching your HeidiSQL column
-            'status' => 'active',
-            'branch_name' => 'Main Branch',
-        ]);
+        // 1. Create or update Admin
+        User::updateOrCreate(
+            ['email' => 'admin@luckyboba.com'], // Find by email
+            [
+                'name' => 'Bina Admin',
+                'password' => Hash::make('password123'),
+                'role' => 'admin',
+                'status' => 'ACTIVE',
+                'branch_name' => 'Main Branch',
+                'email_verified_at' => now(),
+            ]
+        );
 
-        // Create a Staff Account
-        User::create([
-            'name' => 'Lucky Staff',
-            'email' => 'staff@luckyboba.com',
-            'password' => Hash::make('password123'),
-            'role' => 'staff',
-            'status' => 'active',
-            'branch_name' => 'Main Branch',
-        ]);
+        // 2. Create or update Cashier
+        User::updateOrCreate(
+            ['email' => 'cashier@luckyboba.com'], // Find by email
+            [
+                'name' => 'Cashier Ichigo',
+                'password' => Hash::make('password123'),
+                'role' => 'cashier',
+                'status' => 'ACTIVE',
+                'branch_name' => null,
+                'email_verified_at' => now(),
+            ]
+        );
     }
 }

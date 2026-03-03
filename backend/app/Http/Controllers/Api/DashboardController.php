@@ -11,7 +11,6 @@ class DashboardController extends Controller
 {
     protected $dashboardService;
 
-    // Inject the service here
     public function __construct(DashboardService $dashboardService)
     {
         $this->dashboardService = $dashboardService;
@@ -19,7 +18,8 @@ class DashboardController extends Controller
 
     public function index(): JsonResponse
     {
-        // Fix: Change getDailyStats() to getHomeStats()
+        // Every time this is called, it uses the Service logic
+        // If clearTodayCache() was called by SalesController, this will fetch fresh data
         $stats = $this->dashboardService->getHomeStats();
         
         return response()->json($stats);
@@ -27,9 +27,8 @@ class DashboardController extends Controller
 
     public function init(Request $request): JsonResponse
     {
-    return response()->json([
-        'user' => $request->user(),
-        'stats' => $this->dashboardService->getHomeStats(),
-    ]);
+        return response()->json([
+            'user' => $request->user(),
+        ]);
     }
 }

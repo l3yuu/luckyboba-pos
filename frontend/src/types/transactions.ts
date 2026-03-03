@@ -22,13 +22,17 @@ export interface Transaction {
 }
 
 export interface Receipt {
-  id: number;
-  si_number: string; 
-  terminal: string;
-  items_count: number;
-  cashier_name: string;
-  total_amount: number;
-  created_at: string; 
+    id: number;
+    sale_id: number;
+    si_number: string;
+    terminal: string;
+    items_count: number;
+    cashier_name: string;
+    total_amount: number | string;
+    status: 'completed' | 'cancelled'; // <--- ADD THIS LINE
+    created_at: string;
+    cancellation_reason?: string; 
+    cancelled_at?: string;
 }
 
 /**

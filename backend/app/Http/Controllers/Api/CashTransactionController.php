@@ -3,35 +3,96 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Services\CashierService;
-use App\Models\CashTransaction; 
-use Illuminate\Support\Facades\Auth; 
+use App\Models\CashTransaction;
+use App\Models\CashCount;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\JsonResponse;
 
 class CashTransactionController extends Controller
 {
-    protected $cashierService;
-
-    public function __construct(CashierService $cashierService)
+    /**
+     * Display a listing of transactions
+     */
+    public function index(Request $request): JsonResponse
     {
-        $this->cashierService = $cashierService;
+        try {
+            $userId = Auth::id();
+            $query = CashTransaction::where('user_id', $userId);
+
+            if ($request->has('type')) {
+                $query->where('type', $request->type);
+            }
+
+            if ($request->has('date')) {
+                $query->whereDate('created_at', $request->date);
+            }
+
+            $transactions = $query->orderBy('created_at', 'desc')->get();
+
+            return response()->json($transactions);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
+    /**
+     * Store a new transaction (Cash In, Cash Out, Cash Drop)
+     */
     public function store(Request $request): JsonResponse
     {
+        $userId = Auth::id();
+        $today = now()->toDateString();
+
+        // 1. GLOBAL LOCK: Check if EOD is already done for today
+        $isEodDone = CashCount::where('user_id', $userId)
+            ->where(function($query) use ($today) {
+                $query->whereDate('date', $today)
+                      ->orWhereDate('created_at', $today);
+            })->exists();
+
+        if ($isEodDone) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Terminal is locked. End of Day has already been processed.'
+            ], 403); 
+        }
+
         $validated = $request->validate([
             'type'   => 'required|in:cash_in,cash_out,cash_drop',
             'amount' => 'required|numeric|min:0',
             'note'   => 'nullable|string|max:255',
         ]);
 
+        // 2. SHIFT INITIALIZATION CHECK
+        $hasCashedIn = CashTransaction::where('user_id', $userId)
+            ->where('type', 'cash_in')
+            ->whereDate('created_at', $today)
+            ->exists();
+
+        // Prevent Cash Out or Cash Drop if they haven't Cashed In yet
+        if (!$hasCashedIn && $validated['type'] !== 'cash_in') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Shift not initialized. Please perform Cash In first.'
+            ], 403);
+        }
+
+        // 3. PREVENT DOUBLE CASH-IN
+        if ($validated['type'] === 'cash_in' && $hasCashedIn) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You have already performed a Cash In for today.'
+            ], 200);
+        }
+
         try {
-            $transaction = $this->cashierService->recordCashMovement(
-                $validated['type'],
-                $validated['amount'],
-                $validated['note']
-            );
+            $transaction = CashTransaction::create([
+                'user_id' => $userId,
+                'type'    => $validated['type'],
+                'amount'  => $validated['amount'],
+                'note'    => $validated['note']
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -39,33 +100,7 @@ class CashTransactionController extends Controller
                 'data' => $transaction
             ], 201);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to record transaction',
-                'error' => $e->getMessage()
-            ], 500);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
-    }
-
-    public function index(Request $request) 
-    {
-        // Added a check to make sure the user is actually logged in
-        $userId = Auth::id();
-        
-        if (!$userId) {
-            return response()->json(['error' => 'Unauthorized'], 401);
-        }
-
-        $query = CashTransaction::where('user_id', $userId);
-
-        if ($request->has('type')) {
-            $query->where('type', $request->type);
-        }
-
-        if ($request->has('date')) {
-            $query->whereDate('created_at', $request->date);
-        }
-
-        return response()->json($query->orderBy('created_at', 'desc')->get());
     }
 }
