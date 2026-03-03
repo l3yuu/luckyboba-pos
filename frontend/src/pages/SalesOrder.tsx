@@ -242,7 +242,8 @@ const SalesOrder = () => {
     };
 
     const getFilteredItems = (items: MenuItem[]): MenuItem[] => {
-        if (!categorySize || isWings) return items;
+        if (!categorySize) return items;
+        if (isWings) return items.filter(item => item.size === categorySize);
         const cupSizeM = selectedCategory?.cup?.size_m || 'M';
         const cupSizeL = selectedCategory?.cup?.size_l || 'L';
         if (categorySize === cupSizeM) return items.filter(item => item.size === 'M' || item.size === 'none');
@@ -351,13 +352,10 @@ const SalesOrder = () => {
 
     const addToOrder = () => {
         if (!selectedItem || !selectedCategory) return;
-        let basePrice = Number(selectedItem.price);
+        const basePrice = Number(selectedItem.price);
         let extraCost = 0;
         if (orderCharge) extraCost += 10;
-        if (isWings && categorySize) {
-            const pricing: Record<string, number> = { '3pc': 100, '4pc': 120, '6pc': 195, '12pc': 390 };
-            basePrice = pricing[categorySize] || 0;
-        }
+        // ← REMOVE the isWings pricing block, no longer needed
         if (isDrink) {
             selectedAddOns.forEach(name => {
                 const addon = addOnsData.find(a => a.name === name);
