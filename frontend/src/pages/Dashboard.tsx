@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import Sidebar from "../components/Sidebar";
 import logo from '../assets/logo.png';
 import api from '../services/api'; 
-import type { DashboardData, TopSeller } from '../types/dashboard';
+import type { DashboardData } from '../types/dashboard';
 import { 
   Monitor, 
   TrendingUp, 

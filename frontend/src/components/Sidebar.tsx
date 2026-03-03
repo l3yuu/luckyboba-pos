@@ -14,9 +14,7 @@ import {
   Settings as SettingsIcon,
   LogOut,
   Lock,
-  ChevronDown,
-  Monitor
-} from 'lucide-react';
+  ChevronDown} from 'lucide-react';
 
 // --- INTERFACES ---
 interface MenuItem {
