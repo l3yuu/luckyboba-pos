@@ -15,6 +15,14 @@ import {
 import { useToast } from '../hooks/useToast';
 import api from '../services/api';
 
+interface Discount {
+    id: number;
+    name: string;
+    amount: number;
+    type: string;
+    status: 'ON' | 'OFF';
+}
+
 const DrinkIcon = ({ className }: { className?: string }) => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" className={className} fill="currentColor">
         <path d="m187.4 22.88l-21.5 4.54l22.7 108.08c7.2-.7 14.6-1.2 22-1.6zM256 147.7c-41.2 0-82.3 3.7-123.5 11.1l-11.6 1.1l4.3 22.1l10.6-2.1c20.1-3.2 40.1-6.3 61.2-7.4l8.4 40.1h22.2l-8.4-42.2c51.6-2.1 104.4 1.1 157.1 9.5l10.6 2.1l4.2-22.1l-11.6-1.1c-41.2-7.4-82.3-11.1-123.5-11.1m-119.1 51.6l26.4 281.3l8.3 1c56.2 9.5 112.3 10.6 168.5 0l8.1-1l26.5-281.3h-22.1l-3.6 37.8H232.2l42.3 202.3l-24.3-9.5l-40.4-192.8h-47.3l-3.6-37.8zm188.8 155.3c7.4 0 13.5 6 13.5 13.5s-6.1 13.5-13.5 13.5c-7.5 0-13.5-6-13.5-13.5s6-13.5 13.5-13.5M292 380.2c7.4 0 13.6 6.1 13.6 13.5c0 7.5-6.2 13-13.6 13s-13.6-5.5-13.6-13c0-7.4 6.2-13.5 13.6-13.5m-74.2 5.1c7.5 0 13.5 6.1 13.5 13.5c0 7.9-6 13.2-13.5 13.2c-7.4 0-13.5-5.3-13.5-13.2c0-7.4 6.1-13.5 13.5-13.5m107 7.8c7.5 0 13.6 6 13.6 13.6c0 7.4-6.1 13.7-13.6 13.7c-7.4 0-13.5-6.3-13.5-13.7c0-7.6 6.1-13.6 13.5-13.6m-140.9 10.5c7.5 0 13.5 5.2 13.5 12.6s-6 13.7-13.5 13.7s-13.5-6.3-13.5-13.7s6-12.6 13.5-12.6m111.2 12.6c7.5 0 13.5 6.3 13.5 13.7s-6 13.7-13.5 13.7s-13.5-6.3-13.5-13.7s6-13.7 13.5-13.7m-76.1 7.4c7.5 0 13.6 6.3 13.6 13.7S226.5 451 219 451c-7.4 0-13.5-6.3-13.5-13.7s6.1-13.7 13.5-13.7m-32.7 14.8c7.5 0 13.5 5.2 13.5 12.6s-6 13.7-13.5 13.7c-7.4 0-13.5-6.3-13.5-13.7s6.1-12.6 13.5-12.6m134.7 2.1c7.5 0 13.5 6.3 13.5 13.7s-6 13.7-13.5 13.7s-13.5-6.3-13.5-13.7s6-13.7 13.5-13.7m-66.5 4.2c7.4 0 13.5 5.3 13.5 12.7c0 7.3-6.1 13.7-13.5 13.7c-7.5 0-13.5-6.4-13.5-13.7c0-7.4 6-12.7 13.5-12.7" strokeWidth="13" stroke="currentColor" />
@@ -23,7 +31,7 @@ const DrinkIcon = ({ className }: { className?: string }) => (
 
 const generateORNumber = (count = 1) => `OR-${String(count).padStart(10, '0')}`;
 const generateQueueNumber = (count = 1) => String(count).padStart(3, '0');
-//
+
 const SalesOrder = () => {
     const navigate = useNavigate();
     const { showToast } = useToast();
@@ -63,6 +71,23 @@ const SalesOrder = () => {
     const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
     const [cart, setCart] = useState<CartItem[]>([]);
     const [addOnsData, setAddOnsData] = useState<{ id: number; name: string; price: number }[]>([]);
+    
+    // Updated type safety for discounts
+    const [discounts, setDiscounts] = useState<Discount[]>([]);
+    const [selectedDiscount, setSelectedDiscount] = useState<Discount | null>(null);
+
+    useEffect(() => {
+        const fetchDiscounts = async () => {
+            try {
+                const response = await api.get('/discounts');
+                // Specified type in filter to avoid 'any' error
+                setDiscounts(response.data.filter((d: Discount) => d.status === 'ON'));
+            } catch (error) {
+                console.error("Error fetching discounts:", error);
+            }
+        };
+        fetchDiscounts();
+    }, []);
 
     useEffect(() => {
         const fetchLatestSequence = async () => {
@@ -112,7 +137,6 @@ const SalesOrder = () => {
             }
         };
 
-        // Initialize all data
         fetchLatestSequence();
         fetchAddOns();
         fetchCashierName();
@@ -122,15 +146,32 @@ const SalesOrder = () => {
         return () => clearInterval(timer);
     }, []);
 
+    // --- LOGIC CALCULATIONS (Reordered to fix hoisting errors) ---
+    const subtotal = cart.reduce((acc, item) => acc + item.finalPrice, 0);
+    const totalCount = cart.reduce((acc, item) => acc + item.qty, 0);
+    const hasStickers = cart.some(item => item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L');
+
+    const discountAmount = selectedDiscount 
+        ? (selectedDiscount.type.includes('Percent') 
+            ? (subtotal * (Number(selectedDiscount.amount) / 100)) 
+            : Number(selectedDiscount.amount))
+        : 0;
+
+    const amtDue = Math.max(0, subtotal - discountAmount); 
+    const vatableSales = amtDue / 1.12;
+    const vatAmount = amtDue - vatableSales;
+    const change = typeof cashTendered === 'number' ? Math.max(0, cashTendered - amtDue) : 0;
+    // -------------------------------------------------------------
+
     const isDrink = selectedCategory?.type === 'drink';
     const isWings = selectedCategory?.name === "CHICKEN WINGS";
     const isOz = selectedCategory?.name === "HOT DRINKS" || selectedCategory?.name === "HOT COFFEE";
+    
     const categoryHasOnlyOneSize = selectedCategory?.cup?.size_l === null || 
         (selectedCategory?.menu_items?.every(item => item.size === 'L') ?? false) ||
         (selectedCategory?.menu_items?.every(item => item.size === 'M') ?? false);
 
     const needsSizePicker = (isDrink || isWings || isOz) && !categorySize && !categoryHasOnlyOneSize;
-
     const formattedDate = currentDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
     const formattedTime = currentDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     
@@ -275,18 +316,17 @@ const SalesOrder = () => {
                     charges: { grab: item.charges.grab, panda: item.charges.panda }
                 })),
                 subtotal: subtotal,
-                total: subtotal,
+                discount_amount: discountAmount,
+                discount_id: selectedDiscount?.id || null,
+                total: amtDue,
                 cashier_name: cashierName ?? 'Admin',
                 payment_method: paymentMethod, 
                 reference_number: referenceNumber || null,
             };
 
             await api.post('/sales', orderData);
-
-            // Invalidate dashboard cache so it refetches fresh data on next visits
             localStorage.setItem('dashboard_stats_timestamp', '0');
 
-            // Still warm up the cache in the background
             const today = new Date().toISOString().split('T')[0];
             Promise.all([
                 api.get('/dashboard/stats').then(res => {
@@ -305,7 +345,6 @@ const SalesOrder = () => {
 
             setIsConfirmModalOpen(false);
             setIsSuccessModalOpen(true);
-            
             setPrintedReceipt(false);
             setPrintedKitchen(false);
             setPrintedStickers(false);
@@ -329,6 +368,7 @@ const SalesOrder = () => {
         setCashTendered('');
         setPaymentMethod('cash');
         setReferenceNumber('');
+        setSelectedDiscount(null);
         setIsSuccessModalOpen(false);
         setPrintTarget(null);
         setPrintedReceipt(false);
@@ -345,20 +385,11 @@ const SalesOrder = () => {
         }
     };
 
-    const subtotal = cart.reduce((acc, item) => acc + item.finalPrice, 0);
-    const totalCount = cart.reduce((acc, item) => acc + item.qty, 0);
-    const hasStickers = cart.some(item => item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L');
-    const vatableSales = subtotal / 1.12;
-    const vatAmount = subtotal - vatableSales;
-    const amtDue = subtotal; 
-    const change = typeof cashTendered === 'number' ? Math.max(0, cashTendered - amtDue) : 0;
-
     const filteredCategories = categories.map(cat => ({
         ...cat,
         menu_items: cat.menu_items.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
     })).filter(cat => cat.name.toLowerCase().includes(searchQuery.toLowerCase()) || cat.menu_items.length > 0);
 
-    // ── STICKER GENERATOR ──
     const renderStickers = () => {
         const stickers: React.ReactNode[] = [];
         let drinkIndex = 1;
@@ -429,7 +460,6 @@ const SalesOrder = () => {
         </div>
     );
 
-    // ── TYPE BADGE COLORS ──
     const typeBadge = {
         food:  { pill: 'bg-orange-500 text-white',   card: 'hover:bg-orange-500 hover:border-orange-500 hover:text-white' },
         wings: { pill: 'bg-orange-500 text-white',   card: 'hover:bg-orange-500 hover:border-orange-500 hover:text-white' },
@@ -588,8 +618,9 @@ const SalesOrder = () => {
                             <h2 className="text-xl font-black uppercase tracking-widest">Payment Details</h2>
                             <p className="text-white/60 text-xs mt-1 uppercase">{cashierName ?? 'Admin'}</p>
                         </div>
-                        <div className="flex flex-col md:flex-row flex-1 min-h-[50vh] max-h-[80vh]">
+                        <div className="flex flex-col md:flex-row flex-1 min-h-[50vh] max-h-[80vh] overflow-hidden">
                             <div className="flex-1 flex flex-col bg-white border-r border-zinc-200 overflow-hidden">
+                                {/* CART ITEMS LIST - Occupies maximum available space */}
                                 <div className="flex-1 p-6 overflow-y-auto border-b border-zinc-200">
                                     <h3 className="font-black text-sm text-[#3b2063] uppercase mb-4 tracking-wider">Cart Items</h3>
                                     {cart.length === 0 ? <p className="text-center text-zinc-400 font-bold text-sm py-8">Cart is empty.</p> : (
@@ -613,23 +644,57 @@ const SalesOrder = () => {
                                         </div>
                                     )}
                                 </div>
-                                <div className="p-6 bg-white shrink-0 border-t border-zinc-200">
+
+                                {/* UPDATED: SELECT DISCOUNT DROPDOWN */}
+                                <div className="px-6 py-4 bg-zinc-50 border-b border-zinc-200 shrink-0">
+                                    <label className="font-black text-[10px] text-zinc-400 uppercase mb-2 block tracking-widest">Applied Discount / Promo</label>
+                                    <div className="relative group">
+                                        <select
+                                            value={selectedDiscount?.id || ''}
+                                            onChange={(e) => {
+                                                const disc = discounts.find(d => d.id === Number(e.target.value));
+                                                setSelectedDiscount(disc || null);
+                                            }}
+                                            className="w-full bg-white border-2 border-zinc-200 rounded-xl px-4 py-3 font-bold text-sm text-[#3b2063] appearance-none cursor-pointer outline-none focus:border-[#3b2063] transition-all"
+                                        >
+                                            <option value="">NONE (NO DISCOUNT)</option>
+                                            {discounts.map((d) => (
+                                                <option key={d.id} value={d.id}>
+                                                    {d.name} ({d.amount}{d.type.includes('Percent') ? '%' : ' OFF'})
+                                                </option>
+                                            ))}
+                                        </select>
+                                        {/* Custom Dropdown Arrow */}
+                                        <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-zinc-400">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* ORDER SUMMARY */}
+                                <div className="p-6 bg-white shrink-0">
                                     <h3 className="font-black text-xs text-zinc-400 uppercase tracking-widest mb-3">Order Summary</h3>
                                     <div className="space-y-1.5 text-[11px] font-bold text-zinc-600 mb-4">
                                         <div className="flex justify-between"><span>Quantity (Items)</span><span>{totalCount}</span></div>
                                         <div className="flex justify-between"><span>Sub Total</span><span>₱ {subtotal.toFixed(2)}</span></div>
                                         <div className="flex justify-between"><span>VATable Sales</span><span>₱ {vatableSales.toFixed(2)}</span></div>
                                         <div className="flex justify-between"><span>VAT Amount</span><span>₱ {vatAmount.toFixed(2)}</span></div>
-                                        <div className="flex justify-between"><span>VAT Exempt Sales</span><span>₱ 0.00</span></div>
-                                        <div className="flex justify-between text-red-400"><span>Discount</span><span>₱ 0.00</span></div>
+                                        
+                                        <div className="flex justify-between text-red-500 font-black bg-red-50 px-2 py-1 rounded-lg">
+                                            <span>Discount {selectedDiscount ? `(${selectedDiscount.name})` : ''}</span>
+                                            <span>- ₱ {discountAmount.toFixed(2)}</span>
+                                        </div>
+                                        
                                         <div className="flex justify-between"><span>Service Charge</span><span>₱ 0.00</span></div>
                                     </div>
-                                    <div className="flex justify-between items-center text-[#3b2063] border-t border-zinc-200 pt-3">
+                                    <div className="flex justify-between items-center text-[#3b2063] border-t-2 border-dashed border-zinc-100 pt-3">
                                         <span className="font-black uppercase tracking-wider text-sm">Amt Due</span>
                                         <span className="text-2xl font-black">₱ {amtDue.toFixed(2)}</span>
                                     </div>
                                 </div>
                             </div>
+
+                            {/* RIGHT COLUMN: PAYMENT METHODS */}
                             <div className="flex-1 p-6 bg-white flex flex-col justify-between overflow-y-auto">
                                 <div>
                                     <h3 className="font-black text-sm text-[#3b2063] uppercase mb-3 tracking-wider">Payment Method</h3>
@@ -646,7 +711,7 @@ const SalesOrder = () => {
                                                 onClick={() => { setPaymentMethod(id); setReferenceNumber(''); setCashTendered(''); }}
                                                 className={`py-3 rounded-xl font-black text-[11px] uppercase tracking-wider transition-all border-2 flex flex-col items-center gap-1
                                                     ${paymentMethod === id
-                                                        ? 'bg-[#3b2063] text-white border-[#3b2063]'
+                                                        ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-md'
                                                         : 'bg-[#f0ebff] text-[#3b2063] border-[#3b2063]/20 hover:bg-[#e4dbff]'}`}
                                             >
                                                 <span className="text-lg">{icon}</span>
@@ -728,7 +793,13 @@ const SalesOrder = () => {
                                         {submitting ? 'Processing...' : 'Pay & Submit'}
                                     </button>
                                     <button
-                                        onClick={() => { setIsConfirmModalOpen(false); setCashTendered(''); setPaymentMethod('cash'); setReferenceNumber(''); }}
+                                        onClick={() => { 
+                                            setIsConfirmModalOpen(false); 
+                                            setCashTendered(''); 
+                                            setPaymentMethod('cash'); 
+                                            setReferenceNumber('');
+                                            setSelectedDiscount(null);
+                                        }}
                                         className="w-full bg-white border-2 border-zinc-300 text-zinc-500 py-3 rounded-xl font-bold uppercase tracking-widest hover:bg-zinc-50 transition-colors"
                                     >
                                         Cancel
@@ -1099,24 +1170,24 @@ const SalesOrder = () => {
                     <div className="text-xs space-y-1 border-t border-dashed border-black pt-2">
                         <div className="flex justify-between w-full"><span>Total Items</span><span>{totalCount}</span></div>
                         <div className="flex justify-between w-full"><span>Sub Total</span><span>{subtotal.toFixed(2)}</span></div>
-                        <div className="flex justify-between w-full text-base font-bold mt-1"><span>TOTAL DUE</span><span>{subtotal.toFixed(2)}</span></div>
+                        {discountAmount > 0 && (
+                            <div className="flex justify-between w-full font-bold">
+                                <span>Discount ({selectedDiscount?.name})</span>
+                                <span>- {discountAmount.toFixed(2)}</span>
+                            </div>
+                        )}
+                        <div className="flex justify-between w-full text-base font-bold mt-1"><span>TOTAL DUE</span><span>{amtDue.toFixed(2)}</span></div>
                     </div>
                     <div className="text-xs mt-2 space-y-1 border-b border-dashed border-black pb-3">
                         <div className="flex justify-between w-full">
                             <span>Payment Method</span>
-                            <span className="uppercase font-bold">
-                                {paymentMethod === 'cash'    && 'Cash'}
-                                {paymentMethod === 'gcash'   && 'GCash'}
-                                {paymentMethod === 'paymaya' && 'Maya'}
-                                {paymentMethod === 'credit'  && 'Credit Card'}
-                                {paymentMethod === 'debit'   && 'Debit Card'}
-                            </span>
+                            <span className="uppercase font-bold">{paymentMethod}</span>
                         </div>
                         {paymentMethod === 'cash' && (
                             <>
                                 <div className="flex justify-between w-full">
                                     <span>Cash (Tendered)</span>
-                                    <span>{typeof cashTendered === 'number' ? cashTendered.toFixed(2) : subtotal.toFixed(2)}</span>
+                                    <span>{typeof cashTendered === 'number' ? cashTendered.toFixed(2) : amtDue.toFixed(2)}</span>
                                 </div>
                                 <div className="flex justify-between w-full">
                                     <span>Change</span>
@@ -1124,16 +1195,10 @@ const SalesOrder = () => {
                                 </div>
                             </>
                         )}
-                        {(paymentMethod === 'gcash' || paymentMethod === 'paymaya') && (
+                        {referenceNumber && (
                             <div className="flex justify-between w-full">
-                                <span>Reference #</span>
-                                <span className="font-bold">{referenceNumber || '—'}</span>
-                            </div>
-                        )}
-                        {(paymentMethod === 'credit' || paymentMethod === 'debit') && (
-                            <div className="flex justify-between w-full">
-                                <span>Approval Code</span>
-                                <span className="font-bold">{referenceNumber || '—'}</span>
+                                <span>Ref/Approval #</span>
+                                <span className="font-bold">{referenceNumber}</span>
                             </div>
                         )}
                     </div>
@@ -1174,11 +1239,6 @@ const SalesOrder = () => {
                         </div>
                         <h2 className="text-m mt-1">OR # {orNumber}</h2>
                         <p className="text-sm mt-1">{formattedDate} {formattedTime}</p>
-                        {orderCharge && (
-                            <div className="mt-3 text-sm border-4 border-black text-black py-1 uppercase tracking-widest">
-                                {orderCharge === 'grab' ? 'GRABFOOD' : 'FOODPANDA'}
-                            </div>
-                        )}
                     </div>
                     <div className="mt-2">
                         {cart.map((item, i) => (
