@@ -14,7 +14,8 @@ import {
   Settings as SettingsIcon,
   LogOut,
   Lock,
-  ChevronDown} from 'lucide-react';
+  ChevronDown
+} from 'lucide-react';
 
 // --- INTERFACES ---
 interface MenuItem {
@@ -36,7 +37,14 @@ interface SidebarProps {
   logo: string;
   currentTab: string;
   setCurrentTab: (tab: string) => void;
-  isLoading?: boolean; // New prop to trigger skeleton
+  isLoading?: boolean; 
+}
+
+interface NavBtnProps {
+  active: boolean;
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ 
@@ -226,7 +234,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         { show: showEodLockedModal, icon: <Lock className="text-red-600"/>, title: "Terminal Closed", desc: "End of Day processed. Terminal locked for new orders.", action: () => setShowEodLockedModal(false), btnText: "Dismiss" }
       ].map((m, i) => m.show && (
         <div key={i} className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-sm rounded-none border border-zinc-200 p-10 flex flex-col items-center text-center shadow-2xl">
+          <div className="bg-white w-full max-w-sm rounded-none border border-zinc-200 p-10 flex flex-col items-center text-center shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="w-14 h-14 bg-zinc-50 border border-zinc-100 flex items-center justify-center mb-6">{m.icon}</div>
             <h3 className="text-[#3b2063] font-black uppercase text-lg tracking-widest mb-2">{m.title}</h3>
             <p className="text-zinc-400 text-xs font-bold uppercase tracking-wider mb-8 leading-relaxed">{m.desc}</p>
@@ -254,7 +262,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               <div className="w-full" key={dropdown.id}>
                 <button onClick={() => handleDropdownToggle(dropdown.id)} className={`w-full px-5 py-4 flex items-center justify-between transition-all duration-200 border-b border-zinc-50 group ${dropdown.state || dropdown.items.some(i => i.id === currentTab) ? 'text-[#3b2063] bg-[#f8f6ff]' : 'text-zinc-400 hover:bg-zinc-50'}`}>
                   <div className="flex items-center gap-3">
-                    <span className={dropdown.state ? 'text-[#3b2063]' : 'text-zinc-300'}>{dropdown.icon}</span>
+                    <span className={dropdown.state || dropdown.items.some(i => i.id === currentTab) ? 'text-[#3b2063]' : 'text-zinc-300'}>{dropdown.icon}</span>
                     <span className="font-black text-[11px] uppercase tracking-[0.2em]">{dropdown.label}</span>
                   </div>
                   <ChevronDown size={14} className={`transition-transform duration-300 ${dropdown.state ? 'rotate-180' : 'rotate-0'}`} />
@@ -291,7 +299,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
         {/* --- FOOTER --- */}
         <div className="shrink-0 p-6 bg-white border-t border-zinc-100 flex flex-col gap-4">
-          <button onClick={() => setShowLogoutConfirm(true)} className="flex items-center justify-center w-full py-4 bg-[#be2525] text-white text-[10px] font-black uppercase tracking-[0.3em] hover:bg-[#a11f1f] transition-all shadow-lg shadow-red-900/10 active:scale-95">
+          <button onClick={() => setShowLogoutConfirm(true)} className="flex items-center justify-center w-full py-4 bg-[#be2525] text-white text-[10px] font-black uppercase tracking-[0.3em] hover:bg-[#a11f1f] transition-all shadow-lg shadow-red-900/10 active:scale-95 rounded-none">
             <LogOut size={14} className="mr-2" strokeWidth={3}/> Logout
           </button>
           <div className="text-[8px] font-black uppercase tracking-[0.4em] text-zinc-300 text-center">Lucky Boba &copy; 2026</div>
@@ -303,8 +311,8 @@ const Sidebar: React.FC<SidebarProps> = ({
   );
 };
 
-// --- SUB-COMPONENT FOR NAV BUTTONS ---
-const NavBtn = ({ active, icon, label, onClick }: any) => (
+// --- NAV BUTTON COMPONENT ---
+const NavBtn = ({ active, icon, label, onClick }: NavBtnProps) => (
   <button onClick={onClick} className={`w-full px-5 py-4 flex items-center gap-3 transition-all duration-200 border-b border-zinc-50 rounded-none ${active ? 'bg-[#f0ebff] text-[#3b2063]' : 'text-zinc-400 hover:bg-zinc-50'}`}>
     <span className={active ? 'text-[#3b2063]' : 'text-zinc-300'}>{icon}</span>
     <span className="font-black text-[11px] uppercase tracking-[0.2em]">{label}</span>

@@ -4,7 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import Sidebar from "../components/Sidebar";
 import logo from '../assets/logo.png';
 import api from '../services/api'; 
-import type { DashboardData } from '../types/dashboard';
+import type { DashboardData, TopSeller } from '../types/dashboard';
 import { 
   Monitor, 
   TrendingUp, 
@@ -41,6 +41,14 @@ import PurchaseOrder from '../components/Inventory/PurchaseOrder';
 import StockTransfer from '../components/Inventory/StockTransfer';
 import Supplier from '../components/Inventory/Supplier';
 import Settings from '../components/Settings';
+
+interface DashboardStatsProps {
+  stats: DashboardData | null;
+  isInitialLoad: boolean;
+  isStale?: boolean;
+  loading: boolean;
+  onRefresh: () => void;
+}
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -131,8 +139,7 @@ const Dashboard = () => {
   );
 };
 
-// ─── DASHBOARD STATS ─────────────────────────────────────────────────────────
-const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, onRefresh }: any) => {
+const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, onRefresh }: DashboardStatsProps) => {
   const [time, setTime] = useState(new Date());
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
@@ -145,7 +152,6 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, onRefr
   return (
     <div className="p-4 md:p-6 lg:p-7 min-h-full flex flex-col gap-4">
       <div className="grid grid-cols-12 gap-3">
-        {/* TERMINAL STATUS */}
         <div className="col-span-12 lg:col-span-5 bg-[#3b2063] rounded-none p-6 flex flex-col justify-between border border-[#2a174a] min-h-[160px]">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-4">
@@ -172,7 +178,6 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, onRefr
           </div>
         </div>
 
-        {/* NET REVENUE */}
         <div className="col-span-12 md:col-span-6 lg:col-span-4 bg-white border border-zinc-200 rounded-none p-6 flex flex-col justify-between min-h-[160px]">
           <div className="flex items-center gap-4">
             <div className="p-2.5 bg-[#f8f6ff] text-[#3b2063] border border-zinc-100 rounded-none"><TrendingUp size={20} strokeWidth={3}/></div>
@@ -184,7 +189,6 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, onRefr
           </div>
         </div>
 
-        {/* TRANSACTION VOLUME */}
         <div className="col-span-12 md:col-span-6 lg:col-span-3 bg-white border border-zinc-200 rounded-none p-6 flex flex-col justify-between min-h-[160px]">
           <div className="flex items-center gap-4">
             <div className="p-2.5 bg-[#f8f6ff] text-[#3b2063] border border-zinc-100 rounded-none"><ShoppingCart size={20} strokeWidth={3}/></div>
@@ -194,16 +198,14 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, onRefr
         </div>
       </div>
 
-      {/* STRIP METRICS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <MetricStrip icon={<ArrowUpCircle size={18} className="text-emerald-500"/>} label="Begin Cash" value={fmt(stats?.cash_in_today ?? 0)} />
-          <MetricStrip icon={<ArrowDownCircle size={18} className="text-zinc-400"/>} label="Cash Out" value={fmt(stats?.cash_out_today ?? 0)} />
-          <MetricStrip icon={<AlertCircle size={18} className="text-red-500"/>} label="Voided" value={fmt(stats?.voided_sales_today ?? 0)} color="text-red-600" />
+          <MetricStrip icon={<ArrowUpCircle size={18} className="text-emerald-500"/>} label="Begin Cash" value={fmt(stats?.cash_in_today ?? 0)} isLoading={isLoading} />
+          <MetricStrip icon={<ArrowDownCircle size={18} className="text-zinc-400"/>} label="Cash Out" value={fmt(stats?.cash_out_today ?? 0)} isLoading={isLoading} />
+          <MetricStrip icon={<AlertCircle size={18} className="text-red-500"/>} label="Voided" value={fmt(stats?.voided_sales_today ?? 0)} color="text-red-600" isLoading={isLoading} />
       </div>
 
-      {/* TOP SELLERS SPLIT */}
       <div className="grid grid-cols-12 gap-3 flex-1">
-        <div className="col-span-12 lg:col-span-6 bg-white border border-zinc-200 rounded-none p-8 flex flex-col gap-6">
+        <div className="col-span-12 lg:col-span-6 bg-white border border-zinc-200 rounded-none p-8 flex flex-col gap-6 shadow-sm">
           <div className="flex items-center gap-4 border-b border-zinc-50 pb-4">
              <div className="p-2.5 bg-[#f8f6ff] text-[#3b2063] border border-zinc-100 rounded-none"><Star size={18} strokeWidth={3}/></div>
              <p className="text-[11px] font-black uppercase tracking-[0.4em] text-zinc-400">Top Sellers Today</p>
@@ -211,7 +213,7 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, onRefr
           <TopSellerRows sellers={stats?.top_seller_today ?? []} loading={isLoading} />
         </div>
 
-        <div className="col-span-12 lg:col-span-6 bg-white border border-zinc-200 rounded-none p-8 flex flex-col gap-6">
+        <div className="col-span-12 lg:col-span-6 bg-white border border-zinc-200 rounded-none p-8 flex flex-col gap-6 shadow-sm">
           <div className="flex items-center gap-4 border-b border-zinc-50 pb-4">
              <div className="p-2.5 bg-[#f8f6ff] text-[#3b2063] border border-zinc-100 rounded-none"><History size={18} strokeWidth={3}/></div>
              <p className="text-[11px] font-black uppercase tracking-[0.4em] text-zinc-400">Terminal History · All Time</p>
@@ -223,20 +225,36 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, onRefr
   );
 };
 
-const MetricStrip = ({ icon, label, value, color = "text-[#3b2063]" }: any) => (
+interface MetricStripProps {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  color?: string;
+  isLoading: boolean;
+}
+
+const MetricStrip = ({ icon, label, value, color = "text-[#3b2063]", isLoading }: MetricStripProps) => (
     <div className="bg-white border border-zinc-200 rounded-none p-5 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-4">{icon}<p className="text-[11px] font-black uppercase tracking-[0.4em] text-zinc-400">{label}</p></div>
-        <p className={`text-lg font-black tracking-widest tabular-nums ${color}`}>{value}</p>
+        {isLoading 
+            ? <div className="h-4 w-24 animate-pulse bg-zinc-50" /> 
+            : <p className={`text-lg font-black tracking-widest tabular-nums ${color}`}>{value}</p>
+        }
     </div>
 );
 
-const TopSellerRows = ({ sellers, loading }: any) => {
+interface TopSellerRowsProps {
+  sellers: TopSeller[] | null;
+  loading: boolean;
+}
+
+const TopSellerRows = ({ sellers, loading }: TopSellerRowsProps) => {
   const list = sellers?.slice(0, 5) || [];
-  const max = list.length ? Math.max(...list.map((s: any) => s.total_qty)) : 1;
+  const max = list.length ? Math.max(...list.map((s) => s.total_qty)) : 1;
   if (loading) return <div className="space-y-6">{[1,2,3,4,5].map(i => <div key={i} className="h-10 bg-zinc-50 animate-pulse rounded-none" />)}</div>;
   return (
     <div className="flex flex-col gap-7">
-      {list.map((item: any, i: number) => (
+      {list.map((item, i: number) => (
         <div key={i}>
           <div className="flex items-center justify-between mb-2.5 px-1">
             <div className="flex items-center gap-4">
@@ -252,7 +270,6 @@ const TopSellerRows = ({ sellers, loading }: any) => {
   );
 };
 
-// ─── UPDATED DASHBOARD SKELETON (THIN BORDER FIX) ───────────────────
 const DashboardSkeleton = () => (
   <div className="flex h-screen bg-[#f8f6ff] font-sans overflow-hidden">
     <div className="w-64 bg-white border-r border-zinc-200 hidden md:flex flex-col rounded-none justify-between">
@@ -273,7 +290,6 @@ const DashboardSkeleton = () => (
       </div>
       <div className="grid grid-cols-12 gap-3">
         <div className="col-span-12 lg:col-span-5 h-[160px] bg-zinc-50 animate-pulse rounded-none border border-zinc-100" />
-        {/* Fixed Thin Border Loading State for image_99a249.png cards */}
         <div className="col-span-12 md:col-span-6 lg:col-span-4 h-[160px] bg-white animate-pulse rounded-none border border-zinc-200" />
         <div className="col-span-12 md:col-span-6 lg:col-span-3 h-[160px] bg-white animate-pulse rounded-none border border-zinc-200" />
       </div>
