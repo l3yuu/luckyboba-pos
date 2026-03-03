@@ -5,6 +5,15 @@ import { useAuth } from '../hooks/useAuth';
 import { UserService } from '../services/UserService';
 import type { User as ApiUser } from '../services/UserService';
 
+// Resolve branch string from currentUser — handles both branch and branch_id
+const resolveBranch = (user: { branch?: string; branch_id?: string | number } | null | undefined): string | undefined => {
+  if (!user) return undefined;
+  if (user.branch) return String(user.branch);
+  if (user.branch_id !== undefined && user.branch_id !== null && user.branch_id !== '')
+    return String(user.branch_id);
+  return undefined;
+};
+
 const CashierManagement = () => {
   const { showToast } = useToast();
   const { user: currentUser } = useAuth();
@@ -35,7 +44,7 @@ const CashierManagement = () => {
     try {
       const data = await UserService.getAllUsers({
         role: 'cashier',
-        branch: currentUser?.branch_id ?? undefined,
+        branch: resolveBranch(currentUser),
       });
       setUsers(data);
     } catch {
@@ -43,7 +52,7 @@ const CashierManagement = () => {
     } finally {
       setIsFetching(false);
     }
-  }, [currentUser?.branch_id, showToast]);
+  }, [currentUser?.branch, currentUser?.branch_id, showToast]);
 
   useEffect(() => {
     fetchUsers();
@@ -77,8 +86,8 @@ const CashierManagement = () => {
         name: newUser.name,
         email: newUser.email,
         password: newUser.password,
-        role: 'cashier',                          // always cashier
-        branch: currentUser?.branch_id ?? undefined, // scoped to branch
+        role: 'cashier',
+        branch: resolveBranch(currentUser),
         status: 'ACTIVE',
       });
       showToast(`Cashier "${newUser.name}" added successfully`, 'success');
@@ -175,7 +184,7 @@ const CashierManagement = () => {
           <div>
             <h1 className="text-sm sm:text-xl font-black text-[#3b2063] uppercase tracking-wider">Cashier Management</h1>
             <p className="text-zinc-400 font-bold text-[10px] sm:text-xs uppercase tracking-wider mt-1">
-              {currentUser?.branch_id ? `Branch: ${currentUser.branch_id}` : 'System Access Control'}
+              {resolveBranch(currentUser) ? `Branch: ${resolveBranch(currentUser)}` : 'System Access Control'}
             </p>
           </div>
         </div>

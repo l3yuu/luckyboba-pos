@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useState, useEffect, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import api from '../services/api';
 import type { LoginCredentials, User } from '../types/user';
@@ -84,8 +84,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const login = async (credentials: LoginCredentials): Promise<User | null> => {
-    // Always clear stale errors at the start of a new attempt
+  const login = useCallback(async (credentials: LoginCredentials): Promise<User | null> => {
     setError(null);
 
     const lockoutEnd = localStorage.getItem('login_lockout_end');
@@ -147,9 +146,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [clearSession]);
 
-  const logout = async (): Promise<void> => {
+  const logout = useCallback(async (): Promise<void> => {
     try {
       await api.post('/logout');
     } catch {
@@ -157,10 +156,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       clearSession();
     }
-  };
+  }, [clearSession]);
+
+  const value = useMemo(
+    () => ({ user, isLoading, error, login, logout }),
+    [user, isLoading, error, login, logout]
+  );
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, error, login, logout }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

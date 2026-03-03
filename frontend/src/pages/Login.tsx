@@ -5,17 +5,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import type { LoginCredentials } from '../types/user';
 import { useToast } from '../hooks/useToast';
+import { ROLE_HOME } from '../utils/roleRoutes';
 
 import logo from '../assets/logo.png';
 import backgroundImage from '../assets/background_image.png';
-
-const ROLE_HOME: Record<string, string> = {
-  superadmin:     '/super-admin',
-  admin:          '/dashboard',
-  manager:        '/branch-manager',
-  branch_manager: '/branch-manager',
-  cashier:        '/dashboard',
-};
 
 const getHomeForRole = (role: string): string =>
   ROLE_HOME[role.toLowerCase().trim()] ?? '/dashboard';
@@ -29,24 +22,22 @@ const Login: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const { login, isLoading, error, user } = useAuth();
-  const navigate = useNavigate();
+  const navigate        = useNavigate();
+  const hasRedirected   = useRef(false);
+  const didJustLogin    = useRef(false);
 
-  // ── Track whether this render is from a fresh login submission ───────────
-  // This prevents the "already logged in" useEffect from double-navigating
-  // after handleSubmit already called navigate().
-  const didJustLogin = useRef(false);
-
-  // ── Only redirect if already logged in when the page first loads ─────────
-  // e.g. user manually types /login while still authenticated
+  // ── Redirect if already logged in ────────────────────────────────────────
   useEffect(() => {
-    if (isLoading) return;           // wait for checkAuth to finish
-    if (didJustLogin.current) return; // handleSubmit already handled navigation
-    if (user) {
-      navigate(getHomeForRole(user.role), { replace: true });
-    }
-  }, [isLoading, user, navigate]);
+    if (isLoading) return;
+    if (hasRedirected.current) return;
+    if (didJustLogin.current) return;
+    if (!user) return;
+    hasRedirected.current = true;
+    navigate(getHomeForRole(user.role), { replace: true });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, user]); // navigate intentionally excluded — adding it causes infinite loop // ← navigate intentionally excluded
 
-  // ── Session expired toast ────────────────────────────────────────────────
+  // ── Session expired toast (run once on mount) ────────────────────────────
   useEffect(() => {
     if (searchParams.get('reason') === 'expired') {
       showToast('Your session has expired. Please log in again.', 'warning');
@@ -54,12 +45,14 @@ const Login: React.FC = () => {
       p.delete('reason');
       setSearchParams(p, { replace: true });
     }
-  }, [searchParams, showToast, setSearchParams]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // ← intentionally empty — only run on mount
 
   // ── Error toast ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (error) showToast(error, 'error');
-  }, [error, showToast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [error]); // ← showToast intentionally excluded
 
   // ── Lockout countdown ────────────────────────────────────────────────────
   useEffect(() => {
@@ -70,7 +63,7 @@ const Login: React.FC = () => {
     check();
     const id = setInterval(check, 1000);
     return () => clearInterval(id);
-  }, [error]);
+  }, []); // ← run once, interval handles updates
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.getModifierState('CapsLock')) showToast('Caps Lock is ON', 'warning');
@@ -85,10 +78,8 @@ const Login: React.FC = () => {
       localStorage.setItem('user_role', loggedInUser.role);
       localStorage.setItem('lucky_boba_user_branch_id', String(loggedInUser.branch_id ?? ''));
       showToast(`Welcome back, ${loggedInUser.name}!`, 'success');
-
-      // Mark that we're handling navigation here so the useEffect above
-      // does not fire a second navigate() when user state updates
-      didJustLogin.current = true;
+      didJustLogin.current  = true;
+      hasRedirected.current = true;
       navigate(getHomeForRole(loggedInUser.role), { replace: true });
     }
   };

@@ -11,6 +11,7 @@ export interface User {
   email: string;
   role: 'superadmin' | 'admin' | 'manager' | 'cashier';
   branch?: string;
+  branch_id?: string | number;
   status: 'ACTIVE' | 'INACTIVE';
   email_verified_at?: string | null;
   created_at?: string;
@@ -62,12 +63,23 @@ interface ApiResponse<T> {
   errors?: Record<string, string[]>;
 }
 
+// Helper: resolve branch value from a user object that may have branch or branch_id
+export function resolveBranch(
+  user: { branch?: string; branch_id?: string | number } | null | undefined
+): string | undefined {
+  if (!user) return undefined;
+  if (user.branch) return String(user.branch);
+  if (user.branch_id !== undefined && user.branch_id !== null && user.branch_id !== '')
+    return String(user.branch_id);
+  return undefined;
+}
+
 // Axios instance with auth token
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
+    Accept: 'application/json',
   },
 });
 
@@ -128,13 +140,33 @@ export class UserService {
   /** Create a new user */
   static async createUser(data: CreateUserData): Promise<User> {
     try {
-      const payload: CreateUserData = { ...data, status: data.status ?? 'ACTIVE' };
+      const payload: CreateUserData = {
+        ...data,
+        status: data.status ?? 'ACTIVE',
+      };
+
+      // Only include branch if it has a real value — avoids backend validation errors
+      if (!payload.branch) {
+        delete payload.branch;
+      }
+
+      console.log('CREATE USER PAYLOAD:', JSON.stringify(payload, null, 2));
+
       const response = await apiClient.post<ApiResponse<User>>('/users', payload);
       return response.data.data!;
     } catch (error: unknown) {
       if (axios.isAxiosError<ApiResponse<User>>(error) && error.response) {
+        const { message, errors } = error.response.data;
         console.error('CREATE USER VALIDATION ERROR:', error.response.data);
-        throw new Error(error.response.data.message ?? 'Failed to create user');
+
+        // Surface the first field-level validation message if available
+        if (errors) {
+          const firstField = Object.keys(errors)[0];
+          const firstMessage = errors[firstField]?.[0];
+          if (firstMessage) throw new Error(`${firstField}: ${firstMessage}`);
+        }
+
+        throw new Error(message ?? 'Failed to create user');
       }
       throw error;
     }
@@ -143,12 +175,27 @@ export class UserService {
   /** Update an existing user */
   static async updateUser(id: number, data: UpdateUserData): Promise<User> {
     try {
-      const response = await apiClient.put<ApiResponse<User>>(`/users/${id}`, data);
+      const payload: UpdateUserData = { ...data };
+
+      // Strip undefined branch to avoid accidental overwrites
+      if (payload.branch === undefined || payload.branch === '') {
+        delete payload.branch;
+      }
+
+      const response = await apiClient.put<ApiResponse<User>>(`/users/${id}`, payload);
       return response.data.data!;
     } catch (error: unknown) {
       if (axios.isAxiosError<ApiResponse<User>>(error) && error.response) {
+        const { message, errors } = error.response.data;
         console.error('UPDATE USER VALIDATION ERROR:', error.response.data);
-        throw new Error(error.response.data.message ?? 'Failed to update user');
+
+        if (errors) {
+          const firstField = Object.keys(errors)[0];
+          const firstMessage = errors[firstField]?.[0];
+          if (firstMessage) throw new Error(`${firstField}: ${firstMessage}`);
+        }
+
+        throw new Error(message ?? 'Failed to update user');
       }
       throw error;
     }

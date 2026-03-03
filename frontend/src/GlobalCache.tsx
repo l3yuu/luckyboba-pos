@@ -113,7 +113,7 @@ const EMPTY  = Object.fromEntries(TABLES.map(t => [t, []])) as unknown as CacheS
 // ─── Fetch Helper ─────────────────────────────────────────────────────────────
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = localStorage.getItem("auth_token");
+  const token = localStorage.getItem("lucky_boba_token"); // ← was "auth_token"
   const res = await fetch(`${API_BASE}${path}`, {
     headers: {
       "Content-Type": "application/json",
@@ -137,19 +137,24 @@ export function CacheProvider({ children }: { children: ReactNode }) {
 
   const sync = (s: CacheStore) => { ref.current = s; setStore(s); };
 
-  const loadAll = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await apiFetch<CacheStore>("/cache/all");
-      sync(data);
-      setReady(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Cache failed to load");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+const loadAll = useCallback(async () => {
+  const token = localStorage.getItem("lucky_boba_token"); // ← add this check
+  if (!token) {
+    setLoading(false);
+    return;
+  }
+  setLoading(true);
+  setError(null);
+  try {
+    const data = await apiFetch<CacheStore>("/cache/all");
+    sync(data);
+    setReady(true);
+  } catch (err) {
+    setError(err instanceof Error ? err.message : "Cache failed to load");
+  } finally {
+    setLoading(false);
+  }
+}, []);
 
   const reloadTable = useCallback(async (table: TableName) => {
     const result = await apiFetch<{ rows: Row[]; message: string }>(

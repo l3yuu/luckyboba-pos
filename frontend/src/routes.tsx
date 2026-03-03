@@ -27,19 +27,21 @@ export const router = createBrowserRouter([
 
   // ── Admin only ───────────────────────────────────────────────────────────
   {
-    element: <ProtectedRoute allowedRoles={['admin']} />,
+    element: <ProtectedRoute allowedRoles={['admin', 'system_admin']} />,
     errorElement: <ErrorFallback />,
     children: [
       { path: '/dashboard', element: <Dashboard /> },
+      { path: '/calendar',  element: <Calendar /> },
     ],
   },
 
   // ── Branch Manager only ──────────────────────────────────────────────────
   {
-    element: <ProtectedRoute allowedRoles={['manager']} />,
+    element: <ProtectedRoute allowedRoles={['manager', 'branch_manager']} />,
     errorElement: <ErrorFallback />,
     children: [
       { path: '/branch-manager', element: <BranchManagerDashboard /> },
+      { path: '/calendar',       element: <Calendar /> },
     ],
   },
 
@@ -48,16 +50,7 @@ export const router = createBrowserRouter([
     element: <ProtectedRoute allowedRoles={['cashier']} />,
     errorElement: <ErrorFallback />,
     children: [
-      { path: '/dashboard', element: <SalesOrder /> },
-    ],
-  },
-
-  // ── Shared: admin + manager ──────────────────────────────────────────────
-  {
-    element: <ProtectedRoute allowedRoles={['admin', 'manager']} />,
-    errorElement: <ErrorFallback />,
-    children: [
-      { path: '/calendar', element: <Calendar /> },
+      { path: '/cashier', element: <SalesOrder /> },
     ],
   },
 

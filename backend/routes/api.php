@@ -6,9 +6,9 @@ use App\Http\Controllers\Api\{
     InventoryDashboardController, InventoryReportController, ItemSerialController,
     MenuController, MenuListController, PurchaseOrderController, ReceiptController,
     ReportController, SalesController, SalesDashboardController, SettingsController,
-    SubCategoryController, UploadController, VoucherController, BranchController,
-    CacheController, AddOnController
+    SubCategoryController, UploadController, VoucherController, BranchController, AddOnController
 };
+use App\Http\Controllers\CacheController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\UserController;
 use App\Models\User;
@@ -216,8 +216,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
 
     // --- 11. CACHE ---
-    Route::prefix('cache')->group(function () {
-        Route::get('/all',    [CacheController::class, 'index']);
-        Route::post('/clear', [CacheController::class, 'clear']);
-    });
+    Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/cache/all',              [CacheController::class, 'all']);
+    Route::post('/cache/reload/{table}',  [CacheController::class, 'reload']);
+});
 });

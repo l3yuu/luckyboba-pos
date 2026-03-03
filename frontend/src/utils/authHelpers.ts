@@ -8,11 +8,12 @@
 export type UserRole = 'superadmin' | 'admin' | 'manager' | 'cashier';
 
 /** Where each role's dashboard lives */
-export const ROLE_HOME: Record<UserRole, string> = {
-  superadmin: '/super-admin',
-  admin:      '/dashboard',
-  manager:    '/branch-manager',
-  cashier:    '/dashboard',
+export const ROLE_HOME: Record<string, string> = {
+  superadmin:     '/super-admin',
+  admin:          '/dashboard',
+  manager:        '/branch-manager',
+  branch_manager: '/branch-manager',
+  cashier:        '/cashier',  // ← updated
 };
 
 // ── Storage keys (single source of truth) ────────────────────────────────────

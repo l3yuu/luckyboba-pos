@@ -5,10 +5,9 @@ import { CacheProvider } from './GlobalCache.tsx';
 import { AuthProvider } from './context/AuthContext';
 
 createRoot(document.getElementById('root')!).render(
-  <CacheProvider>
-    <AuthProvider>
+  <AuthProvider>
+    <CacheProvider>
       <App />
-    </AuthProvider>
-  </CacheProvider>
+    </CacheProvider>
+  </AuthProvider>
 );
-
