@@ -8,7 +8,7 @@ import type {
   HoveredValuePoint 
 } from '../../types/analytics';
 import { 
-  TrendingUp, 
+  TrendingUp,  
   BarChart3, 
   AlertCircle, 
   Banknote, 
@@ -21,6 +21,16 @@ const WEEKLY_HEIGHT = 160;
 const TODAY_HEIGHT = 160;
 const CACHE_KEY = 'lucky_boba_sales_analytics';
 const FIXED_TODAY_MAX = 5000;
+
+// Define interface to replace 'any' and pass linting
+interface StatCardProps {
+  label: string;
+  value: string;
+  icon: React.ReactNode;
+  isSuccess?: boolean;
+  isBrand?: boolean;
+  isDanger?: boolean;
+}
 
 const SalesDashboard = () => {
   const [analytics, setAnalytics] = useState<SalesAnalyticsResponse | null>(() => {
@@ -57,7 +67,7 @@ const SalesDashboard = () => {
   if (loading && !analytics) {
     return (
       <div className="flex-1 bg-[#f8f6ff] h-full flex flex-col items-center justify-center font-sans">
-        <div className="w-10 h-10 border-2 border-[#3b2063] border-t-transparent animate-spin" />
+        <div className="w-10 h-10 border-2 border-[#3b2063] border-t-transparent animate-spin rounded-none" />
         <p className="mt-4 text-[9px] font-black uppercase tracking-[0.4em] text-zinc-400">Syncing Terminal Analytics...</p>
       </div>
     );
@@ -137,7 +147,7 @@ const SalesDashboard = () => {
 
       <div className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col gap-4">
 
-        {/* ── WEEKLY REVENUE CHART (FIXED MARKERS) ── */}
+        {/* ── WEEKLY REVENUE CHART ── */}
         <div className="bg-white border border-zinc-200 rounded-none p-6 md:p-8 shadow-sm">
           <div className="flex items-start justify-between mb-8 border-b border-zinc-50 pb-6">
             <div className="flex items-center gap-4">
@@ -183,7 +193,6 @@ const SalesDashboard = () => {
                 {linePoints.map((p, i) => (
                   <div key={i} className="absolute z-10 group" style={{ left: `${p.x}%`, top: `${(p.y / WEEKLY_HEIGHT) * 100}%`, transform: 'translate(-50%, -50%)' }}
                     onMouseEnter={() => setHoveredValue(p)} onMouseLeave={() => setHoveredValue(null)}>
-                    {/* Fixed Marker: rounded-full for circular points */}
                     <div className="w-4 h-4 rounded-full bg-white border-2 border-[#3b2063] group-hover:scale-125 transition-transform duration-150 shadow-sm" />
                     {hoveredValue === p && (
                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 pointer-events-none z-20">
@@ -226,8 +235,8 @@ const SalesDashboard = () => {
                 <p className="text-[9px] font-black uppercase tracking-[0.3em] text-zinc-400">Shift Analytics</p>
                 <h3 className="text-[#3b2063] font-black text-sm uppercase tracking-widest mt-1">Hourly Sales Distribution</h3>
               </div>
-              <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 border border-emerald-100">
-                <span className="w-1.5 h-1.5 bg-emerald-400 animate-pulse" />
+              <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 border border-emerald-100 rounded-none">
+                <span className="w-1.5 h-1.5 bg-emerald-400 animate-pulse rounded-full" />
                 <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600">Live</span>
               </div>
             </div>
@@ -286,13 +295,14 @@ const SalesDashboard = () => {
   );
 };
 
-const StatCard = ({ label, value, icon, isSuccess, isBrand, isDanger }: any) => (
+// ─── HELPER COMPONENT (Lint Fixed) ───
+const StatCard = ({ label, value, icon, isSuccess, isBrand, isDanger }: StatCardProps) => (
   <div className={`p-5 border flex flex-col justify-between shadow-sm rounded-none transition-all ${
     isBrand ? 'bg-[#3b2063] border-[#2a174a]' : 'bg-white border-zinc-200 hover:border-[#3b2063]'
   }`}>
     <div className="flex items-center justify-between mb-2">
       <p className={`text-[9px] font-black uppercase tracking-[0.3em] ${isBrand ? 'text-purple-300/60' : 'text-zinc-400'}`}>{label}</p>
-      <div className={`p-1.5 ${isBrand ? 'text-purple-300 bg-white/5' : 'text-zinc-300 bg-zinc-50'}`}>{icon}</div>
+      <div className={`p-1.5 rounded-none ${isBrand ? 'text-purple-300 bg-white/5' : 'text-zinc-300 bg-zinc-50'}`}>{icon}</div>
     </div>
     <p className={`text-base font-black tabular-nums tracking-tighter ${
       isBrand ? 'text-white' : (isSuccess ? 'text-emerald-600' : isDanger ? 'text-red-500' : 'text-[#3b2063]')
