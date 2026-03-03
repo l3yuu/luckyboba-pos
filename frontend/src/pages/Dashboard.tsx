@@ -55,13 +55,21 @@ const Dashboard = () => {
   const { user, isLoading: authLoading } = useAuth();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
+  
+  // Initialize state from Cache
   const [stats, setStats] = useState<DashboardData | null>(() => {
     const cached = localStorage.getItem('dashboard_stats');
     return cached ? JSON.parse(cached) : null;
   });
+  
   const [loading, setLoading] = useState(!stats);
   const [isInitialLoad, setIsInitialLoad] = useState(!stats);
-  const [isStale, setIsStale] = useState(() => localStorage.getItem('dashboard_stats_timestamp') === '0');
+  const [isStale, setIsStale] = useState(() => {
+    const ts = localStorage.getItem('dashboard_stats_timestamp');
+    if (!ts) return true;
+    return Date.now() - Number(ts) > 5 * 60 * 1000; // Stale after 5 mins
+  });
+  
   const isFetching = useRef(false);
 
   useEffect(() => {
@@ -69,7 +77,20 @@ const Dashboard = () => {
   }, [user, authLoading, navigate]);
 
   const fetchStats = useCallback(async (force = false) => {
-    if (isFetching.current && !force) return;
+    // Prevent redundant fetches
+    if (isFetching.current) return;
+
+    // CACHE LOGIC: Only fetch if forced or if data is stale/missing
+    if (!force && stats) {
+      const lastFetch = localStorage.getItem('dashboard_stats_timestamp');
+      if (lastFetch && Date.now() - Number(lastFetch) < 5 * 60 * 1000) {
+        setLoading(false);
+        setIsInitialLoad(false);
+        setIsStale(false);
+        return;
+      }
+    }
+
     isFetching.current = true;
     setLoading(true);
     try {
@@ -77,22 +98,22 @@ const Dashboard = () => {
       setStats(response.data);
       localStorage.setItem('dashboard_stats', JSON.stringify(response.data));
       localStorage.setItem('dashboard_stats_timestamp', Date.now().toString());
+      setIsStale(false);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
     } finally {
       setLoading(false);
       setIsInitialLoad(false);
-      setIsStale(false);
       isFetching.current = false;
     }
-  }, []);
+  }, [stats]);
 
   useEffect(() => {
     if (!user || activeTab !== 'dashboard') return;
     void (async () => { await fetchStats(); })();
   }, [user, activeTab, fetchStats]);
 
-  if (authLoading || isStale || !stats) return <DashboardSkeleton />;
+  if (authLoading || (isInitialLoad && !stats)) return <DashboardSkeleton />;
   if (!user) return null;
 
   const refreshStats = () => { void (async () => { await fetchStats(true); })(); };
@@ -152,6 +173,7 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, onRefr
   return (
     <div className="p-4 md:p-6 lg:p-7 min-h-full flex flex-col gap-4">
       <div className="grid grid-cols-12 gap-3">
+        {/* TERMINAL STATUS - Violet Card */}
         <div className="col-span-12 lg:col-span-5 bg-[#3b2063] rounded-none p-6 flex flex-col justify-between border border-[#2a174a] min-h-[160px]">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-4">
@@ -178,32 +200,42 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, onRefr
           </div>
         </div>
 
+        {/* NET REVENUE - White Card */}
         <div className="col-span-12 md:col-span-6 lg:col-span-4 bg-white border border-zinc-200 rounded-none p-6 flex flex-col justify-between min-h-[160px]">
           <div className="flex items-center gap-4">
             <div className="p-2.5 bg-[#f8f6ff] text-[#3b2063] border border-zinc-100 rounded-none"><TrendingUp size={20} strokeWidth={3}/></div>
             <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-400">Net Revenue</p>
           </div>
           <div className="mt-4">
-            <p className="text-4xl font-black text-[#3b2063] tracking-tighter tabular-nums leading-none">{fmt(stats?.total_sales_today ?? 0)}</p>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-500 mt-2">Active Shift Data</p>
+            {isLoading ? <div className="h-8 w-32 bg-zinc-50 animate-pulse rounded-none" /> : (
+              <>
+                <p className="text-4xl font-black text-[#3b2063] tracking-tighter tabular-nums leading-none">{fmt(stats?.total_sales_today ?? 0)}</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-500 mt-2">Active Shift Data</p>
+              </>
+            )}
           </div>
         </div>
 
+        {/* TRANSACTIONS - White Card */}
         <div className="col-span-12 md:col-span-6 lg:col-span-3 bg-white border border-zinc-200 rounded-none p-6 flex flex-col justify-between min-h-[160px]">
           <div className="flex items-center gap-4">
             <div className="p-2.5 bg-[#f8f6ff] text-[#3b2063] border border-zinc-100 rounded-none"><ShoppingCart size={20} strokeWidth={3}/></div>
             <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-400">Transactions</p>
           </div>
-          <p className="text-7xl font-black text-[#3b2063] tracking-tighter leading-none tabular-nums mt-4">{stats?.total_orders_today ?? 0}</p>
+          {isLoading ? <div className="h-16 w-16 bg-zinc-50 animate-pulse rounded-none mt-4" /> : (
+            <p className="text-7xl font-black text-[#3b2063] tracking-tighter leading-none tabular-nums mt-4">{stats?.total_orders_today ?? 0}</p>
+          )}
         </div>
       </div>
 
+      {/* STRIP METRICS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <MetricStrip icon={<ArrowUpCircle size={18} className="text-emerald-500"/>} label="Begin Cash" value={fmt(stats?.cash_in_today ?? 0)} isLoading={isLoading} />
           <MetricStrip icon={<ArrowDownCircle size={18} className="text-zinc-400"/>} label="Cash Out" value={fmt(stats?.cash_out_today ?? 0)} isLoading={isLoading} />
           <MetricStrip icon={<AlertCircle size={18} className="text-red-500"/>} label="Voided" value={fmt(stats?.voided_sales_today ?? 0)} color="text-red-600" isLoading={isLoading} />
       </div>
 
+      {/* TOP SELLERS SPLIT */}
       <div className="grid grid-cols-12 gap-3 flex-1">
         <div className="col-span-12 lg:col-span-6 bg-white border border-zinc-200 rounded-none p-8 flex flex-col gap-6 shadow-sm">
           <div className="flex items-center gap-4 border-b border-zinc-50 pb-4">
@@ -237,7 +269,7 @@ const MetricStrip = ({ icon, label, value, color = "text-[#3b2063]", isLoading }
     <div className="bg-white border border-zinc-200 rounded-none p-5 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-4">{icon}<p className="text-[11px] font-black uppercase tracking-[0.4em] text-zinc-400">{label}</p></div>
         {isLoading 
-            ? <div className="h-4 w-24 animate-pulse bg-zinc-50" /> 
+            ? <div className="h-4 w-24 animate-pulse bg-zinc-50 rounded-none" /> 
             : <p className={`text-lg font-black tracking-widest tabular-nums ${color}`}>{value}</p>
         }
     </div>
