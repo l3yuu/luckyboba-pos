@@ -7,22 +7,80 @@ use App\Http\Controllers\Api\{
     MenuController, MenuListController, PurchaseOrderController, ReceiptController,
     ReportController, SalesController, SalesDashboardController, SettingsController,
     SubCategoryController, UploadController, VoucherController, BranchController,
-    CacheController,    AddOnController
+    CacheController, AddOnController
 };
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\UserController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 /*
 |--------------------------------------------------------------------------
-| Public API Routes
+| Mobile App & Public API Routes
 |--------------------------------------------------------------------------
 */
-Route::post('/login', [AuthenticatedSessionController::class, 'store'])
-    ->middleware('throttle:5,2');
-Route::get('/users', function () { return User::all(); });
+
+// 1. Public Menu (Allows Flutter to fetch Boba drinks from MariaDB)
+Route::get('/public-menu', function () {
+    $items = DB::table('menu_items')
+        ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
+        ->select(
+            'menu_items.id',
+            'menu_items.name',
+            'menu_items.barcode',
+            'menu_items.quantity', // Added from your DB screenshot
+            'categories.name as category',
+            'menu_items.price as sellingPrice'
+        )
+        // REMOVED: ->where('status', 'active') because the column doesn't exist!
+        ->get();
+
+    return response()->json($items);
+});
+// 2. Mobile Login (Returns Sanctum Token for Flutter)
+Route::post('/login', function (Request $request) {
+    $request->validate([
+        'email' => 'required|email',
+        'password' => 'required',
+    ]);
+
+    $user = User::where('email', $request->email)->first();
+
+    if (! $user || ! Hash::check($request->password, $user->password)) {
+        return response()->json(['message' => 'Invalid credentials'], 401);
+    }
+
+    $token = $user->createToken('lucky-boba-token')->plainTextToken;
+
+    return response()->json([
+        'token' => $token,
+        'user' => $user
+    ]);
+});
+
+// 3. Mobile Signup (Adds new customer to MariaDB)
+Route::post('/register', function (Request $request) {
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'email' => 'required|string|email|max:255|unique:users',
+        'password' => 'required|string|min:8',
+    ]);
+
+    $user = User::create([
+        'name' => $request->name,
+        'email' => $request->email,
+        'password' => Hash::make($request->password),
+        'role' => 'customer', 
+    ]);
+
+    $token = $user->createToken('lucky-boba-token')->plainTextToken;
+
+    return response()->json(['token' => $token, 'user' => $user], 201);
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -31,14 +89,14 @@ Route::get('/users', function () { return User::all(); });
 */
 Route::middleware(['auth:sanctum'])->group(function () {
 
-    // ── 1. SYSTEM CORE & DASHBOARD ───────────────────────────────────────────
+    // --- 1. SYSTEM CORE & DASHBOARD ---
     Route::get('/dashboard/stats', [DashboardController::class, 'index']);
     Route::get('/user',            fn (Request $request) => $request->user());
     Route::post('/logout',         [AuthenticatedSessionController::class, 'destroy']);
     Route::get('/app-init',        [DashboardController::class, 'init']);
     Route::get('/sales-analytics', [SalesDashboardController::class, 'index']);
 
-    // ── 2. SALES & TRANSACTIONS (POS) ────────────────────────────────────────
+    // --- 2. SALES & TRANSACTIONS (POS) ---
     Route::prefix('sales')->group(function () {
         Route::get('/',           [SalesController::class, 'index']);
         Route::post('/',          [SalesController::class, 'store']);
@@ -50,37 +108,28 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/',        [CashTransactionController::class, 'index']);
         Route::post('/',       [CashTransactionController::class, 'store']);
         Route::get('/status',  [CashCountController::class, 'checkInitialCash']);
-        Route::get('/status', [CashCountController::class, 'checkInitialCash']);
-        Route::get('/', [CashTransactionController::class, 'index']);
-        Route::post('/', [CashTransactionController::class, 'store']);
     });
 
     Route::get('/receipts/search', [ReceiptController::class, 'search']);
     Route::get('/receipts/next-sequence', [ReceiptController::class, 'getNextSequence']);
 
-    // ── 3. END OF DAY (EOD) ──────────────────────────────────────────────────
+    // --- 3. END OF DAY (EOD) ---
     Route::prefix('cash-counts')->group(function () {
         Route::post('/',       [CashCountController::class, 'store']);
         Route::get('/status',  [CashCountController::class, 'checkEodStatus']);
         Route::get('/summary', [ReportController::class, 'getCashCountSummary']);
     });
 
-    // ── 4. CATALOG & MENU ───────────────────────────────────────────────────
+    // --- 4. CATALOG & MENU ---
     Route::get('/menu',               [MenuController::class, 'index']);
     Route::post('/menu/clear-cache',  [MenuController::class, 'clearCache']);
     Route::apiResource('menu-list',   MenuListController::class)->only(['index', 'store']);
+    Route::get('/add-ons',            [AddOnController::class, 'index']);
     Route::apiResource('categories',  CategoryController::class);
-    // --- 4. CATALOG & MENU MANAGEMENT ---
-    Route::get('/menu', [MenuController::class, 'index']);
-    Route::post('/menu/clear-cache', [MenuController::class, 'clearCache']);
-    Route::apiResource('menu-list', MenuListController::class)->only(['index', 'store']);
-    Route::get('/add-ons', [AddOnController::class, 'index']);
-
-    Route::apiResource('categories', CategoryController::class);
     Route::apiResource('sub-categories', SubCategoryController::class);
     Route::get('/sub-categories/filter/{categoryId}', [SubCategoryController::class, 'getByCategory']);
 
-    // ── 5. INVENTORY & PROCUREMENT ──────────────────────────────────────────
+    // --- 5. INVENTORY & PROCUREMENT ---
     Route::prefix('inventory')->group(function () {
         Route::get('/',                  [InventoryController::class, 'index']);
         Route::post('/',                 [InventoryController::class, 'store']);
@@ -102,13 +151,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::patch('/{id}/status',[ItemSerialController::class, 'updateStatus']);
     });
 
-    // ── 6. EXPENSES, DISCOUNTS & VOUCHERS ───────────────────────────────────
+    // --- 6. EXPENSES, DISCOUNTS & VOUCHERS ---
     Route::apiResource('expenses',  ExpenseController::class)->only(['index', 'store']);
     Route::apiResource('discounts', DiscountController::class)->except(['show', 'update']);
     Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
     Route::apiResource('vouchers',  VoucherController::class)->only(['index', 'store']);
 
-    // ── 7. ANALYTICS & REPORTS ──────────────────────────────────────────────
+    // --- 7. ANALYTICS & REPORTS ---
     Route::prefix('reports')->group(function () {
         Route::get('/x-reading',         [SalesDashboardController::class, 'xReading']);
         Route::get('/z-reading',         [SalesDashboardController::class, 'zReading']);
@@ -124,10 +173,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/export-items',      [ReportController::class, 'exportItems']);
         Route::get('/sales-summary',     [ReportController::class, 'getSalesSummary']);
         Route::get('/sales-detailed',    [ReportController::class, 'getSalesDetailed']);
-        Route::get('/dashboard-data', [SalesDashboardController::class, 'dashboardData']);
+        Route::get('/dashboard-data',    [SalesDashboardController::class, 'dashboardData']);
     });
 
-    // ── 8. SETTINGS & MAINTENANCE ───────────────────────────────────────────
+    // --- 8. SETTINGS & MAINTENANCE ---
     Route::prefix('system')->group(function () {
         Route::get('/audit',              [SettingsController::class, 'getAuditLogs']);
         Route::get('/backup-status',      [BackupController::class, 'lastBackupStatus']);
@@ -140,7 +189,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/settings',  [SettingsController::class, 'index']);
     Route::post('/settings', [SettingsController::class, 'update']);
 
-    // ── 9. USERS (SuperAdmin) ────────────────────────────────────────────────
+    // --- 9. USERS (SuperAdmin) ---
     Route::prefix('users')->group(function () {
         Route::get('/',                    [UserController::class, 'index']);
         Route::post('/',                   [UserController::class, 'store']);
@@ -151,26 +200,24 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::patch('/{id}/toggle-status',[UserController::class, 'toggleStatus']);
     });
 
-    // ── 10. BRANCHES (SuperAdmin) ────────────────────────────────────────────
-    // NOTE: Static routes MUST come before /{id} wildcard routes
-Route::prefix('branches')->group(function () {
-    Route::get('/performance',              [BranchController::class, 'performance']);
-    Route::get('/today-sales',              [BranchController::class, 'todaySales']);
-    Route::get('/',                         [BranchController::class, 'index']);
-    Route::post('/',                        [BranchController::class, 'store']);
-    Route::get('/{id}/daily-sales',         [BranchController::class, 'dailySales']);
-    Route::get('/{id}/sales-summary',       [BranchController::class, 'salesSummary']);
-    Route::get('/{id}/analytics',           [BranchController::class, 'analytics']); // ← here
-    Route::get('/{id}',                     [BranchController::class, 'show']);
-    Route::put('/{id}',                     [BranchController::class, 'update']);
-    Route::delete('/{id}',                  [BranchController::class, 'destroy']);
-    Route::post('/{id}/refresh-totals',     [BranchController::class, 'refreshTotals']);
-});
+    // --- 10. BRANCHES ---
+    Route::prefix('branches')->group(function () {
+        Route::get('/performance',              [BranchController::class, 'performance']);
+        Route::get('/today-sales',              [BranchController::class, 'todaySales']);
+        Route::get('/',                         [BranchController::class, 'index']);
+        Route::post('/',                        [BranchController::class, 'store']);
+        Route::get('/{id}/daily-sales',         [BranchController::class, 'dailySales']);
+        Route::get('/{id}/sales-summary',       [BranchController::class, 'salesSummary']);
+        Route::get('/{id}/analytics',           [BranchController::class, 'analytics']);
+        Route::get('/{id}',                     [BranchController::class, 'show']);
+        Route::put('/{id}',                     [BranchController::class, 'update']);
+        Route::delete('/{id}',                  [BranchController::class, 'destroy']);
+        Route::post('/{id}/refresh-totals',     [BranchController::class, 'refreshTotals']);
+    });
 
-    // ── 11. CACHE ────────────────────────────────────────────────────────────
+    // --- 11. CACHE ---
     Route::prefix('cache')->group(function () {
         Route::get('/all',    [CacheController::class, 'index']);
         Route::post('/clear', [CacheController::class, 'clear']);
     });
-
 });

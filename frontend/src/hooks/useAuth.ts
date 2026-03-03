@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { LoginCredentials } from '../types/user';
 import axios from 'axios';
 import api from '../services/api';
@@ -19,8 +19,15 @@ const AUTH_KEYS = [
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_DURATION = 2 * 60 * 1000; // 2 minutes in ms
 
+// Module-level singleton — shared across ALL hook instances
+// Prevents multiple components from each firing checkAuth() independently
+let authInitialized = false;
+let authPromise: Promise<User | null> | null = null;
+
 export const useAuth = () => {
-  const [isLoading, setIsLoading] = useState<boolean>(() => !localStorage.getItem('lucky_boba_token'));
+  const [isLoading, setIsLoading] = useState<boolean>(
+    () => !localStorage.getItem('lucky_boba_token')
+  );
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(() => {
     const token = localStorage.getItem('lucky_boba_token');
@@ -49,7 +56,6 @@ export const useAuth = () => {
       const response = await api.get('/user');
       const userData = response.data;
 
-      // Sync localStorage if user name changed on backend
       localStorage.setItem('lucky_boba_user_name', userData.name);
       localStorage.setItem('lucky_boba_user_role', userData.role || 'cashier');
 
@@ -63,27 +69,43 @@ export const useAuth = () => {
     }
   }, [clearSession]);
 
+  const interceptorRef = useRef<number | null>(null);
+
   useEffect(() => {
-    const interceptor = api.interceptors.response.use(
+    interceptorRef.current = api.interceptors.response.use(
       (response) => response,
       (error) => {
         if (error.response?.status === 401) {
           clearSession();
         }
-        // Suppress unhandled network errors from polluting the console
         return Promise.reject(error);
       }
     );
 
-    checkAuth();
+    if (!authInitialized) {
+      // First mount: run checkAuth and cache the promise
+      authInitialized = true;
+      authPromise = checkAuth();
+    } else if (authPromise) {
+      // Subsequent mounts: piggyback on the in-flight or resolved promise
+      authPromise.then((resolvedUser) => {
+        setUser(resolvedUser);
+        setIsLoading(false);
+      });
+    } else {
+      // No token was present on first mount — nothing to do
+      setIsLoading(false);
+    }
 
     return () => {
-      api.interceptors.response.eject(interceptor);
+      if (interceptorRef.current !== null) {
+        api.interceptors.response.eject(interceptorRef.current);
+      }
     };
-  }, [checkAuth, clearSession]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const login = async (credentials: LoginCredentials): Promise<User | null> => {
-    // Check for client-side rate limiting
     const lockoutEnd = localStorage.getItem('login_lockout_end');
     if (lockoutEnd) {
       const remaining = parseInt(lockoutEnd) - Date.now();
@@ -106,7 +128,6 @@ export const useAuth = () => {
 
       const { token, user: userData } = response.data;
 
-      // PERSIST AUTH DATA
       localStorage.setItem('lucky_boba_token', token);
       localStorage.setItem('lucky_boba_authenticated', 'true');
       localStorage.setItem('lucky_boba_user_name', userData.name);
@@ -119,7 +140,6 @@ export const useAuth = () => {
       setIsLoading(false);
       return userData;
     } catch (err: unknown) {
-      // Handle failed attempts safely
       const attempts = parseInt(localStorage.getItem('login_attempts') || '0') + 1;
       localStorage.setItem('login_attempts', attempts.toString());
 
@@ -154,6 +174,10 @@ export const useAuth = () => {
   };
 
   const logout = async (): Promise<boolean> => {
+    // Reset singleton so checkAuth fires again after next login
+    authInitialized = false;
+    authPromise = null;
+
     try {
       await api.post('/logout');
       return true;
