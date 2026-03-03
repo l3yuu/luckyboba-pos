@@ -157,11 +157,32 @@ const SalesOrder = () => {
 
     const getFilteredItems = (items: MenuItem[]): MenuItem[] => {
         if (!categorySize || isWings) return items;
+        const cupSizeM = selectedCategory?.cup?.size_m || 'M';
+        const cupSizeL = selectedCategory?.cup?.size_l || 'L';
+        if (categorySize === cupSizeM) return items.filter(item => item.size === 'M' || item.size === 'none');
+        if (categorySize === cupSizeL) return items.filter(item => item.size === 'L' || item.size === 'none');
+        return items;
+    };
+
+    const handleItemClick = (item: MenuItem) => {
+        setSelectedItem(item);
+        setQty(1);
+        setRemarks('');
+        setSugarLevel('100%');
+        if (item.size === 'M' || item.size === 'L') setSize(item.size);
+        else {
+            const cupSizeL = selectedCategory?.cup?.size_l || 'L';
+            setSize(categorySize === cupSizeL ? 'L' : 'M');
+        }
+        setSelectedOptions([]);
+        setSelectedAddOns([]);
+        setIsAddOnModalOpen(false);
     };
 
     const closeModal = () => { setSelectedItem(null); setIsAddOnModalOpen(false); };
     const adjustQty = (delta: number) => setQty(prev => Math.max(1, prev + delta));
 
+    const toggleOrderCharge = (type: 'grab' | 'panda') => {
         const next = orderCharge === type ? null : type;
         setOrderCharge(next);
         setCart(prevCart => prevCart.map(item => {
