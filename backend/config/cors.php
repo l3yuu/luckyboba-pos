@@ -15,6 +15,7 @@ return [
     'allowed_origins' => [
         'http://localhost:5173',          // Keep for local development
         'https://luckybobastores.com',    // Main Production Domain
+        'https://staging.luckybobastores.com', // Staging Domain
         'https://www.luckybobastores.com', // WWW Version
     ],
 
