@@ -68,6 +68,7 @@ export const useAuth = () => {
                 if (error.response?.status === 401) {
                     clearSession();
                 }
+                // Suppress unhandled network errors from polluting the console
                 return Promise.reject(error);
             }
         );
@@ -132,9 +133,17 @@ export const useAuth = () => {
             
             // Update error mapping to catch our custom Error thrown above
             if (axios.isAxiosError(err)) {
-                setError(err.response?.data?.message || 'Invalid credentials.');
+                if (!err.response) {
+                    setError('Unable to connect. Please try again later.');
+                } else {
+                    setError(err.response.data?.message || 'Invalid credentials.');
+                }
             } else if (err instanceof Error) {
-                setError(err.message); // This displays the Laravel error cleanly
+                if (err.message === 'network_error') {
+                    setError('Unable to connect. Please try again later.');
+                } else {
+                    setError(err.message);
+                }
             } else {
                 setError('An unexpected error occurred');
             }

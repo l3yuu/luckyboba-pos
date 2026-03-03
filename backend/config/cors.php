@@ -13,9 +13,9 @@ return [
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
-        'http://localhost:5173',
-        'http://localhost:3000',
-        'https://luckyboba-pos.vercel.app', 
+        'http://localhost:5173',          // Keep for local development
+        'https://luckybobastores.com',    // Main Production Domain
+        'https://www.luckybobastores.com', // WWW Version
     ],
 
     'allowed_origins_patterns' => [],

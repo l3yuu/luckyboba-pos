@@ -3,18 +3,25 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import SalesOrder from './pages/SalesOrder'; 
 import { ProtectedRoute } from './components/ProtectedRoute'; 
-import { ErrorFallback } from './components/ErrorFallback'; // Import your custom fallback
+import { PublicRoute } from './components/PublicRoute'; // Import the new guard
+import { ErrorFallback } from './components/ErrorFallback';
 
 export const router = createBrowserRouter([
   {
-    path: '/login',
-    element: <Login />,
-    errorElement: <ErrorFallback />, // Catches errors during login
+    // Wrap Login in PublicRoute
+    element: <PublicRoute />,
+    errorElement: <ErrorFallback />,
+    children: [
+      {
+        path: '/login',
+        element: <Login />,
+      }
+    ]
   },
   {
-    // The Guard: Wraps both Dashboard and POS so they are secure
+    // Existing Protected Routes
     element: <ProtectedRoute />,
-    errorElement: <ErrorFallback />, // Catches errors inside protected routes
+    errorElement: <ErrorFallback />,
     children: [
       {
         path: '/dashboard',
@@ -31,8 +38,6 @@ export const router = createBrowserRouter([
     element: <Navigate to="/dashboard" replace />,
   },
   {
-    // Catch-all route for any undefined paths (404)
-    // This ensures that if a user types a wrong URL, they see your branded error page
     path: '*',
     element: <ErrorFallback />,
   },
