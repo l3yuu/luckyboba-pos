@@ -243,8 +243,8 @@ class MenuSeeder extends Seeder
             ],
 
             'FP COFFEE BUNDLES' => [
-                ['name' => "TOF.CARAMEL ICED COFFEE(L) + DK ROAST COFFEE", 'price' => 154.00, 'barcode' => "COF1", 'size' => 'none'],
-                ['name' => "VANILLA ICED COFFEE + J.CHIP COFEE FRP",       'price' => 250.00, 'barcode' => "COF2", 'size' => 'none'],
+                ['name' => "TOF.CARAMEL ICED COFFEE + DK ROAST COFFEE", 'price' => 154.00, 'barcode' => "COF1", 'size' => 'L'],
+                ['name' => "VANILLA ICED COFFEE + J.CHIP COFEE FRP",       'price' => 250.00, 'barcode' => "COF2", 'size' => 'L'],
             ],
 
             'FRAPPE SERIES' => [
@@ -274,27 +274,27 @@ class MenuSeeder extends Seeder
             ],
 
             'FRUIT SODA SERIES' => [
-                ['name' => "BLUEBERRY FRUIT SODA (L)",   'price' => 125.00, 'barcode' => "FS1", 'size' => 'L'],
-                ['name' => "BERRIES FRUIT SODA (L)",     'price' => 125.00, 'barcode' => "FS2", 'size' => 'L'],
-                ['name' => "LYCHEE FRUIT SODA (L)",      'price' => 125.00, 'barcode' => "FS3", 'size' => 'L'],
-                ['name' => "LEMON FRUIT SODA (L)",       'price' => 125.00, 'barcode' => "FS4", 'size' => 'L'],
-                ['name' => "GREEN APPLE FRUIT SODA (L)", 'price' => 125.00, 'barcode' => "FS5", 'size' => 'L'],
-                ['name' => "STRAWBERRY FRUIT SODA (L)",  'price' => 125.00, 'barcode' => "FS6", 'size' => 'L'],
-                ['name' => "PASSION FRUIT SODA (L)",     'price' => 125.00, 'barcode' => "FS7", 'size' => 'L'],
+                ['name' => "BLUEBERRY FRUIT SODA",   'price' => 125.00, 'barcode' => "FS1", 'size' => 'L'],
+                ['name' => "BERRIES FRUIT SODA",     'price' => 125.00, 'barcode' => "FS2", 'size' => 'L'],
+                ['name' => "LYCHEE FRUIT SODA",      'price' => 125.00, 'barcode' => "FS3", 'size' => 'L'],
+                ['name' => "LEMON FRUIT SODA",       'price' => 125.00, 'barcode' => "FS4", 'size' => 'L'],
+                ['name' => "GREEN APPLE FRUIT SODA", 'price' => 125.00, 'barcode' => "FS5", 'size' => 'L'],
+                ['name' => "STRAWBERRY FRUIT SODA",  'price' => 125.00, 'barcode' => "FS6", 'size' => 'L'],
+                ['name' => "PASSION FRUIT SODA",     'price' => 125.00, 'barcode' => "FS7", 'size' => 'L'],
             ],
 
             'GF DUO BUNDLES' => [
-                ['name' => "SWEETY -L (WMELON M.TEA + DARK CHOCOLATE RSC)",                    'price' => 245.00, 'barcode' => "GF1", 'size' => 'L'],
-                ['name' => "CHEESY PARTNER -L (HERSHEY'S CHOCO CRMCHEESE + CL C.CAKE MTEA)",  'price' => 270.00, 'barcode' => "GF2", 'size' => 'L'],
-                ['name' => "PERFECT MATCH -L (WMELON RSC + CL PEARL MILK TEA",                'price' => 240.00, 'barcode' => "GF3", 'size' => 'L'],
-                ['name' => "COUPLE'S CHOICE -L (BELGIAN CHOCO CRM. CHEESE + CL PEARL M.TEA", 'price' => 240.00, 'barcode' => "GF4", 'size' => 'L'],
+                ['name' => "SWEETY (WMELON M.TEA + DARK CHOCOLATE RSC)",                    'price' => 245.00, 'barcode' => "GF1", 'size' => 'L'],
+                ['name' => "CHEESY PARTNER (HERSHEY'S CHOCO CRMCHEESE + CL C.CAKE MTEA)",  'price' => 270.00, 'barcode' => "GF2", 'size' => 'L'],
+                ['name' => "PERFECT MATCH (WMELON RSC + CL PEARL MILK TEA",                'price' => 240.00, 'barcode' => "GF3", 'size' => 'L'],
+                ['name' => "COUPLE'S CHOICE (BELGIAN CHOCO CRM. CHEESE + CL PEARL M.TEA", 'price' => 240.00, 'barcode' => "GF4", 'size' => 'L'],
             ],
 
             'FP/GF FET2 CLASSIC' => [
-                ['name' => "2 CL PEARL M.TEA",   'price' => 210.00, 'barcode' => "2M",  'size' => 'none'],
-                ['name' => "2 CL BUDDY",         'price' => 210.00, 'barcode' => "1M",  'size' => 'none'],
-                ['name' => "2 CL PUDDING M.TEA", 'price' => 230.00, 'barcode' => "GC3", 'size' => 'none'],
-                ['name' => "2 CLASSICS RSC",     'price' => 270.00, 'barcode' => "GC2", 'size' => 'none'],
+                ['name' => "2 CL PEARL M.TEA",   'price' => 210.00, 'barcode' => "2M",  'size' => 'L'],
+                ['name' => "2 CL BUDDY",         'price' => 210.00, 'barcode' => "1M",  'size' => 'L'],
+                ['name' => "2 CL PUDDING M.TEA", 'price' => 230.00, 'barcode' => "GC3", 'size' => 'L'],
+                ['name' => "2 CLASSICS RSC",     'price' => 270.00, 'barcode' => "GC2", 'size' => 'L'],
             ],
 
             'GRAND OPENING PROMO' => [
@@ -355,11 +355,11 @@ class MenuSeeder extends Seeder
             ],
 
             'NOVA SERIES' => [
-                ['name' => "LYCHEE LEM NOVA (L)",  'price' => 125.00, 'barcode' => "NS1", 'size' => 'L'],
-                ['name' => "BERRIES NOVA (L)",     'price' => 125.00, 'barcode' => "NS2", 'size' => 'L'],
-                ['name' => "MANGO LEMON NOVA (L)", 'price' => 125.00, 'barcode' => "NS3", 'size' => 'L'],
-                ['name' => "STRAWBERRY NOVA (L)",  'price' => 125.00, 'barcode' => "NS4", 'size' => 'L'],
-                ['name' => "GREEN APPLE NOVA (L)", 'price' => 125.00, 'barcode' => "NS5", 'size' => 'L'],
+                ['name' => "LYCHEE LEM NOVA",  'price' => 125.00, 'barcode' => "NS1", 'size' => 'L'],
+                ['name' => "BERRIES NOVA",     'price' => 125.00, 'barcode' => "NS2", 'size' => 'L'],
+                ['name' => "MANGO LEMON NOVA", 'price' => 125.00, 'barcode' => "NS3", 'size' => 'L'],
+                ['name' => "STRAWBERRY NOVA",  'price' => 125.00, 'barcode' => "NS4", 'size' => 'L'],
+                ['name' => "GREEN APPLE NOVA", 'price' => 125.00, 'barcode' => "NS5", 'size' => 'L'],
             ],
 
             'OKINAWA BROWN SUGAR' => [
@@ -386,9 +386,9 @@ class MenuSeeder extends Seeder
             ],
 
             'PUMPKIN SPICE' => [
-                ['name' => "PS MILK TEA (L)",      'price' => 145.00, 'barcode' => "PO1", 'size' => 'L'],
-                ['name' => "PS ICED COFFEE (L)",   'price' => 165.00, 'barcode' => "PO4", 'size' => 'L'],
-                ['name' => "PS COFFEE FRAPPE (L)", 'price' => 195.00, 'barcode' => "PO5", 'size' => 'L'],
+                ['name' => "PS MILK TEA",      'price' => 145.00, 'barcode' => "PO1", 'size' => 'L'],
+                ['name' => "PS ICED COFFEE",   'price' => 165.00, 'barcode' => "PO4", 'size' => 'L'],
+                ['name' => "PS COFFEE FRAPPE", 'price' => 195.00, 'barcode' => "PO5", 'size' => 'L'],
             ],
 
             'ROCK SALT & CHEESE' => [
