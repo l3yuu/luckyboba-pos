@@ -13,9 +13,7 @@ import {
   CheckCircle2, 
   Lock, 
   AlertTriangle, 
-  MessageSquare, 
-  History, 
-  Monitor, 
+  MessageSquare,  
   RefreshCw,
   X
 } from 'lucide-react';
