@@ -71,10 +71,27 @@ const SalesOrder = () => {
     const [selectedAddOns, setSelectedAddOns] = useState<string[]>([]);
     const [cart, setCart] = useState<CartItem[]>([]);
     const [addOnsData, setAddOnsData] = useState<{ id: number; name: string; price: number }[]>([]);
+    const [pax, setPax] = useState({ regular: 1, senior: 0, pwd: 0, diplomat: 0 });
+    const [discountIDs, setDiscountIDs] = useState({ senior: '', pwd: '', diplomat: '' });
+    const [discountRemarks, setDiscountRemarks] = useState('');
+    const [activeTab, setActiveTab] = useState<'payment' | 'discount' | 'pax'>('payment');
     
     // Updated type safety for discounts
     const [discounts, setDiscounts] = useState<Discount[]>([]);
     const [selectedDiscount, setSelectedDiscount] = useState<Discount | null>(null);
+
+    // REPLACE with this — derives count directly from cart state:
+    useEffect(() => {
+        const count = cart.reduce((acc, item) => acc + item.qty, 0);
+        setPax(prev => {
+            const specialPax = prev.senior + prev.pwd + prev.diplomat;
+            // Always keep regular = totalCount - specialPax, floored at 0
+            return {
+                ...prev,
+                regular: Math.max(0, count - specialPax),
+            };
+        });
+    }, [cart]);
 
     useEffect(() => {
         const fetchDiscounts = async () => {
@@ -151,13 +168,50 @@ const SalesOrder = () => {
     const totalCount = cart.reduce((acc, item) => acc + item.qty, 0);
     const hasStickers = cart.some(item => item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L');
 
-    const discountAmount = selectedDiscount 
-        ? (selectedDiscount.type.includes('Percent') 
-            ? (subtotal * (Number(selectedDiscount.amount) / 100)) 
-            : Number(selectedDiscount.amount))
-        : 0;
+    const handleAddPax = (type: keyof typeof pax) => {
+        const currentTotalPax = pax.regular + pax.senior + pax.pwd + pax.diplomat;
+        
+        if (currentTotalPax < totalCount) {
+            // If somehow below limit, just add
+            setPax(prev => ({ ...prev, [type]: prev[type] + 1 }));
+        } else if (type !== 'regular' && pax.regular > 0) {
+            // Auto-balance: If at limit, reduce Regular to make room for special pax
+            setPax(prev => ({ ...prev, regular: prev.regular - 1, [type]: prev[type] + 1 }));
+        } else {
+            showToast(`Total Pax cannot exceed total items (${totalCount}).`, 'warning');
+        }
+    };
 
-    const amtDue = Math.max(0, subtotal - discountAmount); 
+    const handleSubPax = (type: keyof typeof pax) => {
+        if (pax[type] > 0) {
+            if (type !== 'regular') {
+                // If removing a special pax, give it back to regular to maintain balance
+                setPax(prev => ({ ...prev, regular: prev.regular + 1, [type]: prev[type] - 1 }));
+            } else {
+                // Warning if they try to drop below total count without balancing
+                showToast(`Total Pax must equal ${totalCount}`, 'warning');
+            }
+        }
+    };
+
+    const totalPax = pax.regular + pax.senior + pax.pwd + pax.diplomat;
+    const sharePerPax = subtotal / (totalPax || 1);
+
+    // Calculate standard 20% discount for Senior/PWD (VAT exempt logic usually applies here too)
+    const seniorPwdDiscount = (pax.senior + pax.pwd) * (sharePerPax * 0.20);
+    // Diplomats are usually 100% VAT exempt or specific % depending on local law
+    const diplomatDiscount = pax.diplomat * (sharePerPax * 0.20);
+
+    // Global Promo Discount (from your dropdown)
+    const promoDiscount = selectedDiscount 
+    ? (selectedDiscount.type.includes('Percent') 
+        ? (subtotal * (Number(selectedDiscount.amount) / 100)) 
+        : Number(selectedDiscount.amount))
+    : 0;
+
+    const discountAmount = seniorPwdDiscount + diplomatDiscount + promoDiscount;
+
+    const amtDue = Math.max(0, subtotal - discountAmount);
     const vatableSales = amtDue / 1.12;
     const vatAmount = amtDue - vatableSales;
     const change = typeof cashTendered === 'number' ? Math.max(0, cashTendered - amtDue) : 0;
@@ -296,7 +350,7 @@ const SalesOrder = () => {
         showToast(`${itemToRemove.name} removed from order`, 'warning');
     };
 
-    const handleConfirmOrder = async () => {
+const handleConfirmOrder = async () => {
         if (cart.length === 0) return;
         setSubmitting(true);
         try {
@@ -322,6 +376,19 @@ const SalesOrder = () => {
                 cashier_name: cashierName ?? 'Admin',
                 payment_method: paymentMethod, 
                 reference_number: referenceNumber || null,
+                
+                // --- NEW DATA INCLUDED HERE ---
+                pax_regular: pax.regular,
+                pax_senior: pax.senior,
+                pax_pwd: pax.pwd,
+                pax_diplomat: pax.diplomat,
+                senior_id: discountIDs.senior || null,
+                pwd_id: discountIDs.pwd || null,
+                diplomat_id: discountIDs.diplomat || null,
+                discount_remarks: discountRemarks || null,
+                vatable_sales: vatableSales,
+                vat_amount: vatAmount
+                // ------------------------------
             };
 
             await api.post('/sales', orderData);
@@ -610,23 +677,38 @@ const SalesOrder = () => {
                 </div>
             )}
 
-            {/* MODAL: CONFIRM ORDER & PAYMENT */}
+{/* MODAL: CONFIRM ORDER & PAYMENT */}
             {isConfirmModalOpen && (
                 <div className="fixed inset-0 z-120 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-white w-full max-w-5xl rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden max-h-[95vh]">
-                        <div className="bg-[#3b2063] p-5 text-white text-center shrink-0">
-                            <h2 className="text-xl font-black uppercase tracking-widest">Payment Details</h2>
-                            <p className="text-white/60 text-xs mt-1 uppercase">{cashierName ?? 'Admin'}</p>
+                    <div className="bg-white w-full max-w-6xl rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden max-h-[95vh]">
+                        
+                        {/* Header */}
+                        <div className="bg-[#3b2063] p-5 text-white text-center shrink-0 shadow-sm z-10 flex justify-between items-center relative">
+                            <div className="w-1/3"></div> {/* Spacer */}
+                            <div className="w-1/3">
+                                <h2 className="text-xl font-black uppercase tracking-widest">Payment Details</h2>
+                                <p className="text-white/60 text-xs mt-1 uppercase">Cashier: {cashierName ?? 'Admin'}</p>
+                            </div>
+                            <div className="w-1/3 text-right">
+                                <button onClick={() => setIsConfirmModalOpen(false)} className="text-white/50 hover:text-white transition-colors">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6 ml-auto"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                                </button>
+                            </div>
                         </div>
-                        <div className="flex flex-col md:flex-row flex-1 min-h-[50vh] max-h-[80vh] overflow-hidden">
+                        
+                        <div className="flex flex-col md:flex-row flex-1 min-h-[50vh] max-h-[85vh] overflow-hidden bg-zinc-50">
+                            
+                            {/* ========================================== */}
+                            {/* LEFT COLUMN: CART ITEMS & ORDER SUMMARY    */}
+                            {/* ========================================== */}
                             <div className="flex-1 flex flex-col bg-white border-r border-zinc-200 overflow-hidden">
-                                {/* CART ITEMS LIST - Occupies maximum available space */}
-                                <div className="flex-1 p-6 overflow-y-auto border-b border-zinc-200">
+                                {/* CART ITEMS LIST */}
+                                <div className="flex-1 p-6 overflow-y-auto">
                                     <h3 className="font-black text-sm text-[#3b2063] uppercase mb-4 tracking-wider">Cart Items</h3>
                                     {cart.length === 0 ? <p className="text-center text-zinc-400 font-bold text-sm py-8">Cart is empty.</p> : (
                                         <div className="space-y-4">
                                             {cart.map((item, i) => (
-                                                <div key={i} className="flex justify-between items-start pb-3 border-b border-zinc-200 last:border-0">
+                                                <div key={i} className="flex justify-between items-start pb-3 border-b border-zinc-100 last:border-0 mb-2">
                                                     <div>
                                                         <p className="font-bold text-sm text-[#3b2063]">
                                                             {item.qty}x {item.name}
@@ -645,164 +727,254 @@ const SalesOrder = () => {
                                     )}
                                 </div>
 
-                                {/* UPDATED: SELECT DISCOUNT DROPDOWN */}
-                                <div className="px-6 py-4 bg-zinc-50 border-b border-zinc-200 shrink-0">
-                                    <label className="font-black text-[10px] text-zinc-400 uppercase mb-2 block tracking-widest">Applied Discount / Promo</label>
-                                    <div className="relative group">
-                                        <select
-                                            value={selectedDiscount?.id || ''}
-                                            onChange={(e) => {
-                                                const disc = discounts.find(d => d.id === Number(e.target.value));
-                                                setSelectedDiscount(disc || null);
-                                            }}
-                                            className="w-full bg-white border-2 border-zinc-200 rounded-xl px-4 py-3 font-bold text-sm text-[#3b2063] appearance-none cursor-pointer outline-none focus:border-[#3b2063] transition-all"
-                                        >
-                                            <option value="">NONE (NO DISCOUNT)</option>
-                                            {discounts.map((d) => (
-                                                <option key={d.id} value={d.id}>
-                                                    {d.name} ({d.amount}{d.type.includes('Percent') ? '%' : ' OFF'})
-                                                </option>
-                                            ))}
-                                        </select>
-                                        {/* Custom Dropdown Arrow */}
-                                        <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-zinc-400">
-                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* ORDER SUMMARY */}
-                                <div className="p-6 bg-white shrink-0">
-                                    <h3 className="font-black text-xs text-zinc-400 uppercase tracking-widest mb-3">Order Summary</h3>
-                                    <div className="space-y-1.5 text-[11px] font-bold text-zinc-600 mb-4">
+                                {/* SUMMARY */}
+                                <div className="p-6 bg-zinc-50 shrink-0 border-t border-zinc-200">
+                                    <div className="space-y-1.5 text-[11px] font-bold text-zinc-600">
                                         <div className="flex justify-between"><span>Quantity (Items)</span><span>{totalCount}</span></div>
                                         <div className="flex justify-between"><span>Sub Total</span><span>₱ {subtotal.toFixed(2)}</span></div>
                                         <div className="flex justify-between"><span>VATable Sales</span><span>₱ {vatableSales.toFixed(2)}</span></div>
                                         <div className="flex justify-between"><span>VAT Amount</span><span>₱ {vatAmount.toFixed(2)}</span></div>
-                                        
-                                        <div className="flex justify-between text-red-500 font-black bg-red-50 px-2 py-1 rounded-lg">
+                                        <div className="flex justify-between"><span>VAT Exempt Sales</span><span>₱ 0.00</span></div>
+                                        <div className="flex justify-between text-red-500 font-black">
                                             <span>Discount {selectedDiscount ? `(${selectedDiscount.name})` : ''}</span>
                                             <span>- ₱ {discountAmount.toFixed(2)}</span>
                                         </div>
-                                        
                                         <div className="flex justify-between"><span>Service Charge</span><span>₱ 0.00</span></div>
-                                    </div>
-                                    <div className="flex justify-between items-center text-[#3b2063] border-t-2 border-dashed border-zinc-100 pt-3">
-                                        <span className="font-black uppercase tracking-wider text-sm">Amt Due</span>
-                                        <span className="text-2xl font-black">₱ {amtDue.toFixed(2)}</span>
+                                        
+                                        <div className="flex justify-between items-center text-[#3b2063] border-t-2 border-zinc-200 pt-3 mt-2">
+                                            <span className="font-black uppercase text-sm">Amt Due</span>
+                                            <span className="text-2xl font-black">₱ {amtDue.toFixed(2)}</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* RIGHT COLUMN: PAYMENT METHODS */}
-                            <div className="flex-1 p-6 bg-white flex flex-col justify-between overflow-y-auto">
-                                <div>
-                                    <h3 className="font-black text-sm text-[#3b2063] uppercase mb-3 tracking-wider">Payment Method</h3>
-                                    <div className="grid grid-cols-3 gap-2 mb-5">
-                                        {([
-                                            { id: 'cash',    label: 'Cash',    icon: '💵' },
-                                            { id: 'gcash',   label: 'GCash',   icon: '📱' },
-                                            { id: 'paymaya', label: 'Maya',    icon: '💙' },
-                                            { id: 'credit',  label: 'Credit',  icon: '💳' },
-                                            { id: 'debit',   label: 'Debit',   icon: '🏦' },
-                                        ] as const).map(({ id, label, icon }) => (
-                                            <button
-                                                key={id}
-                                                onClick={() => { setPaymentMethod(id); setReferenceNumber(''); setCashTendered(''); }}
-                                                className={`py-3 rounded-xl font-black text-[11px] uppercase tracking-wider transition-all border-2 flex flex-col items-center gap-1
-                                                    ${paymentMethod === id
-                                                        ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-md'
-                                                        : 'bg-[#f0ebff] text-[#3b2063] border-[#3b2063]/20 hover:bg-[#e4dbff]'}`}
-                                            >
-                                                <span className="text-lg">{icon}</span>
-                                                {label}
-                                            </button>
-                                        ))}
-                                    </div>
-
-                                    {paymentMethod === 'cash' && (
-                                        <>
-                                            <h3 className="font-black text-sm text-[#3b2063] uppercase mb-3 tracking-wider">Cash Tendered</h3>
-                                            <div className="relative mb-4">
-                                                <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-2xl text-zinc-400">₱</span>
-                                                <input
-                                                    type="number"
-                                                    value={cashTendered}
-                                                    onChange={(e) => setCashTendered(e.target.value ? Number(e.target.value) : '')}
-                                                    className="w-full bg-white border-2 border-zinc-300 rounded-2xl py-4 pl-12 pr-4 text-3xl font-black text-[#3b2063] outline-none focus:border-[#3b2063] transition-colors"
-                                                    placeholder="0.00"
-                                                />
-                                            </div>
-                                            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
-                                                <button
-                                                    onClick={() => setCashTendered(amtDue)}
-                                                    className="col-span-2 lg:col-span-4 bg-green-100 hover:bg-green-500 hover:text-white text-green-700 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-sm border-2 border-green-200"
-                                                >
-                                                    Exact Amount (₱ {amtDue.toFixed(2)})
-                                                </button>
-                                                {[100, 200, 500, 1000].map(amount => (
-                                                    <button
-                                                        key={amount}
-                                                        onClick={() => setCashTendered(amount)}
-                                                        className="bg-[#f0ebff] hover:bg-[#3b2063] hover:text-white text-[#3b2063] py-3 rounded-xl font-black text-base transition-all border-2 border-[#3b2063]/20"
-                                                    >
-                                                        ₱ {amount}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                            <div className="flex justify-between items-center bg-white p-4 rounded-2xl border-2 border-zinc-300 mb-2">
-                                                <span className="font-black text-zinc-500 uppercase text-sm tracking-widest">Change</span>
-                                                <span className={`text-3xl font-black ${change > 0 ? 'text-green-500' : 'text-zinc-300'}`}>
-                                                    ₱ {change.toFixed(2)}
-                                                </span>
-                                            </div>
-                                        </>
-                                    )}
-
-                                    {paymentMethod !== 'cash' && (
-                                        <>
-                                            <h3 className="font-black text-sm text-[#3b2063] uppercase mb-3 tracking-wider">
-                                                {paymentMethod === 'credit' || paymentMethod === 'debit' ? 'Approval Code' : 'Reference Number'}
-                                            </h3>
-                                            <input
-                                                type="text"
-                                                value={referenceNumber}
-                                                onChange={(e) => setReferenceNumber(e.target.value)}
-                                                className="w-full bg-white border-2 border-zinc-300 rounded-2xl py-4 px-5 text-xl font-black text-[#3b2063] outline-none focus:border-[#3b2063] transition-colors mb-4 tracking-widest"
-                                                placeholder={paymentMethod === 'credit' || paymentMethod === 'debit' ? 'e.g. ABC123' : 'e.g. 1234567890'}
-                                            />
-                                            <div className="flex justify-between items-center bg-[#f0ebff] p-4 rounded-2xl border-2 border-[#3b2063]/10">
-                                                <span className="font-black text-[#3b2063]/60 uppercase text-sm tracking-widest">Amount Due</span>
-                                                <span className="text-3xl font-black text-[#3b2063]">₱ {amtDue.toFixed(2)}</span>
-                                            </div>
-                                        </>
-                                    )}
+                            {/* ========================================== */}
+                            {/* RIGHT COLUMN: TABBED INTERFACE             */}
+                            {/* ========================================== */}
+                            <div className="flex-1 flex flex-col bg-white overflow-hidden">
+                                
+                                {/* TAB NAVIGATION */}
+                                <div className="flex border-b border-zinc-200 shrink-0 bg-zinc-50 p-2 gap-2">
+                                    <button 
+                                        onClick={() => setActiveTab('payment')}
+                                        className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border-2 
+                                            ${activeTab === 'payment' ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-md' : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-300 hover:bg-zinc-100'}`}
+                                    >
+                                        Payment
+                                    </button>
+                                    <button 
+                                        onClick={() => setActiveTab('discount')}
+                                        className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border-2 relative
+                                            ${activeTab === 'discount' ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-md' : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-300 hover:bg-zinc-100'}`}
+                                    >
+                                        Promo
+                                        {selectedDiscount && <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>}
+                                    </button>
+                                    <button 
+                                        onClick={() => setActiveTab('pax')}
+                                        className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border-2 relative
+                                            ${activeTab === 'pax' ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-md' : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-300 hover:bg-zinc-100'}`}
+                                    >
+                                        Pax & ID
+                                        {(pax.senior > 0 || pax.pwd > 0 || pax.diplomat > 0) && <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>}
+                                    </button>
                                 </div>
 
-                                <div className="space-y-2 mt-4 shrink-0">
+                                <div className="flex-1 p-6 overflow-y-auto">
+                                    
+                                    {/* --- TAB CONTENT: PAYMENT --- */}
+                                    {activeTab === 'payment' && (
+                                        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                                            <div>
+                                                <h3 className="font-black text-sm text-[#3b2063] uppercase mb-3 tracking-wider">Payment Method</h3>
+                                                <div className="grid grid-cols-3 gap-2 mb-5">
+                                                    {([
+                                                        { id: 'cash',    label: 'Cash',    icon: '💵' },
+                                                        { id: 'gcash',   label: 'GCash',   icon: '📱' },
+                                                        { id: 'paymaya', label: 'Maya',    icon: '💙' },
+                                                        { id: 'credit',  label: 'Credit',  icon: '💳' },
+                                                        { id: 'debit',   label: 'Debit',   icon: '🏦' },
+                                                    ] as const).map(({ id, label, icon }) => (
+                                                        <button
+                                                            key={id}
+                                                            onClick={() => { setPaymentMethod(id); setReferenceNumber(''); setCashTendered(''); }}
+                                                            className={`py-3 rounded-xl font-black text-[11px] uppercase transition-all border-2 flex flex-col items-center gap-1
+                                                                ${paymentMethod === id ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-md' : 'bg-zinc-50 text-[#3b2063] border-zinc-200 hover:border-[#3b2063]/40'}`}
+                                                        >
+                                                            <span className="text-lg">{icon}</span>
+                                                            {label}
+                                                        </button>
+                                                    ))}
+                                                </div>
+
+                                                {paymentMethod === 'cash' ? (
+                                                    <>
+                                                        <h3 className="font-black text-[10px] text-zinc-400 tracking-widest uppercase mb-2">Cash Tendered</h3>
+                                                        <div className="relative mb-3">
+                                                            <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-2xl text-zinc-400">₱</span>
+                                                            <input
+                                                                type="number"
+                                                                value={cashTendered}
+                                                                onChange={(e) => setCashTendered(e.target.value ? Number(e.target.value) : '')}
+                                                                className="w-full bg-zinc-50 border-2 border-zinc-300 rounded-2xl py-4 pl-12 pr-4 text-3xl font-black text-[#3b2063] outline-none focus:border-[#3b2063] focus:bg-white transition-colors"
+                                                                placeholder="0.00"
+                                                            />
+                                                        </div>
+                                                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
+                                                            <button
+                                                                onClick={() => setCashTendered(amtDue)}
+                                                                className="col-span-2 lg:col-span-4 bg-green-100 hover:bg-green-500 hover:text-white text-green-700 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-sm border-2 border-green-200"
+                                                            >
+                                                                Exact Amount (₱ {amtDue.toFixed(2)})
+                                                            </button>
+                                                            {[100, 200, 500, 1000].map(amount => (
+                                                                <button
+                                                                    key={amount}
+                                                                    onClick={() => setCashTendered(amount)}
+                                                                    className="bg-zinc-50 hover:bg-[#3b2063] hover:text-white text-[#3b2063] py-3 rounded-xl font-black text-base transition-all border-2 border-zinc-200 hover:border-[#3b2063]"
+                                                                >
+                                                                    ₱ {amount}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                        <div className="flex justify-between items-center mt-4 bg-zinc-50 border border-zinc-200 p-4 rounded-2xl">
+                                                            <span className="font-black text-zinc-400 uppercase text-xs tracking-widest">Change</span>
+                                                            <span className="text-2xl font-black text-green-600">₱ {change.toFixed(2)}</span>
+                                                        </div>
+                                                    </>
+                                                ) : (
+                                                    <div className="space-y-2">
+                                                        <h3 className="font-black text-[10px] text-zinc-400 tracking-widest uppercase">Reference Number</h3>
+                                                        <input
+                                                            type="text"
+                                                            value={referenceNumber}
+                                                            onChange={(e) => setReferenceNumber(e.target.value)}
+                                                            className="w-full bg-zinc-50 border-2 border-zinc-300 rounded-2xl py-4 px-5 text-xl font-black outline-none focus:border-[#3b2063] focus:bg-white transition-colors"
+                                                            placeholder="REF#"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* --- TAB CONTENT: DISCOUNT --- */}
+                                    {activeTab === 'discount' && (
+                                        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                                            <div className="space-y-3">
+                                                <h3 className="font-black text-sm text-[#3b2063] uppercase tracking-wider">Select Promo</h3>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <button
+                                                        onClick={() => setSelectedDiscount(null)}
+                                                        className={`p-3 rounded-xl text-[10px] font-black uppercase transition-all border-2 flex items-center justify-center text-center
+                                                            ${!selectedDiscount ? 'bg-red-500 text-white border-red-500 shadow-md' : 'bg-zinc-50 text-red-500 border-red-100 hover:border-red-300'}`}
+                                                    >
+                                                        Remove Promo
+                                                    </button>
+                                                    {discounts.map((d) => (
+                                                        <button
+                                                            key={d.id}
+                                                            onClick={() => setSelectedDiscount(d)}
+                                                            className={`p-3 rounded-xl text-[10px] font-black uppercase transition-all border-2 flex items-center justify-center text-center
+                                                                ${selectedDiscount?.id === d.id 
+                                                                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' 
+                                                                    : 'bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-emerald-300'}`}
+                                                        >
+                                                            {d.name} ({d.amount}{d.type.includes('Percent') ? '%' : ' OFF'})
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="space-y-2">
+                                                <h3 className="font-black text-[10px] text-zinc-400 tracking-widest uppercase">Discount Remarks</h3>
+                                                <textarea 
+                                                    placeholder="Enter notes (e.g., Manager's Approval, Birthday Promo)" 
+                                                    value={discountRemarks}
+                                                    onChange={(e) => setDiscountRemarks(e.target.value)}
+                                                    className="w-full text-xs font-bold p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl outline-none focus:border-[#3b2063] focus:bg-white transition-colors h-24 resize-none"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* --- TAB CONTENT: PAX & ID --- */}
+                                    {activeTab === 'pax' && (
+                                        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                                            <div className="space-y-3">
+                                                <h3 className="font-black text-sm text-[#3b2063] uppercase tracking-wider">Headcount (Max {totalCount})</h3>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    {(Object.keys(pax) as Array<keyof typeof pax>).map((type) => (
+                                                        <div key={type} className="flex flex-col gap-1">
+                                                            <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">{type}</label>
+                                                            <div className="flex items-center justify-between bg-zinc-50 rounded-xl p-1 border-2 border-zinc-200">
+                                                                <button 
+                                                                    onClick={() => handleSubPax(type)}
+                                                                    className="w-10 h-10 bg-white rounded-lg border border-zinc-200 text-[#3b2063] hover:text-red-500 transition-colors flex items-center justify-center shadow-sm"
+                                                                >
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" /></svg>
+                                                                </button>
+                                                                
+                                                                <input 
+                                                                    type="number" 
+                                                                    value={pax[type]} 
+                                                                    readOnly
+                                                                    className="bg-transparent w-10 text-center font-black text-xl text-[#3b2063] outline-none"
+                                                                />
+                                                                
+                                                                <button 
+                                                                    onClick={() => handleAddPax(type)}
+                                                                    className="w-10 h-10 bg-[#3b2063] rounded-lg text-white transition-colors flex items-center justify-center shadow-sm hover:bg-[#2a1647]"
+                                                                >
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-3">
+                                                <h3 className="font-black text-sm text-[#3b2063] uppercase tracking-wider">Required Card IDs</h3>
+                                                <div className="space-y-2">
+                                                    <div className="relative">
+                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black uppercase tracking-widest text-zinc-400 w-16">Senior</span>
+                                                        <input type="text" placeholder="ID Number..." value={discountIDs.senior} onChange={(e)=>setDiscountIDs({...discountIDs, senior: e.target.value})} className="w-full text-xs font-bold pl-20 p-3 bg-zinc-50 border-2 rounded-xl border-zinc-200 outline-none focus:bg-white focus:border-[#3b2063] transition-colors" />
+                                                    </div>
+                                                    <div className="relative">
+                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black uppercase tracking-widest text-zinc-400 w-16">PWD</span>
+                                                        <input type="text" placeholder="ID Number..." value={discountIDs.pwd} onChange={(e)=>setDiscountIDs({...discountIDs, pwd: e.target.value})} className="w-full text-xs font-bold pl-20 p-3 bg-zinc-50 border-2 rounded-xl border-zinc-200 outline-none focus:bg-white focus:border-[#3b2063] transition-colors" />
+                                                    </div>
+                                                    <div className="relative">
+                                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black uppercase tracking-widest text-zinc-400 w-16">Diplomat</span>
+                                                        <input type="text" placeholder="ID Number..." value={discountIDs.diplomat} onChange={(e)=>setDiscountIDs({...discountIDs, diplomat: e.target.value})} className="w-full text-xs font-bold pl-20 p-3 bg-zinc-50 border-2 rounded-xl border-zinc-200 outline-none focus:bg-white focus:border-[#3b2063] transition-colors" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                </div>
+
+                                {/* --- ACTION BUTTONS --- */}
+                                <div className="p-6 bg-white border-t border-zinc-200 shrink-0 space-y-3">
                                     <button
                                         onClick={handleConfirmOrder}
                                         disabled={
-                                            cart.length === 0 ||
-                                            submitting ||
-                                            (paymentMethod === 'cash' && (cashTendered === '' || (typeof cashTendered === 'number' && cashTendered < amtDue))) ||
-                                            (paymentMethod !== 'cash' && referenceNumber.trim() === '')
+                                            submitting || 
+                                            (paymentMethod === 'cash' && (cashTendered === '' || cashTendered < amtDue)) || 
+                                            (paymentMethod !== 'cash' && !referenceNumber) ||
+                                            (pax.regular + pax.senior + pax.pwd + pax.diplomat !== totalCount) // NEW VALIDATION HERE
                                         }
-                                        className="w-full bg-[#3b2063] text-white py-4 rounded-xl font-black text-base uppercase tracking-widest shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed transition-colors"
+                                        className="w-full bg-[#3b2063] hover:bg-[#2a1647] transition-colors text-white py-4 rounded-xl font-black uppercase tracking-widest shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed"
                                     >
-                                        {submitting ? 'Processing...' : 'Pay & Submit'}
-                                    </button>
-                                    <button
-                                        onClick={() => { 
-                                            setIsConfirmModalOpen(false); 
-                                            setCashTendered(''); 
-                                            setPaymentMethod('cash'); 
-                                            setReferenceNumber('');
-                                            setSelectedDiscount(null);
-                                        }}
-                                        className="w-full bg-white border-2 border-zinc-300 text-zinc-500 py-3 rounded-xl font-bold uppercase tracking-widest hover:bg-zinc-50 transition-colors"
-                                    >
-                                        Cancel
+                                        {submitting 
+                                            ? 'Processing...' 
+                                            : (pax.regular + pax.senior + pax.pwd + pax.diplomat !== totalCount) 
+                                                ? `PAX MUST EQUAL ${totalCount}` 
+                                                : 'Complete Transaction'
+                                        }
                                     </button>
                                 </div>
                             </div>
