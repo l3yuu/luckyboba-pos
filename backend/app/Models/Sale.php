@@ -15,18 +15,29 @@ class Sale extends Model
     protected $fillable = [
         'total_amount',
         'payment_method',
-        'reference_number',   // ADDED: To store GCash/Maya/Card codes
+        'reference_number',   
         'charge_type', 
         'pax',
         'user_id',
         'branch_id',
         'is_synced',
-        'invoice_number',     // Stores the official OR string (OR-000...)
-        'status',             // (completed, cancelled)
+        'invoice_number',     
+        'status',             
         'cancellation_reason',
-        'cancelled_at'
+        'cancelled_at',
+        
+        // --- NEW FIELDS FOR PAX & DISCOUNTS ---
+        'pax_regular',
+        'pax_senior',
+        'pax_pwd',
+        'pax_diplomat',
+        'senior_id',
+        'pwd_id',
+        'diplomat_id',
+        'discount_remarks',
+        'vatable_sales',
+        'vat_amount'
     ];
-
     /**
      * The attributes that should be cast.
      */

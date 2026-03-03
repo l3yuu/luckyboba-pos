@@ -136,14 +136,14 @@ const Settings = () => {
     : 'Quezon City • System Configuration';
 
   const settingActions = [
-    { label: "Sales Settings", Icon: SettingsIcon, color: "#3b2063", iconColor: "#3b2063", action: () => setIsSalesSettingsOpen(true) },
-    { label: "Add Customers", Icon: UserPlus,      color: "#3b2063", iconColor: "#3b2063", action: () => setActiveSubView('add-customers') },
-    { label: "Discount",      Icon: Percent,       color: "#3b2063", iconColor: "#3b2063", action: () => setActiveSubView('discount') },
-    { label: "Export Data",   Icon: FileUp,        color: "#3b2063", iconColor: "#3b2063", action: () => setActiveSubView('export-data') },
-    { label: "Upload Data",   Icon: Upload,        color: "#3b2063", iconColor: "#3b2063", action: () => setActiveSubView('upload-data') },
-    { label: "Add Vouchers",  Icon: Ticket,        color: "#3b2063", iconColor: "#3b2063", action: () => setActiveSubView('add-vouchers') },
-    { label: "Import Data",   Icon: FileDown,      color: "#3b2063", iconColor: "#3b2063", action: () => setActiveSubView('import-data') },
-    { label: "Backup System", Icon: Database,      color: "#3b2063", iconColor: "#3b2063", action: () => setActiveSubView('backup-system') },
+    { label: "Sales Settings", Icon: SettingsIcon, color: "#1e40af", iconColor: "#1e40af", action: () => setIsSalesSettingsOpen(true) },
+    { label: "Add Customers", Icon: UserPlus,      color: "#1e40af", iconColor: "#1e40af", action: () => setActiveSubView('add-customers') },
+    { label: "Discount",      Icon: Percent,       color: "#1e40af", iconColor: "#1e40af", action: () => setActiveSubView('discount') },
+    { label: "Export Data",   Icon: FileUp,        color: "#1e40af", iconColor: "#1e40af", action: () => setActiveSubView('export-data') },
+    { label: "Upload Data",   Icon: Upload,        color: "#1e40af", iconColor: "#1e40af", action: () => setActiveSubView('upload-data') },
+    { label: "Add Vouchers",  Icon: Ticket,        color: "#1e40af", iconColor: "#1e40af", action: () => setActiveSubView('add-vouchers') },
+    { label: "Import Data",   Icon: FileDown,      color: "#1e40af", iconColor: "#1e40af", action: () => setActiveSubView('import-data') },
+    { label: "Backup System", Icon: Database,      color: "#1e40af", iconColor: "#1e40af", action: () => setActiveSubView('backup-system') },
   ];
 
   const renderContent = () => {
@@ -195,14 +195,14 @@ const Settings = () => {
           </div>
           <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="flex flex-col items-center text-center gap-2">
-              <div className="p-2 bg-[#3b2063] rounded-full text-white"><Clock size={16} /></div>
+              <div className="p-2 bg-[#1e40af] rounded-full text-white"><Clock size={16} /></div>
               <div>
                 <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Last Backup</p>
                 <p className="text-sm font-black text-slate-700 uppercase italic">{formatBackupDate(auditInfo.last_backup)}</p>
               </div>
             </div>
             <div className="flex flex-col items-center text-center gap-2 border-x border-zinc-100 px-4">
-              <div className="p-2 bg-[#3b2063] rounded-full text-white"><ShieldCheck size={16} /></div>
+              <div className="p-2 bg-[#1e40af] rounded-full text-white"><ShieldCheck size={16} /></div>
               <div>
                 <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Active Session</p>
                 <p className="text-sm font-black text-[#3b2063] uppercase mb-1">{auditInfo.active_session}</p>
@@ -210,7 +210,7 @@ const Settings = () => {
               </div>
             </div>
             <div className="flex flex-col items-center text-center gap-2">
-              <div className="p-2 bg-[#3b2063] rounded-full text-white"><Activity size={16} /></div>
+              <div className="p-2 bg-[#1e40af] rounded-full text-white"><Activity size={16} /></div>
               <div>
                 <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">System Status</p>
                 <div className="flex items-center justify-center gap-2">

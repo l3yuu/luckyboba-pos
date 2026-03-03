@@ -7,7 +7,7 @@ import { useToast } from '../../context/ToastContext';
 import { getCache, setCache } from '../../utils/cache';
 
 const CACHE_KEY = 'discounts';
-const CACHE_TTL = 3 * 60 * 1000;
+const CACHE_TTL = 3 * 60 * 1000; // 3 min
 
 interface DiscountSettingsProps {
   onBack: () => void;
@@ -109,13 +109,18 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
 
   const confirmDelete = async () => {
     if (!discountToDelete) return;
-    
-    console.log('Deleting discount:', discountToDelete);
-    setDiscounts(discounts.filter(d => d.id !== discountToDelete.id));
-    setIsDeleteConfirmOpen(false);
-    setDiscountToDelete(null);
-    
-    showToast(`Discount "${discountToDelete.name}" has been deleted successfully`, 'success');
+
+    try {
+      await api.delete(`/discounts/${discountToDelete.id}`);
+      const updated = discounts.filter(d => d.id !== discountToDelete.id);
+      setDiscounts(updated);
+      setCache<DiscountItem[]>(CACHE_KEY, updated, CACHE_TTL);
+      showToast(`${discountToDelete.name} removed`, "success");
+      setIsDeleteConfirmOpen(false);
+      setDiscountToDelete(null);
+    } catch {
+      showToast("Failed to delete", "error");
+    }
   };
 
   const cancelDelete = () => {
@@ -139,8 +144,8 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Search:</span>
               <div className="relative">
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   className="border border-zinc-300 rounded-md bg-white pl-3 pr-8 py-1.5 text-xs outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 shadow-sm w-64 font-bold text-slate-700 transition-all duration-200"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -235,27 +240,27 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
             <div className="p-8 space-y-6">
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Name</label>
-                <input 
-                  type="text" 
-                  value={newDiscount.name} 
-                  onChange={e => setNewDiscount({...newDiscount, name: e.target.value})} 
-                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 focus:border-[#3b2063] outline-none transition-all" 
+                <input
+                  type="text"
+                  value={newDiscount.name}
+                  onChange={e => setNewDiscount({...newDiscount, name: e.target.value})}
+                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 focus:border-[#3b2063] outline-none transition-all"
                 />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Amount</label>
-                <input 
-                  type="number" 
-                  value={newDiscount.amount} 
-                  onChange={e => setNewDiscount({...newDiscount, amount: e.target.value})} 
-                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 outline-none transition-all duration-200 duration-200" 
+                <input
+                  type="number"
+                  value={newDiscount.amount}
+                  onChange={e => setNewDiscount({...newDiscount, amount: e.target.value})}
+                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 outline-none transition-all duration-200"
                 />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Type</label>
-                <select 
-                  value={newDiscount.type} 
-                  onChange={e => setNewDiscount({...newDiscount, type: e.target.value})} 
+                <select
+                  value={newDiscount.type}
+                  onChange={e => setNewDiscount({...newDiscount, type: e.target.value})}
                   className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 outline-none transition-all duration-200 cursor-pointer"
                 >
                   <option value="Global-Percent">Global-Percent</option>

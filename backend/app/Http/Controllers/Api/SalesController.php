@@ -27,7 +27,7 @@ class SalesController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'si_number' => 'required|string', // MUST add this line
+            'si_number' => 'required|string', 
             'items' => 'required|array|min:1',
             'items.*.menu_item_id' => 'required|exists:menu_items,id',
             'items.*.name' => 'required|string',
@@ -45,6 +45,18 @@ class SalesController extends Controller
             'cashier_name' => 'nullable|string',
             'payment_method' => 'nullable|string',
             'reference_number' => 'nullable|string',
+            
+            // --- NEW FIELDS VALIDATION ---
+            'pax_regular' => 'required|integer|min:0',
+            'pax_senior' => 'required|integer|min:0',
+            'pax_pwd' => 'required|integer|min:0',
+            'pax_diplomat' => 'required|integer|min:0',
+            'senior_id' => 'nullable|string',
+            'pwd_id' => 'nullable|string',
+            'diplomat_id' => 'nullable|string',
+            'discount_remarks' => 'nullable|string',
+            'vatable_sales' => 'required|numeric',
+            'vat_amount' => 'required|numeric',
         ]);
 
         $user = auth('sanctum')->user();
@@ -79,7 +91,21 @@ class SalesController extends Controller
                 'payment_method' => $request->input('payment_method', 'cash'),
                 'reference_number' => $request->input('reference_number'),
                 'charge_type' => $chargeType,
-                'pax' => 1,
+                
+                // Map the new fields to the database columns
+                'pax_regular' => $validated['pax_regular'],
+                'pax_senior' => $validated['pax_senior'],
+                'pax_pwd' => $validated['pax_pwd'],
+                'pax_diplomat' => $validated['pax_diplomat'],
+                'senior_id' => $validated['senior_id'] ?? null,
+                'pwd_id' => $validated['pwd_id'] ?? null,
+                'diplomat_id' => $validated['diplomat_id'] ?? null,
+                'discount_remarks' => $validated['discount_remarks'] ?? null,
+                'vatable_sales' => $validated['vatable_sales'],
+                'vat_amount' => $validated['vat_amount'],
+                
+                // Keep total pax for backward compatibility with your old code if needed
+                'pax' => $validated['pax_regular'] + $validated['pax_senior'] + $validated['pax_pwd'] + $validated['pax_diplomat'],
                 'is_synced' => false,
             ]);
 

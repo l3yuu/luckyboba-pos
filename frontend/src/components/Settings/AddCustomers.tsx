@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Plus, Search, Printer, ArrowLeft } from 'lucide-react';
 import CustomerReport from './CustomerReport';
 
 type TabType = 'CUSTOMER' | 'REPORT';
+
+import { Search, Printer, Plus, ArrowLeft } from 'lucide-react';
 
 interface AddCustomersProps {
   onBack: () => void;

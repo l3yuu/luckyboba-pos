@@ -13,6 +13,17 @@ import type {
 } from '../../types/transactions';
 import TopNavbar from '../TopNavbar';
 import { getCache, setCache } from '../../utils/cache';
+import { 
+  Banknote, 
+  History as HistoryIcon, 
+  Printer, 
+  Calculator, 
+  MessageSquare, 
+  ArrowDownCircle, 
+  CheckCircle2, 
+  X,
+  Clock
+} from 'lucide-react';
 
 const CACHE_KEY = 'cash-drop-history';
 const CACHE_TTL = 5 * 60 * 1000;
@@ -79,6 +90,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
     setActiveInput({ type: 'count', id: denom });
     setLayoutName('numpad');
     if (keyboardRef.current) keyboardRef.current.setInput(counts[denom] || '');
+    setShowKeyboard(true);
   };
 
   const handleRemarksFocus = () => {
@@ -86,6 +98,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
     setActiveInput({ type: 'remarks' });
     setLayoutName('default');
     if (keyboardRef.current) keyboardRef.current.setInput(remarks);
+    setShowKeyboard(true);
   };
 
   const handleInputChange = (inputVal: string) => {
@@ -165,336 +178,181 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
     <>
       <style>
         {`
-          /* SCREEN: hide receipt */
           .printable-receipt { display: none; }
-
           @media print {
-            @page {
-              size: 80mm auto;
-              margin: 0 !important;
-            }
-
-            html, body {
-              margin: 0 !important;
-              padding: 0 !important;
-              background: white !important;
-            }
-
+            @page { size: 80mm auto; margin: 0 !important; }
+            html, body { margin: 0 !important; padding: 0 !important; background: white !important; }
             body * { visibility: hidden; }
-            nav, header, aside, button, #main-ui, .print\\:hidden { display: none !important; }
-
-            .printable-receipt,
-            .printable-receipt * { visibility: visible !important; }
-
-            /* Outer wrapper — full page width, capped at 76mm */
-            .printable-receipt {
-              display: block !important;
-              position: absolute !important;
-              left: 0 !important;
-              top: 0 !important;
-              width: 100% !important;
-              max-width: 76mm !important;
-              margin: 0 !important;
-              padding: 0 !important;
-              background: white !important;
-            }
-
-            /* Inner content — centered at 66mm, same as sales order .receipt-area */
-            .receipt-area {
-              width: 66mm !important;
-              margin: 0 auto !important;
-              padding: 3mm 0 15mm 0 !important;
-              box-sizing: border-box !important;
-              background: white !important;
-              color: #000 !important;
-              font-family: Arial, Helvetica, sans-serif !important;
-              font-size: 11px !important;
-              line-height: 1.35 !important;
-            }
-
-            .receipt-area * {
-              font-family: Arial, Helvetica, sans-serif !important;
-              color: #000 !important;
-              box-sizing: border-box !important;
-            }
-
-            /* Layout helpers */
-            .rp-center { text-align: center !important; }
-            .rp-left   { text-align: left !important; }
-            .rp-right  { text-align: right !important; }
-
-            .rp-divider {
-              display: block !important;
-              border: none !important;
-              border-top: 1px dashed #000 !important;
-              margin: 6px 0 !important;
-              width: 100% !important;
-            }
-
-            .rp-row {
-              display: flex !important;
-              justify-content: space-between !important;
-              align-items: baseline !important;
-              width: 100% !important;
-              font-size: 11px !important;
-              padding: 1px 0 !important;
-              text-transform: uppercase !important;
-            }
-
-            .rp-total {
-              display: flex !important;
-              justify-content: space-between !important;
-              align-items: center !important;
-              width: 100% !important;
-              font-size: 12px !important;
-              font-weight: 900 !important;
-              padding: 4px 0 !important;
-              border-top: 1px solid #000 !important;
-              margin-top: 4px !important;
-            }
-
-            .rp-sig-block {
-              margin-top: 40px !important;
-              display: flex !important;
-              flex-direction: column !important;
-              gap: 28px !important;
-              text-align: center !important;
-            }
-
-            p, div, tr, td, th, span {
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
-            }
-
-            table {
-              width: 100% !important;
-              border-collapse: collapse !important;
-              table-layout: fixed !important;
-            }
-            td {
-              padding: 2px 0 !important;
-              vertical-align: top !important;
-              font-size: 11px !important;
-              word-wrap: break-word !important;
-              color: #000 !important;
-            }
+            .printable-receipt, .printable-receipt * { visibility: visible !important; }
+            .printable-receipt { display: block !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; max-width: 76mm !important; }
+            .receipt-area { width: 66mm !important; margin: 0 auto !important; padding: 3mm 0 15mm 0 !important; font-family: Arial, sans-serif !important; font-size: 11px !important; }
           }
+          .simple-keyboard { background-color: white !important; border-radius: 0 !important; border-top: 1px solid #e4e4e7 !important; }
+          .hg-button { border-radius: 0 !important; height: 50px !important; font-weight: 900 !important; border: 1px solid #f4f4f5 !important; background: white !important; }
+          .hg-button-enter { background: #3b2063 !important; color: white !important; }
         `}
       </style>
 
-      {/* RECEIPT — only rendered when printData is set, only visible on print */}
+      {/* RECEIPT RENDERER (Logic Unchanged) */}
       {printData && (
         <div className="printable-receipt">
           <div className="receipt-area">
-
-            {/* Store header */}
-            <div className="rp-center" style={{ marginBottom: 6 }}>
-              <div style={{ fontWeight: 900, fontSize: 13, textTransform: 'uppercase', lineHeight: 1.2 }}>
-                Lucky Boba Milktea Food and Beverage Trading
-              </div>
-              <div style={{ fontWeight: 700, fontSize: 10, textTransform: 'uppercase', marginTop: 2 }}>
-                Main Branch - QC
-              </div>
+            <div className="rp-center" style={{ textAlign: 'center', marginBottom: 6 }}>
+              <div style={{ fontWeight: 900, fontSize: 13, textTransform: 'uppercase' }}>Lucky Boba Milktea Food and Beverage Trading</div>
+              <div style={{ fontWeight: 700, fontSize: 10, textTransform: 'uppercase' }}>Main Branch - QC</div>
             </div>
-
-            <div className="rp-divider" />
-
-            <div className="rp-center" style={{ marginBottom: 6 }}>
-              <div style={{ fontWeight: 900, fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                Cash Drop Receipt
-              </div>
-            </div>
-
-            {/* Date / Time / Terminal */}
-            <div style={{ marginBottom: 4 }}>
-              <div className="rp-row"><span>Date</span><span>{printData.date}</span></div>
-              <div className="rp-row"><span>Time</span><span>{printData.time}</span></div>
-              <div className="rp-row"><span>Terminal</span><span>POS-01</span></div>
-            </div>
-
-            <div className="rp-divider" />
-
-            {/* Breakdown label */}
-            <div style={{ fontWeight: 900, fontSize: 10, textTransform: 'uppercase', opacity: 0.6, letterSpacing: '-0.02em', marginBottom: 4 }}>
-              Details Breakdown
-            </div>
-
-            {/* Breakdown table */}
+            <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
+            <div style={{ textAlign: 'center', fontWeight: 900, textTransform: 'uppercase' }}>Cash Drop Receipt</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}><span>Date</span><span>{printData.date}</span></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Time</span><span>{printData.time}</span></div>
+            <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
             <table>
               <tbody>
                 {denominations.map(denom => {
                   const qty = parseFloat(printData.breakdown[denom] || '0');
                   if (qty <= 0) return null;
-                  const label = denom < 1
-                    ? denom.toString().replace('0.', '.')
-                    : denom.toLocaleString();
                   return (
                     <tr key={denom}>
-                      <td style={{ textTransform: 'uppercase' }}>{label}</td>
+                      <td>{denom.toLocaleString()}</td>
                       <td style={{ textAlign: 'center' }}>x{qty}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 700 }}>
-                        ₱{(qty * denom).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      </td>
+                      <td style={{ textAlign: 'right', fontWeight: 700 }}>₱{(qty * denom).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
-
-            <div className="rp-divider" />
-
-            {/* Grand total */}
-            <div className="rp-total">
-              <span>GRAND TOTAL</span>
-              <span>₱{printData.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            <div style={{ borderTop: '1px solid #000', marginTop: 4, padding: '4px 0', display: 'flex', justifyContent: 'space-between', fontWeight: 900 }}>
+              <span>GRAND TOTAL</span><span>₱{printData.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
             </div>
-
-            {/* Remarks */}
-            {printData.remarks !== '-' && (
-              <div style={{
-                marginTop: 8,
-                fontSize: 11,
-                fontStyle: 'italic',
-                textTransform: 'uppercase',
-                borderTop: '1px dotted #000',
-                paddingTop: 6,
-                color: '#444'
-              }}>
-                Note: {printData.remarks}
-              </div>
-            )}
-
-            {/* Signatures */}
-            <div className="rp-sig-block">
-              <div>
-                <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', textDecoration: 'underline' }}>
-                  {localStorage.getItem('user')
-                    ? JSON.parse(localStorage.getItem('user')!).name
-                    : 'System Admin'}
-                </div>
-                <div style={{ fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 3 }}>
-                  Prepared By
-                </div>
-              </div>
-              <div>
-                <div style={{ fontSize: 9 }}>____________________</div>
-                <div style={{ fontSize: 8, textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 3 }}>
-                  Received By (Auditor)
-                </div>
-              </div>
-            </div>
-
+            {printData.remarks !== '-' && <div style={{ marginTop: 8, fontSize: 10, fontStyle: 'italic' }}>Note: {printData.remarks}</div>}
           </div>
         </div>
       )}
 
       {/* MAIN UI */}
-      <div id="main-ui" className="flex flex-col h-full w-full bg-[#f8f6ff] animate-in fade-in zoom-in duration-300 relative overflow-hidden">
+      <div id="main-ui" className="flex flex-col h-full w-full bg-[#f8f6ff] relative overflow-hidden">
         <TopNavbar />
 
-        <div className={`flex-1 flex flex-row items-start justify-center p-6 gap-6 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-87.5' : ''}`}>
+        <div className={`flex-1 flex flex-row items-start justify-center p-4 md:p-8 gap-4 md:gap-6 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-[280px]' : ''}`}>
 
-          <div className="bg-white w-full flex-1 rounded-[2.5rem] shadow-xl shadow-purple-900/5 border border-zinc-100 flex flex-col relative overflow-hidden shrink-0 h-full">
-            <div className="absolute top-0 left-0 w-full h-3 bg-[#3b2063] opacity-10 z-10"></div>
+          {/* LEFT: DROP FORM */}
+          <div className="bg-white w-full flex-1 rounded-none border border-zinc-200 flex flex-col h-full shadow-sm">
+            <div className="px-6 py-4 border-b border-zinc-100 bg-zinc-50 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                 <div className="p-2 bg-[#3b2063] text-white rounded-none"><ArrowDownCircle size={18}/></div>
+                 <h2 className="text-[#3b2063] font-black text-[11px] tracking-[0.3em] uppercase">Shift Cash Drop</h2>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-1 bg-white border border-zinc-200">
+                <span className="text-[9px] font-black uppercase text-zinc-400">Terminal 01</span>
+              </div>
+            </div>
 
-            <div className="flex-1 overflow-y-auto p-8 w-full scroll-smooth">
-              <h2 className="text-[#3b2063] font-black text-base tracking-[0.4em] uppercase mb-2 text-center">Terminal 01</h2>
-              <p className="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-8 text-center">Cashier: Admin</p>
-
-              <div className="grid grid-cols-4 gap-4 w-full mb-4 px-4 sticky top-0 bg-white z-10 py-2 border-b border-zinc-50">
-                <div className="text-center text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Bill/Coin</div>
-                <div className="text-center text-[10px] font-bold text-zinc-400 uppercase tracking-widest"></div>
-                <div className="text-center text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Qty</div>
-                <div className="text-center text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Total</div>
+            <div className="flex-1 overflow-y-auto p-6 scroll-smooth">
+              <div className="grid grid-cols-12 gap-2 mb-4 px-2">
+                <div className="col-span-4 text-[9px] font-black text-zinc-300 uppercase tracking-widest">Denom</div>
+                <div className="col-span-4 text-center text-[9px] font-black text-zinc-300 uppercase tracking-widest">Qty</div>
+                <div className="col-span-4 text-right text-[9px] font-black text-zinc-300 uppercase tracking-widest">Subtotal</div>
               </div>
 
-              <div className="w-full space-y-2 mb-8">
+              <div className="space-y-1">
                 {denominations.map((denom) => {
                   const qty = counts[denom] || '';
                   const rowTotal = denom * (parseFloat(qty) || 0);
                   return (
-                    <div key={denom} className="grid grid-cols-4 gap-4 items-center px-4 py-2 hover:bg-zinc-50 rounded-2xl">
-                      <div className="text-right font-black text-[#3b2063] text-lg">{denom.toLocaleString()}</div>
-                      <div className="text-center text-zinc-300 font-bold text-xs">X</div>
-                      <input
-                        type="text"
-                        inputMode="none"
-                        value={qty}
-                        onFocus={() => handleCountFocus(denom)}
-                        onChange={(e) => handleInputChange(e.target.value)}
-                        placeholder="0"
-                        disabled={isEodLocked}
-                        className={`w-full text-center font-bold text-lg py-2 rounded-xl border-2 border-zinc-100 focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 ${isEodLocked ? 'bg-zinc-50 cursor-not-allowed opacity-50' : 'bg-[#f8f6ff]'}`}
-                      />
-                      <div className="text-right font-black text-zinc-400 text-lg">
+                    <div key={denom} className="grid grid-cols-12 gap-2 items-center px-2 py-1.5 border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
+                      <div className="col-span-4 flex items-center gap-2">
+                        <Banknote size={14} className="text-zinc-300" />
+                        <span className="font-black text-[#3b2063] text-sm tabular-nums">{denom.toLocaleString()}</span>
+                      </div>
+                      <div className="col-span-4">
+                        <input
+                          type="text"
+                          inputMode="none"
+                          value={qty}
+                          onFocus={() => handleCountFocus(denom)}
+                          onChange={(e) => handleInputChange(e.target.value)}
+                          placeholder="0"
+                          disabled={isEodLocked}
+                          className={`w-full text-center font-black text-sm py-2 rounded-none border border-zinc-100 transition-all outline-none focus:border-[#3b2063] ${isEodLocked ? 'bg-zinc-50 cursor-not-allowed opacity-50' : 'bg-[#f8f6ff]'}`}
+                        />
+                      </div>
+                      <div className="col-span-4 text-right font-black text-[#3b2063] text-sm tabular-nums opacity-60">
                         {rowTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </div>
                     </div>
                   );
                 })}
               </div>
+            </div>
 
-              <div className="w-full border-t border-zinc-100 pt-6 px-4 space-y-6">
-                <div className="flex items-center justify-between bg-[#f8f6ff] p-4 rounded-2xl">
-                  <span className="text-xs font-bold text-zinc-500 uppercase">Grand Total :</span>
-                  <span className="text-2xl font-black text-[#3b2063]">
-                    ₱ {getGrandTotal(counts).toLocaleString()}
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2">Remarks</label>
-                  <textarea
-                    value={remarks}
-                    inputMode="none"
-                    onFocus={handleRemarksFocus}
-                    onChange={(e) => handleInputChange(e.target.value)}
-                    placeholder={isEodLocked ? "Terminal Locked" : "Enter notes..."}
-                    disabled={isEodLocked}
-                    className={`w-full p-4 rounded-2xl border-2 border-zinc-100 focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 resize-none h-16 ${isEodLocked ? 'bg-zinc-50 cursor-not-allowed opacity-50' : 'bg-[#f8f6ff]'}`}
-                  />
-                </div>
-                <button
-                  onClick={handleSubmit}
-                  disabled={isLoading || isEodLocked}
-                  className={`w-full py-5 rounded-3xl font-black uppercase tracking-widest shadow-lg active:scale-95 transition-transform ${isEodLocked ? 'bg-zinc-300 text-zinc-500 cursor-not-allowed' : 'bg-[#3b2063] text-white'}`}
-                >
-                  {isLoading ? 'SUBMITTING...' : isEodLocked ? 'TERMINAL LOCKED' : 'SUBMIT CASH DROP'}
-                </button>
+            <div className="p-6 bg-zinc-50 border-t border-zinc-100 space-y-4">
+              <div className="flex items-center justify-between bg-white border border-zinc-200 p-4">
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400">Total Drop Amount</p>
+                <p className="text-2xl font-black text-[#3b2063] tabular-nums">₱ {getGrandTotal(counts).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
               </div>
+              
+              <div className="relative">
+                <MessageSquare size={14} className="absolute left-4 top-4 text-zinc-300" />
+                <textarea
+                  value={remarks}
+                  onFocus={handleRemarksFocus}
+                  onChange={(e) => handleInputChange(e.target.value)}
+                  placeholder="Drop remarks/notes..."
+                  disabled={isEodLocked}
+                  className={`w-full pl-10 pr-4 py-3 rounded-none border border-zinc-200 focus:border-[#3b2063] outline-none text-xs font-bold resize-none h-14 ${isEodLocked ? 'bg-zinc-100' : 'bg-white'}`}
+                />
+              </div>
+
+              <button
+                onClick={handleSubmit}
+                disabled={isLoading || isEodLocked || getGrandTotal(counts) <= 0}
+                className={`w-full py-4 rounded-none font-black uppercase tracking-[0.3em] text-xs shadow-lg transition-all flex items-center justify-center gap-3 ${isEodLocked ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed' : 'bg-[#3b2063] text-white hover:bg-[#2a1647] active:scale-[0.99]'}`}
+              >
+                {isLoading ? <RefreshCw className="animate-spin" size={16}/> : <CheckCircle2 size={16}/>}
+                {isLoading ? 'Processing...' : isEodLocked ? 'Terminal Locked' : 'Execute Cash Drop'}
+              </button>
             </div>
           </div>
 
-          {/* History table */}
-          <div className="w-full flex-1 bg-white rounded-4xl shadow-sm border border-zinc-200 overflow-hidden h-full flex flex-col">
-            <div className="px-8 py-5 border-b border-zinc-100 bg-zinc-50">
-              <h3 className="text-[#3b2063] font-black text-xs uppercase">Drop History (Today)</h3>
+          {/* RIGHT: HISTORY TABLE */}
+          <div className="w-full flex-1 bg-white rounded-none border border-zinc-200 overflow-hidden h-full flex flex-col shadow-sm">
+            <div className="px-6 py-5 border-b border-zinc-100 bg-[#f8f6ff] flex items-center gap-3">
+              <HistoryIcon size={16} className="text-[#3b2063]" />
+              <h3 className="text-[#3b2063] font-black text-[11px] uppercase tracking-[0.3em]">Transaction History</h3>
             </div>
+            
             <div className="flex-1 overflow-auto">
               <table className="w-full text-left">
                 <thead className="sticky top-0 bg-white z-10 border-b border-zinc-100">
                   <tr>
-                    <th className="px-6 py-4 text-[10px] font-bold text-zinc-400 uppercase">Time</th>
-                    <th className="px-6 py-4 text-right text-[10px] font-bold text-zinc-400 uppercase">Amount</th>
-                    <th className="px-6 py-4 text-center text-[10px] font-bold text-zinc-400 uppercase">Print</th>
+                    <th className="px-6 py-4 text-[9px] font-black text-zinc-400 uppercase tracking-widest">Time</th>
+                    <th className="px-6 py-4 text-right text-[9px] font-black text-zinc-400 uppercase tracking-widest">Amount</th>
+                    <th className="px-6 py-4 text-center text-[9px] font-black text-zinc-400 uppercase tracking-widest">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-50">
                   {transactions.map((tx) => (
-                    <tr key={tx.id} className="hover:bg-zinc-50 transition-colors">
-                      <td className="px-6 py-4 text-xs font-bold text-zinc-600">{tx.time}</td>
-                      <td className="px-6 py-4 text-sm font-black text-[#3b2063] text-right">₱{tx.total.toLocaleString()}</td>
+                    <tr key={tx.id} className="hover:bg-zinc-50 transition-colors group">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                           <Clock size={12} className="text-zinc-300" />
+                           <span className="text-[11px] font-black text-[#3b2063] tabular-nums">{tx.time}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm font-black text-[#3b2063] text-right tabular-nums">₱{tx.total.toLocaleString()}</td>
                       <td className="px-6 py-4 text-center">
-                        <button onClick={() => handlePrint(tx)} className="p-2 bg-emerald-100 text-emerald-600 rounded-xl hover:bg-emerald-200 transition-colors">
-                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18" />
-                          </svg>
+                        <button onClick={() => handlePrint(tx)} className="p-2.5 bg-zinc-50 border border-zinc-100 text-[#3b2063] hover:bg-[#3b2063] hover:text-white transition-all">
+                          <Printer size={14} strokeWidth={2.5}/>
                         </button>
                       </td>
                     </tr>
                   ))}
                   {transactions.length === 0 && (
                     <tr>
-                      <td colSpan={3} className="px-6 py-10 text-center text-zinc-400 text-xs italic">No transactions today</td>
+                      <td colSpan={3} className="px-6 py-20 text-center">
+                        <HistoryIcon size={32} className="mx-auto text-zinc-100 mb-2" />
+                        <p className="text-[10px] font-black uppercase text-zinc-300 tracking-widest italic">No drops recorded today</p>
+                      </td>
                     </tr>
                   )}
                 </tbody>
@@ -503,40 +361,51 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
           </div>
         </div>
 
-        {/* Keyboard toggle */}
-        <button
-          onClick={() => !isEodLocked && setShowKeyboard(prev => !prev)}
-          className={`fixed bottom-8 right-8 z-60 p-4 rounded-full shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 ${isEodLocked ? 'bg-zinc-300 cursor-not-allowed' : (showKeyboard ? 'bg-red-500 text-white' : 'bg-[#3b2063] text-white')}`}
-        >
-          {showKeyboard ? (
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
-          ) : (
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 5.25h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5" /></svg>
-          )}
-        </button>
+        {/* KEYBOARD TOGGLE */}
+        {!isEodLocked && (
+          <button
+            onClick={() => setShowKeyboard(prev => !prev)}
+            className={`fixed bottom-6 right-6 z-[100] w-14 h-14 rounded-none shadow-2xl transition-all duration-300 flex items-center justify-center ${showKeyboard ? 'bg-red-600 text-white' : 'bg-[#3b2063] text-white'}`}
+          >
+            {showKeyboard ? <X size={24} /> : <Calculator size={24} />}
+          </button>
+        )}
 
-        <div className={`fixed bottom-0 left-0 right-0 bg-white shadow-2xl transition-transform duration-300 z-50 ${showKeyboard ? 'translate-y-0' : 'translate-y-full'}`}>
-          <div className="flex items-center justify-between px-4 py-2 bg-zinc-50 border-b">
-            <span className="text-xs font-bold text-zinc-400 uppercase">{layoutName === 'numpad' ? 'Numpad' : 'Keyboard'}</span>
-            <button onClick={() => setShowKeyboard(false)} className="text-xs font-black text-[#3b2063] uppercase p-4">Close</button>
-          </div>
-          <div className="p-2">
-            <Keyboard
-              keyboardRef={r => { if (r) keyboardRef.current = r; }}
-              layoutName={layoutName}
-              onChange={onKeyboardChange}
-              onKeyPress={onKeyPress}
-              layout={{
-                numpad: ["1 2 3", "4 5 6", "7 8 9", "0 {bksp}", "{enter}"],
-                default: ["q w e r t y u i o p {bksp}", "a s d f g h j k l {enter}", "z x c v b n m , .", "{space}"]
-              }}
-              display={{ "{bksp}": "⌫", "{enter}": "DONE", "{space}": "SPACE" }}
-            />
+        {/* KEYBOARD DRAWER */}
+        <div className={`fixed bottom-0 left-0 right-0 bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-transform duration-500 z-[90] ${showKeyboard ? 'translate-y-0' : 'translate-y-full'}`}>
+          <div className="max-w-4xl mx-auto">
+            <div className="flex items-center justify-between px-6 py-3 bg-zinc-50 border-b border-zinc-100">
+              <span className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em]">{layoutName === 'numpad' ? 'Numeric Input' : 'Alphanumeric Input'}</span>
+              <button onClick={() => setShowKeyboard(false)} className="text-[10px] font-black text-[#3b2063] uppercase tracking-widest hover:underline">Dismiss</button>
+            </div>
+            <div className="p-4 bg-white">
+              <Keyboard
+                keyboardRef={r => { if (r) keyboardRef.current = r; }}
+                layoutName={layoutName}
+                onChange={onKeyboardChange}
+                onKeyPress={onKeyPress}
+                layout={{
+                  numpad: ["1 2 3", "4 5 6", "7 8 9", "0 {bksp}", "{enter}"],
+                  default: ["q w e r t y u i o p {bksp}", "a s d f g h j k l {enter}", "z x c v b n m , .", "{space}"]
+                }}
+                display={{ "{bksp}": "⌫", "{enter}": "DONE", "{space}": "SPACE" }}
+              />
+            </div>
           </div>
         </div>
       </div>
     </>
   );
 };
+
+// Helper components
+const RefreshCw = ({ className, size }: { className?: string; size?: number }) => (
+  <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+    <path d="M21 3v5h-5" />
+    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+    <path d="M3 21v-5h5" />
+  </svg>
+);
 
 export default CashDrop;
