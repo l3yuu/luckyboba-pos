@@ -8,6 +8,11 @@ import api from '../../services/api';
 import { Calendar, Clock, Search, X, RotateCcw, ShieldAlert, FileCheck, Receipt as ReceiptIcon, Terminal } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 
+// Define interface to replace 'any' and pass linting
+interface SimpleKeyboardInstance {
+  setInput: (input: string) => void;
+}
+
 const CACHE_KEY = 'lucky_boba_receipt_cache';
 
 // Persists across remounts
@@ -18,13 +23,13 @@ const TableSkeleton = () => (
     {[...Array(5)].map((_, i) => (
       <tr key={`skeleton-${i}`} className="animate-pulse border-b border-zinc-100">
         <td className="px-6 py-5">
-          <div className="h-4 w-28 bg-zinc-100 mb-2"></div>
-          <div className="h-3 w-16 bg-zinc-50"></div>
+          <div className="h-4 w-28 bg-zinc-100 mb-2 rounded-none"></div>
+          <div className="h-3 w-16 bg-zinc-50 rounded-none"></div>
         </td>
-        <td className="px-6 py-5"><div className="h-4 w-12 bg-zinc-100 mx-auto"></div></td>
-        <td className="px-6 py-5"><div className="h-4 w-8 bg-zinc-100 mx-auto"></div></td>
-        <td className="px-6 py-5"><div className="h-4 w-24 bg-zinc-100 ml-auto"></div></td>
-        <td className="px-6 py-5"><div className="h-9 w-9 bg-zinc-100 mx-auto"></div></td>
+        <td className="px-6 py-5"><div className="h-4 w-12 bg-zinc-100 mx-auto rounded-none"></div></td>
+        <td className="px-6 py-5"><div className="h-4 w-8 bg-zinc-100 mx-auto rounded-none"></div></td>
+        <td className="px-6 py-5"><div className="h-4 w-24 bg-zinc-100 ml-auto rounded-none"></div></td>
+        <td className="px-6 py-5"><div className="h-9 w-9 bg-zinc-100 mx-auto rounded-none"></div></td>
       </tr>
     ))}
   </>
@@ -176,7 +181,8 @@ const SearchReceipts = () => {
     const val = e.target.value;
     setSearchQuery(val);
     if (keyboardRef.current) {
-      (keyboardRef.current as any).setInput(val);
+      // Cast to interface instead of 'any' to fix linting error 179:31
+      (keyboardRef.current as unknown as SimpleKeyboardInstance).setInput(val);
     }
   };
 
@@ -247,7 +253,7 @@ const SearchReceipts = () => {
                   </div>
                </div>
             </div>
-            <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest bg-white border border-zinc-200 px-4 py-1.5">
+            <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest bg-white border border-zinc-200 px-4 py-1.5 rounded-none">
               {searchResults.length} ENTRIES FOUND
             </span>
           </div>
@@ -275,7 +281,7 @@ const SearchReceipts = () => {
                       <td className="px-8 py-5">
                         <div className="flex items-center gap-3">
                           <span className="font-black text-[#3b2063] text-sm tabular-nums tracking-tighter">#{item.si_number}</span>
-                          <span className={`text-[8px] font-black px-2 py-0.5 border uppercase tracking-widest ${item.status === 'cancelled' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
+                          <span className={`text-[8px] font-black px-2 py-0.5 border uppercase tracking-widest rounded-none ${item.status === 'cancelled' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
                             {item.status === 'cancelled' ? 'Voided' : 'Settled'}
                           </span>
                         </div>
@@ -318,12 +324,12 @@ const SearchReceipts = () => {
         </div>
       </div>
 
-      {/* VOID MODAL */}
+      {/* VOID AUTHORIZATION MODAL */}
       {isReasonModalOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-md rounded-none border border-zinc-200 p-10 shadow-2xl">
             <div className="flex items-center gap-3 mb-6">
-               <div className="p-2 bg-red-50 text-red-600"><ShieldAlert size={20}/></div>
+               <div className="p-2 bg-red-50 text-red-600 rounded-none"><ShieldAlert size={20}/></div>
                <h2 className="text-[#3b2063] font-black text-lg uppercase tracking-widest">Void Authorization</h2>
             </div>
             <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-4 ml-1">Input Justification</p>
@@ -337,14 +343,14 @@ const SearchReceipts = () => {
               <button 
                 onClick={() => { setIsReasonModalOpen(false); setCancelReason(''); }} 
                 disabled={isVoiding}
-                className="flex-1 py-4 bg-zinc-50 border border-zinc-100 text-zinc-400 font-black text-[10px] uppercase tracking-[0.2em] hover:bg-zinc-100 transition-colors"
+                className="flex-1 py-4 bg-zinc-50 border border-zinc-100 text-zinc-400 font-black text-[10px] uppercase tracking-[0.2em] rounded-none hover:bg-zinc-100 transition-colors"
               >
                 Abort
               </button>
               <button 
                 onClick={handleConfirmCancel} 
                 disabled={isVoiding || !cancelReason.trim()}
-                className="flex-1 py-4 bg-red-600 text-white font-black text-[10px] uppercase tracking-[0.2em] shadow-lg active:scale-[0.98] disabled:opacity-50"
+                className="flex-1 py-4 bg-red-600 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-none shadow-lg active:scale-[0.98] disabled:opacity-50"
               >
                 {isVoiding ? 'Authorizing...' : 'Confirm Void'}
               </button>
@@ -356,12 +362,12 @@ const SearchReceipts = () => {
   );
 };
 
-// --- HELPER COMPONENT ---
+// --- HELPER COMPONENT (PASSING LINTING) ---
 const StatBox = ({ label, value, icon, isDanger, isBrand }: { label: string; value: number; icon: React.ReactNode; isDanger?: boolean; isBrand?: boolean }) => (
   <div className={`p-6 border border-zinc-200 flex flex-col justify-between shadow-sm rounded-none ${isBrand ? 'bg-[#3b2063]' : 'bg-white'}`}>
     <div className="flex items-center justify-between mb-4">
       <p className={`text-[9px] font-black uppercase tracking-[0.3em] ${isBrand ? 'text-purple-300' : 'text-zinc-400'}`}>{label}</p>
-      <div className={`p-1.5 ${isBrand ? 'text-purple-300 bg-white/10' : 'text-zinc-300 bg-zinc-50'}`}>{icon}</div>
+      <div className={`p-1.5 rounded-none ${isBrand ? 'text-purple-300 bg-white/10' : 'text-zinc-300 bg-zinc-50'}`}>{icon}</div>
     </div>
     <p className={`text-2xl font-black tabular-nums ${isBrand ? 'text-white' : (isDanger ? 'text-red-500' : 'text-zinc-400')}`}>
       {isDanger && '- '}₱ {value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
