@@ -100,7 +100,8 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             cd domains/luckybobastores.com/public_html
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
 
             cd backend
             composer install --no-dev --optimize-autoloader || composer2 install --no-dev --optimize-autoloader
@@ -116,7 +117,7 @@ jobs:
             sed -i 's|href="/assets/|href="/backend/public/assets/|g' index.html
             sed -i 's|href="/lucky.jpg"|href="/backend/public/lucky.jpg"|g' index.html
 
-            # Restore .htaccess
+            # Restore Production .htaccess
             cat > .htaccess << 'HTACCESS'
             DirectoryIndex index.html index.php
             Options -Indexes
@@ -179,13 +180,12 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            # Create staging folder structure if it doesn't exist yet
-            mkdir -p ~/domains/luckybobastores.com/staging/backend/public/assets
-
+            # 1. Pull staging branch into staging folder only
             cd domains/luckybobastores.com/staging
-            git pull origin staging
+            git fetch origin staging
+            git reset --hard origin/staging
 
-            # Setup staging .env if it doesn't exist
+            # 2. Setup staging .env if it doesn't exist
             if [ ! -f backend/.env ]; then
               cp backend/.env.example backend/.env
               cd backend && php artisan key:generate && cd ..
@@ -199,18 +199,19 @@ jobs:
             php artisan view:cache
             cd ..
 
-            # Restore staging root index.html with corrected asset paths
+            # 3. Restore Staging index.html
             cp backend/public/index.html index.html
             sed -i 's|src="/assets/|src="/backend/public/assets/|g' index.html
             sed -i 's|href="/assets/|href="/backend/public/assets/|g' index.html
             sed -i 's|href="/lucky.jpg"|href="/backend/public/lucky.jpg"|g' index.html
 
-            # Restore staging .htaccess
+            # 4. Restore Staging .htaccess (locked to staging root)
             cat > .htaccess << 'HTACCESS'
             DirectoryIndex index.html index.php
             Options -Indexes
             <IfModule mod_rewrite.c>
                 RewriteEngine On
+                # Change RewriteBase to /staging/ ONLY if you access via luckybobastores.com/staging
                 RewriteBase /
                 RewriteCond %{HTTPS} off
                 RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
