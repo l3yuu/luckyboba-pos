@@ -13,12 +13,10 @@ return [
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
-        'http://localhost:5173',
-        'http://localhost:3000',
-        'https://luckyboba-pos.vercel.app', 
-        'https://luckybobastores.com',
-        'https://www.luckybobastores.com',  // 👈 add www version
-        'https://luckyboba-qg9jh57q3-leumars-projects.vercel.app', // 👈 your current vercel URL
+        'http://localhost:5173',          // Keep for local development
+        'https://luckybobastores.com',    // Main Production Domain
+        'https://staging.luckybobastores.com', // Staging Domain
+        'https://www.luckybobastores.com', // WWW Version
     ],
 
     'allowed_origins_patterns' => [],

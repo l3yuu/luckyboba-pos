@@ -23,7 +23,7 @@ const DrinkIcon = ({ className }: { className?: string }) => (
 
 const generateORNumber = (count = 1) => `OR-${String(count).padStart(10, '0')}`;
 const generateQueueNumber = (count = 1) => String(count).padStart(3, '0');
-
+//
 const SalesOrder = () => {
     const navigate = useNavigate();
     const { showToast } = useToast();
@@ -288,10 +288,16 @@ const SalesOrder = () => {
 
             await api.post('/sales', orderData);
 
-            // Refresh dashboard stats and inventory in the background
+            // Invalidate dashboard cache so it refetches fresh data on next visits
+            localStorage.setItem('dashboard_stats_timestamp', '0');
+
+            // Still warm up the cache in the background
             const today = new Date().toISOString().split('T')[0];
             Promise.all([
-                api.get('/dashboard/stats'), 
+                api.get('/dashboard/stats').then(res => {
+                    localStorage.setItem('dashboard_stats', JSON.stringify(res.data));
+                    localStorage.setItem('dashboard_stats_timestamp', Date.now().toString());
+                }),
                 api.get('/inventory'),
                 api.get('/receipts/search', { params: { query: '', date: today } })
                     .then(response => {

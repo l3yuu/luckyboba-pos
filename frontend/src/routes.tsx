@@ -6,19 +6,27 @@ import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import BranchManagerDashboard from './pages/BranchManagerDashboard';
 import Calendar from './pages/Calendar';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { PublicRoute } from './components/PublicRoute'; // Import the new guard
 import { ErrorFallback } from './components/ErrorFallback';
 
 export const router = createBrowserRouter([
   // ── Public ──────────────────────────────────────────────────────────────
   {
-    path: '/login',
-    element: <Login />,
+    // Wrap Login in PublicRoute
+    element: <PublicRoute />,
     errorElement: <ErrorFallback />,
+    children: [
+      {
+        path: '/login',
+        element: <Login />,
+      }
+    ]
   },
 
   // ── Super Admin only ─────────────────────────────────────────────────────
   {
-    element: <ProtectedRoute allowedRoles={['superadmin']} />,
+    // Existing Protected Routes
+    element: <ProtectedRoute />,
     errorElement: <ErrorFallback />,
     children: [
       { path: '/super-admin', element: <SuperAdminDashboard /> },
