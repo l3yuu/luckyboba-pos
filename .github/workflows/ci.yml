@@ -52,9 +52,10 @@ jobs:
       - name: Lint & Type Check
         run: cd frontend && npm run lint
       - name: Build Check
-        env:
-          VITE_API_BASE_URL: "https://luckybobastores.com/api"
-        run: cd frontend && npm run build
+        run: |
+          cd frontend
+          echo "VITE_API_BASE_URL=https://luckybobastores.com/api" > .env.production
+          npm run build
 
   deploy:
     runs-on: ubuntu-latest
@@ -68,11 +69,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+
       - name: Build Frontend
-        env:
-          VITE_API_BASE_URL: "https://luckybobastores.com/api"
         run: |
           cd frontend
+          echo "VITE_API_BASE_URL=https://luckybobastores.com/api" > .env.production
           npm install
           npm run build
 
@@ -85,10 +86,10 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT }}
           source: "frontend/dist/"
-          target: "public_html/backend/public/"
+          target: "domains/luckybobastores.com/public_html/backend/public/"
           strip_components: 2
 
-      # 3. Finalize Backend via SSH
+      # 3. Finalize Backend + Restore index.html and .htaccess via SSH
       - name: Update Backend via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -97,18 +98,57 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            cd public_html
-            # Force git to ignore local changes to the build folder
+            cd domains/luckybobastores.com/public_html
+
+            # Pull latest code
             git pull origin main
-            
+
+            # Update Laravel backend
             cd backend
-            # Fallback for composer versions
             composer install --no-dev --optimize-autoloader || composer2 install --no-dev --optimize-autoloader
-            
-            # Run migrations to update the 'sales' and 'products' tables
             php artisan migrate --force
-            
-            # Clear caches so the new .env and routes are live
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
+            cd ..
+
+            # Restore root index.html from the freshly built frontend
+            # (Vite builds to backend/public/index.html via scp above)
+            cp backend/public/index.html index.html
+
+            # Fix asset paths to point to backend/public/assets/
+            # because the root serves from public_html/, not backend/public/
+            sed -i 's|src="/assets/|src="/backend/public/assets/|g' index.html
+            sed -i 's|href="/assets/|href="/backend/public/assets/|g' index.html
+            sed -i 's|href="/lucky.jpg"|href="/backend/public/lucky.jpg"|g' index.html
+
+            # Always restore .htaccess so deploys never break routing
+            cat > .htaccess << 'HTACCESS'
+            DirectoryIndex index.html index.php
+            Options -Indexes
+            <IfModule mod_rewrite.c>
+                RewriteEngine On
+                RewriteBase /
+
+                # Force HTTPS
+                RewriteCond %{HTTPS} off
+                RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+                # Skip real existing files/dirs
+                RewriteCond %{REQUEST_FILENAME} -f [OR]
+                RewriteCond %{REQUEST_FILENAME} -d
+                RewriteRule ^ - [L]
+
+                # API → Laravel
+                RewriteRule ^api/(.*)$ backend/public/index.php [L,QSA]
+
+                # Static assets → backend/public/
+                RewriteRule ^assets/(.*)$ backend/public/assets/$1 [L]
+                RewriteRule ^lucky\.jpg$ backend/public/lucky.jpg [L]
+                RewriteRule ^favicon\.ico$ backend/public/favicon.ico [L]
+
+                # Everything else → React SPA
+                RewriteRule ^$ index.html [L]
+                RewriteRule ^(.*)$ index.html [L]
+            </IfModule>
+            HTACCESS
