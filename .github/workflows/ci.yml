@@ -87,6 +87,8 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT }}
+          timeout: 60s            
+          command_timeout: 10m
           source: "frontend/dist/"
           target: "domains/luckybobastores.com/public_html/backend/public/"
           strip_components: 2
@@ -100,7 +102,10 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             cd domains/luckybobastores.com/public_html
-            git pull origin main
+
+            # Only update backend files, NOT frontend assets
+            git fetch origin main
+            git checkout origin/main -- backend
 
             cd backend
             composer install --no-dev --optimize-autoloader || composer2 install --no-dev --optimize-autoloader
@@ -111,12 +116,13 @@ jobs:
             cd ..
 
             # Restore root index.html with corrected asset paths
+            rm -f index.html
             cp backend/public/index.html index.html
             sed -i 's|src="/assets/|src="/backend/public/assets/|g' index.html
             sed -i 's|href="/assets/|href="/backend/public/assets/|g' index.html
             sed -i 's|href="/lucky.jpg"|href="/backend/public/lucky.jpg"|g' index.html
 
-            # Restore .htaccess
+            # Restore Production .htaccess
             cat > .htaccess << 'HTACCESS'
             DirectoryIndex index.html index.php
             Options -Indexes
@@ -156,7 +162,7 @@ jobs:
       - name: Build Frontend (Staging)
         run: |
           cd frontend
-          echo "VITE_API_BASE_URL=https://staging.luckybobastores.com/api" > .env.production
+          echo "VITE_API_BASE_URL=https://luckybobastores.com/api" > .env.production
           npm install
           npm run build
 
@@ -167,6 +173,8 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT }}
+          timeout: 60s             
+          command_timeout: 10m
           source: "frontend/dist/"
           target: "domains/luckybobastores.com/staging/backend/public/"
           strip_components: 2
@@ -179,11 +187,11 @@ jobs:
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            # Create staging folder structure if it doesn't exist yet
-            mkdir -p ~/domains/luckybobastores.com/staging/backend/public/assets
-
             cd domains/luckybobastores.com/staging
-            git pull origin staging
+
+            # Only update backend files, NOT the whole repo (which would wipe uploaded assets)
+            git fetch origin staging
+            git checkout origin/staging -- backend
 
             # Setup staging .env if it doesn't exist
             if [ ! -f backend/.env ]; then
@@ -199,13 +207,13 @@ jobs:
             php artisan view:cache
             cd ..
 
-            # Restore staging root index.html with corrected asset paths
+            # Restore Staging index.html from the uploaded build
+            # No sed needed — the built index.html already uses /assets/ which
+            # the .htaccess rewrites to backend/public/assets/ automatically
+            rm -f index.html
             cp backend/public/index.html index.html
-            sed -i 's|src="/assets/|src="/backend/public/assets/|g' index.html
-            sed -i 's|href="/assets/|href="/backend/public/assets/|g' index.html
-            sed -i 's|href="/lucky.jpg"|href="/backend/public/lucky.jpg"|g' index.html
 
-            # Restore staging .htaccess
+            # Restore Staging .htaccess
             cat > .htaccess << 'HTACCESS'
             DirectoryIndex index.html index.php
             Options -Indexes

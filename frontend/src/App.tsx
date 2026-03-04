@@ -3,8 +3,8 @@ import { RouterProvider } from 'react-router-dom';
 import { router } from './routes'; 
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastProvider } from './context/ToastProvider';
-import { prefetchAll } from './utils/prefetch'; // import
-import { useAuth } from './hooks/useAuth';
+import { prefetchAll } from './utils/prefetch'; // import///
+import { useAuth } from './hooks/useAuth';////
 
 function App() {
   const { user, isLoading } = useAuth();

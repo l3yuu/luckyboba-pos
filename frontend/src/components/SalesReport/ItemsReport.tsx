@@ -4,8 +4,18 @@ import { useState, useEffect, useCallback } from 'react';
 import TopNavbar from '../TopNavbar';
 import api from '../../services/api';
 import * as XLSX from 'xlsx';
+import { 
+  Calendar, 
+  FileText, 
+  LayoutGrid, 
+  FileDown, 
+  Printer, 
+  Database, 
+  ChevronDown,
+  Activity,
+  Terminal
+} from 'lucide-react';
 
-// Define a Type for the items
 interface ReportItem {
   name: string;
   category?: string;
@@ -23,7 +33,6 @@ interface ReportResponse {
 const CACHE_KEY_PREFIX = 'luckyboba_report_cache_';
 
 const ItemsReport = () => {
-  // FIX: Calculate actual local date instead of UTC to avoid "Yesterday" bug
   const getLocalToday = () => {
     const now = new Date();
     const offset = now.getTimezoneOffset() * 60000;
@@ -39,22 +48,17 @@ const ItemsReport = () => {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<ReportResponse | null>(null);
 
-  // Generate unique cache key
   const getCacheKey = useCallback((from: string, to: string, type: string) => {
     return `${CACHE_KEY_PREFIX}${from}_${to}_${type}`;
   }, []);
 
-  // --- DATA LOADING & CACHING ---
-  
   const fetchReport = useCallback(async () => {
     const key = getCacheKey(fromDate, toDate, reportType);
-    
     setLoading(true);
     try {
       const response = await api.get('/reports/items-report', {
         params: { from: fromDate, to: toDate, type: reportType }
       });
-      
       localStorage.setItem(key, JSON.stringify(response.data));
       setData(response.data);
     } catch (error) {
@@ -64,48 +68,37 @@ const ItemsReport = () => {
     }
   }, [fromDate, toDate, reportType, getCacheKey]);
 
-  // Load cache or fetch fresh data on mount/filter change
   useEffect(() => {
     const key = getCacheKey(fromDate, toDate, reportType);
     const savedData = localStorage.getItem(key);
-    
     if (savedData) {
       setData(JSON.parse(savedData));
     } else {
-      fetchReport(); // Auto-fetch if no cache exists for today
+      fetchReport();
     }
   }, [fromDate, toDate, reportType, getCacheKey, fetchReport]);
 
-  // --- EXPORT & PRINT ---
   const generateExcel = useCallback(() => {
     if (!data || data.items.length === 0) {
       alert('No data to export');
       return;
     }
-
     const worksheetData = [
       [reportType === 'category-summary' ? 'Category Name' : 'Item Name', 'Qty Sold', 'Total Sales'],
       ...data.items.map(item => [item.name, item.qty, Number(item.amount)]),
       [],
       ['Grand Total', data.total_qty, data.grand_total]
     ];
-
     const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
     worksheet['!cols'] = [{ wch: 30 }, { wch: 15 }, { wch: 20 }];
-
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Items Report');
     XLSX.writeFile(workbook, `Items_Report_${fromDate}_to_${toDate}.xlsx`);
   }, [data, reportType, fromDate, toDate]);
 
   const handlePrint = () => {
-    if (!data || data.items.length === 0) {
-      alert('No data to print');
-      return;
-    }
-    setTimeout(() => {
-      window.print();
-    }, 150);
+    if (!data || data.items.length === 0) return;
+    setTimeout(() => { window.print(); }, 150);
   };
 
   return (
@@ -115,148 +108,167 @@ const ItemsReport = () => {
           .printable-receipt { display: none; }
           @media print {
             @page { size: 80mm auto; margin: 0; }
-            html, body, #root { background: white !important; margin: 0 !important; padding: 0 !important; }
-            #dashboard-main-container, .TopNavbar { display: none !important; }
-            .printable-receipt { 
-                display: block !important;
-                position: absolute !important;
-                left: 0 !important;
-                top: 0 !important;
-                width: 80mm !important;
-                padding: 6mm !important;
-                background: white !important;
-                color: black !important;
-                font-family: 'Courier New', Courier, monospace;
-            }
-            .printable-receipt * { visibility: visible !important; }
+            html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
+            #dashboard-main-container { display: none !important; }
+            .printable-receipt { display: block !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 80mm !important; padding: 6mm !important; background: white !important; color: black !important; font-family: 'Courier New', monospace; }
             .receipt-divider { border-top: 1px dashed #000 !important; margin: 8px 0; width: 100%; }
             .flex-between { display: flex !important; justify-content: space-between !important; width: 100%; }
           }
         `}
       </style>
 
-      {/* RECEIPT PREVIEW */}
+      {/* PRINTABLE RECEIPT (Functionality preserved) */}
       <div className="printable-receipt text-slate-800">
         <div className="text-center space-y-1">
-          <h1 className="font-black text-[14px] uppercase leading-tight">Lucky Boba Milktea Food and Beverage Trading</h1>
+          <h1 className="font-black text-[14px] uppercase leading-tight">Lucky Boba Milktea</h1>
           <p className="text-[10px] uppercase font-bold">Main Branch - QC</p>
           <div className="receipt-divider"></div>
-          <h2 className="font-black text-[11px] uppercase tracking-widest">
-            {reportType === 'category-summary' ? 'Category Summary' : 'Item Sales'} Report
-          </h2>
+          <h2 className="font-black text-[11px] uppercase tracking-widest">{reportType === 'category-summary' ? 'Category' : 'Item'} Audit</h2>
           <div className="text-left text-[10px] space-y-0.5 mt-2 uppercase">
-            <div className="flex-between"><span>From Date</span> <span>{fromDate}</span></div>
-            <div className="flex-between"><span>To Date</span> <span>{toDate}</span></div>
-            <div className="flex-between"><span>Print Time</span> <span>{new Date().toLocaleTimeString()}</span></div>
-            <div className="flex-between"><span>Terminal</span> <span>POS-01</span></div>
+            <div className="flex-between"><span>Start</span> <span>{fromDate}</span></div>
+            <div className="flex-between"><span>End</span> <span>{toDate}</span></div>
           </div>
         </div>
-
         <div className="my-4 pt-2">
           <div className="receipt-divider"></div>
           <table className="w-full text-[10px]">
-            <thead>
-              <tr className="font-black border-b border-black text-left">
-                <th className="pb-1 uppercase tracking-tighter w-1/2">{reportType === 'category-summary' ? 'Category' : 'Item'}</th>
-                <th className="pb-1 text-center">QTY</th>
-                <th className="pb-1 text-right">TOTAL</th>
-              </tr>
-            </thead>
             <tbody>
-              {data?.items.map((item, index) => (
-                <tr key={index} className="border-b border-zinc-100 last:border-0">
-                  <td className="py-1 uppercase text-[9px] font-bold leading-tight pr-1">{item.name}</td>
-                  <td className="py-1 text-center font-bold">{item.qty}</td>
+              {data?.items.map((item, idx) => (
+                <tr key={idx}>
+                  <td className="py-1 uppercase text-[9px] font-bold">{item.name}</td>
+                  <td className="py-1 text-center font-bold">x{item.qty}</td>
                   <td className="py-1 text-right">{phCurrency.format(item.amount)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
           <div className="receipt-divider"></div>
-          <div className="space-y-1 mt-2">
-            <div className="flex-between text-[10px]"><span>TOTAL ITEMS SOLD</span><span className="font-bold">{data?.total_qty || 0}</span></div>
-            <div className="flex-between font-black text-[12px] pt-1 border-t border-black"><span>TOTAL REVENUE</span><span>{phCurrency.format(data?.grand_total || 0)}</span></div>
-          </div>
-        </div>
-
-        <div className="mt-8 text-center space-y-4">
-          <div className="receipt-divider"></div>
-          <div className="pt-2">
-            <p className="text-[10px] font-bold uppercase">{data?.cashier_name || 'System Admin'}</p>
-            <p className="text-[10px] leading-none">____________________</p>
-            <p className="text-[8px] uppercase mt-1">Prepared By</p>
-          </div>
+          <div className="flex-between font-black text-[12px] pt-1"><span>TOTAL</span><span>{phCurrency.format(data?.grand_total || 0)}</span></div>
         </div>
       </div>
 
-      {/* DASHBOARD UI */}
+      {/* MAIN UI */}
       <div id="dashboard-main-container" className="flex flex-col h-full w-full bg-[#f8f6ff] overflow-hidden relative print:hidden">
         <TopNavbar />
 
-        <div className="flex-1 overflow-y-auto p-8 flex flex-col">
-          <div className="bg-white p-6 rounded-4xl shadow-sm border border-zinc-100 mb-6">
-            <div className="flex flex-col xl:flex-row gap-4 items-end">
-              <div className="flex-1 w-full">
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2 mb-1 block">From Date</label>
-                <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-full p-3 rounded-xl border-2 border-zinc-100 bg-zinc-50 font-bold text-[#3b2063] outline-none focus:border-[#3b2063] transition-all" />
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col gap-4">
+          
+          {/* FILTER CONSOLE */}
+          <div className="bg-white border border-zinc-200 rounded-none p-6 shadow-sm">
+            <div className="flex flex-col lg:flex-row gap-3 items-end">
+              <div className="flex-1 w-full space-y-1.5">
+                <label className="flex items-center gap-2 text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] ml-1">
+                  <Calendar size={12}/> From Date
+                </label>
+                <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-full p-3.5 rounded-none border border-zinc-200 bg-[#f8f6ff] font-black text-[#3b2063] text-xs uppercase tracking-widest outline-none focus:border-[#3b2063]" />
               </div>
-              <div className="flex-1 w-full">
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2 mb-1 block">To Date</label>
-                <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-full p-3 rounded-xl border-2 border-zinc-100 bg-zinc-50 font-bold text-[#3b2063] outline-none focus:border-[#3b2063] transition-all" />
+
+              <div className="flex-1 w-full space-y-1.5">
+                <label className="flex items-center gap-2 text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] ml-1">
+                  <Calendar size={12}/> To Date
+                </label>
+                <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-full p-3.5 rounded-none border border-zinc-200 bg-[#f8f6ff] font-black text-[#3b2063] text-xs uppercase tracking-widest outline-none focus:border-[#3b2063]" />
               </div>
-              <div className="flex-1 w-full">
-                <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest ml-2 mb-1 block">Report Type</label>
-                <select value={reportType} onChange={(e) => setReportType(e.target.value)} className="w-full p-3 rounded-xl border-2 border-zinc-100 bg-zinc-50 font-bold text-[#3b2063] outline-none cursor-pointer focus:border-[#3b2063] transition-all appearance-none">
-                  <option value="item-list">Item List</option>
-                  <option value="category-summary">Category Summary</option>
-                </select>
+
+              <div className="flex-1 w-full space-y-1.5">
+                <label className="flex items-center gap-2 text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] ml-1">
+                  <LayoutGrid size={12}/> Report Mode
+                </label>
+                <div className="relative group">
+                  <select value={reportType} onChange={(e) => setReportType(e.target.value)} className="w-full p-3.5 pr-10 rounded-none border border-zinc-200 bg-[#f8f6ff] font-black text-[#3b2063] text-xs uppercase tracking-widest outline-none cursor-pointer appearance-none group-focus:border-[#3b2063]">
+                    <option value="item-list">Detailed Item List</option>
+                    <option value="category-summary">Category Summary</option>
+                  </select>
+                  <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#3b2063] pointer-events-none" />
+                </div>
               </div>
-              <button onClick={fetchReport} disabled={loading} className="w-full xl:w-40 p-3 bg-[#3b2063] text-white rounded-xl font-black uppercase text-xs tracking-widest hover:opacity-90 active:scale-95 disabled:opacity-50 h-12.5 shadow-lg transition-all">
-                {loading ? "Syncing..." : "Generate"}
-              </button>
-              <button onClick={generateExcel} disabled={!data || data.items.length === 0} className="w-full xl:w-12 h-12.5 p-3 bg-zinc-100 text-[#3b2063] rounded-xl flex items-center justify-center hover:bg-zinc-200 transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" /></svg>
-              </button>
-              <button onClick={handlePrint} disabled={!data || data.items.length === 0} className="w-full xl:w-12 h-12.5 p-3 bg-zinc-100 text-[#3b2063] rounded-xl flex items-center justify-center hover:bg-zinc-200 transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.89 8.1 14.7c1.88 1.1 4.72.5 5.51-1.34L15.35 9.48c.66-1.53.12-3.3-1.25-3.95L12.7 4.88c-1.41-.67-3.1-.22-3.9 1.07L6.64 9.41c-.62 1.01-.59 2.3.08 3.28ZM19.5 21h-15" /></svg>
-              </button>
+
+              <div className="flex gap-2 w-full lg:w-auto">
+                <button onClick={fetchReport} disabled={loading} className="flex-1 lg:w-32 bg-[#3b2063] text-white rounded-none font-black uppercase text-[10px] tracking-[0.2em] h-[50px] shadow-lg hover:bg-[#2a174a] transition-all disabled:opacity-50">
+                  {loading ? "SYNCING..." : "QUERY"}
+                </button>
+                <button onClick={generateExcel} disabled={!data || data.items.length === 0} className="w-14 h-[50px] bg-white border border-zinc-200 text-[#3b2063] rounded-none flex items-center justify-center hover:bg-zinc-50 transition-all">
+                  <FileDown size={18}/>
+                </button>
+                <button onClick={handlePrint} disabled={!data || data.items.length === 0} className="w-14 h-[50px] bg-white border border-zinc-200 text-[#3b2063] rounded-none flex items-center justify-center hover:bg-zinc-50 transition-all">
+                  <Printer size={18}/>
+                </button>
+              </div>
             </div>
           </div>
 
-          <div className="flex-1 bg-white rounded-[2.5rem] shadow-xl border border-zinc-100 flex flex-col overflow-hidden relative">
-            <div className="flex-1 overflow-auto">
+          {/* REPORT DATA PANEL */}
+          <div className="flex-1 bg-white rounded-none border border-zinc-200 shadow-sm flex flex-col overflow-hidden relative">
+            <div className="px-8 py-5 border-b border-zinc-100 bg-zinc-50 flex justify-between items-center">
+              <div className="flex items-center gap-4">
+                <div className="p-2.5 bg-[#3b2063] text-white rounded-none shadow-md shadow-purple-900/10"><FileText size={18}/></div>
+                <div>
+                  <h3 className="text-[#3b2063] font-black text-xs uppercase tracking-[0.3em]">Inventory Performance Ledger</h3>
+                  <p className="text-zinc-400 font-black text-[9px] uppercase tracking-widest mt-1">Terminal Audit POS-01</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-6">
+                <div className="text-right hidden md:block">
+                   <p className="text-[8px] font-black text-zinc-300 uppercase tracking-widest">Operator</p>
+                   <p className="text-[10px] font-black text-[#3b2063] uppercase">{data?.cashier_name || 'Terminal Root'}</p>
+                </div>
+                <div className="bg-white border border-zinc-200 px-4 py-2 flex items-center gap-2">
+                   <Activity size={12} className="text-emerald-500" />
+                   <span className="text-[9px] font-black text-[#3b2063] uppercase tracking-widest">{data?.items.length || 0} Records</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-auto no-scrollbar">
               <table className="w-full text-left">
                 <thead className="sticky top-0 bg-white z-10 border-b border-zinc-100">
                   <tr>
-                    <th className="px-8 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{reportType === 'category-summary' ? 'Category Name' : 'Item Name'}</th>
-                    <th className="px-8 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest text-right">Qty Sold</th>
-                    <th className="px-8 py-4 text-[10px] font-bold text-zinc-400 uppercase tracking-widest text-right">Total Sales</th>
+                    <th className="px-8 py-5 text-[9px] font-black text-zinc-400 uppercase tracking-[0.3em]">{reportType === 'category-summary' ? 'Category Classification' : 'Item Description'}</th>
+                    <th className="px-8 py-5 text-[9px] font-black text-zinc-400 uppercase tracking-[0.3em] text-right">Units Sold</th>
+                    <th className="px-8 py-5 text-[9px] font-black text-zinc-400 uppercase tracking-[0.3em] text-right">Revenue Accumulation</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-50">
-                  {data?.items.map((item, index) => (
-                    <tr key={index} className="hover:bg-[#f8f6ff] transition-colors">
-                      <td className="px-8 py-4 text-sm font-bold text-[#3b2063] uppercase">{item.name}</td>
-                      <td className="px-8 py-4 text-sm font-bold text-zinc-600 text-right">{item.qty}</td>
-                      <td className="px-8 py-4 text-sm font-black text-[#3b2063] text-right">{phCurrency.format(item.amount)}</td>
+                  {data?.items.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-[#f8f6ff] transition-colors group">
+                      <td className="px-8 py-4 text-xs font-black text-[#3b2063] uppercase tracking-tight">{item.name}</td>
+                      <td className="px-8 py-4 text-xs font-black text-zinc-400 text-right tabular-nums">{item.qty}</td>
+                      <td className="px-8 py-4 text-xs font-black text-[#3b2063] text-right tabular-nums">{phCurrency.format(item.amount)}</td>
                     </tr>
                   ))}
                   {!loading && (!data || data.items.length === 0) && (
-                    <tr><td colSpan={3} className="px-8 py-10 text-center text-zinc-400 font-bold uppercase text-xs">No records found</td></tr>
+                    <tr>
+                      <td colSpan={3} className="px-8 py-20 text-center">
+                         <Database size={40} className="mx-auto text-zinc-100 mb-3" />
+                         <p className="text-[10px] text-zinc-300 uppercase font-black tracking-[0.4em]">No database entries for selected range</p>
+                      </td>
+                    </tr>
                   )}
                 </tbody>
-                <tfoot className="bg-zinc-50 font-black text-[#3b2063]">
-                  <tr>
-                    <td className="px-8 py-4 text-right uppercase text-xs tracking-widest">Grand Total</td>
-                    <td className="px-8 py-4 text-right">{data?.total_qty || 0}</td>
-                    <td className="px-8 py-4 text-right text-lg">{phCurrency.format(data?.grand_total || 0)}</td>
-                  </tr>
-                </tfoot>
               </table>
             </div>
-            {loading && data && (
-              <div className="absolute top-0 left-0 right-0 h-1 bg-purple-200">
-                <div className="h-full bg-[#3b2063] animate-pulse"></div>
+
+            {/* GRAND TOTAL BAR */}
+            <div className="bg-[#3b2063] text-white flex justify-between items-center px-8 py-6">
+               <div className="flex items-center gap-3">
+                  <Terminal size={16} className="text-purple-300/50" />
+                  <span className="text-[11px] font-black uppercase tracking-[0.3em] text-purple-300">Shift Total Settlement</span>
+               </div>
+               <div className="flex gap-12 text-right">
+                  <div>
+                    <p className="text-[8px] font-black text-purple-300/50 uppercase tracking-widest mb-1">Volume</p>
+                    <p className="text-xl font-black tabular-nums">{data?.total_qty || 0}</p>
+                  </div>
+                  <div>
+                    <p className="text-[8px] font-black text-purple-300/50 uppercase tracking-widest mb-1">Revenue</p>
+                    <p className="text-xl font-black tabular-nums tracking-tighter text-emerald-400">{phCurrency.format(data?.grand_total || 0)}</p>
+                  </div>
+               </div>
+            </div>
+
+            {loading && (
+              <div className="absolute top-0 left-0 right-0 h-1 bg-purple-100">
+                <div className="h-full bg-[#3b2063] animate-[loading_1.5s_infinite] w-1/3"></div>
               </div>
             )}
           </div>
