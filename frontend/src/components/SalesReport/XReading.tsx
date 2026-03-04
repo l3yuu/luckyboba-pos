@@ -423,33 +423,42 @@ const XReading = () => {
       <div className="my-2">
         <Divider />
         {rows.length === 0 ? (
-          <p className="text-[11px] text-center py-2">{reportData?.report_type === 'search' ? 'No receipts found.' : 'No transactions found.'}</p>
+          <p className="text-[11px] text-center py-2">
+            {reportData?.report_type === 'search' ? 'No receipts found.' : 'No transactions found.'}
+          </p>
         ) : (
           <>
             <div className="flex text-[11px] border-b border-black pb-0.5 mb-0.5">
-              <span className="w-[50%] uppercase">INVOICE</span>
-              <span className="w-[25%] uppercase">STATUS</span>
-              <span className="w-[25%] text-right uppercase">AMT</span>
+              <span className="flex-1 uppercase">INVOICE / DATE</span>
+              <span className="w-[30%] text-right uppercase">AMT</span>
             </div>
             {rows.map((tx, i) => {
-              const status = 'Status' in tx ? tx.Status : '';
+              const status   = 'Status' in tx ? tx.Status : '';
               const dateTime = 'Date_Time' in tx ? tx.Date_Time : ('Date' in tx ? (tx as { Date: string }).Date : '');
+              const isCancelled = status?.toLowerCase() === 'cancelled';
               return (
-                <div key={i} className="border-b border-dotted border-zinc-300 py-0.5">
-                  <div className="flex text-[11px] leading-snug">
-                    <span className="w-[50%] uppercase">#{tx.Invoice}</span>
-                    <span className="w-[25%] uppercase">{status}</span>
-                    <span className="w-[25%] text-right">{phCurrency.format(tx.Amount)}</span>
+                <div key={i} className="border-b border-dotted border-zinc-800 py-0.5">
+                  <div className="flex text-[14px] leading-snug">
+                    <span className="flex-1 uppercase">{tx.Invoice}</span>
+                    <span className={`w-[30%] text-right ${isCancelled ? 'line-through text-zinc-800' : ''}`}>
+                      {phCurrency.format(tx.Amount)}
+                    </span>
                   </div>
-                  <div className="text-[10px] pl-1">{dateTime}</div>
+                  <div className="flex text-[10px] leading-snug text-zinc-1000">
+                    <span className="flex-1">{dateTime}</span>
+                    <span className={`text-right text-[10px] uppercase ${isCancelled ? 'text-red-800' : 'text-zinc-1000'}`}>
+                      {status}
+                    </span>
+                  </div>
                 </div>
               );
             })}
           </>
         )}
-        <Divider />
-        <Row label="TOTAL TRANSACTIONS" value={rows.length} />
-        <Row label="TOTAL AMOUNT" value={phCurrency.format(total)} />
+        <div className="mt-3">
+          <Row label="TOTAL TRANSACTIONS" value={rows.length} />
+          <Row label="TOTAL AMOUNT"       value={phCurrency.format(total)} />
+        </div>
       </div>
     );
   };
@@ -916,7 +925,7 @@ const XReading = () => {
                 })()}
 
                 {/* Footer */}
-                {reportData.report_type !== 'summary' && reportData.report_type !== 'qty_items' && (
+                {reportData.report_type !== 'summary' && reportData.report_type !== 'qty_items' && reportData.report_type !== 'search' && (
                   <div className="mt-6 text-center text-[11px]">
                     <Divider />
                     <p className="uppercase mt-1">{reportData?.prepared_by || cashierName}</p>
