@@ -273,10 +273,7 @@ const XReading = () => {
   // ── RENDER HELPERS ─────────────────────────────────────────────────────────
 
   const renderHourlySales = () => {
-    const HOUR_LABELS = [
-      '12am','1am','2am','3am','4am','5am','6am','7am','8am','9am','10am','11am',
-      '12pm','1pm','2pm','3pm','4pm','5pm','6pm','7pm','8pm','9pm','10pm','11pm',
-    ];
+    const HOUR_LABELS = ['12am','1am','2am','3am','4am','5am','6am','7am','8am','9am','10am','11am','12pm','1pm','2pm','3pm','4pm','5pm','6pm','7pm','8pm','9pm','10pm','11pm'];
     const salesMap = new Map<number, { total: number; count: number }>();
     reportData?.hourly_data?.forEach(item => salesMap.set(Number(item.hour), { total: Number(item.total), count: Number(item.count) }));
     const totalSales = reportData?.hourly_data?.reduce((a, c) => a + Number(c.total), 0) ?? 0;
@@ -914,24 +911,24 @@ const renderDetailedSales = () => {
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className={`flex items-center gap-2 font-bold text-sm px-4 py-2 rounded-md transition-colors ${isMenuOpen ? 'bg-blue-50 text-blue-600' : 'text-slate-700 hover:bg-zinc-50'}`}
+              className={`flex items-center gap-2 font-bold text-xs px-4 h-11 border transition-colors rounded-none ${isMenuOpen ? 'bg-[#3b2063] text-white border-[#3b2063]' : 'text-zinc-700 border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'}`}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
               </svg>
               MENU
             </button>
             {isMenuOpen && (
-              <div className="absolute top-full left-0 mt-2 w-100 bg-white rounded-xl shadow-2xl border border-zinc-200 p-6 z-50 max-h-[70vh] overflow-y-auto">
-                <div className="grid grid-cols-2 gap-4">
+              <div className="absolute top-full left-0 mt-1 w-96 bg-white border border-zinc-200 shadow-2xl p-5 z-50 max-h-[70vh] overflow-y-auto rounded-none">
+                <div className="grid grid-cols-2 gap-3">
                   {menuCards.map((card, index) => (
                     <div
                       key={index}
                       onClick={() => { handleMenuAction(card.type); setIsMenuOpen(false); }}
-                      className={`bg-white border-l-4 ${card.color} rounded-r-lg shadow-sm p-4 h-24 flex flex-col justify-center cursor-pointer group hover:bg-slate-50 transition-all`}
+                      className={`bg-white border-l-4 ${card.color} shadow-sm p-4 h-20 flex flex-col justify-center cursor-pointer group hover:bg-slate-50 transition-all rounded-none`}
                     >
                       <h3 className="text-zinc-400 font-bold uppercase tracking-widest text-[9px] mb-1">{card.label}</h3>
-                      <h2 className="text-sm font-black text-slate-800 uppercase group-hover:text-blue-700">{card.title || card.actionLabel}</h2>
+                      <h2 className="text-sm font-black text-slate-800 uppercase group-hover:text-[#3b2063]">{card.title || card.actionLabel}</h2>
                     </div>
                   ))}
                 </div>
@@ -939,12 +936,13 @@ const renderDetailedSales = () => {
             )}
           </div>
 
+          {/* Date input */}
           <div className="flex-1 w-full flex gap-2">
             <input
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="flex-1 px-4 py-2 rounded-md border border-zinc-200 bg-zinc-50 font-bold h-12"
+              className="flex-1 px-4 h-11 border border-zinc-300 bg-zinc-50 font-bold text-sm rounded-none focus:outline-none focus:border-[#3b2063]"
             />
             {reportData?.report_type === 'search' && (
               <div className="flex gap-2 flex-1">
@@ -954,7 +952,7 @@ const renderDetailedSales = () => {
                   onChange={(e) => setInvoiceQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && fetchReportData('search')}
                   placeholder="Search invoice / cashier..."
-                  className="flex-1 px-4 py-2 rounded-md border border-blue-300 bg-blue-50 font-bold h-12 text-sm"
+                  className="flex-1 px-4 h-11 border border-zinc-300 bg-zinc-50 font-bold text-sm rounded-none focus:outline-none focus:border-[#3b2063]"
                 />
                 <button onClick={() => fetchReportData('search')} disabled={loading}
                   className="px-4 h-12 bg-blue-600 text-white rounded-md font-bold text-xs uppercase disabled:opacity-50">
@@ -964,6 +962,7 @@ const renderDetailedSales = () => {
             )}
           </div>
 
+          {/* ── ACTION BUTTONS — SEPARATE BOX STYLE ── */}
           <div className="flex gap-2">
             <button onClick={handleGenerate} disabled={loading}
               className="px-6 h-12 bg-[#1e40af] text-white rounded-md font-bold uppercase text-xs disabled:opacity-50">
@@ -980,16 +979,23 @@ const renderDetailedSales = () => {
               </button>
             )}
           </div>
+
+          {rawApiResponse && (
+            <button
+              onClick={() => setShowDebug(!showDebug)}
+              className="px-4 h-11 bg-amber-500 text-white font-bold text-xs uppercase tracking-widest hover:bg-amber-600 transition-colors rounded-none"
+            >
+              {showDebug ? 'Hide' : 'Debug'}
+            </button>
+          )}
         </div>
 
-        {/* Error Banner */}
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm font-bold print:hidden">
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm font-bold print:hidden rounded-none">
             ⚠️ {error}
           </div>
         )}
 
-        {/* Debug Panel */}
         {showDebug && rawApiResponse && (
           <div className="mb-4 p-4 bg-zinc-900 text-green-400 rounded-lg text-[11px] font-mono overflow-auto max-h-64 print:hidden">
             <p className="text-yellow-400 font-black mb-2 text-xs">⚡ RAW API RESPONSE:</p>
@@ -1000,7 +1006,7 @@ const renderDetailedSales = () => {
         <div className="flex-1 flex flex-col items-center justify-start py-10">
           {loading ? (
             <div className="flex flex-col items-center mt-20 opacity-50">
-              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3" />
+              <div className="w-8 h-8 border-4 border-[#3b2063] border-t-transparent rounded-full animate-spin mb-3" />
               <p className="text-sm text-zinc-400 font-bold uppercase">Generating report...</p>
             </div>
           ) : reportData ? (
@@ -1024,7 +1030,6 @@ const renderDetailedSales = () => {
                     <Row label="TERMINAL"    value="POS-01" />
                   </div>
                 </div>
-
                 {(() => {
                   switch (reportData.report_type) {
                     case 'hourly_sales': return renderHourlySales();
