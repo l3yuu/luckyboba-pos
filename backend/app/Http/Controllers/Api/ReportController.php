@@ -486,13 +486,30 @@ Log::info('Senior rows data: ' . $seniorRows->toJson());
             $from = $date . ' 00:00:00';
             $to   = $date . ' 23:59:59';
 
-            $data = $this->getDetailedData($from, $to);
+            $transactions = Sale::whereBetween('sales.created_at', [$from, $to])
+                ->leftJoin('users', 'users.id', '=', 'sales.user_id')
+                ->selectRaw('
+                    sales.invoice_number                                          as Invoice,
+                    sales.total_amount                                            as Amount,
+                    sales.status                                                  as Status,
+                    sales.created_at                                              as Date_Time,
+                    sales.payment_method                                          as Method,
+                    COALESCE(users.name, "N/A")                                   as Cashier,
+                    COALESCE(sales.vatable_sales, ROUND(sales.total_amount / 1.12, 2)) as Vatable,
+                    COALESCE(sales.vat_amount,    ROUND(sales.total_amount - (sales.total_amount / 1.12), 2)) as Tax,
+                    (COALESCE(sales.pax_senior, 0) + COALESCE(sales.pax_pwd, 0)) as Disc_Pax,
+                    (SELECT COUNT(*) FROM sale_items WHERE sale_items.sale_id = sales.id) as Items_Count
+                ')
+                ->orderBy('sales.created_at', 'desc')
+                ->get();
 
-            return response()->json($data);
+            return response()->json([
+                'transactions' => $transactions,
+            ]);
 
         } catch (\Exception $e) {
             Log::error("getSalesDetailed Error: " . $e->getMessage());
-            return response()->json(['error' => 'Failed to generate detailed sales report'], 500);
+            return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
