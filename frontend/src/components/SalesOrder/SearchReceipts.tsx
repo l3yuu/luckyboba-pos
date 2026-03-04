@@ -37,7 +37,7 @@ const TableSkeleton = () => (
 const SearchReceipts = () => {
   const { showToast } = useToast();
 
-  const [showKeyboard, setShowKeyboard] = useState(false);
+  const [showKeyboard] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchResults, setSearchResults] = useState<Receipt[]>([]);
