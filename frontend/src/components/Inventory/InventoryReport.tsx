@@ -6,6 +6,8 @@ import api from '../../services/api';
 import { Loader2 } from 'lucide-react';
 import { getCache, setCache } from '../../utils/cache';
 
+const dashboardFont = { fontFamily: "'Inter', sans-serif" };
+
 interface CriticalItem {
   name: string;
   remaining: number;
@@ -56,66 +58,94 @@ const InventoryReport = () => {
   }, []);
 
   return (
-    <div className="flex-1 bg-[#f4f5f7] h-full flex flex-col overflow-hidden font-sans">
-      <TopNavbar />
-      <div className="flex-1 p-8 flex flex-col gap-8 overflow-y-auto">
-        <div className="flex justify-between items-end">
-          <div>
-            <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest leading-none">Inventory Report</h1>
-            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Stock Level Analytics & Valuation</p>
+    <>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');`}</style>
+      <div className="flex-1 bg-[#f3f0ff] h-full flex flex-col overflow-hidden font-sans" style={dashboardFont}>
+        <TopNavbar />
+        <div className="flex-1 overflow-y-auto p-5 md:p-7 flex flex-col gap-4">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
+              <h1 className="text-lg font-extrabold text-[#1c1c1e] mt-0.5">Inventory Report</h1>
+            </div>
+            <div className="flex gap-2">
+              <button className="h-11 px-7 bg-white border border-zinc-300 text-zinc-500 font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-colors rounded-none">Export CSV</button>
+              <button className="h-11 px-7 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm">Print PDF</button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <button className="px-4 py-2 border-2 border-zinc-200 text-zinc-500 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:bg-white transition-all">Export CSV</button>
-            <button className="px-4 py-2 bg-[#3b2063] text-white rounded-lg font-bold text-[10px] uppercase tracking-widest shadow-md hover:bg-[#2a1647] transition-all">Print PDF</button>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          {loading ? (
-            [...Array(4)].map((_, i) => <div key={i} className="h-24 bg-white animate-pulse rounded-2xl border border-zinc-100" />)
-          ) : (
-            metrics.map((m, i) => (
-              <div key={i} className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
-                <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1">{m.label}</p>
-                <p className={`text-xl font-black ${m.color}`}>{m.value}</p>
-              </div>
-            ))
-          )}
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden relative">
-          {loading && <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10"><Loader2 className="animate-spin text-[#3b2063]" /></div>}
-          <div className="bg-red-50 px-6 py-4 border-b border-red-100 flex items-center gap-2">
-            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-            <h2 className="text-red-600 font-black text-xs uppercase tracking-widest">Critical Stock Alerts</h2>
+          {/* Metrics cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {loading ? (
+              [...Array(4)].map((_, i) => <div key={i} className="h-24 bg-white animate-pulse rounded-none border border-zinc-200" />)
+            ) : (
+              metrics.map((m, i) => (
+                <div key={i} className="bg-white p-6 rounded-none shadow-sm border border-zinc-200">
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">{m.label}</p>
+                  <p className={`text-xl font-extrabold ${m.color}`}>{m.value}</p>
+                </div>
+              ))
+            )}
           </div>
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-zinc-50 border-b border-zinc-200">
-              <tr>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Item Name</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Remaining</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Unit Cost</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Potential Loss</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {criticalItems.length > 0 ? (
-                criticalItems.map((item, idx) => (
-                  <tr key={idx} className="hover:bg-zinc-50 transition-colors">
-                    <td className="px-6 py-4 text-xs font-bold text-slate-700">{item.name}</td>
-                    <td className="px-6 py-4 text-center"><span className="text-red-500 font-black">{item.remaining} Units</span></td>
-                    <td className="px-6 py-4 text-xs font-bold text-zinc-400 text-center">₱{item.unitCost.toLocaleString()}</td>
-                    <td className="px-6 py-4 text-xs font-black text-slate-700 text-right">₱{item.potentialLoss.toLocaleString()}</td>
+
+          {/* Critical stock alerts table */}
+          <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-none">
+            {loading && <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10 backdrop-blur-[1px]"><Loader2 className="animate-spin text-[#3b2063]" size={32} /></div>}
+            <div className="bg-red-50 px-7 py-4 border-b border-red-100 flex items-center gap-2">
+              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              <h2 className="text-red-600 font-extrabold text-xs uppercase tracking-widest">Critical Stock Alerts</h2>
+            </div>
+            <table className="w-full text-left border-collapse">
+              <thead className="sticky top-0 bg-white z-10 border-b-2 border-zinc-100">
+                <tr>
+                  <th className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Item Name</th>
+                  <th className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center">Remaining</th>
+                  <th className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center">Unit Cost</th>
+                  <th className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-right">Potential Loss</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {criticalItems.length > 0 ? (
+                  criticalItems.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-[#f9f8ff] transition-colors">
+                      <td className="px-7 py-3.5">
+                        <span className="text-[13px] font-extrabold text-[#3b2063]">{item.name}</span>
+                      </td>
+                      <td className="px-7 py-3.5 text-center">
+                        <span className="text-red-500 font-extrabold">{item.remaining} Units</span>
+                      </td>
+                      <td className="px-7 py-3.5 text-center">
+                        <span className="text-[12px] font-semibold text-zinc-500">₱{item.unitCost.toLocaleString()}</span>
+                      </td>
+                      <td className="px-7 py-3.5 text-right">
+                        <span className="text-[13px] font-extrabold text-[#1c1c1e]">₱{item.potentialLoss.toLocaleString()}</span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={4} className="px-8 py-20 text-center">
+                      <p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">All stock levels are healthy</p>
+                    </td>
                   </tr>
-                ))
-              ) : (
-                <tr><td colSpan={4} className="px-6 py-8 text-center text-zinc-400 text-xs font-bold uppercase">All stock levels are healthy</td></tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+            {/* Footer */}
+            <div className="px-7 py-4 bg-white border-t border-zinc-100 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Synchronized</span>
+              </div>
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                Showing {criticalItems.length} critical items
+              </p>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

@@ -7,6 +7,8 @@ import { useToast } from '../hooks/useToast';
 import { Loader2 } from 'lucide-react';
 import { getCache, setCache, clearCache } from '../utils/cache';
 
+const dashboardFont = { fontFamily: "'Inter', sans-serif" };
+
 interface ExpenseItem {
   id?: number;
   refNum: string;
@@ -48,7 +50,7 @@ const Expense = () => {
   const [toDate, setToDate] = useState(getToday());
   const [refNumSearch, setRefNumSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
-  
+
   const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
   const [summary, setSummary] = useState({ totalExpense: 0, totalSales: 0, netTotal: 0 });
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -81,14 +83,14 @@ const Expense = () => {
     setIsFetching(true);
     try {
       const response = await api.get('/expenses', {
-        params: { 
-          from: fromDate, 
-          to: toDate, 
+        params: {
+          from: fromDate,
+          to: toDate,
           ref: refNumSearch,
           category: categoryFilter !== 'ALL' ? categoryFilter : undefined
         }
       });
-      
+
       const mapped: ExpenseItem[] = response.data.expenses.map((e: RawExpenseData) => ({
         id: e.id,
         refNum: e.ref_num,
@@ -153,140 +155,212 @@ const Expense = () => {
   };
 
   return (
-    <div className="flex-1 bg-[#f4f5f7] h-full flex flex-col overflow-hidden font-sans relative">
-      <TopNavbar />
+    <>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');`}</style>
+      <div className="flex-1 bg-[#f3f0ff] h-full flex flex-col overflow-hidden font-sans" style={dashboardFont}>
+        <TopNavbar />
 
-      <div className="flex-1 overflow-y-auto p-6 flex flex-col">
-        
-        {/* === HEADER SECTION === */}
-        <div className="flex justify-between items-end mb-6">
-          <div>
-            <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest leading-none">Expenses</h1>
-            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Financial Tracking</p>
-          </div>
-          <button onClick={() => setIsAddModalOpen(true)} className="px-6 py-2 bg-[#10b981] text-white rounded-md font-bold text-[10px] uppercase tracking-widest shadow-sm hover:bg-[#0da673] transition-all active:scale-95">ADD NEW EXPENSE</button>
-        </div>
-
-        {/* === TOP FILTER BAR === */}
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-zinc-200 mb-6 flex flex-col xl:flex-row items-center gap-4">
-          <div className="flex flex-1 gap-2 w-full xl:w-auto">
-            <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="flex-1 px-4 py-2 rounded-lg border border-zinc-200 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-[#3b2063]" />
-            <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="flex-1 px-4 py-2 rounded-lg border border-zinc-200 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-[#3b2063]" />
-          </div>
-
-          <div className="w-full xl:w-64">
-            <input type="text" placeholder="Search Ref #" value={refNumSearch} onChange={(e) => setRefNumSearch(e.target.value)} className="w-full px-4 py-2 rounded-lg border border-zinc-200 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-[#3b2063] placeholder:text-zinc-400" />
-          </div>
-
-          <div className="w-full xl:w-48">
-            <select 
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-zinc-200 bg-zinc-50 text-slate-700 font-bold text-xs outline-none focus:border-[#3b2063] cursor-pointer"
-            >
-              <option value="ALL">All Categories</option>
-              <option value="Bills">Bills</option>
-              <option value="Salary">Salary</option>
-              <option value="Rent">Rent</option>
-              <option value="Inventory Purchase">Inventory Purchase</option> {/* Added this category for POs */}
-              <option value="Miscellaneous">Miscellaneous</option>
-            </select>
-          </div>
-
-          <div className="flex gap-2 w-full xl:w-auto">
-            <button onClick={() => fetchExpenses(true)} className="flex-1 xl:flex-none px-8 py-2 bg-[#3b2063] text-white rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-[#2a1647] shadow-sm transition-all">SEARCH</button>
-          </div>
-        </div>
-
-        {/* === SUMMARY BOXES === */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
-            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Total Sales</p>
-            <p className="text-2xl font-black text-emerald-500">{isFetching ? "..." : `₱${summary.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}</p>
-          </div>
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
-            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Total Expense</p>
-            <p className="text-2xl font-black text-red-500">{isFetching ? "..." : `₱${summary.totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}</p>
-          </div>
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
-            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Net Total</p>
-            <p className={`text-2xl font-black ${summary.netTotal >= 0 ? 'text-[#3b2063]' : 'text-red-600'}`}>{isFetching ? "..." : `₱${summary.netTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}</p>
-          </div>
-        </div>
-
-        {/* === EXPENSE TABLE === */}
-        <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden flex flex-col relative">
-          {isFetching && (
-            <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center backdrop-blur-[1px]">
-              <Loader2 className="animate-spin text-[#3b2063]" size={32} />
+        <div className="flex-1 overflow-y-auto p-5 md:p-7 flex flex-col gap-4">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Finance</p>
+              <h1 className="text-lg font-extrabold text-[#1c1c1e] mt-0.5">Expenses</h1>
             </div>
-          )}
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-zinc-50 border-b border-zinc-200">
-              <tr>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Reference Number</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Date</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Description</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Category</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Amount</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {expenses.length === 0 ? (
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="h-11 px-7 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm"
+            >
+              ADD NEW EXPENSE
+            </button>
+          </div>
+
+          {/* Filter bar */}
+          <div className="bg-white border border-zinc-200 p-4 rounded-none shadow-sm flex flex-col xl:flex-row items-center gap-4">
+            <div className="flex flex-1 gap-2 w-full xl:w-auto">
+              <input
+                type="date"
+                value={fromDate}
+                onChange={(e) => setFromDate(e.target.value)}
+                className="flex-1 px-4 py-3 rounded-none border border-zinc-300 bg-white text-sm font-semibold outline-none focus:border-[#3b2063]"
+              />
+              <input
+                type="date"
+                value={toDate}
+                onChange={(e) => setToDate(e.target.value)}
+                className="flex-1 px-4 py-3 rounded-none border border-zinc-300 bg-white text-sm font-semibold outline-none focus:border-[#3b2063]"
+              />
+            </div>
+
+            <div className="w-full xl:w-64">
+              <input
+                type="text"
+                placeholder="Search Ref #"
+                value={refNumSearch}
+                onChange={(e) => setRefNumSearch(e.target.value)}
+                className="w-full px-4 py-3 rounded-none border border-zinc-300 bg-white text-sm font-semibold outline-none focus:border-[#3b2063] placeholder:text-zinc-400"
+              />
+            </div>
+
+            <div className="w-full xl:w-48">
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="w-full px-4 py-3 rounded-none border border-zinc-300 bg-white text-sm font-semibold outline-none focus:border-[#3b2063] cursor-pointer"
+              >
+                <option value="ALL">All Categories</option>
+                <option value="Bills">Bills</option>
+                <option value="Salary">Salary</option>
+                <option value="Rent">Rent</option>
+                <option value="Inventory Purchase">Inventory Purchase</option>
+                <option value="Miscellaneous">Miscellaneous</option>
+              </select>
+            </div>
+
+            <div className="flex gap-2 w-full xl:w-auto">
+              <button
+                onClick={() => fetchExpenses(true)}
+                className="flex-1 xl:flex-none h-11 px-7 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none"
+              >
+                SEARCH
+              </button>
+            </div>
+          </div>
+
+          {/* Summary cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white p-6 rounded-none shadow-sm border border-zinc-200">
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Total Sales</p>
+              <p className="text-2xl font-extrabold text-black">{isFetching ? "..." : `₱${summary.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}</p>
+            </div>
+            <div className="bg-white p-6 rounded-none shadow-sm border border-zinc-200">
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Total Expense</p>
+              <p className="text-2xl font-extrabold text-black">{isFetching ? "..." : `₱${summary.totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}</p>
+            </div>
+            <div className="bg-white p-6 rounded-none shadow-sm border border-zinc-200">
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Net Total</p>
+              <p className="text-2xl font-extrabold text-black">{isFetching ? "..." : `₱${summary.netTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}</p>
+            </div>
+          </div>
+
+          {/* Expense table */}
+          <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-none">
+            {isFetching && (
+              <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center backdrop-blur-[1px]">
+                <Loader2 className="animate-spin text-[#3b2063]" size={32} />
+              </div>
+            )}
+            <table className="w-full text-left border-collapse">
+              <thead className="sticky top-0 bg-white z-10 border-b-2 border-zinc-100">
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-zinc-400 font-bold uppercase tracking-widest text-xs italic">
-                    No records found.
-                  </td>
+                  <th className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Reference Number</th>
+                  <th className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Date</th>
+                  <th className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Description</th>
+                  <th className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Category</th>
+                  <th className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-right">Amount</th>
                 </tr>
-              ) : (
-                expenses.map((item, index) => (
-                  <tr key={index} className="hover:bg-zinc-50 transition-colors">
-                    <td className="px-6 py-4 text-xs font-black text-[#3b2063] font-mono">{item.refNum}</td>
-                    <td className="px-6 py-4 text-xs font-bold text-zinc-400">{item.date}</td>
-                    <td className="px-6 py-4 text-xs font-bold text-slate-700">{item.description || '-'}</td>
-                    <td className="px-6 py-4 text-xs font-black text-slate-500 uppercase">{item.category}</td>
-                    <td className="px-6 py-4 text-xs font-black text-red-500 text-right">
-                      -₱{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {expenses.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-8 py-20 text-center">
+                      <p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">No records found.</p>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  expenses.map((item, index) => (
+                    <tr key={index} className="hover:bg-[#f9f8ff] transition-colors">
+                      <td className="px-7 py-3.5">
+                        <span className="text-[12px] font-semibold text-zinc-500 font-mono">{item.refNum}</span>
+                      </td>
+                      <td className="px-7 py-3.5">
+                        <span className="text-[12px] font-semibold text-zinc-500">{item.date}</span>
+                      </td>
+                      <td className="px-7 py-3.5">
+                        <span className="text-[13px] font-extrabold text-[#3b2063]">{item.description || '-'}</span>
+                      </td>
+                      <td className="px-7 py-3.5">
+                        <span className="text-[12px] font-semibold text-zinc-500 uppercase">{item.category}</span>
+                      </td>
+                      <td className="px-7 py-3.5 text-right">
+                        <span className="text-[13px] font-extrabold text-black">-₱{item.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+            {/* Footer */}
+            <div className="px-7 py-4 bg-white border-t border-zinc-100 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Synchronized</span>
+              </div>
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                Showing {expenses.length} expenses
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* === ADD EXPENSE MODAL (Updated UI) === */}
+      {/* Add expense modal */}
       {isAddModalOpen && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-10 animate-in zoom-in duration-200 relative overflow-hidden">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-none border border-zinc-200 shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
+            <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Finance</p>
+                <h2 className="text-sm font-extrabold text-[#1c1c1e] mt-0.5">Add Expense</h2>
+              </div>
+              <button onClick={() => setIsAddModalOpen(false)} className="text-zinc-300 hover:text-zinc-600 transition-colors p-1 text-lg leading-none">×</button>
+            </div>
+
             {isSubmitting && (
               <div className="absolute inset-0 bg-white/70 z-20 flex items-center justify-center backdrop-blur-sm">
                 <Loader2 className="animate-spin text-[#3b2063]" size={40} />
               </div>
             )}
-            
-            <h2 className="text-[#3b2063] font-black text-lg uppercase tracking-widest mb-6 text-center">Add Expense</h2>
-            
-            <div className="space-y-4">
-              <div>
-                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Reference Number</label>
-                <input type="text" placeholder="e.g. BILL-001" className="w-full bg-[#f8f6ff] border-none rounded-2xl px-5 py-3 text-sm font-bold text-[#3b2063] outline-none font-mono" value={newExpense.refNum} onChange={(e) => setNewExpense({...newExpense, refNum: e.target.value})} />
+
+            <div className="px-7 py-6 flex flex-col gap-5">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Reference Number</label>
+                <input
+                  type="text"
+                  placeholder="e.g. BILL-001"
+                  className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white font-mono"
+                  value={newExpense.refNum}
+                  onChange={(e) => setNewExpense({ ...newExpense, refNum: e.target.value })}
+                />
               </div>
 
-              <div>
-                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Description</label>
-                <textarea placeholder="Brief details about the expense..." className="w-full bg-[#f8f6ff] border-none rounded-2xl px-5 py-3 text-sm font-bold text-[#3b2063] outline-none h-24 resize-none" value={newExpense.description} onChange={(e) => setNewExpense({...newExpense, description: e.target.value})} />
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Description</label>
+                <textarea
+                  placeholder="Brief details about the expense..."
+                  className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white h-24 resize-none"
+                  value={newExpense.description}
+                  onChange={(e) => setNewExpense({ ...newExpense, description: e.target.value })}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Date</label>
-                  <input type="date" className="w-full bg-[#f8f6ff] border-none rounded-2xl px-5 py-3 text-sm font-bold text-[#3b2063] outline-none cursor-pointer" value={newExpense.date} onChange={(e) => setNewExpense({...newExpense, date: e.target.value})} />
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Date</label>
+                  <input
+                    type="date"
+                    className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] focus:border-[#3b2063] focus:bg-white cursor-pointer"
+                    value={newExpense.date}
+                    onChange={(e) => setNewExpense({ ...newExpense, date: e.target.value })}
+                  />
                 </div>
-                <div>
-                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Category</label>
-                  <select className="w-full bg-[#f8f6ff] border-none rounded-2xl px-5 py-3 text-sm font-bold text-[#3b2063] outline-none cursor-pointer" value={newExpense.category} onChange={(e) => setNewExpense({...newExpense, category: e.target.value})}>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Category</label>
+                  <select
+                    className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] focus:border-[#3b2063] focus:bg-white cursor-pointer"
+                    value={newExpense.category}
+                    onChange={(e) => setNewExpense({ ...newExpense, category: e.target.value })}
+                  >
                     <option>Bills</option>
                     <option>Salary</option>
                     <option>Rent</option>
@@ -296,22 +370,42 @@ const Expense = () => {
                 </div>
               </div>
 
-              <div>
-                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Amount (₱)</label>
-                <input type="number" placeholder="0.00" step="0.01" className="w-full bg-[#f8f6ff] border-none rounded-2xl px-5 py-3 text-lg font-black text-red-500 outline-none" value={newExpense.amount} onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})} />
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Amount (₱)</label>
+                <input
+                  type="number"
+                  placeholder="0.00"
+                  step="0.01"
+                  className="w-full px-4 py-3 rounded-none border text-lg font-extrabold outline-none transition-all bg-white text-black focus:border-[#3b2063] focus:bg-white"
+                  value={newExpense.amount}
+                  onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
+                />
               </div>
 
-              <div className="flex gap-4 pt-4">
-                <button onClick={() => setIsAddModalOpen(false)} className="flex-1 py-4 text-zinc-400 font-black text-[10px] uppercase tracking-widest hover:text-zinc-600 transition-colors">Cancel</button>
-                <button onClick={handleSaveExpense} disabled={isSubmitting} className="flex-2 py-4 bg-[#3b2063] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg hover:bg-[#2a1647] transition-all disabled:opacity-50">
-                  Save Expense
+              <div className="flex gap-3 px-7 py-5 border-t border-zinc-100">
+                <button
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="flex-1 h-11 bg-white border border-red-300 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 hover:border-red-400 transition-all rounded-none"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveExpense}
+                  disabled={isSubmitting}
+                  className="flex-1 h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-60 rounded-none"
+                >
+                  {isSubmitting ? (
+                    <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Save Expense</>
+                  ) : (
+                    'Save Expense'
+                  )}
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

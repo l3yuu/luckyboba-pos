@@ -190,7 +190,7 @@ const SearchReceipts = () => {
     <div className="flex flex-col h-full w-full bg-[#f8f6ff] animate-in fade-in zoom-in duration-300 relative overflow-hidden">
       <TopNavbar />
 
-      <div className={`flex-1 flex flex-col items-center justify-start p-4 md:p-8 gap-6 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-[280px]' : ''}`}>
+      <div className={`flex-1 flex flex-col items-center justify-start p-4 md:p-8 gap-6 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-70' : ''}`}>
         
         {/* COMMAND BAR */}
         <div className="w-full max-w-6xl flex flex-col lg:flex-row gap-3">
@@ -209,7 +209,7 @@ const SearchReceipts = () => {
           </div>
 
           <div className="flex gap-3">
-            <div className="bg-white rounded-none border border-zinc-200 flex items-center px-5 gap-3 shadow-sm min-w-[220px]">
+            <div className="bg-white rounded-none border border-zinc-200 flex items-center px-5 gap-3 shadow-sm min-w-55">
               <Calendar size={16} className="text-[#3b2063]" />
               <input 
                 type="date"
@@ -326,7 +326,7 @@ const SearchReceipts = () => {
 
       {/* VOID AUTHORIZATION MODAL */}
       {isReasonModalOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-md rounded-none border border-zinc-200 p-10 shadow-2xl">
             <div className="flex items-center gap-3 mb-6">
                <div className="p-2 bg-red-50 text-red-600 rounded-none"><ShieldAlert size={20}/></div>
