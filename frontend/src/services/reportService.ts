@@ -1,4 +1,4 @@
-// frontend/src/services/reportService.ts
+// services/reportService.ts
 // ─────────────────────────────────────────────────────────────────
 //  Typed service layer for Sales Summary & Branch Comparison APIs
 // ─────────────────────────────────────────────────────────────────
@@ -96,7 +96,7 @@ export interface BranchComparisonResponse {
 // ── Helpers ───────────────────────────────────────────────────────
 
 function getAuthHeaders(): HeadersInit {
-  const token = localStorage.getItem('auth_token');
+  const token = localStorage.getItem('lucky_boba_token');
   return {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -123,11 +123,26 @@ async function post<T>(endpoint: string, body: object): Promise<T> {
 // ── Public API ────────────────────────────────────────────────────
 
 export const reportService = {
+  /**
+   * Fetch the Sales Summary report.
+   *
+   * @example
+   * const data = await reportService.getSalesSummary({ period: 'monthly' });
+   * const data = await reportService.getSalesSummary({ period: 'daily', branch_id: 2, date: '2026-03-04' });
+   */
   getSalesSummary(params: SalesSummaryParams): Promise<SalesSummaryResponse> {
     return post<SalesSummaryResponse>('/reports/sales-summary', params);
   },
 
-  getBranchComparison(params: BranchComparisonParams): Promise<BranchComparisonResponse> {
+  /**
+   * Fetch the Branch Comparison report.
+   *
+   * @example
+   * const data = await reportService.getBranchComparison({ period: 'weekly' });
+   */
+  getBranchComparison(
+    params: BranchComparisonParams
+  ): Promise<BranchComparisonResponse> {
     return post<BranchComparisonResponse>('/reports/branch-comparison', params);
   },
 };
