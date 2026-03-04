@@ -20,6 +20,7 @@ class CashCountSeeder extends Seeder
             [
                 'terminal_id' => '01',
                 'total_amount' => 5450.25,
+                'actual_amount' => 5450.25,
                 'breakdown' => [
                     '1000' => '5',
                     '100' => '4',
@@ -32,6 +33,7 @@ class CashCountSeeder extends Seeder
             [
                 'terminal_id' => '01',
                 'total_amount' => 3200.00,
+                'actual_amount' => 5450.25,
                 'breakdown' => [
                     '500' => '6',
                     '200' => '1'
@@ -42,6 +44,7 @@ class CashCountSeeder extends Seeder
             [
                 'terminal_id' => '01',
                 'total_amount' => 1250.75,
+                'actual_amount' => 5450.25,
                 'breakdown' => [
                     '1000' => '1',
                     '100' => '2',

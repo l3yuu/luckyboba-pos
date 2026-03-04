@@ -52,4 +52,181 @@ jobs:
       - name: Lint & Type Check
         run: cd frontend && npm run lint
       - name: Build Check
-        run: cd frontend && npm run build
+        run: |
+          cd frontend
+          echo "VITE_API_BASE_URL=https://luckybobastores.com/api" > .env.production
+          npm run build
+
+  # ============================================================
+  # PRODUCTION DEPLOY — triggers on push to main
+  # ============================================================
+  deploy-production:
+    runs-on: ubuntu-latest
+    needs: [laravel-backend, react-frontend]
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build Frontend (Production)
+        run: |
+          cd frontend
+          echo "VITE_API_BASE_URL=https://luckybobastores.com/api" > .env.production
+          npm install
+          npm run build
+
+      - name: Upload Build to Hostinger (Production)
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          timeout: 60s            
+          command_timeout: 10m
+          source: "frontend/dist/"
+          target: "domains/luckybobastores.com/public_html/backend/public/"
+          strip_components: 2
+
+      - name: Finalize Production via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cd domains/luckybobastores.com/public_html
+            git fetch origin main
+            git reset --hard origin/main
+
+            cd backend
+            composer install --no-dev --optimize-autoloader || composer2 install --no-dev --optimize-autoloader
+            php artisan migrate --force
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            cd ..
+
+            # Restore root index.html with corrected asset paths
+            cp backend/public/index.html index.html
+            sed -i 's|src="/assets/|src="/backend/public/assets/|g' index.html
+            sed -i 's|href="/assets/|href="/backend/public/assets/|g' index.html
+            sed -i 's|href="/lucky.jpg"|href="/backend/public/lucky.jpg"|g' index.html
+
+            # Restore Production .htaccess
+            cat > .htaccess << 'HTACCESS'
+            DirectoryIndex index.html index.php
+            Options -Indexes
+            <IfModule mod_rewrite.c>
+                RewriteEngine On
+                RewriteBase /
+                RewriteCond %{HTTPS} off
+                RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+                RewriteCond %{REQUEST_FILENAME} -f [OR]
+                RewriteCond %{REQUEST_FILENAME} -d
+                RewriteRule ^ - [L]
+                RewriteRule ^api/(.*)$ backend/public/index.php [L,QSA]
+                RewriteRule ^assets/(.*)$ backend/public/assets/$1 [L]
+                RewriteRule ^lucky\.jpg$ backend/public/lucky.jpg [L]
+                RewriteRule ^favicon\.ico$ backend/public/favicon.ico [L]
+                RewriteRule ^$ index.html [L]
+                RewriteRule ^(.*)$ index.html [L]
+            </IfModule>
+            HTACCESS
+
+  # ============================================================
+  # STAGING DEPLOY — triggers on push to staging branch
+  # ============================================================
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: [laravel-backend, react-frontend]
+    if: github.ref == 'refs/heads/staging'
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build Frontend (Staging)
+        run: |
+          cd frontend
+          echo "VITE_API_BASE_URL=https://staging.luckybobastores.com/api" > .env.production
+          npm install
+          npm run build
+
+      - name: Upload Build to Hostinger (Staging)
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          timeout: 60s             
+          command_timeout: 10m
+          source: "frontend/dist/"
+          target: "domains/luckybobastores.com/staging/backend/public/"
+          strip_components: 2
+
+      - name: Finalize Staging via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            # 1. Pull staging branch into staging folder only
+            cd domains/luckybobastores.com/staging
+            git fetch origin staging
+            git reset --hard origin/staging
+
+            # 2. Setup staging .env if it doesn't exist
+            if [ ! -f backend/.env ]; then
+              cp backend/.env.example backend/.env
+              cd backend && php artisan key:generate && cd ..
+            fi
+
+            cd backend
+            composer install --no-dev --optimize-autoloader || composer2 install --no-dev --optimize-autoloader
+            php artisan migrate --force
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            cd ..
+
+            # 3. Restore Staging index.html
+            cp backend/public/index.html index.html
+            sed -i 's|src="/assets/|src="/backend/public/assets/|g' index.html
+            sed -i 's|href="/assets/|href="/backend/public/assets/|g' index.html
+            sed -i 's|href="/lucky.jpg"|href="/backend/public/lucky.jpg"|g' index.html
+
+            # 4. Restore Staging .htaccess (locked to staging root)
+            cat > .htaccess << 'HTACCESS'
+            DirectoryIndex index.html index.php
+            Options -Indexes
+            <IfModule mod_rewrite.c>
+                RewriteEngine On
+                # Change RewriteBase to /staging/ ONLY if you access via luckybobastores.com/staging
+                RewriteBase /
+                RewriteCond %{HTTPS} off
+                RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+                RewriteCond %{REQUEST_FILENAME} -f [OR]
+                RewriteCond %{REQUEST_FILENAME} -d
+                RewriteRule ^ - [L]
+                RewriteRule ^api/(.*)$ backend/public/index.php [L,QSA]
+                RewriteRule ^assets/(.*)$ backend/public/assets/$1 [L]
+                RewriteRule ^lucky\.jpg$ backend/public/lucky.jpg [L]
+                RewriteRule ^favicon\.ico$ backend/public/favicon.ico [L]
+                RewriteRule ^$ index.html [L]
+                RewriteRule ^(.*)$ index.html [L]
+            </IfModule>
+            HTACCESS
