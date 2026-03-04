@@ -52,6 +52,12 @@ interface XReadingReport {
   total_senior_pax?: number;
   total_pwd_pax?: number;
   total_diplomat_pax?: number;
+  beg_si?: string;
+  end_si?: string;
+  total_qty_sold?: number;
+  cash_drop?: number;
+  cash_in_drawer?: number;
+  cash_in?: number;
 }
 
 // ── Shared receipt row components ──────────────────────────────────────────
@@ -318,7 +324,7 @@ const XReading = () => {
           return (
             <div key={catIdx} className="mb-1">
               {/* Category name */}
-              <p className="text-[11px] uppercase mt-1">{cat.category_name}</p>
+              <p className="text-[11px] font-bold uppercase mt-1">{cat.category_name}</p>
 
               {orderedKeys.map((sizeKey, si) => {
                 const products = sizeGroups.get(sizeKey) ?? [];
@@ -340,10 +346,11 @@ const XReading = () => {
               })}
 
               {/* Category qty total */}
-              <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-400 mt-0.5 pt-0.5">
+              <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-800 mt-0.5 pt-0.5">
                 <span className="uppercase">T. PER: {cat.category_name}</span>
                 <span>QTY: {catTotal}</span>
               </div>
+              <Divider/>
             </div>
           );
         })}
@@ -351,7 +358,6 @@ const XReading = () => {
         {/* Add-ons summary — qty only */}
         {reportData.all_addons_summary && reportData.all_addons_summary.length > 0 && (
           <div className="mt-1">
-            <Divider />
             <p className="text-[11px] uppercase">ADD ONS</p>
             {reportData.all_addons_summary.map((addon, idx) => (
               <div key={idx} className="flex text-[11px] leading-snug">
@@ -595,17 +601,6 @@ const XReading = () => {
                   <span className="w-[35%] text-right">{r.value}</span>
                 </div>
               ))}
-
-              <Divider />
-
-              {/* Payment methods */}
-              {reportData?.payment_breakdown?.map((p, i) => (
-                <div key={i} className="flex text-[11px] leading-snug">
-                  <span className="flex-1 text-right uppercase pr-1">{p.method}:</span>
-                  <span className="w-[35%] text-right">{phCurrency.format(p.amount)}</span>
-                </div>
-              ))}
-
               <Divider />
 
               {/* SC and PWD */}
@@ -635,18 +630,98 @@ const XReading = () => {
     );
   };
 
-  const renderXReading = () => (
-    <div className="my-2">
-      <Divider />
-      <Row label="GROSS SALES"    value={phCurrency.format(reportData?.gross_sales    || 0)} />
-      <Row label="TOTAL CASH"     value={phCurrency.format(reportData?.cash_total     || 0)} />
-      <Row label="TOTAL NON-CASH" value={phCurrency.format(reportData?.non_cash_total || 0)} />
-      <Divider />
-      <Row label="NET SALES"      value={phCurrency.format(reportData?.net_sales      || 0)} />
-      <Divider />
-      <Row label="TRANSACTIONS"   value={reportData?.transaction_count || 0} />
-    </div>
-  );
+  const renderXReading = () => {
+      const gross        = reportData?.gross_sales       || 0;
+      const netSales     = reportData?.net_sales         || 0;
+      const cashTotal    = reportData?.cash_total        || 0;
+      const nonCash      = reportData?.non_cash_total    || 0;
+      const txCount      = reportData?.transaction_count || 0;
+      const scDiscount   = reportData?.sc_discount       || 0;
+      const pwdDiscount  = reportData?.pwd_discount      || 0;
+      const diplomat     = reportData?.diplomat_discount || 0;
+      const totalDisc    = scDiscount + pwdDiscount + diplomat;
+      const vatableSales = reportData?.vatable_sales     || 0;
+      const vatAmount    = reportData?.vat_amount        || 0;
+      const voids        = reportData?.total_void_amount || 0;
+
+      // Known payment methods — always show these rows
+      const PAYMENT_METHODS = ['food panda', 'grab', 'gcash', 'visa', 'mastercard', 'cash'];
+      const paymentMap = new Map<string, number>();
+      reportData?.payment_breakdown?.forEach(p => {
+        paymentMap.set(p.method.toLowerCase(), Number(p.amount));
+      });
+
+      const creditMethods = ['visa', 'mastercard'];
+      const debitMethods  = ['gcash'];
+      const totalCredit   = creditMethods.reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
+      const totalDebit    = debitMethods.reduce((a, m)  => a + (paymentMap.get(m) || 0), 0);
+      const totalCard     = totalCredit + totalDebit;
+
+      return (
+        <div className="my-2">
+          <Divider />
+          <Row label="REPORT DATE"        value={selectedDate} />
+          <Row label="START DATE & TIME"  value={`${selectedDate} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
+          <Row label="END DATE & TIME"    value={`${selectedDate} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
+          <Row label="TERMINAL #"         value="POS-01" />
+          <Row label="CASHIER"            value={reportData?.prepared_by || cashierName} />
+          <Row label="BEG. SI #"          value={reportData?.beg_si || '0000000000'} />
+          <Row label="END. SI #"          value={reportData?.end_si || '0000000000'} />
+
+          <Divider />
+          <p className="text-[11px] uppercase text-center font-bold mb-0.5">BREAKDOWN OF SALES</p>
+          <Row label="VATABLE SALES"      value={phCurrency.format(vatableSales)} />
+          <Row label="VAT AMOUNT"         value={phCurrency.format(vatAmount)} />
+          <Row label="VAT EXEMPT SALES"   value={phCurrency.format(0)} />
+          <Row label="ZERO-RATED SALES"   value={phCurrency.format(0)} />
+          <Divider />
+          <Row label="SERVICE CHARGE"     value={phCurrency.format(0)} />
+          <Row label="NET SALES"          value={phCurrency.format(netSales)} />
+          <Row label="TOTAL DISCOUNTS"    value={phCurrency.format(totalDisc)} />
+          <Row label="GROSS AMOUNT"       value={phCurrency.format(gross)} />
+
+          <Divider />
+          <p className="text-[11px] uppercase text-center font-bold mb-0.5">DISCOUNT SUMMARY</p>
+          <Row label="S.C DISC."          value={phCurrency.format(scDiscount)} />
+          <Row label="PWD DISC."          value={phCurrency.format(pwdDiscount)} />
+          <Row label="NAAC DISC."         value={phCurrency.format(0)} />
+          <Row label="SOLO PARENT DISC."  value={phCurrency.format(0)} />
+          <Row label="OTHER DISC."        value={phCurrency.format(diplomat)} />
+
+          <Divider />
+          <p className="text-[11px] uppercase text-center font-bold mb-0.5">SALES ADJUSTMENT</p>
+          <Row label="CANCELED"           value={phCurrency.format(voids)} />
+
+          <Divider />
+          <p className="text-[11px] uppercase text-center font-bold mb-0.5">PAYMENTS RECEIVED</p>
+          {PAYMENT_METHODS.map((method, i) => (
+            <Row key={i} label={method.toUpperCase()} value={phCurrency.format(paymentMap.get(method) || 0)} />
+          ))}
+          {/* Any extra methods not in the known list */}
+          {reportData?.payment_breakdown?.filter(p => !PAYMENT_METHODS.includes(p.method.toLowerCase())).map((p, i) => (
+            <Row key={`extra-${i}`} label={p.method.toUpperCase()} value={phCurrency.format(p.amount)} />
+          ))}
+          <Divider />
+          <Row label="TOTAL CREDIT"       value={phCurrency.format(totalCredit)} />
+          <Row label="TOTAL DEBIT"        value={phCurrency.format(totalDebit)} />
+          <Row label="TOTAL CARD"         value={phCurrency.format(totalCard)} />
+          <Divider />
+          <Row label="TOTAL CASH"         value={phCurrency.format(cashTotal)} />
+          <Row label="TOTAL NON-CASH"     value={phCurrency.format(nonCash)} />
+          <Row label="TOTAL PAYMENTS"     value={phCurrency.format(gross)} />
+          <Row label="CANCELED"           value={phCurrency.format(voids)} />
+
+          <Divider />
+          <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
+          <Row label="CASH IN"        value={phCurrency.format(reportData?.cash_in       || 0)} />
+          <Row label="CASH IN DRAWER" value={phCurrency.format(reportData?.cash_in_drawer || 0)} />
+          <Row label="CASH DROP"      value={phCurrency.format(reportData?.cash_drop      || 0)} />
+          <Divider />
+          <Row label="TOTAL QTY SOLD"    value={reportData?.total_qty_sold ?? 0} />
+          <Row label="TRANSACTION COUNT" value={txCount} />
+        </div>
+      );
+    };
 
   // ──────────────────────────────────────────────────────────────────────────
 
@@ -835,7 +910,7 @@ const XReading = () => {
                 })()}
 
                 {/* Footer */}
-                {reportData.report_type !== 'summary' && (
+                {reportData.report_type !== 'summary' && reportData.report_type !== 'qty_items' && (
                   <div className="mt-6 text-center text-[11px]">
                     <Divider />
                     <p className="uppercase mt-1">{reportData?.prepared_by || cashierName}</p>
