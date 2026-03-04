@@ -322,7 +322,7 @@ const XReading = () => {
           return (
             <div key={catIdx} className="mb-1">
               {/* Category name */}
-              <p className="text-[11px] uppercase mt-1">{cat.category_name}</p>
+              <p className="text-[11px] font-bold uppercase mt-1">{cat.category_name}</p>
 
               {orderedKeys.map((sizeKey, si) => {
                 const products = sizeGroups.get(sizeKey) ?? [];
@@ -344,10 +344,11 @@ const XReading = () => {
               })}
 
               {/* Category qty total */}
-              <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-400 mt-0.5 pt-0.5">
+              <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-800 mt-0.5 pt-0.5">
                 <span className="uppercase">T. PER: {cat.category_name}</span>
                 <span>QTY: {catTotal}</span>
               </div>
+              <Divider/>
             </div>
           );
         })}
@@ -355,7 +356,6 @@ const XReading = () => {
         {/* Add-ons summary — qty only */}
         {reportData.all_addons_summary && reportData.all_addons_summary.length > 0 && (
           <div className="mt-1">
-            <Divider />
             <p className="text-[11px] uppercase">ADD ONS</p>
             {reportData.all_addons_summary.map((addon, idx) => (
               <div key={idx} className="flex text-[11px] leading-snug">
@@ -841,7 +841,7 @@ const XReading = () => {
                 })()}
 
                 {/* Footer */}
-                {reportData.report_type !== 'summary' && (
+                {reportData.report_type !== 'summary' && reportData.report_type !== 'qty_items' && (
                   <div className="mt-6 text-center text-[11px]">
                     <Divider />
                     <p className="uppercase mt-1">{reportData?.prepared_by || cashierName}</p>
