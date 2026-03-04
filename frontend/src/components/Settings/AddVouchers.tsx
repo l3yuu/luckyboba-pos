@@ -246,13 +246,13 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
           <div className="flex gap-2">
             <button
               onClick={handlePrintVouchers}
-              className="px-6 py-2.5 bg-[#3b2063] text-white rounded-lg font-black text-[10px] uppercase tracking-widest hover:bg-[#2a1647] flex items-center gap-2 shadow-lg transition-all active:scale-95"
+              className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-sm uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6"
             >
               <Printer size={14} strokeWidth={3} /> Print Vouchers
             </button>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="px-6 py-2.5 bg-[#3b2063] text-white rounded-lg font-black text-[10px] uppercase tracking-widest hover:bg-[#2a1647] flex items-center gap-2 shadow-lg transition-all active:scale-95"
+              className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-sm uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6"
             >
               <Plus size={14} strokeWidth={3} /> Add Vouchers
             </button>
@@ -264,12 +264,12 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-zinc-50 border-b border-zinc-200">
-                <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest">Code</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest text-right">Value</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest text-center">Status</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest text-center">Type</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest text-center">Updated At</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-600 uppercase tracking-widest text-center">Receipt</th>
+                <th className="px-6 py-4 text-sm font-black text-slate-600 uppercase tracking-widest">Code</th>
+                <th className="px-6 py-4 text-sm font-black text-slate-600 uppercase tracking-widest text-right">Value</th>
+                <th className="px-6 py-4 text-sm font-black text-slate-600 uppercase tracking-widest text-center">Status</th>
+                <th className="px-6 py-4 text-sm font-black text-slate-600 uppercase tracking-widest text-center">Type</th>
+                <th className="px-6 py-4 text-sm font-black text-slate-600 uppercase tracking-widest text-center">Updated At</th>
+                <th className="px-6 py-4 text-sm font-black text-slate-600 uppercase tracking-widest text-center">Receipt</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
@@ -284,10 +284,10 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
               ) : vouchers.length > 0 ? (
                 vouchers.map((v) => (
                   <tr key={v.id} className="hover:bg-blue-50/30 transition-colors">
-                    <td className="px-6 py-4 text-xs font-black text-[#3b2063]">{v.code}</td>
-                    <td className="px-6 py-4 text-xs font-bold text-emerald-600 text-right">{v.value}</td>
+                    <td className="px-6 py-4 text-sm font-black text-[#3b2063]">{v.code}</td>
+                    <td className="px-6 py-4 text-sm font-bold text-emerald-600 text-right">{v.value}</td>
                     <td className="px-6 py-4 text-center">
-                      <span className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest ${
+                      <span className={`px-2 py-1 rounded text-sm font-black uppercase tracking-widest ${
                         v.status === 'Active'   ? 'bg-emerald-100 text-emerald-600' :
                         v.status === 'Redeemed' ? 'bg-blue-100 text-blue-600' :
                         'bg-zinc-100 text-zinc-400'
@@ -295,27 +295,27 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
                         {v.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-xs font-bold text-slate-500 text-center uppercase">{v.type}</td>
-                    <td className="px-6 py-4 text-xs font-bold text-zinc-400 text-center">
+                    <td className="px-6 py-4 text-sm font-black text-slate-500 text-center uppercase">{v.type}</td>
+                    <td className="px-6 py-4 text-sm font-bold text-zinc-400 text-center">
                       {v.updated_at ? new Date(v.updated_at).toISOString().split('T')[0] : 'N/A'}
                     </td>
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-1 text-slate-400">
                         <FileText size={14} />
-                        <span className="text-[10px] font-bold">{v.receipt}</span>
+                        <span className="text-sm font-bold">{v.receipt}</span>
                       </div>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-zinc-400 font-bold text-xs uppercase">No vouchers found</td>
+                  <td className="px-6 py-4 text-sm font-bold text-zinc-400 text-center uppercase">No vouchers found</td>
                 </tr>
               )}
             </tbody>
           </table>
           <div className="p-4 bg-zinc-50 border-t border-zinc-200">
-            <button onClick={onBack} className="px-6 py-2 bg-zinc-200 text-zinc-500 rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-zinc-300 flex items-center gap-2 transition-all shadow-sm">
+            <button onClick={onBack} className="px-6 py-2 bg-zinc-200 text-zinc-500 rounded-lg font-black uppercase text-sm tracking-widest hover:bg-zinc-300 flex items-center gap-2 transition-all shadow-sm">
               <ArrowLeft size={14} strokeWidth={3} /> Back to Settings
             </button>
           </div>
@@ -332,7 +332,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
               </div>
             )}
             <div className="bg-[#3b2063] px-6 py-4 flex justify-between items-center">
-              <h2 className="text-white font-black text-xs uppercase tracking-[0.2em]">Add New Voucher</h2>
+              <h2 className="text-white font-black text-sm uppercase tracking-[0.2em]">Add New Voucher</h2>
               <button onClick={() => setIsModalOpen(false)} className="text-white/70 hover:text-white transition-colors">
                 <X size={20} />
               </button>
@@ -340,7 +340,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
 
             <div className="p-8 space-y-6">
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Number (Code)</label>
+                <label className="text-sm font-black text-zinc-400 uppercase tracking-widest">Number (Code)</label>
                 <input
                   type="text"
                   value={newVoucher.number}
@@ -351,7 +351,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Value</label>
+                <label className="text-sm font-black text-zinc-400 uppercase tracking-widest">Value</label>
                 <input
                   type="text"
                   value={newVoucher.value}
@@ -362,11 +362,11 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Type</label>
+                <label className="text-sm font-black text-zinc-400 uppercase tracking-widest">Type</label>
                 <select
                   value={newVoucher.type}
                   onChange={(e) => setNewVoucher({...newVoucher, type: e.target.value})}
-                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200 cursor-pointer"
+                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-colors duration-200 cursor-pointer"
                 >
                   <option value="Percentage">Percentage (%)</option>
                   <option value="Fixed Amount">Fixed Amount (₱)</option>
@@ -378,7 +378,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
                 <button
                   onClick={handleAddVoucher}
                   disabled={loading}
-                  className="w-full bg-[#3b2063] hover:bg-[#2a1647] text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 disabled:opacity-50"
+                  className="w-full h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <Save size={14} /> Add New
                 </button>
@@ -386,13 +386,13 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
                 <div className="flex gap-3">
                   <button
                     onClick={() => setIsModalOpen(false)}
-                    className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-500 py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] transition-all"
+                    className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6"
                   >
                     Back
                   </button>
                   <button
                     onClick={handleImport}
-                    className="flex-1 bg-[#3b2063] hover:bg-[#2a1647] text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-md transition-all active:scale-95"
+                    className="flex-1 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6"
                   >
                     <Upload size={14} /> Import
                   </button>
