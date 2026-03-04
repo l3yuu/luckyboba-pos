@@ -19,6 +19,8 @@ import {
 import api from '../services/api';
 import { getCache, setCache } from '../utils/cache';
 
+const dashboardFont = { fontFamily: "'Inter', sans-serif" };
+
 const AUDIT_CACHE_KEY  = 'settings-audit';
 const BACKUP_CACHE_KEY = 'settings-backup-status';
 const AUDIT_TTL        = 2 * 60 * 1000; // 2 min — audit info changes more often
@@ -159,13 +161,13 @@ const Settings = () => {
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in duration-300">
             {settingActions.map((item, index) => (
-              <button key={index} onClick={item.action} className="group relative overflow-hidden flex flex-col items-center justify-center p-8 rounded-2xl shadow-sm border border-zinc-200 bg-white transition-all duration-200 active:scale-95 hover:shadow-md hover:border-zinc-300">
+              <button key={index} onClick={item.action} className="group relative overflow-hidden flex flex-col items-center justify-center p-8 rounded-none shadow-sm border border-zinc-200 bg-white transition-all duration-200 active:scale-95 hover:shadow-md hover:border-zinc-300">
                 <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: item.color }} />
                 <div className="mb-4 transition-transform duration-200 group-hover:scale-110" style={{ color: item.iconColor }}>
                   <item.Icon size={32} strokeWidth={1.5} />
                 </div>
-                <span className="text-[11px] font-black text-[#3b2063] uppercase tracking-widest text-center">{item.label}</span>
-                <div className="mt-3 px-3 py-1 rounded-full bg-zinc-50 text-[8px] font-bold text-zinc-400 uppercase tracking-tighter border border-zinc-100 group-hover:bg-zinc-200 group-hover:text-zinc-600 transition-colors">Configure</div>
+                <span className="text-[11px] font-extrabold text-[#1c1c1e] uppercase tracking-widest text-center">{item.label}</span>
+                <div className="mt-3 px-3 py-1 rounded-none bg-zinc-50 text-[8px] font-bold text-zinc-400 uppercase tracking-tighter border border-zinc-100 group-hover:bg-zinc-200 group-hover:text-zinc-600 transition-colors">Configure</div>
               </button>
             ))}
           </div>
@@ -179,43 +181,49 @@ const Settings = () => {
   };
 
   return (
-    <div className="flex-1 bg-[#f8f6ff] min-h-0 flex flex-col overflow-hidden font-sans">
-      <TopNavbar />
-      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
-        <div className="mb-2">
-          <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">LUCKY BOBA MILKTEA</h1>
-          <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">{pageSubtitle}</p>
-        </div>
-
-        {renderContent()}
-
-        <div className="mt-4 bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden shrink-0">
-          <div className="bg-[#3b2063] px-6 py-3 border-b border-zinc-200">
-            <h2 className="text-white font-black text-[10px] uppercase tracking-[0.2em] text-center">System Audit & Security</h2>
+    <>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');`}</style>
+      <div className="flex-1 bg-[#f3f0ff] min-h-0 flex flex-col overflow-hidden font-sans" style={dashboardFont}>
+        <TopNavbar />
+        <div className="flex-1 overflow-y-auto p-5 md:p-7 flex flex-col gap-4">
+          {/* Header */}
+          <div className="mb-2">
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">System</p>
+            <h1 className="text-lg font-extrabold text-[#1c1c1e] mt-0.5">Settings</h1>
+            <p className="text-zinc-400 font-bold text-xs uppercase tracking-widest mt-1">{pageSubtitle}</p>
           </div>
-          <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="flex flex-col items-center text-center gap-2">
-              <div className="p-2 bg-[#1e40af] rounded-full text-white"><Clock size={16} /></div>
-              <div>
-                <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Last Backup</p>
-                <p className="text-sm font-black text-slate-700 uppercase italic">{formatBackupDate(auditInfo.last_backup)}</p>
-              </div>
+
+          {renderContent()}
+
+          {/* System audit section */}
+          <div className="mt-4 bg-white rounded-none shadow-sm border border-zinc-200 overflow-hidden shrink-0">
+            <div className="bg-[#3b2063] px-7 py-4 border-b border-zinc-100">
+              <h2 className="text-white font-extrabold text-[10px] uppercase tracking-[0.3em] text-center">System Audit & Security</h2>
             </div>
-            <div className="flex flex-col items-center text-center gap-2 border-x border-zinc-100 px-4">
-              <div className="p-2 bg-[#1e40af] rounded-full text-white"><ShieldCheck size={16} /></div>
-              <div>
-                <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Active Session</p>
-                <p className="text-sm font-black text-[#3b2063] uppercase mb-1">{auditInfo.active_session}</p>
-                <button onClick={() => setIsLogOpen(true)} className="text-[8px] font-black text-[#3b2063] border border-[#3b2063]/20 px-2 py-0.5 rounded hover:bg-[#3b2063] hover:text-white transition-all">VIEW LOGS</button>
+            <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="flex flex-col items-center text-center gap-2">
+                <div className="text-[#3b2063]"><Clock size={16} /></div>
+                <div>
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Last Backup</p>
+                  <p className="text-sm font-extrabold text-black uppercase italic">{formatBackupDate(auditInfo.last_backup)}</p>
+                </div>
               </div>
-            </div>
-            <div className="flex flex-col items-center text-center gap-2">
-              <div className="p-2 bg-[#1e40af] rounded-full text-white"><Activity size={16} /></div>
-              <div>
-                <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">System Status</p>
-                <div className="flex items-center justify-center gap-2">
-                  <div className={`w-2 h-2 rounded-full animate-pulse ${auditInfo.system_status === 'Online' ? 'bg-[#3b2063]' : 'bg-red-500'}`} />
-                  <p className={`text-sm font-black uppercase ${auditInfo.system_status === 'Online' ? 'text-slate-700' : 'text-red-500'}`}>{auditInfo.system_status}</p>
+              <div className="flex flex-col items-center text-center gap-2 border-x border-zinc-100 px-4">
+                <div className="text-[#3b2063]"><ShieldCheck size={16} /></div>
+                <div>
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Active Session</p>
+                  <p className="text-sm font-extrabold text-black uppercase mb-1">{auditInfo.active_session}</p>
+                  <button onClick={() => setIsLogOpen(true)} className="text-[8px] font-bold text-[#3b2063] border border-[#3b2063]/20 px-2 py-0.5 rounded-none hover:bg-[#3b2063] hover:text-white transition-colors">VIEW LOGS</button>
+                </div>
+              </div>
+              <div className="flex flex-col items-center text-center gap-2">
+                <div className="text-[#3b2063]"><Activity size={16} /></div>
+                <div>
+                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">System Status</p>
+                  <div className="flex items-center justify-center gap-2">
+                    <div className={`w-2 h-2 rounded-none animate-pulse ${auditInfo.system_status === 'Online' ? 'bg-[#3b2063]' : 'bg-red-500'}`} />
+                    <p className={`text-sm font-extrabold uppercase ${auditInfo.system_status === 'Online' ? 'text-black' : 'text-red-500'}`}>{auditInfo.system_status}</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -223,11 +231,12 @@ const Settings = () => {
         </div>
       </div>
 
+      {/* Activity log modal */}
       {isLogOpen && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-100 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="bg-[#3b2063] p-4 flex justify-between items-center">
-              <h3 className="text-white font-black text-xs uppercase tracking-widest">System Activity Log</h3>
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-none border border-zinc-200 shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
+            <div className="bg-[#3b2063] px-7 py-5 border-b border-zinc-100 flex justify-between items-center">
+              <h3 className="text-white font-extrabold text-xs uppercase tracking-widest">System Activity Log</h3>
               <div className="flex items-center gap-4">
                 <button onClick={handleExportLogs} className="text-white/80 hover:text-white transition-colors" title="Export Logs"><FileUp size={16} /></button>
                 <button onClick={() => setIsLogOpen(false)} className="text-white/80 hover:text-white transition-colors"><X size={18} /></button>
@@ -241,11 +250,11 @@ const Settings = () => {
                     <div className="flex items-start gap-2">
                       {critical && <AlertTriangle className="text-red-500 mt-0.5" size={12} />}
                       <div>
-                        <p className={`text-[10px] font-black uppercase tracking-tight ${critical ? 'text-red-600' : 'text-[#3b2063]'}`}>{log.user}</p>
-                        <p className={`text-xs font-bold leading-tight ${critical ? 'text-red-700' : 'text-slate-600'}`}>{log.action}</p>
+                        <p className={`text-[10px] font-extrabold uppercase tracking-tight ${critical ? 'text-red-600' : 'text-[#3b2063]'}`}>{log.user}</p>
+                        <p className={`text-xs font-semibold leading-tight ${critical ? 'text-red-700' : 'text-zinc-600'}`}>{log.action}</p>
                       </div>
                     </div>
-                    <span className="text-[10px] font-black text-zinc-400 whitespace-nowrap ml-4">{log.time}</span>
+                    <span className="text-[10px] font-extrabold text-zinc-400 whitespace-nowrap ml-4">{log.time}</span>
                   </div>
                 );
               }) : (
@@ -253,13 +262,13 @@ const Settings = () => {
               )}
             </div>
             <div className="p-4 bg-zinc-50 border-t border-zinc-100 flex justify-center">
-              <button onClick={() => setIsLogOpen(false)} className="px-6 py-2 bg-zinc-200 text-zinc-500 rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-zinc-300">Close</button>
+              <button onClick={() => setIsLogOpen(false)} className="h-11 px-7 bg-zinc-200 text-zinc-500 rounded-none font-bold text-xs uppercase tracking-widest hover:bg-zinc-300 transition-colors">Close</button>
             </div>
           </div>
         </div>
       )}
       <SalesSettings isOpen={isSalesSettingsOpen} onClose={() => setIsSalesSettingsOpen(false)} />
-    </div>
+    </>
   );
 };
 

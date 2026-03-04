@@ -6,6 +6,8 @@ import {
 } from 'recharts';
 import type { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
 
+const dashboardFont = { fontFamily: "'Inter', sans-serif" };
+
 interface TopProduct {
   name: string;
   barcode: string;
@@ -39,20 +41,6 @@ const InventoryDashboard = () => {
   const { find, loading, ready } = useCache();
   const { start, end } = getWeeklyRange();
 
-  // Derive top 5 products from cached sale_items + item_serials
-  // The weekly top-products endpoint is still unique (computed server-side),
-  // so we read it from the cache store's stock_transactions as a fallback,
-  // but the primary source remains the dedicated endpoint via cache.
-  // 
-  // Since /inventory/top-products is a computed report (not a raw table),
-  // it lives outside the global cache — we read it via the existing
-  // stock_transactions cache for basic data, and keep the API call only
-  // for the enriched report data that isn't in any raw table.
-  //
-  // ✅ All raw table reads (item_serials, stock_transactions) → from cache
-  // ✅ Computed report (top-products) → still one API call, but result is
-  //    derived locally when possible.
-
   const rawStock = find<TopProduct>("stock_transactions", () => true);
 
   // Top 5 by qty descending (from cache)
@@ -66,9 +54,19 @@ const InventoryDashboard = () => {
   const isLoading = !ready || loading;
 
   return (
-    <div className="flex-1 bg-[#f8f6ff] h-full flex flex-col overflow-hidden font-sans">
+    <div className="flex-1 bg-[#f8f6ff] h-full flex flex-col overflow-hidden font-sans" style={dashboardFont}>
       <TopNavbar />
       <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
+            <h1 className="text-lg font-extrabold text-[#1c1c1e] mt-0.5">Dashboard</h1>
+          </div>
+        </div>
+
+        {/* Table card */}
         <div className="bg-white rounded-xl shadow-sm border border-zinc-100 overflow-hidden">
           <div className="bg-zinc-50 px-6 py-4 border-b border-zinc-100">
             <h2 className="text-[#3b2063] font-black text-xs uppercase tracking-[0.15em] text-center">
@@ -130,8 +128,20 @@ const InventoryDashboard = () => {
               </tfoot>
             </table>
           </div>
+
+          {/* Footer */}
+          <div className="px-6 py-3 bg-zinc-50 border-t border-zinc-100 flex justify-between items-center">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Synchronized</span>
+            </div>
+            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+              Showing {data.length} products
+            </p>
+          </div>
         </div>
 
+        {/* Charts */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-6">
           <div className="bg-white rounded-xl shadow-sm border border-zinc-100 p-6 min-h-75 flex flex-col">
             <div className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-4">Profit vs Cost Breakdown</div>
