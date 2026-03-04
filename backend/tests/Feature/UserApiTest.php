@@ -2,26 +2,33 @@
 
 namespace Tests\Feature;
 
-use Illuminate\Foundation\Testing\RefreshDatabase; // Import this!
-use Tests\TestCase;
 use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
 
 class UserApiTest extends TestCase
 {
-    use RefreshDatabase; // Use this to create the tables automatically
+    use RefreshDatabase;
 
-// tests/Feature/UserApiTest.php
+    #[\PHPUnit\Framework\Attributes\Test]
+    public function can_get_all_users(): void
+    {
+        // Arrange — create an admin to authenticate as
+        /** @var User $admin */
+        $admin = User::factory()->create([
+            'role'   => 'superadmin',
+            'status' => 'ACTIVE',
+        ]);
 
-public function test_can_get_all_users(): void
-{
-    // 1. Arrange: Create a user so the count is 1
-    User::factory()->create();
+        // Create 3 additional users
+        User::factory()->count(3)->create();
 
-    // 2. Act: Call the API (MUST include /api)
-    $response = $this->getJson('/api/users');
+        // Act — authenticate with Sanctum before hitting the route
+        $response = $this->actingAs($admin, 'sanctum')
+                         ->getJson('/api/users');
 
-    // 3. Assert
-    $response->assertStatus(200)
-             ->assertJsonCount(1);
-}
+        // Assert — response is 200 and data array has 4 users (admin + 3)
+        $response->assertStatus(200)
+                 ->assertJsonCount(4, 'data');
+    }
 }

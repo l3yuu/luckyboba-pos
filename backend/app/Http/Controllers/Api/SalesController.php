@@ -62,6 +62,7 @@ class SalesController extends Controller
         $user = auth('sanctum')->user();
         $cashierName = $request->input('cashier_name') ?? ($user ? $user->name : 'System Admin');
         $userId = $user ? $user->id : null;
+        $branchId = $user ? $user->branch_id : null;
         
         // Explicitly use the OR number sent from React
         $officialOR = $validated['si_number']; 
@@ -83,6 +84,7 @@ class SalesController extends Controller
             // 1. Create Sale
             $sale = Sale::create([
                 'user_id' => $userId,
+                'branch_id'      => $branchId,
                 'total_amount' => $validated['total'],
                 'invoice_number' => $officialOR, // Save OR here
                 'status' => 'completed',
@@ -136,6 +138,7 @@ class SalesController extends Controller
                 'cashier_name' => $cashierName,
                 'total_amount' => $validated['total'],
                 'sale_id'      => $sale->id,
+                'branch_id'    => $branchId,
             ]);
 
             DB::commit();
@@ -158,10 +161,17 @@ class SalesController extends Controller
      * List all sales.
      */
     public function index()
-    {
-        $sales = Sale::with('items', 'user')->latest()->paginate(20);
-        return response()->json($sales);
+{
+    $user = auth('sanctum')->user();
+    $query = Sale::with('items', 'user')->latest();
+
+    if ($user && !in_array($user->role, ['superadmin', 'admin'])) {
+        $query->where('branch_id', $user->branch_id);
     }
+
+    $sales = $query->paginate(20);
+    return response()->json($sales);
+}
 
     /**
      * Void/Cancel a sale.

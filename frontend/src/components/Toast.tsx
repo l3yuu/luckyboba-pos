@@ -1,23 +1,56 @@
 import React, { useEffect } from 'react';
+import { X, CheckCircle2, AlertCircle, Info } from 'lucide-react';
+
+export type ToastType = 'error' | 'success' | 'warning' | 'info';
 
 interface ToastProps {
   message: string;
-  type?: 'error' | 'success' | 'warning';
+  type?: ToastType;
+  duration?: number;
   onClose: () => void;
+  position?: 'top-right' | 'top-center' | 'bottom-right';
+  showProgress?: boolean;
 }
 
-export const Toast: React.FC<ToastProps> = ({ message, type = 'error', onClose }) => {
+export const Toast: React.FC<ToastProps> = ({ message, type = 'error', duration = 3000, onClose }) => {
   useEffect(() => {
-    const timer = setTimeout(onClose, 5000);
+    const timer = setTimeout(onClose, duration);
     return () => clearTimeout(timer);
-  }, [onClose]);
+  }, [duration, onClose]);
 
-
-  const textColors = {
-    error: 'text-red-600',
-    success: 'text-emerald-600',
-    warning: 'text-[#3b2063]'
+  // Dynamic styles and icons based on the toast type
+  const config: Record<ToastType, { text: string; bg: string; border: string; label: string; icon: React.ReactElement }> = {
+    error: {
+      text: 'text-red-600',
+      bg: 'bg-red-50',
+      border: 'border-red-100',
+      label: 'System Error',
+      icon: <AlertCircle className="w-5 h-5 text-red-500" strokeWidth={2.5} />
+    },
+    success: {
+      text: 'text-emerald-600',
+      bg: 'bg-emerald-50',
+      border: 'border-emerald-100',
+      label: 'Success',
+      icon: <CheckCircle2 className="w-5 h-5 text-emerald-500" strokeWidth={2.5} />
+    },
+    warning: {
+      text: 'text-[#3b2063]',
+      bg: 'bg-[#f0ebff]',
+      border: 'border-[#e5deff]',
+      label: 'Notification',
+      icon: <Info className="w-5 h-5 text-[#3b2063]" strokeWidth={2.5} />
+    },
+    info: {
+      text: 'text-blue-600',
+      bg: 'bg-blue-50',
+      border: 'border-blue-100',
+      label: 'Info',
+      icon: <Info className="w-5 h-5 text-blue-500" strokeWidth={2.5} />
+    }
   };
+
+  const current = config[type];
 
   return (
     <div className={`fixed top-6 right-6 z-9999 animate-in fade-in slide-in-from-top-4 duration-300`}>
@@ -25,22 +58,27 @@ export const Toast: React.FC<ToastProps> = ({ message, type = 'error', onClose }
         {/* Status Indicator Dot */}
         <div className={`h-2 w-2 rounded-full animate-pulse ${type === 'error' ? 'bg-red-500' : 'bg-[#3b2063]'}`} />
         
-        <div className="flex-1">
-          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-0.5">
-            System Notification
+        {/* Dynamic Icon Box */}
+        <div className={`p-3 rounded-2xl ${current.bg} shrink-0`}>
+          {current.icon}
+        </div>
+        
+        {/* Text Content */}
+        <div className="flex-1 pt-1.5">
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-400 mb-1">
+            {current.label}
           </p>
-          <p className={`text-sm font-bold ${textColors[type]}`}>
+          <p className={`text-sm font-bold leading-tight ${current.text}`}>
             {message}
           </p>
         </div>
 
+        {/* Close Button */}
         <button 
           onClick={onClose}
-          className="text-zinc-300 hover:text-zinc-500 transition-colors"
+          className="p-2 mt-1 mr-1 text-zinc-300 hover:text-zinc-600 hover:bg-zinc-100 rounded-full transition-all active:scale-95"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          <X strokeWidth={3} className="w-4 h-4" />
         </button>
       </div>
     </div>

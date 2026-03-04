@@ -49,19 +49,23 @@ const InventoryCategoryList = () => {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastCounter = useRef(0);
 
-  const addToast = (message: string, type: 'success' | 'error' = 'success') => {
+  const removeToast = useCallback((id: number) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  const addToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     const id = ++toastCounter.current;
     setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => removeToast(id), 4000);
-  };
-  const removeToast = (id: number) => setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, [removeToast]);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  
+
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
+
   const [editingCategory, setEditingCategory] = useState<InventoryCategory | null>(null);
   const [deletingCategory, setDeletingCategory] = useState<InventoryCategory | null>(null);
   const [editName, setEditName] = useState('');
@@ -71,9 +75,9 @@ const InventoryCategoryList = () => {
     const cached = getCache<InventoryCategory[]>('categories');
     if (!forceRefresh && cached) {
       setCategories(cached);
+      setLoading(false);
       return;
     }
-
     try {
       setLoading(true);
       const response = await api.get('/categories');
@@ -85,16 +89,16 @@ const InventoryCategoryList = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [addToast]);
 
   useEffect(() => {
     fetchCategories();
   }, [fetchCategories]);
 
   const filteredCategories = useMemo(() => {
-    return categories.filter(cat => 
-      cat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cat.description.toLowerCase().includes(searchTerm.toLowerCase())
+    return categories.filter((cat: InventoryCategory) =>
+      cat?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cat?.description?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [categories, searchTerm]);
 
@@ -120,6 +124,11 @@ const InventoryCategoryList = () => {
     setIsEditModalOpen(true);
   };
 
+  const closeEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditingCategory(null);
+  };
+
   const openDeleteModal = (cat: InventoryCategory) => {
     setDeletingCategory(cat);
     setIsDeleteModalOpen(true);
@@ -129,7 +138,7 @@ const InventoryCategoryList = () => {
     if (!editingCategory || !editName) return;
     try {
       await api.patch(`/categories/${editingCategory.id}`, { name: editName, description: editDesc });
-      setIsEditModalOpen(false);
+      closeEditModal();
       clearCache('categories');
       await fetchCategories(true);
       addToast("Category updated!", "success");
