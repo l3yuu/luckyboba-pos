@@ -15,14 +15,42 @@ interface XReadingReport {
   logs?: { id: string; reason: string; amount: number; time: string }[];
   items?: { product_name: string; total_qty: number; total_sales?: number }[]; 
   hourly_data?: { hour: number; total: number; count: number }[];
-  transactions?: { Invoice: string; Amount: number; Status: string; Date_Time: string }[];
+  transactions?: {
+  Invoice: string;
+  Amount: number;
+  Status: string;
+  Date_Time: string;
+  Method?: string;
+  Cashier?: string;
+  Vatable?: number;
+  Tax?: number;
+  Items_Count?: number;
+  Disc?: number;
+}[];
   cash_count?: { denominations: { label: string; qty: number; total: number }[]; grand_total: number };
   denominations?: { label: string; qty: number; total: number }[];
   grand_total?: number;
   summary_data?: { Sales_Date: string; Total_Orders: number; Daily_Revenue: number }[];
   data?: { Sales_Date: string; Total_Orders: number; Daily_Revenue: number }[];
-  search_results?: { Invoice: string; Amount: number; Method: string; Date: string }[];
-  results?: { Invoice: string; Amount: number; Status: string; Date_Time: string }[];
+  search_results?: {
+    Invoice: string;
+    Amount: number;
+    Status?: string;
+    Date_Time?: string;
+    Method?: string;
+    Date?: string;
+    Cashier?: string;
+    Vatable?: number;
+    Tax?: number;
+    Items_Count?: number;
+    Disc?: number;
+  }[];
+  results?: {
+    Invoice: string;
+    Amount: number;
+    Status?: string;
+    Date_Time?: string;
+  }[];
   grand_total_revenue?: number;
   vatable_sales?: number;
   vat_amount?: number;
@@ -184,8 +212,20 @@ const XReading = () => {
         return { ...data, hourly_data: hourlyData } as unknown as XReadingReport;
       }
       case 'detailed': {
-        const txData = (data.transactions ?? data.search_results ?? data.results ?? (Array.isArray(data) ? data : null)) as { Invoice: string; Amount: number; Status: string; Date_Time: string }[] | null;
-        return { ...data, transactions: txData ?? [] } as unknown as XReadingReport;
+        const raw = (data.transactions ?? data.search_results ?? data.results ?? (Array.isArray(data) ? data : null)) as Record<string, unknown>[] | null;
+        const txData = (raw ?? []).map(r => ({
+          Invoice:     String(r.Invoice     ?? r.invoice_number ?? ''),
+          Amount:      Number(r.Amount      ?? r.total_amount   ?? 0),
+          Status:      String(r.Status      ?? r.status         ?? ''),
+          Date_Time:   String(r.Date_Time   ?? r.created_at     ?? ''),
+          Method:      String(r.Method      ?? r.payment_method ?? ''),
+          Cashier:     String(r.Cashier     ?? r.cashier_name   ?? ''),
+          Vatable:     Number(r.Vatable     ?? 0),
+          Tax:         Number(r.Tax         ?? 0),
+          Items_Count: Number(r.Items_Count ?? 0),
+          Disc:        Number(r.Disc_Pax    ?? 0),
+        }));
+        return { ...data, transactions: txData } as unknown as XReadingReport;
       }
       default:
         return data as unknown as XReadingReport;
@@ -416,52 +456,126 @@ const XReading = () => {
     );
   };
 
-  const renderDetailedSales = () => {
-    const rows = reportData?.transactions ?? reportData?.search_results ?? [];
-    const total = rows.reduce((acc, tx) => acc + Number(tx.Amount || 0), 0);
+const renderDetailedSales = () => {
+  const rows = reportData?.transactions ?? reportData?.search_results ?? [];
+  const total = rows.reduce((acc, tx) => acc + Number(tx.Amount || 0), 0);
+  const isSalesDetailed = reportData?.report_type === 'detailed';
+
+  if (isSalesDetailed) {
+    const cancelledTotal = rows
+      .filter(tx => tx.Status?.toLowerCase() === 'cancelled')
+      .reduce((acc, tx) => acc + Number(tx.Amount || 0), 0);
+    const completedTotal = rows
+      .filter(tx => tx.Status?.toLowerCase() !== 'cancelled')
+      .reduce((acc, tx) => acc + Number(tx.Amount || 0), 0);
+
     return (
       <div className="my-2">
         <Divider />
+        {/* Header — wider SI col, removed DISC since it's always 0 */}
+        <div className="flex text-[8px] border-b border-black pb-0.5 mb-0.5 font-bold uppercase leading-tight">
+          <span className="w-[30%]">SI # / TIME</span>
+          <span className="w-[10%] text-center">QTY</span>
+          <span className="w-[20%] text-center">CASHIER</span>
+          <span className="w-[20%] text-right">VATABLE</span>
+          <span className="w-[20%] text-right">TOTAL</span>
+        </div>
+
         {rows.length === 0 ? (
-          <p className="text-[11px] text-center py-2">
-            {reportData?.report_type === 'search' ? 'No receipts found.' : 'No transactions found.'}
-          </p>
-        ) : (
-          <>
-            <div className="flex text-[11px] border-b border-black pb-0.5 mb-0.5">
-              <span className="flex-1 uppercase">INVOICE / DATE</span>
-              <span className="w-[30%] text-right uppercase">AMT</span>
+          <p className="text-[11px] text-center py-2">No transactions found.</p>
+        ) : rows.map((tx, i) => {
+          const isCancelled = tx.Status?.toLowerCase() === 'cancelled';
+          const timeOnly = tx.Date_Time
+            ? new Date(tx.Date_Time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+            : '';
+          const siDisplay = String(tx.Invoice)
+            .replace(/^OR-0+/, '#')   // strips leading OR-000...
+            .replace(/^OR-/, '#');
+
+          return (
+            <div key={i} className={`border-b border-dotted border-zinc-800 py-0.5 ${isCancelled ? 'opacity-50' : ''}`}>
+              <div className="flex text-[11px] leading-snug items-start">
+                <span className="w-[30%] uppercase leading-tight">
+                  {siDisplay}<br />
+                  <span className="text-zinc-800 text-[9px]">{timeOnly}</span>
+                </span>
+                <span className="w-[10%] text-center text-zinc-800">
+                  {tx.Items_Count ? tx.Items_Count : <span className="text-zinc-800">—</span>}
+                </span>
+                <span className="w-[20%] text-center text-zinc-900 truncate" style={{ fontSize: '9px' }}>
+                  {tx.Cashier || <span className="text-zinc-800">—</span>}
+                </span>
+                <span className="w-[20%] text-right text-zinc-800">
+                  {tx.Vatable ? phCurrency.format(tx.Vatable) : <span className="text-zinc-800">—</span>}
+                </span>
+                <span className={`w-[20%] text-right font-medium ${isCancelled ? 'line-through text-zinc-400' : ''}`}>
+                  {phCurrency.format(tx.Amount)}
+                </span>
+              </div>
             </div>
-            {rows.map((tx, i) => {
-              const status   = 'Status' in tx ? tx.Status : '';
-              const dateTime = 'Date_Time' in tx ? tx.Date_Time : ('Date' in tx ? (tx as { Date: string }).Date : '');
-              const isCancelled = status?.toLowerCase() === 'cancelled';
-              return (
-                <div key={i} className="border-b border-dotted border-zinc-800 py-0.5">
-                  <div className="flex text-[14px] leading-snug">
-                    <span className="flex-1 uppercase">{tx.Invoice}</span>
-                    <span className={`w-[30%] text-right ${isCancelled ? 'line-through text-zinc-800' : ''}`}>
-                      {phCurrency.format(tx.Amount)}
-                    </span>
-                  </div>
-                  <div className="flex text-[10px] leading-snug text-zinc-1000">
-                    <span className="flex-1">{dateTime}</span>
-                    <span className={`text-right text-[10px] uppercase ${isCancelled ? 'text-red-800' : 'text-zinc-1000'}`}>
-                      {status}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </>
-        )}
-        <div className="mt-3">
+          );
+        })}
+        <div className="flex text-[9px] justify-between mb-0.5 mt-2 text-zinc-580">
+          <span className="uppercase">Cancelled</span>
+          <span>{phCurrency.format(cancelledTotal)}</span>
+        </div>
+        <div className="flex text-[10px] font-bold justify-between">
+          <span className="uppercase">Total Sales</span>
+          <span>{phCurrency.format(completedTotal)}</span>
+        </div>
+        <Divider />
+        <div className="mt-1">
           <Row label="TOTAL TRANSACTIONS" value={rows.length} />
           <Row label="TOTAL AMOUNT"       value={phCurrency.format(total)} />
         </div>
       </div>
     );
-  };
+  }
+
+  // ── SEARCH view ──
+  return (
+    <div className="my-2">
+      <Divider />
+      {rows.length === 0 ? (
+        <p className="text-[11px] text-center py-2">No receipts found.</p>
+      ) : (
+        <>
+          <div className="flex text-[11px] border-b border-black pb-0.5 mb-0.5">
+            <span className="flex-1 uppercase">INVOICE / DATE</span>
+            <span className="w-[30%] text-right uppercase">AMT</span>
+          </div>
+          {rows.map((tx, i) => {
+            const status   = (tx as { Status?: string }).Status ?? '';
+            const dateTime = (tx as { Date_Time?: string; Date?: string }).Date_Time
+                          ?? (tx as { Date?: string }).Date
+                          ?? '';
+            const isCancelled = status?.toLowerCase() === 'cancelled';
+            return (
+              <div key={i} className="border-b border-dotted border-zinc-300 py-0.5">
+                <div className="flex text-[11px] leading-snug">
+                  <span className="flex-1 uppercase">{tx.Invoice}</span>
+                  <span className={`w-[30%] text-right ${isCancelled ? 'line-through text-zinc-400' : ''}`}>
+                    {phCurrency.format(tx.Amount)}
+                  </span>
+                </div>
+                <div className="flex text-[10px] leading-snug text-zinc-500">
+                  <span className="flex-1">{dateTime}</span>
+                  <span className={`text-right text-[10px] uppercase ${isCancelled ? 'text-red-400' : 'text-zinc-400'}`}>
+                    {status}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </>
+      )}
+      <div className="mt-3">
+        <Row label="TOTAL TRANSACTIONS" value={rows.length} />
+        <Row label="TOTAL AMOUNT"       value={phCurrency.format(total)} />
+      </div>
+    </div>
+  );
+};
 
   const renderSummary = () => {
     const SIZE_ORDER = ['SM', 'UM', 'PCM', 'JR', 'SL', 'UL', 'PCL'];
@@ -925,7 +1039,7 @@ const XReading = () => {
                 })()}
 
                 {/* Footer */}
-                {reportData.report_type !== 'summary' && reportData.report_type !== 'qty_items' && reportData.report_type !== 'search' && (
+                {reportData.report_type !== 'summary' && reportData.report_type !== 'qty_items' && reportData.report_type !== 'search' && reportData.report_type !== 'detailed' && (
                   <div className="mt-6 text-center text-[11px]">
                     <Divider />
                     <p className="uppercase mt-1">{reportData?.prepared_by || cashierName}</p>
