@@ -37,7 +37,7 @@ const TableSkeleton = () => (
 const SearchReceipts = () => {
   const { showToast } = useToast();
 
-  const [showKeyboard] = useState(false);
+  const [showKeyboar] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchResults, setSearchResults] = useState<Receipt[]>([]);
@@ -186,7 +186,7 @@ const SearchReceipts = () => {
     <div className="flex flex-col h-full w-full bg-[#f8f6ff] animate-in fade-in zoom-in duration-300 relative overflow-hidden">
       <TopNavbar />
 
-      <div className={`flex-1 flex flex-col items-center justify-start p-4 md:p-8 gap-6 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-70' : ''}`}>
+      <div className={`flex-1 flex flex-col items-center justify-start p-4 md:p-8 gap-6 overflow-y-auto transition-all duration-300 ${showKeyboar ? 'pb-70' : ''}`}>
         
         {/* COMMAND BAR */}
         <div className="w-full max-w-6xl flex flex-col lg:flex-row gap-3">
