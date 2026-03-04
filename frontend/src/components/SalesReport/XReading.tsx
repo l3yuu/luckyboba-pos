@@ -449,29 +449,10 @@ const XReading = () => {
   };
 
   const renderSummary = () => {
-    const summaryRows = reportData?.summary_data ?? [];
     const SIZE_ORDER = ['SM', 'UM', 'PCM', 'JR', 'SL', 'UL', 'PCL'];
 
     return (
       <div className="my-2">
-        <Divider />
-
-        {/* Daily date rows */}
-        <div className="flex text-[11px] border-b border-black pb-0.5 mb-0.5">
-          <span className="w-[45%] uppercase">DATE</span>
-          <span className="w-[20%] text-center uppercase">QTY</span>
-          <span className="w-[35%] text-right uppercase">AMOUNT</span>
-        </div>
-        {summaryRows.length === 0 ? (
-          <p className="text-[11px]">No data for this date range.</p>
-        ) : summaryRows.map((item, i) => (
-          <div key={i} className="flex text-[11px] leading-snug border-b border-dotted border-zinc-300">
-            <span className="w-[45%]">{item.Sales_Date}</span>
-            <span className="w-[20%] text-center">{item.Total_Orders}</span>
-            <span className="w-[35%] text-right">{phCurrency.format(item.Daily_Revenue)}</span>
-          </div>
-        ))}
-
         {/* Category breakdown */}
         {reportData?.categories && reportData.categories.length > 0 && (
           <>
@@ -499,7 +480,7 @@ const XReading = () => {
 
               return (
                 <div key={catIdx} className="mb-1">
-                  <p className="text-[11px] uppercase mt-1">{cat.category_name}</p>
+                  <p className="text-[11px] font-bold uppercase mt-1">{cat.category_name}</p>
                   {orderedKeys.map((sizeKey, si) => {
                     const products = sizeGroups.get(sizeKey) ?? [];
                     return (
@@ -527,10 +508,11 @@ const XReading = () => {
                       </div>
                     );
                   })}
-                  <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-400 mt-0.5 pt-0.5">
+                  <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-1000 mt-1 pt-1">
                     <span className="uppercase">T. PER: {cat.category_name}</span>
                     <span>{phCurrency.format(cat.category_total || 0)}</span>
                   </div>
+                  <Divider />
                 </div>
               );
             })}
@@ -538,7 +520,7 @@ const XReading = () => {
             {/* Add-ons */}
             {reportData.all_addons_summary && reportData.all_addons_summary.length > 0 && (
               <div className="mt-1">
-                <Divider />
+
                 <p className="text-[11px] uppercase">ADD ONS</p>
                 {reportData.all_addons_summary.map((addon, idx) => (
                   <div key={idx} className="flex text-[11px] leading-snug">
@@ -546,7 +528,7 @@ const XReading = () => {
                     <span className="w-[30%] text-right">x{addon.qty}</span>
                   </div>
                 ))}
-                <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-400 mt-0.5 pt-0.5">
+                <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-800 mt-1 pt-1">
                   <span className="uppercase">T. PER: ADD ONS</span>
                   <span>QTY: {reportData.all_addons_summary.reduce((a, b) => a + b.qty, 0)}</span>
                 </div>
@@ -859,14 +841,16 @@ const XReading = () => {
                 })()}
 
                 {/* Footer */}
-                <div className="mt-6 text-center text-[11px]">
-                  <Divider />
-                  <p className="uppercase mt-1">{reportData?.prepared_by || cashierName}</p>
-                  <p className="mt-3">____________________</p>
-                  <p className="uppercase text-[10px] mt-0.5">Prepared By</p>
-                  <p className="mt-3">____________________</p>
-                  <p className="uppercase text-[10px] mt-0.5">Signed By</p>
-                </div>
+                {reportData.report_type !== 'summary' && (
+                  <div className="mt-6 text-center text-[11px]">
+                    <Divider />
+                    <p className="uppercase mt-1">{reportData?.prepared_by || cashierName}</p>
+                    <p className="mt-3">____________________</p>
+                    <p className="uppercase text-[10px] mt-0.5">Prepared By</p>
+                    <p className="mt-3">____________________</p>
+                    <p className="uppercase text-[10px] mt-0.5">Signed By</p>
+                  </div>
+                )}
 
               </div>
             </div>
