@@ -11,22 +11,22 @@ interface XReadingReport {
   transaction_count?: number;
   cash_total?: number;
   non_cash_total?: number;
-  report_type?: string; 
+  report_type?: string;
   logs?: { id: string; reason: string; amount: number; time: string }[];
-  items?: { product_name: string; total_qty: number; total_sales?: number }[]; 
+  items?: { product_name: string; total_qty: number; total_sales?: number }[];
   hourly_data?: { hour: number; total: number; count: number }[];
   transactions?: {
-  Invoice: string;
-  Amount: number;
-  Status: string;
-  Date_Time: string;
-  Method?: string;
-  Cashier?: string;
-  Vatable?: number;
-  Tax?: number;
-  Items_Count?: number;
-  Disc?: number;
-}[];
+    Invoice: string;
+    Amount: number;
+    Status: string;
+    Date_Time: string;
+    Method?: string;
+    Cashier?: string;
+    Vatable?: number;
+    Tax?: number;
+    Items_Count?: number;
+    Disc?: number;
+  }[];
   cash_count?: { denominations: { label: string; qty: number; total: number }[]; grand_total: number };
   denominations?: { label: string; qty: number; total: number }[];
   grand_total?: number;
@@ -88,7 +88,7 @@ interface XReadingReport {
   cash_in?: number;
 }
 
-// ── Shared receipt row components ──────────────────────────────────────────
+// ── Shared receipt components ──────────────────────────────────────────────
 const Row = ({ label, value, indent = false }: { label: string; value: string | number; indent?: boolean }) => (
   <div className={`flex justify-between text-[11px] leading-snug ${indent ? 'pl-3' : ''}`}>
     <span className="uppercase w-[60%] leading-tight">{label}</span>
@@ -96,9 +96,7 @@ const Row = ({ label, value, indent = false }: { label: string; value: string | 
   </div>
 );
 
-
 const Divider = () => <div className="border-t border-dashed border-black my-1.5 w-full" />;
-
 // ──────────────────────────────────────────────────────────────────────────
 
 const XReading = () => {
@@ -116,7 +114,7 @@ const XReading = () => {
   const [invoiceQuery, setInvoiceQuery] = useState("");
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user'); 
+    const storedUser = localStorage.getItem('user');
     if (storedUser) {
       const user = JSON.parse(storedUser);
       setCashierName(user.name || "ADMIN USER");
@@ -138,7 +136,7 @@ const XReading = () => {
     setError(null);
     setRawApiResponse(null);
     try {
-      // Sales Summary: call both APIs and merge
+      // Sales Summary: merge two endpoints
       if (type === 'summary') {
         const [summaryRes, qtyRes] = await Promise.all([
           api.get('/reports/sales-summary',   { params: { from: selectedDate, to: selectedDate } }),
@@ -273,7 +271,10 @@ const XReading = () => {
   // ── RENDER HELPERS ─────────────────────────────────────────────────────────
 
   const renderHourlySales = () => {
-    const HOUR_LABELS = ['12am','1am','2am','3am','4am','5am','6am','7am','8am','9am','10am','11am','12pm','1pm','2pm','3pm','4pm','5pm','6pm','7pm','8pm','9pm','10pm','11pm'];
+    const HOUR_LABELS = [
+      '12am','1am','2am','3am','4am','5am','6am','7am','8am','9am','10am','11am',
+      '12pm','1pm','2pm','3pm','4pm','5pm','6pm','7pm','8pm','9pm','10pm','11pm',
+    ];
     const salesMap = new Map<number, { total: number; count: number }>();
     reportData?.hourly_data?.forEach(item => salesMap.set(Number(item.hour), { total: Number(item.total), count: Number(item.count) }));
     const totalSales = reportData?.hourly_data?.reduce((a, c) => a + Number(c.total), 0) ?? 0;
@@ -282,7 +283,6 @@ const XReading = () => {
     return (
       <div className="my-2">
         <Divider />
-        {/* Header row */}
         <div className="flex text-[11px] border-b border-black pb-0.5 mb-0.5">
           <span className="w-[40%] uppercase">HOUR</span>
           <span className="w-[20%] text-center uppercase">QTY</span>
@@ -300,7 +300,7 @@ const XReading = () => {
         })}
         <Divider />
         <Row label="TOTAL ITEMS SOLD" value={totalItems} />
-        <Row label="TOTAL REVENUE" value={phCurrency.format(totalSales)} />
+        <Row label="TOTAL REVENUE"    value={phCurrency.format(totalSales)} />
       </div>
     );
   };
@@ -324,7 +324,7 @@ const XReading = () => {
         ))
       ) : <p className="text-[11px]">No voids recorded today.</p>}
       <Divider />
-      <Row label="TOTAL VOIDS" value={reportData?.logs?.length ?? 0} />
+      <Row label="TOTAL VOIDS"  value={reportData?.logs?.length ?? 0} />
       <Row label="TOTAL AMOUNT" value={phCurrency.format(reportData?.logs?.reduce((a, l) => a + l.amount, 0) ?? 0)} />
     </div>
   );
@@ -339,34 +339,26 @@ const XReading = () => {
     return (
       <div className="my-2">
         <Divider />
-        {/* Column headers */}
         <div className="flex text-[11px] border-b border-black pb-0.5 mb-0.5">
           <span className="w-[75%] uppercase">DESCRIPTION</span>
           <span className="w-[25%] text-right uppercase">QTY</span>
         </div>
-
         {reportData.categories.map((cat, catIdx) => {
           const hasSizes = cat.products.some(p => p.size !== null && p.size !== undefined);
-
           const sizeGroups = new Map<string | null, typeof cat.products>();
           for (const product of cat.products) {
             const key = product.size ?? null;
             if (!sizeGroups.has(key)) sizeGroups.set(key, []);
             sizeGroups.get(key)!.push(product);
           }
-
           const orderedKeys: (string | null)[] = [
             ...SIZE_ORDER.filter(s => sizeGroups.has(s)),
             ...(sizeGroups.has(null) ? [null] : []),
           ];
-
           const catTotal = cat.products.reduce((a, p) => a + p.total_qty, 0);
-
           return (
             <div key={catIdx} className="mb-1">
-              {/* Category name */}
               <p className="text-[11px] font-bold uppercase mt-1">{cat.category_name}</p>
-
               {orderedKeys.map((sizeKey, si) => {
                 const products = sizeGroups.get(sizeKey) ?? [];
                 return (
@@ -385,18 +377,14 @@ const XReading = () => {
                   </div>
                 );
               })}
-
-              {/* Category qty total */}
               <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-800 mt-0.5 pt-0.5">
                 <span className="uppercase">T. PER: {cat.category_name}</span>
                 <span>QTY: {catTotal}</span>
               </div>
-              <Divider/>
+              <Divider />
             </div>
           );
         })}
-
-        {/* Add-ons summary — qty only */}
         {reportData.all_addons_summary && reportData.all_addons_summary.length > 0 && (
           <div className="mt-1">
             <p className="text-[11px] uppercase">ADD ONS</p>
@@ -412,7 +400,6 @@ const XReading = () => {
             </div>
           </div>
         )}
-
         <Divider />
         <div className="flex justify-between text-[11px]">
           <span className="uppercase">ALL DAY MEAL</span>
@@ -453,133 +440,132 @@ const XReading = () => {
     );
   };
 
-const renderDetailedSales = () => {
-  const rows = reportData?.transactions ?? reportData?.search_results ?? [];
-  const total = rows.reduce((acc, tx) => acc + Number(tx.Amount || 0), 0);
-  const isSalesDetailed = reportData?.report_type === 'detailed';
+  const renderDetailedSales = () => {
+    const rows = reportData?.transactions ?? reportData?.search_results ?? [];
+    const total = rows.reduce((acc, tx) => acc + Number(tx.Amount || 0), 0);
+    const isSalesDetailed = reportData?.report_type === 'detailed';
 
-  if (isSalesDetailed) {
-    const cancelledTotal = rows
-      .filter(tx => tx.Status?.toLowerCase() === 'cancelled')
-      .reduce((acc, tx) => acc + Number(tx.Amount || 0), 0);
-    const completedTotal = rows
-      .filter(tx => tx.Status?.toLowerCase() !== 'cancelled')
-      .reduce((acc, tx) => acc + Number(tx.Amount || 0), 0);
+    if (isSalesDetailed) {
+      const cancelledTotal = rows
+        .filter(tx => tx.Status?.toLowerCase() === 'cancelled')
+        .reduce((acc, tx) => acc + Number(tx.Amount || 0), 0);
+      const completedTotal = rows
+        .filter(tx => tx.Status?.toLowerCase() !== 'cancelled')
+        .reduce((acc, tx) => acc + Number(tx.Amount || 0), 0);
 
-    return (
-      <div className="my-2">
-        <Divider />
-        {/* Header — wider SI col, removed DISC since it's always 0 */}
-        <div className="flex text-[8px] border-b border-black pb-0.5 mb-0.5 font-bold uppercase leading-tight">
-          <span className="w-[30%]">SI # / TIME</span>
-          <span className="w-[10%] text-center">QTY</span>
-          <span className="w-[20%] text-center">CASHIER</span>
-          <span className="w-[20%] text-right">VATABLE</span>
-          <span className="w-[20%] text-right">TOTAL</span>
-        </div>
-
-        {rows.length === 0 ? (
-          <p className="text-[11px] text-center py-2">No transactions found.</p>
-        ) : rows.map((tx, i) => {
-          const isCancelled = tx.Status?.toLowerCase() === 'cancelled';
-          const timeOnly = tx.Date_Time
-            ? new Date(tx.Date_Time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-            : '';
-          const siDisplay = String(tx.Invoice)
-            .replace(/^OR-0+/, '#')   // strips leading OR-000...
-            .replace(/^OR-/, '#');
-
-          return (
-            <div key={i} className={`border-b border-dotted border-zinc-800 py-0.5 ${isCancelled ? 'opacity-50' : ''}`}>
-              <div className="flex text-[11px] leading-snug items-start">
-                <span className="w-[30%] uppercase leading-tight">
-                  {siDisplay}<br />
-                  <span className="text-zinc-800 text-[9px]">{timeOnly}</span>
-                </span>
-                <span className="w-[10%] text-center text-zinc-800">
-                  {tx.Items_Count ? tx.Items_Count : <span className="text-zinc-800">—</span>}
-                </span>
-                <span className="w-[20%] text-center text-zinc-900 truncate" style={{ fontSize: '9px' }}>
-                  {tx.Cashier || <span className="text-zinc-800">—</span>}
-                </span>
-                <span className="w-[20%] text-right text-zinc-800">
-                  {tx.Vatable ? phCurrency.format(tx.Vatable) : <span className="text-zinc-800">—</span>}
-                </span>
-                <span className={`w-[20%] text-right font-medium ${isCancelled ? 'line-through text-zinc-400' : ''}`}>
-                  {phCurrency.format(tx.Amount)}
-                </span>
-              </div>
-            </div>
-          );
-        })}
-        <div className="flex text-[9px] justify-between mb-0.5 mt-2 text-zinc-580">
-          <span className="uppercase">Cancelled</span>
-          <span>{phCurrency.format(cancelledTotal)}</span>
-        </div>
-        <div className="flex text-[10px] font-bold justify-between">
-          <span className="uppercase">Total Sales</span>
-          <span>{phCurrency.format(completedTotal)}</span>
-        </div>
-        <Divider />
-        <div className="mt-1">
-          <Row label="TOTAL TRANSACTIONS" value={rows.length} />
-          <Row label="TOTAL AMOUNT"       value={phCurrency.format(total)} />
-        </div>
-      </div>
-    );
-  }
-
-  // ── SEARCH view ──
-  return (
-    <div className="my-2">
-      <Divider />
-      {rows.length === 0 ? (
-        <p className="text-[11px] text-center py-2">No receipts found.</p>
-      ) : (
-        <>
-          <div className="flex text-[11px] border-b border-black pb-0.5 mb-0.5">
-            <span className="flex-1 uppercase">INVOICE / DATE</span>
-            <span className="w-[30%] text-right uppercase">AMT</span>
+      return (
+        <div className="my-2">
+          <Divider />
+          <div className="flex text-[8px] border-b border-black pb-0.5 mb-0.5 font-bold uppercase leading-tight">
+            <span className="w-[30%]">SI # / TIME</span>
+            <span className="w-[10%] text-center">QTY</span>
+            <span className="w-[20%] text-center">CASHIER</span>
+            <span className="w-[20%] text-right">VATABLE</span>
+            <span className="w-[20%] text-right">TOTAL</span>
           </div>
-          {rows.map((tx, i) => {
-            const status   = (tx as { Status?: string }).Status ?? '';
-            const dateTime = (tx as { Date_Time?: string; Date?: string }).Date_Time
-                          ?? (tx as { Date?: string }).Date
-                          ?? '';
-            const isCancelled = status?.toLowerCase() === 'cancelled';
+
+          {rows.length === 0 ? (
+            <p className="text-[11px] text-center py-2">No transactions found.</p>
+          ) : rows.map((tx, i) => {
+            const isCancelled = tx.Status?.toLowerCase() === 'cancelled';
+            const timeOnly = tx.Date_Time
+              ? new Date(tx.Date_Time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+              : '';
+            const siDisplay = String(tx.Invoice)
+              .replace(/^OR-0+/, '#')
+              .replace(/^OR-/, '#');
+
             return (
-              <div key={i} className="border-b border-dotted border-zinc-300 py-0.5">
-                <div className="flex text-[11px] leading-snug">
-                  <span className="flex-1 uppercase">{tx.Invoice}</span>
-                  <span className={`w-[30%] text-right ${isCancelled ? 'line-through text-zinc-400' : ''}`}>
-                    {phCurrency.format(tx.Amount)}
+              <div key={i} className={`border-b border-dotted border-zinc-300 py-0.5 ${isCancelled ? 'opacity-50' : ''}`}>
+                <div className="flex text-[8px] leading-snug items-start">
+                  <span className="w-[30%] uppercase leading-tight">
+                    {siDisplay}<br />
+                    <span className="text-zinc-500 text-[7px]">{timeOnly}</span>
                   </span>
-                </div>
-                <div className="flex text-[10px] leading-snug text-zinc-500">
-                  <span className="flex-1">{dateTime}</span>
-                  <span className={`text-right text-[10px] uppercase ${isCancelled ? 'text-red-400' : 'text-zinc-400'}`}>
-                    {status}
+                  <span className="w-[10%] text-center text-zinc-600">
+                    {tx.Items_Count ? tx.Items_Count : <span className="text-zinc-400">—</span>}
+                  </span>
+                  <span className="w-[20%] text-center text-zinc-600 truncate" style={{ fontSize: '7px' }}>
+                    {tx.Cashier || <span className="text-zinc-400">—</span>}
+                  </span>
+                  <span className="w-[20%] text-right text-zinc-600">
+                    {tx.Vatable ? phCurrency.format(tx.Vatable) : <span className="text-zinc-400">—</span>}
+                  </span>
+                  <span className={`w-[20%] text-right font-medium ${isCancelled ? 'line-through text-zinc-400' : ''}`}>
+                    {phCurrency.format(tx.Amount)}
                   </span>
                 </div>
               </div>
             );
           })}
-        </>
-      )}
-      <div className="mt-3">
-        <Row label="TOTAL TRANSACTIONS" value={rows.length} />
-        <Row label="TOTAL AMOUNT"       value={phCurrency.format(total)} />
+
+          <Divider />
+          <div className="flex text-[9px] justify-between mb-0.5 text-zinc-500">
+            <span className="uppercase">Cancelled</span>
+            <span>{phCurrency.format(cancelledTotal)}</span>
+          </div>
+          <div className="flex text-[10px] font-bold justify-between">
+            <span className="uppercase">Total Sales</span>
+            <span>{phCurrency.format(completedTotal)}</span>
+          </div>
+          <Divider />
+          <div className="mt-1">
+            <Row label="TOTAL TRANSACTIONS" value={rows.length} />
+            <Row label="TOTAL AMOUNT"       value={phCurrency.format(total)} />
+          </div>
+        </div>
+      );
+    }
+
+    // ── SEARCH view ──
+    return (
+      <div className="my-2">
+        <Divider />
+        {rows.length === 0 ? (
+          <p className="text-[11px] text-center py-2">No receipts found.</p>
+        ) : (
+          <>
+            <div className="flex text-[11px] border-b border-black pb-0.5 mb-0.5">
+              <span className="flex-1 uppercase">INVOICE / DATE</span>
+              <span className="w-[30%] text-right uppercase">AMT</span>
+            </div>
+            {rows.map((tx, i) => {
+              const status   = (tx as { Status?: string }).Status ?? '';
+              const dateTime = (tx as { Date_Time?: string; Date?: string }).Date_Time
+                            ?? (tx as { Date?: string }).Date
+                            ?? '';
+              const isCancelled = status?.toLowerCase() === 'cancelled';
+              return (
+                <div key={i} className="border-b border-dotted border-zinc-300 py-0.5">
+                  <div className="flex text-[11px] leading-snug">
+                    <span className="flex-1 uppercase">{tx.Invoice}</span>
+                    <span className={`w-[30%] text-right ${isCancelled ? 'line-through text-zinc-400' : ''}`}>
+                      {phCurrency.format(tx.Amount)}
+                    </span>
+                  </div>
+                  <div className="flex text-[10px] leading-snug text-zinc-500">
+                    <span className="flex-1">{dateTime}</span>
+                    <span className={`text-right text-[10px] uppercase ${isCancelled ? 'text-red-400' : 'text-zinc-400'}`}>
+                      {status}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </>
+        )}
+        <div className="mt-3">
+          <Row label="TOTAL TRANSACTIONS" value={rows.length} />
+          <Row label="TOTAL AMOUNT"       value={phCurrency.format(total)} />
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
 
   const renderSummary = () => {
     const SIZE_ORDER = ['SM', 'UM', 'PCM', 'JR', 'SL', 'UL', 'PCL'];
-
     return (
       <div className="my-2">
-        {/* Category breakdown */}
         {reportData?.categories && reportData.categories.length > 0 && (
           <>
             <Divider />
@@ -588,22 +574,18 @@ const renderDetailedSales = () => {
               <span className="w-[15%] text-center uppercase">QTY</span>
               <span className="w-[30%] text-right uppercase">AMOUNT</span>
             </div>
-
             {reportData.categories.map((cat, catIdx) => {
               const hasSizes = cat.products.some(p => p.size !== null && p.size !== undefined);
-
               const sizeGroups = new Map<string | null, typeof cat.products>();
               for (const product of cat.products) {
                 const key = product.size ?? null;
                 if (!sizeGroups.has(key)) sizeGroups.set(key, []);
                 sizeGroups.get(key)!.push(product);
               }
-
               const orderedKeys: (string | null)[] = [
                 ...SIZE_ORDER.filter(s => sizeGroups.has(s)),
                 ...(sizeGroups.has(null) ? [null] : []),
               ];
-
               return (
                 <div key={catIdx} className="mb-1">
                   <p className="text-[11px] font-bold uppercase mt-1">{cat.category_name}</p>
@@ -634,7 +616,7 @@ const renderDetailedSales = () => {
                       </div>
                     );
                   })}
-                  <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-1000 mt-1 pt-1">
+                  <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-800 mt-1 pt-1">
                     <span className="uppercase">T. PER: {cat.category_name}</span>
                     <span>{phCurrency.format(cat.category_total || 0)}</span>
                   </div>
@@ -642,11 +624,8 @@ const renderDetailedSales = () => {
                 </div>
               );
             })}
-
-            {/* Add-ons */}
             {reportData.all_addons_summary && reportData.all_addons_summary.length > 0 && (
               <div className="mt-1">
-
                 <p className="text-[11px] uppercase">ADD ONS</p>
                 {reportData.all_addons_summary.map((addon, idx) => (
                   <div key={idx} className="flex text-[11px] leading-snug">
@@ -662,39 +641,30 @@ const renderDetailedSales = () => {
             )}
           </>
         )}
-
-        {/* ── Audit Footer (receipt-style, right-aligned labels) ── */}
         <Divider />
-
-        {/* Grand total of all categories */}
         <div className="flex text-[11px] justify-end gap-2 mb-0.5">
           <span className="uppercase">TOTAL:</span>
-          <span className="w-[35%] text-right font-bold">
-            {phCurrency.format(reportData?.gross_sales || 0)}
-          </span>
+          <span className="w-[35%] text-right font-bold">{phCurrency.format(reportData?.gross_sales || 0)}</span>
         </div>
-
         <Divider />
-
-        {/* Deductions block — right-aligned labels like the receipt photo */}
         {(() => {
-          const gross         = reportData?.gross_sales      || 0;
-          const vatAmt        = reportData?.vat_amount       || 0;
-          const vatableSales  = reportData?.vatable_sales    || 0;
-          const scDiscount    = reportData?.sc_discount      || 0;
-          const pwdDiscount   = reportData?.pwd_discount     || 0;
-          const diplomat      = reportData?.diplomat_discount || 0;
-          const voids         = reportData?.total_void_amount || 0;
-          const netAmount     = gross - scDiscount - pwdDiscount - diplomat - vatAmt;
+          const gross        = reportData?.gross_sales       || 0;
+          const vatAmt       = reportData?.vat_amount        || 0;
+          const vatableSales = reportData?.vatable_sales     || 0;
+          const scDiscount   = reportData?.sc_discount       || 0;
+          const pwdDiscount  = reportData?.pwd_discount      || 0;
+          const diplomat     = reportData?.diplomat_discount || 0;
+          const voids        = reportData?.total_void_amount || 0;
+          const netAmount    = gross - scDiscount - pwdDiscount - diplomat - vatAmt;
 
-          const auditRows: { label: string; value: string }[] = [
+          const auditRows = [
             { label: 'LINE DISC:',             value: phCurrency.format(0) },
             { label: 'LESS POINTS REDEEMED:',  value: phCurrency.format(0) },
             { label: 'LESS REG EMP VIP DISC:', value: phCurrency.format(0) },
-            { label: 'LESS PWD DISCOUNT:',     value: pwdDiscount  > 0 ? `-${phCurrency.format(pwdDiscount)}`  : phCurrency.format(0) },
-            { label: 'LESS SC DISCOUNT:',      value: scDiscount   > 0 ? `-${phCurrency.format(scDiscount)}`   : phCurrency.format(0) },
-            { label: 'LESS DIPLOMAT:',         value: diplomat     > 0 ? `-${phCurrency.format(diplomat)}`     : phCurrency.format(0) },
-            { label: 'LESS 12% VAT:',          value: vatAmt       > 0 ? `-${phCurrency.format(vatAmt)}`       : phCurrency.format(0) },
+            { label: 'LESS PWD DISCOUNT:',     value: pwdDiscount > 0 ? `-${phCurrency.format(pwdDiscount)}` : phCurrency.format(0) },
+            { label: 'LESS SC DISCOUNT:',      value: scDiscount  > 0 ? `-${phCurrency.format(scDiscount)}`  : phCurrency.format(0) },
+            { label: 'LESS DIPLOMAT:',         value: diplomat    > 0 ? `-${phCurrency.format(diplomat)}`    : phCurrency.format(0) },
+            { label: 'LESS 12% VAT:',          value: vatAmt      > 0 ? `-${phCurrency.format(vatAmt)}`      : phCurrency.format(0) },
           ];
 
           return (
@@ -705,16 +675,11 @@ const renderDetailedSales = () => {
                   <span className="w-[35%] text-right">{r.value}</span>
                 </div>
               ))}
-
-              {/* Net Amount — slightly emphasized */}
               <div className="flex text-[11px] leading-snug border-t border-black mt-0.5 pt-0.5">
                 <span className="flex-1 text-right uppercase pr-1 font-bold">NET AMOUNT:</span>
                 <span className="w-[35%] text-right font-bold">{phCurrency.format(netAmount)}</span>
               </div>
-
               <Divider />
-
-              {/* VAT breakdown */}
               {[
                 { label: 'VATABLE SALES:',    value: phCurrency.format(vatableSales) },
                 { label: 'VAT AMOUNT:',       value: phCurrency.format(vatAmt) },
@@ -727,20 +692,14 @@ const renderDetailedSales = () => {
                 </div>
               ))}
               <Divider />
-
-              {/* SC and PWD */}
               <div className="flex text-[11px] leading-snug">
                 <span className="flex-1 text-right uppercase pr-1">SC AND PWD AMOUNT:</span>
                 <span className="w-[35%] text-right">{phCurrency.format(scDiscount + pwdDiscount)}</span>
               </div>
-
-              {/* Total voids */}
               <div className="flex text-[11px] leading-snug">
                 <span className="flex-1 text-right uppercase pr-1">TOTAL VOIDS:</span>
                 <span className="w-[35%] text-right">{phCurrency.format(voids)}</span>
               </div>
-
-              {/* Printed timestamp */}
               <div className="flex text-[11px] mt-1 leading-snug">
                 <span className="flex-1 text-right uppercase pr-1">PRINTED:</span>
                 <span className="w-[45%] text-right">
@@ -756,97 +715,98 @@ const renderDetailedSales = () => {
   };
 
   const renderXReading = () => {
-      const gross        = reportData?.gross_sales       || 0;
-      const netSales     = reportData?.net_sales         || 0;
-      const cashTotal    = reportData?.cash_total        || 0;
-      const nonCash      = reportData?.non_cash_total    || 0;
-      const txCount      = reportData?.transaction_count || 0;
-      const scDiscount   = reportData?.sc_discount       || 0;
-      const pwdDiscount  = reportData?.pwd_discount      || 0;
-      const diplomat     = reportData?.diplomat_discount || 0;
-      const totalDisc    = scDiscount + pwdDiscount + diplomat;
-      const vatableSales = reportData?.vatable_sales     || 0;
-      const vatAmount    = reportData?.vat_amount        || 0;
-      const voids        = reportData?.total_void_amount || 0;
+    const gross        = reportData?.gross_sales       || 0;
+    const netSales     = reportData?.net_sales         || 0;
+    const cashTotal    = reportData?.cash_total        || 0;
+    const nonCash      = reportData?.non_cash_total    || 0;
+    const txCount      = reportData?.transaction_count || 0;
+    const scDiscount   = reportData?.sc_discount       || 0;
+    const pwdDiscount  = reportData?.pwd_discount      || 0;
+    const diplomat     = reportData?.diplomat_discount || 0;
+    const totalDisc    = scDiscount + pwdDiscount + diplomat;
+    const vatableSales = reportData?.vatable_sales     || 0;
+    const vatAmount    = reportData?.vat_amount        || 0;
+    const voids        = reportData?.total_void_amount || 0;
 
-      // Known payment methods — always show these rows
-      const PAYMENT_METHODS = ['food panda', 'grab', 'gcash', 'visa', 'mastercard', 'cash'];
-      const paymentMap = new Map<string, number>();
-      reportData?.payment_breakdown?.forEach(p => {
-        paymentMap.set(p.method.toLowerCase(), Number(p.amount));
-      });
+    const PAYMENT_METHODS = ['food panda', 'grab', 'gcash', 'visa', 'mastercard', 'cash'];
+    const paymentMap = new Map<string, number>();
+    reportData?.payment_breakdown?.forEach(p => {
+      paymentMap.set(p.method.toLowerCase(), Number(p.amount));
+    });
 
-      const creditMethods = ['visa', 'mastercard'];
-      const debitMethods  = ['gcash'];
-      const totalCredit   = creditMethods.reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
-      const totalDebit    = debitMethods.reduce((a, m)  => a + (paymentMap.get(m) || 0), 0);
-      const totalCard     = totalCredit + totalDebit;
+    const creditMethods = ['visa', 'mastercard'];
+    const debitMethods  = ['gcash'];
+    const totalCredit   = creditMethods.reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
+    const totalDebit    = debitMethods.reduce((a, m)  => a + (paymentMap.get(m) || 0), 0);
+    const totalCard     = totalCredit + totalDebit;
 
-      return (
-        <div className="my-2">
-          <Divider />
-          <Row label="REPORT DATE"        value={selectedDate} />
-          <Row label="START DATE & TIME"  value={`${selectedDate} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
-          <Row label="END DATE & TIME"    value={`${selectedDate} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
-          <Row label="TERMINAL #"         value="POS-01" />
-          <Row label="CASHIER"            value={reportData?.prepared_by || cashierName} />
-          <Row label="BEG. SI #"          value={reportData?.beg_si || '0000000000'} />
-          <Row label="END. SI #"          value={reportData?.end_si || '0000000000'} />
+    return (
+      <div className="my-2">
+        <Divider />
+        <Row label="REPORT DATE"       value={selectedDate} />
+        <Row label="START DATE & TIME" value={`${selectedDate} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
+        <Row label="END DATE & TIME"   value={`${selectedDate} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
+        <Row label="TERMINAL #"        value="POS-01" />
+        <Row label="CASHIER"           value={reportData?.prepared_by || cashierName} />
+        <Row label="BEG. SI #"         value={reportData?.beg_si || '0000000000'} />
+        <Row label="END. SI #"         value={reportData?.end_si || '0000000000'} />
 
-          <Divider />
-          <p className="text-[11px] uppercase text-center font-bold mb-0.5">BREAKDOWN OF SALES</p>
-          <Row label="VATABLE SALES"      value={phCurrency.format(vatableSales)} />
-          <Row label="VAT AMOUNT"         value={phCurrency.format(vatAmount)} />
-          <Row label="VAT EXEMPT SALES"   value={phCurrency.format(0)} />
-          <Row label="ZERO-RATED SALES"   value={phCurrency.format(0)} />
-          <Divider />
-          <Row label="SERVICE CHARGE"     value={phCurrency.format(0)} />
-          <Row label="NET SALES"          value={phCurrency.format(netSales)} />
-          <Row label="TOTAL DISCOUNTS"    value={phCurrency.format(totalDisc)} />
-          <Row label="GROSS AMOUNT"       value={phCurrency.format(gross)} />
+        <Divider />
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">BREAKDOWN OF SALES</p>
+        <Row label="VATABLE SALES"    value={phCurrency.format(vatableSales)} />
+        <Row label="VAT AMOUNT"       value={phCurrency.format(vatAmount)} />
+        <Row label="VAT EXEMPT SALES" value={phCurrency.format(0)} />
+        <Row label="ZERO-RATED SALES" value={phCurrency.format(0)} />
+        <Divider />
+        <Row label="SERVICE CHARGE"   value={phCurrency.format(0)} />
+        <Row label="NET SALES"        value={phCurrency.format(netSales)} />
+        <Row label="TOTAL DISCOUNTS"  value={phCurrency.format(totalDisc)} />
+        <Row label="GROSS AMOUNT"     value={phCurrency.format(gross)} />
 
-          <Divider />
-          <p className="text-[11px] uppercase text-center font-bold mb-0.5">DISCOUNT SUMMARY</p>
-          <Row label="S.C DISC."          value={phCurrency.format(scDiscount)} />
-          <Row label="PWD DISC."          value={phCurrency.format(pwdDiscount)} />
-          <Row label="NAAC DISC."         value={phCurrency.format(0)} />
-          <Row label="SOLO PARENT DISC."  value={phCurrency.format(0)} />
-          <Row label="OTHER DISC."        value={phCurrency.format(diplomat)} />
+        <Divider />
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">DISCOUNT SUMMARY</p>
+        <Row label="S.C DISC."         value={phCurrency.format(scDiscount)} />
+        <Row label="PWD DISC."         value={phCurrency.format(pwdDiscount)} />
+        <Row label="NAAC DISC."        value={phCurrency.format(0)} />
+        <Row label="SOLO PARENT DISC." value={phCurrency.format(0)} />
+        <Row label="OTHER DISC."       value={phCurrency.format(diplomat)} />
 
-          <Divider />
-          <p className="text-[11px] uppercase text-center font-bold mb-0.5">SALES ADJUSTMENT</p>
-          <Row label="CANCELED"           value={phCurrency.format(voids)} />
+        <Divider />
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">SALES ADJUSTMENT</p>
+        <Row label="CANCELED" value={phCurrency.format(voids)} />
 
-          <Divider />
-          <p className="text-[11px] uppercase text-center font-bold mb-0.5">PAYMENTS RECEIVED</p>
-          {PAYMENT_METHODS.map((method, i) => (
-            <Row key={i} label={method.toUpperCase()} value={phCurrency.format(paymentMap.get(method) || 0)} />
-          ))}
-          {/* Any extra methods not in the known list */}
-          {reportData?.payment_breakdown?.filter(p => !PAYMENT_METHODS.includes(p.method.toLowerCase())).map((p, i) => (
-            <Row key={`extra-${i}`} label={p.method.toUpperCase()} value={phCurrency.format(p.amount)} />
-          ))}
-          <Divider />
-          <Row label="TOTAL CREDIT"       value={phCurrency.format(totalCredit)} />
-          <Row label="TOTAL DEBIT"        value={phCurrency.format(totalDebit)} />
-          <Row label="TOTAL CARD"         value={phCurrency.format(totalCard)} />
-          <Divider />
-          <Row label="TOTAL CASH"         value={phCurrency.format(cashTotal)} />
-          <Row label="TOTAL NON-CASH"     value={phCurrency.format(nonCash)} />
-          <Row label="TOTAL PAYMENTS"     value={phCurrency.format(gross)} />
-          <Row label="CANCELED"           value={phCurrency.format(voids)} />
+        <Divider />
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">PAYMENTS RECEIVED</p>
+        {PAYMENT_METHODS.map((method, i) => (
+          <Row key={i} label={method.toUpperCase()} value={phCurrency.format(paymentMap.get(method) || 0)} />
+        ))}
+        {reportData?.payment_breakdown?.filter(p => !PAYMENT_METHODS.includes(p.method.toLowerCase())).map((p, i) => (
+          <Row key={`extra-${i}`} label={p.method.toUpperCase()} value={phCurrency.format(p.amount)} />
+        ))}
+        <Divider />
+        <Row label="TOTAL CREDIT"   value={phCurrency.format(totalCredit)} />
+        <Row label="TOTAL DEBIT"    value={phCurrency.format(totalDebit)} />
+        <Row label="TOTAL CARD"     value={phCurrency.format(totalCard)} />
+        <Divider />
+        <Row label="TOTAL CASH"     value={phCurrency.format(cashTotal)} />
+        <Row label="TOTAL NON-CASH" value={phCurrency.format(nonCash)} />
+        <Row label="TOTAL PAYMENTS" value={phCurrency.format(gross)} />
+        <Row label="CANCELED"       value={phCurrency.format(voids)} />
 
-          <Divider />
-          <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
-          <Row label="CASH IN"        value={phCurrency.format(reportData?.cash_in       || 0)} />
-          <Row label="CASH IN DRAWER" value={phCurrency.format(reportData?.cash_in_drawer || 0)} />
-          <Row label="CASH DROP"      value={phCurrency.format(reportData?.cash_drop      || 0)} />
-          <Divider />
-          <Row label="TOTAL QTY SOLD"    value={reportData?.total_qty_sold ?? 0} />
-          <Row label="TRANSACTION COUNT" value={txCount} />
-        </div>
-      );
-    };
+        <Divider />
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
+        <Row label="CASH IN"            value={phCurrency.format(reportData?.cash_in        || 0)} />
+        <Row label="CASH IN DRAWER"     value={phCurrency.format(reportData?.cash_in_drawer || 0)} />
+        <Row label="CASH DROP"          value={phCurrency.format(reportData?.cash_drop       || 0)} />
+        <Divider />
+        <Row label="TOTAL QTY SOLD"    value={reportData?.total_qty_sold ?? 0} />
+        <Row label="TRANSACTION COUNT" value={txCount} />
+      </div>
+    );
+  };
+
+  // ── FOOTER — hidden for reports that don't need it ────────────────────────
+  const HIDE_FOOTER = ['summary', 'qty_items', 'search', 'detailed'];
 
   // ──────────────────────────────────────────────────────────────────────────
 
@@ -854,7 +814,7 @@ const renderDetailedSales = () => {
     <div className="flex-1 bg-[#f4f5f7] h-full flex flex-col overflow-hidden font-sans">
       <TopNavbar />
       <div className="flex-1 overflow-y-auto p-6 flex flex-col relative">
-        
+
         <style>{`
           .flex-between { display: flex; justify-content: space-between; width: 100%; align-items: flex-end; }
           .receipt-divider { border-top: 1px dashed #000; margin: 6px 0; width: 100%; display: block; }
@@ -906,8 +866,9 @@ const renderDetailedSales = () => {
           }
         `}</style>
 
-        {/* Controls */}
-        <div className="bg-white p-3 rounded-lg shadow-sm border border-zinc-200 mb-6 flex flex-col xl:flex-row items-center gap-4 relative z-50 print:hidden">
+        {/* ── CONTROLS ── */}
+        <div className="bg-white p-3 border border-zinc-200 mb-6 flex flex-col xl:flex-row items-center gap-3 relative z-50 print:hidden shadow-sm">
+          {/* Menu */}
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -936,7 +897,7 @@ const renderDetailedSales = () => {
             )}
           </div>
 
-          {/* Date input */}
+          {/* Date + Search */}
           <div className="flex-1 w-full flex gap-2">
             <input
               type="date"
@@ -954,50 +915,51 @@ const renderDetailedSales = () => {
                   placeholder="Search invoice / cashier..."
                   className="flex-1 px-4 h-11 border border-zinc-300 bg-zinc-50 font-bold text-sm rounded-none focus:outline-none focus:border-[#3b2063]"
                 />
-                <button onClick={() => fetchReportData('search')} disabled={loading}
-                  className="px-4 h-12 bg-blue-600 text-white rounded-md font-bold text-xs uppercase disabled:opacity-50">
+                <button
+                  onClick={() => fetchReportData('search')}
+                  disabled={loading}
+                  className="px-5 h-11 bg-zinc-800 text-white font-bold text-xs uppercase tracking-widest hover:bg-zinc-900 transition-colors disabled:opacity-50 rounded-none"
+                >
                   Search
                 </button>
               </div>
             )}
           </div>
 
-          {/* ── ACTION BUTTONS — SEPARATE BOX STYLE ── */}
+          {/* Action buttons */}
           <div className="flex gap-2">
-            <button onClick={handleGenerate} disabled={loading}
-              className="px-6 h-12 bg-[#1e40af] text-white rounded-md font-bold uppercase text-xs disabled:opacity-50">
+            <button
+              onClick={handleGenerate}
+              disabled={loading}
+              className="px-6 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#2a174a] active:bg-[#1a0f2e] transition-colors disabled:opacity-50 rounded-none border border-[#3b2063]"
+            >
               {loading ? 'Processing...' : 'Generate'}
             </button>
-            <button onClick={handlePrint}
-              className="px-6 h-12 bg-[#172554] text-white rounded-md font-bold uppercase text-xs">
+            <button
+              onClick={handlePrint}
+              className="px-6 h-11 bg-white text-[#3b2063] font-bold text-xs uppercase tracking-widest border border-[#3b2063] hover:bg-[#f3f0ff] active:bg-[#ede8ff] transition-colors rounded-none"
+            >
               Print
             </button>
             {rawApiResponse && (
-              <button onClick={() => setShowDebug(!showDebug)}
-                className="px-4 h-12 bg-amber-500 text-white rounded-md font-bold uppercase text-xs">
+              <button
+                onClick={() => setShowDebug(!showDebug)}
+                className="px-4 h-11 bg-amber-500 text-white font-bold text-xs uppercase tracking-widest hover:bg-amber-600 transition-colors rounded-none"
+              >
                 {showDebug ? 'Hide' : 'Debug'}
               </button>
             )}
           </div>
-
-          {rawApiResponse && (
-            <button
-              onClick={() => setShowDebug(!showDebug)}
-              className="px-4 h-11 bg-amber-500 text-white font-bold text-xs uppercase tracking-widest hover:bg-amber-600 transition-colors rounded-none"
-            >
-              {showDebug ? 'Hide' : 'Debug'}
-            </button>
-          )}
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm font-bold print:hidden rounded-none">
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 text-sm font-bold print:hidden">
             ⚠️ {error}
           </div>
         )}
 
         {showDebug && rawApiResponse && (
-          <div className="mb-4 p-4 bg-zinc-900 text-green-400 rounded-lg text-[11px] font-mono overflow-auto max-h-64 print:hidden">
+          <div className="mb-4 p-4 bg-zinc-900 text-green-400 text-[11px] font-mono overflow-auto max-h-64 print:hidden">
             <p className="text-yellow-400 font-black mb-2 text-xs">⚡ RAW API RESPONSE:</p>
             <pre>{JSON.stringify(rawApiResponse, null, 2)}</pre>
           </div>
@@ -1030,6 +992,7 @@ const renderDetailedSales = () => {
                     <Row label="TERMINAL"    value="POS-01" />
                   </div>
                 </div>
+
                 {(() => {
                   switch (reportData.report_type) {
                     case 'hourly_sales': return renderHourlySales();
@@ -1043,8 +1006,8 @@ const renderDetailedSales = () => {
                   }
                 })()}
 
-                {/* Footer */}
-                {reportData.report_type !== 'summary' && reportData.report_type !== 'qty_items' && reportData.report_type !== 'search' && reportData.report_type !== 'detailed' && (
+                {/* Footer — hidden for certain report types */}
+                {!HIDE_FOOTER.includes(reportData.report_type ?? '') && (
                   <div className="mt-6 text-center text-[11px]">
                     <Divider />
                     <p className="uppercase mt-1">{reportData?.prepared_by || cashierName}</p>
