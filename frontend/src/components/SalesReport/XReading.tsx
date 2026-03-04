@@ -814,7 +814,6 @@ const XReading = () => {
     <div className="flex-1 bg-[#f4f5f7] h-full flex flex-col overflow-hidden font-sans">
       <TopNavbar />
       <div className="flex-1 overflow-y-auto p-6 flex flex-col relative">
-
         <style>{`
           .flex-between { display: flex; justify-content: space-between; width: 100%; align-items: flex-end; }
           .receipt-divider { border-top: 1px dashed #000; margin: 6px 0; width: 100%; display: block; }

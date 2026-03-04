@@ -1,86 +1,101 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import type { LoginCredentials } from '../types/user';
-import { useToast } from '../hooks/useToast'; 
+import { useToast } from '../hooks/useToast';
+import { ROLE_HOME } from '../utils/roleRoutes';
 
-// Asset Imports
 import logo from '../assets/logo.png';
-import backgroundImage from '../assets/background_image.png'; 
+import backgroundImage from '../assets/background_image.png';
+
+const getHomeForRole = (role: string): string =>
+  ROLE_HOME[role.toLowerCase().trim()] ?? '/dashboard';
 
 const Login: React.FC = () => {
   const { showToast } = useToast();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false); // Toggle State
+  const [email, setEmail]               = useState('');
+  const [password, setPassword]         = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [lockoutTimer, setLockoutTimer] = useState<number>(0);
   const [searchParams, setSearchParams] = useSearchParams();
-  
-  const { login, isLoading, error } = useAuth();
-  const navigate = useNavigate();
 
+  const { login, isLoading, error, user } = useAuth();
+  const navigate        = useNavigate();
+  const hasRedirected   = useRef(false);
+  const didJustLogin    = useRef(false);
+
+  // ── Redirect if already logged in ────────────────────────────────────────
+  useEffect(() => {
+    if (isLoading) return;
+    if (hasRedirected.current) return;
+    if (didJustLogin.current) return;
+    if (!user) return;
+    hasRedirected.current = true;
+    navigate(getHomeForRole(user.role), { replace: true });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, user]); // navigate intentionally excluded — adding it causes infinite loop // ← navigate intentionally excluded
+
+  // ── Session expired toast (run once on mount) ────────────────────────────
   useEffect(() => {
     if (searchParams.get('reason') === 'expired') {
-      showToast("Your session has expired. Please log in again.", "warning");
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete('reason');
-      setSearchParams(newParams, { replace: true });
+      showToast('Your session has expired. Please log in again.', 'warning');
+      const p = new URLSearchParams(searchParams);
+      p.delete('reason');
+      setSearchParams(p, { replace: true });
     }
-  }, [searchParams, showToast, setSearchParams]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // ← intentionally empty — only run on mount
 
+  // ── Error toast ──────────────────────────────────────────────────────────
   useEffect(() => {
-    if (error) {
-      showToast(error, "error");
-    }
-  }, [error, showToast]);
+    if (error) showToast(error, 'error');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [error]); // ← showToast intentionally excluded
 
-  // Check for lockout on mount and update timer
+  // ── Lockout countdown ────────────────────────────────────────────────────
   useEffect(() => {
-    const checkLockout = () => {
-      const lockoutEnd = localStorage.getItem('login_lockout_end');
-      if (lockoutEnd) {
-        const remaining = Math.ceil((parseInt(lockoutEnd) - Date.now()) / 1000);
-        setLockoutTimer(remaining > 0 ? remaining : 0);
-      } else {
-        setLockoutTimer(0);
-      }
+    const check = () => {
+      const end = localStorage.getItem('login_lockout_end');
+      setLockoutTimer(end ? Math.max(0, Math.ceil((parseInt(end) - Date.now()) / 1000)) : 0);
     };
-    checkLockout();
-    const interval = setInterval(checkLockout, 1000);
-    return () => clearInterval(interval);
-  }, [error]); // Re-check if error changes (e.g. failed login attempt)
+    check();
+    const id = setInterval(check, 1000);
+    return () => clearInterval(id);
+  }, []); // ← run once, interval handles updates
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.getModifierState('CapsLock')) {
-      showToast("Caps Lock is ON", "warning");
-    }
+    if (e.getModifierState('CapsLock')) showToast('Caps Lock is ON', 'warning');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const credentials: LoginCredentials = { email, password };
-    const user = await login(credentials); 
-    
-    if (user) {
-      showToast(`Welcome back, ${user.name}!`, "success");
-      navigate('/dashboard', { replace: true });
+    const loggedInUser = await login(credentials);
+
+    if (loggedInUser) {
+      localStorage.setItem('user_role', loggedInUser.role);
+      localStorage.setItem('lucky_boba_user_branch_id', String(loggedInUser.branch_id ?? ''));
+      showToast(`Welcome back, ${loggedInUser.name}!`, 'success');
+      didJustLogin.current  = true;
+      hasRedirected.current = true;
+      navigate(getHomeForRole(loggedInUser.role), { replace: true });
     }
   };
 
   return (
-    <div 
+    <div
       className="relative min-h-screen flex items-center justify-center p-6 bg-cover bg-center bg-no-repeat"
       style={{ backgroundImage: `url(${backgroundImage})` }}
     >
       <div className="max-w-md w-full z-10 overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#D4C8F0] shadow-2xl">
         <div className="flex flex-col items-center p-8 pb-4 text-center">
           <div className="flex justify-center mb-0">
-            <img 
-              src={logo} 
-              alt="Lucky Boba Logo" 
-              className="w-80 h-48 object-contain drop-shadow-sm" 
+            <img
+              src={logo}
+              alt="Lucky Boba Logo"
+              className="w-80 h-48 object-contain drop-shadow-sm"
             />
           </div>
           <div className="text-[#3b2063] font-black uppercase text-[11px] tracking-[0.25em] -mt-10 opacity-70">
@@ -111,7 +126,7 @@ const Login: React.FC = () => {
               </label>
               <div className="relative">
                 <input
-                  type={showPassword ? "text" : "password"} // Dynamic Type
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onKeyDown={handleKeyDown}
@@ -120,7 +135,6 @@ const Login: React.FC = () => {
                   required
                   disabled={lockoutTimer > 0}
                 />
-                {/* Visibility Toggle Button */}
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
@@ -147,7 +161,11 @@ const Login: React.FC = () => {
               disabled={isLoading || lockoutTimer > 0}
               className="w-full bg-[#3b2063] text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-[#2a174a] active:scale-[0.98] transition-all shadow-xl shadow-purple-900/40 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? 'Authenticating...' : lockoutTimer > 0 ? `Locked (${lockoutTimer}s)` : 'Sign In'}
+              {isLoading
+                ? 'Authenticating...'
+                : lockoutTimer > 0
+                  ? `Locked (${lockoutTimer}s)`
+                  : 'Sign In'}
             </button>
           </div>
         </form>

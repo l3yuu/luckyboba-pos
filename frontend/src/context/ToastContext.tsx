@@ -1,4 +1,3 @@
-"use client"
 import { createContext, useContext } from 'react';
 
 export interface ToastContextType {
@@ -7,7 +6,6 @@ export interface ToastContextType {
 
 export const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
-// Moving the hook here is fine because this file doesn't export a React Component
 export const useToast = () => {
   const context = useContext(ToastContext);
   if (!context) {

@@ -1,9 +1,8 @@
 "use client"
 
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import 'react-simple-keyboard/build/css/index.css';
 import TopNavbar from '../TopNavbar'; 
-import type { KeyboardRef, Receipt } from '../../types/transactions';
+import type { Receipt } from '../../types/transactions';
 import api from '../../services/api'; 
 import { Calendar, Clock, Search, X, RotateCcw, ShieldAlert, FileCheck, Receipt as ReceiptIcon, Terminal } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
@@ -38,20 +37,20 @@ const TableSkeleton = () => (
 const SearchReceipts = () => {
   const { showToast } = useToast();
 
+  const [showKeyboar] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [searchResults, setSearchResults] = useState<Receipt[]>([]); 
-  const [hasSearched, setHasSearched] = useState(false); 
-  const [showKeyboard, setShowKeyboard] = useState(false);
+  const [searchResults, setSearchResults] = useState<Receipt[]>([]);
+  const [hasSearched, setHasSearched] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isVoiding, setIsVoiding] = useState(false); 
+  const [isVoiding, setIsVoiding] = useState(false);
   const [isReady, setIsReady] = useState(false);
-  
+
   const [isReasonModalOpen, setIsReasonModalOpen] = useState(false);
   const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
   const [cancelReason, setCancelReason] = useState('');
-  
-  const keyboardRef = useRef<KeyboardRef>(null);
+
+  const keyboardRef = useRef<unknown>(null);
 
   const stats = useMemo(() => {
     const data = Array.isArray(searchResults) ? searchResults : [];
@@ -66,31 +65,29 @@ const SearchReceipts = () => {
   const handleSearch = useCallback(async (queryOverride?: string, dateOverride?: string) => {
     const activeQuery = typeof queryOverride === 'string' ? queryOverride : searchQuery;
     const activeDate = dateOverride || selectedDate;
-    
+
     setIsLoading(true);
     setHasSearched(true);
 
     try {
       const response = await api.get('/receipts/search', {
-        params: { 
+        params: {
           query: activeQuery,
-          date: activeDate 
+          date: activeDate
         }
       });
-      
+
       const data = Array.isArray(response.data) ? response.data : (response.data.data || []);
       setSearchResults(data);
 
       sessionStorage.setItem(`${CACHE_KEY}_query`, activeQuery);
       sessionStorage.setItem(`${CACHE_KEY}_date`, activeDate);
       sessionStorage.setItem(`${CACHE_KEY}_results`, JSON.stringify(data));
-
     } catch (error) {
-      console.error("Search Error:", error);
-      setSearchResults([]); 
+      console.error('Search Error:', error);
+      setSearchResults([]);
     } finally {
       setIsLoading(false);
-      setShowKeyboard(false);
     }
   }, [searchQuery, selectedDate]);
 
@@ -156,9 +153,9 @@ const SearchReceipts = () => {
       });
 
       if (response.status === 200) {
-        const updatedData = searchResults.map(item => 
-          item.sale_id === selectedSaleId 
-            ? { ...item, status: 'cancelled' as const, cancellation_reason: cancelReason } 
+        const updatedData = searchResults.map(item =>
+          item.sale_id === selectedSaleId
+            ? { ...item, status: 'cancelled' as const, cancellation_reason: cancelReason }
             : item
         );
 
@@ -181,7 +178,6 @@ const SearchReceipts = () => {
     const val = e.target.value;
     setSearchQuery(val);
     if (keyboardRef.current) {
-      // Cast to interface instead of 'any' to fix linting error 179:31
       (keyboardRef.current as unknown as SimpleKeyboardInstance).setInput(val);
     }
   };
@@ -190,7 +186,7 @@ const SearchReceipts = () => {
     <div className="flex flex-col h-full w-full bg-[#f8f6ff] animate-in fade-in zoom-in duration-300 relative overflow-hidden">
       <TopNavbar />
 
-      <div className={`flex-1 flex flex-col items-center justify-start p-4 md:p-8 gap-6 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-70' : ''}`}>
+      <div className={`flex-1 flex flex-col items-center justify-start p-4 md:p-8 gap-6 overflow-y-auto transition-all duration-300 ${showKeyboar ? 'pb-70' : ''}`}>
         
         {/* COMMAND BAR */}
         <div className="w-full max-w-6xl flex flex-col lg:flex-row gap-3">
@@ -200,7 +196,6 @@ const SearchReceipts = () => {
               type="text" 
               value={searchQuery}
               onChange={handleInputChange}
-              onFocus={() => setShowKeyboard(true)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               placeholder="ENTER OR NUMBER FOR AUDIT..."
               className="flex-1 h-12 px-2 outline-none text-[#3b2063] font-black tracking-widest placeholder:text-zinc-200 bg-transparent text-sm"
@@ -217,7 +212,7 @@ const SearchReceipts = () => {
                 onChange={(e) => {
                   const newDate = e.target.value;
                   setSelectedDate(newDate);
-                  handleSearch(searchQuery, newDate); 
+                  handleSearch(searchQuery, newDate);
                 }}
                 className="outline-none text-[#3b2063] font-black bg-transparent cursor-pointer text-[11px] tracking-widest uppercase flex-1"
               />
@@ -257,7 +252,7 @@ const SearchReceipts = () => {
               {searchResults.length} ENTRIES FOUND
             </span>
           </div>
-          
+
           <div className="flex-1 overflow-auto no-scrollbar">
             <table className="w-full text-left">
               <thead className="sticky top-0 bg-white z-10 border-b border-zinc-100">
@@ -274,8 +269,8 @@ const SearchReceipts = () => {
                   <TableSkeleton />
                 ) : searchResults.length > 0 ? (
                   searchResults.map((item, index) => (
-                    <tr 
-                      key={item.sale_id || item.si_number || `receipt-${index}`} 
+                    <tr
+                      key={item.sale_id || item.si_number || `receipt-${index}`}
                       className="hover:bg-[#f8f6ff] transition-colors group"
                     >
                       <td className="px-8 py-5">
@@ -347,8 +342,8 @@ const SearchReceipts = () => {
               >
                 Abort
               </button>
-              <button 
-                onClick={handleConfirmCancel} 
+              <button
+                onClick={handleConfirmCancel}
                 disabled={isVoiding || !cancelReason.trim()}
                 className="flex-1 py-4 bg-red-600 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-none shadow-lg active:scale-[0.98] disabled:opacity-50"
               >
@@ -362,7 +357,7 @@ const SearchReceipts = () => {
   );
 };
 
-// --- HELPER COMPONENT (PASSING LINTING) ---
+// --- HELPER COMPONENT ---
 const StatBox = ({ label, value, icon, isDanger, isBrand }: { label: string; value: number; icon: React.ReactNode; isDanger?: boolean; isBrand?: boolean }) => (
   <div className={`p-6 border border-zinc-200 flex flex-col justify-between shadow-sm rounded-none ${isBrand ? 'bg-[#3b2063]' : 'bg-white'}`}>
     <div className="flex items-center justify-between mb-4">

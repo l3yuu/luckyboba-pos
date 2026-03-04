@@ -19,6 +19,7 @@ class Sale extends Model
         'charge_type', 
         'pax',
         'user_id',
+        'branch_id',
         'is_synced',
         'invoice_number',     
         'status',             
