@@ -208,11 +208,10 @@ jobs:
             cd ..
 
             # Restore Staging index.html from the uploaded build
+            # No sed needed — the built index.html already uses /assets/ which
+            # the .htaccess rewrites to backend/public/assets/ automatically
             rm -f index.html
             cp backend/public/index.html index.html
-            sed -i 's|src="/assets/|src="/backend/public/assets/|g' index.html
-            sed -i 's|href="/assets/|href="/backend/public/assets/|g' index.html
-            sed -i 's|href="/lucky.jpg"|href="/backend/public/lucky.jpg"|g' index.html
 
             # Restore Staging .htaccess
             cat > .htaccess << 'HTACCESS'
