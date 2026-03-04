@@ -8,6 +8,8 @@ import { useToast } from '../../hooks/useToast';
 import { Loader2 } from 'lucide-react';
 import { getCache, setCache, clearCache } from '../../utils/cache';
 
+const dashboardFont = { fontFamily: "'Inter', sans-serif" };
+
 // FIX: Define the status type once to reuse across the component
 type SerialStatus = 'In Stock' | 'Sold' | 'Defective';
 
@@ -133,89 +135,171 @@ const ItemSerials = () => {
   };
 
   return (
-    <div className="flex-1 bg-[#f4f5f7] h-full flex flex-col overflow-hidden font-sans relative">
-      <TopNavbar />
-      <div className="flex-1 p-8 flex flex-col gap-6 overflow-y-auto">
-        <div className="flex justify-between items-end">
-          <div>
-            <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest leading-none">Serial Tracking</h1>
-            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Individual Unit Management</p>
+    <>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');`}</style>
+      <div className="flex-1 bg-[#f3f0ff] h-full flex flex-col overflow-hidden font-sans relative" style={dashboardFont}>
+        <TopNavbar />
+        <div className="flex-1 overflow-y-auto p-5 md:p-7 flex flex-col gap-4">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
+              <h1 className="text-lg font-extrabold text-[#1c1c1e] mt-0.5">Serial Tracking</h1>
+            </div>
+            <button 
+              onClick={() => setIsModalOpen(true)} 
+              className="h-11 px-7 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm"
+            >
+              REGISTER SERIAL
+            </button>
           </div>
-          <button onClick={() => setIsModalOpen(true)} className="px-6 py-2 bg-[#3b2063] text-white rounded-md font-bold text-[10px] uppercase tracking-widest shadow-sm hover:bg-[#2a1647] transition-all active:scale-95">REGISTER SERIAL</button>
-        </div>
 
-        <div className="bg-white p-4 rounded-xl shadow-sm border border-zinc-200 flex gap-4">
-          <input type="text" placeholder="Search Serial Number..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="flex-1 px-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold outline-none focus:border-[#3b2063]" />
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold outline-none cursor-pointer">
-            <option>All Status</option>
-            <option>In Stock</option>
-            <option>Sold</option>
-            <option>Defective</option>
-          </select>
-        </div>
+          {/* Search and filter bar */}
+          <div className="bg-white border border-zinc-200 p-4 rounded-none shadow-sm flex gap-4">
+            <input 
+              type="text" 
+              placeholder="Search Serial Number..." 
+              value={searchTerm} 
+              onChange={(e) => setSearchTerm(e.target.value)} 
+              className="flex-1 px-4 py-3 bg-white border border-zinc-300 rounded-none text-sm font-semibold outline-none focus:border-[#3b2063] placeholder:text-zinc-400" 
+            />
+            <select 
+              value={statusFilter} 
+              onChange={(e) => setStatusFilter(e.target.value)} 
+              className="px-4 py-3 bg-white border border-zinc-300 rounded-none text-sm font-semibold outline-none cursor-pointer focus:border-[#3b2063]"
+            >
+              <option>All Status</option>
+              <option>In Stock</option>
+              <option>Sold</option>
+              <option>Defective</option>
+            </select>
+          </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden relative">
-          {isFetching && <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10 backdrop-blur-[1px]"><Loader2 className="animate-spin text-[#3b2063]" size={32} /></div>}
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-zinc-50 border-b border-zinc-200">
-              <tr>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Item Name</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Serial Number</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Status</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Date Added</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {serials.length > 0 ? (
-                serials.map((record) => (
-                  <tr key={record.id} className="hover:bg-zinc-50 transition-colors">
-                    <td className="px-6 py-4 text-xs font-bold text-slate-700 uppercase">{record.itemName}</td>
-                    <td className="px-6 py-4 text-xs font-black text-[#3b2063] font-mono">{record.serialNumber}</td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter ${record.status === 'In Stock' ? 'bg-emerald-100 text-emerald-600' : record.status === 'Sold' ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600'}`}>{record.status}</span>
-                    </td>
-                    <td className="px-6 py-4 text-xs font-bold text-zinc-400 text-center">{record.dateAdded}</td>
-                    <td className="px-6 py-4 text-center">
-                      <button onClick={() => openUpdateModal(record)} className="text-zinc-500 hover:text-[#3b2063] transition-colors font-bold text-[10px] uppercase tracking-widest border border-zinc-200 px-3 py-1.5 rounded-md hover:bg-zinc-100 active:scale-95">Update</button>
+          {/* Table card */}
+          <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-none">
+            {isFetching && <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10 backdrop-blur-[1px]"><Loader2 className="animate-spin text-[#3b2063]" size={32} /></div>}
+            <table className="w-full text-left border-collapse">
+              <thead className="sticky top-0 bg-white z-10 border-b-2 border-zinc-100">
+                <tr>
+                  <th className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Item Name</th>
+                  <th className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Serial Number</th>
+                  <th className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center">Status</th>
+                  <th className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center">Date Added</th>
+                  <th className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center w-24">Edit</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {serials.length > 0 ? (
+                  serials.map((record) => (
+                    <tr key={record.id} className="hover:bg-[#f9f8ff] transition-colors">
+                      <td className="px-7 py-3.5">
+                        <span className="text-[13px] font-extrabold text-[#3b2063] uppercase tracking-tight">{record.itemName}</span>
+                      </td>
+                      <td className="px-7 py-3.5">
+                        <span className="text-[12px] font-semibold text-zinc-500 font-mono">{record.serialNumber}</span>
+                      </td>
+                      <td className="px-7 py-3.5 text-center">
+                        <span className={`px-3 py-1 rounded-none text-[9px] font-bold uppercase tracking-tighter ${record.status === 'In Stock' ? 'bg-emerald-100 text-emerald-600' : record.status === 'Sold' ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600'}`}>{record.status}</span>
+                      </td>
+                      <td className="px-7 py-3.5 text-center">
+                        <span className="text-[12px] font-semibold text-zinc-500">{record.dateAdded}</span>
+                      </td>
+                      <td className="px-7 py-3.5 text-center">
+                        <button 
+                          onClick={() => openUpdateModal(record)} 
+                          className="h-9 w-9 inline-flex items-center justify-center bg-[#3b2063] hover:bg-[#2a174a] text-white transition-colors rounded-none"
+                          title="Update"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="px-8 py-20 text-center">
+                      <p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">No serial records found.</p>
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={5} className="py-12 text-center text-zinc-400 font-bold uppercase tracking-widest text-[10px]">No serial records found.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+            {/* Footer */}
+            <div className="px-7 py-4 bg-white border-t border-zinc-100 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Synchronized</span>
+              </div>
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                Showing {serials.length} records
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* --- ADD MODAL --- */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-10 animate-in zoom-in duration-200">
-            <h2 className="text-[#3b2063] font-black text-lg uppercase tracking-widest mb-6 text-center">Register Unit</h2>
-            <form onSubmit={handleRegister} className="space-y-5">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-none border border-zinc-200 shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
+            <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100">
               <div>
-                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Item Name</label>
-                <input required type="text" value={formData.itemName} onChange={(e) => setFormData({...formData, itemName: e.target.value})} className="w-full bg-[#f8f6ff] border-none rounded-2xl px-5 py-3 text-sm font-bold text-[#3b2063] outline-none" placeholder="Enter product name..." />
+                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
+                <h2 className="text-sm font-extrabold text-[#1c1c1e] mt-0.5">Register Unit</h2>
               </div>
-              <div>
-                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Serial Number</label>
-                <input required type="text" value={formData.serialNumber} onChange={(e) => setFormData({...formData, serialNumber: e.target.value})} className="w-full bg-[#f8f6ff] border-none rounded-2xl px-5 py-3 text-sm font-bold text-[#3b2063] font-mono outline-none" placeholder="Scan or type SN..." />
+              <button onClick={() => setIsModalOpen(false)} className="text-zinc-300 hover:text-zinc-600 transition-colors p-1 text-lg leading-none">×</button>
+            </div>
+
+            <form onSubmit={handleRegister} className="px-7 py-6 flex flex-col gap-5">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Item Name</label>
+                <input 
+                  required 
+                  type="text" 
+                  value={formData.itemName} 
+                  onChange={(e) => setFormData({...formData, itemName: e.target.value})} 
+                  className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white" 
+                  placeholder="Enter product name..." 
+                />
               </div>
-              <div>
-                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Initial Status</label>
-                <select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value as SerialStatus})} className="w-full bg-[#f8f6ff] border-none rounded-2xl px-5 py-3 text-sm font-bold text-[#3b2063] outline-none cursor-pointer">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Serial Number</label>
+                <input 
+                  required 
+                  type="text" 
+                  value={formData.serialNumber} 
+                  onChange={(e) => setFormData({...formData, serialNumber: e.target.value})} 
+                  className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white font-mono" 
+                  placeholder="Scan or type SN..." 
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Initial Status</label>
+                <select 
+                  value={formData.status} 
+                  onChange={(e) => setFormData({...formData, status: e.target.value as SerialStatus})} 
+                  className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] focus:border-[#3b2063] focus:bg-white cursor-pointer"
+                >
                   <option value="In Stock">In Stock</option>
                   <option value="Defective">Defective</option>
                 </select>
               </div>
-              <div className="flex gap-4 pt-4">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 text-zinc-400 font-black text-[10px] uppercase tracking-widest hover:text-zinc-600 transition-colors">Cancel</button>
-                <button type="submit" disabled={isSubmitting} className="flex-2 py-4 bg-[#3b2063] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 hover:bg-[#2a1647] transition-all disabled:opacity-50">
-                  {isSubmitting ? <Loader2 className="animate-spin" size={14} /> : "Confirm Registration"}
+              <div className="flex gap-3 px-7 py-5 border-t border-zinc-100">
+                <button 
+                  type="button" 
+                  onClick={() => setIsModalOpen(false)} 
+                  className="flex-1 h-11 bg-white border border-red-300 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 hover:border-red-400 transition-all rounded-none"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting} 
+                  className="flex-1 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#2a174a] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-none"
+                >
+                  {isSubmitting ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Confirm Registration</> : 'Confirm Registration'}
                 </button>
               </div>
             </form>
@@ -225,31 +309,54 @@ const ItemSerials = () => {
 
       {/* --- UPDATE STATUS MODAL --- */}
       {isUpdateModalOpen && selectedSerial && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 animate-in zoom-in duration-200">
-            <h2 className="text-[#3b2063] font-black text-lg uppercase tracking-widest mb-2 text-center">Update Status</h2>
-            <p className="text-center text-xs font-bold text-zinc-400 mb-6 font-mono">{selectedSerial.serialNumber}</p>
-            <form onSubmit={handleUpdateStatus} className="space-y-5">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-none border border-zinc-200 shadow-2xl w-full max-w-sm flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
+            <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100">
               <div>
-                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">New Status</label>
-                {/* FIX: Cast target value directly to the defined Type Alias */}
-                <select value={newStatus} onChange={(e) => setNewStatus(e.target.value as SerialStatus)} className="w-full bg-[#f8f6ff] border-none rounded-2xl px-5 py-3 text-sm font-bold text-[#3b2063] outline-none cursor-pointer">
+                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
+                <h2 className="text-sm font-extrabold text-[#1c1c1e] mt-0.5">Update Status</h2>
+              </div>
+              <button onClick={() => setIsUpdateModalOpen(false)} className="text-zinc-300 hover:text-zinc-600 transition-colors p-1 text-lg leading-none">×</button>
+            </div>
+
+            <form onSubmit={handleUpdateStatus} className="px-7 py-6 flex flex-col gap-5">
+              <div className="text-center">
+                <p className="text-xs font-semibold text-zinc-500 font-mono mb-4">{selectedSerial.serialNumber}</p>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">New Status</label>
+                <select 
+                  value={newStatus} 
+                  onChange={(e) => setNewStatus(e.target.value as SerialStatus)} 
+                  className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] focus:border-[#3b2063] focus:bg-white cursor-pointer"
+                >
                   <option value="In Stock">In Stock</option>
                   <option value="Sold">Sold</option>
                   <option value="Defective">Defective</option>
                 </select>
               </div>
-              <div className="flex gap-4 pt-4">
-                <button type="button" onClick={() => setIsUpdateModalOpen(false)} className="flex-1 py-4 text-zinc-400 font-black text-[10px] uppercase tracking-widest hover:text-zinc-600 transition-colors">Cancel</button>
-                <button type="submit" disabled={isSubmitting} className="flex-2 py-4 bg-[#3b2063] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 hover:bg-[#2a1647] transition-all disabled:opacity-50">
-                  {isSubmitting ? <Loader2 className="animate-spin" size={14} /> : "Save Changes"}
+
+              <div className="flex gap-3 px-7 py-5 border-t border-zinc-100">
+                <button 
+                  type="button" 
+                  onClick={() => setIsUpdateModalOpen(false)} 
+                  className="flex-1 h-11 bg-white border border-red-300 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 hover:border-red-400 transition-all rounded-none"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting} 
+                  className="flex-1 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#2a174a] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-none"
+                >
+                  {isSubmitting ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Save Changes</> : 'Save Changes'}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

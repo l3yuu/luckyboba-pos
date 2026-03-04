@@ -7,17 +7,16 @@ import api from '../services/api';
 import type { DashboardData, TopSeller } from '../types/dashboard';
 import { 
   Monitor, 
-  TrendingUp, 
-  ShoppingCart, 
-  ArrowUpCircle, 
-  ArrowDownCircle, 
-  AlertCircle, 
-  Star, 
+  DollarSign,
+  Receipt,
+  ArrowDownToLine,
+  ArrowUpFromLine,
+  Ban,
+  Trophy,
+  Clock4,
   RefreshCw,
-  History
 } from 'lucide-react';
 
-// Sub-components logic remains unchanged
 import CashIn from '../components/SalesOrder/CashIn'; 
 import CashDrop from '../components/SalesOrder/CashDrop';
 import SearchReceipts from '../components/SalesOrder/SearchReceipts';
@@ -50,13 +49,20 @@ interface DashboardStatsProps {
   onRefresh: () => void;
 }
 
+// Global font injection
+const GlobalFont = () => (
+  <style>{`
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+    body, .dashboard-root { font-family: 'DM Sans', sans-serif !important; }
+  `}</style>
+);
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('dashboard');
   
-  // Initialize state from Cache
   const [stats, setStats] = useState<DashboardData | null>(() => {
     const cached = localStorage.getItem('dashboard_stats');
     return cached ? JSON.parse(cached) : null;
@@ -67,7 +73,7 @@ const Dashboard = () => {
   const [isStale, setIsStale] = useState(() => {
     const ts = localStorage.getItem('dashboard_stats_timestamp');
     if (!ts) return true;
-    return Date.now() - Number(ts) > 5 * 60 * 1000; // Stale after 5 mins
+    return Date.now() - Number(ts) > 5 * 60 * 1000;
   });
   
   const isFetching = useRef(false);
@@ -77,10 +83,7 @@ const Dashboard = () => {
   }, [user, authLoading, navigate]);
 
   const fetchStats = useCallback(async (force = false) => {
-    // Prevent redundant fetches
     if (isFetching.current) return;
-
-    // CACHE LOGIC: Only fetch if forced or if data is stale/missing
     if (!force && stats) {
       const lastFetch = localStorage.getItem('dashboard_stats_timestamp');
       if (lastFetch && Date.now() - Number(lastFetch) < 5 * 60 * 1000) {
@@ -90,7 +93,6 @@ const Dashboard = () => {
         return;
       }
     }
-
     isFetching.current = true;
     setLoading(true);
     try {
@@ -149,14 +151,17 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-[#f8f6ff] text-zinc-900 font-sans overflow-hidden">
-      <Sidebar isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} logo={logo} currentTab={activeTab} setCurrentTab={setActiveTab} />
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <div className="flex-1 overflow-y-auto">
-          {renderContent()}
-        </div>
-      </main>
-    </div>
+    <>
+      <GlobalFont />
+      <div className="dashboard-root flex flex-col md:flex-row h-screen bg-[#f3f0ff] text-zinc-900 overflow-hidden" style={{fontFamily: "'DM Sans', sans-serif"}}>
+        <Sidebar isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} logo={logo} currentTab={activeTab} setCurrentTab={setActiveTab} />
+        <main className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto">
+            {renderContent()}
+          </div>
+        </main>
+      </div>
+    </>
   );
 };
 
@@ -171,84 +176,85 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, onRefr
   const fmt = (v: number) => `₱${Number(v).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
   return (
-    <div className="p-4 md:p-6 lg:p-7 min-h-full flex flex-col gap-4">
+    <div className="p-4 md:p-6 lg:p-7 min-h-full flex flex-col gap-4" style={{fontFamily: "'DM Sans', sans-serif"}}>
       <div className="grid grid-cols-12 gap-3">
-        {/* TERMINAL STATUS - Violet Card */}
-        <div className="col-span-12 lg:col-span-5 bg-[#3b2063] rounded-none p-6 flex flex-col justify-between border border-[#2a174a] min-h-[160px]">
+
+        {/* TERMINAL STATUS */}
+        <div className="col-span-12 lg:col-span-5 bg-[#2a174a] rounded-none p-6 flex flex-col justify-between border border-[#1a0f2e] min-h-[160px]">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-4">
-               <div className="p-2.5 bg-white/10 text-white rounded-none border border-white/10"><Monitor size={22} strokeWidth={2.5}/></div>
+               <div className="p-2 text-white/70"><Monitor size={20} strokeWidth={1.5}/></div>
                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40">Terminal Status</p>
-                  <p className="text-white font-black text-sm uppercase tracking-widest tabular-nums">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-white/50 mb-0.5">Terminal Status</p>
+                  <p className="text-white font-semibold text-sm tracking-wide tabular-nums">
                     {time.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
                   </p>
                </div>
             </div>
-            <button onClick={onRefresh} className="p-2 text-white/20 hover:text-white transition-colors">
-              <RefreshCw size={18} className={isLoading ? 'animate-spin' : ''} />
+            <button onClick={onRefresh} className="p-2 text-white/30 hover:text-white transition-colors">
+              <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
             </button>
           </div>
           <div className="flex items-end justify-between border-t border-white/10 pt-4">
-            <p className="text-white text-5xl font-black tracking-tighter tabular-nums leading-none">
+            <p className="text-white text-5xl font-bold tracking-tight tabular-nums leading-none">
               {time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}
             </p>
             <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 border border-emerald-500/20 mb-1">
-               <span className="w-1.5 h-1.5 bg-emerald-400 animate-pulse" />
-               <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400">Online</span>
+               <span className="w-1.5 h-1.5 bg-emerald-400 animate-pulse rounded-full" />
+               <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-400">Online</span>
             </div>
           </div>
         </div>
 
-        {/* NET REVENUE - White Card */}
-        <div className="col-span-12 md:col-span-6 lg:col-span-4 bg-white border border-zinc-200 rounded-none p-6 flex flex-col justify-between min-h-[160px]">
+        {/* NET REVENUE */}
+        <div className="col-span-12 md:col-span-6 lg:col-span-4 bg-white border border-zinc-300 rounded-none p-6 flex flex-col justify-between min-h-[160px]">
           <div className="flex items-center gap-4">
-            <div className="p-2.5 bg-[#f8f6ff] text-[#3b2063] border border-zinc-100 rounded-none"><TrendingUp size={20} strokeWidth={3}/></div>
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-400">Net Revenue</p>
+            <div className="p-2 text-[#7c3aed]"><DollarSign size={20} strokeWidth={1.5}/></div>
+            <p className="text-[12px] font-extrabold uppercase tracking-[0.2em] text-zinc-700">Net Revenue</p>
           </div>
           <div className="mt-4">
-            {isLoading ? <div className="h-8 w-32 bg-zinc-50 animate-pulse rounded-none" /> : (
+            {isLoading ? <div className="h-8 w-32 bg-zinc-100 animate-pulse rounded-none" /> : (
               <>
-                <p className="text-4xl font-black text-[#3b2063] tracking-tighter tabular-nums leading-none">{fmt(stats?.total_sales_today ?? 0)}</p>
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-500 mt-2">Active Shift Data</p>
+                <p className="text-4xl font-extrabold text-[#1a0f2e] tracking-tight tabular-nums leading-none">{fmt(stats?.total_sales_today ?? 0)}</p>
+                <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-emerald-600 mt-2">Active Shift Data</p>
               </>
             )}
           </div>
         </div>
 
-        {/* TRANSACTIONS - White Card */}
-        <div className="col-span-12 md:col-span-6 lg:col-span-3 bg-white border border-zinc-200 rounded-none p-6 flex flex-col justify-between min-h-[160px]">
+        {/* TRANSACTIONS */}
+        <div className="col-span-12 md:col-span-6 lg:col-span-3 bg-white border border-zinc-300 rounded-none p-6 flex flex-col justify-between min-h-[160px]">
           <div className="flex items-center gap-4">
-            <div className="p-2.5 bg-[#f8f6ff] text-[#3b2063] border border-zinc-100 rounded-none"><ShoppingCart size={20} strokeWidth={3}/></div>
-            <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-400">Transactions</p>
+            <div className="p-2 text-[#7c3aed]"><Receipt size={20} strokeWidth={1.5}/></div>
+            <p className="text-[12px] font-extrabold uppercase tracking-[0.2em] text-zinc-700">Transactions</p>
           </div>
-          {isLoading ? <div className="h-16 w-16 bg-zinc-50 animate-pulse rounded-none mt-4" /> : (
-            <p className="text-7xl font-black text-[#3b2063] tracking-tighter leading-none tabular-nums mt-4">{stats?.total_orders_today ?? 0}</p>
+          {isLoading ? <div className="h-16 w-16 bg-zinc-100 animate-pulse rounded-none mt-4" /> : (
+            <p className="text-7xl font-extrabold text-[#1a0f2e] tracking-tight leading-none tabular-nums mt-4">{stats?.total_orders_today ?? 0}</p>
           )}
         </div>
       </div>
 
       {/* STRIP METRICS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <MetricStrip icon={<ArrowUpCircle size={18} className="text-emerald-500"/>} label="Begin Cash" value={fmt(stats?.cash_in_today ?? 0)} isLoading={isLoading} />
-          <MetricStrip icon={<ArrowDownCircle size={18} className="text-zinc-400"/>} label="Cash Out" value={fmt(stats?.cash_out_today ?? 0)} isLoading={isLoading} />
-          <MetricStrip icon={<AlertCircle size={18} className="text-red-500"/>} label="Voided" value={fmt(stats?.voided_sales_today ?? 0)} color="text-red-600" isLoading={isLoading} />
+          <MetricStrip icon={<ArrowUpFromLine size={17} className="text-emerald-600" strokeWidth={1.5}/>} label="Begin Cash" value={fmt(stats?.cash_in_today ?? 0)} isLoading={isLoading} />
+          <MetricStrip icon={<ArrowDownToLine size={17} className="text-zinc-500" strokeWidth={1.5}/>} label="Cash Out" value={fmt(stats?.cash_out_today ?? 0)} isLoading={isLoading} />
+          <MetricStrip icon={<Ban size={17} className="text-red-400" strokeWidth={1.5}/>} label="Voided" value={fmt(stats?.voided_sales_today ?? 0)} color="text-red-600" isLoading={isLoading} />
       </div>
 
-      {/* TOP SELLERS SPLIT */}
+      {/* TOP SELLERS */}
       <div className="grid grid-cols-12 gap-3 flex-1">
-        <div className="col-span-12 lg:col-span-6 bg-white border border-zinc-200 rounded-none p-8 flex flex-col gap-6 shadow-sm">
-          <div className="flex items-center gap-4 border-b border-zinc-50 pb-4">
-             <div className="p-2.5 bg-[#f8f6ff] text-[#3b2063] border border-zinc-100 rounded-none"><Star size={18} strokeWidth={3}/></div>
-             <p className="text-[11px] font-black uppercase tracking-[0.4em] text-zinc-400">Top Sellers Today</p>
+        <div className="col-span-12 lg:col-span-6 bg-white border border-zinc-300 rounded-none p-8 flex flex-col shadow-sm" style={{minHeight: '420px'}}>
+          <div className="flex items-center gap-4 border-b-2 border-zinc-100 pb-4 mb-4 shrink-0">
+             <div className="p-2 text-[#7c3aed]"><Trophy size={18} strokeWidth={1.5}/></div>
+             <p className="text-[12px] font-extrabold uppercase tracking-[0.2em] text-zinc-700">Top Sellers Today</p>
           </div>
           <TopSellerRows sellers={stats?.top_seller_today ?? []} loading={isLoading} />
         </div>
 
-        <div className="col-span-12 lg:col-span-6 bg-white border border-zinc-200 rounded-none p-8 flex flex-col gap-6 shadow-sm">
-          <div className="flex items-center gap-4 border-b border-zinc-50 pb-4">
-             <div className="p-2.5 bg-[#f8f6ff] text-[#3b2063] border border-zinc-100 rounded-none"><History size={18} strokeWidth={3}/></div>
-             <p className="text-[11px] font-black uppercase tracking-[0.4em] text-zinc-400">Terminal History · All Time</p>
+        <div className="col-span-12 lg:col-span-6 bg-white border border-zinc-300 rounded-none p-8 flex flex-col shadow-sm" style={{minHeight: '420px'}}>
+          <div className="flex items-center gap-4 border-b-2 border-zinc-100 pb-4 mb-4 shrink-0">
+             <div className="p-2 text-[#7c3aed]"><Clock4 size={18} strokeWidth={1.5}/></div>
+             <p className="text-[12px] font-extrabold uppercase tracking-[0.2em] text-zinc-700">Terminal History · All Time</p>
           </div>
           <TopSellerRows sellers={stats?.top_seller_all_time ?? []} loading={isLoading} />
         </div>
@@ -265,12 +271,12 @@ interface MetricStripProps {
   isLoading: boolean;
 }
 
-const MetricStrip = ({ icon, label, value, color = "text-[#3b2063]", isLoading }: MetricStripProps) => (
-    <div className="bg-white border border-zinc-200 rounded-none p-5 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-4">{icon}<p className="text-[11px] font-black uppercase tracking-[0.4em] text-zinc-400">{label}</p></div>
+const MetricStrip = ({ icon, label, value, color = "text-[#1a0f2e]", isLoading }: MetricStripProps) => (
+    <div className="bg-white border border-zinc-300 rounded-none p-5 flex items-center justify-between shadow-sm" style={{fontFamily: "'DM Sans', sans-serif"}}>
+        <div className="flex items-center gap-3">{icon}<p className="text-[12px] font-extrabold uppercase tracking-[0.15em] text-zinc-700">{label}</p></div>
         {isLoading 
-            ? <div className="h-4 w-24 animate-pulse bg-zinc-50 rounded-none" /> 
-            : <p className={`text-lg font-black tracking-widest tabular-nums ${color}`}>{value}</p>
+            ? <div className="h-4 w-24 animate-pulse bg-zinc-100 rounded-none" /> 
+            : <p className={`text-lg font-extrabold tracking-tight tabular-nums ${color}`}>{value}</p>
         }
     </div>
 );
@@ -283,19 +289,36 @@ interface TopSellerRowsProps {
 const TopSellerRows = ({ sellers, loading }: TopSellerRowsProps) => {
   const list = sellers?.slice(0, 5) || [];
   const max = list.length ? Math.max(...list.map((s) => s.total_qty)) : 1;
-  if (loading) return <div className="space-y-6">{[1,2,3,4,5].map(i => <div key={i} className="h-10 bg-zinc-50 animate-pulse rounded-none" />)}</div>;
+  // Always render 5 slots
+  const slots = Array.from({ length: 5 }, (_, i) => list[i] || null);
+  if (loading) return (
+    <div className="flex flex-col flex-1 h-full">
+      {[1,2,3,4,5].map(i => <div key={i} className="flex-1 bg-zinc-50 animate-pulse border-b border-zinc-100" />)}
+    </div>
+  );
   return (
-    <div className="flex flex-col gap-7">
-      {list.map((item, i: number) => (
-        <div key={i}>
-          <div className="flex items-center justify-between mb-2.5 px-1">
+    <div className="flex flex-col flex-1" style={{fontFamily: "'DM Sans', sans-serif"}}>
+      {slots.map((item, i: number) => (
+        <div key={i} className="flex-1 flex flex-col justify-center border-b border-zinc-100 last:border-b-0 py-3 px-1">
+          {item ? (
+            <>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-4">
+                  <span className="text-[11px] font-bold text-zinc-300 tabular-nums w-5">0{i+1}</span>
+                  <span className="text-[13px] font-extrabold text-[#1a0f2e] truncate max-w-[260px]">{item.product_name}</span>
+                </div>
+                <span className="text-[11px] font-bold tabular-nums text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-none">{item.total_qty} sold</span>
+              </div>
+              <div className="h-[2px] bg-zinc-100 overflow-hidden">
+                <div className="h-full bg-[#3b2063] transition-all duration-1000" style={{ width: `${(item.total_qty / max) * 100}%` }} />
+              </div>
+            </>
+          ) : (
             <div className="flex items-center gap-4">
-               <span className="text-[10px] font-black text-zinc-300 tabular-nums">0{i+1}</span>
-               <span className="text-[12px] font-black uppercase tracking-tight text-[#3b2063] truncate max-w-[200px]">{item.product_name}</span>
+              <span className="text-[11px] font-bold text-zinc-200 tabular-nums w-5">0{i+1}</span>
+              <span className="text-[12px] font-semibold text-zinc-200">—</span>
             </div>
-            <span className="text-[11px] font-black tabular-nums text-emerald-600 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-none">{item.total_qty} sold</span>
-          </div>
-          <div className="h-[2px] bg-zinc-100 overflow-hidden"><div className="h-full bg-[#3b2063] transition-all duration-1000" style={{ width: `${(item.total_qty / max) * 100}%` }} /></div>
+          )}
         </div>
       ))}
     </div>
@@ -303,7 +326,7 @@ const TopSellerRows = ({ sellers, loading }: TopSellerRowsProps) => {
 };
 
 const DashboardSkeleton = () => (
-  <div className="flex h-screen bg-[#f8f6ff] font-sans overflow-hidden">
+  <div className="flex h-screen bg-[#f3f0ff] overflow-hidden" style={{fontFamily: "'DM Sans', sans-serif"}}>
     <div className="w-64 bg-white border-r border-zinc-200 hidden md:flex flex-col rounded-none justify-between">
       <div className="flex-col flex-1 px-4 pt-12">
         <div className="flex flex-col items-center mb-12">
@@ -317,11 +340,8 @@ const DashboardSkeleton = () => (
       <div className="p-6 bg-white border-t border-zinc-100"><div className="w-full h-14 bg-red-50/50 animate-pulse rounded-none" /></div>
     </div>
     <div className="flex-1 p-6 md:p-8 flex flex-col gap-5">
-      <div className="flex items-center justify-between mb-2">
-        <div className="space-y-2"><div className="h-10 w-48 bg-zinc-100 animate-pulse rounded-none" /><div className="h-3 w-32 bg-zinc-50 animate-pulse rounded-none" /></div>
-      </div>
       <div className="grid grid-cols-12 gap-3">
-        <div className="col-span-12 lg:col-span-5 h-[160px] bg-zinc-50 animate-pulse rounded-none border border-zinc-100" />
+        <div className="col-span-12 lg:col-span-5 h-[160px] bg-zinc-200/60 animate-pulse rounded-none" />
         <div className="col-span-12 md:col-span-6 lg:col-span-4 h-[160px] bg-white animate-pulse rounded-none border border-zinc-200" />
         <div className="col-span-12 md:col-span-6 lg:col-span-3 h-[160px] bg-white animate-pulse rounded-none border border-zinc-200" />
       </div>

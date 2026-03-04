@@ -8,6 +8,8 @@ import { useToast } from '../../hooks/useToast';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { getCache, setCache, clearCache } from '../../utils/cache';
 
+const dashboardFont = { fontFamily: "'Inter', sans-serif" };
+
 type POStatus = 'Pending' | 'Received' | 'Cancelled';
 
 interface POItem {
@@ -39,7 +41,6 @@ interface POCache {
   stats: POStats;
 }
 
-// NEW INTERFACES FOR ITEMS
 interface MenuItem {
   id: number;
   name: string;
@@ -67,13 +68,11 @@ const PurchaseOrder = () => {
     return cached === null;
   });
 
-  // STATE FOR MENU ITEMS DROPDOWN
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // UPDATED FORM DATA STATE
+
   const [formData, setFormData] = useState({
     supplier: '',
     date_ordered: new Date().toISOString().split('T')[0]
@@ -84,10 +83,9 @@ const PurchaseOrder = () => {
   const [selectedPO, setSelectedPO] = useState<POItem | null>(null);
   const [newStatus, setNewStatus] = useState<POStatus>('Pending');
 
-  // FETCH MENU ITEMS FOR DROPDOWN
   const fetchMenuItems = useCallback(async () => {
     try {
-      const response = await api.get('/inventory'); // Assuming your inventory index returns menu items
+      const response = await api.get('/inventory'); 
       setMenuItems(response.data);
     } catch (error) {
       console.error("Failed to load items for PO", error);
@@ -131,7 +129,6 @@ const PurchaseOrder = () => {
     fetchMenuItems();
   }, [fetchPurchaseOrders, fetchMenuItems]);
 
-  // CALCULATE TOTAL AUTO
   const calculatedTotal = formItems.reduce((sum, item) => {
     const qty = parseFloat(item.quantity) || 0;
     const cost = parseFloat(item.unit_cost) || 0;
@@ -141,7 +138,6 @@ const PurchaseOrder = () => {
   const handleCreatePO = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validation
     if (formItems.some(item => !item.menu_item_id || !item.quantity || !item.unit_cost)) {
       showToast("Please fill all item details", "error");
       return;
@@ -149,7 +145,6 @@ const PurchaseOrder = () => {
 
     setIsSubmitting(true);
     try {
-      // Structure payload for new backend logic
       const payload = {
         ...formData,
         total_amount: calculatedTotal,
@@ -164,7 +159,6 @@ const PurchaseOrder = () => {
       showToast("Purchase Order Created!", "success");
       setIsModalOpen(false);
       
-      // Reset form
       setFormData({ supplier: '', date_ordered: new Date().toISOString().split('T')[0] });
       setFormItems([{ menu_item_id: '', quantity: '1', unit_cost: '' }]);
       
@@ -179,7 +173,6 @@ const PurchaseOrder = () => {
     }
   };
 
-  // HELPERS FOR DYNAMIC FORM ITEMS
   const addFormItem = () => {
     setFormItems([...formItems, { menu_item_id: '', quantity: '1', unit_cost: '' }]);
   };
@@ -220,96 +213,152 @@ const PurchaseOrder = () => {
   };
 
   return (
-    <div className="flex-1 bg-[#f4f5f7] h-full flex flex-col overflow-hidden font-sans">
-      <TopNavbar />
-      <div className="flex-1 p-8 flex flex-col gap-6 overflow-y-auto">
-        <div className="flex justify-between items-end">
-          <div>
-            <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest leading-none">Purchase Orders</h1>
-            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Supplier Procurement Management</p>
+    <>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');`}</style>
+      <div className="flex-1 bg-[#f3f0ff] h-full flex flex-col overflow-hidden font-sans" style={dashboardFont}>
+        <TopNavbar />
+        <div className="flex-1 overflow-y-auto p-5 md:p-7 flex flex-col gap-4">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
+              <h1 className="text-lg font-extrabold text-[#1c1c1e] mt-0.5">Purchase Orders</h1>
+            </div>
+            <button 
+              onClick={() => setIsModalOpen(true)} 
+              className="h-11 px-7 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm"
+            >
+              CREATE NEW P.O.
+            </button>
           </div>
-          <button onClick={() => setIsModalOpen(true)} className="px-6 py-2 bg-[#3b2063] text-white rounded-md font-bold text-[10px] uppercase tracking-widest shadow-sm hover:bg-[#2a1647] transition-all active:scale-95">CREATE NEW P.O.</button>
-        </div>
 
-        {/* STATS SECTION REMAINS UNCHANGED */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
-            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Active Orders</p>
-            <p className="text-2xl font-black text-[#3b2063]">{isFetching ? "..." : stats.active_orders}</p>
+          {/* Stats cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white p-6 rounded-none shadow-sm border border-zinc-200">
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Active Orders</p>
+              <p className="text-2xl font-extrabold text-black">{isFetching ? "..." : stats.active_orders}</p>
+            </div>
+            <div className="bg-white p-6 rounded-none shadow-sm border border-zinc-200">
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Pending Payment</p>
+              <p className="text-2xl font-extrabold text-black">{isFetching ? "..." : `₱${stats.pending_payment.toLocaleString()}`}</p>
+            </div>
+            <div className="bg-white p-6 rounded-none shadow-sm border border-zinc-200">
+              <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Monthly Spend</p>
+              <p className="text-2xl font-extrabold text-black">{isFetching ? "..." : `₱${stats.monthly_spend.toLocaleString()}`}</p>
+            </div>
           </div>
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
-            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Pending Payment</p>
-            <p className="text-2xl font-black text-amber-500">{isFetching ? "..." : `₱${stats.pending_payment.toLocaleString()}`}</p>
-          </div>
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
-            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Monthly Spend</p>
-            <p className="text-2xl font-black text-emerald-500">{isFetching ? "..." : `₱${stats.monthly_spend.toLocaleString()}`}</p>
-          </div>
-        </div>
 
-        {/* TABLE SECTION REMAINS UNCHANGED */}
-        <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden relative">
-          {isFetching && <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10"><Loader2 className="animate-spin text-[#1e40af]" size={32} /></div>}
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-zinc-50 border-b border-zinc-200">
-              <tr>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">PO Number</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Supplier</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest">Date</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-right">Amount</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Status</th>
-                <th className="px-6 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {orders.length > 0 ? orders.map((po) => (
-                <tr key={po.id} className="hover:bg-zinc-50 transition-colors">
-                  <td className="px-6 py-4 text-xs font-black text-[#3b2063] font-mono">{po.poNumber}</td>
-                  <td className="px-6 py-4 text-xs font-bold text-slate-700">{po.supplier}</td>
-                  <td className="px-6 py-4 text-xs font-bold text-zinc-400">{po.dateOrdered}</td>
-                  <td className="px-6 py-4 text-xs font-black text-slate-700 text-right">₱{po.totalAmount.toLocaleString()}</td>
-                  <td className="px-6 py-4 text-center">
-                    <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter ${po.status === 'Received' ? 'bg-emerald-100 text-emerald-600' : po.status === 'Pending' ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'}`}>{po.status}</span>
-                  </td>
-                  <td className="px-6 py-4 text-center">
-                    <button onClick={() => openUpdateModal(po)} className="text-zinc-500 hover:text-[#3b2063] transition-colors font-bold text-[10px] uppercase tracking-widest border border-zinc-200 px-3 py-1.5 rounded-md hover:bg-zinc-100 active:scale-95">Update</button>
-                  </td>
-                </tr>
-              )) : (
+          {/* Table card */}
+          <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-none">
+            {isFetching && <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10 backdrop-blur-[1px]"><Loader2 className="animate-spin text-[#3b2063]" size={32} /></div>}
+            <table className="w-full text-left border-collapse">
+              <thead className="sticky top-0 bg-white z-10 border-b-2 border-zinc-100">
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-zinc-400 font-bold uppercase tracking-widest text-[10px]">No purchase orders found.</td>
+                  <th className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">PO Number</th>
+                  <th className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Supplier</th>
+                  <th className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Date</th>
+                  <th className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-right">Amount</th>
+                  <th className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center">Status</th>
+                  <th className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center w-24">Edit</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {orders.length > 0 ? orders.map((po) => (
+                  <tr key={po.id} className="hover:bg-[#f9f8ff] transition-colors">
+                    <td className="px-7 py-3.5">
+                      <span className="text-[12px] font-semibold text-zinc-500 font-mono">{po.poNumber}</span>
+                    </td>
+                    <td className="px-7 py-3.5">
+                      <span className="text-[13px] font-extrabold text-[#3b2063]">{po.supplier}</span>
+                    </td>
+                    <td className="px-7 py-3.5">
+                      <span className="text-[12px] font-semibold text-zinc-500">{po.dateOrdered}</span>
+                    </td>
+                    <td className="px-7 py-3.5 text-right">
+                      <span className="text-[13px] font-extrabold text-[#1c1c1e]">₱{po.totalAmount.toLocaleString()}</span>
+                    </td>
+                    <td className="px-7 py-3.5 text-center">
+                      <span className={`px-3 py-1 rounded-none text-[9px] font-bold uppercase tracking-tighter ${po.status === 'Received' ? 'bg-emerald-100 text-emerald-600' : po.status === 'Pending' ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'}`}>{po.status}</span>
+                    </td>
+                    <td className="px-7 py-3.5 text-center">
+                      <button 
+                        onClick={() => openUpdateModal(po)} 
+                        className="h-9 w-9 inline-flex items-center justify-center bg-[#3b2063] hover:bg-[#2a174a] text-white transition-colors rounded-none"
+                        title="Update"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                )) : (
+                  <tr>
+                    <td colSpan={6} className="px-8 py-20 text-center">
+                      <p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">No purchase orders found.</p>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+            {/* Footer */}
+            <div className="px-7 py-4 bg-white border-t border-zinc-100 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Synchronized</span>
+              </div>
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                Showing {orders.length} orders
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* --- ADD PO MODAL (WITH ITEMS) --- */}
+      {/* --- ADD PO MODAL --- */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl p-8 animate-in zoom-in duration-200 max-h-[90vh] flex flex-col">
-            <h2 className="text-[#3b2063] font-black text-lg uppercase tracking-widest mb-6 text-center shrink-0">New Purchase Order</h2>
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-none border border-zinc-200 shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
+            <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
+                <h2 className="text-sm font-extrabold text-[#1c1c1e] mt-0.5">New Purchase Order</h2>
+              </div>
+              <button onClick={() => setIsModalOpen(false)} className="text-zinc-300 hover:text-zinc-600 transition-colors p-1 text-lg leading-none">×</button>
+            </div>
             
-            <form onSubmit={handleCreatePO} className="flex flex-col flex-1 overflow-hidden">
-              <div className="overflow-y-auto pr-2 space-y-5">
+            <form onSubmit={handleCreatePO} className="flex flex-col">
+              <div className="px-7 py-6 flex flex-col gap-5">
                 
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Supplier Name</label>
-                    <input required type="text" value={formData.supplier} onChange={(e) => setFormData({...formData, supplier: e.target.value})} className="w-full bg-[#f8f6ff] border-none rounded-2xl px-5 py-3 text-sm font-bold text-[#3b2063] outline-none" placeholder="e.g. Boba Supply Co." />
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Supplier Name</label>
+                    <input 
+                      required 
+                      type="text" 
+                      value={formData.supplier} 
+                      onChange={(e) => setFormData({...formData, supplier: e.target.value})} 
+                      className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white" 
+                      placeholder="e.g. Boba Supply Co." 
+                    />
                   </div>
-                  <div>
-                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Date Ordered</label>
-                    <input required type="date" value={formData.date_ordered} onChange={(e) => setFormData({...formData, date_ordered: e.target.value})} className="w-full bg-[#f8f6ff] border-none rounded-2xl px-5 py-3 text-sm font-bold text-[#3b2063] outline-none cursor-pointer" />
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Date Ordered</label>
+                    <input 
+                      required 
+                      type="date" 
+                      value={formData.date_ordered} 
+                      onChange={(e) => setFormData({...formData, date_ordered: e.target.value})} 
+                      className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] focus:border-[#3b2063] focus:bg-white cursor-pointer" 
+                    />
                   </div>
                 </div>
 
                 {/* ITEMS SECTION */}
-                <div className="border border-zinc-200 rounded-2xl p-4 bg-zinc-50">
+                <div className="border border-zinc-200 rounded-none p-4 bg-zinc-50">
                   <div className="flex justify-between items-center mb-4">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest block">Order Items</label>
-                    <button type="button" onClick={addFormItem} className="text-[#10b981] font-bold text-[10px] uppercase tracking-widest flex items-center gap-1 hover:text-[#0da673]">
+                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Order Items</label>
+                    <button type="button" onClick={addFormItem} className="text-emerald-600 font-bold text-[10px] uppercase tracking-widest flex items-center gap-1 hover:text-emerald-700">
                       <Plus size={12} /> Add Item
                     </button>
                   </div>
@@ -321,7 +370,7 @@ const PurchaseOrder = () => {
                           required 
                           value={item.menu_item_id} 
                           onChange={(e) => updateFormItem(index, 'menu_item_id', e.target.value)}
-                          className="flex-1 bg-white border border-zinc-200 rounded-xl px-3 py-2 text-xs font-bold text-[#3b2063] outline-none"
+                          className="flex-1 bg-white border border-zinc-300 rounded-none px-3 py-2 text-xs font-semibold text-[#1c1c1e] outline-none focus:border-[#3b2063]"
                         >
                           <option value="" disabled>Select Item</option>
                           {menuItems.map(mi => <option key={mi.id} value={mi.id}>{mi.name}</option>)}
@@ -329,15 +378,15 @@ const PurchaseOrder = () => {
                         <input 
                           required type="number" min="1" placeholder="Qty" 
                           value={item.quantity} onChange={(e) => updateFormItem(index, 'quantity', e.target.value)}
-                          className="w-20 bg-white border border-zinc-200 rounded-xl px-3 py-2 text-xs font-bold text-[#3b2063] outline-none" 
+                          className="w-20 bg-white border border-zinc-300 rounded-none px-3 py-2 text-xs font-semibold text-[#1c1c1e] outline-none focus:border-[#3b2063]" 
                         />
                         <input 
                           required type="number" step="0.01" min="0" placeholder="Cost" 
                           value={item.unit_cost} onChange={(e) => updateFormItem(index, 'unit_cost', e.target.value)}
-                          className="w-24 bg-white border border-zinc-200 rounded-xl px-3 py-2 text-xs font-bold text-[#3b2063] outline-none" 
+                          className="w-24 bg-white border border-zinc-300 rounded-none px-3 py-2 text-xs font-semibold text-[#1c1c1e] outline-none focus:border-[#3b2063]" 
                         />
                         {formItems.length > 1 && (
-                          <button type="button" onClick={() => removeFormItem(index)} className="p-2 text-red-500 hover:bg-red-50 rounded-lg">
+                          <button type="button" onClick={() => removeFormItem(index)} className="p-2 text-red-500 hover:bg-red-50 rounded-none">
                             <Trash2 size={16} />
                           </button>
                         )}
@@ -346,17 +395,27 @@ const PurchaseOrder = () => {
                   </div>
                   
                   <div className="mt-4 pt-4 border-t border-zinc-200 flex justify-between items-center">
-                    <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Calculated Total:</span>
-                    <span className="text-lg font-black text-[#3b2063]">₱{calculatedTotal.toLocaleString()}</span>
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Calculated Total:</span>
+                    <span className="text-lg font-extrabold text-[#3b2063]">₱{calculatedTotal.toLocaleString()}</span>
                   </div>
                 </div>
 
               </div>
               
-              <div className="flex gap-4 pt-6 mt-auto shrink-0">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 text-zinc-400 font-black text-[10px] uppercase tracking-widest hover:text-zinc-600 transition-colors">Cancel</button>
-                <button type="submit" disabled={isSubmitting} className="flex-2 py-4 bg-[#3b2063] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 hover:bg-[#2a1647] transition-all disabled:opacity-50">
-                  {isSubmitting ? <Loader2 className="animate-spin" size={14} /> : "Confirm Order"}
+              <div className="flex gap-3 px-7 py-5 border-t border-zinc-100">
+                <button 
+                  type="button" 
+                  onClick={() => setIsModalOpen(false)} 
+                  className="flex-1 h-11 bg-white border border-red-300 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 hover:border-red-400 transition-all rounded-none"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting} 
+                  className="flex-1 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#2a174a] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-none"
+                >
+                  {isSubmitting ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Confirm Order</> : 'Confirm Order'}
                 </button>
               </div>
             </form>
@@ -364,32 +423,56 @@ const PurchaseOrder = () => {
         </div>
       )}
 
-      {/* --- UPDATE STATUS MODAL (REMAINS UNCHANGED) --- */}
+      {/* --- UPDATE STATUS MODAL --- */}
       {isUpdateModalOpen && selectedPO && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 animate-in zoom-in duration-200">
-            <h2 className="text-[#3b2063] font-black text-lg uppercase tracking-widest mb-2 text-center">Update Status</h2>
-            <p className="text-center text-xs font-bold text-zinc-400 mb-6 font-mono">{selectedPO.poNumber} • {selectedPO.supplier}</p>
-            <form onSubmit={handleUpdateStatus} className="space-y-5">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-none border border-zinc-200 shadow-2xl w-full max-w-sm flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
+            <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100">
               <div>
-                <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-1 block">Order Status</label>
-                <select value={newStatus} onChange={(e) => setNewStatus(e.target.value as POStatus)} className="w-full bg-[#f8f6ff] border-none rounded-2xl px-5 py-3 text-sm font-bold text-[#3b2063] outline-none cursor-pointer">
+                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
+                <h2 className="text-sm font-extrabold text-[#1c1c1e] mt-0.5">Update Status</h2>
+              </div>
+              <button onClick={() => setIsUpdateModalOpen(false)} className="text-zinc-300 hover:text-zinc-600 transition-colors p-1 text-lg leading-none">×</button>
+            </div>
+            
+            <div className="text-center px-7 py-4">
+              <p className="text-xs font-semibold text-zinc-500 font-mono">{selectedPO.poNumber} • {selectedPO.supplier}</p>
+            </div>
+
+            <form onSubmit={handleUpdateStatus} className="px-7 py-6 flex flex-col gap-5">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Order Status</label>
+                <select 
+                  value={newStatus} 
+                  onChange={(e) => setNewStatus(e.target.value as POStatus)} 
+                  className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] focus:border-[#3b2063] focus:bg-white cursor-pointer"
+                >
                   <option value="Pending">Pending</option>
                   <option value="Received">Received</option>
                   <option value="Cancelled">Cancelled</option>
                 </select>
               </div>
-              <div className="flex gap-4 pt-4">
-                <button type="button" onClick={() => setIsUpdateModalOpen(false)} className="flex-1 py-4 text-zinc-400 font-black text-[10px] uppercase tracking-widest hover:text-zinc-600 transition-colors">Cancel</button>
-                <button type="submit" disabled={isSubmitting} className="flex-2 py-4 bg-[#3b2063] text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 hover:bg-[#2a1647] transition-all disabled:opacity-50">
-                  {isSubmitting ? <Loader2 className="animate-spin" size={14} /> : "Save Changes"}
+              <div className="flex gap-3 px-7 py-5 border-t border-zinc-100">
+                <button 
+                  type="button" 
+                  onClick={() => setIsUpdateModalOpen(false)} 
+                  className="flex-1 h-11 bg-white border border-red-300 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 hover:border-red-400 transition-all rounded-none"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={isSubmitting} 
+                  className="flex-1 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#2a174a] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-none"
+                >
+                  {isSubmitting ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Save Changes</> : 'Save Changes'}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 
