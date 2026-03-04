@@ -239,7 +239,7 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
               <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Bulk Import</h1>
               <button 
                 onClick={downloadTemplate} 
-                className="flex items-center gap-2 text-[10px] font-black text-[#3b2063] uppercase tracking-widest hover:underline"
+                className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6"
               >
                 <Download size={14} /> Download Template
               </button>
@@ -374,13 +374,13 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
             <button 
               onClick={handleUpload} 
               disabled={isUploading || !selectedFile} 
-              className="px-8 py-3 bg-[#3b2063] text-white rounded-lg font-black uppercase text-[10px] tracking-widest flex items-center gap-2 shadow-lg active:scale-95 disabled:bg-zinc-300 transition-all"
+              className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6 disabled:opacity-50"
             >
               {isUploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
               {isUploading ? 'Importing...' : 'Confirm & Process'}
             </button>
           )}
-          <button onClick={onBack} className="px-6 py-3 bg-zinc-200 text-zinc-500 rounded-lg font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:bg-zinc-300 transition-all">
+          <button onClick={onBack} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">
             <ArrowLeft size={14} /> Back
           </button>
         </div>
@@ -428,7 +428,7 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
 
               <button 
                 onClick={() => setSummary(null)}
-                className="w-full py-3 bg-[#3b2063] text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition-all"
+                className="w-full h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2"
               >
                 Close Report
               </button>
