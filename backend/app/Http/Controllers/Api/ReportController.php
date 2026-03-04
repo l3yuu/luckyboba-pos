@@ -431,18 +431,19 @@ Log::info('Senior rows data: ' . $seniorRows->toJson());
 
         // Also catch pwd-only rows
         $pwdOnlyRows = Sale::whereBetween('created_at', [$from, $to])
-    ->where('status', 'completed')
-    ->where('pax_senior', '>', 0)
-    ->selectRaw('
-        COALESCE(pax_senior, 0) as pax_senior,
-        COALESCE(pax_pwd, 0) as pax_pwd,
-        COALESCE(pax_diplomat, 0) as pax_diplomat,
-        total_amount,
-        COALESCE(vatable_sales, total_amount / 1.12) as vatable_sales,
-        (COALESCE(pax_regular, 0) + COALESCE(pax_senior, 0) + 
-         COALESCE(pax_pwd, 0) + COALESCE(pax_diplomat, 0)) as total_pax
-    ')
-    ->get();
+            ->where('status', 'completed')
+            ->where('pax_pwd', '>', 0)      // ← corrected
+            ->where('pax_senior', '=', 0)   // ← exclude rows already counted in $seniorRows
+            ->selectRaw('
+                COALESCE(pax_senior, 0) as pax_senior,
+                COALESCE(pax_pwd, 0) as pax_pwd,
+                COALESCE(pax_diplomat, 0) as pax_diplomat,
+                total_amount,
+                COALESCE(vatable_sales, total_amount / 1.12) as vatable_sales,
+                (COALESCE(pax_regular, 0) + COALESCE(pax_senior, 0) + 
+                COALESCE(pax_pwd, 0) + COALESCE(pax_diplomat, 0)) as total_pax
+            ')
+            ->get();
 
         foreach ($pwdOnlyRows as $row) {
             $totalPax    = max(1, (int)$row->total_pax);
