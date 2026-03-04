@@ -337,7 +337,6 @@ const SalesOrder = () => {
         const finalItem: CartItem = {
             ...pendingComboCart,
             remarks: `Classic Pearl [${drinkDetails}]${pendingComboCart.remarks ? ` | Note: ${pendingComboCart.remarks}` : ''}`,
-            // Sticker fields — combo item gets a drink sticker
             sugarLevel: comboDrinkSugar,
             options: comboDrinkOptions,
             addOns: comboDrinkAddOns.length > 0 ? comboDrinkAddOns : undefined,
@@ -355,7 +354,6 @@ const SalesOrder = () => {
         const basePrice = Number(selectedItem.price);
         let extraCost = 0;
         if (orderCharge) extraCost += 10;
-        // ← REMOVE the isWings pricing block, no longer needed
         if (isDrink) {
             selectedAddOns.forEach(name => {
                 const addon = addOnsData.find(a => a.name === name);
@@ -377,13 +375,12 @@ const SalesOrder = () => {
             finalPrice: (basePrice + extraCost) * qty
         };
 
-        // ── If combo: pause and open Classic Pearl customization ──
         if (isCombo) {
             setPendingComboCart(newCartItem);
             setComboDrinkSugar('100%');
             setComboDrinkOptions([]);
             setComboDrinkAddOns([]);
-            setSelectedItem(null); // close main item modal
+            setSelectedItem(null);
             setIsCombodrinkModalOpen(true);
             return;
         }
@@ -536,8 +533,8 @@ const SalesOrder = () => {
                             </div>
                             <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
                                 <div className={`w-full font-black uppercase leading-tight ${nameSize} ${marginClass}`}>
-    {item.size === 'none' && item.sugarLevel != null ? 'CLASSIC PEARL' : `${item.name} ${sizeLabel}`}
-</div>
+                                    {item.size === 'none' && item.sugarLevel != null ? 'CLASSIC PEARL' : `${item.name} ${sizeLabel}`}
+                                </div>
                                 <div className={`w-full text-center font-bold ${addOnSize} ${gapClass}`}>
                                     {item.sugarLevel != null && <div>Sugar: {item.sugarLevel}</div>}
                                     {item.options?.map(opt => <div key={opt}>{opt}</div>)}
@@ -599,11 +596,12 @@ const SalesOrder = () => {
             {/* ================================================================ */}
             {selectedItem && !isAddOnModalOpen && !isConfirmModalOpen && !isSuccessModalOpen && (
                 <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                    <div className="bg-white w-full max-w-lg rounded-none shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+
                         <div className="bg-[#3b2063] p-5 text-white text-center relative shrink-0">
                             <h2 className="text-lg font-black uppercase tracking-wider">{selectedItem.name}</h2>
                             {isCombo && (
-                                <div className="mt-1 inline-block bg-white/20 text-white text-[10px] font-black uppercase px-3 py-1 rounded-full tracking-widest">
+                                <div className="mt-1 inline-block bg-white/20 text-white text-[10px] font-black uppercase px-3 py-1 rounded-none tracking-widest">
                                     🧋 Includes Classic Pearl
                                 </div>
                             )}
@@ -611,53 +609,53 @@ const SalesOrder = () => {
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
                             </button>
                         </div>
-                        <div className="p-6 space-y-5 overflow-y-auto bg-white">
+                        <div className="p-6 space-y-5 overflow-y-auto bg-white rounded-b-none">
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-white p-3 rounded-2xl border-2 border-zinc-200">
-                                    <span className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest block mb-1">Barcode</span>
+                                <div className="bg-white p-3 rounded-none border-2 border-zinc-200">
+                                    <span className="text-sm font-bold text-zinc-900 uppercase tracking-widest block mb-1">Barcode</span>
                                     <span className="text-sm font-black text-[#3b2063]">{selectedItem.barcode}</span>
                                 </div>
-                                <div className="bg-white p-3 rounded-2xl border-2 border-zinc-200">
-                                    <span className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest block mb-1">Total Unit Price</span>
+                                <div className="bg-white p-3 rounded-none border-2 border-zinc-200">
+                                    <span className="text-sm font-bold text-zinc-900 uppercase tracking-widest block mb-1">Total Unit Price</span>
                                     <span className="text-sm font-black text-[#3b2063]">₱ {Number(selectedItem.price).toFixed(2)}</span>
                                 </div>
                             </div>
-                            <div className="flex items-center justify-between bg-white rounded-2xl p-2 border-2 border-zinc-200">
-                                <button onClick={() => adjustQty(-1)} className="w-12 h-12 bg-zinc-100 rounded-xl border border-zinc-300 text-[#3b2063] hover:text-red-500 transition-colors flex items-center justify-center">
+                            <div className="flex items-center justify-between bg-white rounded-none p-2 border-2 border-zinc-200">
+                                <button onClick={() => adjustQty(-1)} className="w-12 h-12 bg-zinc-100 rounded-none border border-zinc-300 text-[#3b2063] hover:text-red-500 transition-colors flex items-center justify-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" /></svg>
                                 </button>
                                 <input type="text" value={qty} readOnly className="bg-transparent text-center font-black text-2xl text-[#3b2063] w-20 outline-none" />
-                                <button onClick={() => adjustQty(1)} className="w-12 h-12 bg-[#3b2063] rounded-xl shadow-lg text-white transition-colors flex items-center justify-center">
+                                <button onClick={() => adjustQty(1)} className="w-12 h-12 bg-[#3b2063] rounded-none shadow-lg text-white transition-colors flex items-center justify-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
                                 </button>
                             </div>
                             {isDrink && (
                                 <>
                                     <div>
-                                        <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
+                                        <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
                                         <div className="flex gap-2">
                                             {SUGAR_LEVELS.map((level) => (
                                                 <button key={level} onClick={() => setSugarLevel(level)}
-                                                    className={`flex-1 py-2 rounded-xl text-[10px] font-black transition-all ${sugarLevel === level ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
+                                                    className={`flex-1 py-2 rounded-none text-sm font-black transition-all ${sugarLevel === level ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
                                                     {level}
                                                 </button>
                                             ))}
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Extra</label>
+                                        <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Extra</label>
                                         <button onClick={() => setIsAddOnModalOpen(true)}
-                                            className="w-full py-4 rounded-xl border-2 border-dashed border-[#3b2063]/40 bg-[#f0ebff] hover:bg-[#e4dbff] text-[#3b2063] font-black uppercase tracking-wider text-xs flex items-center justify-center transition-all group">
+                                            className="w-full py-4 rounded-none border-2 border-dashed border-[#3b2063]/40 bg-[#f0ebff] hover:bg-[#e4dbff] text-[#3b2063] font-black uppercase tracking-wider text-sm flex items-center justify-center transition-all group">
                                             <span className="mr-2">{selectedAddOns.length > 0 ? `${selectedAddOns.length} Add-on(s) Selected` : 'Select Add-ons'}</span>
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4 group-hover:translate-x-1 transition-transform"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
                                         </button>
                                     </div>
                                     <div>
-                                        <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Options (Free)</label>
+                                        <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Options (Free)</label>
                                         <div className="flex flex-wrap gap-2">
                                             {EXTRA_OPTIONS.map((opt) => (
                                                 <button key={opt} onClick={() => toggleOption(opt)}
-                                                    className={`px-3 py-2 rounded-xl text-[10px] font-bold uppercase transition-all ${selectedOptions.includes(opt) ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
+                                                    className={`px-3 py-2 rounded-none text-sm font-bold uppercase transition-all ${selectedOptions.includes(opt) ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
                                                     {opt}
                                                 </button>
                                             ))}
@@ -669,11 +667,11 @@ const SalesOrder = () => {
                                 <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Charges (+10.00)</label>
                                 <div className="grid grid-cols-2 gap-3">
                                     <button type="button" onClick={() => orderCharge !== 'panda' && toggleOrderCharge('grab')} disabled={orderCharge === 'panda'}
-                                        className={`p-3 rounded-2xl border-2 transition-all flex items-center justify-center gap-2 ${orderCharge === 'panda' ? 'border-zinc-200 bg-white text-zinc-300 opacity-40' : orderCharge === 'grab' ? 'border-green-500 bg-green-50 text-green-700' : 'border-zinc-300 bg-white text-zinc-500 hover:border-green-300 hover:bg-green-50'}`}>
+                                        className={`p-3 rounded-none border-2 transition-all flex items-center justify-center gap-2 ${orderCharge === 'panda' ? 'border-zinc-200 bg-white text-zinc-300 opacity-40' : orderCharge === 'grab' ? 'border-green-500 bg-green-50 text-green-700' : 'border-zinc-300 bg-white text-zinc-500 hover:border-green-300 hover:bg-green-50'}`}>
                                         <span className="font-bold text-xs uppercase">Grab Food</span>
                                     </button>
                                     <button type="button" onClick={() => orderCharge !== 'grab' && toggleOrderCharge('panda')} disabled={orderCharge === 'grab'}
-                                        className={`p-3 rounded-2xl border-2 transition-all flex items-center justify-center gap-2 ${orderCharge === 'grab' ? 'border-zinc-200 bg-white text-zinc-300 opacity-40' : orderCharge === 'panda' ? 'border-pink-500 bg-pink-50 text-pink-700' : 'border-zinc-300 bg-white text-zinc-500 hover:border-pink-300 hover:bg-pink-50'}`}>
+                                        className={`p-3 rounded-none border-2 transition-all flex items-center justify-center gap-2 ${orderCharge === 'grab' ? 'border-zinc-200 bg-white text-zinc-300 opacity-40' : orderCharge === 'panda' ? 'border-pink-500 bg-pink-50 text-pink-700' : 'border-zinc-300 bg-white text-zinc-500 hover:border-pink-300 hover:bg-pink-50'}`}>
                                         <span className="font-bold text-xs uppercase">Food Panda</span>
                                     </button>
                                 </div>
@@ -681,16 +679,15 @@ const SalesOrder = () => {
                             <div>
                                 <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Remarks</label>
                                 <textarea value={remarks} onChange={(e) => setRemarks(e.target.value)} placeholder="Additional notes..."
-                                    className="w-full p-4 bg-white rounded-2xl border-2 border-zinc-200 text-sm font-bold text-[#3b2063] resize-none h-16 outline-none focus:border-[#3b2063] transition-all" />
+                                    className="w-full p-4 bg-white rounded-none border-2 border-zinc-200 text-sm font-bold text-[#3b2063] resize-none h-16 outline-none focus:border-[#3b2063] transition-all" />
                             </div>
                             {(() => {
                                 const pearlOptions = ['NO PRL', 'W/ PRL'];
                                 const hasPearlSelected = selectedOptions.some(o => pearlOptions.includes(o));
-                                // Combo items don't need pearl selection on this modal (handled in next modal)
                                 const canAdd = isCombo || !isDrink || hasPearlSelected;
                                 return (
                                     <button onClick={addToOrder} disabled={!canAdd} title={!canAdd ? 'Please select NO PRL or W/ PRL' : ''}
-                                        className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${canAdd ? 'bg-[#3b2063] text-white hover:bg-[#2a1647]' : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'}`}>
+                                        className={`w-full py-4 rounded-none font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${canAdd ? 'bg-[#3b2063] text-white hover:bg-[#2a1647]' : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'}`}>
                                         {isCombo
                                             ? 'Next: Customize Drink →'
                                             : canAdd ? 'Add Order' : 'Select Pearl Option'}
@@ -707,8 +704,8 @@ const SalesOrder = () => {
             {/* ================================================================ */}
             {isAddOnModalOpen && (
                 <div className="fixed inset-0 z-110 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-white w-full max-w-lg rounded-4xl shadow-2xl flex flex-col h-[80vh]">
-                        <div className="bg-[#3b2063] p-6 text-white text-center relative shrink-0 rounded-t-4xl">
+                    <div className="bg-white w-full max-w-lg rounded-none shadow-2xl flex flex-col h-[80vh]">
+                        <div className="bg-[#3b2063] p-6 text-white text-center relative shrink-0">
                             <h2 className="text-lg font-black uppercase tracking-wider">Select Add-ons</h2>
                             <button onClick={() => setIsAddOnModalOpen(false)} className="absolute top-6 right-6 text-white font-bold text-xs bg-white/20 px-3 py-1.5 rounded-lg">Done</button>
                         </div>
@@ -716,15 +713,15 @@ const SalesOrder = () => {
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                                 {addOnsData.map((addon) => (
                                     <button key={addon.id} onClick={() => toggleAddOn(addon.name)}
-                                        className={`p-3 rounded-xl text-left border-2 transition-all h-24 flex flex-col justify-between ${selectedAddOns.includes(addon.name) ? 'bg-[#3b2063] border-[#3b2063] text-white' : 'bg-white border-zinc-300 text-zinc-600 hover:border-[#3b2063]/40 hover:bg-[#f0ebff]'}`}>
+                                        className={`p-3 rounded-none text-left border-2 transition-all h-24 flex flex-col justify-between ${selectedAddOns.includes(addon.name) ? 'bg-[#3b2063] border-[#3b2063] text-white' : 'bg-white border-zinc-300 text-zinc-600 hover:border-[#3b2063]/40 hover:bg-[#f0ebff]'}`}>
                                         <span className="text-[10px] font-black uppercase leading-tight">{addon.name}</span>
                                         <span className="text-xs font-bold">₱{Number(addon.price).toFixed(2)}</span>
                                     </button>
                                 ))}
                             </div>
                         </div>
-                        <div className="p-4 border-t border-zinc-200 bg-white rounded-b-4xl">
-                            <button onClick={() => setIsAddOnModalOpen(false)} className="w-full bg-[#3b2063] text-white py-4 rounded-xl font-black uppercase tracking-widest shadow-lg">
+                        <div className="p-4 border-t border-zinc-200 bg-white">
+                            <button onClick={() => setIsAddOnModalOpen(false)} className="w-full bg-[#3b2063] text-white py-4 rounded-none font-black uppercase tracking-widest shadow-lg">
                                 Confirm Selection ({selectedAddOns.length})
                             </button>
                         </div>
@@ -737,9 +734,7 @@ const SalesOrder = () => {
             {/* ================================================================ */}
             {isCombodrinkModalOpen && pendingComboCart && (
                 <div className="fixed inset-0 z-110 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-
-                        {/* Header */}
+                    <div className="bg-white w-full max-w-lg rounded-none shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
                         <div className="bg-[#3b2063] p-5 text-white text-center relative shrink-0">
                             <div className="text-[10px] font-bold uppercase opacity-60 tracking-widest leading-none mb-1">
                                 Step 2 of 2 — Combo Drink for
@@ -747,7 +742,7 @@ const SalesOrder = () => {
                             <h2 className="text-base font-black uppercase tracking-wider leading-tight">
                                 {pendingComboCart.name}
                             </h2>
-                            <div className="mt-2 inline-block bg-white/20 text-white text-[10px] font-black uppercase px-3 py-1 rounded-full tracking-widest">
+                            <div className="mt-2 inline-block bg-white/20 text-white text-[10px] font-black uppercase px-3 py-1 rounded-none tracking-widest">
                                 🧋 Classic Pearl Milk Tea
                             </div>
                             <button
@@ -759,33 +754,23 @@ const SalesOrder = () => {
                             </button>
                         </div>
 
-                        <div className="p-6 space-y-5 overflow-y-auto bg-white">
-
-                            {/* SUGAR LEVEL */}
+                        <div className="p-6 space-y-5 overflow-y-auto bg-white rounded-b-none">
                             <div>
-                                <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">
-                                    Sugar Level
-                                </label>
+                                <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
                                 <div className="flex gap-2">
                                     {SUGAR_LEVELS.map((level) => (
                                         <button key={level} onClick={() => setComboDrinkSugar(level)}
-                                            className={`flex-1 py-2 rounded-xl text-[10px] font-black transition-all
-                                                ${comboDrinkSugar === level
-                                                    ? 'bg-[#3b2063] text-white shadow-md'
-                                                    : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
+                                            className={`flex-1 py-2 rounded-none text-sm font-black transition-all
+                                                ${comboDrinkSugar === level ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
                                             {level}
                                         </button>
                                     ))}
                                 </div>
                             </div>
-
-                            {/* ADD-ONS */}
                             <div>
-                                <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">
-                                    Extra
-                                </label>
+                                <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Extra</label>
                                 <button onClick={() => setComboDrinkAddOnModalOpen(true)}
-                                    className="w-full py-4 rounded-xl border-2 border-dashed border-[#3b2063]/40 bg-[#f0ebff] hover:bg-[#e4dbff] text-[#3b2063] font-black uppercase tracking-wider text-xs flex items-center justify-center transition-all group">
+                                    className="w-full py-4 rounded-none border-2 border-dashed border-[#3b2063]/40 bg-[#f0ebff] hover:bg-[#e4dbff] text-[#3b2063] font-black uppercase tracking-wider text-sm flex items-center justify-center transition-all group">
                                     <span className="mr-2">
                                         {comboDrinkAddOns.length > 0 ? `${comboDrinkAddOns.length} Add-on(s) Selected` : 'Select Add-ons'}
                                     </span>
@@ -794,38 +779,26 @@ const SalesOrder = () => {
                                     </svg>
                                 </button>
                             </div>
-
-                            {/* OPTIONS */}
                             <div>
-                                <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">
-                                    Options (Free)
-                                </label>
+                                <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Options (Free)</label>
                                 <div className="flex flex-wrap gap-2">
                                     {EXTRA_OPTIONS.map((opt) => (
                                         <button key={opt} onClick={() => toggleComboDrinkOption(opt)}
-                                            className={`px-3 py-2 rounded-xl text-[10px] font-bold uppercase transition-all
-                                                ${comboDrinkOptions.includes(opt)
-                                                    ? 'bg-[#3b2063] text-white shadow-md'
-                                                    : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
+                                            className={`px-3 py-2 rounded-none text-sm font-bold uppercase transition-all
+                                                ${comboDrinkOptions.includes(opt) ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
                                             {opt}
                                         </button>
                                     ))}
                                 </div>
                             </div>
-
-                            {/* CONFIRM */}
                             {(() => {
                                 const pearlOpts = ['NO PRL', 'W/ PRL'];
                                 const hasPearl = comboDrinkOptions.some(o => pearlOpts.includes(o));
                                 return (
-                                    <button
-                                        onClick={confirmComboDrink}
-                                        disabled={!hasPearl}
+                                    <button onClick={confirmComboDrink} disabled={!hasPearl}
                                         title={!hasPearl ? 'Please select NO PRL or W/ PRL' : ''}
-                                        className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors
-                                            ${hasPearl
-                                                ? 'bg-[#3b2063] text-white hover:bg-[#2a1647]'
-                                                : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'}`}>
+                                        className={`w-full py-4 rounded-none font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors
+                                            ${hasPearl ? 'bg-[#3b2063] text-white hover:bg-[#2a1647]' : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'}`}>
                                         {hasPearl ? '🧋 Confirm & Add to Order' : 'Select Pearl Option First'}
                                     </button>
                                 );
@@ -840,8 +813,8 @@ const SalesOrder = () => {
             {/* ================================================================ */}
             {comboDrinkAddOnModalOpen && (
                 <div className="fixed inset-0 z-120 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-white w-full max-w-lg rounded-4xl shadow-2xl flex flex-col h-[80vh]">
-                        <div className="bg-[#3b2063] p-6 text-white text-center relative shrink-0 rounded-t-4xl">
+                    <div className="bg-white w-full max-w-lg rounded-none shadow-2xl flex flex-col h-[80vh]">
+                        <div className="bg-[#3b2063] p-6 text-white text-center relative shrink-0">
                             <h2 className="text-lg font-black uppercase tracking-wider">Classic Pearl Add-ons</h2>
                             <button onClick={() => setComboDrinkAddOnModalOpen(false)}
                                 className="absolute top-6 right-6 text-white font-bold text-xs bg-white/20 px-3 py-1.5 rounded-lg">
@@ -855,19 +828,17 @@ const SalesOrder = () => {
                                         onClick={() => setComboDrinkAddOns(prev =>
                                             prev.includes(addon.name) ? prev.filter(a => a !== addon.name) : [...prev, addon.name]
                                         )}
-                                        className={`p-3 rounded-xl text-left border-2 transition-all h-24 flex flex-col justify-between
-                                            ${comboDrinkAddOns.includes(addon.name)
-                                                ? 'bg-[#3b2063] border-[#3b2063] text-white'
-                                                : 'bg-white border-zinc-300 text-zinc-600 hover:border-[#3b2063]/40 hover:bg-[#f0ebff]'}`}>
+                                        className={`p-3 rounded-none text-left border-2 transition-all h-24 flex flex-col justify-between
+                                            ${comboDrinkAddOns.includes(addon.name) ? 'bg-[#3b2063] border-[#3b2063] text-white' : 'bg-white border-zinc-300 text-zinc-600 hover:border-[#3b2063]/40 hover:bg-[#f0ebff]'}`}>
                                         <span className="text-[10px] font-black uppercase leading-tight">{addon.name}</span>
                                         <span className="text-xs font-bold">₱{Number(addon.price).toFixed(2)}</span>
                                     </button>
                                 ))}
                             </div>
                         </div>
-                        <div className="p-4 border-t border-zinc-200 bg-white rounded-b-4xl">
+                        <div className="p-4 border-t border-zinc-200 bg-white">
                             <button onClick={() => setComboDrinkAddOnModalOpen(false)}
-                                className="w-full bg-[#3b2063] text-white py-4 rounded-xl font-black uppercase tracking-widest shadow-lg">
+                                className="w-full bg-[#3b2063] text-white py-4 rounded-none font-black uppercase tracking-widest shadow-lg">
                                 Confirm Selection ({comboDrinkAddOns.length})
                             </button>
                         </div>
@@ -880,7 +851,7 @@ const SalesOrder = () => {
             {/* ================================================================ */}
             {isConfirmModalOpen && (
                 <div className="fixed inset-0 z-120 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-white w-full max-w-6xl rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden max-h-[95vh]">
+                    <div className="bg-white w-full max-w-6xl rounded-none shadow-2xl flex flex-col overflow-hidden max-h-[95vh]">
                         <div className="bg-[#3b2063] p-5 text-white text-center shrink-0 shadow-sm z-10 flex justify-between items-center relative">
                             <div className="w-1/3"></div>
                             <div className="w-1/3">
@@ -895,8 +866,6 @@ const SalesOrder = () => {
                         </div>
 
                         <div className="flex flex-col md:flex-row flex-1 min-h-[50vh] max-h-[85vh] overflow-hidden bg-zinc-50">
-
-                            {/* LEFT: CART + SUMMARY */}
                             <div className="flex-1 flex flex-col bg-white border-r border-zinc-200 overflow-hidden">
                                 <div className="flex-1 p-6 overflow-y-auto">
                                     <h3 className="font-black text-sm text-[#3b2063] uppercase mb-4 tracking-wider">Cart Items</h3>
@@ -942,31 +911,28 @@ const SalesOrder = () => {
                                 </div>
                             </div>
 
-                            {/* RIGHT: TABS */}
                             <div className="flex-1 flex flex-col bg-white overflow-hidden">
                                 <div className="flex border-b border-zinc-200 shrink-0 bg-zinc-50 p-2 gap-2">
                                     <button onClick={() => setActiveTab('payment')}
-                                        className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border-2 
+                                        className={`flex-1 py-3 text-sm font-black uppercase tracking-widest rounded-none transition-all border-2 
                                             ${activeTab === 'payment' ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-md' : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-300 hover:bg-zinc-100'}`}>
                                         Payment
                                     </button>
                                     <button onClick={() => setActiveTab('discount')}
-                                        className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border-2 relative
+                                        className={`flex-1 py-3 text-sm font-black uppercase tracking-widest rounded-none transition-all border-2 relative
                                             ${activeTab === 'discount' ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-md' : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-300 hover:bg-zinc-100'}`}>
                                         Promo
-                                        {selectedDiscount && <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>}
+                                        {selectedDiscount && <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-none border-2 border-white"></span>}
                                     </button>
                                     <button onClick={() => setActiveTab('pax')}
-                                        className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all border-2 relative
+                                        className={`flex-1 py-3 text-sm font-black uppercase tracking-widest rounded-none transition-all border-2 relative
                                             ${activeTab === 'pax' ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-md' : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-300 hover:bg-zinc-100'}`}>
                                         Pax & ID
-                                        {(pax.senior > 0 || pax.pwd > 0 || pax.diplomat > 0) && <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></span>}
+                                        {(pax.senior > 0 || pax.pwd > 0 || pax.diplomat > 0) && <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-none border-2 border-white"></span>}
                                     </button>
                                 </div>
 
                                 <div className="flex-1 p-6 overflow-y-auto">
-
-                                    {/* PAYMENT TAB */}
                                     {activeTab === 'payment' && (
                                         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                                             <div>
@@ -981,7 +947,7 @@ const SalesOrder = () => {
                                                     ] as const).map(({ id, label, icon }) => (
                                                         <button key={id}
                                                             onClick={() => { setPaymentMethod(id); setReferenceNumber(''); setCashTendered(''); }}
-                                                            className={`py-3 rounded-xl font-black text-[11px] uppercase transition-all border-2 flex flex-col items-center gap-1
+                                                            className={`py-3 rounded-none font-black text-sm uppercase transition-all border-2 flex flex-col items-center gap-1
                                                                 ${paymentMethod === id ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-md' : 'bg-zinc-50 text-[#3b2063] border-zinc-200 hover:border-[#3b2063]/40'}`}>
                                                             <span className="text-lg">{icon}</span>
                                                             {label}
@@ -995,22 +961,22 @@ const SalesOrder = () => {
                                                             <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-2xl text-zinc-400">₱</span>
                                                             <input type="number" value={cashTendered}
                                                                 onChange={(e) => setCashTendered(e.target.value ? Number(e.target.value) : '')}
-                                                                className="w-full bg-zinc-50 border-2 border-zinc-300 rounded-2xl py-4 pl-12 pr-4 text-3xl font-black text-[#3b2063] outline-none focus:border-[#3b2063] focus:bg-white transition-colors"
+                                                                className="w-full bg-zinc-50 border-2 border-zinc-300 rounded-none py-4 pl-12 pr-4 text-3xl font-black text-[#3b2063] outline-none focus:border-[#3b2063] focus:bg-white transition-colors"
                                                                 placeholder="0.00" />
                                                         </div>
                                                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
                                                             <button onClick={() => setCashTendered(amtDue)}
-                                                                className="col-span-2 lg:col-span-4 bg-green-100 hover:bg-green-500 hover:text-white text-green-700 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all shadow-sm border-2 border-green-200">
+                                                                className="col-span-2 lg:col-span-4 bg-green-100 hover:bg-green-500 hover:text-white text-green-700 py-2.5 rounded-none font-black text-sm uppercase tracking-widest transition-all shadow-sm border-2 border-green-200">
                                                                 Exact Amount (₱ {amtDue.toFixed(2)})
                                                             </button>
                                                             {[100, 200, 500, 1000].map(amount => (
                                                                 <button key={amount} onClick={() => setCashTendered(amount)}
-                                                                    className="bg-zinc-50 hover:bg-[#3b2063] hover:text-white text-[#3b2063] py-3 rounded-xl font-black text-base transition-all border-2 border-zinc-200 hover:border-[#3b2063]">
+                                                                    className="bg-zinc-50 hover:bg-[#3b2063] hover:text-white text-[#3b2063] py-3 rounded-none font-black text-base transition-all border-2 border-zinc-200 hover:border-[#3b2063]">
                                                                     ₱ {amount}
                                                                 </button>
                                                             ))}
                                                         </div>
-                                                        <div className="flex justify-between items-center mt-4 bg-zinc-50 border border-zinc-200 p-4 rounded-2xl">
+                                                        <div className="flex justify-between items-center mt-4 bg-zinc-50 border border-zinc-200 p-4 rounded-none">
                                                             <span className="font-black text-zinc-400 uppercase text-xs tracking-widest">Change</span>
                                                             <span className="text-2xl font-black text-green-600">₱ {change.toFixed(2)}</span>
                                                         </div>
@@ -1019,7 +985,7 @@ const SalesOrder = () => {
                                                     <div className="space-y-2">
                                                         <h3 className="font-black text-[10px] text-zinc-400 tracking-widest uppercase">Reference Number</h3>
                                                         <input type="text" value={referenceNumber} onChange={(e) => setReferenceNumber(e.target.value)}
-                                                            className="w-full bg-zinc-50 border-2 border-zinc-300 rounded-2xl py-4 px-5 text-xl font-black outline-none focus:border-[#3b2063] focus:bg-white transition-colors"
+                                                            className="w-full bg-zinc-50 border-2 border-zinc-300 rounded-none py-4 px-5 text-xl font-black outline-none focus:border-[#3b2063] focus:bg-white transition-colors"
                                                             placeholder="REF#" />
                                                     </div>
                                                 )}
@@ -1027,20 +993,19 @@ const SalesOrder = () => {
                                         </div>
                                     )}
 
-                                    {/* DISCOUNT TAB */}
                                     {activeTab === 'discount' && (
                                         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                                             <div className="space-y-3">
                                                 <h3 className="font-black text-sm text-[#3b2063] uppercase tracking-wider">Select Promo</h3>
                                                 <div className="grid grid-cols-2 gap-2">
                                                     <button onClick={() => setSelectedDiscount(null)}
-                                                        className={`p-3 rounded-xl text-[10px] font-black uppercase transition-all border-2 flex items-center justify-center text-center
+                                                        className={`p-3 rounded-none text-sm font-black uppercase transition-all border-2 flex items-center justify-center text-center
                                                             ${!selectedDiscount ? 'bg-red-500 text-white border-red-500 shadow-md' : 'bg-zinc-50 text-red-500 border-red-100 hover:border-red-300'}`}>
                                                         Remove Promo
                                                     </button>
                                                     {discounts.map((d) => (
                                                         <button key={d.id} onClick={() => setSelectedDiscount(d)}
-                                                            className={`p-3 rounded-xl text-[10px] font-black uppercase transition-all border-2 flex items-center justify-center text-center
+                                                            className={`p-3 rounded-none text-sm font-black uppercase transition-all border-2 flex items-center justify-center text-center
                                                                 ${selectedDiscount?.id === d.id ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-emerald-300'}`}>
                                                             {d.name} ({d.amount}{d.type.includes('Percent') ? '%' : ' OFF'})
                                                         </button>
@@ -1051,12 +1016,11 @@ const SalesOrder = () => {
                                                 <h3 className="font-black text-[10px] text-zinc-400 tracking-widest uppercase">Discount Remarks</h3>
                                                 <textarea placeholder="Enter notes (e.g., Manager's Approval, Birthday Promo)"
                                                     value={discountRemarks} onChange={(e) => setDiscountRemarks(e.target.value)}
-                                                    className="w-full text-xs font-bold p-4 bg-zinc-50 border-2 border-zinc-200 rounded-xl outline-none focus:border-[#3b2063] focus:bg-white transition-colors h-24 resize-none" />
+                                                    className="w-full text-sm font-bold p-4 bg-zinc-50 border-2 border-zinc-200 rounded-none outline-none focus:border-[#3b2063] focus:bg-white transition-colors h-24 resize-none" />
                                             </div>
                                         </div>
                                     )}
 
-                                    {/* PAX TAB */}
                                     {activeTab === 'pax' && (
                                         <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                                             <div className="space-y-3">
@@ -1065,15 +1029,15 @@ const SalesOrder = () => {
                                                     {(Object.keys(pax) as Array<keyof typeof pax>).map((type) => (
                                                         <div key={type} className="flex flex-col gap-1">
                                                             <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">{type}</label>
-                                                            <div className="flex items-center justify-between bg-zinc-50 rounded-xl p-1 border-2 border-zinc-200">
+                                                            <div className="flex items-center justify-between bg-zinc-50 rounded-none p-1 border-2 border-zinc-200">
                                                                 <button onClick={() => handleSubPax(type)}
-                                                                    className="w-10 h-10 bg-white rounded-lg border border-zinc-200 text-[#3b2063] hover:text-red-500 transition-colors flex items-center justify-center shadow-sm">
+                                                                    className="w-10 h-10 bg-white rounded-none border border-zinc-200 text-[#3b2063] hover:text-red-500 transition-colors flex items-center justify-center shadow-sm">
                                                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" /></svg>
                                                                 </button>
                                                                 <input type="number" value={pax[type]} readOnly
                                                                     className="bg-transparent w-10 text-center font-black text-xl text-[#3b2063] outline-none" />
                                                                 <button onClick={() => handleAddPax(type)}
-                                                                    className="w-10 h-10 bg-[#3b2063] rounded-lg text-white transition-colors flex items-center justify-center shadow-sm hover:bg-[#2a1647]">
+                                                                    className="w-10 h-10 bg-[#3b2063] rounded-none text-white transition-colors flex items-center justify-center shadow-sm hover:bg-[#2a1647]">
                                                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
                                                                 </button>
                                                             </div>
@@ -1086,15 +1050,15 @@ const SalesOrder = () => {
                                                 <div className="space-y-2">
                                                     <div className="relative">
                                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black uppercase tracking-widest text-zinc-400 w-16">Senior</span>
-                                                        <input type="text" placeholder="ID Number..." value={discountIDs.senior} onChange={(e) => setDiscountIDs({ ...discountIDs, senior: e.target.value })} className="w-full text-xs font-bold pl-20 p-3 bg-zinc-50 border-2 rounded-xl border-zinc-200 outline-none focus:bg-white focus:border-[#3b2063] transition-colors" />
+                                                        <input type="text" placeholder="ID Number..." value={discountIDs.senior} onChange={(e) => setDiscountIDs({ ...discountIDs, senior: e.target.value })} className="w-full text-xs font-bold pl-20 p-3 bg-zinc-50 border-2 rounded-none border-zinc-200 outline-none focus:bg-white focus:border-[#3b2063] transition-colors" />
                                                     </div>
                                                     <div className="relative">
                                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black uppercase tracking-widest text-zinc-400 w-16">PWD</span>
-                                                        <input type="text" placeholder="ID Number..." value={discountIDs.pwd} onChange={(e) => setDiscountIDs({ ...discountIDs, pwd: e.target.value })} className="w-full text-xs font-bold pl-20 p-3 bg-zinc-50 border-2 rounded-xl border-zinc-200 outline-none focus:bg-white focus:border-[#3b2063] transition-colors" />
+                                                        <input type="text" placeholder="ID Number..." value={discountIDs.pwd} onChange={(e) => setDiscountIDs({ ...discountIDs, pwd: e.target.value })} className="w-full text-xs font-bold pl-20 p-3 bg-zinc-50 border-2 rounded-none border-zinc-200 outline-none focus:bg-white focus:border-[#3b2063] transition-colors" />
                                                     </div>
                                                     <div className="relative">
                                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black uppercase tracking-widest text-zinc-400 w-16">Diplomat</span>
-                                                        <input type="text" placeholder="ID Number..." value={discountIDs.diplomat} onChange={(e) => setDiscountIDs({ ...discountIDs, diplomat: e.target.value })} className="w-full text-xs font-bold pl-20 p-3 bg-zinc-50 border-2 rounded-xl border-zinc-200 outline-none focus:bg-white focus:border-[#3b2063] transition-colors" />
+                                                        <input type="text" placeholder="ID Number..." value={discountIDs.diplomat} onChange={(e) => setDiscountIDs({ ...discountIDs, diplomat: e.target.value })} className="w-full text-xs font-bold pl-20 p-3 bg-zinc-50 border-2 rounded-none border-zinc-200 outline-none focus:bg-white focus:border-[#3b2063] transition-colors" />
                                                     </div>
                                                 </div>
                                             </div>
@@ -1102,7 +1066,6 @@ const SalesOrder = () => {
                                     )}
                                 </div>
 
-                                {/* ACTION BUTTONS */}
                                 <div className="p-6 bg-white border-t border-zinc-200 shrink-0 space-y-3">
                                     <button
                                         onClick={handleConfirmOrder}
@@ -1112,7 +1075,7 @@ const SalesOrder = () => {
                                             (paymentMethod !== 'cash' && !referenceNumber) ||
                                             (pax.regular + pax.senior + pax.pwd + pax.diplomat !== totalCount)
                                         }
-                                        className="w-full bg-[#3b2063] hover:bg-[#2a1647] transition-colors text-white py-4 rounded-xl font-black uppercase tracking-widest shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed">
+                                        className="w-full bg-[#3b2063] hover:bg-[#2a1647] transition-colors text-white py-4 rounded-none font-black uppercase tracking-widest shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed">
                                         {submitting
                                             ? 'Processing...'
                                             : (pax.regular + pax.senior + pax.pwd + pax.diplomat !== totalCount)
@@ -1130,44 +1093,66 @@ const SalesOrder = () => {
             {/* MODAL: SUCCESS / PRINT OPTIONS                                   */}
             {/* ================================================================ */}
             {isSuccessModalOpen && (
-                <div className="fixed inset-0 z-130 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden text-center">
-                        <div className="bg-green-500 p-8 text-white">
-                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={4} stroke="#22c55e" className="w-8 h-8">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                                </svg>
+                <div className="fixed inset-0 z-130 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+                    <div className="bg-white w-full max-w-lg rounded-none shadow-2xl flex flex-col overflow-hidden border border-zinc-200">
+
+                        {/* ── Header ── */}
+                        <div className="bg-[#3b2063] px-9 pt-10 pb-9 text-white relative overflow-hidden">
+                            <div className="absolute -top-6 -right-6 w-28 h-28 border-2 border-white/10 rounded-none rotate-12" />
+                            <div className="absolute -bottom-4 -left-4 w-16 h-16 border border-white/10 rounded-none -rotate-6" />
+                            <div className="relative flex items-center gap-5">
+                                <div className="w-14 h-14 bg-emerald-400 rounded-none flex items-center justify-center shrink-0">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="white" className="w-7 h-7">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/50 leading-none mb-1.5">Transaction Complete</p>
+                                    <h2 className="text-2xl font-black uppercase tracking-widest leading-none">Order Saved</h2>
+                                    <p className="text-white/60 text-xs font-bold mt-2 font-mono">{orNumber}</p>
+                                </div>
                             </div>
-                            <h2 className="text-2xl font-black uppercase tracking-widest">Saved!</h2>
-                            <p className="text-white/80 font-bold mt-1 text-sm">OR: {orNumber}</p>
                         </div>
-                        <div className="p-6 space-y-3 bg-white">
+
+                        {/* ── Print Actions ── */}
+                        <div className="px-8 pt-6 pb-4 space-y-3 bg-white">
+                            <p className="text-[9px] font-black uppercase tracking-[0.25em] text-zinc-400 mb-4">Required Prints</p>
+
                             <button onClick={handlePrintReceipt}
-                                className={`w-full py-4 rounded-xl font-bold uppercase flex justify-center items-center gap-2 transition-colors border-2
-                                    ${printedReceipt ? 'bg-green-50 text-green-600 border-green-300' : 'bg-white text-zinc-700 border-zinc-300 hover:bg-zinc-100'}`}>
-                                {printedReceipt
-                                    ? <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-                                    : <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0v3.398c0 .796.604 1.48 1.389 1.554a41.349 41.349 0 0 1 7.722 0c.785.074 1.389-.758 1.389-1.554V7.034Z" /></svg>}
-                                {printedReceipt ? 'Receipt Printed ✓' : 'Print Customer Receipt'}
+                                className={`w-full h-14 flex items-center justify-between px-5 border-2 transition-all font-bold text-xs uppercase tracking-widest rounded-none
+                                    ${printedReceipt ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-white border-zinc-200 text-zinc-600 hover:border-[#3b2063] hover:text-[#3b2063] hover:bg-[#f9f7ff]'}`}>
+                                <div className="flex items-center gap-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0v3.398c0 .796.604 1.48 1.389 1.554a41.349 41.349 0 0 1 7.722 0c.785.074 1.389-.758 1.389-1.554V7.034Z" /></svg>
+                                    <span>Customer Receipt</span>
+                                </div>
+                                {printedReceipt ? <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Printed ✓</span> : <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 opacity-40"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>}
                             </button>
+
                             <button onClick={handlePrintKitchen}
-                                className={`w-full py-4 rounded-xl font-black uppercase tracking-wider flex justify-center items-center gap-2 transition-colors border-2
-                                    ${printedKitchen ? 'bg-green-50 text-green-600 border-green-300' : 'bg-[#fce7f3] text-[#be185d] border-[#be185d]/30 hover:bg-[#fbcfe8]'}`}>
-                                {printedKitchen
-                                    ? <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-                                    : <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.866 8.21 8.21 0 0 0 3 2.48Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 18a3.75 3.75 0 0 0 .495-7.468 5.99 5.99 0 0 0-1.925 3.547 5.975 5.975 0 0 1-2.133-1.001A3.75 3.75 0 0 0 12 18Z" /></svg>}
-                                {printedKitchen ? 'Kitchen Ticket Printed ✓' : 'Print Kitchen Ticket'}
+                                className={`w-full h-14 flex items-center justify-between px-5 border-2 transition-all font-bold text-xs uppercase tracking-widest rounded-none
+                                    ${printedKitchen ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-white border-zinc-200 text-zinc-600 hover:border-[#3b2063] hover:text-[#3b2063] hover:bg-[#f9f7ff]'}`}>
+                                <div className="flex items-center gap-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.866 8.21 8.21 0 0 0 3 2.48Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 18a3.75 3.75 0 0 0 .495-7.468 5.99 5.99 0 0 0-1.925 3.547 5.975 5.975 0 0 1-2.133-1.001A3.75 3.75 0 0 0 12 18Z" /></svg>
+                                    <span>Kitchen Ticket</span>
+                                </div>
+                                {printedKitchen ? <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Printed ✓</span> : <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 opacity-40"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>}
                             </button>
+
                             {hasStickers && (
                                 <button onClick={handlePrintStickers}
-                                    className={`w-full py-4 rounded-xl font-black uppercase tracking-wider flex justify-center items-center gap-2 transition-colors border-2
-                                        ${printedStickers ? 'bg-green-50 text-green-600 border-green-300' : 'bg-[#f0ebff] text-[#3b2063] border-[#3b2063]/30 hover:bg-[#e4dbff]'}`}>
-                                    {printedStickers
-                                        ? <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-                                        : <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" /></svg>}
-                                    {printedStickers ? 'Stickers Printed ✓' : 'Print Drink Stickers'}
+                                    className={`w-full h-14 flex items-center justify-between px-5 border-2 transition-all font-bold text-xs uppercase tracking-widest rounded-none
+                                        ${printedStickers ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-white border-zinc-200 text-zinc-600 hover:border-[#3b2063] hover:text-[#3b2063] hover:bg-[#f9f7ff]'}`}>
+                                    <div className="flex items-center gap-3">
+                                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" /></svg>
+                                        <span>Drink Stickers</span>
+                                    </div>
+                                    {printedStickers ? <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Printed ✓</span> : <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 opacity-40"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>}
                                 </button>
                             )}
+                        </div>
+
+                        {/* ── Status + CTA ── */}
+                        <div className="px-8 pb-8 bg-white">
                             {(() => {
                                 const required = [
                                     { label: 'Receipt',        done: printedReceipt },
@@ -1176,26 +1161,34 @@ const SalesOrder = () => {
                                 ];
                                 const pending = required.filter(r => !r.done);
                                 const allDone = pending.length === 0;
+                                const allPrinted = printedReceipt && printedKitchen && (!hasStickers || printedStickers);
                                 return (
-                                    <div className={`text-[10px] font-bold uppercase tracking-widest px-2 py-2 rounded-xl ${allDone ? 'text-green-600 bg-green-50' : 'text-zinc-400 bg-zinc-50'}`}>
-                                        {allDone ? '✓ All prints done — ready for next order' : `Still needed: ${pending.map(p => p.label).join(', ')}`}
-                                    </div>
-                                );
-                            })()}
-                            <div className="border-t border-zinc-200 pt-3">
-                                {(() => {
-                                    const allPrinted = printedReceipt && printedKitchen && (!hasStickers || printedStickers);
-                                    return (
+                                    <>
+                                        <div className="mt-1 mb-4">
+                                            <div className="flex justify-between items-center mb-1.5">
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">
+                                                    {allDone ? 'All done' : `${required.length - pending.length} / ${required.length} printed`}
+                                                </span>
+                                                {!allDone && <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Pending: {pending.map(p => p.label).join(', ')}</span>}
+                                            </div>
+                                            <div className="w-full h-1 bg-zinc-100 rounded-none overflow-hidden">
+                                                <div className={`h-full transition-all duration-500 rounded-none ${allDone ? 'bg-emerald-400' : 'bg-[#3b2063]'}`}
+                                                    style={{ width: `${((required.length - pending.length) / required.length) * 100}%` }} />
+                                            </div>
+                                        </div>
                                         <button onClick={handleNewOrder} disabled={!allPrinted}
                                             title={!allPrinted ? 'Please print all required documents first' : ''}
-                                            className={`w-full py-4 rounded-xl font-black uppercase tracking-widest shadow-lg transition-all
-                                                ${allPrinted ? 'bg-[#3b2063] text-white hover:bg-[#2a1647] cursor-pointer' : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'}`}>
-                                            {allPrinted ? 'Start New Order →' : `Print All First (${[!printedReceipt, !printedKitchen, hasStickers && !printedStickers].filter(Boolean).length} left)`}
+                                            className={`w-full h-14 font-black uppercase tracking-widest text-sm transition-all rounded-none flex items-center justify-center gap-2
+                                                ${allPrinted ? 'bg-[#3b2063] text-white hover:bg-[#2a1647] cursor-pointer' : 'bg-zinc-100 text-zinc-400 cursor-not-allowed'}`}>
+                                            {allPrinted
+                                                ? <>New Order <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" /></svg></>
+                                                : `Print ${pending.length} remaining to continue`}
                                         </button>
-                                    );
-                                })()}
-                            </div>
+                                    </>
+                                );
+                            })()}
                         </div>
+
                     </div>
                 </div>
             )}
@@ -1269,7 +1262,7 @@ const SalesOrder = () => {
                                         <div className="grid grid-cols-2 gap-4 w-full max-w-2xl">
                                             {WINGS_QUANTITIES.map((qty) => (
                                                 <button key={qty} onClick={() => setCategorySize(qty)}
-                                                    className="h-44 bg-white rounded-3xl shadow-md border-2 border-zinc-200 hover:border-[#3b2063] hover:shadow-xl hover:scale-105 transition-all flex flex-col items-center justify-center font-black uppercase text-[#3b2063] text-2xl">
+                                                    className="h-44 bg-white rounded-none shadow-md border-2 border-zinc-200 hover:border-[#3b2063] hover:shadow-xl hover:scale-105 transition-all flex flex-col items-center justify-center font-black uppercase text-sm text-[#3b2063]">
                                                     {qty}
                                                 </button>
                                             ))}
@@ -1277,17 +1270,17 @@ const SalesOrder = () => {
                                     ) : (
                                         <div className="flex gap-5 w-full max-w-md">
                                             <button onClick={() => setCategorySize(selectedCategory?.cup?.size_m || 'M')}
-                                                className="flex-1 h-56 bg-white rounded-3xl shadow-md border-2 border-zinc-200 hover:border-[#3b2063] hover:shadow-xl hover:scale-105 transition-all flex flex-col items-center justify-center font-black text-[#3b2063]">
+                                                className="flex-1 h-56 bg-white rounded-none shadow-md border-2 border-zinc-200 hover:border-[#3b2063] hover:shadow-xl hover:scale-105 transition-all flex flex-col items-center justify-center font-black text-sm text-[#3b2063]">
                                                 <DrinkIcon className="w-14 h-14 mb-3 opacity-70" />
                                                 <span className="text-3xl font-black tracking-widest">{selectedCategory?.cup?.size_m || 'M'}</span>
-                                                <span className="mt-2 bg-[#3b2063]/10 text-[#3b2063] text-[10px] font-black px-3 py-1 rounded-full tracking-widest">Medium</span>
+                                                <span className="mt-2 bg-[#3b2063]/10 text-[#3b2063] text-sm font-black px-3 py-1 rounded-full tracking-widest">Medium</span>
                                             </button>
                                             {selectedCategory?.cup?.size_l && (
                                                 <button onClick={() => setCategorySize(selectedCategory?.cup?.size_l || 'L')}
-                                                    className="flex-1 h-56 bg-white rounded-3xl shadow-md border-2 border-zinc-200 hover:border-[#3b2063] hover:shadow-xl hover:scale-105 transition-all flex flex-col items-center justify-center font-black text-[#3b2063]">
+                                                    className="flex-1 h-56 bg-white rounded-none shadow-md border-2 border-zinc-200 hover:border-[#3b2063] hover:shadow-xl hover:scale-105 transition-all flex flex-col items-center justify-center font-black text-sm text-[#3b2063]">
                                                     <DrinkIcon className="w-20 h-20 mb-3 opacity-90" />
                                                     <span className="text-3xl font-black tracking-widest">{selectedCategory?.cup?.size_l || 'L'}</span>
-                                                    <span className="mt-2 bg-[#3b2063]/10 text-[#3b2063] text-[10px] font-black px-3 py-1 rounded-full tracking-widest">Large</span>
+                                                    <span className="mt-2 bg-[#3b2063]/10 text-[#3b2063] text-sm font-black px-3 py-1 rounded-full tracking-widest">Large</span>
                                                 </button>
                                             )}
                                         </div>
@@ -1301,7 +1294,7 @@ const SalesOrder = () => {
                                         )
                                     ).map((item) => (
                                         <button key={item.id} onClick={() => handleItemClick(item)}
-                                            className="group bg-white hover:bg-[#3b2063] text-[#3b2063] hover:text-white p-4 rounded-2xl shadow-sm border-2 border-zinc-200 hover:border-[#3b2063] h-24 text-xs uppercase font-black text-center transition-all hover:shadow-lg hover:scale-[1.03] active:scale-100 flex items-center justify-center">
+                                            className="group bg-white hover:bg-[#3b2063] text-[#3b2063] hover:text-white p-4 rounded-none shadow-sm border-2 border-zinc-200 hover:border-[#3b2063] h-24 text-sm uppercase font-black text-center transition-all hover:shadow-lg hover:scale-[1.03] active:scale-100 flex items-center justify-center">
                                             {item.name}
                                         </button>
                                     ))}
@@ -1328,7 +1321,7 @@ const SalesOrder = () => {
                                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                                             {groupCats.map((cat) => (
                                                 <button key={cat.id} onClick={() => handleCategoryClick(cat)}
-                                                    className={`bg-white ${card} font-black text-[13px] uppercase p-4 rounded-2xl h-24 shadow-sm border-2 border-zinc-200 transition-all hover:shadow-lg hover:scale-[1.03] active:scale-100 text-[#3b2063] flex items-center justify-center text-center`}>
+                                                    className={`bg-white ${card} font-black text-sm uppercase p-4 rounded-none h-24 shadow-sm border-2 border-zinc-200 transition-all hover:shadow-lg hover:scale-[1.03] active:scale-100 text-[#3b2063] flex items-center justify-center text-center`}>
                                                     {cat.name}
                                                 </button>
                                             ))}
@@ -1349,7 +1342,7 @@ const SalesOrder = () => {
                                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                                             {others.map((cat) => (
                                                 <button key={cat.id} onClick={() => handleCategoryClick(cat)}
-                                                    className="bg-white hover:bg-[#3b2063] hover:text-white text-[#3b2063] font-black text-[13px] uppercase p-4 rounded-2xl h-24 shadow-sm border-2 border-zinc-200 hover:border-[#3b2063] transition-all hover:shadow-lg hover:scale-[1.03] active:scale-100 flex items-center justify-center text-center">
+                                                    className="bg-white hover:bg-[#3b2063] hover:text-white text-[#3b2063] font-black text-sm uppercase p-4 rounded-none h-24 shadow-sm border-2 border-zinc-200 hover:border-[#3b2063] transition-all hover:shadow-lg hover:scale-[1.03] active:scale-100 flex items-center justify-center text-center">
                                                     {cat.name}
                                                 </button>
                                             ))}
@@ -1361,7 +1354,9 @@ const SalesOrder = () => {
                     )}
                 </div>
 
-                {/* SIDEBAR CART */}
+                {/* ============================================================ */}
+                {/* SIDEBAR CART                                                  */}
+                {/* ============================================================ */}
                 <div className="w-96 bg-white border-l-2 border-zinc-200 flex flex-col shrink-0 shadow-2xl z-30">
                     <div className="bg-[#3b2063] p-4 text-white flex items-center justify-between shrink-0">
                         <div>
@@ -1404,7 +1399,7 @@ const SalesOrder = () => {
                                         </div>
                                         <div className="flex flex-col items-end gap-1.5 shrink-0">
                                             <button type="button" onClick={() => removeFromCart(index)}
-                                                className="p-1.5 rounded-xl text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-colors">
+                                                className="p-1.5 rounded-none text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-colors">
                                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>
                                             </button>
                                             <p className="font-black text-sm text-[#3b2063]">₱{item.finalPrice.toFixed(2)}</p>
@@ -1414,7 +1409,9 @@ const SalesOrder = () => {
                             </div>
                         )}
                     </div>
-                    <div className="bg-[#3b2063] text-white p-5 rounded-t-3xl shadow-2xl shrink-0">
+
+                    {/* ✅ FIXED: Sharp corners on cart footer and button */}
+                    <div className="bg-[#3b2063] text-white p-5 shrink-0">
                         <div className="flex justify-between items-end mb-4 pb-4 border-b border-white/10">
                             <div>
                                 <div className="text-[9px] font-bold uppercase opacity-60 tracking-widest leading-none">Subtotal</div>
@@ -1422,8 +1419,11 @@ const SalesOrder = () => {
                             </div>
                             <span className="text-3xl font-black">₱ {subtotal.toFixed(2)}</span>
                         </div>
-                        <button onClick={() => setIsConfirmModalOpen(true)} disabled={cart.length === 0}
-                            className="w-full py-4 bg-white text-[#3b2063] font-black uppercase tracking-widest text-sm rounded-2xl shadow-md disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#f0ebff] transition-colors">
+                        <button
+                            onClick={() => setIsConfirmModalOpen(true)}
+                            disabled={cart.length === 0}
+                            className="w-full py-4 bg-white text-[#3b2063] font-black uppercase tracking-widest text-sm rounded-none shadow-md disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#f0ebff] transition-colors"
+                        >
                             {cart.length === 0 ? 'Add Items to Order' : 'Confirm Order →'}
                         </button>
                     </div>
@@ -1459,13 +1459,11 @@ const SalesOrder = () => {
                                 <span>{item.finalPrice.toFixed(2)}</span>
                             </div>
                             {item.size === 'none' && item.sugarLevel != null ? (
-                                // Combo item — show Classic Pearl as sub-line
                                 <>
                                     <div className="pl-2 text-[10px]">• Classic Pearl</div>
                                     <div className="pl-4 text-[10px]">• Sugar {item.sugarLevel}</div>
                                     {item.options?.map(o => <div key={o} className="pl-4 text-[10px]">• {o}</div>)}
                                     {item.addOns?.map(a => <div key={a} className="pl-4 text-[10px]">• + {a}</div>)}
-                                    
                                 </>
                             ) : (
                                 <>
@@ -1561,13 +1559,11 @@ const SalesOrder = () => {
                                 <div className="flex-1">
                                     <div className="uppercase text-sm leading-tight mb-1">{item.name} {item.cupSizeLabel ? `(${item.cupSizeLabel})` : ''}</div>
                                     {item.size === 'none' && item.sugarLevel != null ? (
-                                        // Combo item — show Classic Pearl as sub-item
                                         <>
                                             <div className="text-sm font-bold mt-1">• Classic Pearl</div>
                                             <div className="text-sm pl-3">Sugar: {item.sugarLevel}</div>
                                             {item.options && item.options.length > 0 && <div className="text-sm pl-3">Options: {item.options.join(', ')}</div>}
                                             {item.addOns && item.addOns.length > 0 && <div className="text-sm pl-3">Add: {item.addOns.join(', ')}</div>}
-
                                         </>
                                     ) : (
                                         <>
