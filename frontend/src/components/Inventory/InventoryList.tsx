@@ -207,7 +207,7 @@ const InventoryList = () => {
                         <span className="text-[13px] font-extrabold text-[#3b2063]">{item.name}</span>
                       </td>
                       <td className="px-7 py-3.5">
-                        <span className="text-[12px] font-semibold text-zinc-500 font-mono">{item.barcode || '—'}</span>
+                        <span className="text-[15px] font-semibold text-black font-mono">{item.barcode || '—'}</span>
                       </td>
                       <td className="px-7 py-3.5 text-center">
                         <span className={`text-[13px] font-extrabold ${item.quantity <= 10 ? 'text-red-500' : 'text-[#1c1c1e]'}`}>{item.quantity}</span>

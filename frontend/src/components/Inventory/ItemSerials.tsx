@@ -196,7 +196,7 @@ const ItemSerials = () => {
                         <span className="text-[13px] font-extrabold text-[#3b2063] uppercase tracking-tight">{record.itemName}</span>
                       </td>
                       <td className="px-7 py-3.5">
-                        <span className="text-[12px] font-semibold text-zinc-500 font-mono">{record.serialNumber}</span>
+                        <span className="text-[18px] font-bold text-black font-mono">{record.serialNumber}</span>
                       </td>
                       <td className="px-7 py-3.5 text-center">
                         <span className={`px-3 py-1 rounded-none text-[9px] font-bold uppercase tracking-tighter ${record.status === 'In Stock' ? 'bg-emerald-100 text-emerald-600' : record.status === 'Sold' ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600'}`}>{record.status}</span>

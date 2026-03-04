@@ -5,7 +5,6 @@ import TopNavbar from '../TopNavbar';
 import api from '../../services/api';
 import { isAxiosError } from 'axios';
 import { getCache, setCache, clearCache } from '../../utils/cache';
-import { Trash2, AlertCircle } from 'lucide-react';
 
 const dashboardFont = { fontFamily: "'Inter', sans-serif" };
 
