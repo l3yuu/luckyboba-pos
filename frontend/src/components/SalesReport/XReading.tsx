@@ -600,17 +600,6 @@ const XReading = () => {
                   <span className="w-[35%] text-right">{r.value}</span>
                 </div>
               ))}
-
-              <Divider />
-
-              {/* Payment methods */}
-              {reportData?.payment_breakdown?.map((p, i) => (
-                <div key={i} className="flex text-[11px] leading-snug">
-                  <span className="flex-1 text-right uppercase pr-1">{p.method}:</span>
-                  <span className="w-[35%] text-right">{phCurrency.format(p.amount)}</span>
-                </div>
-              ))}
-
               <Divider />
 
               {/* SC and PWD */}
