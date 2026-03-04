@@ -114,6 +114,7 @@ jobs:
             cd ..
 
             # Restore root index.html with corrected asset paths
+            rm -f index.html
             cp backend/public/index.html index.html
             sed -i 's|src="/assets/|src="/backend/public/assets/|g' index.html
             sed -i 's|href="/assets/|href="/backend/public/assets/|g' index.html
@@ -204,18 +205,18 @@ jobs:
             cd ..
 
             # 3. Restore Staging index.html
+            rm -f index.html
             cp backend/public/index.html index.html
             sed -i 's|src="/assets/|src="/backend/public/assets/|g' index.html
             sed -i 's|href="/assets/|href="/backend/public/assets/|g' index.html
             sed -i 's|href="/lucky.jpg"|href="/backend/public/lucky.jpg"|g' index.html
 
-            # 4. Restore Staging .htaccess (locked to staging root)
+            # 4. Restore Staging .htaccess
             cat > .htaccess << 'HTACCESS'
             DirectoryIndex index.html index.php
             Options -Indexes
             <IfModule mod_rewrite.c>
                 RewriteEngine On
-                # Change RewriteBase to /staging/ ONLY if you access via luckybobastores.com/staging
                 RewriteBase /
                 RewriteCond %{HTTPS} off
                 RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
