@@ -12,7 +12,7 @@ class Category extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'type', 'cup_id', 'description'];
+    protected $fillable = ['name', 'type', 'cup_id', 'description', 'sub_category_id'];
 
     public function cup(): BelongsTo
     {
@@ -29,8 +29,8 @@ class Category extends Model
         return $this->hasMany(MenuItem::class);
     }
 
-    public function subCategories(): HasMany
+    public function subCategories()
     {
-        return $this->hasMany(SubCategory::class);
+        return $this->hasMany(SubCategory::class, 'category_id');
     }
 }

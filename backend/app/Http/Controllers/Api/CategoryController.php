@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\SubCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -34,15 +35,62 @@ class CategoryController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'        => 'required|string|unique:categories,name|max:255',
-            'type'        => 'required|in:food,drink,promo,standard',
-            'cup_id'      => 'nullable|exists:cups,id',
+            'name'   => 'required|string|unique:categories,name|max:255',
+            'type'   => 'required|in:food,drink,promo,standard',
+            'cup_id' => 'nullable|exists:cups,id',
         ]);
 
-        $category = Category::create($validated);
-        $category->menu_items_count = 0;
+        try {
+            DB::beginTransaction();
 
-        return response()->json($category, 201);
+            $category = Category::create($validated);
+
+            // Auto-create sub-categories based on cup type
+            if ($validated['type'] === 'drink' && !empty($validated['cup_id'])) {
+                $cup = DB::table('cups')->where('id', $validated['cup_id'])->first();
+
+                if ($cup) {
+                    $subCategoryMap = [
+                        'SM/SL'   => ['SM', 'SL'],
+                        'JR'      => ['JR'],
+                        'UM/UL'   => ['UM', 'UL'],
+                        'PCM/PCL' => ['PCM', 'PCL'],
+                    ];
+
+                    $subNames = $subCategoryMap[$cup->code] ?? [];
+                    $firstSubId = null;
+
+                    foreach ($subNames as $subName) {
+                        $sub = SubCategory::create([
+                            'name'        => $subName,
+                            'category_id' => $category->id,
+                            'cup_id'      => $cup->id,
+                        ]);
+
+                        if ($firstSubId === null) {
+                            $firstSubId = $sub->id;
+                        }
+                    }
+
+                    if ($firstSubId) {
+                        $category->update(['sub_category_id' => $firstSubId]);
+                    }
+                }
+            }
+
+            DB::commit();
+
+            // Return with menu_items_count appended manually — NOT saved to DB
+            return response()->json(
+                array_merge($category->toArray(), ['menu_items_count' => 0]),
+                201
+            );
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error("Category Store Error: " . $e->getMessage());
+            return response()->json(['message' => 'Failed to create category.'], 500);
+        }
     }
 
     // Delete a category
