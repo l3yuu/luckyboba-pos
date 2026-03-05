@@ -134,7 +134,7 @@ function AddItemModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
   };
 
   const inputCls = (hasError?: boolean) =>
-    `w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white ${hasError ? 'border-red-400' : 'border-zinc-300'}`;
+    `w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-black focus:border-[#3b2063] focus:bg-white ${hasError ? 'border-red-400' : 'border-zinc-300'}`;
 
   return (
     <div ref={overlayRef} onClick={handleBackdropClick} className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
@@ -142,10 +142,10 @@ function AddItemModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
         
         <div className="flex items-center justify-between px-8 py-5 border-b border-zinc-100 bg-white">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Menu Items</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-black">Menu Items</p>
             <h2 className="text-sm font-extrabold text-[#1c1c1e] mt-0.5">Add New Item</h2>
           </div>
-          <button onClick={onClose} className="text-zinc-300 hover:text-zinc-600 transition-colors p-1"><X size={18}/></button>
+          <button onClick={onClose} className="text-black hover:text-zinc-600 transition-colors p-1"><X size={18}/></button>
         </div>
 
         <div className="px-8 py-7 overflow-y-auto flex flex-col gap-5 max-h-[75vh]">
@@ -267,7 +267,7 @@ function MenuList() {
         <div className="flex-1 flex items-center justify-center">
           <div className="flex flex-col items-center gap-3">
             <RefreshCw className="animate-spin text-[#3b2063]" size={28} />
-            <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">Loading menu...</p>
+            <p className="text-[11px] font-bold text-black uppercase tracking-widest">Loading menu...</p>
           </div>
         </div>
       </div>
@@ -289,11 +289,11 @@ function MenuList() {
           <div className="flex flex-col xl:flex-row gap-3 items-end">
             <div className="flex-[2] w-full space-y-1.5">
               <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5"><Search size={10}/> Search</label>
-              <input type="text" value={filterName} onChange={(e) => setFilterName(e.target.value)} className="w-full px-4 py-3 border border-zinc-200 bg-zinc-50 text-[#1c1c1e] font-semibold text-sm outline-none focus:border-[#3b2063] focus:bg-white transition-all rounded-none placeholder:text-zinc-300" placeholder="Name or barcode..." />
+              <input type="text" value={filterName} onChange={(e) => setFilterName(e.target.value)} className="w-full px-4 py-3 border border-zinc-200 bg-zinc-50 text-[#1c1c1e] font-semibold text-sm outline-none focus:border-[#3b2063] focus:bg-white transition-all rounded-none placeholder:text-black" placeholder="Name or barcode..." />
             </div>
             <div className="flex-1 w-full space-y-1.5">
               <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5"><Layers size={10}/> Category</label>
-              <input type="text" value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="w-full px-4 py-3 border border-zinc-200 bg-zinc-50 text-[#1c1c1e] font-semibold text-sm outline-none focus:border-[#3b2063] focus:bg-white transition-all rounded-none placeholder:text-zinc-300" placeholder="Filter category..." />
+              <input type="text" value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)} className="w-full px-4 py-3 border border-zinc-200 bg-zinc-50 text-[#1c1c1e] font-semibold text-sm outline-none focus:border-[#3b2063] focus:bg-white transition-all rounded-none placeholder:text-black" placeholder="Filter category..." />
             </div>
             <div className="flex gap-2 w-full xl:w-auto">
               <button onClick={() => setShowAddModal(true)} className="flex-1 xl:flex-none h-[46px] px-7 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#2a174a] transition-colors flex items-center justify-center gap-2 rounded-none active:scale-[0.98]">
@@ -314,7 +314,7 @@ function MenuList() {
           <div className="flex-1" />
           <div className="h-9 px-5 bg-white border border-zinc-200 text-zinc-700 font-bold text-[11px] uppercase tracking-widest rounded-none flex items-center gap-2">
             <Database size={12} className="text-[#7c3aed]" strokeWidth={2}/> 
-            <span>{filteredData.length} <span className="text-zinc-400 font-semibold">Records</span></span>
+            <span>{filteredData.length} <span className="text-black font-semibold">Records</span></span>
           </div>
         </div>
 
@@ -340,7 +340,7 @@ function MenuList() {
                         <span className="text-[13px] font-extrabold text-[#3b2063]">{item.name}</span>
                       </td>
                       <td className="px-5 py-3.5">
-                        <span className="text-[12px] font-semibold text-zinc-400 tabular-nums">{item.barcode || '—'}</span>
+                        <span className="text-[12px] font-semibold text-black tabular-nums">{item.barcode || '—'}</span>
                       </td>
                       <td className="px-5 py-3.5">
                         <span className="px-2.5 py-1 bg-zinc-50 border border-zinc-200 text-[10px] font-bold text-zinc-600 uppercase tracking-wide rounded-none">
@@ -355,7 +355,7 @@ function MenuList() {
                           ₱ {Number(item.sellingPrice).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </span>
                       </td>
-                      <td className="px-7 py-3.5 text-[13px] font-semibold text-zinc-400 text-right tabular-nums">
+                      <td className="px-7 py-3.5 text-[13px] font-semibold text-black text-right tabular-nums">
                         ₱ {Number(item.totalCost).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </td>
                     </tr>
@@ -363,8 +363,8 @@ function MenuList() {
                 ) : (
                   <tr>
                     <td colSpan={6} className="px-8 py-24 text-center">
-                      <Package size={36} className="mx-auto text-zinc-200 mb-3" strokeWidth={1.5}/>
-                      <p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">No items found</p>
+                      <Package size={36} className="mx-auto text-black mb-3" strokeWidth={1.5}/>
+                      <p className="text-[11px] font-bold text-black uppercase tracking-widest">No items found</p>
                     </td>
                   </tr>
                 )}
@@ -375,12 +375,12 @@ function MenuList() {
           {/* Table Footer */}
           <div className="px-7 py-4 bg-white border-t border-zinc-100 flex justify-between items-center">
             <div className="flex items-center gap-2">
-              <Terminal size={11} className="text-zinc-300" strokeWidth={2}/>
-              <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">POS Terminal 01</span>
+              <Terminal size={11} className="text-black" strokeWidth={2}/>
+              <span className="text-[10px] font-bold text-black uppercase tracking-widest">POS Terminal 01</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Synchronized</span>
+              <span className="text-[10px] font-bold text-black uppercase tracking-widest">Synchronized</span>
             </div>
           </div>
         </div>

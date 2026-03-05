@@ -177,7 +177,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
               <RefreshCw className="w-12 h-12 text-[#3b2063] animate-spin" strokeWidth={1.5} />
               <div className="text-center">
                 <p className="text-[#3b2063] font-black uppercase text-[11px] tracking-[0.4em]">Terminal Syncing</p>
-                <p className="text-zinc-400 font-black text-[9px] uppercase tracking-widest mt-2">Finalizing End of Day Journal...</p>
+                <p className="text-black font-black text-[9px] uppercase tracking-widest mt-2">Finalizing End of Day Journal...</p>
               </div>
            </div>
         </div>
@@ -251,16 +251,16 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
                 <div className="bg-white p-8 rounded-none border border-zinc-200 flex flex-col items-center text-center shadow-2xl animate-in zoom-in-95 duration-300">
                    <AlertTriangle className="w-12 h-12 text-red-500 mb-4" />
                    <h3 className="text-[#3b2063] font-black uppercase text-[11px] tracking-[0.3em] mb-2">Shift Already Finalized</h3>
-                   <p className="text-zinc-400 font-black text-[9px] uppercase leading-relaxed max-w-[200px]">End of Day records are locked for this terminal today.</p>
+                   <p className="text-black font-black text-[9px] uppercase leading-relaxed max-w-[200px]">End of Day records are locked for this terminal today.</p>
                 </div>
               </div>
             )}
 
             <div className="flex-1 overflow-y-auto p-6 scroll-smooth">
               <div className="grid grid-cols-12 gap-2 mb-4 px-2">
-                <div className="col-span-3 text-[9px] font-black text-zinc-300 uppercase tracking-widest">Denom</div>
-                <div className="col-span-4 text-center text-[9px] font-black text-zinc-300 uppercase tracking-widest">Quantity</div>
-                <div className="col-span-5 text-right text-[9px] font-black text-zinc-300 uppercase tracking-widest">Amount Value</div>
+                <div className="col-span-3 text-[9px] font-black text-black uppercase tracking-widest">Denom</div>
+                <div className="col-span-4 text-center text-[9px] font-black text-black uppercase tracking-widest">Quantity</div>
+                <div className="col-span-5 text-right text-[9px] font-black text-black uppercase tracking-widest">Amount Value</div>
               </div>
 
               <div className="space-y-1">
@@ -278,7 +278,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
                           onChange={(e) => handleInputChange(e.target.value)}
                           disabled={isEodLocked || latestTx !== null}
                           className={`w-full text-center font-black text-sm py-2 rounded-none border outline-none transition-all tabular-nums
-                            ${(isEodLocked || latestTx !== null) ? 'bg-zinc-50 text-zinc-300 border-zinc-100' : 
+                            ${(isEodLocked || latestTx !== null) ? 'bg-zinc-50 text-black border-zinc-100' : 
                               (activeInput?.type === 'count' && activeInput.id === denom ? 'border-[#3b2063] bg-white ring-2 ring-[#3b2063]/5' : 'border-zinc-100 bg-[#f8f6ff]')}`}
                         />
                       </div>
@@ -293,19 +293,19 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
 
             <div className="p-6 bg-zinc-50 border-t border-zinc-100 space-y-4">
               <div className="flex items-center justify-between bg-white border border-zinc-200 p-4">
-                <span className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em]">Grand Total Finalized</span>
+                <span className="text-[10px] font-black text-black uppercase tracking-[0.3em]">Grand Total Finalized</span>
                 <span className="text-2xl font-black text-[#3b2063] tabular-nums">₱ {getGrandTotal(counts).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
               </div>
               
               <div className="relative">
-                <MessageSquare size={14} className="absolute left-4 top-4 text-zinc-300" />
+                <MessageSquare size={14} className="absolute left-4 top-4 text-black" />
                 <textarea 
                   value={remarks} onFocus={handleRemarksFocus}
                   onChange={(e) => handleInputChange(e.target.value)}
                   placeholder="Terminal notes / Shortage explanation..."
                   disabled={isEodLocked || latestTx !== null}
                   className={`w-full pl-10 pr-4 py-3 rounded-none border border-zinc-200 outline-none transition-all text-xs font-bold resize-none h-14
-                    ${(isEodLocked || latestTx !== null) ? 'bg-zinc-100 text-zinc-300' : (activeInput?.type === 'remarks' ? 'border-[#3b2063]' : 'bg-white')}`}
+                    ${(isEodLocked || latestTx !== null) ? 'bg-zinc-100 text-black' : (activeInput?.type === 'remarks' ? 'border-[#3b2063]' : 'bg-white')}`}
                 />
               </div>
 
@@ -316,7 +316,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
                   </button>
                 ) : (
                   <button onClick={handleNewCount} disabled={isEodLocked} className={`flex-1 py-4 font-black uppercase tracking-[0.2em] text-xs transition-all flex items-center justify-center gap-2
-                    ${isEodLocked ? 'bg-zinc-100 text-zinc-300 border border-zinc-200' : 'bg-white border border-[#3b2063] text-[#3b2063] active:scale-[0.99]'}`}>
+                    ${isEodLocked ? 'bg-zinc-100 text-black border border-zinc-200' : 'bg-white border border-[#3b2063] text-[#3b2063] active:scale-[0.99]'}`}>
                     <RefreshCw size={16}/> {isEodLocked ? 'Terminal Closed' : 'Recount Balance'}
                   </button>
                 )}
@@ -328,21 +328,21 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
           <div className="bg-white w-full max-w-sm rounded-none border border-zinc-200 p-8 flex flex-col items-center text-center shadow-sm relative overflow-hidden h-fit">
             <div className={`absolute top-0 left-0 w-full h-1.5 ${latestTx ? 'bg-emerald-500' : 'bg-zinc-200'} opacity-30`}></div>
             <div className={`w-16 h-16 rounded-none border flex items-center justify-center mb-6 transition-colors ${latestTx ? 'bg-emerald-50 border-emerald-100' : 'bg-zinc-50 border-zinc-100'}`}>
-              <Printer className={latestTx ? 'text-emerald-500' : 'text-zinc-300'} size={24} strokeWidth={2}/>
+              <Printer className={latestTx ? 'text-emerald-500' : 'text-black'} size={24} strokeWidth={2}/>
             </div>
-            <h3 className={`font-black text-[11px] uppercase tracking-[0.3em] mb-2 ${latestTx ? 'text-[#3b2063]' : 'text-zinc-400'}`}>Receipt Printer</h3>
-            <p className="text-[9px] text-zinc-400 font-black uppercase tracking-widest mb-6">{latestTx ? "Ready for physical output" : isEodLocked ? "Shift Record Archived" : "Pending Submission"}</p>
+            <h3 className={`font-black text-[11px] uppercase tracking-[0.3em] mb-2 ${latestTx ? 'text-[#3b2063]' : 'text-black'}`}>Receipt Printer</h3>
+            <p className="text-[9px] text-black font-black uppercase tracking-widest mb-6">{latestTx ? "Ready for physical output" : isEodLocked ? "Shift Record Archived" : "Pending Submission"}</p>
             
             {latestTx && (
               <div className="bg-zinc-50 border border-zinc-100 p-4 w-full mb-8 space-y-2 animate-in fade-in duration-500">
-                 <div className="flex justify-between text-[10px] font-black uppercase"><span className="text-zinc-400">Timestamp</span><span className="text-[#3b2063]">{latestTx.time}</span></div>
-                 <div className="flex justify-between text-[10px] font-black uppercase"><span className="text-zinc-400">Total Count</span><span className="text-emerald-600">₱ {latestTx.total.toLocaleString()}</span></div>
+                 <div className="flex justify-between text-[10px] font-black uppercase"><span className="text-black">Timestamp</span><span className="text-[#3b2063]">{latestTx.time}</span></div>
+                 <div className="flex justify-between text-[10px] font-black uppercase"><span className="text-black">Total Count</span><span className="text-emerald-600">₱ {latestTx.total.toLocaleString()}</span></div>
               </div>
             )}
 
             <button onClick={handlePrint} disabled={!latestTx}
               className={`w-full py-4 rounded-none font-black text-[10px] uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-3
-                ${latestTx ? 'bg-emerald-600 text-white shadow-lg hover:bg-emerald-700 active:scale-95' : 'bg-zinc-50 text-zinc-300 border border-zinc-100 cursor-not-allowed'}`}>
+                ${latestTx ? 'bg-emerald-600 text-white shadow-lg hover:bg-emerald-700 active:scale-95' : 'bg-zinc-50 text-black border border-zinc-100 cursor-not-allowed'}`}>
               <Printer size={16}/> Print EOD Journal
             </button>
           </div>
@@ -352,7 +352,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
         <div className={`fixed bottom-0 left-0 right-0 bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-transform duration-500 z-[90] ${showKeyboard ? 'translate-y-0' : 'translate-y-full'}`}>
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center justify-between px-6 py-3 bg-zinc-50 border-b border-zinc-100">
-              <span className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em]">{layoutName === 'numpad' ? 'Numeric Pad' : 'Full Alphanumeric'}</span>
+              <span className="text-[10px] font-black text-black uppercase tracking-[0.3em]">{layoutName === 'numpad' ? 'Numeric Pad' : 'Full Alphanumeric'}</span>
               <button onClick={() => setShowKeyboard(false)} className="text-[10px] font-black text-[#3b2063] uppercase tracking-widest hover:underline">Close Panel</button>
             </div>
             <div className="p-4 bg-white">

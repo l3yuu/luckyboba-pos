@@ -25,7 +25,7 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Settings</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-black">Settings</p>
             <h1 className="text-lg font-extrabold text-[#1c1c1e] mt-0.5">Customers</h1>
           </div>
           <div className="flex gap-2">
@@ -56,7 +56,7 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
               <span>Card #:</span>
               <input
                 type="text"
-                className="border border-zinc-300 bg-white px-4 py-2 text-sm outline-none focus:border-[#3b2063] w-32 font-semibold text-[#1c1c1e] rounded-none placeholder:text-zinc-400"
+                className="border border-zinc-300 bg-white px-4 py-2 text-sm outline-none focus:border-[#3b2063] w-32 font-semibold text-[#1c1c1e] rounded-none placeholder:text-black"
                 placeholder="1001"
               />
               <span>Name:</span>
@@ -64,7 +64,7 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="border border-zinc-300 bg-white px-4 py-2 text-sm outline-none focus:border-[#3b2063] w-48 font-semibold text-[#1c1c1e] rounded-none placeholder:text-zinc-400"
+                className="border border-zinc-300 bg-white px-4 py-2 text-sm outline-none focus:border-[#3b2063] w-48 font-semibold text-[#1c1c1e] rounded-none placeholder:text-black"
                 placeholder="Search name..."
               />
             </div>
@@ -122,7 +122,7 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
           <div className="px-7 py-4 bg-white border-t border-zinc-100 flex justify-between items-center">
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Synchronized</span>
+              <span className="text-[10px] font-bold text-black uppercase tracking-widest">Synchronized</span>
             </div>
             <div className="flex gap-3">
               <button

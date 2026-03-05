@@ -53,7 +53,7 @@ const ItemChecker = () => {
         <div className="flex-1 p-5 md:p-7 flex flex-col items-center justify-center gap-4">
           {/* Header */}
           <div className="text-center">
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-black">Inventory</p>
             <h1 className="text-lg font-extrabold text-[#1c1c1e] mt-0.5">Item Checker</h1>
           </div>
 
@@ -69,7 +69,7 @@ const ItemChecker = () => {
                 type="text" 
                 value={barcode}
                 onChange={(e) => setBarcode(e.target.value)}
-                className="w-full px-4 py-4 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white text-center font-black text-2xl mb-4" 
+                className="w-full px-4 py-4 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-black focus:border-[#3b2063] focus:bg-white text-center font-black text-2xl mb-4" 
                 placeholder="00000000" 
               />
               <button 
@@ -102,7 +102,7 @@ const ItemChecker = () => {
                     </p>
                   </div>
                 </div>
-                <p className="text-[10px] font-mono text-zinc-300">SKU: {item.barcode}</p>
+                <p className="text-[10px] font-mono text-black">SKU: {item.barcode}</p>
               </div>
             </div>
           )}

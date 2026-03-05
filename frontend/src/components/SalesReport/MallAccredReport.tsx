@@ -104,7 +104,7 @@ const MallAccredReport = () => {
                     >
                       <div className="absolute right-0 top-0 bottom-0 w-24 bg-linear-to-l from-blue-50 to-transparent opacity-50 pointer-events-none group-hover:opacity-100 transition-opacity"></div>
                       <div className="relative z-10 flex flex-col items-start h-full justify-between py-1">
-                        <h3 className="text-zinc-400 font-bold uppercase tracking-widest text-[10px]">{mall}</h3>
+                        <h3 className="text-black font-bold uppercase tracking-widest text-[10px]">{mall}</h3>
                         <div className="self-end mt-auto">
                           <span className="text-2xl font-black text-slate-700 uppercase tracking-tight group-hover:text-blue-700 transition-colors">SELECT</span>
                         </div>
@@ -117,7 +117,7 @@ const MallAccredReport = () => {
           </div>
           <div className="flex-1 w-full xl:w-auto border-l border-zinc-200 pl-4">
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-zinc-400 uppercase tracking-wider pointer-events-none">Date</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-black uppercase tracking-wider pointer-events-none">Date</span>
               <input 
                 type="date" 
                 value={selectedDate}
@@ -169,7 +169,7 @@ const MallAccredReport = () => {
                     <div className="flex justify-between text-xs text-zinc-500 border-b border-dashed pb-4"><span>TRANS COUNT:</span> <span>{reportData.transaction_count}</span></div>
                 </div>
                 
-                <div className="mt-10 pt-4 border-t border-slate-100 text-[10px] text-zinc-400 text-center uppercase tracking-tighter">
+                <div className="mt-10 pt-4 border-t border-slate-100 text-[10px] text-black text-center uppercase tracking-tighter">
                     Generated: {reportData.generated_at}
                     <p className="font-bold text-slate-800 mt-2 tracking-widest">--- END OF REPORT ---</p>
                 </div>
@@ -177,12 +177,12 @@ const MallAccredReport = () => {
           ) : (
             <div className="flex flex-col items-center justify-center text-center opacity-50 mt-20">
               <div className="bg-zinc-100 p-8 rounded-full mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-16 h-16 text-zinc-400">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-16 h-16 text-black">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 0 1 .75-.75h3a.75.75 0 0 1 .75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 0 0 3.75-.615A2.993 2.993 0 0 0 9.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 0 0 2.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 0 0 3.75.614m-16.5 0a3.004 3.004 0 0 1-.621-4.72l1.189-1.19A1.5 1.5 0 0 1 5.378 3h13.243a1.5 1.5 0 0 1 1.06.44l1.19 1.189a3 3 0 0 1-.621 4.72m-13.5 8.65h3.75a.75.75 0 0 0 .75-.75V13.5a.75.75 0 0 0-.75-.75H6.75a.75.75 0 0 0-.75.75v3.75c0 .415.336.75.75.75Z" />
                 </svg>
               </div>
               <h2 className="text-xl font-bold text-slate-700 uppercase tracking-tighter">No Mall Selected</h2>
-              <p className="text-sm text-zinc-400 mt-2">Click the <strong>MENU</strong> button above to select a mall.</p>
+              <p className="text-sm text-black mt-2">Click the <strong>MENU</strong> button above to select a mall.</p>
             </div>
           )}
         </div>

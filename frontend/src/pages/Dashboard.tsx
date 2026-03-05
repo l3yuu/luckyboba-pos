@@ -183,15 +183,15 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, onRefr
         <div className="col-span-12 lg:col-span-5 bg-[#2a174a] rounded-none p-6 flex flex-col justify-between border border-[#1a0f2e] min-h-[160px]">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-4">
-               <div className="p-2 text-white/70"><Monitor size={20} strokeWidth={1.5}/></div>
+               <div className="p-2 text-white"><Monitor size={20} strokeWidth={1.5}/></div>
                <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-white/50 mb-0.5">Terminal Status</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.35em] text-white mb-0.5">Terminal Status</p>
                   <p className="text-white font-semibold text-sm tracking-wide tabular-nums">
                     {time.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
                   </p>
                </div>
             </div>
-            <button onClick={onRefresh} className="p-2 text-white/30 hover:text-white transition-colors">
+            <button onClick={onRefresh} className="p-2 text-white hover:text-white transition-colors">
               <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
             </button>
           </div>
@@ -304,7 +304,7 @@ const TopSellerRows = ({ sellers, loading }: TopSellerRowsProps) => {
             <>
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-4">
-                  <span className="text-[11px] font-bold text-zinc-300 tabular-nums w-5">0{i+1}</span>
+                  <span className="text-[11px] font-bold text-zinc-600 tabular-nums w-5">0{i+1}</span>
                   <span className="text-[13px] font-extrabold text-[#1a0f2e] truncate max-w-[260px]">{item.product_name}</span>
                 </div>
                 <span className="text-[11px] font-bold tabular-nums text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-none">{item.total_qty} sold</span>
@@ -315,8 +315,8 @@ const TopSellerRows = ({ sellers, loading }: TopSellerRowsProps) => {
             </>
           ) : (
             <div className="flex items-center gap-4">
-              <span className="text-[11px] font-bold text-zinc-200 tabular-nums w-5">0{i+1}</span>
-              <span className="text-[12px] font-semibold text-zinc-200">—</span>
+              <span className="text-[11px] font-bold text-zinc-500 tabular-nums w-5">0{i+1}</span>
+              <span className="text-[12px] font-semibold text-zinc-500">—</span>
             </div>
           )}
         </div>

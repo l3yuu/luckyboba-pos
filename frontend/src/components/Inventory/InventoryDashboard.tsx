@@ -94,7 +94,7 @@ const InventoryDashboard = () => {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-black">Inventory</p>
               <h1 className="text-lg font-extrabold text-[#1c1c1e] mt-0.5">Dashboard</h1>
             </div>
           </div>
@@ -126,7 +126,7 @@ const InventoryDashboard = () => {
                       <td colSpan={8} className="py-10 text-center">
                         <div className="flex flex-col items-center gap-2">
                           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#3b2063]"></div>
-                          <span className="text-zinc-400 font-bold uppercase text-[10px]">Loading...</span>
+                          <span className="text-black font-bold uppercase text-[10px]">Loading...</span>
                         </div>
                       </td>
                     </tr>
@@ -162,7 +162,7 @@ const InventoryDashboard = () => {
                   ) : (
                     <tr>
                       <td colSpan={8} className="px-8 py-20 text-center">
-                        <p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">No sales data recorded for this week</p>
+                        <p className="text-[11px] font-bold text-black uppercase tracking-widest">No sales data recorded for this week</p>
                       </td>
                     </tr>
                   )}
@@ -185,9 +185,9 @@ const InventoryDashboard = () => {
             <div className="px-7 py-4 bg-white border-t border-zinc-100 flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Synchronized</span>
+                <span className="text-[10px] font-bold text-black uppercase tracking-widest">Synchronized</span>
               </div>
-              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+              <p className="text-[10px] font-bold text-black uppercase tracking-widest">
                 Showing {data.length} products
               </p>
             </div>
@@ -210,7 +210,7 @@ const InventoryDashboard = () => {
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex items-center justify-center h-full text-zinc-300 text-xs italic">No data available</div>
+                  <div className="flex items-center justify-center h-full text-black text-xs italic">No data available</div>
                 )}
               </div>
             </div>
@@ -231,7 +231,7 @@ const InventoryDashboard = () => {
                     </PieChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="flex items-center justify-center h-full text-zinc-300 text-xs italic">No data available</div>
+                  <div className="flex items-center justify-center h-full text-black text-xs italic">No data available</div>
                 )}
               </div>
             </div>

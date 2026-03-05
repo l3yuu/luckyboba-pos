@@ -85,7 +85,7 @@ const BackupSystem = ({ onBack }: { onBack: () => void }) => {
               <Database className="text-[#3b2063]" size={24} />
             </div>
             <div>
-              <p className="text-[10px] font-black text-zinc-400 uppercase tracking-tighter">Database Status</p>
+              <p className="text-[10px] font-black text-black uppercase tracking-tighter">Database Status</p>
               <p className="text-sm font-bold text-slate-700 uppercase">Last backup: {lastBackup}</p>
             </div>
           </div>

@@ -243,15 +243,15 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
                  <h2 className="text-[#3b2063] font-black text-[11px] tracking-[0.3em] uppercase">Shift Cash Drop</h2>
               </div>
               <div className="flex items-center gap-2 px-3 py-1 bg-white border border-zinc-200">
-                <span className="text-[9px] font-black uppercase text-zinc-400">Terminal 01</span>
+                <span className="text-[9px] font-black uppercase text-black">Terminal 01</span>
               </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 scroll-smooth">
               <div className="grid grid-cols-12 gap-2 mb-4 px-2">
-                <div className="col-span-4 text-[9px] font-black text-zinc-300 uppercase tracking-widest">Denom</div>
-                <div className="col-span-4 text-center text-[9px] font-black text-zinc-300 uppercase tracking-widest">Qty</div>
-                <div className="col-span-4 text-right text-[9px] font-black text-zinc-300 uppercase tracking-widest">Subtotal</div>
+                <div className="col-span-4 text-[9px] font-black text-black uppercase tracking-widest">Denom</div>
+                <div className="col-span-4 text-center text-[9px] font-black text-black uppercase tracking-widest">Qty</div>
+                <div className="col-span-4 text-right text-[9px] font-black text-black uppercase tracking-widest">Subtotal</div>
               </div>
 
               <div className="space-y-1">
@@ -261,7 +261,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
                   return (
                     <div key={denom} className="grid grid-cols-12 gap-2 items-center px-2 py-1.5 border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
                       <div className="col-span-4 flex items-center gap-2">
-                        <Banknote size={14} className="text-zinc-300" />
+                        <Banknote size={14} className="text-black" />
                         <span className="font-black text-[#3b2063] text-sm tabular-nums">{denom.toLocaleString()}</span>
                       </div>
                       <div className="col-span-4">
@@ -287,12 +287,12 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
 
             <div className="p-6 bg-zinc-50 border-t border-zinc-100 space-y-4">
               <div className="flex items-center justify-between bg-white border border-zinc-200 p-4">
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400">Total Drop Amount</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-black">Total Drop Amount</p>
                 <p className="text-2xl font-black text-[#3b2063] tabular-nums">₱ {getGrandTotal(counts).toLocaleString(undefined, { minimumFractionDigits: 2 })}</p>
               </div>
               
               <div className="relative">
-                <MessageSquare size={14} className="absolute left-4 top-4 text-zinc-300" />
+                <MessageSquare size={14} className="absolute left-4 top-4 text-black" />
                 <textarea
                   value={remarks}
                   onFocus={handleRemarksFocus}
@@ -306,7 +306,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
               <button
                 onClick={handleSubmit}
                 disabled={isLoading || isEodLocked || getGrandTotal(counts) <= 0}
-                className={`w-full py-4 rounded-none font-black uppercase tracking-[0.3em] text-xs shadow-lg transition-all flex items-center justify-center gap-3 ${isEodLocked ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed' : 'bg-[#3b2063] text-white hover:bg-[#2a1647] active:scale-[0.99]'}`}
+                className={`w-full py-4 rounded-none font-black uppercase tracking-[0.3em] text-xs shadow-lg transition-all flex items-center justify-center gap-3 ${isEodLocked ? 'bg-zinc-200 text-black cursor-not-allowed' : 'bg-[#3b2063] text-white hover:bg-[#2a1647] active:scale-[0.99]'}`}
               >
                 {isLoading ? <RefreshCw className="animate-spin" size={16}/> : <CheckCircle2 size={16}/>}
                 {isLoading ? 'Processing...' : isEodLocked ? 'Terminal Locked' : 'Execute Cash Drop'}
@@ -325,9 +325,9 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
               <table className="w-full text-left">
                 <thead className="sticky top-0 bg-white z-10 border-b border-zinc-100">
                   <tr>
-                    <th className="px-6 py-4 text-[9px] font-black text-zinc-400 uppercase tracking-widest">Time</th>
-                    <th className="px-6 py-4 text-right text-[9px] font-black text-zinc-400 uppercase tracking-widest">Amount</th>
-                    <th className="px-6 py-4 text-center text-[9px] font-black text-zinc-400 uppercase tracking-widest">Action</th>
+                    <th className="px-6 py-4 text-[9px] font-black text-black uppercase tracking-widest">Time</th>
+                    <th className="px-6 py-4 text-right text-[9px] font-black text-black uppercase tracking-widest">Amount</th>
+                    <th className="px-6 py-4 text-center text-[9px] font-black text-black uppercase tracking-widest">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-50">
@@ -335,7 +335,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
                     <tr key={tx.id} className="hover:bg-zinc-50 transition-colors group">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                           <Clock size={12} className="text-zinc-300" />
+                           <Clock size={12} className="text-black" />
                            <span className="text-[11px] font-black text-[#3b2063] tabular-nums">{tx.time}</span>
                         </div>
                       </td>
@@ -351,7 +351,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
                     <tr>
                       <td colSpan={3} className="px-6 py-20 text-center">
                         <HistoryIcon size={32} className="mx-auto text-zinc-100 mb-2" />
-                        <p className="text-[10px] font-black uppercase text-zinc-300 tracking-widest italic">No drops recorded today</p>
+                        <p className="text-[10px] font-black uppercase text-black tracking-widest italic">No drops recorded today</p>
                       </td>
                     </tr>
                   )}
@@ -375,7 +375,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
         <div className={`fixed bottom-0 left-0 right-0 bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-transform duration-500 z-[90] ${showKeyboard ? 'translate-y-0' : 'translate-y-full'}`}>
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center justify-between px-6 py-3 bg-zinc-50 border-b border-zinc-100">
-              <span className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em]">{layoutName === 'numpad' ? 'Numeric Input' : 'Alphanumeric Input'}</span>
+              <span className="text-[10px] font-black text-black uppercase tracking-[0.3em]">{layoutName === 'numpad' ? 'Numeric Input' : 'Alphanumeric Input'}</span>
               <button onClick={() => setShowKeyboard(false)} className="text-[10px] font-black text-[#3b2063] uppercase tracking-widest hover:underline">Dismiss</button>
             </div>
             <div className="p-4 bg-white">

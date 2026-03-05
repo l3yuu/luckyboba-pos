@@ -30,11 +30,11 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
       <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-8 flex flex-col items-center gap-6">
         <div className="w-full max-w-lg border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-2xl p-10 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
           <div className="p-4 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
-            <Upload size={32} className="text-zinc-400 group-hover:text-[#3b2063]" />
+            <Upload size={32} className="text-black group-hover:text-[#3b2063]" />
           </div>
           <div>
             <p className="text-sm font-black text-slate-700 uppercase tracking-widest">Click to Add File</p>
-            <p className="text-[10px] font-bold text-zinc-400 uppercase mt-1">Supported: .CSV, .XLSX</p>
+            <p className="text-[10px] font-bold text-black uppercase mt-1">Supported: .CSV, .XLSX</p>
           </div>
         </div>
 
@@ -77,7 +77,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
           <div className="p-2 bg-white rounded-lg shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
           <div>
             <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Import Sub Category</h1>
-            <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">Upload CSV Data</p>
+            <p className="text-black font-bold text-xs uppercase tracking-wider mt-1">Upload CSV Data</p>
           </div>
         </div>
       </div>
@@ -85,11 +85,11 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
       <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-8 flex flex-col items-center gap-6">
         <div className="w-full max-w-lg border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-2xl p-10 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
           <div className="p-4 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
-            <Upload size={32} className="text-zinc-400 group-hover:text-[#3b2063]" />
+            <Upload size={32} className="text-black group-hover:text-[#3b2063]" />
           </div>
           <div>
             <p className="text-sm font-black text-slate-700 uppercase tracking-widest">Click to Add File</p>
-            <p className="text-[10px] font-bold text-zinc-400 uppercase mt-1">Supported: .CSV, .XLSX</p>
+            <p className="text-[10px] font-bold text-black uppercase mt-1">Supported: .CSV, .XLSX</p>
           </div>
         </div>
 
@@ -132,7 +132,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
           <div className="p-2 bg-white rounded-lg shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
           <div>
             <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Import Inventory Items</h1>
-            <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">Bulk Inventory Management</p>
+            <p className="text-black font-bold text-xs uppercase tracking-wider mt-1">Bulk Inventory Management</p>
           </div>
         </div>
       </div>
@@ -140,21 +140,21 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
       <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-8 flex flex-col gap-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-1">
-            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Items with VAT</label>
+            <label className="text-[10px] font-black text-black uppercase tracking-widest">Items with VAT</label>
             <select className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-[#3b2063] cursor-pointer">
               <option>VATABLE</option>
               <option>NOT-VATABLE</option>
             </select>
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Items Active</label>
+            <label className="text-[10px] font-black text-black uppercase tracking-widest">Items Active</label>
             <select className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-[#3b2063] cursor-pointer">
               <option>ACTIVE</option>
               <option>NOT-ACTIVE</option>
             </select>
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Nonstock</label>
+            <label className="text-[10px] font-black text-black uppercase tracking-widest">Nonstock</label>
             <select className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-4 focus:border-[#3b2063] focus:ring-4 focus:ring-[#3b2063]/20 cursor-pointer">
               <option>YES</option>
               <option>NO</option>
@@ -164,7 +164,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
 
         <div className="border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-2xl p-8 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
           <div className="p-3 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
-            <Upload size={24} className="text-zinc-400 group-hover:text-[#3b2063]" />
+            <Upload size={24} className="text-black group-hover:text-[#3b2063]" />
           </div>
           <p className="text-xs font-black text-slate-700 uppercase tracking-widest">Click to Upload Inventory File</p>
         </div>
@@ -235,7 +235,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
           <div className="p-2 bg-white rounded-lg shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
           <div>
             <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Import Food Items</h1>
-            <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">Bulk Food & Menu Management</p>
+            <p className="text-black font-bold text-xs uppercase tracking-wider mt-1">Bulk Food & Menu Management</p>
           </div>
         </div>
       </div>
@@ -243,14 +243,14 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
       <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-8 flex flex-col gap-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-1">
-            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Items with VAT</label>
+            <label className="text-[10px] font-black text-black uppercase tracking-widest">Items with VAT</label>
             <select className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200 cursor-pointer">
               <option>VATABLE</option>
               <option>NOT-VATABLE</option>
             </select>
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Items Active</label>
+            <label className="text-[10px] font-black text-black uppercase tracking-widest">Items Active</label>
             <select className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200 cursor-pointer">
               <option>ACTIVE</option>
               <option>NOT-ACTIVE</option>
@@ -260,7 +260,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
 
         <div className="border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-2xl p-8 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
           <div className="p-3 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
-            <Upload size={24} className="text-zinc-400 group-hover:text-[#3b2063]" />
+            <Upload size={24} className="text-black group-hover:text-[#3b2063]" />
           </div>
           <p className="text-xs font-black text-slate-700 uppercase tracking-widest">Click to Upload Food Items File</p>
         </div>
@@ -347,7 +347,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
           <div className="p-2 bg-white rounded-lg shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
           <div>
             <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Import Quantity</h1>
-            <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">Update Stock Levels</p>
+            <p className="text-black font-bold text-xs uppercase tracking-wider mt-1">Update Stock Levels</p>
           </div>
         </div>
       </div>
@@ -355,11 +355,11 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
       <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-8 flex flex-col items-center gap-6">
         <div className="w-full max-w-lg border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-2xl p-10 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
           <div className="p-4 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
-            <Upload size={32} className="text-zinc-400 group-hover:text-[#3b2063]" />
+            <Upload size={32} className="text-black group-hover:text-[#3b2063]" />
           </div>
           <div>
             <p className="text-sm font-black text-slate-700 uppercase tracking-widest">Click to Add File</p>
-            <p className="text-[10px] font-bold text-zinc-400 uppercase mt-1">Supported: .CSV, .XLSX</p>
+            <p className="text-[10px] font-bold text-black uppercase mt-1">Supported: .CSV, .XLSX</p>
           </div>
         </div>
 
@@ -421,7 +421,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
           <div className="p-2 bg-white rounded-lg shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
           <div>
             <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Import Item Kits</h1>
-            <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">Bundle & Kit Configuration</p>
+            <p className="text-black font-bold text-xs uppercase tracking-wider mt-1">Bundle & Kit Configuration</p>
           </div>
         </div>
       </div>
@@ -429,11 +429,11 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
       <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-8 flex flex-col items-center gap-6">
         <div className="w-full max-w-lg border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-2xl p-10 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
           <div className="p-4 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
-            <Upload size={32} className="text-zinc-400 group-hover:text-[#3b2063]" />
+            <Upload size={32} className="text-black group-hover:text-[#3b2063]" />
           </div>
           <div>
             <p className="text-sm font-black text-slate-700 uppercase tracking-widest">Click to Add File</p>
-            <p className="text-[10px] font-bold text-zinc-400 uppercase mt-1">Supported: .CSV, .XLSX</p>
+            <p className="text-[10px] font-bold text-black uppercase mt-1">Supported: .CSV, .XLSX</p>
           </div>
         </div>
 
@@ -488,7 +488,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
           <div className="p-2 bg-white rounded-lg shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
           <div>
             <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Import Update</h1>
-            <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">Stock Adjustment & Corrections</p>
+            <p className="text-black font-bold text-xs uppercase tracking-wider mt-1">Stock Adjustment & Corrections</p>
           </div>
         </div>
       </div>
@@ -496,11 +496,11 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
       <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-8 flex flex-col items-center gap-6">
         <div className="w-full max-w-lg border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-2xl p-10 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
           <div className="p-4 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
-            <Upload size={32} className="text-zinc-400 group-hover:text-[#3b2063]" />
+            <Upload size={32} className="text-black group-hover:text-[#3b2063]" />
           </div>
           <div>
             <p className="text-sm font-black text-slate-700 uppercase tracking-widest">Click to Add File</p>
-            <p className="text-[10px] font-bold text-zinc-400 uppercase mt-1">Supported: .CSV, .XLSX</p>
+            <p className="text-[10px] font-bold text-black uppercase mt-1">Supported: .CSV, .XLSX</p>
           </div>
         </div>
 
@@ -567,7 +567,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
           <div className="p-2 bg-white rounded-lg shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
           <div>
             <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Import Update Price</h1>
-            <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">Pricing Adjustments</p>
+            <p className="text-black font-bold text-xs uppercase tracking-wider mt-1">Pricing Adjustments</p>
           </div>
         </div>
       </div>
@@ -575,11 +575,11 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
       <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-8 flex flex-col items-center gap-6">
         <div className="w-full max-w-lg border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-2xl p-10 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
           <div className="p-4 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
-            <Upload size={32} className="text-zinc-400 group-hover:text-[#3b2063]" />
+            <Upload size={32} className="text-black group-hover:text-[#3b2063]" />
           </div>
           <div>
             <p className="text-sm font-black text-slate-700 uppercase tracking-widest">Click to Add File</p>
-            <p className="text-[10px] font-bold text-zinc-400 uppercase mt-1">Supported: .CSV, .XLSX</p>
+            <p className="text-[10px] font-bold text-black uppercase mt-1">Supported: .CSV, .XLSX</p>
           </div>
         </div>
 
@@ -644,7 +644,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
           <div className="p-2 bg-white rounded-lg shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
           <div>
             <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Import Customers</h1>
-            <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">Customer Database Management</p>
+            <p className="text-black font-bold text-xs uppercase tracking-wider mt-1">Customer Database Management</p>
           </div>
         </div>
       </div>
@@ -652,11 +652,11 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
       <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-8 flex flex-col items-center gap-6">
         <div className="w-full max-w-lg border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-2xl p-10 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
           <div className="p-4 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
-            <Upload size={32} className="text-zinc-400 group-hover:text-[#3b2063]" />
+            <Upload size={32} className="text-black group-hover:text-[#3b2063]" />
           </div>
           <div>
             <p className="text-sm font-black text-slate-700 uppercase tracking-widest">Click to Add File</p>
-            <p className="text-[10px] font-bold text-zinc-400 uppercase mt-1">Supported: .CSV, .XLSX</p>
+            <p className="text-[10px] font-bold text-black uppercase mt-1">Supported: .CSV, .XLSX</p>
           </div>
         </div>
 
@@ -727,7 +727,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
           <div className="p-2 bg-white rounded-lg shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
           <div>
             <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Import Customers Wallet</h1>
-            <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">Loyalty Points & Balance</p>
+            <p className="text-black font-bold text-xs uppercase tracking-wider mt-1">Loyalty Points & Balance</p>
           </div>
         </div>
       </div>
@@ -735,11 +735,11 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
       <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-8 flex flex-col items-center gap-6">
         <div className="w-full max-w-lg border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-2xl p-10 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
           <div className="p-4 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
-            <Upload size={32} className="text-zinc-400 group-hover:text-[#3b2063]" />
+            <Upload size={32} className="text-black group-hover:text-[#3b2063]" />
           </div>
           <div>
             <p className="text-sm font-black text-slate-700 uppercase tracking-widest">Click to Add File</p>
-            <p className="text-[10px] font-bold text-zinc-400 uppercase mt-1">Supported: .CSV, .XLSX</p>
+            <p className="text-[10px] font-bold text-black uppercase mt-1">Supported: .CSV, .XLSX</p>
           </div>
         </div>
 
@@ -791,7 +791,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
           <div className="p-2 bg-white rounded-lg shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
           <div>
             <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Import Data</h1>
-            <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">External Data Synchronization</p>
+            <p className="text-black font-bold text-xs uppercase tracking-wider mt-1">External Data Synchronization</p>
           </div>
         </div>
       </div>
@@ -821,7 +821,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
       </div>
 
       <div className="mt-auto bg-white p-4 rounded-xl border border-zinc-200 flex items-center gap-3 shadow-sm">
-        <div className="p-2 bg-zinc-100 rounded-full text-zinc-400"><Database size={16} /></div>
+        <div className="p-2 bg-zinc-100 rounded-full text-black"><Database size={16} /></div>
         <p className="text-sm font-bold text-black uppercase tracking-wider">Ensure files are in .CSV or .XLSX format before importing.</p>
       </div>
     </div>

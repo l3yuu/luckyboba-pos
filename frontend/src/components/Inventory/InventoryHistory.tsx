@@ -47,7 +47,7 @@ const InventoryHistoryModal: React.FC<InventoryHistoryModalProps> = ({ onClose }
           </div>
           <button 
             onClick={onClose} 
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-200 text-zinc-400 hover:text-zinc-600 transition-colors font-bold text-xl"
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-200 text-black hover:text-zinc-600 transition-colors font-bold text-xl"
           >
             ×
           </button>
@@ -57,12 +57,12 @@ const InventoryHistoryModal: React.FC<InventoryHistoryModalProps> = ({ onClose }
           {loading ? (
             <div className="flex flex-col items-center justify-center py-12">
               <Loader2 className="animate-spin text-[#3b2063] mb-4" size={32} />
-              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Loading Logs...</p>
+              <p className="text-[10px] font-bold text-black uppercase tracking-widest">Loading Logs...</p>
             </div>
           ) : history.length > 0 ? (
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="text-[10px] font-black text-zinc-400 uppercase tracking-widest border-b border-zinc-100">
+                <tr className="text-[10px] font-black text-black uppercase tracking-widest border-b border-zinc-100">
                   <th className="pb-3">Date</th>
                   <th className="pb-3">Product</th>
                   <th className="pb-3 text-center">Change</th>
@@ -80,7 +80,7 @@ const InventoryHistoryModal: React.FC<InventoryHistoryModalProps> = ({ onClose }
                     <td className={`py-4 text-center font-black ${log.quantity_change > 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                       {log.quantity_change > 0 ? `+${log.quantity_change}` : log.quantity_change}
                     </td>
-                    <td className="py-4 text-zinc-400 italic text-[10px] leading-relaxed max-w-37.5 truncate hover:whitespace-normal">
+                    <td className="py-4 text-black italic text-[10px] leading-relaxed max-w-37.5 truncate hover:whitespace-normal">
                       {log.remarks || 'No remarks'}
                     </td>
                   </tr>
@@ -89,7 +89,7 @@ const InventoryHistoryModal: React.FC<InventoryHistoryModalProps> = ({ onClose }
             </table>
           ) : (
             <div className="py-12 text-center">
-              <p className="text-zinc-400 italic uppercase text-[10px] font-bold tracking-widest">No transactions recorded yet.</p>
+              <p className="text-black italic uppercase text-[10px] font-bold tracking-widest">No transactions recorded yet.</p>
             </div>
           )}
         </div>

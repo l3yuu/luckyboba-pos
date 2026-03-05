@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\{
+    AuthController,
     BackupController, CashCountController, CashTransactionController, CategoryController,
     DashboardController, DiscountController, ExpenseController, InventoryController,
     InventoryDashboardController, InventoryReportController, ItemSerialController,
@@ -8,9 +9,8 @@ use App\Http\Controllers\Api\{
     ReportController, SalesController, SalesDashboardController, SettingsController,
     SubCategoryController, UploadController, VoucherController, AddOnController
 };
-use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Models\User;
-use Illuminate\Http\Request; 
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Route;
 | Public API Routes
 |--------------------------------------------------------------------------
 */
-Route::post('/login', [AuthenticatedSessionController::class, 'store'])
+Route::post('/login', [AuthController::class, 'login'])
     ->middleware('throttle:5,2');
 Route::get('/users', function () { return User::all(); });
 
@@ -28,11 +28,11 @@ Route::get('/users', function () { return User::all(); });
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum'])->group(function () {
-    
+
     // --- 1. SYSTEM CORE & DASHBOARD ---
     Route::get('/dashboard/stats', [DashboardController::class, 'index']);
     Route::get('/user', fn (Request $request) => $request->user());
-    Route::post('/logout', [AuthenticatedSessionController::class, 'destroy']);
+    Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/app-init', [DashboardController::class, 'init']);
     Route::get('/sales-analytics', [SalesDashboardController::class, 'index']);
 
@@ -43,7 +43,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/{id}', [SalesController::class, 'show']);
         Route::patch('/{id}/cancel', [SalesController::class, 'cancel']);
     });
-    
+
     Route::prefix('cash-transactions')->group(function () {
         Route::get('/status', [CashCountController::class, 'checkInitialCash']);
         Route::get('/', [CashTransactionController::class, 'index']);
@@ -100,22 +100,19 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // --- 7. ANALYTICS & EXPORT REPORTS ---
     Route::prefix('reports')->group(function () {
-        // Business Intelligence
         Route::get('/x-reading', [SalesDashboardController::class, 'xReading']);
         Route::get('/z-reading', [SalesDashboardController::class, 'zReading']);
         Route::get('/mall-accreditation', [SalesDashboardController::class, 'mallReport']);
-        Route::get('/items-report', [SalesDashboardController::class, 'itemsReport']); // Moved inside for better organization
-        Route::get('/hourly-sales', [ReportController::class, 'getHourlySales']); 
+        Route::get('/items-report', [SalesDashboardController::class, 'itemsReport']);
+        Route::get('/hourly-sales', [ReportController::class, 'getHourlySales']);
         Route::get('/void-logs', [ReportController::class, 'getVoidLogs']);
         Route::get('/item-quantities', [ReportController::class, 'getItemQuantities']);
         Route::get('/inventory', [InventoryReportController::class, 'index']);
-
-        // Excel/CSV Exports
-        Route::get('/sales', [ReportController::class, 'getSalesReport']); 
-        Route::get('/food-menu', [ReportController::class, 'getFoodMenu']); 
+        Route::get('/sales', [ReportController::class, 'getSalesReport']);
+        Route::get('/food-menu', [ReportController::class, 'getFoodMenu']);
         Route::get('/export-sales', [ReportController::class, 'exportSales']);
         Route::get('/export-items', [ReportController::class, 'exportItems']);
-        Route::get('/sales-summary',  [ReportController::class, 'getSalesSummary']);
+        Route::get('/sales-summary', [ReportController::class, 'getSalesSummary']);
         Route::get('/sales-detailed', [ReportController::class, 'getSalesDetailed']);
     });
 

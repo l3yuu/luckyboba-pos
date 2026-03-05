@@ -143,7 +143,7 @@ const ItemSerials = () => {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-black">Inventory</p>
               <h1 className="text-lg font-extrabold text-[#1c1c1e] mt-0.5">Serial Tracking</h1>
             </div>
             <button 
@@ -161,7 +161,7 @@ const ItemSerials = () => {
               placeholder="Search Serial Number..." 
               value={searchTerm} 
               onChange={(e) => setSearchTerm(e.target.value)} 
-              className="flex-1 px-4 py-3 bg-white border border-zinc-300 rounded-none text-sm font-semibold outline-none focus:border-[#3b2063] placeholder:text-zinc-400" 
+              className="flex-1 px-4 py-3 bg-white border border-zinc-300 rounded-none text-sm font-semibold outline-none focus:border-[#3b2063] placeholder:text-black" 
             />
             <select 
               value={statusFilter} 
@@ -220,7 +220,7 @@ const ItemSerials = () => {
                 ) : (
                   <tr>
                     <td colSpan={5} className="px-8 py-20 text-center">
-                      <p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">No serial records found.</p>
+                      <p className="text-[11px] font-bold text-black uppercase tracking-widest">No serial records found.</p>
                     </td>
                   </tr>
                 )}
@@ -230,9 +230,9 @@ const ItemSerials = () => {
             <div className="px-7 py-4 bg-white border-t border-zinc-100 flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Synchronized</span>
+                <span className="text-[10px] font-bold text-black uppercase tracking-widest">Synchronized</span>
               </div>
-              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+              <p className="text-[10px] font-bold text-black uppercase tracking-widest">
                 Showing {serials.length} records
               </p>
             </div>
@@ -246,10 +246,10 @@ const ItemSerials = () => {
           <div className="bg-white rounded-none border border-zinc-200 shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
             <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-black">Inventory</p>
                 <h2 className="text-sm font-extrabold text-[#1c1c1e] mt-0.5">Register Unit</h2>
               </div>
-              <button onClick={() => setIsModalOpen(false)} className="text-zinc-300 hover:text-zinc-600 transition-colors p-1 text-lg leading-none">×</button>
+              <button onClick={() => setIsModalOpen(false)} className="text-black hover:text-zinc-600 transition-colors p-1 text-lg leading-none">×</button>
             </div>
 
             <form onSubmit={handleRegister} className="px-7 py-6 flex flex-col gap-5">
@@ -260,7 +260,7 @@ const ItemSerials = () => {
                   type="text" 
                   value={formData.itemName} 
                   onChange={(e) => setFormData({...formData, itemName: e.target.value})} 
-                  className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white" 
+                  className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-black focus:border-[#3b2063] focus:bg-white" 
                   placeholder="Enter product name..." 
                 />
               </div>
@@ -271,7 +271,7 @@ const ItemSerials = () => {
                   type="text" 
                   value={formData.serialNumber} 
                   onChange={(e) => setFormData({...formData, serialNumber: e.target.value})} 
-                  className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white font-mono" 
+                  className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-black focus:border-[#3b2063] focus:bg-white font-mono" 
                   placeholder="Scan or type SN..." 
                 />
               </div>
@@ -313,10 +313,10 @@ const ItemSerials = () => {
           <div className="bg-white rounded-none border border-zinc-200 shadow-2xl w-full max-w-sm flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
             <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-black">Inventory</p>
                 <h2 className="text-sm font-extrabold text-[#1c1c1e] mt-0.5">Update Status</h2>
               </div>
-              <button onClick={() => setIsUpdateModalOpen(false)} className="text-zinc-300 hover:text-zinc-600 transition-colors p-1 text-lg leading-none">×</button>
+              <button onClick={() => setIsUpdateModalOpen(false)} className="text-black hover:text-zinc-600 transition-colors p-1 text-lg leading-none">×</button>
             </div>
 
             <form onSubmit={handleUpdateStatus} className="px-7 py-6 flex flex-col gap-5">

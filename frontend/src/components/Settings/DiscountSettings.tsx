@@ -139,7 +139,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Settings</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-black">Settings</p>
               <h1 className="text-lg font-extrabold text-[#1c1c1e] mt-0.5">Discounts</h1>
             </div>
           </div>
@@ -156,7 +156,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Search:</span>
                 <input 
                   type="text" 
-                  className="border border-zinc-300 bg-white px-4 py-2 text-sm outline-none focus:border-[#3b2063] w-56 font-semibold text-[#1c1c1e] rounded-none placeholder:text-zinc-400"
+                  className="border border-zinc-300 bg-white px-4 py-2 text-sm outline-none focus:border-[#3b2063] w-56 font-semibold text-[#1c1c1e] rounded-none placeholder:text-black"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search discounts..."
@@ -167,7 +167,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
             {/* Table */}
             <div className="flex-1 overflow-auto">
               {isLoading ? (
-                <div className="p-10 text-center font-bold text-zinc-400 uppercase tracking-widest text-xs animate-pulse">Loading discounts...</div>
+                <div className="p-10 text-center font-bold text-black uppercase tracking-widest text-xs animate-pulse">Loading discounts...</div>
               ) : (
                 <table className="w-full text-left border-collapse">
                   <thead className="sticky top-0 bg-white z-10 border-b-2 border-zinc-100">
@@ -228,7 +228,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
                     )) : (
                       <tr>
                         <td colSpan={6} className="px-8 py-20 text-center">
-                          <p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">No discounts found</p>
+                          <p className="text-[11px] font-bold text-black uppercase tracking-widest">No discounts found</p>
                         </td>
                       </tr>
                     )}
@@ -241,7 +241,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
             <div className="px-7 py-4 bg-white border-t border-zinc-100 flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Synchronized</span>
+                <span className="text-[10px] font-bold text-black uppercase tracking-widest">Synchronized</span>
               </div>
               <div className="flex gap-3">
                 <button 
@@ -267,10 +267,10 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
             <div className="bg-white rounded-none border border-zinc-200 shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
               <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Settings</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-black">Settings</p>
                   <h2 className="text-sm font-extrabold text-[#1c1c1e] mt-0.5">Add Discount</h2>
                 </div>
-                <button onClick={() => setIsModalOpen(false)} className="text-zinc-300 hover:text-zinc-600 transition-colors p-1 text-lg leading-none">×</button>
+                <button onClick={() => setIsModalOpen(false)} className="text-black hover:text-zinc-600 transition-colors p-1 text-lg leading-none">×</button>
               </div>
 
               <div className="px-7 py-6 flex flex-col gap-5">
@@ -280,7 +280,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
                     type="text" 
                     value={newDiscount.name} 
                     onChange={e => setNewDiscount({...newDiscount, name: e.target.value})} 
-                    className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white" 
+                    className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-black focus:border-[#3b2063] focus:bg-white" 
                     placeholder="e.g. SENIOR20" 
                   />
                 </div>
@@ -290,7 +290,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
                     type="number" 
                     value={newDiscount.amount} 
                     onChange={e => setNewDiscount({...newDiscount, amount: e.target.value})} 
-                    className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white" 
+                    className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-black focus:border-[#3b2063] focus:bg-white" 
                     placeholder="20" 
                   />
                 </div>
@@ -333,7 +333,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
             <div className="bg-white rounded-none border border-zinc-200 shadow-2xl w-full max-w-sm flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
               <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100">
                 <h2 className="text-sm font-extrabold text-[#1c1c1e]">Delete Discount</h2>
-                <button onClick={() => { setIsDeleteModalOpen(false); setSelectedDiscount(null); }} className="text-zinc-300 hover:text-zinc-600 transition-colors p-1 text-lg leading-none">×</button>
+                <button onClick={() => { setIsDeleteModalOpen(false); setSelectedDiscount(null); }} className="text-black hover:text-zinc-600 transition-colors p-1 text-lg leading-none">×</button>
               </div>
 
               <div className="px-7 py-7 flex flex-col items-center gap-3 text-center">
@@ -341,7 +341,7 @@ const DiscountSettings = ({ onBack }: DiscountSettingsProps) => {
                   <AlertTriangle size={24} className="text-red-500" strokeWidth={2} />
                 </div>
                 <p className="text-sm font-bold text-[#1c1c1e]">Delete <span className="text-[#3b2063]">"{selectedDiscount?.name}"</span>?</p>
-                <p className="text-[11px] text-zinc-400 font-semibold">This action cannot be undone.</p>
+                <p className="text-[11px] text-black font-semibold">This action cannot be undone.</p>
               </div>
 
               <div className="flex gap-3 px-7 py-5 border-t border-zinc-100">

@@ -221,7 +221,7 @@ const PurchaseOrder = () => {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-black">Inventory</p>
               <h1 className="text-lg font-extrabold text-[#1c1c1e] mt-0.5">Purchase Orders</h1>
             </div>
             <button 
@@ -295,7 +295,7 @@ const PurchaseOrder = () => {
                 )) : (
                   <tr>
                     <td colSpan={6} className="px-8 py-20 text-center">
-                      <p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">No purchase orders found.</p>
+                      <p className="text-[11px] font-bold text-black uppercase tracking-widest">No purchase orders found.</p>
                     </td>
                   </tr>
                 )}
@@ -305,9 +305,9 @@ const PurchaseOrder = () => {
             <div className="px-7 py-4 bg-white border-t border-zinc-100 flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Synchronized</span>
+                <span className="text-[10px] font-bold text-black uppercase tracking-widest">Synchronized</span>
               </div>
-              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+              <p className="text-[10px] font-bold text-black uppercase tracking-widest">
                 Showing {orders.length} orders
               </p>
             </div>
@@ -321,10 +321,10 @@ const PurchaseOrder = () => {
           <div className="bg-white rounded-none border border-zinc-200 shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
             <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-black">Inventory</p>
                 <h2 className="text-sm font-extrabold text-[#1c1c1e] mt-0.5">New Purchase Order</h2>
               </div>
-              <button onClick={() => setIsModalOpen(false)} className="text-zinc-300 hover:text-zinc-600 transition-colors p-1 text-lg leading-none">×</button>
+              <button onClick={() => setIsModalOpen(false)} className="text-black hover:text-zinc-600 transition-colors p-1 text-lg leading-none">×</button>
             </div>
             
             <form onSubmit={handleCreatePO} className="flex flex-col">
@@ -338,7 +338,7 @@ const PurchaseOrder = () => {
                       type="text" 
                       value={formData.supplier} 
                       onChange={(e) => setFormData({...formData, supplier: e.target.value})} 
-                      className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white" 
+                      className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-black focus:border-[#3b2063] focus:bg-white" 
                       placeholder="e.g. Boba Supply Co." 
                     />
                   </div>
@@ -429,10 +429,10 @@ const PurchaseOrder = () => {
           <div className="bg-white rounded-none border border-zinc-200 shadow-2xl w-full max-w-sm flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
             <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100">
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-black">Inventory</p>
                 <h2 className="text-sm font-extrabold text-[#1c1c1e] mt-0.5">Update Status</h2>
               </div>
-              <button onClick={() => setIsUpdateModalOpen(false)} className="text-zinc-300 hover:text-zinc-600 transition-colors p-1 text-lg leading-none">×</button>
+              <button onClick={() => setIsUpdateModalOpen(false)} className="text-black hover:text-zinc-600 transition-colors p-1 text-lg leading-none">×</button>
             </div>
             
             <div className="text-center px-7 py-4">

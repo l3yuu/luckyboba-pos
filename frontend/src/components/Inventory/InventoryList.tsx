@@ -138,7 +138,7 @@ const InventoryList = () => {
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#3b2063] mx-auto mb-4"></div>
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400">Loading...</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-black">Loading...</p>
             </div>
           </div>
         </div>
@@ -155,7 +155,7 @@ const InventoryList = () => {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-black">Inventory</p>
               <h1 className="text-lg font-extrabold text-[#1c1c1e] mt-0.5">List</h1>
             </div>
             
@@ -181,9 +181,9 @@ const InventoryList = () => {
             <input 
               type="text" placeholder="Search by name or barcode..."
               value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-white border border-zinc-300 rounded-none px-12 py-3 text-sm font-bold text-[#1c1c1e] outline-none focus:border-[#3b2063] transition-all shadow-sm placeholder:text-zinc-400"
+              className="w-full bg-white border border-zinc-300 rounded-none px-12 py-3 text-sm font-bold text-[#1c1c1e] outline-none focus:border-[#3b2063] transition-all shadow-sm placeholder:text-black"
             />
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 text-zinc-300 absolute left-4 top-1/2 -translate-y-1/2">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5 text-black absolute left-4 top-1/2 -translate-y-1/2">
               <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
             </svg>
           </div>
@@ -228,7 +228,7 @@ const InventoryList = () => {
                 ) : (
                   <tr>
                     <td colSpan={4} className="px-8 py-20 text-center">
-                      <p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">{searchTerm ? `No results for "${searchTerm}"` : "No inventory items found"}</p>
+                      <p className="text-[11px] font-bold text-black uppercase tracking-widest">{searchTerm ? `No results for "${searchTerm}"` : "No inventory items found"}</p>
                     </td>
                   </tr>
                 )}
@@ -238,9 +238,9 @@ const InventoryList = () => {
             <div className="px-7 py-4 bg-white border-t border-zinc-100 flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Synchronized</span>
+                <span className="text-[10px] font-bold text-black uppercase tracking-widest">Synchronized</span>
               </div>
-              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+              <p className="text-[10px] font-bold text-black uppercase tracking-widest">
                 Showing {filteredInventory.length} of {inventory.length} items
               </p>
             </div>
@@ -252,17 +252,17 @@ const InventoryList = () => {
             <div className="bg-white rounded-none border border-zinc-200 shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
               <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-black">Inventory</p>
                   <h2 className="text-sm font-extrabold text-[#1c1c1e] mt-0.5">Restock Item</h2>
                 </div>
-                <button onClick={() => setIsModalOpen(false)} className="text-zinc-300 hover:text-zinc-600 transition-colors p-1 text-lg leading-none">×</button>
+                <button onClick={() => setIsModalOpen(false)} className="text-black hover:text-zinc-600 transition-colors p-1 text-lg leading-none">×</button>
               </div>
 
               <div className="px-7 py-6 flex flex-col gap-5">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Product Name</label>
                   <div className="text-sm font-semibold text-[#1c1c1e]">{selectedItem?.name}</div>
-                  <div className="text-xs text-zinc-400">Current Stock: <span className="font-bold text-[#3b2063]">{selectedItem?.quantity}</span></div>
+                  <div className="text-xs text-black">Current Stock: <span className="font-bold text-[#3b2063]">{selectedItem?.quantity}</span></div>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Add Quantity</label>
@@ -272,7 +272,7 @@ const InventoryList = () => {
                     onChange={(e) => setAddQty(e.target.value)} 
                     autoFocus 
                     onFocus={(e) => e.target.select()} 
-                    className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white" 
+                    className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-black focus:border-[#3b2063] focus:bg-white" 
                     placeholder="Enter quantity to add" 
                     min="1" 
                   />
@@ -303,10 +303,10 @@ const InventoryList = () => {
             <div className="bg-white rounded-none border border-zinc-200 shadow-2xl w-full max-w-lg flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
               <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-black">Inventory</p>
                   <h2 className="text-sm font-extrabold text-[#1c1c1e] mt-0.5">Create New Product</h2>
                 </div>
-                <button onClick={() => setIsAddModalOpen(false)} className="text-zinc-300 hover:text-zinc-600 transition-colors p-1 text-lg leading-none">×</button>
+                <button onClick={() => setIsAddModalOpen(false)} className="text-black hover:text-zinc-600 transition-colors p-1 text-lg leading-none">×</button>
               </div>
 
               <form onSubmit={handleAddItem} className="px-7 py-6 flex flex-col gap-5">
@@ -318,7 +318,7 @@ const InventoryList = () => {
                       type="text" 
                       value={newItem.name} 
                       onChange={e => setNewItem({...newItem, name: e.target.value})} 
-                      className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white" 
+                      className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-black focus:border-[#3b2063] focus:bg-white" 
                       placeholder="e.g. Boba Milk Tea" 
                     />
                   </div>
@@ -340,7 +340,7 @@ const InventoryList = () => {
                       type="text" 
                       value={newItem.barcode} 
                       onChange={e => setNewItem({...newItem, barcode: e.target.value})} 
-                      className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white" 
+                      className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-black focus:border-[#3b2063] focus:bg-white" 
                       placeholder="Optional" 
                     />
                   </div>

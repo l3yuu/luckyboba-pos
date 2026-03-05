@@ -68,7 +68,7 @@ const SalesDashboard = () => {
     return (
       <div className="flex-1 bg-[#f8f6ff] h-full flex flex-col items-center justify-center font-sans">
         <div className="w-10 h-10 border-2 border-[#3b2063] border-t-transparent animate-spin rounded-none" />
-        <p className="mt-4 text-[9px] font-black uppercase tracking-[0.4em] text-zinc-400">Syncing Terminal Analytics...</p>
+        <p className="mt-4 text-[9px] font-black uppercase tracking-[0.4em] text-black">Syncing Terminal Analytics...</p>
       </div>
     );
   }
@@ -153,23 +153,23 @@ const SalesDashboard = () => {
             <div className="flex items-center gap-4">
               <div className="p-3 bg-[#3b2063] text-white rounded-none"><BarChart3 size={20}/></div>
               <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-400">Revenue Performance</p>
+                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-black">Revenue Performance</p>
                 <h2 className="text-[#3b2063] font-black text-lg uppercase tracking-widest leading-none mt-1">Weekly Sales Audit</h2>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-zinc-400 mb-1">Archive Total</p>
+              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-black mb-1">Archive Total</p>
               <p className="text-2xl font-black text-emerald-600 leading-none tabular-nums tracking-tighter">
                 {fmt(stats.total_revenue)}
               </p>
-              <p className="text-[8px] font-black text-zinc-300 uppercase tracking-widest mt-2">{dateRangeText}</p>
+              <p className="text-[8px] font-black text-black uppercase tracking-widest mt-2">{dateRangeText}</p>
             </div>
           </div>
 
           <div className="flex gap-6">
             <div className="flex flex-col justify-between text-right shrink-0 w-10 pb-8" style={{ height: WEEKLY_HEIGHT + 24 }}>
               {[WEEKLY_MAX, WEEKLY_MAX * 0.75, WEEKLY_MAX * 0.5, WEEKLY_MAX * 0.25, 0].map((v, i) => (
-                <span key={i} className="text-[10px] font-black text-zinc-300 tabular-nums">
+                <span key={i} className="text-[10px] font-black text-black tabular-nums">
                   {v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}
                 </span>
               ))}
@@ -210,7 +210,7 @@ const SalesDashboard = () => {
                 {weekly.map((d, i) => (
                   <div key={i} className="text-center" style={{ width: `${100 / weekly.length}%` }}>
                     <p className="text-[9px] font-black uppercase text-[#3b2063] tracking-widest">{d.day}</p>
-                    <p className="text-[8px] font-black text-zinc-300 uppercase">{d.date.split(' ')[1]}</p>
+                    <p className="text-[8px] font-black text-black uppercase">{d.date.split(' ')[1]}</p>
                   </div>
                 ))}
               </div>
@@ -232,7 +232,7 @@ const SalesDashboard = () => {
           <div className="bg-white border border-zinc-200 rounded-none p-6 md:p-8 shadow-sm flex flex-col">
             <div className="flex items-start justify-between mb-8 border-b border-zinc-50 pb-4">
               <div>
-                <p className="text-[9px] font-black uppercase tracking-[0.3em] text-zinc-400">Shift Analytics</p>
+                <p className="text-[9px] font-black uppercase tracking-[0.3em] text-black">Shift Analytics</p>
                 <h3 className="text-[#3b2063] font-black text-sm uppercase tracking-widest mt-1">Hourly Sales Distribution</h3>
               </div>
               <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 border border-emerald-100 rounded-none">
@@ -244,7 +244,7 @@ const SalesDashboard = () => {
             <div className="flex gap-4 flex-1" ref={barRef}>
               <div className="flex flex-col justify-between text-right shrink-0 w-8 pb-8" style={{ height: TODAY_HEIGHT + 20 }}>
                 {yLabels.map((v) => (
-                  <span key={v} className="text-[10px] font-black text-zinc-300 tabular-nums">
+                  <span key={v} className="text-[10px] font-black text-black tabular-nums">
                     {v === 0 ? '0' : `${v / 1000}k`}
                   </span>
                 ))}
@@ -272,7 +272,7 @@ const SalesDashboard = () => {
                     </div>
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <p className="text-[9px] font-black uppercase tracking-[0.4em] text-zinc-200">No shift activity recorded</p>
+                      <p className="text-[9px] font-black uppercase tracking-[0.4em] text-black">No shift activity recorded</p>
                     </div>
                   )}
                 </div>
@@ -281,7 +281,7 @@ const SalesDashboard = () => {
                   {filteredTodayData.map((d, i) => (
                     <div key={i} className="flex-1 text-center">
                       {LABEL_HOURS.has(d.hour) && (
-                        <p className="text-[8px] font-black text-zinc-300 uppercase leading-none tracking-tighter">{d.label}</p>
+                        <p className="text-[8px] font-black text-black uppercase leading-none tracking-tighter">{d.label}</p>
                       )}
                     </div>
                   ))}
@@ -301,8 +301,8 @@ const StatCard = ({ label, value, icon, isSuccess, isBrand, isDanger }: StatCard
     isBrand ? 'bg-[#3b2063] border-[#2a174a]' : 'bg-white border-zinc-200 hover:border-[#3b2063]'
   }`}>
     <div className="flex items-center justify-between mb-2">
-      <p className={`text-[9px] font-black uppercase tracking-[0.3em] ${isBrand ? 'text-purple-300/60' : 'text-zinc-400'}`}>{label}</p>
-      <div className={`p-1.5 rounded-none ${isBrand ? 'text-purple-300 bg-white/5' : 'text-zinc-300 bg-zinc-50'}`}>{icon}</div>
+      <p className={`text-[9px] font-black uppercase tracking-[0.3em] ${isBrand ? 'text-purple-300/60' : 'text-black'}`}>{label}</p>
+      <div className={`p-1.5 rounded-none ${isBrand ? 'text-purple-300 bg-white/5' : 'text-black bg-zinc-50'}`}>{icon}</div>
     </div>
     <p className={`text-base font-black tabular-nums tracking-tighter ${
       isBrand ? 'text-white' : (isSuccess ? 'text-emerald-600' : isDanger ? 'text-red-500' : 'text-[#3b2063]')

@@ -157,21 +157,21 @@ const ItemsReport = () => {
           <div className="bg-white border border-zinc-200 rounded-none p-6 shadow-sm">
             <div className="flex flex-col lg:flex-row gap-3 items-end">
               <div className="flex-1 w-full space-y-1.5">
-                <label className="flex items-center gap-2 text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] ml-1">
+                <label className="flex items-center gap-2 text-[10px] font-black text-black uppercase tracking-[0.2em] ml-1">
                   <Calendar size={12}/> From Date
                 </label>
                 <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="w-full p-3.5 rounded-none border border-zinc-200 bg-[#f8f6ff] font-black text-[#3b2063] text-xs uppercase tracking-widest outline-none focus:border-[#3b2063]" />
               </div>
 
               <div className="flex-1 w-full space-y-1.5">
-                <label className="flex items-center gap-2 text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] ml-1">
+                <label className="flex items-center gap-2 text-[10px] font-black text-black uppercase tracking-[0.2em] ml-1">
                   <Calendar size={12}/> To Date
                 </label>
                 <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="w-full p-3.5 rounded-none border border-zinc-200 bg-[#f8f6ff] font-black text-[#3b2063] text-xs uppercase tracking-widest outline-none focus:border-[#3b2063]" />
               </div>
 
               <div className="flex-1 w-full space-y-1.5">
-                <label className="flex items-center gap-2 text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] ml-1">
+                <label className="flex items-center gap-2 text-[10px] font-black text-black uppercase tracking-[0.2em] ml-1">
                   <LayoutGrid size={12}/> Report Mode
                 </label>
                 <div className="relative group">
@@ -204,12 +204,12 @@ const ItemsReport = () => {
                 <div className="p-2.5 bg-[#3b2063] text-white rounded-none shadow-md shadow-purple-900/10"><FileText size={18}/></div>
                 <div>
                   <h3 className="text-[#3b2063] font-black text-xs uppercase tracking-[0.3em]">Inventory Performance Ledger</h3>
-                  <p className="text-zinc-400 font-black text-[9px] uppercase tracking-widest mt-1">Terminal Audit POS-01</p>
+                  <p className="text-black font-black text-[9px] uppercase tracking-widest mt-1">Terminal Audit POS-01</p>
                 </div>
               </div>
               <div className="flex items-center gap-6">
                 <div className="text-right hidden md:block">
-                   <p className="text-[8px] font-black text-zinc-300 uppercase tracking-widest">Operator</p>
+                   <p className="text-[8px] font-black text-black uppercase tracking-widest">Operator</p>
                    <p className="text-[10px] font-black text-[#3b2063] uppercase">{data?.cashier_name || 'Terminal Root'}</p>
                 </div>
                 <div className="bg-white border border-zinc-200 px-4 py-2 flex items-center gap-2">
@@ -223,16 +223,16 @@ const ItemsReport = () => {
               <table className="w-full text-left">
                 <thead className="sticky top-0 bg-white z-10 border-b border-zinc-100">
                   <tr>
-                    <th className="px-8 py-5 text-[9px] font-black text-zinc-400 uppercase tracking-[0.3em]">{reportType === 'category-summary' ? 'Category Classification' : 'Item Description'}</th>
-                    <th className="px-8 py-5 text-[9px] font-black text-zinc-400 uppercase tracking-[0.3em] text-right">Units Sold</th>
-                    <th className="px-8 py-5 text-[9px] font-black text-zinc-400 uppercase tracking-[0.3em] text-right">Revenue Accumulation</th>
+                    <th className="px-8 py-5 text-[9px] font-black text-black uppercase tracking-[0.3em]">{reportType === 'category-summary' ? 'Category Classification' : 'Item Description'}</th>
+                    <th className="px-8 py-5 text-[9px] font-black text-black uppercase tracking-[0.3em] text-right">Units Sold</th>
+                    <th className="px-8 py-5 text-[9px] font-black text-black uppercase tracking-[0.3em] text-right">Revenue Accumulation</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-50">
                   {data?.items.map((item, idx) => (
                     <tr key={idx} className="hover:bg-[#f8f6ff] transition-colors group">
                       <td className="px-8 py-4 text-xs font-black text-[#3b2063] uppercase tracking-tight">{item.name}</td>
-                      <td className="px-8 py-4 text-xs font-black text-zinc-400 text-right tabular-nums">{item.qty}</td>
+                      <td className="px-8 py-4 text-xs font-black text-black text-right tabular-nums">{item.qty}</td>
                       <td className="px-8 py-4 text-xs font-black text-[#3b2063] text-right tabular-nums">{phCurrency.format(item.amount)}</td>
                     </tr>
                   ))}
@@ -240,7 +240,7 @@ const ItemsReport = () => {
                     <tr>
                       <td colSpan={3} className="px-8 py-20 text-center">
                          <Database size={40} className="mx-auto text-zinc-100 mb-3" />
-                         <p className="text-[10px] text-zinc-300 uppercase font-black tracking-[0.4em]">No database entries for selected range</p>
+                         <p className="text-[10px] text-black uppercase font-black tracking-[0.4em]">No database entries for selected range</p>
                       </td>
                     </tr>
                   )}

@@ -13,7 +13,7 @@ const StockTransfer = () => {
         <div className="flex-1 p-5 md:p-7 flex flex-col items-center justify-center">
           {/* Header */}
           <div className="text-center mb-6">
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-black">Inventory</p>
             <h1 className="text-lg font-extrabold text-[#1c1c1e] mt-0.5">Stock Transfer</h1>
           </div>
           

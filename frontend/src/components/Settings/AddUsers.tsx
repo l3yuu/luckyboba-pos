@@ -80,7 +80,7 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
             </div>
             <div>
               <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">User Management</h1>
-              <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">System Access Control</p>
+              <p className="text-black font-bold text-xs uppercase tracking-wider mt-1">System Access Control</p>
             </div>
           </div>
           <button 
@@ -114,7 +114,7 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
                       {user.position}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-xs font-bold text-zinc-400 text-center">{user.lastLogin}</td>
+                  <td className="px-6 py-4 text-xs font-bold text-black text-center">{user.lastLogin}</td>
                   
                   {/* STATUS BUTTON COLUMN */}
                   <td className="px-6 py-4 text-center">
@@ -173,7 +173,7 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
                   Profile Details
                 </h3>
                 <div className="space-y-1">
-                  <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Name</label>
+                  <label className="text-[10px] font-black text-black uppercase tracking-widest">Name</label>
                   <input 
                     type="text" 
                     value={newUser.name}
@@ -191,7 +191,7 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
                 </h3>
                 <div className="space-y-4">
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Username</label>
+                    <label className="text-[10px] font-black text-black uppercase tracking-widest">Username</label>
                     <input 
                       type="text" 
                       value={newUser.username}
@@ -202,7 +202,7 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Password</label>
+                    <label className="text-[10px] font-black text-black uppercase tracking-widest">Password</label>
                     <input 
                       type="password" 
                       value={newUser.password}
@@ -213,7 +213,7 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Password Again</label>
+                    <label className="text-[10px] font-black text-black uppercase tracking-widest">Password Again</label>
                     <input 
                       type="password" 
                       value={newUser.passwordConfirm}
@@ -224,7 +224,7 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
                   </div>
 
                   <div className="space-y-1">
-                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Position</label>
+                    <label className="text-[10px] font-black text-black uppercase tracking-widest">Position</label>
                     <div className="relative">
                       <select 
                         value={newUser.position}
@@ -235,7 +235,7 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
                           <option key={pos} value={pos}>{pos}</option>
                         ))}
                       </select>
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-black">
                         <Shield size={14} />
                       </div>
                     </div>

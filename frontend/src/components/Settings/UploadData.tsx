@@ -217,7 +217,7 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
         <button 
           onClick={() => setActiveTab('upload')}
           className={`pb-3 text-[10px] font-black uppercase tracking-widest transition-all ${
-            activeTab === 'upload' ? 'border-b-2 border-[#3b2063] text-[#3b2063]' : 'text-zinc-400 hover:text-zinc-600'
+            activeTab === 'upload' ? 'border-b-2 border-[#3b2063] text-[#3b2063]' : 'text-black hover:text-zinc-600'
           }`}
         >
           Upload New
@@ -225,7 +225,7 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
         <button 
           onClick={() => setActiveTab('history')}
           className={`pb-3 text-[10px] font-black uppercase tracking-widest transition-all ${
-            activeTab === 'history' ? 'border-b-2 border-[#3b2063] text-[#3b2063]' : 'text-zinc-400 hover:text-zinc-600'
+            activeTab === 'history' ? 'border-b-2 border-[#3b2063] text-[#3b2063]' : 'text-black hover:text-zinc-600'
           }`}
         >
           Import History
@@ -281,14 +281,14 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
                 </div>
               ) : (
                 <>
-                  <div className={`p-4 rounded-full transition-colors ${isDragging ? 'bg-blue-100 text-blue-600' : 'bg-zinc-50 text-zinc-300'}`}>
+                  <div className={`p-4 rounded-full transition-colors ${isDragging ? 'bg-blue-100 text-blue-600' : 'bg-zinc-50 text-black'}`}>
                     <Upload size={32} />
                   </div>
                   <div className="text-center">
                     <p className="text-xs font-black text-zinc-500 uppercase tracking-widest mb-1">
                       {isDragging ? 'Drop file here' : 'Select or Drag Spreadsheet'}
                     </p>
-                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter italic">Supports CSV, XLSX, and XLS</p>
+                    <p className="text-[10px] font-bold text-black uppercase tracking-tighter italic">Supports CSV, XLSX, and XLS</p>
                   </div>
                 </>
               )}
@@ -299,18 +299,18 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
                 <div className="p-3 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <AlertCircle size={14} className="text-orange-500" />
-                    <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Preview ({preview.length} rows)</span>
+                    <span className="text-[10px] font-black text-black uppercase tracking-widest">Preview ({preview.length} rows)</span>
                   </div>
-                  <button onClick={handleClear} className="text-[9px] font-black text-zinc-400 hover:text-red-500 uppercase transition-colors">Clear All</button>
+                  <button onClick={handleClear} className="text-[9px] font-black text-black hover:text-red-500 uppercase transition-colors">Clear All</button>
                 </div>
                 <div className="max-h-60 overflow-y-auto">
                   <table className="w-full text-left border-collapse">
                     <thead className="sticky top-0 bg-white shadow-sm">
                       <tr className="border-b border-zinc-100">
-                        <th className="px-4 py-2 text-[9px] font-black text-zinc-400 uppercase">Name</th>
-                        <th className="px-4 py-2 text-[9px] font-black text-zinc-400 uppercase">Amt</th>
-                        <th className="px-4 py-2 text-[9px] font-black text-zinc-400 uppercase">Status</th>
-                        <th className="px-4 py-2 text-[9px] font-black text-zinc-400 uppercase text-right">Type</th>
+                        <th className="px-4 py-2 text-[9px] font-black text-black uppercase">Name</th>
+                        <th className="px-4 py-2 text-[9px] font-black text-black uppercase">Amt</th>
+                        <th className="px-4 py-2 text-[9px] font-black text-black uppercase">Status</th>
+                        <th className="px-4 py-2 text-[9px] font-black text-black uppercase text-right">Type</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-zinc-50">
@@ -319,7 +319,7 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
                           <td className="px-4 py-2 text-[10px] font-bold text-[#3b2063] uppercase tracking-tighter">{row.name}</td>
                           <td className="px-4 py-2 text-[10px] font-bold text-slate-600">{row.amount}</td>
                           <td className={`px-4 py-2 text-[10px] font-black uppercase ${row.status === 'ON' ? 'text-emerald-600' : 'text-red-500'}`}>{row.status}</td>
-                          <td className="px-4 py-2 text-[10px] font-bold text-zinc-400 italic text-right">{row.type}</td>
+                          <td className="px-4 py-2 text-[10px] font-bold text-black italic text-right">{row.type}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -339,9 +339,9 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-zinc-50 border-b border-zinc-200">
-                      <th className="px-6 py-4 text-[10px] font-black text-zinc-400 uppercase tracking-widest">Date & Time</th>
-                      <th className="px-6 py-4 text-[10px] font-black text-zinc-400 uppercase tracking-widest">Activity</th>
-                      <th className="px-6 py-4 text-[10px] font-black text-zinc-400 uppercase tracking-widest text-right">IP Address</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-black uppercase tracking-widest">Date & Time</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-black uppercase tracking-widest">Activity</th>
+                      <th className="px-6 py-4 text-[10px] font-black text-black uppercase tracking-widest text-right">IP Address</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-zinc-100">
@@ -355,12 +355,12 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
                         <td className="px-6 py-4 text-[11px] font-black text-[#3b2063] uppercase tracking-tighter">
                           {log.action}
                         </td>
-                        <td className="px-6 py-4 text-[10px] font-bold text-zinc-400 text-right italic">
+                        <td className="px-6 py-4 text-[10px] font-bold text-black text-right italic">
                           {log.ip_address}
                         </td>
                       </tr>
                     )) : (
-                      <tr><td colSpan={3} className="p-12 text-center text-xs font-bold text-zinc-400 uppercase">No import records found</td></tr>
+                      <tr><td colSpan={3} className="p-12 text-center text-xs font-bold text-black uppercase">No import records found</td></tr>
                     )}
                   </tbody>
                 </table>
@@ -410,7 +410,7 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
               {summary.errorDetails.length > 0 && (
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Error Logs</p>
+                    <p className="text-[10px] font-black text-black uppercase tracking-widest">Error Logs</p>
                     <button 
                       onClick={downloadErrorLog}
                       className="text-[9px] font-black text-blue-600 uppercase hover:underline flex items-center gap-1"

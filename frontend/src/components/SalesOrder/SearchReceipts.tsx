@@ -195,7 +195,7 @@ const SearchReceipts = () => {
         {/* COMMAND BAR */}
         <div className="w-full max-w-6xl flex flex-col lg:flex-row gap-3">
           <div className="flex-1 bg-white rounded-none border border-zinc-200 p-1 flex items-center shadow-sm">
-            <div className="p-3 text-zinc-300"><Search size={18}/></div>
+            <div className="p-3 text-black"><Search size={18}/></div>
             <input 
               type="text" 
               value={searchQuery}
@@ -203,9 +203,9 @@ const SearchReceipts = () => {
               onFocus={() => setShowKeyboard(true)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               placeholder="ENTER OR NUMBER FOR AUDIT..."
-              className="flex-1 h-12 px-2 outline-none text-[#3b2063] font-black tracking-widest placeholder:text-zinc-200 bg-transparent text-sm"
+              className="flex-1 h-12 px-2 outline-none text-[#3b2063] font-black tracking-widest placeholder:text-black bg-transparent text-sm"
             />
-            {searchQuery && <button onClick={() => {setSearchQuery(''); handleSearch('', selectedDate);}} className="p-3 text-zinc-300 hover:text-red-500"><X size={16}/></button>}
+            {searchQuery && <button onClick={() => {setSearchQuery(''); handleSearch('', selectedDate);}} className="p-3 text-black hover:text-red-500"><X size={16}/></button>}
           </div>
 
           <div className="flex gap-3">
@@ -227,7 +227,7 @@ const SearchReceipts = () => {
               {isLoading ? '...' : 'Execute Search'}
             </button>
             
-            <button onClick={handleRefresh} className="bg-white border border-zinc-200 text-zinc-400 hover:text-[#3b2063] px-5 rounded-none transition-all active:rotate-180 duration-500 shadow-sm">
+            <button onClick={handleRefresh} className="bg-white border border-zinc-200 text-black hover:text-[#3b2063] px-5 rounded-none transition-all active:rotate-180 duration-500 shadow-sm">
               <RotateCcw size={18} />
             </button>
           </div>
@@ -247,13 +247,13 @@ const SearchReceipts = () => {
                <div className="p-2 bg-[#3b2063] text-white rounded-none"><Terminal size={14}/></div>
                <div className="flex flex-col">
                   <h3 className="text-[#3b2063] font-black text-[10px] uppercase tracking-[0.3em]">Transaction Audit Journal</h3>
-                  <div className="flex items-center gap-1.5 mt-1 text-[9px] font-black text-zinc-300 uppercase tracking-widest">
+                  <div className="flex items-center gap-1.5 mt-1 text-[9px] font-black text-black uppercase tracking-widest">
                     <Clock size={10} />
                     <span>Reference: {new Date(selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                   </div>
                </div>
             </div>
-            <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest bg-white border border-zinc-200 px-4 py-1.5 rounded-none">
+            <span className="text-[9px] font-black text-black uppercase tracking-widest bg-white border border-zinc-200 px-4 py-1.5 rounded-none">
               {searchResults.length} ENTRIES FOUND
             </span>
           </div>
@@ -262,11 +262,11 @@ const SearchReceipts = () => {
             <table className="w-full text-left">
               <thead className="sticky top-0 bg-white z-10 border-b border-zinc-100">
                 <tr>
-                  <th className="px-8 py-4 text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em]">OR Reference / Status</th>
-                  <th className="px-6 py-4 text-center text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em]">Term #</th>
-                  <th className="px-6 py-4 text-center text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em]">Qty</th>
-                  <th className="px-8 py-4 text-right text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em]">Total Sale</th>
-                  <th className="px-6 py-4 text-center text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em]">Action</th>
+                  <th className="px-8 py-4 text-[9px] font-black text-black uppercase tracking-[0.2em]">OR Reference / Status</th>
+                  <th className="px-6 py-4 text-center text-[9px] font-black text-black uppercase tracking-[0.2em]">Term #</th>
+                  <th className="px-6 py-4 text-center text-[9px] font-black text-black uppercase tracking-[0.2em]">Qty</th>
+                  <th className="px-8 py-4 text-right text-[9px] font-black text-black uppercase tracking-[0.2em]">Total Sale</th>
+                  <th className="px-6 py-4 text-center text-[9px] font-black text-black uppercase tracking-[0.2em]">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-50">
@@ -285,14 +285,14 @@ const SearchReceipts = () => {
                             {item.status === 'cancelled' ? 'Voided' : 'Settled'}
                           </span>
                         </div>
-                        <p className="text-[9px] text-zinc-300 font-black uppercase tracking-widest mt-1">
+                        <p className="text-[9px] text-black font-black uppercase tracking-widest mt-1">
                           Timestamp: {item.created_at ? new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : 'N/A'}
                         </p>
                       </td>
-                      <td className="px-6 py-5 text-center font-black text-zinc-400 text-xs tabular-nums">{item.terminal}</td>
+                      <td className="px-6 py-5 text-center font-black text-black text-xs tabular-nums">{item.terminal}</td>
                       <td className="px-6 py-5 text-center font-black text-[#3b2063] text-xs tabular-nums">{item.items_count}</td>
                       <td className="px-8 py-5 text-right">
-                        <span className={`text-sm font-black tabular-nums ${item.status === 'cancelled' ? 'text-zinc-200 line-through' : 'text-[#3b2063]'}`}>
+                        <span className={`text-sm font-black tabular-nums ${item.status === 'cancelled' ? 'text-black line-through' : 'text-[#3b2063]'}`}>
                           ₱ {Number(item.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </span>
                       </td>
@@ -312,7 +312,7 @@ const SearchReceipts = () => {
                   <tr>
                     <td colSpan={5} className="py-24 text-center">
                        <ReceiptIcon size={40} className="mx-auto text-zinc-100 mb-3" />
-                       <p className="text-[10px] text-zinc-300 uppercase font-black tracking-[0.3em]">
+                       <p className="text-[10px] text-black uppercase font-black tracking-[0.3em]">
                         {hasSearched ? "No matching audit logs" : "Initialize search for journal review"}
                        </p>
                     </td>
@@ -332,7 +332,7 @@ const SearchReceipts = () => {
                <div className="p-2 bg-red-50 text-red-600 rounded-none"><ShieldAlert size={20}/></div>
                <h2 className="text-[#3b2063] font-black text-lg uppercase tracking-widest">Void Authorization</h2>
             </div>
-            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-4 ml-1">Input Justification</p>
+            <p className="text-[10px] font-black text-black uppercase tracking-widest mb-4 ml-1">Input Justification</p>
             <textarea 
               value={cancelReason}
               onChange={(e) => setCancelReason(e.target.value)}
@@ -343,7 +343,7 @@ const SearchReceipts = () => {
               <button 
                 onClick={() => { setIsReasonModalOpen(false); setCancelReason(''); }} 
                 disabled={isVoiding}
-                className="flex-1 py-4 bg-zinc-50 border border-zinc-100 text-zinc-400 font-black text-[10px] uppercase tracking-[0.2em] rounded-none hover:bg-zinc-100 transition-colors"
+                className="flex-1 py-4 bg-zinc-50 border border-zinc-100 text-black font-black text-[10px] uppercase tracking-[0.2em] rounded-none hover:bg-zinc-100 transition-colors"
               >
                 Abort
               </button>
@@ -366,10 +366,10 @@ const SearchReceipts = () => {
 const StatBox = ({ label, value, icon, isDanger, isBrand }: { label: string; value: number; icon: React.ReactNode; isDanger?: boolean; isBrand?: boolean }) => (
   <div className={`p-6 border border-zinc-200 flex flex-col justify-between shadow-sm rounded-none ${isBrand ? 'bg-[#3b2063]' : 'bg-white'}`}>
     <div className="flex items-center justify-between mb-4">
-      <p className={`text-[9px] font-black uppercase tracking-[0.3em] ${isBrand ? 'text-purple-300' : 'text-zinc-400'}`}>{label}</p>
-      <div className={`p-1.5 rounded-none ${isBrand ? 'text-purple-300 bg-white/10' : 'text-zinc-300 bg-zinc-50'}`}>{icon}</div>
+      <p className={`text-[9px] font-black uppercase tracking-[0.3em] ${isBrand ? 'text-purple-300' : 'text-black'}`}>{label}</p>
+      <div className={`p-1.5 rounded-none ${isBrand ? 'text-purple-300 bg-white/10' : 'text-black bg-zinc-50'}`}>{icon}</div>
     </div>
-    <p className={`text-2xl font-black tabular-nums ${isBrand ? 'text-white' : (isDanger ? 'text-red-500' : 'text-zinc-400')}`}>
+    <p className={`text-2xl font-black tabular-nums ${isBrand ? 'text-white' : (isDanger ? 'text-red-500' : 'text-black')}`}>
       {isDanger && '- '}₱ {value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
     </p>
   </div>

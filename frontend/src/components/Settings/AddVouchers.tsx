@@ -290,13 +290,13 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
                       <span className={`px-2 py-1 rounded text-sm font-black uppercase tracking-widest ${
                         v.status === 'Active'   ? 'bg-emerald-100 text-emerald-600' :
                         v.status === 'Redeemed' ? 'bg-blue-100 text-blue-600' :
-                        'bg-zinc-100 text-zinc-400'
+                        'bg-zinc-100 text-black'
                       }`}>
                         {v.status}
                       </span>
                     </td>
                     <td className="px-6 py-4 text-sm font-black text-slate-500 text-center uppercase">{v.type}</td>
-                    <td className="px-6 py-4 text-sm font-bold text-zinc-400 text-center">
+                    <td className="px-6 py-4 text-sm font-bold text-black text-center">
                       {v.updated_at ? new Date(v.updated_at).toISOString().split('T')[0] : 'N/A'}
                     </td>
                     <td className="px-6 py-4 text-center">
@@ -309,7 +309,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
                 ))
               ) : (
                 <tr>
-                  <td className="px-6 py-4 text-sm font-bold text-zinc-400 text-center uppercase">No vouchers found</td>
+                  <td className="px-6 py-4 text-sm font-bold text-black text-center uppercase">No vouchers found</td>
                 </tr>
               )}
             </tbody>
@@ -340,7 +340,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
 
             <div className="p-8 space-y-6">
               <div className="space-y-1">
-                <label className="text-sm font-black text-zinc-400 uppercase tracking-widest">Number (Code)</label>
+                <label className="text-sm font-black text-black uppercase tracking-widest">Number (Code)</label>
                 <input
                   type="text"
                   value={newVoucher.number}
@@ -351,7 +351,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-sm font-black text-zinc-400 uppercase tracking-widest">Value</label>
+                <label className="text-sm font-black text-black uppercase tracking-widest">Value</label>
                 <input
                   type="text"
                   value={newVoucher.value}
@@ -362,7 +362,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
               </div>
 
               <div className="space-y-1">
-                <label className="text-sm font-black text-zinc-400 uppercase tracking-widest">Type</label>
+                <label className="text-sm font-black text-black uppercase tracking-widest">Type</label>
                 <select
                   value={newVoucher.type}
                   onChange={(e) => setNewVoucher({...newVoucher, type: e.target.value})}

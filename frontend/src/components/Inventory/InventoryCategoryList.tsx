@@ -165,7 +165,7 @@ const InventoryCategoryList = () => {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-black">Inventory</p>
               <h1 className="text-lg font-extrabold text-[#1c1c1e] mt-0.5">Categories</h1>
             </div>
             <button 
@@ -187,7 +187,7 @@ const InventoryCategoryList = () => {
                   value={searchTerm} 
                   onChange={(e) => setSearchTerm(e.target.value)} 
                   placeholder="Find category..." 
-                  className="border border-zinc-300 bg-white px-4 py-2 text-sm outline-none focus:border-[#3b2063] w-56 font-semibold text-[#1c1c1e] rounded-none placeholder:text-zinc-400" 
+                  className="border border-zinc-300 bg-white px-4 py-2 text-sm outline-none focus:border-[#3b2063] w-56 font-semibold text-[#1c1c1e] rounded-none placeholder:text-black" 
                 />
               </div>
             </div>
@@ -207,7 +207,7 @@ const InventoryCategoryList = () => {
                   {loading && categories.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="px-8 py-20 text-center">
-                        <p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest animate-pulse">Syncing Data...</p>
+                        <p className="text-[11px] font-bold text-black uppercase tracking-widest animate-pulse">Syncing Data...</p>
                       </td>
                     </tr>
                   ) : filteredCategories.map((cat) => (
@@ -252,9 +252,9 @@ const InventoryCategoryList = () => {
             <div className="px-7 py-4 bg-white border-t border-zinc-100 flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Synchronized</span>
+                <span className="text-[10px] font-bold text-black uppercase tracking-widest">Synchronized</span>
               </div>
-              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+              <p className="text-[10px] font-bold text-black uppercase tracking-widest">
                 Showing {filteredCategories.length} of {categories.length} categories
               </p>
             </div>
@@ -267,10 +267,10 @@ const InventoryCategoryList = () => {
             <div className="bg-white rounded-none border border-zinc-200 shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
               <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-black">Inventory</p>
                   <h2 className="text-sm font-extrabold text-[#1c1c1e] mt-0.5">Create New Category</h2>
                 </div>
-                <button onClick={() => setIsAddModalOpen(false)} className="text-zinc-300 hover:text-zinc-600 transition-colors p-1 text-lg leading-none">×</button>
+                <button onClick={() => setIsAddModalOpen(false)} className="text-black hover:text-zinc-600 transition-colors p-1 text-lg leading-none">×</button>
               </div>
 
               <div className="px-7 py-6 flex flex-col gap-5">
@@ -280,7 +280,7 @@ const InventoryCategoryList = () => {
                     autoFocus 
                     value={newName} 
                     onChange={(e) => setNewName(e.target.value)} 
-                    className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white" 
+                    className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-black focus:border-[#3b2063] focus:bg-white" 
                     placeholder="e.g. Milk Tea" 
                   />
                 </div>
@@ -289,7 +289,7 @@ const InventoryCategoryList = () => {
                   <textarea 
                     value={newDesc} 
                     onChange={(e) => setNewDesc(e.target.value)} 
-                    className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white h-32 resize-none" 
+                    className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-black focus:border-[#3b2063] focus:bg-white h-32 resize-none" 
                     placeholder="Optional description..." 
                   />
                 </div>
@@ -319,10 +319,10 @@ const InventoryCategoryList = () => {
             <div className="bg-white rounded-none border border-zinc-200 shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
               <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100">
                 <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-black">Inventory</p>
                   <h2 className="text-sm font-extrabold text-[#1c1c1e] mt-0.5">Edit Category</h2>
                 </div>
-                <button onClick={() => setIsEditModalOpen(false)} className="text-zinc-300 hover:text-zinc-600 transition-colors p-1 text-lg leading-none">×</button>
+                <button onClick={() => setIsEditModalOpen(false)} className="text-black hover:text-zinc-600 transition-colors p-1 text-lg leading-none">×</button>
               </div>
 
               <div className="px-7 py-6 flex flex-col gap-5">
@@ -331,7 +331,7 @@ const InventoryCategoryList = () => {
                   <input 
                     value={editName} 
                     onChange={(e) => setEditName(e.target.value)} 
-                    className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white" 
+                    className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-black focus:border-[#3b2063] focus:bg-white" 
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -339,7 +339,7 @@ const InventoryCategoryList = () => {
                   <textarea 
                     value={editDesc} 
                     onChange={(e) => setEditDesc(e.target.value)} 
-                    className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white h-32 resize-none" 
+                    className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-black focus:border-[#3b2063] focus:bg-white h-32 resize-none" 
                   />
                 </div>
               </div>
@@ -368,7 +368,7 @@ const InventoryCategoryList = () => {
             <div className="bg-white rounded-none border border-zinc-200 shadow-2xl w-full max-w-sm flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
               <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100">
                 <h2 className="text-sm font-extrabold text-[#1c1c1e]">Delete Category</h2>
-                <button onClick={() => setIsDeleteModalOpen(false)} className="text-zinc-300 hover:text-zinc-600 transition-colors p-1 text-lg leading-none">×</button>
+                <button onClick={() => setIsDeleteModalOpen(false)} className="text-black hover:text-zinc-600 transition-colors p-1 text-lg leading-none">×</button>
               </div>
 
               <div className="px-7 py-7 flex flex-col items-center gap-3 text-center">
@@ -381,7 +381,7 @@ const InventoryCategoryList = () => {
                 {deletingCategory && deletingCategory.menu_items_count > 0 && (
                   <p className="text-[11px] font-bold text-amber-500">⚠ This category has {deletingCategory.menu_items_count} linked item{deletingCategory.menu_items_count > 1 ? 's' : ''}.</p>
                 )}
-                <p className="text-[11px] text-zinc-400 font-semibold">This action cannot be undone.</p>
+                <p className="text-[11px] text-black font-semibold">This action cannot be undone.</p>
               </div>
 
               <div className="flex gap-3 px-7 py-5 border-t border-zinc-100">

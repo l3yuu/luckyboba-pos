@@ -637,7 +637,7 @@ const ZReading = () => {
                       onClick={() => { handleMenuAction(card.type); setIsMenuOpen(false); }}
                       className={`bg-white border-l-4 ${card.color} rounded-r-lg shadow-sm p-4 h-24 flex flex-col justify-center cursor-pointer group hover:bg-slate-50 transition-all`}
                     >
-                      <h3 className="text-zinc-400 font-bold uppercase tracking-widest text-[9px] mb-1">{card.label}</h3>
+                      <h3 className="text-black font-bold uppercase tracking-widest text-[9px] mb-1">{card.label}</h3>
                       <h2 className="text-sm font-black text-slate-800 uppercase group-hover:text-blue-700">{card.title || card.actionLabel}</h2>
                     </div>
                   ))}
@@ -710,7 +710,7 @@ const ZReading = () => {
           {loading ? (
             <div className="flex flex-col items-center mt-20 opacity-50">
               <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3" />
-              <p className="text-sm text-zinc-400 font-bold uppercase">Generating report...</p>
+              <p className="text-sm text-black font-bold uppercase">Generating report...</p>
             </div>
           ) : reportData ? (
             <div className="printable-receipt-container">
@@ -770,7 +770,7 @@ const ZReading = () => {
           ) : (
             <div className="flex flex-col items-center text-center opacity-50 mt-20 print:hidden">
               <h2 className="text-xl font-bold text-slate-700">No Report Selected</h2>
-              <p className="text-sm text-zinc-400 mt-2">Click the MENU button above to select a report.</p>
+              <p className="text-sm text-black mt-2">Click the MENU button above to select a report.</p>
             </div>
           )}
         </div>

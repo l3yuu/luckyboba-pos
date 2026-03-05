@@ -66,7 +66,7 @@ const InventoryReport = () => {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-black">Inventory</p>
               <h1 className="text-lg font-extrabold text-[#1c1c1e] mt-0.5">Inventory Report</h1>
             </div>
             <div className="flex gap-2">
@@ -126,7 +126,7 @@ const InventoryReport = () => {
                 ) : (
                   <tr>
                     <td colSpan={4} className="px-8 py-20 text-center">
-                      <p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">All stock levels are healthy</p>
+                      <p className="text-[11px] font-bold text-black uppercase tracking-widest">All stock levels are healthy</p>
                     </td>
                   </tr>
                 )}
@@ -136,9 +136,9 @@ const InventoryReport = () => {
             <div className="px-7 py-4 bg-white border-t border-zinc-100 flex justify-between items-center">
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Synchronized</span>
+                <span className="text-[10px] font-bold text-black uppercase tracking-widest">Synchronized</span>
               </div>
-              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+              <p className="text-[10px] font-bold text-black uppercase tracking-widest">
                 Showing {criticalItems.length} critical items
               </p>
             </div>

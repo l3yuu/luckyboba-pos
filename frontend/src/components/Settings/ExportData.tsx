@@ -161,7 +161,7 @@ const ExportData = ({ onBack }: ExportDataProps) => {
             {reportGroups.map((group, idx) => (
               <div key={idx} className="space-y-3">
                 <div className="flex items-center gap-2 px-1">
-                  <FileText size={14} className="text-zinc-400" />
+                  <FileText size={14} className="text-black" />
                   <h2 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">{group.title}</h2>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">

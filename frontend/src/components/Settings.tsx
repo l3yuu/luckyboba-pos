@@ -167,7 +167,7 @@ const Settings = () => {
                   <item.Icon size={32} strokeWidth={1.5} />
                 </div>
                 <span className="text-[11px] font-extrabold text-[#1c1c1e] uppercase tracking-widest text-center">{item.label}</span>
-                <div className="mt-3 px-3 py-1 rounded-none bg-zinc-50 text-[8px] font-bold text-zinc-400 uppercase tracking-tighter border border-zinc-100 group-hover:bg-zinc-200 group-hover:text-zinc-600 transition-colors">Configure</div>
+                <div className="mt-3 px-3 py-1 rounded-none bg-zinc-50 text-[8px] font-bold text-black uppercase tracking-tighter border border-zinc-100 group-hover:bg-zinc-200 group-hover:text-zinc-600 transition-colors">Configure</div>
               </button>
             ))}
           </div>
@@ -188,9 +188,9 @@ const Settings = () => {
         <div className="flex-1 overflow-y-auto p-5 md:p-7 flex flex-col gap-4">
           {/* Header */}
           <div className="mb-2">
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">System</p>
+            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-black">System</p>
             <h1 className="text-lg font-extrabold text-[#1c1c1e] mt-0.5">Settings</h1>
-            <p className="text-zinc-400 font-bold text-xs uppercase tracking-widest mt-1">{pageSubtitle}</p>
+            <p className="text-black font-bold text-xs uppercase tracking-widest mt-1">{pageSubtitle}</p>
           </div>
 
           {renderContent()}
@@ -254,11 +254,11 @@ const Settings = () => {
                         <p className={`text-xs font-semibold leading-tight ${critical ? 'text-red-700' : 'text-zinc-600'}`}>{log.action}</p>
                       </div>
                     </div>
-                    <span className="text-[10px] font-extrabold text-zinc-400 whitespace-nowrap ml-4">{log.time}</span>
+                    <span className="text-[10px] font-extrabold text-black whitespace-nowrap ml-4">{log.time}</span>
                   </div>
                 );
               }) : (
-                <p className="text-center text-zinc-400 py-6 text-xs font-bold uppercase tracking-widest">No recent activity</p>
+                <p className="text-center text-black py-6 text-xs font-bold uppercase tracking-widest">No recent activity</p>
               )}
             </div>
             <div className="p-4 bg-zinc-50 border-t border-zinc-100 flex justify-center">

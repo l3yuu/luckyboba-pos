@@ -213,18 +213,18 @@ const SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
 
               <div className={`flex-1 space-y-4 text-xs font-bold text-slate-600 overflow-y-auto relative ${isSyncing ? 'select-none' : ''}`}>
                 <div className={`space-y-4 transition-all duration-300 ${isSyncing ? 'blur-[3px] opacity-40 pointer-events-none' : 'blur-0 opacity-100'}`}>
-                  <div className="flex justify-between items-center"><span className="text-zinc-400 uppercase tracking-wider">Branch</span><span className="text-slate-800">Vipra sangandaan Quezon City</span></div>
-                  <div className="flex justify-between items-center"><span className="text-zinc-400 uppercase tracking-wider">BCODE</span><span className="text-slate-800">{formData.bcode}</span></div>
-                  <div className="flex justify-between items-center"><span className="text-zinc-400 uppercase tracking-wider">POS TYPE</span><span className="text-slate-800">{formData.posType}</span></div>
-                  <div className="flex justify-between items-center"><span className="text-zinc-400 uppercase tracking-wider">Transaction by DATE/DAY</span>{formData.transDateDay ? <GreenCheck /> : <RedCross />}</div>
-                  <div className="flex justify-between items-center"><span className="text-zinc-400 uppercase tracking-wider">Service Charge</span><span className="text-slate-800">{formData.serviceCharge}</span></div>
-                  <div className="flex justify-between items-center"><span className="text-zinc-400 uppercase tracking-wider">Voucher Surge Charge</span><span className="text-slate-800">{formData.voucherSurge}</span></div>
-                  <div className="flex justify-between items-center"><span className="text-zinc-400 uppercase tracking-wider">S.C./ PWD Discount</span><span className="text-slate-800">{formData.scPwdDiscount}</span></div>
-                  <div className="flex justify-between items-center"><span className="text-zinc-400 uppercase tracking-wider">Transaction Per Line</span>{formData.transPerLine ? <GreenCheck /> : <RedCross />}</div>
-                  <div className="flex justify-between items-center"><span className="text-zinc-400 uppercase tracking-wider">Vatable</span>{formData.vatable ? <GreenCheck /> : <RedCross />}</div>
-                  <div className="flex justify-between items-center"><span className="text-zinc-400 uppercase tracking-wider">Customer Points</span><span className="text-slate-800">{formData.customerPoints}</span></div>
-                  <div className="flex justify-between items-center"><span className="text-zinc-400 uppercase tracking-wider">Online Customer</span><span className="text-slate-800 lowercase">{formData.onlineCustomer ? 'on' : 'off'}</span></div>
-                  <div className="flex justify-between items-center"><span className="text-zinc-400 uppercase tracking-wider">Table &amp; Room Layout</span>{formData.tableLayout ? <GreenCheck /> : <RedCross />}</div>
+                  <div className="flex justify-between items-center"><span className="text-black uppercase tracking-wider">Branch</span><span className="text-slate-800">Vipra sangandaan Quezon City</span></div>
+                  <div className="flex justify-between items-center"><span className="text-black uppercase tracking-wider">BCODE</span><span className="text-slate-800">{formData.bcode}</span></div>
+                  <div className="flex justify-between items-center"><span className="text-black uppercase tracking-wider">POS TYPE</span><span className="text-slate-800">{formData.posType}</span></div>
+                  <div className="flex justify-between items-center"><span className="text-black uppercase tracking-wider">Transaction by DATE/DAY</span>{formData.transDateDay ? <GreenCheck /> : <RedCross />}</div>
+                  <div className="flex justify-between items-center"><span className="text-black uppercase tracking-wider">Service Charge</span><span className="text-slate-800">{formData.serviceCharge}</span></div>
+                  <div className="flex justify-between items-center"><span className="text-black uppercase tracking-wider">Voucher Surge Charge</span><span className="text-slate-800">{formData.voucherSurge}</span></div>
+                  <div className="flex justify-between items-center"><span className="text-black uppercase tracking-wider">S.C./ PWD Discount</span><span className="text-slate-800">{formData.scPwdDiscount}</span></div>
+                  <div className="flex justify-between items-center"><span className="text-black uppercase tracking-wider">Transaction Per Line</span>{formData.transPerLine ? <GreenCheck /> : <RedCross />}</div>
+                  <div className="flex justify-between items-center"><span className="text-black uppercase tracking-wider">Vatable</span>{formData.vatable ? <GreenCheck /> : <RedCross />}</div>
+                  <div className="flex justify-between items-center"><span className="text-black uppercase tracking-wider">Customer Points</span><span className="text-slate-800">{formData.customerPoints}</span></div>
+                  <div className="flex justify-between items-center"><span className="text-black uppercase tracking-wider">Online Customer</span><span className="text-slate-800 lowercase">{formData.onlineCustomer ? 'on' : 'off'}</span></div>
+                  <div className="flex justify-between items-center"><span className="text-black uppercase tracking-wider">Table &amp; Room Layout</span>{formData.tableLayout ? <GreenCheck /> : <RedCross />}</div>
                 </div>
 
                 {isSyncing && (

@@ -196,21 +196,21 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
                     <h2 className="text-[#3b2063] font-black text-sm tracking-[0.3em] uppercase">Initial Cash In</h2>
                   </div>
                   <div className="flex items-center gap-2 px-3 py-1 bg-zinc-50 border border-zinc-200">
-                    <Monitor size={12} className="text-zinc-400"/>
-                    <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">Terminal 01</span>
+                    <Monitor size={12} className="text-black"/>
+                    <span className="text-[9px] font-black uppercase tracking-widest text-black">Terminal 01</span>
                   </div>
                 </div>
 
                 <div className="flex-1 space-y-6">
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] ml-1">Assigned Cashier</label>
+                    <label className="text-[10px] font-black text-black uppercase tracking-[0.2em] ml-1">Assigned Cashier</label>
                     <div className="w-full bg-[#f8f6ff] text-[#3b2063] font-black text-sm px-6 py-4 rounded-none border border-zinc-100 uppercase tracking-widest">
                       {cashierName}
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] ml-1">Drawer Starting Balance</label>
+                    <label className="text-[10px] font-black text-black uppercase tracking-[0.2em] ml-1">Drawer Starting Balance</label>
                     <div className="relative">
                       <span className="absolute left-6 top-1/2 -translate-y-1/2 text-[#3b2063] font-black text-xl tabular-nums">₱</span>
                       <input 
@@ -224,7 +224,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
 
                 <button 
                   onClick={handleSubmit} disabled={!amount || isLoading || isEodLocked}
-                  className={`w-full py-5 rounded-none font-black text-[11px] uppercase tracking-[0.3em] shadow-lg transition-all flex items-center justify-center gap-3 ${isEodLocked ? 'bg-zinc-100 text-zinc-400' : 'bg-[#3b2063] hover:bg-[#2a1647] text-white active:scale-[0.99]'}`}
+                  className={`w-full py-5 rounded-none font-black text-[11px] uppercase tracking-[0.3em] shadow-lg transition-all flex items-center justify-center gap-3 ${isEodLocked ? 'bg-zinc-100 text-black' : 'bg-[#3b2063] hover:bg-[#2a1647] text-white active:scale-[0.99]'}`}
                 >
                   {isLoading ? <RefreshCw className="animate-spin" size={16}/> : isEodLocked ? <AlertTriangle size={16}/> : <CheckCircle2 size={16}/>}
                   {isLoading ? "Validating..." : isEodLocked ? "Terminal Closed" : "Submit & Start Shift"}
@@ -235,7 +235,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
               <div className="absolute w-full h-full bg-white rounded-none border border-zinc-200 p-10 flex flex-col font-mono" style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
                 <div className="text-center border-b-2 border-dashed border-zinc-100 pb-6">
                   <h1 className="font-black text-lg text-[#3b2063] uppercase tracking-tighter">Lucky Boba</h1>
-                  <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] mt-1 italic">Transaction Success</p>
+                  <p className="text-[10px] font-bold text-black uppercase tracking-[0.2em] mt-1 italic">Transaction Success</p>
                 </div>
                 
                 <div className="flex-1 py-8 space-y-3">
@@ -243,7 +243,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
                    <ReceiptRow label="Time" value={receiptData.time} />
                    <ReceiptRow label="Mode" value="CASH_IN_INIT" />
                    <div className="pt-6 mt-6 border-t border-zinc-50">
-                      <p className="text-[10px] font-black text-zinc-300 uppercase tracking-widest mb-1">Total Input</p>
+                      <p className="text-[10px] font-black text-black uppercase tracking-widest mb-1">Total Input</p>
                       <p className="text-4xl font-black text-[#3b2063] tabular-nums">{phCurrency.format(parseFloat(amount || '0'))}</p>
                    </div>
                 </div>
@@ -257,8 +257,8 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
           {/* SIDEBAR: PRINT CONTROLS */}
           <div className="bg-white w-full max-w-sm rounded-none border border-zinc-200 p-8 flex flex-col gap-6 shadow-sm">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-zinc-50 text-zinc-400"><Printer size={18}/></div>
-              <h3 className="font-black text-[10px] uppercase tracking-[0.3em] text-zinc-400">Terminal Output</h3>
+              <div className="p-2 bg-zinc-50 text-black"><Printer size={18}/></div>
+              <h3 className="font-black text-[10px] uppercase tracking-[0.3em] text-black">Terminal Output</h3>
             </div>
             
             <div className="p-4 bg-[#f8f6ff] border border-zinc-100">
@@ -270,7 +270,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
             <button 
               onClick={handlePrint} 
               disabled={!isFlipped} 
-              className={`w-full py-5 rounded-none font-black text-[10px] uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-3 ${isFlipped ? 'bg-emerald-600 text-white shadow-emerald-900/10' : 'bg-zinc-50 text-zinc-300 cursor-not-allowed border border-zinc-100'}`}
+              className={`w-full py-5 rounded-none font-black text-[10px] uppercase tracking-[0.3em] transition-all flex items-center justify-center gap-3 ${isFlipped ? 'bg-emerald-600 text-white shadow-emerald-900/10' : 'bg-zinc-50 text-black cursor-not-allowed border border-zinc-100'}`}
             >
               <Printer size={16}/>
               Print Receipt
@@ -292,7 +292,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
         <div className={`fixed bottom-0 left-0 right-0 bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-transform duration-500 z-[90] ${showKeyboard ? 'translate-y-0' : 'translate-y-full'}`}>
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center justify-between px-6 py-3 bg-zinc-50 border-b border-zinc-100">
-              <span className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em]">Precision Input Panel</span>
+              <span className="text-[10px] font-black text-black uppercase tracking-[0.3em]">Precision Input Panel</span>
               <button onClick={() => setShowKeyboard(false)} className="text-[10px] font-black text-[#3b2063] uppercase tracking-widest hover:underline">Close Panel</button>
             </div>
             <div className="p-4 bg-white">
@@ -314,7 +314,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
 // --- HELPER COMPONENTS ---
 const ReceiptRow = ({ label, value }: { label: string; value: string }) => (
   <div className="flex justify-between items-center">
-    <span className="text-[10px] font-black text-zinc-300 uppercase tracking-widest">{label}</span>
+    <span className="text-[10px] font-black text-black uppercase tracking-widest">{label}</span>
     <span className="text-[11px] font-black text-[#3b2063] uppercase">{value}</span>
   </div>
 );
