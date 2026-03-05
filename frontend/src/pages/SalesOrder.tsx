@@ -254,6 +254,29 @@ const SalesOrder = () => {
     const getFilteredItems = (items: MenuItem[]): MenuItem[] => {
         if (!categorySize) return items;
         if (isWings) return items.filter(item => item.size === categorySize);
+
+        // Find the selected sub-category's id
+        const selectedSub = selectedCategory?.sub_categories?.find(
+            s => s.name === categorySize
+        );
+
+        // If item has sub_category_id, filter by that (new items added via menu list)
+        // Otherwise fall back to size field (legacy items)
+        if (selectedSub) {
+            return items.filter(item => {
+                if (item.sub_category_id != null) {
+                    return item.sub_category_id === selectedSub.id;
+                }
+                // Legacy fallback: filter by size
+                const cupSizeM = selectedCategory?.cup?.size_m || 'M';
+                const cupSizeL = selectedCategory?.cup?.size_l || 'L';
+                if (categorySize === cupSizeM) return item.size === 'M' || item.size === 'none';
+                if (categorySize === cupSizeL) return item.size === 'L' || item.size === 'none';
+                return true;
+            });
+        }
+
+        // No sub-category match — legacy size filter
         const cupSizeM = selectedCategory?.cup?.size_m || 'M';
         const cupSizeL = selectedCategory?.cup?.size_l || 'L';
         if (categorySize === cupSizeM) return items.filter(item => item.size === 'M' || item.size === 'none');

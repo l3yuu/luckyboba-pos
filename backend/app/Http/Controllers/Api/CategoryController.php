@@ -22,7 +22,8 @@ class CategoryController extends Controller
                 'categories.description',
                 DB::raw('COUNT(menu_items.id) as menu_items_count')
             )
-            ->groupBy('categories.id', 'categories.name', 'categories.type', 'categories.description');
+            ->groupBy('categories.id', 'categories.name', 'categories.type', 'categories.description')
+            ->orderBy('categories.name', 'asc');
 
         if ($request->has('type')) {
             $query->where('categories.type', $request->type);

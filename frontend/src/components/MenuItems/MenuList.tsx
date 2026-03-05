@@ -96,7 +96,6 @@ function ToastNotification({ toasts, onRemove }: { toasts: Toast[]; onRemove: (i
 }
 
 // ─── Add Item Modal ───────────────────────────────────────────────────────────
-// ─── Add Item Modal ───────────────────────────────────────────────────────────
 function AddItemModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (message: string) => void }) {
   const [form, setForm] = useState<FormData>(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
@@ -121,24 +120,24 @@ function AddItemModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
 
   // Fetch main categories when type changes
   useEffect(() => {
-    const fetchCategories = async () => {
-      setLoadingCats(true);
-      setCategories([]);
-      setSubCategories([]);
-      setForm((prev) => ({ ...prev, category: '', sub_category: '' }));
-      try {
-        const response = await api.get('/categories', {
-          params: { type: form.type.toLowerCase() },
-        });
-        setCategories(response.data);
-      } catch (err) {
-        console.error('Failed to fetch categories:', err);
-      } finally {
-        setLoadingCats(false);
-      }
-    };
-    fetchCategories();
-  }, [form.type]);
+      const fetchCategories = async () => {
+        setLoadingCats(true);
+        setCategories([]);
+        setSubCategories([]);
+        setForm((prev) => ({ ...prev, category: '', sub_category: '' }));
+        try {
+          const response = await api.get('/categories', {
+            params: { type: form.type.toLowerCase() },  // ← filter by type again
+          });
+          setCategories(response.data);
+        } catch (err) {
+          console.error('Failed to fetch categories:', err);
+        } finally {
+          setLoadingCats(false);
+        }
+      };
+      fetchCategories();
+    }, [form.type]); 
 
   // Fetch sub-categories when main category changes
   useEffect(() => {

@@ -12,19 +12,29 @@ class MenuController extends Controller
     {
         try {
             return Cache::remember('menu_data_v3', 600, function () {
-                return Category::with(['menu_items', 'cup', 'subCategories'])
+                return Category::with(['cup', 'subCategories', 'menu_items'])
                     ->orderBy('name', 'asc')
                     ->get()
                     ->map(function ($cat) {
-                        $arr = $cat->toArray();
-                        $arr['sub_categories'] = $cat->subCategories
-                            ->sortBy('name')
-                            ->map(fn($s) => [
+                        $subCategories = $cat->subCategories->sortBy('name')->values();
+                        
+                        return [
+                            'id'            => $cat->id,
+                            'name'          => $cat->name,
+                            'type'          => $cat->type,
+                            'cup'           => $cat->cup,
+                            'sub_categories' => $subCategories->map(fn($s) => [
                                 'id'   => $s->id,
                                 'name' => $s->name,
-                            ])
-                            ->values();
-                        return $arr;
+                            ]),
+                            'menu_items'    => $cat->menu_items->map(fn($item) => [
+                                'id'              => $item->id,
+                                'name'            => $item->name,
+                                'price'           => $item->price,
+                                'barcode'         => $item->barcode,
+                                'sub_category_id' => $item->sub_category_id,  // ← include this
+                            ]),
+                        ];
                     });
             });
         } catch (\Exception $e) {

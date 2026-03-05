@@ -305,7 +305,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         { show: showLogoutConfirm, icon: <LogOut className="text-red-600"/>, title: "End Session?", desc: "Are you sure you want to log out?", action: handleLogout, btnText: isLoggingOut ? "Processing..." : "Logout", cancel: () => setShowLogoutConfirm(false), danger: true },
         { show: showEodLockedModal, icon: <Lock className="text-red-600"/>, title: "Terminal Closed", desc: "End of Day processed. Terminal locked for new orders.", action: () => setShowEodLockedModal(false), btnText: "Dismiss" }
       ].map((m, i) => m.show && (
-        <div key={i} className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
+        <div key={i} className="fixed inset-0 z-200 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
           <div className="bg-white w-full max-w-sm rounded-none border border-zinc-200 p-10 flex flex-col items-center text-center shadow-2xl animate-in zoom-in-95 duration-200 sidebar-font">
             <div className="w-14 h-14 flex items-center justify-center mb-6">{m.icon}</div>
             <h3 className="text-[#1a0f2e] font-bold text-base tracking-wide mb-2" style={{fontFamily: "'DM Sans', sans-serif"}}>{m.title}</h3>
@@ -340,7 +340,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   <ChevronDown size={14} className={`transition-transform duration-300 text-[#3a3a3c] ${dropdown.state ? 'rotate-180' : 'rotate-0'}`} />
                 </button>
                 
-                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${dropdown.state ? 'max-h-[500px] opacity-100 py-2' : 'max-h-0 opacity-0'}`}>
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${dropdown.state ? 'max-h-125 opacity-100 py-2' : 'max-h-0 opacity-0'}`}>
                   <div className="flex flex-col border-l-2 border-zinc-100 ml-5 pl-3"
                        style={{transition: 'border-color 0.2s'}}>
                     {dropdown.items.map((item) => (
