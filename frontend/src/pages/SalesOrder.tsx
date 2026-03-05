@@ -212,11 +212,8 @@ const SalesOrder = () => {
     const isOz = selectedCategory?.name === "HOT DRINKS" || selectedCategory?.name === "HOT COFFEE";
     const isCombo = selectedCategory?.name?.toUpperCase() === 'COMBO MEALS';
 
-    const categoryHasOnlyOneSize = selectedCategory?.cup?.size_l === null || 
-        (selectedCategory?.menu_items?.every(item => item.size === 'L') ?? false) ||
-        (selectedCategory?.menu_items?.every(item => item.size === 'M') ?? false);
+    const categoryHasOnlyOneSize = (selectedCategory?.sub_categories?.length ?? 0) <= 1;
 
-    const needsSizePicker = (isDrink || isWings || isOz) && !categorySize && !categoryHasOnlyOneSize;
     const formattedDate = currentDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
     const formattedTime = currentDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
@@ -225,11 +222,24 @@ const SalesOrder = () => {
     const handleCategoryClick = (cat: Category) => {
         setSelectedCategory(cat);
         setCategorySize(null);
-        const allL = cat.menu_items?.every(item => item.size === 'L');
-        const allM = cat.menu_items?.every(item => item.size === 'M');
-        const noSizeL = cat.cup?.size_l === null;
-        if (allL) setCategorySize(cat.cup?.size_l || cat.cup?.size_m || 'L');
-        else if (allM || noSizeL) setCategorySize(cat.cup?.size_m || 'M');
+
+        const subCats = cat.sub_categories ?? [];
+
+        if (subCats.length === 1) {
+            // Only one sub-category — skip picker
+            setCategorySize(subCats[0].name);
+            return;
+        }
+
+        // Food/wings with no sub-categories — no size needed
+        if (subCats.length === 0) {
+            const allL = cat.menu_items?.length > 0 && cat.menu_items?.every(item => item.size === 'L');
+            const allM = cat.menu_items?.length > 0 && cat.menu_items?.every(item => item.size === 'M');
+            const noSizeL = cat.cup?.size_l === null || cat.cup?.size_l === undefined;
+            if (allL && noSizeL) setCategorySize(cat.cup?.size_m || 'M');
+            else if (allM && noSizeL) setCategorySize(cat.cup?.size_m || 'M');
+        }
+        // 2+ sub-categories → show picker
     };
 
     const handleBack = () => {
@@ -244,6 +254,29 @@ const SalesOrder = () => {
     const getFilteredItems = (items: MenuItem[]): MenuItem[] => {
         if (!categorySize) return items;
         if (isWings) return items.filter(item => item.size === categorySize);
+
+        // Find the selected sub-category's id
+        const selectedSub = selectedCategory?.sub_categories?.find(
+            s => s.name === categorySize
+        );
+
+        // If item has sub_category_id, filter by that (new items added via menu list)
+        // Otherwise fall back to size field (legacy items)
+        if (selectedSub) {
+            return items.filter(item => {
+                if (item.sub_category_id != null) {
+                    return item.sub_category_id === selectedSub.id;
+                }
+                // Legacy fallback: filter by size
+                const cupSizeM = selectedCategory?.cup?.size_m || 'M';
+                const cupSizeL = selectedCategory?.cup?.size_l || 'L';
+                if (categorySize === cupSizeM) return item.size === 'M' || item.size === 'none';
+                if (categorySize === cupSizeL) return item.size === 'L' || item.size === 'none';
+                return true;
+            });
+        }
+
+        // No sub-category match — legacy size filter
         const cupSizeM = selectedCategory?.cup?.size_m || 'M';
         const cupSizeL = selectedCategory?.cup?.size_l || 'L';
         if (categorySize === cupSizeM) return items.filter(item => item.size === 'M' || item.size === 'none');
@@ -1232,126 +1265,155 @@ const SalesOrder = () => {
             {/* ================================================================ */}
             <div className="flex flex-1 overflow-hidden relative z-10">
 
-                {/* MENU AREA */}
-                <div className="flex-1 overflow-y-auto p-5 bg-[#f0edf8]">
-                    {selectedCategory ? (
-                        <div className="flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-300">
-                            <div className="flex items-center gap-3 mb-5 sticky top-0 z-10 bg-[#f0edf8] py-2">
-                                <button onClick={handleBack}
-                                    className="bg-white p-3 rounded-2xl shadow-sm border-2 border-zinc-200 text-[#3b2063] hover:border-[#3b2063] hover:bg-[#f0ebff] transition-all">
-                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
-                                    </svg>
-                                </button>
-                                <div>
-                                    <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-none mb-0.5">Category</div>
-                                    <h2 className="text-[#3b2063] font-black text-lg uppercase tracking-wide leading-none">
-                                        {selectedCategory.name}
-                                        {categorySize && <span className="ml-2 text-sm opacity-40 font-bold">• {categorySize}</span>}
-                                    </h2>
-                                </div>
+            {/* MENU AREA */}
+            <div className="flex-1 overflow-y-auto p-5 bg-[#f0edf8]">
+                {selectedCategory ? (
+                    <div className="flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-300">
+                        <div className="flex items-center gap-3 mb-5 sticky top-0 z-10 bg-[#f0edf8] py-2">
+                            <button onClick={handleBack}
+                                className="bg-white p-3 rounded-2xl shadow-sm border-2 border-zinc-200 text-[#3b2063] hover:border-[#3b2063] hover:bg-[#f0ebff] transition-all">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                                </svg>
+                            </button>
+                            <div>
+                                <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-none mb-0.5">Category</div>
+                                <h2 className="text-[#3b2063] font-black text-lg uppercase tracking-wide leading-none">
+                                    {selectedCategory.name}
+                                    {categorySize && <span className="ml-2 text-sm opacity-40 font-bold">• {categorySize}</span>}
+                                </h2>
                             </div>
-                            {needsSizePicker ? (
-                                <div className="flex flex-col items-center justify-center flex-1 gap-5">
-                                    <div className="text-center">
-                                        <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Step</div>
-                                        <h3 className="text-xl font-black text-[#3b2063] uppercase">{isWings ? 'Select Quantity' : 'Select Size'}</h3>
+                        </div>
+
+                        {categorySize ? (
+                            // ── ITEMS GRID (size already chosen) ──────────────────────────
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 pb-20">
+                                {getFilteredItems(
+                                    selectedCategory.menu_items.filter(item =>
+                                        item.name.toLowerCase().includes(searchQuery.toLowerCase())
+                                    )
+                                ).map((item) => (
+                                    <button key={item.id} onClick={() => handleItemClick(item)}
+                                        className="group bg-white hover:bg-[#3b2063] text-[#3b2063] hover:text-white p-4 rounded-none shadow-sm border-2 border-zinc-200 hover:border-[#3b2063] h-24 text-sm uppercase font-black text-center transition-all hover:shadow-lg hover:scale-[1.03] active:scale-100 flex items-center justify-center">
+                                        {item.name}
+                                    </button>
+                                ))}
+                                {getFilteredItems(selectedCategory.menu_items).length === 0 && (
+                                    <div className="col-span-full text-center text-zinc-400 font-bold text-sm py-12 uppercase tracking-widest">
+                                        No items found for this size.
                                     </div>
-                                    {isWings ? (
-                                        <div className="grid grid-cols-2 gap-4 w-full max-w-2xl">
-                                            {WINGS_QUANTITIES.map((qty) => (
-                                                <button key={qty} onClick={() => setCategorySize(qty)}
-                                                    className="h-44 bg-white rounded-none shadow-md border-2 border-zinc-200 hover:border-[#3b2063] hover:shadow-xl hover:scale-105 transition-all flex flex-col items-center justify-center font-black uppercase text-sm text-[#3b2063]">
-                                                    {qty}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="flex gap-5 w-full max-w-md">
-                                            <button onClick={() => setCategorySize(selectedCategory?.cup?.size_m || 'M')}
-                                                className="flex-1 h-56 bg-white rounded-none shadow-md border-2 border-zinc-200 hover:border-[#3b2063] hover:shadow-xl hover:scale-105 transition-all flex flex-col items-center justify-center font-black text-sm text-[#3b2063]">
-                                                <DrinkIcon className="w-14 h-14 mb-3 opacity-70" />
-                                                <span className="text-3xl font-black tracking-widest">{selectedCategory?.cup?.size_m || 'M'}</span>
-                                                <span className="mt-2 bg-[#3b2063]/10 text-[#3b2063] text-sm font-black px-3 py-1 rounded-full tracking-widest">Medium</span>
+                                )}
+                            </div>
+                        ) : (
+                            // ── SIZE / QUANTITY PICKERS ────────────────────────────────────
+                            <div className="flex flex-col items-center justify-center flex-1 gap-5">
+                                <div className="text-center">
+                                    <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mb-1">Step</div>
+                                    <h3 className="text-xl font-black text-[#3b2063] uppercase">
+                                        {isWings ? 'Select Quantity' : 'Select Size'}
+                                    </h3>
+                                </div>
+
+                                {isWings ? (
+                                    // Wings quantity picker
+                                    <div className="grid grid-cols-2 gap-4 w-full max-w-2xl">
+                                        {WINGS_QUANTITIES.map((qty) => (
+                                            <button key={qty} onClick={() => setCategorySize(qty)}
+                                                className="h-44 bg-white rounded-none shadow-md border-2 border-zinc-200 hover:border-[#3b2063] hover:shadow-xl hover:scale-105 transition-all flex flex-col items-center justify-center font-black uppercase text-sm text-[#3b2063]">
+                                                {qty}
                                             </button>
-                                            {selectedCategory?.cup?.size_l && (
-                                                <button onClick={() => setCategorySize(selectedCategory?.cup?.size_l || 'L')}
-                                                    className="flex-1 h-56 bg-white rounded-none shadow-md border-2 border-zinc-200 hover:border-[#3b2063] hover:shadow-xl hover:scale-105 transition-all flex flex-col items-center justify-center font-black text-sm text-[#3b2063]">
-                                                    <DrinkIcon className="w-20 h-20 mb-3 opacity-90" />
-                                                    <span className="text-3xl font-black tracking-widest">{selectedCategory?.cup?.size_l || 'L'}</span>
-                                                    <span className="mt-2 bg-[#3b2063]/10 text-[#3b2063] text-sm font-black px-3 py-1 rounded-full tracking-widest">Large</span>
-                                                </button>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 pb-20">
-                                    {getFilteredItems(
-                                        selectedCategory.menu_items.filter(item =>
-                                            item.name.toLowerCase().includes(searchQuery.toLowerCase())
-                                        )
-                                    ).map((item) => (
-                                        <button key={item.id} onClick={() => handleItemClick(item)}
-                                            className="group bg-white hover:bg-[#3b2063] text-[#3b2063] hover:text-white p-4 rounded-none shadow-sm border-2 border-zinc-200 hover:border-[#3b2063] h-24 text-sm uppercase font-black text-center transition-all hover:shadow-lg hover:scale-[1.03] active:scale-100 flex items-center justify-center">
-                                            {item.name}
+                                        ))}
+                                    </div>
+                                ) : (selectedCategory?.sub_categories && selectedCategory.sub_categories.length > 0) ? (
+                                    // Sub-category size picker
+                                    <div className="flex gap-5 w-full max-w-md flex-wrap justify-center">
+                                        {selectedCategory.sub_categories.map((sub) => (
+                                            <button key={sub.id} onClick={() => setCategorySize(sub.name)}
+                                                className="flex-1 min-w-35 h-56 bg-white rounded-none shadow-md border-2 border-zinc-200 hover:border-[#3b2063] hover:shadow-xl hover:scale-105 transition-all flex flex-col items-center justify-center font-black text-sm text-[#3b2063]">
+                                                <DrinkIcon className="w-14 h-14 mb-3 opacity-70" />
+                                                <span className="text-3xl font-black tracking-widest">{sub.name}</span>
+                                                <span className="mt-2 bg-[#3b2063]/10 text-[#3b2063] text-sm font-black px-3 py-1 rounded-full tracking-widest">
+                                                    {sub.name === 'SM' || sub.name === 'UM' || sub.name === 'PCM' ? 'Medium' :
+                                                    sub.name === 'SL' || sub.name === 'UL' || sub.name === 'PCL' ? 'Large' :
+                                                    sub.name === 'JR' ? 'Junior' : sub.name}
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    // M / L cup size picker
+                                    <div className="flex gap-5 w-full max-w-md">
+                                        <button onClick={() => setCategorySize(selectedCategory?.cup?.size_m || 'M')}
+                                            className="flex-1 h-56 bg-white rounded-none shadow-md border-2 border-zinc-200 hover:border-[#3b2063] hover:shadow-xl hover:scale-105 transition-all flex flex-col items-center justify-center font-black text-sm text-[#3b2063]">
+                                            <DrinkIcon className="w-14 h-14 mb-3 opacity-70" />
+                                            <span className="text-3xl font-black tracking-widest">{selectedCategory?.cup?.size_m || 'M'}</span>
+                                            <span className="mt-2 bg-[#3b2063]/10 text-[#3b2063] text-sm font-black px-3 py-1 rounded-full tracking-widest">Medium</span>
                                         </button>
-                                    ))}
+                                        {selectedCategory?.cup?.size_l && (
+                                            <button onClick={() => setCategorySize(selectedCategory?.cup?.size_l || 'L')}
+                                                className="flex-1 h-56 bg-white rounded-none shadow-md border-2 border-zinc-200 hover:border-[#3b2063] hover:shadow-xl hover:scale-105 transition-all flex flex-col items-center justify-center font-black text-sm text-[#3b2063]">
+                                                <DrinkIcon className="w-20 h-20 mb-3 opacity-90" />
+                                                <span className="text-3xl font-black tracking-widest">{selectedCategory?.cup?.size_l || 'L'}</span>
+                                                <span className="mt-2 bg-[#3b2063]/10 text-[#3b2063] text-sm font-black px-3 py-1 rounded-full tracking-widest">Large</span>
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <div className="pb-20 animate-in fade-in zoom-in duration-300 space-y-7">
+                        {[
+                            { label: 'Food',   types: ['food', 'wings'], colorKey: 'food'  },
+                            { label: 'Drinks', types: ['drink'],         colorKey: 'drink' },
+                            { label: 'Promo',  types: ['promo'],         colorKey: 'promo' },
+                        ].map(({ label, types, colorKey }) => {
+                            const groupCats = filteredCategories.filter(cat => types.includes(cat.type));
+                            if (groupCats.length === 0) return null;
+                            const { pill, card } = typeBadge[colorKey as keyof typeof typeBadge];
+                            return (
+                                <div key={colorKey}>
+                                    <div className="flex items-center gap-3 mb-3 px-1">
+                                        <span className={`${pill} text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-sm`}>{label}</span>
+                                        <div className="flex-1 h-px bg-zinc-300/60"></div>
+                                        <span className="text-[11px] text-zinc-400 font-bold">{groupCats.length} categories</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                                        {groupCats.map((cat) => (
+                                            <button key={cat.id} onClick={() => handleCategoryClick(cat)}
+                                                className={`bg-white ${card} font-black text-sm uppercase p-4 rounded-none h-24 shadow-sm border-2 border-zinc-200 transition-all hover:shadow-lg hover:scale-[1.03] active:scale-100 text-[#3b2063] flex items-center justify-center text-center`}>
+                                                {cat.name}
+                                            </button>
+                                        ))}
+                                    </div>
                                 </div>
-                            )}
-                        </div>
-                    ) : (
-                        <div className="pb-20 animate-in fade-in zoom-in duration-300 space-y-7">
-                            {[
-                                { label: 'Food',   types: ['food', 'wings'], colorKey: 'food'  },
-                                { label: 'Drinks', types: ['drink'],         colorKey: 'drink' },
-                                { label: 'Promo',  types: ['promo'],         colorKey: 'promo' },
-                            ].map(({ label, types, colorKey }) => {
-                                const groupCats = filteredCategories.filter(cat => types.includes(cat.type));
-                                if (groupCats.length === 0) return null;
-                                const { pill, card } = typeBadge[colorKey as keyof typeof typeBadge];
-                                return (
-                                    <div key={colorKey}>
-                                        <div className="flex items-center gap-3 mb-3 px-1">
-                                            <span className={`${pill} text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-sm`}>{label}</span>
-                                            <div className="flex-1 h-px bg-zinc-300/60"></div>
-                                            <span className="text-[11px] text-zinc-400 font-bold">{groupCats.length} categories</span>
-                                        </div>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                                            {groupCats.map((cat) => (
-                                                <button key={cat.id} onClick={() => handleCategoryClick(cat)}
-                                                    className={`bg-white ${card} font-black text-sm uppercase p-4 rounded-none h-24 shadow-sm border-2 border-zinc-200 transition-all hover:shadow-lg hover:scale-[1.03] active:scale-100 text-[#3b2063] flex items-center justify-center text-center`}>
-                                                    {cat.name}
-                                                </button>
-                                            ))}
-                                        </div>
+                            );
+                        })}
+                        {(() => {
+                            const known = ['food', 'wings', 'drink', 'promo'];
+                            const others = filteredCategories.filter(cat => !known.includes(cat.type));
+                            if (others.length === 0) return null;
+                            return (
+                                <div>
+                                    <div className="flex items-center gap-3 mb-3 px-1">
+                                        <span className="bg-zinc-400 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">Other</span>
+                                        <div className="flex-1 h-px bg-zinc-300/60"></div>
                                     </div>
-                                );
-                            })}
-                            {(() => {
-                                const known = ['food', 'wings', 'drink', 'promo'];
-                                const others = filteredCategories.filter(cat => !known.includes(cat.type));
-                                if (others.length === 0) return null;
-                                return (
-                                    <div>
-                                        <div className="flex items-center gap-3 mb-3 px-1">
-                                            <span className="bg-zinc-400 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">Other</span>
-                                            <div className="flex-1 h-px bg-zinc-300/60"></div>
-                                        </div>
-                                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                                            {others.map((cat) => (
-                                                <button key={cat.id} onClick={() => handleCategoryClick(cat)}
-                                                    className="bg-white hover:bg-[#3b2063] hover:text-white text-[#3b2063] font-black text-sm uppercase p-4 rounded-none h-24 shadow-sm border-2 border-zinc-200 hover:border-[#3b2063] transition-all hover:shadow-lg hover:scale-[1.03] active:scale-100 flex items-center justify-center text-center">
-                                                    {cat.name}
-                                                </button>
-                                            ))}
-                                        </div>
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                                        {others.map((cat) => (
+                                            <button key={cat.id} onClick={() => handleCategoryClick(cat)}
+                                                className="bg-white hover:bg-[#3b2063] hover:text-white text-[#3b2063] font-black text-sm uppercase p-4 rounded-none h-24 shadow-sm border-2 border-zinc-200 hover:border-[#3b2063] transition-all hover:shadow-lg hover:scale-[1.03] active:scale-100 flex items-center justify-center text-center">
+                                                {cat.name}
+                                            </button>
+                                        ))}
                                     </div>
-                                );
-                            })()}
-                        </div>
-                    )}
-                </div>
+                                </div>
+                            );
+                        })()}
+                    </div>
+                )}
+            </div>
 
                 {/* ============================================================ */}
                 {/* SIDEBAR CART                                                  */}
