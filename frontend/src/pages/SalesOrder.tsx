@@ -36,7 +36,12 @@ const SalesOrder = () => {
     const navigate = useNavigate();
     const { showToast } = useToast();
     
-    const [cashierName, setCashierName] = useState<string | null>(null);
+    const [cashierName, setCashierName] = useState<string>(() =>
+        localStorage.getItem('lucky_boba_user_name') ?? 'Admin'
+    );
+    const [branchName] = useState<string>(() =>
+        localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'
+    );
     const [currentDate, setCurrentDate] = useState(new Date());
     const [searchQuery, setSearchQuery] = useState('');
     const [categories, setCategories] = useState<Category[]>(() => {
@@ -525,7 +530,7 @@ const SalesOrder = () => {
                         <div key={`sticker-${cartIndex}-${i}`} className={`sticker-area page-break bg-white text-black flex flex-col justify-between items-center h-full w-full ${paddingClass}`} style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
                             <div className="w-full text-center flex flex-col items-center">
                                 <div className={`font-black uppercase leading-none ${titleSize}`}>LUCKY BOBA</div>
-                                <div className={`font-bold uppercase leading-none opacity-120 tracking-widest ${isVeryCrowded ? 'text-[5px] mt-0.5' : 'text-[6.5px] mt-1'}`}>Main Branch - QC</div>
+                                <div className={`font-bold uppercase leading-none opacity-120 tracking-widest ${isVeryCrowded ? 'text-[5px] mt-0.5' : 'text-[6.5px] mt-1'}`}>{branchName.toUpperCase()}</div>
                                 <div className={`w-full flex justify-between items-center font-bold border-b-[1.5px] border-black px-1 ${isVeryCrowded ? 'text-[10px] pb-0 mb-0.5 mt-0.5' : 'text-[10px] pb-0.5 mb-1 mt-1'}`}>
                                     <span>Q: {queueNumber} | OR: {orNumber.slice(-6)}</span>
                                     <span>{drinkIndex}/{totalDrinks}</span>
@@ -1216,7 +1221,7 @@ const SalesOrder = () => {
                     <div className="bg-[#f0ebff] border-2 border-[#3b2063]/20 rounded-2xl flex items-center justify-center px-4">
                         <div className="text-center">
                             <div className="text-[9px] font-black uppercase text-[#3b2063]/50 tracking-widest leading-none">Branch</div>
-                            <div className="text-[11px] font-black text-[#3b2063] uppercase leading-tight mt-0.5">Main - QC</div>
+                            <div className="text-[11px] font-black text-[#3b2063] uppercase leading-tight mt-0.5">{branchName}</div>
                         </div>
                     </div>
                     <div className="bg-[#3b2063] rounded-2xl flex items-center justify-center px-4 min-w-22.5 shadow-md">
@@ -1440,7 +1445,7 @@ const SalesOrder = () => {
                     <div className="text-center mb-4 border-b border-black pb-3">
                         <img src={logo} alt="Lucky Boba Logo" className="w-48 h-auto mx-auto mb-2 grayscale" style={{ filter: 'grayscale(100%) contrast(1.2)' }} />
                         <h1 className="uppercase leading-tight font-bold text-xl">LUCKY BOBA MILKTEA</h1>
-                        <p className="text-base mt-1">Quezon City</p>
+                        <p className="text-base mt-1">{branchName}</p>
                         <h2 className="text-lg mt-2">OR # {orNumber}</h2>
                         <p className="text-sm mt-1">{formattedDate} {formattedTime}</p>
                     </div>
@@ -1543,7 +1548,7 @@ const SalesOrder = () => {
                 <div className="receipt-area bg-white text-black">
                     <div className="text-center mb-4 border-b-4 border-black pb-3">
                         <h1 className="uppercase leading-tight font-black text-3xl mb-1">KITCHEN TICKET</h1>
-                        <h2 className="font-bold text-lg mt-1 uppercase tracking-widest">Main Branch - QC</h2>
+                        <h2 className="font-bold text-lg mt-1 uppercase tracking-widest">{branchName}</h2>
                         <div className="py-3 my-3 text-black">
                             <p className="text-sm tracking-widest uppercase mb-1">Queue</p>
                             <h2 className="font-black text-5xl tracking-widest">#{queueNumber}</h2>

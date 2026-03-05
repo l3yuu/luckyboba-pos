@@ -119,6 +119,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
       const response = await api.post('/cash-counts', {
         total: total,
         breakdown: counts,
+
         remarks: finalRemarks,
       });
 

@@ -1,4 +1,3 @@
-"use client"
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Keyboard from 'react-simple-keyboard';
