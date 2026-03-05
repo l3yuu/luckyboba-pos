@@ -1,13 +1,7 @@
 <?php
 
-use App\Http\Controllers\Api\{
-    BackupController, CashCountController, CashTransactionController, CategoryController,
-    DashboardController, DiscountController, ExpenseController, InventoryController,
-    InventoryDashboardController, InventoryReportController, ItemSerialController,
-    MenuController, MenuListController, PurchaseOrderController, ReceiptController,
-    ReportController, SalesController, SalesDashboardController, SettingsController,
-    SubCategoryController, UploadController, VoucherController, AddOnController
-};
+use App\Http\Controllers\Api\{ BackupController, CashCountController, CashTransactionController, CategoryController, DashboardController, DiscountController, ExpenseController, InventoryController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SettingsController, SubCategoryController, UploadController, VoucherController, AddOnController };
+use App\Http\Controllers\Api\CupController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Models\User;
 use Illuminate\Http\Request; 
@@ -69,6 +63,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::apiResource('categories', CategoryController::class);
     Route::apiResource('sub-categories', SubCategoryController::class);
     Route::get('/sub-categories/filter/{categoryId}', [SubCategoryController::class, 'getByCategory']);
+    Route::get('/cups', [CupController::class, 'index']);
 
     // --- 5. INVENTORY & PROCUREMENT ---
     Route::prefix('inventory')->group(function () {

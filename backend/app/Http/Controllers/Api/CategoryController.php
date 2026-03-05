@@ -22,13 +22,12 @@ class CategoryController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|unique:categories,name|max:255',
-            'description' => 'nullable|string',
+            'name'        => 'required|string|unique:categories,name|max:255',
+            'type'        => 'required|in:food,drink,promo,standard',
+            'cup_id'      => 'nullable|exists:cups,id',
         ]);
 
         $category = Category::create($validated);
-
-        // Load item count (which will be 0) to match frontend structure
         $category->menu_items_count = 0;
 
         return response()->json($category, 201);
@@ -48,30 +47,23 @@ class CategoryController extends Controller
         return response()->json(['message' => 'Category deleted successfully']);
     }
 
-public function update(Request $request, $id)
+    public function update(Request $request, $id)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:categories,name,' . $id,
-            'description' => 'nullable|string',
+            'name'        => 'required|string|max:255|unique:categories,name,' . $id,
+            'type'        => 'nullable|in:food,drink,promo,standard',
+            'cup_id'      => 'nullable|exists:cups,id',
         ]);
 
         try {
             $category = Category::findOrFail($id);
             $category->update($validated);
-
-            // This ensures the frontend table still sees the number of items
-            // instead of a blank space or NaN.
             $category->loadCount('menu_items');
 
             return response()->json($category);
         } catch (\Exception $e) {
-            // Log the error for OJT debugging if needed
             \Log::error("Category Update Error: " . $e->getMessage());
-
-            return response()->json([
-                'message' => 'Failed to update category. Please try again.',
-                'error' => $e->getMessage()
-            ], 500);
+            return response()->json(['message' => 'Failed to update category.'], 500);
         }
     }
 }
