@@ -8,6 +8,7 @@ import api from '../../services/api';
 interface CategoryData {
   id: number;
   name: string;
+  type: string;
   description: string;
   menu_items_count: number;
 }
@@ -23,7 +24,7 @@ const dashboardFont = { fontFamily: "'Inter', sans-serif" };
 // ─── Toast Component ──────────────────────────────────────────────────────────
 function ToastNotification({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: number) => void }) {
   return (
-    <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-2 pointer-events-none">
+    <div className="fixed bottom-6 right-6 z-9999 flex flex-col gap-2 pointer-events-none">
       {toasts.map((toast) => (
         <div
           key={toast.id}
@@ -42,11 +43,13 @@ function ToastNotification({ toasts, onRemove }: { toasts: Toast[]; onRemove: (i
 // ─── Shared input class ───────────────────────────────────────────────────────
 const inputCls = (hasError?: boolean) =>
   `w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white ${hasError ? 'border-red-400' : 'border-zinc-300'}`;
-
+const selectCls = `w-full px-4 py-3 rounded-none border border-zinc-300 bg-white text-[#1c1c1e] font-semibold text-sm outline-none focus:border-[#3b2063] cursor-pointer`;
 // ─── Add Modal ────────────────────────────────────────────────────────────────
 function AddModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (name: string, data: CategoryData) => void; }) {
   const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
+  const [type, setType] = useState('food');
+  const [cupId, setCupId] = useState<number | ''>('');
+  const [cups, setCups] = useState<{ id: number; name: string; code: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ name?: string }>({});
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -57,6 +60,10 @@ function AddModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (nam
     return () => window.removeEventListener('keydown', handler);
   }, [onClose]);
 
+  useEffect(() => {
+    api.get('/cups').then(res => setCups(res.data)).catch(() => {});
+  }, []);
+
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === overlayRef.current) onClose();
   };
@@ -65,7 +72,9 @@ function AddModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (nam
     if (!name.trim()) { setErrors({ name: 'Category name is required.' }); return; }
     setSubmitting(true);
     try {
-      const response = await api.post('/categories', { name: name.trim(), description: description.trim() });
+      const payload: Record<string, unknown> = { name: name.trim(), type };
+      if (type === 'drink' && cupId !== '') payload.cup_id = cupId;
+      const response = await api.post('/categories', payload);
       onSuccess(name.trim(), response.data);
       onClose();
     } catch (err) {
@@ -91,10 +100,28 @@ function AddModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (nam
             <input autoFocus type="text" value={name} onChange={(e) => { setName(e.target.value); setErrors({}); }} onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }} placeholder="e.g. Milk Tea" className={inputCls(!!errors.name)} />
             {errors.name && <p className="text-[10px] text-red-500 font-semibold mt-1">{errors.name}</p>}
           </div>
+
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Description</label>
-            <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }} placeholder="Optional" className={inputCls()} />
+            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Type <span className="text-red-400">*</span></label>
+            <select value={type} onChange={(e) => { setType(e.target.value); setCupId(''); }} className={selectCls}>
+              <option value="food">Food</option>
+              <option value="drink">Drink</option>
+              <option value="promo">Promo</option>
+              <option value="standard">Standard</option>
+            </select>
           </div>
+
+          {type === 'drink' && (
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Cup Type</label>
+              <select value={cupId} onChange={(e) => setCupId(Number(e.target.value))} className={selectCls}>
+                <option value="">— Select Cup —</option>
+                {cups.map(cup => (
+                  <option key={cup.id} value={cup.id}>{cup.name} ({cup.code})</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         <div className="flex gap-3 px-7 py-5 border-t border-zinc-100">
@@ -247,8 +274,8 @@ const CategoryList = () => {
   const displayData = useMemo(() => {
     const sorted = [...categories].sort((a, b) => a.name.localeCompare(b.name));
     const filtered = sorted.filter(cat =>
-      cat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cat.description.toLowerCase().includes(searchQuery.toLowerCase())
+      (cat.name ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (cat.type ?? '').toLowerCase().includes(searchQuery.toLowerCase())
     );
     return entriesLimit === -1 ? filtered : filtered.slice(0, entriesLimit);
   }, [categories, searchQuery, entriesLimit]);

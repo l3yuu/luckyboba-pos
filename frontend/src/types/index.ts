@@ -41,18 +41,15 @@ export interface MenuItem {
 export interface Category {
     id: number;
     name: string;
-    /**
-     * 'food' | 'drink' | 'wings' | 'promo' | 'standard'
-     */
     type: string;
-    cup_id?: number | null;
-    /**
-     * Eager-loaded Cup relationship (present when using Category::with(['cup']))
-     */
-    cup?: Cup | null;
+    cup?: {
+        id: number;
+        code: string;
+        size_m?: string;
+        size_l?: string | null;
+    };
+    sub_categories?: { id: number; name: string }[];
     menu_items: MenuItem[];
-    created_at?: string;
-    updated_at?: string;
 }
 
 // ─── CART ─────────────────────────────────────────────────────────────────────

@@ -14,10 +14,10 @@ class DatabaseSeeder extends Seeder
         $this->call([
             UserSeeder::class,
             CupSeeder::class,
-            CategorySeeder::class,
-            SubCategorySeeder::class,
+            CategorySeeder::class,      // 1. categories first
+            SubCategorySeeder::class,   // 2. then sub-categories (needs category IDs)
             VoucherSeeder::class,
-            MenuSeeder::class,
+            MenuSeeder::class,          // 3. then menu items (needs both)
             AddOnSeeder::class,
             DiscountSeeder::class,
             SettingSeeder::class,
