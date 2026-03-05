@@ -465,28 +465,59 @@ foreach ($menuData as $categoryName => $items) {
         $subCategoryLookup[$sub->name] = $sub->id;
     });
 
-    foreach ($items as $item) {
-        $subCatId = null;
-        if ($item['size'] === 'M') {
-            $cupSizeM = $cupsById[$cupId]?->size_m ?? null;
-            $subCatId = $subCategoryLookup[$cupSizeM] ?? null;
-        } elseif ($item['size'] === 'L') {
-            $cupSizeL = $cupsById[$cupId]?->size_l ?? null;
-            $subCatId = $subCategoryLookup[$cupSizeL] ?? null;
-        } else {
-            $subCatId = $subCategoryLookup[$item['size']] ?? null;
+    // Cup code => size letter => sub-category name
+    $cupSizeMap = [
+        'SM/SL'   => ['M' => 'SM',  'L' => 'SL'],
+        'JR'      => ['M' => 'JR',  'L' => 'JR'],
+        'UM/UL'   => ['M' => 'UM',  'L' => 'UL'],
+        'PCM/PCL' => ['M' => 'PCM', 'L' => 'PCL'],
+    ];
+
+    // Pre-load ALL sub-categories into a lookup: [category_id][sub_name] => sub_id
+    $subCatLookup = [];
+    \App\Models\SubCategory::all()->each(function ($sc) use (&$subCatLookup) {
+        $subCatLookup[$sc->category_id][$sc->name] = $sc->id;
+    });
+
+    foreach ($menuData as $categoryName => $items) {
+        $cupId = $categoryCupMap[$categoryName] ?? null;
+
+        $category = Category::updateOrCreate(
+            ['name' => $categoryName],
+            ['cup_id' => $cupId]
+        );
+
+        // Get the cup code for this category (e.g. 'SM/SL', 'JR', etc.)
+        $cup = $cupId ? ($cupsById[$cupId] ?? null) : null;
+        $cupCode = $cup?->code;
+        $sizeMap = $cupSizeMap[$cupCode] ?? null;
+
+        foreach ($items as $item) {
+            $size = $item['size'];
+            $subCatId = null;
+
+            if ($sizeMap && isset($sizeMap[$size])) {
+                // Drink with M/L — map to SM/SL, UM/UL, PCM/PCL, JR
+                $subCatName = $sizeMap[$size];
+                $subCatId = $subCatLookup[$category->id][$subCatName] ?? null;
+            } elseif (!in_array($size, ['M', 'L', 'none'])) {
+                // Piece sizes: 3pc, 4pc, 6pc, 12pc
+                $subCatId = $subCatLookup[$category->id][$size] ?? null;
+            }
+
+            $category->menuItems()->updateOrCreate(
+                ['barcode' => $item['barcode']],
+                [
+                    'name'            => $item['name'],
+                    'price'           => $item['price'],
+                    'cup_id'          => $cupId,
+                    'size'            => $size,
+                    'sub_category_id' => $subCatId,
+                ]
+            );
         }
 
-        $category->menuItems()->updateOrCreate(
-            ['barcode' => $item['barcode']],
-            [
-                'name'            => $item['name'],
-                'price'           => $item['price'],
-                'cup_id'          => $cupId,
-                'size'            => $item['size'],
-                'sub_category_id' => $subCatId,
-            ]
-        );
+        $this->command->info("Seeded: {$categoryName} (" . count($items) . " items)");
     }
 }
     }
