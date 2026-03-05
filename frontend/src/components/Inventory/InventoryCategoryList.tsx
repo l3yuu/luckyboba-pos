@@ -17,7 +17,7 @@ interface Toast {
 // ─── Toast Component ──────────────────────────────────────────────────────────
 function ToastNotification({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: number) => void }) {
   return (
-    <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-2 pointer-events-none">
+    <div className="fixed bottom-6 right-6 z-9999 flex flex-col gap-2 pointer-events-none">
       {toasts.map((toast) => (
         <div
           key={toast.id}
@@ -49,12 +49,15 @@ const InventoryCategoryList = () => {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastCounter = useRef(0);
 
-  const addToast = (message: string, type: 'success' | 'error' = 'success') => {
+  const removeToast = useCallback((id: number) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  const addToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
     const id = ++toastCounter.current;
     setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => removeToast(id), 4000);
-  };
-  const removeToast = (id: number) => setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, [removeToast]);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -85,7 +88,7 @@ const InventoryCategoryList = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [addToast]); 
 
   useEffect(() => {
     fetchCategories();
