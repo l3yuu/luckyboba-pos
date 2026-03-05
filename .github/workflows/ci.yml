@@ -162,7 +162,7 @@ jobs:
       - name: Build Frontend (Staging)
         run: |
           cd frontend
-          echo "VITE_API_BASE_URL=https://luckybobastores.com/api" > .env.production
+          echo "VITE_API_BASE_URL=https://staging.luckybobastores.com/api" > .env.production
           npm install
           npm run build
 
