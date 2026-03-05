@@ -8,6 +8,7 @@ import api from '../../services/api';
 interface CategoryData {
   id: number;
   name: string;
+  type: string;
   description: string;
   menu_items_count: number;
 }
@@ -23,7 +24,7 @@ const dashboardFont = { fontFamily: "'Inter', sans-serif" };
 // ─── Toast Component ──────────────────────────────────────────────────────────
 function ToastNotification({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: number) => void }) {
   return (
-    <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-2 pointer-events-none">
+    <div className="fixed bottom-6 right-6 z-9999 flex flex-col gap-2 pointer-events-none">
       {toasts.map((toast) => (
         <div
           key={toast.id}
@@ -247,8 +248,8 @@ const CategoryList = () => {
   const displayData = useMemo(() => {
     const sorted = [...categories].sort((a, b) => a.name.localeCompare(b.name));
     const filtered = sorted.filter(cat =>
-      cat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cat.description.toLowerCase().includes(searchQuery.toLowerCase())
+      (cat.name ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (cat.type ?? '').toLowerCase().includes(searchQuery.toLowerCase())
     );
     return entriesLimit === -1 ? filtered : filtered.slice(0, entriesLimit);
   }, [categories, searchQuery, entriesLimit]);

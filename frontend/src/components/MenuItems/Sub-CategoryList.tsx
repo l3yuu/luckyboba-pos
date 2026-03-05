@@ -11,6 +11,7 @@ interface SubCategoryData {
   id: number;
   name: string;
   mainCategory: string;
+  usedBy: string[]; 
   itemCount: number;
 }
 
@@ -35,7 +36,7 @@ const dashboardFont = { fontFamily: "'Inter', sans-serif" };
 // ─── Toast Component ──────────────────────────────────────────────────────────
 function ToastNotification({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: number) => void }) {
   return (
-    <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-2 pointer-events-none">
+    <div className="fixed bottom-6 right-6 z-9999 flex flex-col gap-2 pointer-events-none">
       {toasts.map((toast) => (
         <div
           key={toast.id}
@@ -437,11 +438,19 @@ const SubCategoryList = () => {
                       <td className="px-7 py-3.5">
                         <span className="text-[13px] font-extrabold text-[#3b2063]">{sub.name}</span>
                       </td>
-                      <td className="px-5 py-3.5">
-                        <span className="px-2.5 py-1 bg-zinc-50 border border-zinc-200 text-[10px] font-bold text-zinc-600 uppercase tracking-wide rounded-none">
-                          {sub.mainCategory}
-                        </span>
-                      </td>
+                        <td className="px-5 py-3.5">
+                          <div className="flex flex-wrap gap-1">
+                            {sub.usedBy.length > 0 ? sub.usedBy.map((cat) => (
+                              <span key={cat} className="px-2.5 py-1 bg-zinc-50 border border-zinc-200 text-[10px] font-bold text-zinc-600 uppercase tracking-wide rounded-none">
+                                {cat}
+                              </span>
+                            )) : (
+                              <span className="px-2.5 py-1 bg-zinc-50 border border-zinc-200 text-[10px] font-bold text-zinc-400 uppercase tracking-wide rounded-none">
+                                {sub.mainCategory}
+                              </span>
+                            )}
+                          </div>
+                        </td>
                       <td className="px-5 py-3.5 text-center">
                         <span className="text-[13px] font-extrabold text-[#1c1c1e]">{sub.itemCount}</span>
                       </td>

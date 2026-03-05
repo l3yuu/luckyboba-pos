@@ -10,6 +10,7 @@ class MenuSeeder extends Seeder
 {
     public function run(): void
     {
+        $cupsById = Cup::all()->keyBy('id');
         // Get cup IDs
         $smsl   = Cup::where('code', 'SM/SL')->first()?->id;
         $jr     = Cup::where('code', 'JR')->first()?->id;
@@ -448,26 +449,46 @@ class MenuSeeder extends Seeder
             ],
         ];
 
-        foreach ($menuData as $categoryName => $items) {
-            $cupId = $categoryCupMap[$categoryName] ?? null;
+foreach ($menuData as $categoryName => $items) {
+    $cupId = $categoryCupMap[$categoryName] ?? null;
 
-            $category = Category::updateOrCreate(
-                ['name' => $categoryName],
-                ['cup_id' => $cupId]  
-            );
+    $category = Category::updateOrCreate(
+        ['name' => $categoryName],
+        ['cup_id' => $cupId]
+    );
 
-            foreach ($items as $item) {
-                $category->menuItems()->updateOrCreate(
-                    ['barcode' => $item['barcode']],
-                    [
-                        'name'   => $item['name'],
-                        'price'  => $item['price'],
-                        'cup_id' => $cupId,
-                        'size'   => $item['size'],
-                    ]
-                );
-            }
+    // Build sub-category lookup for this category: size -> sub_category_id
+    $subCategoryLookup = [];
+    $category->subCategories()->each(function ($sub) use (&$subCategoryLookup) {
+        $cleanName = trim($sub->name, '()');
+        $subCategoryLookup[$cleanName] = $sub->id;
+        $subCategoryLookup[$sub->name] = $sub->id;
+    });
+
+    foreach ($items as $item) {
+        $subCatId = null;
+        if ($item['size'] === 'M') {
+            $cupSizeM = $cupsById[$cupId]?->size_m ?? null;
+            $subCatId = $subCategoryLookup[$cupSizeM] ?? null;
+        } elseif ($item['size'] === 'L') {
+            $cupSizeL = $cupsById[$cupId]?->size_l ?? null;
+            $subCatId = $subCategoryLookup[$cupSizeL] ?? null;
+        } else {
+            $subCatId = $subCategoryLookup[$item['size']] ?? null;
         }
+
+        $category->menuItems()->updateOrCreate(
+            ['barcode' => $item['barcode']],
+            [
+                'name'            => $item['name'],
+                'price'           => $item['price'],
+                'cup_id'          => $cupId,
+                'size'            => $item['size'],
+                'sub_category_id' => $subCatId,
+            ]
+        );
+    }
+}
     }
 
 }
