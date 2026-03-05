@@ -15,10 +15,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->statefulApi();
 
         $middleware->validateCsrfTokens(except: [
-            'api/*', // This stops the 419 error for all API calls
+            'api/*',
             'login',
             'logout'
         ]);
+
+        $middleware->append(\App\Http\Middleware\ContentSecurityPolicy::class); 
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
