@@ -252,7 +252,6 @@ const SalesOrder = () => {
     };
 
     const handleItemClick = (item: MenuItem) => {
-        console.log('Category type:', selectedCategory?.type, '| isCombo:', isCombo); 
         setSelectedItem(item);
         setQty(1);
         setRemarks('');
