@@ -5,17 +5,29 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CategoryController extends Controller
 {
     // Fetch all categories with a count of related menu items
-    public function index()
+    public function index(Request $request)
     {
-        $categories = Category::withCount('menu_items')
-            ->orderBy('name', 'asc')
-            ->get();
+        $query = DB::table('categories')
+            ->leftJoin('menu_items', 'categories.id', '=', 'menu_items.category_id')
+            ->select(
+                'categories.id',
+                'categories.name',
+                'categories.type',
+                'categories.description',
+                DB::raw('COUNT(menu_items.id) as menu_items_count')
+            )
+            ->groupBy('categories.id', 'categories.name', 'categories.type', 'categories.description');
 
-        return response()->json($categories);
+        if ($request->has('type')) {
+            $query->where('categories.type', $request->type);
+        }
+
+        return response()->json($query->get());
     }
 
     // Store a new category

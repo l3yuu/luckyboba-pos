@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\SubCategory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class SubCategoryController extends Controller
@@ -12,38 +13,25 @@ class SubCategoryController extends Controller
     /**
      * Display a listing of sub-categories with item counts.
      */
-public function index()
-{
-    try {
-        $subCategories = SubCategory::with('category')
-            ->withCount('menuItems')
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function ($sub) {
-                // Get all unique category names that have menu items using this sub-category
-                $usedByCategories = \App\Models\MenuItem::where('sub_category_id', $sub->id)
-                    ->with('category')
-                    ->get()
-                    ->pluck('category.name')
-                    ->unique()
-                    ->values()
-                    ->toArray();
+    public function index(Request $request)
+    {
+        $query = DB::table('sub_categories')
+            ->leftJoin('categories', 'sub_categories.category_id', '=', 'categories.id')
+            ->leftJoin('menu_items', 'sub_categories.id', '=', 'menu_items.sub_category_id')
+            ->select(
+                'sub_categories.id',
+                'sub_categories.name',
+                'categories.name as mainCategory',
+                DB::raw('COUNT(menu_items.id) as itemCount')
+            )
+            ->groupBy('sub_categories.id', 'sub_categories.name', 'categories.name');
 
-                return [
-                    'id'             => $sub->id,
-                    'name'           => $sub->name,
-                    'mainCategory'   => $sub->category->name ?? 'N/A', // owner category
-                    'usedBy'         => $usedByCategories,              // all categories using it
-                    'itemCount'      => $sub->menu_items_count,
-                ];
-            });
+        if ($request->has('category_id')) {
+            $query->where('sub_categories.category_id', $request->category_id);
+        }
 
-        return response()->json($subCategories);
-    } catch (\Exception $e) {
-        Log::error("SubCategory Index Error: " . $e->getMessage());
-        return response()->json(['message' => 'Error fetching data'], 500);
+        return response()->json($query->get());
     }
-}
 
     /**
      * Store a newly created sub-category.

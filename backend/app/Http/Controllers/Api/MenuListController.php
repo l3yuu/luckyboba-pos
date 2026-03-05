@@ -34,6 +34,7 @@ class MenuListController extends Controller
             'sellingPrice' => 'required|numeric|min:0',
             'barcode'      => 'nullable|string|unique:menu_items,barcode',
             'category'     => 'nullable|string',
+            'sub_category' => 'nullable|string',
             'type'         => 'required|string|in:FOOD,DRINK',
             'status'       => 'required|string|in:ACTIVE,INACTIVE',
         ]);
@@ -51,37 +52,50 @@ class MenuListController extends Controller
                 $category = DB::table('categories')
                     ->where('name', $request->category)
                     ->first();
-                
+
                 if ($category) {
                     $categoryId = $category->id;
                 } else {
-                    // Optional: Create the category if it doesn't exist
                     $categoryId = DB::table('categories')->insertGetId([
-                        'name' => $request->category,
-                        'type' => strtolower($request->type),
+                        'name'       => $request->category,
+                        'type'       => strtolower($request->type),
                         'created_at' => now(),
                         'updated_at' => now(),
                     ]);
                 }
             }
 
-            // 2. Insert Menu Item
+            // 2. Resolve Sub-Category Name to ID
+            $subCategoryId = null;
+            if ($request->sub_category && $categoryId) {
+                $subCategory = DB::table('sub_categories')
+                    ->where('name', $request->sub_category)
+                    ->where('category_id', $categoryId)
+                    ->first();
+
+                if ($subCategory) {
+                    $subCategoryId = $subCategory->id;
+                }
+            }
+
+            // 3. Insert Menu Item
             $itemId = DB::table('menu_items')->insertGetId([
-                'name'        => $request->name,
-                'barcode'     => $request->barcode,
-                'category_id' => $categoryId,
-                'price'       => $request->sellingPrice,
-                'type'        => strtolower($request->type),
-                'status'      => strtolower($request->status),
-                'created_at'  => now(),
-                'updated_at'  => now(),
+                'name'            => $request->name,
+                'barcode'         => $request->barcode,
+                'category_id'     => $categoryId,
+                'sub_category_id' => $subCategoryId,
+                'price'           => $request->sellingPrice,
+                'type'            => strtolower($request->type),
+                'status'          => strtolower($request->status),
+                'created_at'      => now(),
+                'updated_at'      => now(),
             ]);
 
             DB::commit();
 
             return response()->json([
                 'message' => 'Item added successfully',
-                'id' => $itemId
+                'id'      => $itemId,
             ], 201);
 
         } catch (\Exception $e) {
