@@ -97,12 +97,6 @@ class CategoryController extends Controller
     public function destroy($id)
     {
         $category = Category::findOrFail($id);
-        
-        // Check if category has items before deleting (Optional safety)
-        if($category->menu_items()->count() > 0) {
-            return response()->json(['message' => 'Cannot delete category with active items.'], 422);
-        }
-
         $category->delete();
         return response()->json(['message' => 'Category deleted successfully']);
     }
