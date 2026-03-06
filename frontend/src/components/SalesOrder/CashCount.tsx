@@ -172,7 +172,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
   return (
     <>
       {isLoading && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/90 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-white/90 backdrop-blur-sm animate-in fade-in duration-300">
            <div className="bg-white p-10 rounded-none border border-zinc-200 flex flex-col items-center gap-6 shadow-2xl">
               <RefreshCw className="w-12 h-12 text-[#3b2063] animate-spin" strokeWidth={1.5} />
               <div className="text-center">
@@ -234,7 +234,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
       <div className="flex flex-col h-full w-full bg-[#f8f6ff] animate-in fade-in zoom-in duration-300 relative overflow-hidden">
         <TopNavbar isEodLocked={isEodLocked} />
         
-        <div className={`flex-1 flex flex-row items-start justify-center p-4 md:p-8 gap-4 md:gap-6 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-[280px]' : ''}`}>
+        <div className={`flex-1 flex flex-row items-start justify-center p-4 md:p-8 gap-4 md:gap-6 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-70' : ''}`}>
           
           {/* LEFT: COUNTING FORM */}
           <div className="bg-white w-full flex-1 rounded-none border border-zinc-200 flex flex-col relative h-full shadow-sm">
@@ -251,7 +251,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
                 <div className="bg-white p-8 rounded-none border border-zinc-200 flex flex-col items-center text-center shadow-2xl animate-in zoom-in-95 duration-300">
                    <AlertTriangle className="w-12 h-12 text-red-500 mb-4" />
                    <h3 className="text-[#3b2063] font-black uppercase text-[11px] tracking-[0.3em] mb-2">Shift Already Finalized</h3>
-                   <p className="text-zinc-400 font-black text-[9px] uppercase leading-relaxed max-w-[200px]">End of Day records are locked for this terminal today.</p>
+                   <p className="text-zinc-400 font-black text-[9px] uppercase leading-relaxed max-w-50">End of Day records are locked for this terminal today.</p>
                 </div>
               </div>
             )}
@@ -349,7 +349,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
         </div>
 
         {/* KEYBOARD DRAWER */}
-        <div className={`fixed bottom-0 left-0 right-0 bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-transform duration-500 z-[90] ${showKeyboard ? 'translate-y-0' : 'translate-y-full'}`}>
+        <div className={`fixed bottom-0 left-0 right-0 bg-white shadow-[0_-10px_40px_rgba(0,0,0,0.1)] transition-transform duration-500 z-90 ${showKeyboard ? 'translate-y-0' : 'translate-y-full'}`}>
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center justify-between px-6 py-3 bg-zinc-50 border-b border-zinc-100">
               <span className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em]">{layoutName === 'numpad' ? 'Numeric Pad' : 'Full Alphanumeric'}</span>
@@ -374,7 +374,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
         {/* KEYBOARD TRIGGER (Floating FAB logic preserved) */}
         {!isEodLocked && (
           <button onClick={() => setShowKeyboard(!showKeyboard)}
-            className={`fixed bottom-6 right-6 z-[100] w-14 h-14 rounded-none shadow-2xl transition-all duration-300 flex items-center justify-center ${showKeyboard ? 'bg-red-600 text-white' : 'bg-[#3b2063] text-white hover:scale-105'}`}>
+            className={`fixed bottom-6 right-6 z-100 w-14 h-14 rounded-none shadow-2xl transition-all duration-300 flex items-center justify-center ${showKeyboard ? 'bg-red-600 text-white' : 'bg-[#3b2063] text-white hover:scale-105'}`}>
             {showKeyboard ? <X size={24}/> : <Calculator size={24}/>}
           </button>
         )}

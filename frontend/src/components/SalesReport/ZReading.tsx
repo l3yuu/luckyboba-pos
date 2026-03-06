@@ -86,6 +86,24 @@ interface ZReadingReport {
   cash_drop?: number;
   cash_in_drawer?: number;
   cash_in?: number;
+  // Accumulated totals (Z-Reading counter)
+  reset_counter?: number;
+  z_counter?: number;
+  present_accumulated?: number;
+  previous_accumulated?: number;
+  sales_for_the_day?: number;
+  // Category breakdown table
+  category_breakdown?: {
+    category_name: string;
+    total_qty: number;
+    total_disc: number;
+    total_sold: number;
+  }[];
+  // Cash denomination breakdown
+  cash_denominations?: { label: string; qty: number; total: number }[];
+  total_cash_count?: number;
+  over_short?: number;
+  net_total?: number;
 }
 
 // ── Shared receipt components ──────────────────────────────────────────────
@@ -719,7 +737,7 @@ const ZReading = () => {
 
   const renderZReading = () => {
     const gross        = reportData?.gross_sales       || 0;
-    const netSales     = reportData?.net_sales         || 0;
+    const netSales     = reportData?.net_sales         || gross;
     const cashTotal    = reportData?.cash_total        || 0;
     const nonCash      = reportData?.non_cash_total    || 0;
     const txCount      = reportData?.transaction_count || 0;
@@ -730,57 +748,95 @@ const ZReading = () => {
     const vatableSales = reportData?.vatable_sales     || 0;
     const vatAmount    = reportData?.vat_amount        || 0;
     const voids        = reportData?.total_void_amount || 0;
+    const qtyTotal     = reportData?.total_qty_sold    || 0;
+    const cashDrop     = reportData?.cash_drop      || 0;
+    const cashIn       = reportData?.cash_in        || 0;
 
+    // Accumulated counters
+    const resetCounter       = reportData?.reset_counter        ?? 0;
+    const zCounter           = reportData?.z_counter            ?? 1;
+    const presentAccumulated = reportData?.present_accumulated  ?? gross;
+    const previousAccumulated= reportData?.previous_accumulated ?? 0;
+    const salesForDay        = reportData?.sales_for_the_day    ?? gross;
+
+    // Payment map
     const PAYMENT_METHODS = ['food panda', 'grab', 'gcash', 'visa', 'mastercard', 'cash'];
     const paymentMap = new Map<string, number>();
     reportData?.payment_breakdown?.forEach(p => {
       paymentMap.set(p.method.toLowerCase(), Number(p.amount));
     });
-
     const creditMethods = ['visa', 'mastercard'];
     const debitMethods  = ['gcash'];
     const totalCredit   = creditMethods.reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
     const totalDebit    = debitMethods.reduce((a, m)  => a + (paymentMap.get(m) || 0), 0);
     const totalCard     = totalCredit + totalDebit;
 
+    // Cash denomination breakdown (from cash count)
+    const cashDenominations = reportData?.cash_denominations ?? reportData?.cash_count?.denominations ?? [];
+    const totalCashCount    = reportData?.total_cash_count   ?? reportData?.cash_count?.grand_total ?? 0;
+    const overShort         = reportData?.over_short         ?? (totalCashCount - cashDrop);
+
+    // Category breakdown table
+    const categoryBreakdown = reportData?.category_breakdown ?? [];
+
+    // Net total = gross - total discounts
+    const netTotal = reportData?.net_total ?? (gross - totalDisc);
+
     const isRange = dateMode === 'range';
-    const displayDate = isRange ? `${fromDate} to ${toDate}` : selectedDate;
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    const startDate = isRange ? fromDate : selectedDate;
+    const endDate   = isRange ? toDate   : selectedDate;
 
     return (
       <div className="my-2">
         <Divider />
-        <Row label="REPORT DATE"       value={displayDate} />
-        <Row label="START DATE & TIME" value={`${isRange ? fromDate : selectedDate} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
-        <Row label="END DATE & TIME"   value={`${isRange ? toDate   : selectedDate} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
-        <Row label="TERMINAL #"        value="POS-01" />
-        <Row label="CASHIER"           value={reportData?.prepared_by || cashierName} />
-        <Row label="BEG. SI #"         value={reportData?.beg_si || '0000000000'} />
-        <Row label="END. SI #"         value={reportData?.end_si || '0000000000'} />
 
+        {/* ── Report metadata ── */}
+        <Row label="Report Date"       value={new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })} />
+        <Row label="Report Time"       value={timeStr} />
+        <Row label="Start Date & Time" value={`${startDate} ${timeStr}`} />
+        <Row label="End Date & Time"   value={`${endDate} ${timeStr}`} />
+        <Row label="Terminal #"        value="ALL" />
+        <Row label="Cashier"           value={reportData?.prepared_by || cashierName} />
+        <Row label="Beg. SI #"         value={reportData?.beg_si || '0000000000'} />
+        <Row label="End. SI #"         value={reportData?.end_si || '0000000000'} />
+
+        <Divider />
+        <Row label="Reset Counter No." value={resetCounter} />
+        <Row label="Z Counter No."     value={zCounter} />
+        <Row label="Present Accumulated"  value={phCurrency.format(presentAccumulated)} />
+        <Row label="Previous Accumulated" value={phCurrency.format(previousAccumulated)} />
+        <Row label="Sales for the Day(s)" value={phCurrency.format(salesForDay)} />
+
+        {/* ── Breakdown of Sales ── */}
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">BREAKDOWN OF SALES</p>
-        <Row label="VATABLE SALES"    value={phCurrency.format(vatableSales)} />
-        <Row label="VAT AMOUNT"       value={phCurrency.format(vatAmount)} />
-        <Row label="VAT EXEMPT SALES" value={phCurrency.format(0)} />
-        <Row label="ZERO-RATED SALES" value={phCurrency.format(0)} />
+        <Row label="VATable Sales"    value={phCurrency.format(vatableSales)} />
+        <Row label="VAT Amount"       value={phCurrency.format(vatAmount)} />
+        <Row label="VAT Exempt Sales" value={phCurrency.format(0)} />
+        <Row label="Zero-Rated Sales" value={phCurrency.format(0)} />
         <Divider />
-        <Row label="SERVICE CHARGE"   value={phCurrency.format(0)} />
+        <Row label="Service Charge"   value={phCurrency.format(0)} />
         <Row label="NET SALES"        value={phCurrency.format(netSales)} />
-        <Row label="TOTAL DISCOUNTS"  value={phCurrency.format(totalDisc)} />
-        <Row label="GROSS AMOUNT"     value={phCurrency.format(gross)} />
+        <Row label="Total Discounts"  value={phCurrency.format(totalDisc)} />
+        <Row label="GROSS Amount"     value={phCurrency.format(gross)} />
 
+        {/* ── Discount Summary ── */}
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">DISCOUNT SUMMARY</p>
-        <Row label="S.C DISC."         value={phCurrency.format(scDiscount)} />
-        <Row label="PWD DISC."         value={phCurrency.format(pwdDiscount)} />
-        <Row label="NAAC DISC."        value={phCurrency.format(0)} />
-        <Row label="SOLO PARENT DISC." value={phCurrency.format(0)} />
-        <Row label="OTHER DISC."       value={phCurrency.format(diplomat)} />
+        <Row label="S.C Disc."         value={phCurrency.format(scDiscount)} />
+        <Row label="PWD Disc."         value={phCurrency.format(pwdDiscount)} />
+        <Row label="NAAC Disc."        value={phCurrency.format(0)} />
+        <Row label="Solo Parent Disc." value={phCurrency.format(0)} />
+        <Row label="Other Disc."       value={phCurrency.format(diplomat)} />
 
+        {/* ── Sales Adjustment ── */}
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">SALES ADJUSTMENT</p>
-        <Row label="CANCELED" value={phCurrency.format(voids)} />
+        <Row label={`Canceled (${voids > 0 ? reportData?.logs?.length ?? 0 : 0})`} value={phCurrency.format(voids)} />
 
+        {/* ── Payments Received ── */}
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">PAYMENTS RECEIVED</p>
         {PAYMENT_METHODS.map((method, i) => (
@@ -797,16 +853,67 @@ const ZReading = () => {
         <Row label="TOTAL CASH"     value={phCurrency.format(cashTotal)} />
         <Row label="TOTAL NON-CASH" value={phCurrency.format(nonCash)} />
         <Row label="TOTAL PAYMENTS" value={phCurrency.format(gross)} />
-        <Row label="CANCELED"       value={phCurrency.format(voids)} />
 
+        {/* ── Transaction Summary ── */}
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
-        <Row label="CASH IN"            value={phCurrency.format(reportData?.cash_in        || 0)} />
-        <Row label="CASH IN DRAWER"     value={phCurrency.format(reportData?.cash_in_drawer || 0)} />
-        <Row label="CASH DROP"          value={phCurrency.format(reportData?.cash_drop       || 0)} />
-        <Divider />
-        <Row label="TOTAL QTY SOLD"    value={reportData?.total_qty_sold ?? 0} />
-        <Row label="TRANSACTION COUNT" value={txCount} />
+        <Row label="Cash Drop"          value={phCurrency.format(cashDrop)} />
+        <Row label="Total Qty Sold"     value={qtyTotal} />
+        <Row label="Transaction Count"  value={txCount} />
+        <Row label="Total Cash In"      value={phCurrency.format(cashIn)} />
+        <Row label="Total Cash Drop"    value={phCurrency.format(cashDrop)} />
+
+        {/* ── Cash Denomination Breakdown ── */}
+        {cashDenominations.length > 0 && (
+          <>
+            <Divider />
+            <p className="text-[11px] uppercase text-center font-bold mb-0.5">CASH COUNT</p>
+            {cashDenominations.map((d, i) => (
+              <div key={i} className="flex text-[11px] leading-snug">
+                <span className="w-[30%] uppercase">{d.label}</span>
+                <span className="w-[10%] text-center">X</span>
+                <span className="w-[25%] text-center">{d.qty}</span>
+                <span className="w-[35%] text-right">{phCurrency.format(d.total)}</span>
+              </div>
+            ))}
+            <Divider />
+            <Row label="TOTAL CASH COUNT" value={phCurrency.format(totalCashCount)} />
+            {overShort >= 0
+              ? <Row label="OVER"  value={phCurrency.format(overShort)} />
+              : <Row label="SHORT" value={phCurrency.format(Math.abs(overShort))} />}
+            <Row label="DISCREPANCY" value={phCurrency.format(Math.abs(overShort))} />
+          </>
+        )}
+
+        {/* ── Category Breakdown Table ── */}
+        {categoryBreakdown.length > 0 && (
+          <>
+            <Divider />
+            <div className="flex text-[9px] font-bold border-b border-black pb-0.5 mb-0.5 uppercase">
+              <span className="w-[40%]">Category</span>
+              <span className="w-[20%] text-center">Qty Sold</span>
+              <span className="w-[20%] text-right">Disc</span>
+              <span className="w-[20%] text-right">Total Sold</span>
+            </div>
+            {categoryBreakdown.map((cat, i) => (
+              <div key={i} className="flex text-[9px] leading-snug border-b border-dotted border-zinc-300">
+                <span className="w-[40%] uppercase leading-tight">{cat.category_name}</span>
+                <span className="w-[20%] text-center">{cat.total_qty}</span>
+                <span className="w-[20%] text-right">{phCurrency.format(cat.total_disc)}</span>
+                <span className="w-[20%] text-right">{phCurrency.format(cat.total_sold)}</span>
+              </div>
+            ))}
+            <Divider />
+            <div className="flex text-[10px] font-bold justify-between">
+              <span className="uppercase">TOTAL</span>
+              <span>{phCurrency.format(gross)}</span>
+            </div>
+            <div className="flex text-[10px] font-bold justify-between">
+              <span className="uppercase">NET TOTAL</span>
+              <span>{phCurrency.format(netTotal)}</span>
+            </div>
+          </>
+        )}
       </div>
     );
   };
@@ -1037,19 +1144,6 @@ const ZReading = () => {
                       ? dateMode === 'range' ? 'Z-READING (RANGE)' : 'Z-READING'
                       : reportData.report_type?.replace(/_/g, ' ') || 'Z READING'}
                   </p>
-                  <Divider />
-                  <div className="text-left text-[11px] mt-1">
-                    {reportData.report_type === 'z_reading' && dateMode === 'range' ? (
-                      <>
-                        <Row label="FROM DATE"   value={fromDate} />
-                        <Row label="TO DATE"     value={toDate} />
-                      </>
-                    ) : (
-                      <Row label="DATE" value={selectedDate} />
-                    )}
-                    <Row label="REPORT TIME" value={new Date().toLocaleTimeString()} />
-                    <Row label="TERMINAL"    value="POS-01" />
-                  </div>
                 </div>
 
                 {(() => {

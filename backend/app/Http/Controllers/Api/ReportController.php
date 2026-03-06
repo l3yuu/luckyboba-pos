@@ -273,7 +273,7 @@ class ReportController extends Controller
             'prepared_by' => $cashierName
         ]);
     }
-    
+
     public function getCashCountSummary(Request $request) {
         $date = $request->query('date', now()->toDateString());
 
@@ -301,11 +301,12 @@ class ReportController extends Controller
                 $breakdown = json_decode($breakdown, true) ?? [];
             }
 
-            $denominations = collect($breakdown)->map(fn($item) => [
-                'label' => $item['label'] ?? $item['denomination'] ?? '—',
-                'qty'   => (int)   ($item['qty']      ?? $item['quantity'] ?? 0),
-                'total' => (float) ($item['total']     ?? $item['amount']  ?? 0),
-            ])->values()->toArray();
+            // breakdown is stored as {denomination: quantity} e.g. {1000: "7", 500: "1"}
+            $denominations = collect($breakdown)->map(fn($qty, $denom) => [
+                'label' => number_format((float)$denom, 0),
+                'qty'   => (int) $qty,
+                'total' => (float)$denom * (int)$qty,
+            ])->sortKeysDesc()->values()->toArray();
 
             $actualAmount   = (float) ($cashCount->actual_amount  ?? $cashCount->total_amount  ?? 0);
             $expectedAmount = (float) ($cashCount->expected_amount ?? $cashCount->expected_cash ?? 0);
