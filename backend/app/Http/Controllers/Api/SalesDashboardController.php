@@ -95,21 +95,12 @@ public function itemsReport(Request $request)
         $request->validate(['date' => 'required|date']);
 
         try {
-            $report = $this->salesService->generateZReading($request->date);
-
-            // SAFELY EXTRACT LOGGED-IN USER FROM SANCTUM
+            $report = $this->salesService->getXReading($request->date); // ← use same service method as X-Reading
+            
             $user = auth('sanctum')->user() ?? $request->user();
+            $report['prepared_by'] = $user ? $user->name : 'System Admin';
 
-            return response()->json([
-                'reading_date'      => $report['reading_date'] ?? $request->date,
-                'gross_sales'       => (float)($report['gross_sales'] ?? 0),
-                'net_sales'         => (float)($report['net_sales'] ?? 0),
-                'transaction_count' => (int)($report['transaction_count'] ?? 0),
-                'cash_total'        => (float)($report['cash_total'] ?? 0),
-                'non_cash_total'    => (float)($report['non_cash_total'] ?? 0),
-                'generated_at'      => $report['generated_at'] ?? now()->toDateTimeString(),
-                'prepared_by'       => $user ? $user->name : 'System Admin' // <-- Add this line
-            ]);
+            return response()->json($report);
         } catch (\Exception $e) {
             \Log::error("Z-Reading Error: " . $e->getMessage());
             return response()->json(['message' => 'Error generating Z-Reading'], 500);
