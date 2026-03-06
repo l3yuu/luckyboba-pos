@@ -8,86 +8,70 @@ import api from '../../services/api';
 import { Calendar, Clock, Search, X, RotateCcw, ShieldAlert, FileCheck, Receipt as ReceiptIcon, Terminal } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 
-// Define interface to replace 'any' and pass linting
 interface SimpleKeyboardInstance {
   setInput: (input: string) => void;
 }
 
 const CACHE_KEY = 'lucky_boba_receipt_cache';
-
-// Persists across remounts
 let hasInitialized = false;
 
+// ── Skeleton ──────────────────────────────────────────────────────────────────
 const TableSkeleton = () => (
   <>
     {[...Array(5)].map((_, i) => (
       <tr key={`skeleton-${i}`} className="animate-pulse border-b border-zinc-100">
-        <td className="px-6 py-5">
-          <div className="h-4 w-28 bg-zinc-100 mb-2 rounded-none"></div>
-          <div className="h-3 w-16 bg-zinc-50 rounded-none"></div>
+        <td className="px-7 py-4">
+          <div className="h-4 w-32 bg-zinc-100 mb-2" />
+          <div className="h-3 w-20 bg-zinc-50" />
         </td>
-        <td className="px-6 py-5"><div className="h-4 w-12 bg-zinc-100 mx-auto rounded-none"></div></td>
-        <td className="px-6 py-5"><div className="h-4 w-8 bg-zinc-100 mx-auto rounded-none"></div></td>
-        <td className="px-6 py-5"><div className="h-4 w-24 bg-zinc-100 ml-auto rounded-none"></div></td>
-        <td className="px-6 py-5"><div className="h-9 w-9 bg-zinc-100 mx-auto rounded-none"></div></td>
+        <td className="px-6 py-4"><div className="h-4 w-10 bg-zinc-100 mx-auto" /></td>
+        <td className="px-6 py-4"><div className="h-4 w-8 bg-zinc-100 mx-auto" /></td>
+        <td className="px-6 py-4"><div className="h-4 w-28 bg-zinc-100 ml-auto" /></td>
+        <td className="px-6 py-4"><div className="h-9 w-9 bg-zinc-100 mx-auto" /></td>
       </tr>
     ))}
   </>
 );
 
+// ── Main Component ────────────────────────────────────────────────────────────
 const SearchReceipts = () => {
   const { showToast } = useToast();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [searchResults, setSearchResults] = useState<Receipt[]>([]); 
-  const [hasSearched, setHasSearched] = useState(false); 
+  const [searchResults, setSearchResults] = useState<Receipt[]>([]);
+  const [hasSearched, setHasSearched] = useState(false);
   const [showKeyboard, setShowKeyboard] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isVoiding, setIsVoiding] = useState(false); 
+  const [isVoiding, setIsVoiding] = useState(false);
   const [isReady, setIsReady] = useState(false);
-  
   const [isReasonModalOpen, setIsReasonModalOpen] = useState(false);
   const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
   const [cancelReason, setCancelReason] = useState('');
-  
   const keyboardRef = useRef<KeyboardRef>(null);
 
   const stats = useMemo(() => {
     const data = Array.isArray(searchResults) ? searchResults : [];
     const gross = data.reduce((acc, item) => acc + Number(item.total_amount || 0), 0);
-    const voided = data
-      .filter(item => item.status === 'cancelled')
-      .reduce((acc, item) => acc + Number(item.total_amount || 0), 0);
-    const net = gross - voided;
-    return { gross, voided, net };
+    const voided = data.filter(i => i.status === 'cancelled').reduce((acc, i) => acc + Number(i.total_amount || 0), 0);
+    return { gross, voided, net: gross - voided };
   }, [searchResults]);
 
   const handleSearch = useCallback(async (queryOverride?: string, dateOverride?: string) => {
     const activeQuery = typeof queryOverride === 'string' ? queryOverride : searchQuery;
     const activeDate = dateOverride || selectedDate;
-    
     setIsLoading(true);
     setHasSearched(true);
-
     try {
-      const response = await api.get('/receipts/search', {
-        params: { 
-          query: activeQuery,
-          date: activeDate 
-        }
-      });
-      
+      const response = await api.get('/receipts/search', { params: { query: activeQuery, date: activeDate } });
       const data = Array.isArray(response.data) ? response.data : (response.data.data || []);
       setSearchResults(data);
-
       sessionStorage.setItem(`${CACHE_KEY}_query`, activeQuery);
       sessionStorage.setItem(`${CACHE_KEY}_date`, activeDate);
       sessionStorage.setItem(`${CACHE_KEY}_results`, JSON.stringify(data));
-
     } catch (error) {
       console.error("Search Error:", error);
-      setSearchResults([]); 
+      setSearchResults([]);
     } finally {
       setIsLoading(false);
       setShowKeyboard(false);
@@ -97,22 +81,16 @@ const SearchReceipts = () => {
   useEffect(() => {
     if (!isReady) return;
     if (!searchQuery && !hasSearched) return;
-
-    const delayDebounceFn = setTimeout(() => {
-      handleSearch(searchQuery, selectedDate);
-    }, 500);
-
-    return () => clearTimeout(delayDebounceFn);
+    const t = setTimeout(() => handleSearch(searchQuery, selectedDate), 500);
+    return () => clearTimeout(t);
   }, [searchQuery, selectedDate, handleSearch, hasSearched, isReady]);
 
   useEffect(() => {
     if (hasInitialized) return;
     hasInitialized = true;
-
     const cachedResults = sessionStorage.getItem(`${CACHE_KEY}_results`);
     const cachedQuery = sessionStorage.getItem(`${CACHE_KEY}_query`);
     const cachedDate = sessionStorage.getItem(`${CACHE_KEY}_date`);
-
     if (cachedResults) {
       try {
         const parsed = JSON.parse(cachedResults);
@@ -122,16 +100,11 @@ const SearchReceipts = () => {
           if (cachedDate) setSelectedDate(cachedDate);
           setHasSearched(true);
           setIsReady(true);
-        } else {
-          throw new Error("Invalid cache format");
+          return;
         }
-      } catch {
-        sessionStorage.removeItem(`${CACHE_KEY}_results`);
-        handleSearch('', selectedDate).then(() => setIsReady(true));
-      }
-    } else {
-      handleSearch('', selectedDate).then(() => setIsReady(true));
+      } catch { sessionStorage.removeItem(`${CACHE_KEY}_results`); }
     }
+    handleSearch('', selectedDate).then(() => setIsReady(true));
   }, [handleSearch, selectedDate]);
 
   const handleRefresh = () => {
@@ -139,7 +112,7 @@ const SearchReceipts = () => {
     sessionStorage.removeItem(`${CACHE_KEY}_query`);
     sessionStorage.removeItem(`${CACHE_KEY}_results`);
     sessionStorage.removeItem(`${CACHE_KEY}_date`);
-    hasInitialized = false; 
+    hasInitialized = false;
     setSearchQuery('');
     setSelectedDate(today);
     setIsReady(false);
@@ -149,21 +122,16 @@ const SearchReceipts = () => {
   const handleConfirmCancel = async () => {
     if (!cancelReason.trim() || !selectedSaleId) return;
     setIsVoiding(true);
-
     try {
-      const response = await api.patch(`/sales/${selectedSaleId}/cancel`, {
-        reason: cancelReason
-      });
-
+      const response = await api.patch(`/sales/${selectedSaleId}/cancel`, { reason: cancelReason });
       if (response.status === 200) {
-        const updatedData = searchResults.map(item => 
-          item.sale_id === selectedSaleId 
-            ? { ...item, status: 'cancelled' as const, cancellation_reason: cancelReason } 
+        const updated = searchResults.map(item =>
+          item.sale_id === selectedSaleId
+            ? { ...item, status: 'cancelled' as const, cancellation_reason: cancelReason }
             : item
         );
-
-        setSearchResults(updatedData);
-        sessionStorage.setItem(`${CACHE_KEY}_results`, JSON.stringify(updatedData));
+        setSearchResults(updated);
+        sessionStorage.setItem(`${CACHE_KEY}_results`, JSON.stringify(updated));
         setIsReasonModalOpen(false);
         setCancelReason('');
         localStorage.setItem('dashboard_needs_refresh', 'true');
@@ -172,149 +140,169 @@ const SearchReceipts = () => {
     } catch (error) {
       console.error("Cancellation failed:", error);
       showToast('Failed to cancel order.', 'error');
-    } finally {
-      setIsVoiding(false);
-    }
+    } finally { setIsVoiding(false); }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setSearchQuery(val);
     if (keyboardRef.current) {
-      // Cast to interface instead of 'any' to fix linting error 179:31
       (keyboardRef.current as unknown as SimpleKeyboardInstance).setInput(val);
     }
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-[#f8f6ff] animate-in fade-in zoom-in duration-300 relative overflow-hidden">
+    <div className="flex flex-col h-full w-full bg-[#f4f2fb] relative overflow-hidden">
       <TopNavbar />
 
-      <div className={`flex-1 flex flex-col items-center justify-start p-4 md:p-8 gap-6 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-70' : ''}`}>
-        
-        {/* COMMAND BAR */}
+      <div className={`flex-1 flex flex-col items-center justify-start p-5 md:p-7 gap-5 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-72' : ''}`}>
+
+        {/* ── Search Bar ── */}
         <div className="w-full max-w-6xl flex flex-col lg:flex-row gap-3">
-          <div className="flex-1 bg-white rounded-none border border-zinc-200 p-1 flex items-center shadow-sm">
-            <div className="p-3 text-zinc-300"><Search size={18}/></div>
-            <input 
-              type="text" 
+          {/* Search Input */}
+          <div className="flex-1 bg-white border border-zinc-200 flex items-center shadow-sm">
+            <div className="px-4 text-zinc-400"><Search size={17} /></div>
+            <input
+              type="text"
               value={searchQuery}
               onChange={handleInputChange}
               onFocus={() => setShowKeyboard(true)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder="ENTER OR NUMBER FOR AUDIT..."
-              className="flex-1 h-12 px-2 outline-none text-[#3b2063] font-black tracking-widest placeholder:text-zinc-200 bg-transparent text-sm"
+              placeholder="Search by OR number or transaction..."
+              className="flex-1 h-12 px-2 outline-none text-[#1a0f2e] font-semibold text-sm placeholder:text-zinc-300 bg-transparent"
             />
-            {searchQuery && <button onClick={() => {setSearchQuery(''); handleSearch('', selectedDate);}} className="p-3 text-zinc-300 hover:text-red-500"><X size={16}/></button>}
+            {searchQuery && (
+              <button onClick={() => { setSearchQuery(''); handleSearch('', selectedDate); }} className="px-4 text-zinc-300 hover:text-red-500 transition-colors">
+                <X size={15} />
+              </button>
+            )}
           </div>
 
           <div className="flex gap-3">
-            <div className="bg-white rounded-none border border-zinc-200 flex items-center px-5 gap-3 shadow-sm min-w-55">
-              <Calendar size={16} className="text-[#3b2063]" />
-              <input 
+            {/* Date Picker */}
+            <div className="bg-white border border-zinc-200 flex items-center px-5 gap-3 shadow-sm min-w-52">
+              <Calendar size={15} className="text-violet-500 shrink-0" />
+              <input
                 type="date"
                 value={selectedDate}
-                onChange={(e) => {
-                  const newDate = e.target.value;
-                  setSelectedDate(newDate);
-                  handleSearch(searchQuery, newDate); 
-                }}
-                className="outline-none text-[#3b2063] font-black bg-transparent cursor-pointer text-[11px] tracking-widest uppercase flex-1"
+                onChange={(e) => { setSelectedDate(e.target.value); handleSearch(searchQuery, e.target.value); }}
+                className="outline-none text-[#1a0f2e] font-semibold bg-transparent cursor-pointer text-sm flex-1"
               />
             </div>
-            
-            <button onClick={() => handleSearch()} disabled={isLoading} className="bg-[#3b2063] hover:bg-[#2a1647] text-white px-10 rounded-none font-black text-[10px] uppercase tracking-[0.3em] transition-all active:scale-[0.98] disabled:opacity-50 h-14">
-              {isLoading ? '...' : 'Execute Search'}
+
+            {/* Search Button */}
+            <button
+              onClick={() => handleSearch()}
+              disabled={isLoading}
+              className="bg-[#3b2063] hover:bg-[#2a1647] text-white px-8 font-bold text-sm uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 h-12"
+            >
+              {isLoading ? '...' : 'Search'}
             </button>
-            
-            <button onClick={handleRefresh} className="bg-white border border-zinc-200 text-zinc-400 hover:text-[#3b2063] px-5 rounded-none transition-all active:rotate-180 duration-500 shadow-sm">
-              <RotateCcw size={18} />
+
+            {/* Refresh */}
+            <button
+              onClick={handleRefresh}
+              className="bg-white border border-zinc-200 text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-4 transition-all duration-300 hover:rotate-180 shadow-sm"
+            >
+              <RotateCcw size={16} />
             </button>
           </div>
         </div>
 
-        {/* FINANCIAL SUMMARY STRIP */}
-        <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-3 gap-3">
-          <StatBox label="Gross Archive" value={stats.gross} icon={<ReceiptIcon size={16}/>} />
-          <StatBox label="Voided Archive" value={stats.voided} icon={<ShieldAlert size={16}/>} isDanger />
-          <StatBox label="Net Transferrable" value={stats.net} icon={<FileCheck size={16}/>} isBrand />
+        {/* ── Stats Strip ── */}
+        <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-3 gap-4">
+          <StatBox label="Gross Sales" value={stats.gross} icon={<ReceiptIcon size={16} />} />
+          <StatBox label="Voided Sales" value={stats.voided} icon={<ShieldAlert size={16} />} isDanger />
+          <StatBox label="Net Sales" value={stats.net} icon={<FileCheck size={16} />} isBrand />
         </div>
 
-        {/* DATA TABLE */}
-        <div className="w-full max-w-6xl bg-white rounded-none border border-zinc-200 overflow-hidden flex-1 flex flex-col shadow-sm">
-          <div className="px-8 py-5 border-b border-zinc-100 bg-zinc-50 flex justify-between items-center">
-            <div className="flex items-center gap-4">
-               <div className="p-2 bg-[#3b2063] text-white rounded-none"><Terminal size={14}/></div>
-               <div className="flex flex-col">
-                  <h3 className="text-[#3b2063] font-black text-[10px] uppercase tracking-[0.3em]">Transaction Audit Journal</h3>
-                  <div className="flex items-center gap-1.5 mt-1 text-[9px] font-black text-zinc-300 uppercase tracking-widest">
-                    <Clock size={10} />
-                    <span>Reference: {new Date(selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                  </div>
-               </div>
+        {/* ── Table ── */}
+        <div className="w-full max-w-6xl bg-white border border-zinc-200 overflow-hidden flex-1 flex flex-col shadow-sm">
+
+          {/* Table Header */}
+          <div className="px-7 py-5 border-b border-zinc-100 flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-[#3b2063] flex items-center justify-center">
+                <Terminal size={15} className="text-white" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-[#1a0f2e] uppercase tracking-widest">Transaction Audit Journal</h3>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <Clock size={11} className="text-zinc-400" />
+                  <span className="text-[11px] font-medium text-zinc-400">
+                    {new Date(selectedDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                  </span>
+                </div>
+              </div>
             </div>
-            <span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest bg-white border border-zinc-200 px-4 py-1.5 rounded-none">
-              {searchResults.length} ENTRIES FOUND
+            <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest bg-zinc-50 border border-zinc-200 px-4 py-2">
+              {searchResults.length} entries
             </span>
           </div>
-          
-          <div className="flex-1 overflow-auto no-scrollbar">
+
+          {/* Table Body */}
+          <div className="flex-1 overflow-auto">
             <table className="w-full text-left">
               <thead className="sticky top-0 bg-white z-10 border-b border-zinc-100">
                 <tr>
-                  <th className="px-8 py-4 text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em]">OR Reference / Status</th>
-                  <th className="px-6 py-4 text-center text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em]">Term #</th>
-                  <th className="px-6 py-4 text-center text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em]">Qty</th>
-                  <th className="px-8 py-4 text-right text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em]">Total Sale</th>
-                  <th className="px-6 py-4 text-center text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em]">Action</th>
+                  <th className="px-7 py-3.5 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">OR / Status</th>
+                  <th className="px-6 py-3.5 text-center text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Terminal</th>
+                  <th className="px-6 py-3.5 text-center text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Items</th>
+                  <th className="px-7 py-3.5 text-right text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Total</th>
+                  <th className="px-6 py-3.5 text-center text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Void</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-50">
+              <tbody className="divide-y divide-zinc-100">
                 {isLoading ? (
                   <TableSkeleton />
                 ) : searchResults.length > 0 ? (
                   searchResults.map((item, index) => (
-                    <tr 
-                      key={item.sale_id || item.si_number || `receipt-${index}`} 
-                      className="hover:bg-[#f8f6ff] transition-colors group"
-                    >
-                      <td className="px-8 py-5">
-                        <div className="flex items-center gap-3">
-                          <span className="font-black text-[#3b2063] text-sm tabular-nums tracking-tighter">#{item.si_number}</span>
-                          <span className={`text-[8px] font-black px-2 py-0.5 border uppercase tracking-widest rounded-none ${item.status === 'cancelled' ? 'bg-red-50 text-red-600 border-red-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
+                    <tr key={item.sale_id || item.si_number || `receipt-${index}`} className="hover:bg-[#f4f2fb] transition-colors">
+                      <td className="px-7 py-4">
+                        <div className="flex items-center gap-2.5">
+                          <span className="font-bold text-[#1a0f2e] text-sm tabular-nums">#{item.si_number}</span>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 border uppercase tracking-widest ${
+                            item.status === 'cancelled'
+                              ? 'bg-red-50 text-red-600 border-red-100'
+                              : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                          }`}>
                             {item.status === 'cancelled' ? 'Voided' : 'Settled'}
                           </span>
                         </div>
-                        <p className="text-[9px] text-zinc-300 font-black uppercase tracking-widest mt-1">
-                          Timestamp: {item.created_at ? new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : 'N/A'}
+                        <p className="text-[11px] text-zinc-400 font-medium mt-0.5">
+                          {item.created_at
+                            ? new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+                            : 'N/A'}
                         </p>
                       </td>
-                      <td className="px-6 py-5 text-center font-black text-zinc-400 text-xs tabular-nums">{item.terminal}</td>
-                      <td className="px-6 py-5 text-center font-black text-[#3b2063] text-xs tabular-nums">{item.items_count}</td>
-                      <td className="px-8 py-5 text-right">
-                        <span className={`text-sm font-black tabular-nums ${item.status === 'cancelled' ? 'text-zinc-200 line-through' : 'text-[#3b2063]'}`}>
-                          ₱ {Number(item.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      <td className="px-6 py-4 text-center text-sm font-semibold text-zinc-500 tabular-nums">{item.terminal}</td>
+                      <td className="px-6 py-4 text-center text-sm font-bold text-[#1a0f2e] tabular-nums">{item.items_count}</td>
+                      <td className="px-7 py-4 text-right">
+                        <span className={`text-sm font-bold tabular-nums ${item.status === 'cancelled' ? 'text-zinc-300 line-through' : 'text-[#1a0f2e]'}`}>
+                          ₱{Number(item.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                         </span>
                       </td>
-                      <td className="px-6 py-5 text-center">
+                      <td className="px-6 py-4 text-center">
                         {item.status !== 'cancelled' ? (
                           <button
                             onClick={() => { setSelectedSaleId(item.sale_id); setIsReasonModalOpen(true); }}
-                            className="bg-white border border-red-100 text-red-500 hover:bg-red-500 hover:text-white p-2.5 rounded-none transition-all active:translate-y-0.5"
+                            className="w-9 h-9 inline-flex items-center justify-center bg-white border border-red-200 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all"
                           >
-                            <X size={14} strokeWidth={3} />
+                            <X size={14} strokeWidth={2.5} />
                           </button>
-                        ) : <div className="p-2.5 opacity-0"><X size={14}/></div>}
+                        ) : (
+                          <div className="w-9 h-9" />
+                        )}
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
                     <td colSpan={5} className="py-24 text-center">
-                       <ReceiptIcon size={40} className="mx-auto text-zinc-100 mb-3" />
-                       <p className="text-[10px] text-zinc-300 uppercase font-black tracking-[0.3em]">
-                        {hasSearched ? "No matching audit logs" : "Initialize search for journal review"}
-                       </p>
+                      <ReceiptIcon size={36} className="mx-auto text-zinc-200 mb-3" />
+                      <p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">
+                        {hasSearched ? 'No matching transactions found' : 'Search to load journal entries'}
+                      </p>
                     </td>
                   </tr>
                 )}
@@ -324,35 +312,44 @@ const SearchReceipts = () => {
         </div>
       </div>
 
-      {/* VOID AUTHORIZATION MODAL */}
+      {/* ── Void Modal ── */}
       {isReasonModalOpen && (
-        <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-md rounded-none border border-zinc-200 p-10 shadow-2xl">
+        <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-md border border-zinc-200 p-9 shadow-2xl">
             <div className="flex items-center gap-3 mb-6">
-               <div className="p-2 bg-red-50 text-red-600 rounded-none"><ShieldAlert size={20}/></div>
-               <h2 className="text-[#3b2063] font-black text-lg uppercase tracking-widest">Void Authorization</h2>
+              <div className="w-10 h-10 bg-red-50 border border-red-100 flex items-center justify-center">
+                <ShieldAlert size={18} className="text-red-600" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Authorization Required</p>
+                <h2 className="text-sm font-bold text-[#1a0f2e] uppercase tracking-widest">Void Transaction</h2>
+              </div>
             </div>
-            <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-4 ml-1">Input Justification</p>
-            <textarea 
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-              placeholder="DESCRIBE REASON FOR CANCELLATION..."
-              className="w-full h-32 p-5 bg-[#f8f6ff] border border-zinc-100 rounded-none outline-none focus:border-[#3b2063] transition-all text-xs font-black uppercase tracking-widest text-[#3b2063] resize-none"
-            />
-            <div className="flex gap-2 mt-8">
-              <button 
-                onClick={() => { setIsReasonModalOpen(false); setCancelReason(''); }} 
+
+            <div className="space-y-1.5 mb-5">
+              <label className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 block">Reason for Cancellation</label>
+              <textarea
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Describe the reason for this void..."
+                className="w-full h-28 p-4 bg-[#f4f2fb] border border-zinc-200 outline-none focus:border-[#3b2063] transition-all text-sm font-medium text-[#1a0f2e] resize-none"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setIsReasonModalOpen(false); setCancelReason(''); }}
                 disabled={isVoiding}
-                className="flex-1 py-4 bg-zinc-50 border border-zinc-100 text-zinc-400 font-black text-[10px] uppercase tracking-[0.2em] rounded-none hover:bg-zinc-100 transition-colors"
+                className="flex-1 py-3.5 bg-white border border-zinc-200 text-zinc-600 font-bold text-sm uppercase tracking-widest hover:bg-zinc-50 transition-colors"
               >
-                Abort
+                Cancel
               </button>
-              <button 
-                onClick={handleConfirmCancel} 
+              <button
+                onClick={handleConfirmCancel}
                 disabled={isVoiding || !cancelReason.trim()}
-                className="flex-1 py-4 bg-red-600 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-none shadow-lg active:scale-[0.98] disabled:opacity-50"
+                className="flex-1 py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold text-sm uppercase tracking-widest transition-colors disabled:opacity-50 active:scale-[0.98]"
               >
-                {isVoiding ? 'Authorizing...' : 'Confirm Void'}
+                {isVoiding ? 'Processing...' : 'Confirm Void'}
               </button>
             </div>
           </div>
@@ -362,16 +359,21 @@ const SearchReceipts = () => {
   );
 };
 
-// --- HELPER COMPONENT (PASSING LINTING) ---
-const StatBox = ({ label, value, icon, isDanger, isBrand }: { label: string; value: number; icon: React.ReactNode; isDanger?: boolean; isBrand?: boolean }) => (
-  <div className={`p-6 border border-zinc-200 flex flex-col justify-between shadow-sm rounded-none ${isBrand ? 'bg-[#3b2063]' : 'bg-white'}`}>
-    <div className="flex items-center justify-between mb-4">
-      <p className={`text-[9px] font-black uppercase tracking-[0.3em] ${isBrand ? 'text-purple-300' : 'text-zinc-400'}`}>{label}</p>
-      <div className={`p-1.5 rounded-none ${isBrand ? 'text-purple-300 bg-white/10' : 'text-zinc-300 bg-zinc-50'}`}>{icon}</div>
+// ── Stat Box ──────────────────────────────────────────────────────────────────
+const StatBox = ({ label, value, icon, isDanger, isBrand }: {
+  label: string; value: number; icon: React.ReactNode; isDanger?: boolean; isBrand?: boolean;
+}) => (
+  <div className={`px-6 py-5 border flex items-center justify-between shadow-sm ${isBrand ? 'bg-[#3b2063] border-[#2a1647]' : 'bg-white border-zinc-200'}`}>
+    <div>
+      <p className={`text-[11px] font-bold uppercase tracking-widest mb-1 ${isBrand ? 'text-violet-300' : 'text-zinc-500'}`}>{label}</p>
+      <p className={`text-2xl font-bold tabular-nums ${isBrand ? 'text-white' : isDanger ? 'text-red-600' : 'text-[#1a0f2e]'}`}>
+        {isDanger && value > 0 && <span className="text-base mr-1">-</span>}
+        ₱{value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+      </p>
     </div>
-    <p className={`text-2xl font-black tabular-nums ${isBrand ? 'text-white' : (isDanger ? 'text-red-500' : 'text-zinc-400')}`}>
-      {isDanger && '- '}₱ {value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-    </p>
+    <div className={`w-10 h-10 flex items-center justify-center ${isBrand ? 'bg-white/10 text-violet-200' : 'bg-zinc-50 border border-zinc-200 text-zinc-400'}`}>
+      {icon}
+    </div>
   </div>
 );
 

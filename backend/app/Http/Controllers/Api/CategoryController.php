@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Models\SubCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class CategoryController extends Controller
 {
@@ -81,6 +82,8 @@ class CategoryController extends Controller
 
             DB::commit();
 
+            Cache::forget('menu_data_v3');
+
             // Return with menu_items_count appended manually — NOT saved to DB
             return response()->json(
                 array_merge($category->toArray(), ['menu_items_count' => 0]),
@@ -99,6 +102,7 @@ class CategoryController extends Controller
     {
         $category = Category::findOrFail($id);
         $category->delete();
+        Cache::forget('menu_data_v3');
         return response()->json(['message' => 'Category deleted successfully']);
     }
 
@@ -114,6 +118,7 @@ class CategoryController extends Controller
             $category = Category::findOrFail($id);
             $category->update($validated);
             $category->loadCount('menu_items');
+            Cache::forget('menu_data_v3');
 
             return response()->json($category);
         } catch (\Exception $e) {

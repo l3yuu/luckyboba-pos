@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\{ BackupController, CashCountController, CashTransactionController, CategoryController, DashboardController, DiscountController, ExpenseController, InventoryController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SettingsController, SubCategoryController, UploadController, VoucherController, AddOnController };
 use App\Http\Controllers\Api\CupController;
+use App\Http\Controllers\Api\RawMaterialController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Models\User;
 use Illuminate\Http\Request; 
@@ -123,6 +124,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/import-history', [UploadController::class, 'importHistory']);
         Route::post('/upload-discounts', [UploadController::class, 'uploadDiscounts']);
     });
+
+    // --- RAW MATERIALS ---
+    Route::get('/raw-materials/low-stock', [RawMaterialController::class, 'lowStock']);
+    Route::post('/raw-materials/{rawMaterial}/adjust', [RawMaterialController::class, 'adjust']);
+    Route::get('/raw-materials/{rawMaterial}/history', [RawMaterialController::class, 'history']);
+    Route::apiResource('raw-materials', RawMaterialController::class);
 
     Route::get('/settings', [SettingsController::class, 'index']);
     Route::post('/settings', [SettingsController::class, 'update']);

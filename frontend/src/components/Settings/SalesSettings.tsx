@@ -253,7 +253,7 @@ const SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
           <div className="flex-1 flex flex-col items-center justify-center gap-6 max-w-sm">
             <img src={logo} alt="Lucky Boba" className="w-24 h-auto object-contain mb-2" />
             <div className="space-y-1">
-              <p className="text-xs text-slate-600 font-bold">Vipra sangandaan Quezon City</p>
+              <p className="text-xs text-slate-600 font-bold">Vipra Sangandaan Quezon City</p>
               <p className="text-xs text-slate-800 font-black uppercase tracking-wide">LUCKY BOBA MILKTEA</p>
               <p className="text-xs text-slate-600 font-bold">Quezon City</p>
             </div>
@@ -264,8 +264,8 @@ const SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
             <div className="space-y-1">
               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">For Franchise</p>
               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Email or Contact us on</p>
-              <p className="text-xs text-slate-700 font-bold">luckybobafranchising@gmail.com</p>
-              <p className="text-xs text-slate-700 font-bold">09260029894</p>
+              <p className="text-xs text-slate-700 font-bold">luckyboba.franchise@gmail.com</p>
+              <p className="text-xs text-slate-700 font-bold">0917199894</p>
             </div>
           </div>
         </div>
