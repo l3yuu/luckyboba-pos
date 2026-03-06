@@ -307,7 +307,7 @@ const CategoryList = () => {
     setDeleteTarget(null);
     try {
       await api.delete(`/categories/${target.id}`);
-      bustServerCache();
+      
       setCategories(prev => prev.filter((cat) => cat.id !== target.id));
       localStorage.removeItem('pos_menu_cache');
       addToast(`"${target.name}" has been deleted.`);
