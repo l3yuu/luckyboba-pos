@@ -13,7 +13,8 @@ interface MenuItem {
   barcode: string | null;
   category: string | null;
   unitCost: number;
-  sellingPrice: number;
+  sellingPrice: number;  // ← this maps to 'price' from API
+  price: number;         // ← add this
   totalCost: number;
   status?: 'ACTIVE' | 'INACTIVE';
   type?: 'FOOD' | 'DRINK';

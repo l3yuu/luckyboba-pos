@@ -20,6 +20,7 @@ class MenuListController extends Controller
                     'menu_items.name as name',
                     'menu_items.barcode',
                     'menu_items.price as price',
+                    'menu_items.price as sellingPrice',
                     'menu_items.size',
                     'menu_items.cost as unitCost',        // ← 'cost' not 'unit_cost'
                     DB::raw('0.00 as totalCost'),
