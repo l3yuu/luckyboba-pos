@@ -113,9 +113,21 @@ const SalesOrder = () => {
             try {
                 const response = await api.get('/receipts/next-sequence');
                 const data = response.data;
-                setOrNumber(generateORNumber(data.next_sequence));
-                setQueueNumber(generateQueueNumber(data.next_sequence));
+                const serverSeq = data.next_sequence;
+
+                // Never go below what we last used locally
+                const localSeq = parseInt(localStorage.getItem('last_or_sequence') || '0');
+                const safeSeq = Math.max(serverSeq, localSeq + 1);
+
+                localStorage.setItem('last_or_sequence', String(safeSeq));
+                setOrNumber(generateORNumber(safeSeq));
+                setQueueNumber(generateQueueNumber(safeSeq));
             } catch (error) {
+                // Fallback to local if API fails entirely
+                const localSeq = parseInt(localStorage.getItem('last_or_sequence') || '0');
+                const fallbackSeq = localSeq + 1;
+                setOrNumber(generateORNumber(fallbackSeq));
+                setQueueNumber(generateQueueNumber(fallbackSeq));
                 console.error("Failed to sync OR sequence:", error);
             }
         };
@@ -490,6 +502,11 @@ const SalesOrder = () => {
             };
 
             await api.post('/sales', orderData);
+            const currentSeq = parseInt(orNumber.replace('OR-', ''), 10);
+            if (!isNaN(currentSeq)) {
+                localStorage.setItem('last_or_sequence', String(currentSeq));
+            }
+            localStorage.setItem('last_or_sequence', String(currentSeq));
             localStorage.setItem('dashboard_stats_timestamp', '0');
 
             const today = new Date().toISOString().split('T')[0];
@@ -541,9 +558,20 @@ const SalesOrder = () => {
         try {
             const response = await api.get('/receipts/next-sequence');
             const data = response.data;
-            setOrNumber(generateORNumber(data.next_sequence));
-            setQueueNumber(generateQueueNumber(data.next_sequence));
+            const serverSeq = data.next_sequence;
+
+            const localSeq = parseInt(localStorage.getItem('last_or_sequence') || '0');
+            const safeSeq = Math.max(serverSeq, localSeq + 1);
+
+            localStorage.setItem('last_or_sequence', String(safeSeq));
+            setOrNumber(generateORNumber(safeSeq));
+            setQueueNumber(generateQueueNumber(safeSeq));
         } catch (error) {
+            const localSeq = parseInt(localStorage.getItem('last_or_sequence') || '0');
+            const fallbackSeq = localSeq + 1;
+            localStorage.setItem('last_or_sequence', String(fallbackSeq));
+            setOrNumber(generateORNumber(fallbackSeq));
+            setQueueNumber(generateQueueNumber(fallbackSeq));
             console.error("Failed to sync sequence for new order:", error);
         }
     };
