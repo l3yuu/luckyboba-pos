@@ -146,6 +146,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'inventory-dashboard', label: 'Dashboard' },
     { id: 'inventory-list', label: 'Inventory List' },
     { id: 'inventory-category', label: 'Category List' },
+    { id: 'raw-materials', label: 'Raw Materials' },       // ← NEW
     { id: 'supplier', label: 'Supplier' },
     { id: 'item-checker', label: 'Item Checker' },
     { id: 'item-serials', label: 'Item Serials' },
