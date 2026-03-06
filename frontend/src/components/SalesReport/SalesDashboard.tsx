@@ -86,15 +86,21 @@ interface StatCardProps {
 }
 
 const StatCard = ({ label, value, icon, isSuccess, isBrand, isDanger }: StatCardProps) => (
-  <div className={`p-5 border flex flex-col justify-between shadow-sm rounded-none transition-all ${
-    isBrand ? 'bg-[#3b2063] border-[#2a174a]' : 'bg-white border-zinc-200 hover:border-[#3b2063]'
+  <div className={`px-5 py-4 border flex flex-col justify-between shadow-sm transition-all ${
+    isBrand ? 'bg-[#3b2063] border-[#2a174a]' : 'bg-white border-zinc-200 hover:border-violet-200'
   }`}>
-    <div className="flex items-center justify-between mb-2">
-      <p className={`text-[9px] font-black uppercase tracking-[0.3em] ${isBrand ? 'text-purple-300/60' : 'text-zinc-400'}`}>{label}</p>
-      <div className={`p-1.5 rounded-none ${isBrand ? 'text-purple-300 bg-white/5' : 'text-zinc-300 bg-zinc-50'}`}>{icon}</div>
+    <div className="flex items-center justify-between mb-3">
+      <p className={`text-[10px] font-bold uppercase tracking-widest ${isBrand ? 'text-violet-300' : 'text-zinc-500'}`}>
+        {label}
+      </p>
+      <div className={`w-7 h-7 flex items-center justify-center ${
+        isBrand ? 'bg-white/10 text-violet-200' : 'bg-zinc-50 border border-zinc-200 text-zinc-400'
+      }`}>
+        {icon}
+      </div>
     </div>
-    <p className={`text-base font-black tabular-nums tracking-tighter ${
-      isBrand ? 'text-white' : (isSuccess ? 'text-emerald-600' : isDanger ? 'text-red-500' : 'text-[#3b2063]')
+    <p className={`text-base font-bold tabular-nums ${
+      isBrand ? 'text-white' : isSuccess ? 'text-emerald-600' : isDanger ? 'text-red-600' : 'text-[#1a0f2e]'
     }`}>
       {value}
     </p>

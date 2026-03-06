@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             SettingSeeder::class,
             ReceiptSeeder::class,
             CashCountSeeder::class,
+            RawMaterialSeeder::class,
         ]);
     }
 }
