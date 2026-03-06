@@ -230,12 +230,13 @@ function AdjustModal({ item, onClose, onSuccess }: {
     if (e.target === overlayRef.current) onClose();
   };
 
-  const previewStock = useMemo(() => {
-    const qty = parseFloat(quantity) || 0;
-    if (type === 'add') return item.current_stock + qty;
-    if (type === 'subtract') return item.current_stock - qty;
-    return qty;
-  }, [type, quantity, item.current_stock]);
+    const previewStock = useMemo(() => {
+        const qty = parseFloat(quantity) || 0;
+        const currentStock = parseFloat(String(item.current_stock)) || 0; // ← used below
+        if (type === 'add') return currentStock + qty;      // ← was item.current_stock
+        if (type === 'subtract') return currentStock - qty; // ← was item.current_stock
+        return qty;
+    }, [type, quantity, item.current_stock]);
 
   const handleSubmit = async () => {
     const qty = parseFloat(quantity);
@@ -244,7 +245,7 @@ function AdjustModal({ item, onClose, onSuccess }: {
     try {
       const response = await api.post(`/raw-materials/${item.id}/adjust`, { type, quantity: qty, reason });
       // Return a merged item since the API only returns current_stock
-      onSuccess({ ...item, current_stock: response.data.current_stock });
+      onSuccess({ ...item, current_stock: parseFloat(String(response.data.current_stock)) });
       onClose();
     } catch (err) {
       const msg = axios.isAxiosError(err)
@@ -270,7 +271,7 @@ function AdjustModal({ item, onClose, onSuccess }: {
           <div className="bg-[#f3f0ff] px-4 py-3 border border-[#ddd6fe]">
             <p className="text-[11px] font-bold text-[#3b2063] uppercase tracking-widest">{item.name}</p>
             <p className="text-xs text-zinc-500 font-semibold mt-0.5">
-              Current Stock: <span className="text-[#1c1c1e] font-extrabold">{item.current_stock} {item.unit}</span>
+              Current Stock: <span className="text-[#1c1c1e] font-extrabold">{parseFloat(String(item.current_stock)).toFixed(2)} {item.unit}</span>
             </p>
           </div>
 
@@ -447,7 +448,10 @@ const RawMaterialList = () => {
       data = data.filter(m => m.category === categoryFilter);
     }
     if (lowStockOnly) {
-      data = data.filter(m => m.current_stock <= m.reorder_level && m.reorder_level > 0);
+        data = data.filter(m => 
+            parseFloat(String(m.current_stock)) < parseFloat(String(m.reorder_level)) && 
+            parseFloat(String(m.reorder_level)) > 0
+        );
     }
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
@@ -463,11 +467,13 @@ const RawMaterialList = () => {
     return entriesLimit === -1 ? data : data.slice(0, entriesLimit);
   }, [materials, categoryFilter, lowStockOnly, searchQuery, entriesLimit]);
 
-  const lowStockCount = useMemo(() =>
-    materials.filter(m => m.current_stock <= m.reorder_level && m.reorder_level > 0).length,
-    [materials]
-  );
-
+    const lowStockCount = useMemo(() =>
+        materials.filter(m => 
+            parseFloat(String(m.current_stock)) < parseFloat(String(m.reorder_level)) && 
+            parseFloat(String(m.reorder_level)) > 0
+        ).length,
+        [materials]
+    );
   // ── Handlers ────────────────────────────────────────────────────────────────
 
   const handleAddSuccess = (data: RawMaterial) => {
@@ -476,11 +482,15 @@ const RawMaterialList = () => {
     addToast(`"${data.name}" added successfully.`);
   };
 
-  const handleAdjustSuccess = (updated: RawMaterial) => {
-    setMaterials(prev => prev.map(m => m.id === updated.id ? { ...m, current_stock: updated.current_stock } : m));
-    localStorage.removeItem(CACHE_KEY);
-    addToast(`Stock updated for "${updated.name}".`);
-  };
+    const handleAdjustSuccess = (updated: RawMaterial) => {
+        setMaterials(prev => prev.map(m =>
+            m.id === updated.id
+                ? { ...m, current_stock: parseFloat(String(updated.current_stock)) }  // ← parse here
+                : m
+        ));
+        localStorage.removeItem(CACHE_KEY);
+        addToast(`Stock updated for "${updated.name}".`);
+    };
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
@@ -636,7 +646,7 @@ const RawMaterialList = () => {
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
                   {displayData.length > 0 ? displayData.map((item) => {
-                    const isLow = item.current_stock <= item.reorder_level && item.reorder_level > 0;
+                    const isLow = parseFloat(String(item.current_stock)) < parseFloat(String(item.reorder_level)) && parseFloat(String(item.reorder_level)) > 0;
                     return (
                       <tr key={item.id} className={`transition-colors ${isLow ? 'bg-red-50 hover:bg-red-100/60' : 'hover:bg-[#f9f8ff]'}`}>
                         <td className="px-7 py-3.5">
