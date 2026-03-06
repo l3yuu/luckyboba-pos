@@ -7,6 +7,7 @@ use App\Models\SubCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 
 class SubCategoryController extends Controller
 {
@@ -45,6 +46,8 @@ class SubCategoryController extends Controller
 
         try {
             $sub = SubCategory::create($validated);
+
+            Cache::forget('menu_data_v3');
             
             // Return the new object formatted for your React state
             return response()->json([
@@ -75,6 +78,8 @@ class SubCategoryController extends Controller
             $subCategory->load('category');
             $subCategory->loadCount('menuItems');
 
+            Cache::forget('menu_data_v3');
+
             return response()->json([
                 'id' => $subCategory->id,
                 'name' => $subCategory->name,
@@ -104,6 +109,8 @@ class SubCategoryController extends Controller
             }
 
             $subCategory->delete();
+
+            Cache::forget('menu_data_v3');
 
             return response()->json([
                 'message' => 'Sub-category deleted successfully'

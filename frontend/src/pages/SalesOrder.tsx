@@ -113,9 +113,21 @@ const SalesOrder = () => {
             try {
                 const response = await api.get('/receipts/next-sequence');
                 const data = response.data;
-                setOrNumber(generateORNumber(data.next_sequence));
-                setQueueNumber(generateQueueNumber(data.next_sequence));
+                const serverSeq = data.next_sequence;
+
+                // Never go below what we last used locally
+                const localSeq = parseInt(localStorage.getItem('last_or_sequence') || '0');
+                const safeSeq = Math.max(serverSeq, localSeq + 1);
+
+                localStorage.setItem('last_or_sequence', String(safeSeq));
+                setOrNumber(generateORNumber(safeSeq));
+                setQueueNumber(generateQueueNumber(safeSeq));
             } catch (error) {
+                // Fallback to local if API fails entirely
+                const localSeq = parseInt(localStorage.getItem('last_or_sequence') || '0');
+                const fallbackSeq = localSeq + 1;
+                setOrNumber(generateORNumber(fallbackSeq));
+                setQueueNumber(generateQueueNumber(fallbackSeq));
                 console.error("Failed to sync OR sequence:", error);
             }
         };
@@ -224,27 +236,41 @@ const SalesOrder = () => {
         setCategorySize(null);
 
         const subCats = cat.sub_categories ?? [];
+        const isDrinkCat = cat.type === 'drink';
+        const isWingsCat = cat.name === 'CHICKEN WINGS';
 
+        // ── Non-drink, non-wings: skip size picker entirely ──────────────────
+        if (!isDrinkCat && !isWingsCat) {
+            setCategorySize('all');
+            return;
+        }
+
+        // ── Wings: handled separately via WINGS_QUANTITIES picker ────────────
+        if (isWingsCat) {
+            // categorySize stays null → triggers the wings quantity picker
+            return;
+        }
+
+        // ── Drinks only below this point ──────────────────────────────────────
         if (subCats.length === 1) {
-            // Only one sub-category — skip picker
             setCategorySize(subCats[0].name);
             return;
         }
 
-        // Food/wings with no sub-categories — no size needed
         if (subCats.length === 0) {
-            const allL = cat.menu_items?.length > 0 && cat.menu_items?.every(item => item.size === 'L');
-            const allM = cat.menu_items?.length > 0 && cat.menu_items?.every(item => item.size === 'M');
             const noSizeL = cat.cup?.size_l === null || cat.cup?.size_l === undefined;
-            if (allL && noSizeL) setCategorySize(cat.cup?.size_m || 'M');
-            else if (allM && noSizeL) setCategorySize(cat.cup?.size_m || 'M');
+            if (noSizeL) setCategorySize(cat.cup?.size_m || 'M');
+            // else: stay null → show M/L cup picker
         }
-        // 2+ sub-categories → show picker
+        // 2+ sub-categories → stay null → show sub-category picker
     };
 
     const handleBack = () => {
-        if ((isDrink || isWings || isOz) && categorySize && !categoryHasOnlyOneSize) {
-            setCategorySize(null);
+        const isDrinkCat = selectedCategory?.type === 'drink';
+        const isWingsCat = selectedCategory?.name === 'CHICKEN WINGS';
+
+        if ((isDrinkCat || isWingsCat) && categorySize && !categoryHasOnlyOneSize) {
+            setCategorySize(null); // back to size/quantity picker
         } else {
             setSelectedCategory(null);
             setCategorySize(null);
@@ -252,22 +278,30 @@ const SalesOrder = () => {
     };
 
     const getFilteredItems = (items: MenuItem[]): MenuItem[] => {
-        if (!categorySize) return items;
-        if (isWings) return items.filter(item => item.size === categorySize);
+        if (!categorySize || categorySize === 'all') return items;
+
+        if (isWings) {
+            // Try sub_category_id match first (new items)
+            const selectedSub = selectedCategory?.sub_categories?.find(
+                s => s.name === categorySize
+            );
+            if (selectedSub) {
+                return items.filter(item => item.sub_category_id === selectedSub.id);
+            }
+            // Legacy fallback: match by size field
+            return items.filter(item => item.size === categorySize);
+        }
 
         // Find the selected sub-category's id
         const selectedSub = selectedCategory?.sub_categories?.find(
             s => s.name === categorySize
         );
 
-        // If item has sub_category_id, filter by that (new items added via menu list)
-        // Otherwise fall back to size field (legacy items)
         if (selectedSub) {
             return items.filter(item => {
                 if (item.sub_category_id != null) {
                     return item.sub_category_id === selectedSub.id;
                 }
-                // Legacy fallback: filter by size
                 const cupSizeM = selectedCategory?.cup?.size_m || 'M';
                 const cupSizeL = selectedCategory?.cup?.size_l || 'L';
                 if (categorySize === cupSizeM) return item.size === 'M' || item.size === 'none';
@@ -276,7 +310,6 @@ const SalesOrder = () => {
             });
         }
 
-        // No sub-category match — legacy size filter
         const cupSizeM = selectedCategory?.cup?.size_m || 'M';
         const cupSizeL = selectedCategory?.cup?.size_l || 'L';
         if (categorySize === cupSizeM) return items.filter(item => item.size === 'M' || item.size === 'none');
@@ -469,6 +502,11 @@ const SalesOrder = () => {
             };
 
             await api.post('/sales', orderData);
+            const currentSeq = parseInt(orNumber.replace('OR-', ''), 10);
+            if (!isNaN(currentSeq)) {
+                localStorage.setItem('last_or_sequence', String(currentSeq));
+            }
+            localStorage.setItem('last_or_sequence', String(currentSeq));
             localStorage.setItem('dashboard_stats_timestamp', '0');
 
             const today = new Date().toISOString().split('T')[0];
@@ -520,9 +558,20 @@ const SalesOrder = () => {
         try {
             const response = await api.get('/receipts/next-sequence');
             const data = response.data;
-            setOrNumber(generateORNumber(data.next_sequence));
-            setQueueNumber(generateQueueNumber(data.next_sequence));
+            const serverSeq = data.next_sequence;
+
+            const localSeq = parseInt(localStorage.getItem('last_or_sequence') || '0');
+            const safeSeq = Math.max(serverSeq, localSeq + 1);
+
+            localStorage.setItem('last_or_sequence', String(safeSeq));
+            setOrNumber(generateORNumber(safeSeq));
+            setQueueNumber(generateQueueNumber(safeSeq));
         } catch (error) {
+            const localSeq = parseInt(localStorage.getItem('last_or_sequence') || '0');
+            const fallbackSeq = localSeq + 1;
+            localStorage.setItem('last_or_sequence', String(fallbackSeq));
+            setOrNumber(generateORNumber(fallbackSeq));
+            setQueueNumber(generateQueueNumber(fallbackSeq));
             console.error("Failed to sync sequence for new order:", error);
         }
     };
