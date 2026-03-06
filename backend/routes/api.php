@@ -26,7 +26,8 @@ use Illuminate\Support\Facades\DB;
 |--------------------------------------------------------------------------
 | superadmin      → ALL routes
 | branch_manager  → Sales, Transactions, EOD, Catalog, Inventory,
-|                   Expenses/Discounts/Vouchers, Reports, Settings, Branches
+|                   Expenses/Discounts/Vouchers, Reports, Settings, Branches,
+|                   Create/Edit/Delete/Toggle CASHIER users only
 | cashier         → Sales, Transactions, EOD, Catalog, Menu only
 | system_admin    → (extend as needed)
 | customer        → Public routes only
@@ -39,68 +40,46 @@ use Illuminate\Support\Facades\DB;
 |--------------------------------------------------------------------------
 */
 
-// 1. Public Menu
 Route::get('/public-menu', function () {
     $items = DB::table('menu_items')
         ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
         ->select(
-            'menu_items.id',
-            'menu_items.name',
-            'menu_items.barcode',
-            'menu_items.quantity',
-            'categories.name as category',
+            'menu_items.id', 'menu_items.name', 'menu_items.barcode',
+            'menu_items.quantity', 'categories.name as category',
             'menu_items.price as sellingPrice'
-        )
-        ->get();
-
+        )->get();
     return response()->json($items);
 });
 
-// 2. Mobile Login
 Route::post('/login', function (Request $request) {
-    $request->validate([
-        'email'    => 'required|email',
-        'password' => 'required',
-    ]);
-
+    $request->validate(['email' => 'required|email', 'password' => 'required']);
     $user = User::where('email', $request->email)->first();
-
     if (! $user || ! Hash::check($request->password, $user->password)) {
         return response()->json(['message' => 'Invalid credentials'], 401);
     }
-
     $token = $user->createToken('lucky-boba-token')->plainTextToken;
-
-    return response()->json([
-        'token' => $token,
-        'user'  => $user,
-    ]);
+    return response()->json(['token' => $token, 'user' => $user]);
 });
 
-// 3. Mobile Signup
 Route::post('/register', function (Request $request) {
     $request->validate([
         'name'     => 'required|string|max:255',
         'email'    => 'required|string|email|max:255|unique:users',
         'password' => 'required|string|min:8',
     ]);
-
     $user = User::create([
         'name'     => $request->name,
         'email'    => $request->email,
         'password' => Hash::make($request->password),
         'role'     => 'customer',
     ]);
-
     $token = $user->createToken('lucky-boba-token')->plainTextToken;
-
     return response()->json(['token' => $token, 'user' => $user], 201);
 });
 
 /*
 |--------------------------------------------------------------------------
-| Protected Routes — All Authenticated Users
-| (auth:sanctum only — no role restriction yet at this level)
+| Protected Routes
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth:sanctum'])->group(function () {
@@ -111,17 +90,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
     /*
     |----------------------------------------------------------------------
     | CASHIER + BRANCH MANAGER + SUPERADMIN
-    | Sales, Transactions, EOD, Catalog
     |----------------------------------------------------------------------
     */
     Route::middleware(['role:superadmin,branch_manager,cashier'])->group(function () {
 
-        // --- 1. DASHBOARD ---
         Route::get('/dashboard/stats', [DashboardController::class, 'index']);
         Route::get('/app-init',        [DashboardController::class, 'init']);
         Route::get('/sales-analytics', [SalesDashboardController::class, 'index']);
 
-        // --- 2. SALES & TRANSACTIONS (POS) ---
         Route::prefix('sales')->group(function () {
             Route::get('/',              [SalesController::class, 'index']);
             Route::post('/',             [SalesController::class, 'store']);
@@ -138,14 +114,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/receipts/search',        [ReceiptController::class, 'search']);
         Route::get('/receipts/next-sequence', [ReceiptController::class, 'getNextSequence']);
 
-        // --- 3. END OF DAY (EOD) ---
         Route::prefix('cash-counts')->group(function () {
             Route::post('/',       [CashCountController::class, 'store']);
             Route::get('/status',  [CashCountController::class, 'checkEodStatus']);
             Route::get('/summary', [ReportController::class, 'getCashCountSummary']);
         });
 
-        // --- 4. CATALOG & MENU ---
         Route::get('/menu',              [MenuController::class, 'index']);
         Route::post('/menu/clear-cache', [MenuController::class, 'clearCache']);
         Route::apiResource('menu-list',  MenuListController::class)->only(['index', 'store']);
@@ -155,18 +129,16 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/sub-categories/filter/{categoryId}', [SubCategoryController::class, 'getByCategory']);
         Route::get('/cups', [CupController::class, 'index']);
 
-    }); // end cashier + branch_manager + superadmin
+    });
 
     /*
     |----------------------------------------------------------------------
     | BRANCH MANAGER + SUPERADMIN
-    | Inventory, Procurement, Expenses, Discounts, Vouchers,
-    | Reports, Settings, Branches, Cache
     |----------------------------------------------------------------------
     */
     Route::middleware(['role:superadmin,branch_manager'])->group(function () {
 
-        // --- 5. INVENTORY & PROCUREMENT ---
+        // Inventory & Procurement
         Route::prefix('inventory')->group(function () {
             Route::get('/',                [InventoryController::class, 'index']);
             Route::post('/',               [InventoryController::class, 'store']);
@@ -188,13 +160,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::patch('/{id}/status', [ItemSerialController::class, 'updateStatus']);
         });
 
-        // --- 6. EXPENSES, DISCOUNTS & VOUCHERS ---
+        // Expenses, Discounts & Vouchers
         Route::apiResource('expenses',  ExpenseController::class)->only(['index', 'store']);
         Route::apiResource('discounts', DiscountController::class)->except(['show', 'update']);
         Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
         Route::apiResource('vouchers', VoucherController::class)->only(['index', 'store']);
 
-        // --- 7. ANALYTICS & REPORTS ---
+        // Reports
         Route::prefix('reports')->group(function () {
             Route::get('/x-reading',          [SalesDashboardController::class, 'xReading']);
             Route::get('/z-reading',          [SalesDashboardController::class, 'zReading']);
@@ -213,55 +185,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::get('/dashboard-data',     [SalesDashboardController::class, 'dashboardData']);
         });
 
-        // --- 8. SETTINGS & MAINTENANCE ---
+        // Settings
         Route::get('/settings',  [SettingsController::class, 'index']);
         Route::post('/settings', [SettingsController::class, 'update']);
 
-        // --- 10. BRANCHES (read + analytics only) ---
-        Route::prefix('branches')->group(function () {
-            Route::get('/performance',        [BranchController::class, 'performance']);
-            Route::get('/today-sales',        [BranchController::class, 'todaySales']);
-            Route::get('/',                   [BranchController::class, 'index']);
-            Route::get('/{id}/daily-sales',   [BranchController::class, 'dailySales']);
-            Route::get('/{id}/sales-summary', [BranchController::class, 'salesSummary']);
-            Route::get('/{id}/analytics',     [BranchController::class, 'analytics']);
-            Route::get('/{id}',               [BranchController::class, 'show']);
-        });
-
-        // --- 11. CACHE ---
-        Route::get('/cache/all',             [CacheController::class, 'all']);
-        Route::post('/cache/reload/{table}', [CacheController::class, 'reload']);
-
-    }); // end branch_manager + superadmin
-
-    /*
-    |----------------------------------------------------------------------
-    | SUPERADMIN ONLY
-    | User management, branch mutations, system backup,
-    | uploads, audit logs, SuperAdmin reports
-    |----------------------------------------------------------------------
-    */
-    Route::middleware(['role:superadmin'])->group(function () {
-
-        // --- 7b. SUPERADMIN REPORTS ---
-        Route::prefix('reports')->group(function () {
-            // Body: { "period": "daily|weekly|monthly", "branch_id": 1, "date": "YYYY-MM-DD" }
-            Route::post('/sales-summary',     [SuperAdminReportController::class, 'salesSummary']);
-            // Body: { "period": "daily|weekly|monthly", "date": "YYYY-MM-DD" }
-            Route::post('/branch-comparison', [SuperAdminReportController::class, 'branchComparison']);
-        });
-
-        // --- 8b. SYSTEM MAINTENANCE ---
-        Route::prefix('system')->group(function () {
-            Route::get('/audit',             [SettingsController::class, 'getAuditLogs']);
-            Route::get('/backup-status',     [BackupController::class, 'lastBackupStatus']);
-            Route::post('/run-backup',       [BackupController::class, 'runBackup']);
-            Route::post('/upload',           [UploadController::class, 'upload']);
-            Route::get('/import-history',    [UploadController::class, 'importHistory']);
-            Route::post('/upload-discounts', [UploadController::class, 'uploadDiscounts']);
-        });
-
-        // --- 9. USER MANAGEMENT ---
+        // --- USER MANAGEMENT ---
+        // branch_manager → UserController enforces cashier-only creation/editing
+        // superadmin     → full access to all roles
         Route::prefix('users')->group(function () {
             Route::get('/',                     [UserController::class, 'index']);
             Route::post('/',                    [UserController::class, 'store']);
@@ -272,7 +202,44 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::patch('/{id}/toggle-status', [UserController::class, 'toggleStatus']);
         });
 
-        // --- 10b. BRANCH MUTATIONS ---
+        // Branches (read + analytics)
+        Route::prefix('branches')->group(function () {
+            Route::get('/performance',        [BranchController::class, 'performance']);
+            Route::get('/today-sales',        [BranchController::class, 'todaySales']);
+            Route::get('/',                   [BranchController::class, 'index']);
+            Route::get('/{id}/daily-sales',   [BranchController::class, 'dailySales']);
+            Route::get('/{id}/sales-summary', [BranchController::class, 'salesSummary']);
+            Route::get('/{id}/analytics',     [BranchController::class, 'analytics']);
+            Route::get('/{id}',               [BranchController::class, 'show']);
+        });
+
+        // Cache
+        Route::get('/cache/all',             [CacheController::class, 'all']);
+        Route::post('/cache/reload/{table}', [CacheController::class, 'reload']);
+
+    });
+
+    /*
+    |----------------------------------------------------------------------
+    | SUPERADMIN ONLY
+    |----------------------------------------------------------------------
+    */
+    Route::middleware(['role:superadmin'])->group(function () {
+
+        Route::prefix('reports')->group(function () {
+            Route::post('/sales-summary',     [SuperAdminReportController::class, 'salesSummary']);
+            Route::post('/branch-comparison', [SuperAdminReportController::class, 'branchComparison']);
+        });
+
+        Route::prefix('system')->group(function () {
+            Route::get('/audit',             [SettingsController::class, 'getAuditLogs']);
+            Route::get('/backup-status',     [BackupController::class, 'lastBackupStatus']);
+            Route::post('/run-backup',       [BackupController::class, 'runBackup']);
+            Route::post('/upload',           [UploadController::class, 'upload']);
+            Route::get('/import-history',    [UploadController::class, 'importHistory']);
+            Route::post('/upload-discounts', [UploadController::class, 'uploadDiscounts']);
+        });
+
         Route::prefix('branches')->group(function () {
             Route::post('/',                    [BranchController::class, 'store']);
             Route::put('/{id}',                 [BranchController::class, 'update']);
@@ -280,6 +247,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::post('/{id}/refresh-totals', [BranchController::class, 'refreshTotals']);
         });
 
-    }); // end superadmin only
+    });
 
 }); // end auth:sanctum

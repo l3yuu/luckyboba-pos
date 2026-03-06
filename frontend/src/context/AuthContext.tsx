@@ -28,17 +28,14 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  // ✅ FIX 1: Always start loading if a token exists — never trust localStorage user directly
   const [isLoading, setIsLoading] = useState<boolean>(
     () => !!localStorage.getItem('lucky_boba_token')
   );
   const [error, setError] = useState<string | null>(null);
-  const [user, setUser] = useState<User | null>(() => {
-    const token = localStorage.getItem('lucky_boba_token');
-    const name = localStorage.getItem('lucky_boba_user_name');
-    const role = localStorage.getItem('lucky_boba_user_role');
-    if (token && name) return { name, role: role || 'cashier' } as User;
-    return null;
-  });
+
+  // ✅ FIX 2: Always start as null — wait for server to confirm before setting user
+  const [user, setUser] = useState<User | null>(null);
 
   const clearSession = useCallback(() => {
     AUTH_KEYS.forEach((key) => localStorage.removeItem(key));
@@ -56,6 +53,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     try {
+      // ✅ FIX 3: Only set user AFTER server confirms the token is valid
       const response = await api.get('/user');
       const userData = response.data;
       localStorage.setItem('lucky_boba_user_name', userData.name);
@@ -63,6 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('lucky_boba_user_branch', userData.branch_name ?? '');
       setUser(userData);
     } catch {
+      // Token is invalid/expired — clear everything and send to login
       clearSession();
     } finally {
       setIsLoading(false);

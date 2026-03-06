@@ -39,7 +39,14 @@ class UserController extends Controller
     public function index(Request $request)
     {
         try {
+            $authUser = $request->user();
             $query = User::orderBy('created_at', 'desc');
+
+            // Branch managers can only see cashiers in their own branch
+            if ($authUser->role === 'branch_manager') {
+                $query->where('role', 'cashier')
+                      ->where('branch_name', $authUser->branch_name);
+            }
 
             if ($request->query('status')) {
                 $query->where('status', $request->query('status'));
@@ -78,10 +85,21 @@ class UserController extends Controller
     /**
      * GET /api/users/{id}
      */
-    public function show($id)
+    public function show(Request $request, $id)
     {
         try {
+            $authUser = $request->user();
             $user = User::findOrFail($id);
+
+            // Branch managers can only view cashiers in their branch
+            if ($authUser->role === 'branch_manager') {
+                if ($user->role !== 'cashier' || $user->branch_name !== $authUser->branch_name) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Access denied. Branch managers can only view cashiers in their branch.',
+                    ], 403);
+                }
+            }
 
             return response()->json([
                 'success' => true,
@@ -102,85 +120,106 @@ class UserController extends Controller
      * POST /api/users
      */
     public function store(Request $request)
-{
-    $validator = Validator::make($request->all(), [
-        'name'     => 'required|string|max:255',
-        'email'    => 'required|email|max:255|unique:users,email',
-        'password' => 'required|string|min:6',
-        'role'     => 'required|in:superadmin,admin,manager,cashier',
-        'branch'   => 'nullable|string|max:255',
-        'status'   => 'required|in:ACTIVE,INACTIVE',
-    ]);
+    {
+        $authUser = $request->user();
 
-    if ($validator->fails()) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Validation failed',
-            'errors'  => $validator->errors()
-        ], 422);
-    }
-
-    try {
-        $creator = auth()->user();
-        $isBranchManager = in_array($creator->role, ['branch_manager', 'manager', 'admin']);
-
-        $branchId = null;
-        $branchName = null;
-
-        if ($isBranchManager && !$request->filled('branch')) {
-            // ✅ Inherit branch from the creator
-            $branchId   = $creator->branch_id;
-            $branchName = $creator->branch_name;
-        } elseif ($request->filled('branch')) {
-            $branch = Branch::where('name', $request->branch)->first();
-
-            if (!$branch) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Branch not found',
-                    'error'   => "No branch found with the name: {$request->branch}"
-                ], 404);
-            }
-
-            $branchId   = $branch->id;
-            $branchName = $branch->name;
+        // Branch managers can only create cashiers — force the role
+        if ($authUser->role === 'branch_manager') {
+            $request->merge(['role' => 'cashier']);
         }
 
-        $user = User::create([
-            'name'        => $request->name,
-            'email'       => $request->email,
-            'password'    => Hash::make($request->password),
-            'role'        => $request->role,
-            'status'      => $request->status,
-            'branch_name' => $branchName,
-            'branch_id'   => $branchId,
+        $validator = Validator::make($request->all(), [
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|email|max:255|unique:users,email',
+            'password' => 'required|string|min:6',
+            'role'     => 'required|in:superadmin,system_admin,branch_manager,cashier,customer',
+            'branch'   => 'nullable|string|max:255',
+            'status'   => 'required|in:ACTIVE,INACTIVE',
         ]);
 
-        return response()->json([
-            'success' => true,
-            'data'    => $this->transformUser($user),
-            'message' => 'User created successfully'
-        ], 201);
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors'  => $validator->errors()
+            ], 422);
+        }
 
-    } catch (Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to create user',
-            'error'   => $e->getMessage()
-        ], 500);
+        try {
+            $isBranchManager = $authUser->role === 'branch_manager';
+
+            $branchId   = null;
+            $branchName = null;
+
+            if ($isBranchManager) {
+                // Always inherit branch from the branch manager
+                $branchId   = $authUser->branch_id;
+                $branchName = $authUser->branch_name;
+            } elseif ($request->filled('branch')) {
+                $branch = Branch::where('name', $request->branch)->first();
+
+                if (! $branch) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Branch not found',
+                        'error'   => "No branch found with the name: {$request->branch}"
+                    ], 404);
+                }
+
+                $branchId   = $branch->id;
+                $branchName = $branch->name;
+            }
+
+            $user = User::create([
+                'name'        => $request->name,
+                'email'       => $request->email,
+                'password'    => Hash::make($request->password),
+                'role'        => $request->role,
+                'status'      => $request->status,
+                'branch_name' => $branchName,
+                'branch_id'   => $branchId,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data'    => $this->transformUser($user),
+                'message' => 'User created successfully'
+            ], 201);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create user',
+                'error'   => $e->getMessage()
+            ], 500);
+        }
     }
-}
 
     /**
      * PUT /api/users/{id}
      */
     public function update(Request $request, $id)
     {
+        $authUser = $request->user();
+        $target   = User::findOrFail($id);
+
+        // Branch managers can only edit cashiers in their own branch
+        if ($authUser->role === 'branch_manager') {
+            if ($target->role !== 'cashier' || $target->branch_name !== $authUser->branch_name) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access denied. Branch managers can only edit cashiers in their branch.',
+                ], 403);
+            }
+            // Prevent role escalation
+            $request->merge(['role' => 'cashier']);
+        }
+
         $validator = Validator::make($request->all(), [
             'name'     => 'sometimes|required|string|max:255',
             'email'    => 'sometimes|required|email|max:255|unique:users,email,' . $id,
             'password' => 'nullable|string|min:6',
-            'role'     => 'sometimes|required|in:superadmin,admin,manager,cashier',
+            'role'     => 'sometimes|required|in:superadmin,system_admin,branch_manager,cashier,customer',
             'status'   => 'sometimes|required|in:ACTIVE,INACTIVE',
             'branch'   => 'nullable|string|max:255',
         ]);
@@ -194,7 +233,6 @@ class UserController extends Controller
         }
 
         try {
-            $user = User::findOrFail($id);
             $updateData = [];
 
             if ($request->has('name'))   $updateData['name']   = $request->name;
@@ -209,10 +247,10 @@ class UserController extends Controller
             if ($request->has('branch')) {
                 $updateData['branch_name'] = $request->branch;
 
-                if (!empty($request->branch)) {
+                if (! empty($request->branch)) {
                     $branch = Branch::where('name', $request->branch)->first();
 
-                    if (!$branch) {
+                    if (! $branch) {
                         return response()->json([
                             'success' => false,
                             'message' => 'Branch not found',
@@ -226,11 +264,11 @@ class UserController extends Controller
                 }
             }
 
-            $user->update($updateData);
+            $target->update($updateData);
 
             return response()->json([
                 'success' => true,
-                'data'    => $this->transformUser($user->fresh()),
+                'data'    => $this->transformUser($target->fresh()),
                 'message' => 'User updated successfully'
             ], 200);
 
@@ -246,10 +284,21 @@ class UserController extends Controller
     /**
      * DELETE /api/users/{id}
      */
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
         try {
-            $user = User::findOrFail($id);
+            $authUser = $request->user();
+            $user     = User::findOrFail($id);
+
+            // Branch managers can only delete cashiers in their own branch
+            if ($authUser->role === 'branch_manager') {
+                if ($user->role !== 'cashier' || $user->branch_name !== $authUser->branch_name) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Access denied. Branch managers can only delete cashiers in their branch.',
+                    ], 403);
+                }
+            }
 
             // Block deleting superadmin
             if ($user->role === 'superadmin') {
@@ -269,38 +318,24 @@ class UserController extends Controller
 
             DB::transaction(function () use ($user) {
 
-                // 1. Delete Sanctum tokens (uses tokenable_id, NOT user_id)
                 DB::table('personal_access_tokens')
                     ->where('tokenable_type', get_class($user))
                     ->where('tokenable_id', $user->id)
                     ->delete();
 
-                // 2. Nullify user_id on tables that reference users
-                //    hasColumn check prevents crash if a table doesn't exist yet
                 $tablesWithUserId = [
-                    'sales',
-                    'cash_counts',
-                    'cash_transactions',
-                    'expenses',
-                    'purchase_orders',
-                    'audit_logs',
-                    'sessions',
+                    'sales', 'cash_counts', 'cash_transactions',
+                    'expenses', 'purchase_orders', 'audit_logs', 'sessions',
                 ];
 
                 $schema = DB::getSchemaBuilder();
 
                 foreach ($tablesWithUserId as $table) {
-                    if (
-                        $schema->hasTable($table) &&
-                        $schema->hasColumn($table, 'user_id')
-                    ) {
-                        DB::table($table)
-                            ->where('user_id', $user->id)
-                            ->update(['user_id' => null]);
+                    if ($schema->hasTable($table) && $schema->hasColumn($table, 'user_id')) {
+                        DB::table($table)->where('user_id', $user->id)->update(['user_id' => null]);
                     }
                 }
 
-                // 3. Delete the user
                 $user->delete();
             });
 
@@ -321,10 +356,22 @@ class UserController extends Controller
     /**
      * PATCH /api/users/{id}/toggle-status
      */
-    public function toggleStatus($id)
+    public function toggleStatus(Request $request, $id)
     {
         try {
-            $user = User::findOrFail($id);
+            $authUser = $request->user();
+            $user     = User::findOrFail($id);
+
+            // Branch managers can only toggle cashiers in their own branch
+            if ($authUser->role === 'branch_manager') {
+                if ($user->role !== 'cashier' || $user->branch_name !== $authUser->branch_name) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Access denied. Branch managers can only change status of cashiers in their branch.',
+                    ], 403);
+                }
+            }
+
             $user->status = $user->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
             $user->save();
 
@@ -353,10 +400,11 @@ class UserController extends Controller
                 'active'   => User::where('status', 'ACTIVE')->count(),
                 'inactive' => User::where('status', 'INACTIVE')->count(),
                 'by_role'  => [
-                    'superadmin' => User::where('role', 'superadmin')->count(),
-                    'admin'      => User::where('role', 'admin')->count(),
-                    'manager'    => User::where('role', 'manager')->count(),
-                    'cashier'    => User::where('role', 'cashier')->count(),
+                    'superadmin'     => User::where('role', 'superadmin')->count(),
+                    'system_admin'   => User::where('role', 'system_admin')->count(),
+                    'branch_manager' => User::where('role', 'branch_manager')->count(),
+                    'cashier'        => User::where('role', 'cashier')->count(),
+                    'customer'       => User::where('role', 'customer')->count(),
                 ],
             ];
 

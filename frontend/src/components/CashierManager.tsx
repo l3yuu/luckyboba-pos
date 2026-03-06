@@ -4,6 +4,7 @@ import { useToast } from '../context/ToastContext';
 import { useAuth } from '../hooks/useAuth';
 import { UserService } from '../services/UserService';
 import type { User as ApiUser } from '../services/UserService';
+import axios from 'axios';
 
 // Resolve branch string from currentUser — handles both branch and branch_id
 const resolveBranch = (user: { branch?: string; branch_id?: string | number } | null | undefined): string | undefined => {
@@ -39,20 +40,24 @@ const CashierManagement = () => {
   });
 
   // ── Fetch cashiers scoped to this branch manager's branch ──────────────────
-  const fetchUsers = useCallback(async () => {
-    setIsFetching(true);
-    try {
-      const data = await UserService.getAllUsers({
-        role: 'cashier',
-        branch: resolveBranch(currentUser),
-      });
-      setUsers(data);
-    } catch {
+const fetchUsers = useCallback(async () => {
+  setIsFetching(true);
+  try {
+    const data = await UserService.getAllUsers({
+      role: 'cashier',
+      branch: resolveBranch(currentUser),
+    });
+    setUsers(data);
+  } catch (err: unknown) {
+    // Only show error toast on a real server error (5xx), not empty results
+    if (axios.isAxiosError(err) && (err.response?.status ?? 0) >= 500) {
       showToast('Failed to load cashiers', 'error');
-    } finally {
-      setIsFetching(false);
     }
-  }, [currentUser?.branch, currentUser?.branch_id, showToast]);
+    setUsers([]); // Silently show empty table for 403/404/no results
+  } finally {
+    setIsFetching(false);
+  }
+}, [currentUser?.branch, currentUser?.branch_id, showToast]);
 
   useEffect(() => {
     fetchUsers();

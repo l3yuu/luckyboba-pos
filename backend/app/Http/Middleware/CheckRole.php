@@ -49,14 +49,12 @@ class CheckRole
             return $next($request);
         }
 
-        // 4. Only allow roles that are in the PROTECTED_ROLES list
-        $allowedRoles = array_intersect($roles, self::PROTECTED_ROLES);
-
-        if (! in_array($user->role, $allowedRoles, true)) {
+        // 4. Check if the user's role is in the allowed roles for this route
+        if (! in_array($user->role, $roles, true)) {
             return $this->respond(
                 $request,
                 403,
-                'Access denied. Required role: ' . implode(' or ', $allowedRoles) . '.'
+                'Access denied. Required role: ' . implode(' or ', $roles) . '.'
             );
         }
 
