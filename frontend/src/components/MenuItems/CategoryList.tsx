@@ -7,6 +7,7 @@ import api from '../../services/api';
 interface CategoryData {
   id: number;
   name: string;
+  type: string;
   description: string;
   menu_items_count: number;
 }
@@ -14,11 +15,14 @@ interface CategoryData {
 // ─── Shared input class ───────────────────────────────────────────────────────
 const inputCls = (hasError?: boolean) =>
   `w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white ${hasError ? 'border-red-400' : 'border-zinc-300'}`;
+const selectCls = `w-full px-4 py-3 rounded-none border border-zinc-300 bg-white text-[#1c1c1e] font-semibold text-sm outline-none focus:border-[#3b2063] cursor-pointer`;
 
 // ─── Add Modal ────────────────────────────────────────────────────────────────
 function AddModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (name: string, data: CategoryData) => void; }) {
   const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
+  const [type, setType] = useState('food');
+  const [cupId, setCupId] = useState<number | ''>('');
+  const [cups, setCups] = useState<{ id: number; name: string; code: string }[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ name?: string }>({});
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -29,6 +33,10 @@ function AddModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (nam
     return () => window.removeEventListener('keydown', handler);
   }, [onClose]);
 
+  useEffect(() => {
+    api.get('/cups').then(res => setCups(res.data)).catch(() => {});
+  }, []);
+
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === overlayRef.current) onClose();
   };
@@ -37,7 +45,9 @@ function AddModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (nam
     if (!name.trim()) { setErrors({ name: 'Category name is required.' }); return; }
     setSubmitting(true);
     try {
-      const response = await api.post('/categories', { name: name.trim(), description: description.trim() });
+      const payload: Record<string, unknown> = { name: name.trim(), type };
+      if (type === 'drink' && cupId !== '') payload.cup_id = cupId;
+      const response = await api.post('/categories', payload);
       onSuccess(name.trim(), response.data);
       onClose();
     } catch (err) {
@@ -63,10 +73,28 @@ function AddModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (nam
             <input autoFocus type="text" value={name} onChange={(e) => { setName(e.target.value); setErrors({}); }} onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }} placeholder="e.g. Milk Tea" className={inputCls(!!errors.name)} />
             {errors.name && <p className="text-[10px] text-red-500 font-semibold mt-1">{errors.name}</p>}
           </div>
+
           <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Description</label>
-            <input type="text" value={description} onChange={(e) => setDescription(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') handleSubmit(); }} placeholder="Optional" className={inputCls()} />
+            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Type <span className="text-red-400">*</span></label>
+            <select value={type} onChange={(e) => { setType(e.target.value); setCupId(''); }} className={selectCls}>
+              <option value="food">Food</option>
+              <option value="drink">Drink</option>
+              <option value="promo">Promo</option>
+              <option value="standard">Standard</option>
+            </select>
           </div>
+
+          {type === 'drink' && (
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Cup Type</label>
+              <select value={cupId} onChange={(e) => setCupId(Number(e.target.value))} className={selectCls}>
+                <option value="">— Select Cup —</option>
+                {cups.map(cup => (
+                  <option key={cup.id} value={cup.id}>{cup.name} ({cup.code})</option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
         <div className="flex gap-3 px-7 py-5 border-t border-zinc-100">
@@ -195,6 +223,8 @@ const CategoryList = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [entriesLimit, setEntriesLimit] = useState(10);
 
+  const bustServerCache = () => api.post('/menu/clear-cache').catch(() => {});
+
   const fetchCategories = async () => {
     const cachedData = localStorage.getItem('luckyboba_categories_cache');
     if (cachedData) { setCategories(JSON.parse(cachedData)); setLoading(false); }
@@ -215,19 +245,23 @@ const CategoryList = () => {
   const displayData = useMemo(() => {
     const sorted = [...categories].sort((a, b) => a.name.localeCompare(b.name));
     const filtered = sorted.filter(cat =>
-      cat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cat.description.toLowerCase().includes(searchQuery.toLowerCase())
+      (cat.name ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (cat.type ?? '').toLowerCase().includes(searchQuery.toLowerCase())
     );
     return entriesLimit === -1 ? filtered : filtered.slice(0, entriesLimit);
   }, [categories, searchQuery, entriesLimit]);
 
   const handleAddSuccess = (_name: string, data: CategoryData) => {
+    bustServerCache();
     setCategories(prev => [...prev, data]);
+    localStorage.removeItem('pos_menu_cache');
     showToast(`"${data.name}" has been added successfully.`, 'success');
   };
 
   const handleEditSuccess = (updated: CategoryData) => {
     setCategories(prev => prev.map((cat) => cat.id === updated.id ? { ...cat, ...updated } : cat));
+    bustServerCache();
+    localStorage.removeItem('pos_menu_cache');
     const cachedData = localStorage.getItem('luckyboba_categories_cache');
     if (cachedData) {
       const parsed: CategoryData[] = JSON.parse(cachedData);
@@ -243,7 +277,9 @@ const CategoryList = () => {
     setDeleteTarget(null);
     try {
       await api.delete(`/categories/${target.id}`);
+      bustServerCache();
       setCategories(prev => prev.filter((cat) => cat.id !== target.id));
+      localStorage.removeItem('pos_menu_cache');
       showToast(`"${target.name}" has been deleted.`, 'error');
     } catch (err) {
       const msg = axios.isAxiosError(err) ? (err.response?.data?.message ?? 'Delete failed.') : 'Delete failed.';
@@ -260,7 +296,6 @@ const CategoryList = () => {
       {deleteTarget && <DeleteModal category={deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDeleteConfirm} />}
 
       <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
-        {/* Header */}
         <div className="flex items-center justify-between">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Menu Items</p>
@@ -277,18 +312,11 @@ const CategoryList = () => {
           </button>
         </div>
 
-        {/* Table card */}
         <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-none">
-
-          {/* Toolbar */}
           <div className="px-6 py-4 border-b border-zinc-100 flex flex-col md:flex-row justify-between items-center gap-3 bg-zinc-50/50">
             <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
               <span>Show</span>
-              <select
-                value={entriesLimit}
-                onChange={(e) => setEntriesLimit(Number(e.target.value))}
-                className="border border-zinc-300 rounded bg-white px-2 py-1 outline-none text-slate-700 text-xs"
-              >
+              <select value={entriesLimit} onChange={(e) => setEntriesLimit(Number(e.target.value))} className="border border-zinc-300 rounded bg-white px-2 py-1 outline-none text-slate-700 text-xs">
                 <option value={10}>10</option>
                 <option value={25}>25</option>
                 <option value={50}>50</option>
@@ -298,17 +326,10 @@ const CategoryList = () => {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Search:</span>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search categories..."
-                className="border border-zinc-300 rounded-none bg-white px-3 py-1.5 text-xs outline-none focus:border-[#3b2063] shadow-sm w-64 font-bold text-slate-700"
-              />
+              <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search categories..." className="border border-zinc-300 rounded-none bg-white px-3 py-1.5 text-xs outline-none focus:border-[#3b2063] shadow-sm w-64 font-bold text-slate-700" />
             </div>
           </div>
 
-          {/* Table */}
           <div className="flex-1 overflow-auto">
             {loading && categories.length === 0 ? (
               <div className="p-10 text-center font-bold text-zinc-400 uppercase tracking-widest text-xs animate-pulse">Loading categories...</div>
@@ -331,42 +352,25 @@ const CategoryList = () => {
                         <td className="px-6 py-4 text-xs text-slate-500">{cat.description || '—'}</td>
                         <td className="px-6 py-4 text-xs font-bold text-slate-600 text-center">{cat.menu_items_count}</td>
                         <td className="px-6 py-4 text-center">
-                          <button
-                            onClick={() => setEditTarget(cat)}
-                            className="h-9 w-9 inline-flex items-center justify-center bg-[#3b2063] hover:bg-[#2a174a] text-white transition-colors rounded-none"
-                            title="Edit"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" />
-                            </svg>
+                          <button onClick={() => setEditTarget(cat)} className="h-9 w-9 inline-flex items-center justify-center bg-[#3b2063] hover:bg-[#2a174a] text-white transition-colors rounded-none" title="Edit">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z" /></svg>
                           </button>
                         </td>
                         <td className="px-6 py-4 text-center">
-                          <button
-                            onClick={() => setDeleteTarget(cat)}
-                            className="h-9 w-9 inline-flex items-center justify-center bg-white border border-red-300 text-red-500 hover:bg-red-50 hover:border-red-400 transition-colors rounded-none"
-                            title="Delete"
-                          >
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                            </svg>
+                          <button onClick={() => setDeleteTarget(cat)} className="h-9 w-9 inline-flex items-center justify-center bg-white border border-red-300 text-red-500 hover:bg-red-50 hover:border-red-400 transition-colors rounded-none" title="Delete">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>
                           </button>
                         </td>
                       </tr>
                     ))
                   ) : (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-10 text-center text-zinc-400 font-bold uppercase tracking-widest text-xs italic">
-                        No categories found
-                      </td>
-                    </tr>
+                    <tr><td colSpan={5} className="px-6 py-10 text-center text-zinc-400 font-bold uppercase tracking-widest text-xs italic">No categories found</td></tr>
                   )}
                 </tbody>
               </table>
             )}
           </div>
 
-          {/* Footer */}
           <div className="p-3 bg-zinc-50 border-t border-zinc-200 flex justify-between items-center">
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />

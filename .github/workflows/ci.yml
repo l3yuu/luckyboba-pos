@@ -121,11 +121,15 @@ jobs:
             sed -i 's|src="/assets/|src="/backend/public/assets/|g' index.html
             sed -i 's|href="/assets/|href="/backend/public/assets/|g' index.html
             sed -i 's|href="/lucky.jpg"|href="/backend/public/lucky.jpg"|g' index.html
+            sed -i '/<meta http-equiv="Content-Security-Policy"/,/blob:;">/d' index.html
 
             # Restore Production .htaccess
             cat > .htaccess << 'HTACCESS'
             DirectoryIndex index.html index.php
             Options -Indexes
+            <IfModule mod_headers.c>
+                Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https://luckybobastores.com https://staging.luckybobastores.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:;"
+            </IfModule>
             <IfModule mod_rewrite.c>
                 RewriteEngine On
                 RewriteBase /
@@ -162,7 +166,7 @@ jobs:
       - name: Build Frontend (Staging)
         run: |
           cd frontend
-          echo "VITE_API_BASE_URL=https://luckybobastores.com/api" > .env.production
+          echo "VITE_API_BASE_URL=https://staging.luckybobastores.com/api" > .env.production
           npm install
           npm run build
 
@@ -207,17 +211,21 @@ jobs:
             php artisan view:cache
             cd ..
 
-            # Restore Staging index.html from the uploaded build
+            # Restore root index.html with corrected asset paths (same as prod)
             rm -f index.html
             cp backend/public/index.html index.html
             sed -i 's|src="/assets/|src="/backend/public/assets/|g' index.html
             sed -i 's|href="/assets/|href="/backend/public/assets/|g' index.html
             sed -i 's|href="/lucky.jpg"|href="/backend/public/lucky.jpg"|g' index.html
+            sed -i '/<meta http-equiv="Content-Security-Policy"/,/blob:;">/d' index.html
 
             # Restore Staging .htaccess
             cat > .htaccess << 'HTACCESS'
             DirectoryIndex index.html index.php
             Options -Indexes
+            <IfModule mod_headers.c>
+                Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https://luckybobastores.com https://staging.luckybobastores.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:;"
+            </IfModule>
             <IfModule mod_rewrite.c>
                 RewriteEngine On
                 RewriteBase /

@@ -4,74 +4,126 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\SubCategory;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class CategoryController extends Controller
 {
     // Fetch all categories with a count of related menu items
-    public function index()
+    public function index(Request $request)
     {
-        $categories = Category::withCount('menu_items')
-            ->orderBy('name', 'asc')
-            ->get();
+        $query = DB::table('categories')
+            ->leftJoin('menu_items', 'categories.id', '=', 'menu_items.category_id')
+            ->select(
+                'categories.id',
+                'categories.name',
+                'categories.type',
+                'categories.description',
+                DB::raw('COUNT(menu_items.id) as menu_items_count')
+            )
+            ->groupBy('categories.id', 'categories.name', 'categories.type', 'categories.description')
+            ->orderBy('categories.name', 'asc');
 
-        return response()->json($categories);
+        if ($request->has('type')) {
+            $query->where('categories.type', $request->type);
+        }
+
+        return response()->json($query->get());
     }
 
     // Store a new category
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|unique:categories,name|max:255',
-            'description' => 'nullable|string',
+            'name'   => 'required|string|unique:categories,name|max:255',
+            'type'   => 'required|in:food,drink,promo,standard',
+            'cup_id' => 'nullable|exists:cups,id',
         ]);
 
-        $category = Category::create($validated);
+        try {
+            DB::beginTransaction();
 
-        // Load item count (which will be 0) to match frontend structure
-        $category->menu_items_count = 0;
+            $category = Category::create($validated);
 
-        return response()->json($category, 201);
+            // Auto-create sub-categories based on cup type
+            if ($validated['type'] === 'drink' && !empty($validated['cup_id'])) {
+                $cup = DB::table('cups')->where('id', $validated['cup_id'])->first();
+
+                if ($cup) {
+                    $subCategoryMap = [
+                        'SM/SL'   => ['SM', 'SL'],
+                        'JR'      => ['JR'],
+                        'UM/UL'   => ['UM', 'UL'],
+                        'PCM/PCL' => ['PCM', 'PCL'],
+                    ];
+
+                    $subNames = $subCategoryMap[$cup->code] ?? [];
+                    $firstSubId = null;
+
+                    foreach ($subNames as $subName) {
+                        $sub = SubCategory::create([
+                            'name'        => $subName,
+                            'category_id' => $category->id,
+                            'cup_id'      => $cup->id,
+                        ]);
+
+                        if ($firstSubId === null) {
+                            $firstSubId = $sub->id;
+                        }
+                    }
+
+                    if ($firstSubId) {
+                        $category->update(['sub_category_id' => $firstSubId]);
+                    }
+                }
+            }
+
+            DB::commit();
+
+            Cache::forget('menu_data_v3');
+
+            // Return with menu_items_count appended manually — NOT saved to DB
+            return response()->json(
+                array_merge($category->toArray(), ['menu_items_count' => 0]),
+                201
+            );
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            \Log::error("Category Store Error: " . $e->getMessage());
+            return response()->json(['message' => 'Failed to create category.'], 500);
+        }
     }
 
     // Delete a category
     public function destroy($id)
     {
         $category = Category::findOrFail($id);
-        
-        // Check if category has items before deleting (Optional safety)
-        if($category->menu_items()->count() > 0) {
-            return response()->json(['message' => 'Cannot delete category with active items.'], 422);
-        }
-
         $category->delete();
+        Cache::forget('menu_data_v3');
         return response()->json(['message' => 'Category deleted successfully']);
     }
 
-public function update(Request $request, $id)
+    public function update(Request $request, $id)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:categories,name,' . $id,
-            'description' => 'nullable|string',
+            'name'        => 'required|string|max:255|unique:categories,name,' . $id,
+            'type'        => 'nullable|in:food,drink,promo,standard',
+            'cup_id'      => 'nullable|exists:cups,id',
         ]);
 
         try {
             $category = Category::findOrFail($id);
             $category->update($validated);
-
-            // This ensures the frontend table still sees the number of items
-            // instead of a blank space or NaN.
             $category->loadCount('menu_items');
+            Cache::forget('menu_data_v3');
 
             return response()->json($category);
         } catch (\Exception $e) {
-            // Log the error for OJT debugging if needed
             \Log::error("Category Update Error: " . $e->getMessage());
-
-            return response()->json([
-                'message' => 'Failed to update category. Please try again.',
-                'error' => $e->getMessage()
-            ], 500);
+            return response()->json(['message' => 'Failed to update category.'], 500);
         }
     }
 }
