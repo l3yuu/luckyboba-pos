@@ -21,7 +21,6 @@ import SalesDashboard from '../components/SalesReport/SalesDashboard';
 import ItemsReport from '../components/SalesReport/ItemsReport';
 import XReading from '../components/SalesReport/XReading';
 import ZReading from '../components/SalesReport/ZReading';
-import MallAccredReport from '../components/SalesReport/MallAccredReport';
 
 export const getComponentForTab = (activeTab: string) => {
   switch (activeTab) {
@@ -39,8 +38,6 @@ export const getComponentForTab = (activeTab: string) => {
       return XReading;
     case 'z-reading':
       return ZReading;
-    case 'mall-accred':
-      return MallAccredReport;
 
     // --- MENU ITEMS TABS ---
     case 'menu-list':
