@@ -343,6 +343,7 @@ const displayData = useMemo(() => {
     const updated = [data, ...subCategories];
     setSubCategories(updated);
     updateCache(updated);
+    localStorage.removeItem('pos_menu_cache');
     addToast(`"${data.name}" has been added successfully.`);
   };
 
@@ -350,6 +351,7 @@ const displayData = useMemo(() => {
     const updated = subCategories.map((s) => (s.id === updatedSub.id ? updatedSub : s));
     setSubCategories(updated);
     updateCache(updated);
+    localStorage.removeItem('pos_menu_cache');
     addToast(`"${updatedSub.name}" has been updated successfully.`);
   };
 
@@ -362,6 +364,7 @@ const displayData = useMemo(() => {
       const updated = subCategories.filter((s) => s.id !== target.id);
       setSubCategories(updated);
       updateCache(updated);
+      localStorage.removeItem('pos_menu_cache');
       addToast(`"${target.name}" has been deleted.`);
     } catch (err) {
       const msg = axios.isAxiosError(err) ? (err.response?.data?.message ?? 'Delete failed.') : 'Delete failed.';

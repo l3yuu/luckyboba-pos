@@ -197,6 +197,7 @@ function AddItemModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
         totalCost: Number(form.totalCost) || 0,
       });
       localStorage.removeItem('luckyboba_menu_cache');
+      localStorage.removeItem('pos_menu_cache');
       onSuccess(`"${form.name}" has been added successfully.`);
       onClose();
     } catch (err) {
