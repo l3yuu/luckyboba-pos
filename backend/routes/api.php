@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\{
 use App\Http\Controllers\CacheController;
 use App\Http\Controllers\Api\CupController;
 use App\Http\Controllers\Api\RawMaterialController;
+use App\Http\Controllers\Api\RecipeController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\UserController;
 use App\Models\User;
@@ -257,4 +258,68 @@ Route::middleware(['auth:sanctum'])->group(function () {
         });
 
     });
+
+    Route::prefix('purchase-orders')->group(function () {
+        Route::get('/', [PurchaseOrderController::class, 'index']);
+        Route::post('/', [PurchaseOrderController::class, 'store']);
+        Route::patch('/{id}/status', [PurchaseOrderController::class, 'updateStatus']);
+    });
+
+    Route::prefix('item-serials')->group(function () {
+        Route::get('/', [ItemSerialController::class, 'index']);
+        Route::post('/', [ItemSerialController::class, 'store']);
+        Route::patch('/{id}/status', [ItemSerialController::class, 'updateStatus']);
+    });
+
+    // --- 6. EXPENSES & DISCOUNTS ---
+    Route::apiResource('expenses', ExpenseController::class)->only(['index', 'store']);
+    Route::apiResource('discounts', DiscountController::class)->except(['show', 'update']);
+    Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
+    Route::apiResource('vouchers', VoucherController::class)->only(['index', 'store']);
+
+    // --- 7. ANALYTICS & EXPORT REPORTS ---
+    Route::prefix('reports')->group(function () {
+        Route::get('/x-reading', [SalesDashboardController::class, 'xReading']);
+        Route::get('/z-reading', [SalesDashboardController::class, 'zReading']);
+        Route::get('/mall-accreditation', [SalesDashboardController::class, 'mallReport']);
+        Route::get('/items-report', [SalesDashboardController::class, 'itemsReport']);
+        Route::get('/hourly-sales', [ReportController::class, 'getHourlySales']); 
+        Route::get('/void-logs', [ReportController::class, 'getVoidLogs']);
+        Route::get('/item-quantities', [ReportController::class, 'getItemQuantities']);
+        Route::get('/inventory', [InventoryReportController::class, 'index']);
+
+        Route::get('/sales', [ReportController::class, 'getSalesReport']); 
+        Route::get('/food-menu', [ReportController::class, 'getFoodMenu']); 
+        Route::get('/export-sales', [ReportController::class, 'exportSales']);
+        Route::get('/export-items', [ReportController::class, 'exportItems']);
+        Route::get('/sales-summary',  [ReportController::class, 'getSalesSummary']);
+        Route::get('/sales-detailed', [ReportController::class, 'getSalesDetailed']);
+    });
+
+    // --- 8. SETTINGS & MAINTENANCE ---
+    Route::prefix('system')->group(function () {
+        Route::get('/audit', [SettingsController::class, 'getAuditLogs']);
+        Route::get('/backup-status', [BackupController::class, 'lastBackupStatus']);
+        Route::post('/run-backup', [BackupController::class, 'runBackup']);
+        Route::post('/upload', [UploadController::class, 'upload']);
+        Route::get('/import-history', [UploadController::class, 'importHistory']);
+        Route::post('/upload-discounts', [UploadController::class, 'uploadDiscounts']);
+    });
+
+    // --- 9. RAW MATERIALS ---
+    Route::get('/raw-materials/low-stock', [RawMaterialController::class, 'lowStock']);
+    Route::post('/raw-materials/{rawMaterial}/adjust', [RawMaterialController::class, 'adjust']);
+    Route::get('/raw-materials/{rawMaterial}/history', [RawMaterialController::class, 'history']);
+    Route::apiResource('raw-materials', RawMaterialController::class);
+
+    // --- 10. RECIPES ---
+    // Note: explicit named routes must be defined BEFORE apiResource
+    // to avoid the {recipe} wildcard swallowing them.
+    Route::get('/recipes/by-menu-item/{menuItemId}', [RecipeController::class, 'byMenuItem']);
+    Route::patch('/recipes/{recipe}/toggle', [RecipeController::class, 'toggle']);
+    Route::apiResource('recipes', RecipeController::class);
+
+    // --- 11. GENERAL SETTINGS ---
+    Route::get('/settings', [SettingsController::class, 'index']);
+    Route::post('/settings', [SettingsController::class, 'update']);
 });
