@@ -32,6 +32,7 @@ class MenuController extends Controller
                                 'name'            => $item->name,
                                 'price'           => $item->price,
                                 'barcode'         => $item->barcode,
+                                'size'            => $item->size,
                                 'sub_category_id' => $item->sub_category_id,  // ← include this
                             ]),
                         ];
