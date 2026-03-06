@@ -174,8 +174,41 @@ const ZReading = () => {
         return;
       }
 
+      // ── Z-Reading: merge z-reading + cash-count + cash transactions ──
+      if (type === 'z_reading') {
+        const zParams = dateMode === 'range'
+          ? { from: fromDate, to: toDate }
+          : { date: selectedDate };
+
+        const [zRes, cashRes] = await Promise.all([
+          api.get('/reports/z-reading',     { params: zParams }),
+          api.get('/cash-counts/summary',   { params: { date: dateMode === 'range' ? toDate : selectedDate } }),
+        ]);
+
+        const zData   = zRes.data   as Record<string, unknown>;
+        const ccData  = cashRes.data as Record<string, unknown>;
+
+        // Pull denominations from cash count response
+        const ccNested = ccData.cash_count as { denominations: { label: string; qty: number; total: number }[]; grand_total: number } | undefined;
+        const cashDenominations = ccNested?.denominations ?? [];
+        const totalCashCount    = ccNested?.grand_total   ?? (ccData.actual_amount as number) ?? 0;
+        const expectedAmount    = (ccData.expected_amount as number) ?? 0;
+        const shortOver         = (ccData.short_over      as number) ?? 0;
+
+        const merged = {
+          ...zData,
+          cash_denominations: cashDenominations,
+          total_cash_count:   totalCashCount,
+          expected_amount:    expectedAmount,
+          over_short:         shortOver,
+        };
+
+        setRawApiResponse(merged as Record<string, unknown>);
+        setReportData({ ...merged as unknown as ZReadingReport, report_type: type });
+        return;
+      }
+
       const endpointMap: Record<string, { url: string; params: Record<string, string> }> = {
-        z_reading:    { url: '/reports/z-reading',       params: dateMode === 'range' ? { from: fromDate, to: toDate } : { date: selectedDate } },
         hourly_sales: { url: '/reports/hourly-sales',    params: { date: selectedDate } },
         void_logs:    { url: '/reports/void-logs',       params: { date: selectedDate } },
         qty_items:    { url: '/reports/item-quantities', params: { date: selectedDate } },
@@ -774,7 +807,10 @@ const ZReading = () => {
     // Cash denomination breakdown (from cash count)
     const cashDenominations = reportData?.cash_denominations ?? reportData?.cash_count?.denominations ?? [];
     const totalCashCount    = reportData?.total_cash_count   ?? reportData?.cash_count?.grand_total ?? 0;
-    const overShort         = reportData?.over_short         ?? (totalCashCount - cashDrop);
+    const expectedEOD = cashTotal + cashIn - cashDrop;
+    const overShort = (reportData?.over_short !== undefined && reportData?.over_short !== null)
+      ? reportData.over_short
+      : (totalCashCount - expectedEOD);
 
     // Category breakdown table
     const categoryBreakdown = reportData?.category_breakdown ?? [];
@@ -857,11 +893,26 @@ const ZReading = () => {
         {/* ── Transaction Summary ── */}
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
-        <Row label="Cash Drop"          value={phCurrency.format(cashDrop)} />
-        <Row label="Total Qty Sold"     value={qtyTotal} />
-        <Row label="Transaction Count"  value={txCount} />
-        <Row label="Total Cash In"      value={phCurrency.format(cashIn)} />
-        <Row label="Total Cash Drop"    value={phCurrency.format(cashDrop)} />
+        <Row label="Transaction Count"   value={txCount} />
+        <Row label="Total Qty Sold"      value={qtyTotal} />
+        <Divider />
+        <Row label="Total Cash Sales"    value={phCurrency.format(cashTotal)} />
+        <Row label="Total Non-Cash"      value={phCurrency.format(nonCash)} />
+        <Row label="Total All Payments"  value={phCurrency.format(gross)} />
+        <Row label="(+) Cash In"         value={phCurrency.format(cashIn)} />
+        <Row label="(-) Cash Drop"       value={phCurrency.format(cashDrop)} />
+        <Row label="Expected EOD Cash"   value={phCurrency.format(expectedEOD)} />
+        <Row label="Actual Cash Count"   value={phCurrency.format(totalCashCount)} />
+        {overShort >= 0
+          ? <div className="flex justify-between text-[11px] leading-snug font-bold">
+              <span className="uppercase w-[60%]">OVER</span>
+              <span className="text-right w-[40%] text-green-700">{phCurrency.format(overShort)}</span>
+            </div>
+          : <div className="flex justify-between text-[11px] leading-snug font-bold">
+              <span className="uppercase w-[60%]">SHORT</span>
+              <span className="text-right w-[40%] text-red-600">-{phCurrency.format(Math.abs(overShort))}</span>
+            </div>
+        }
 
         {/* ── Cash Denomination Breakdown ── */}
         {cashDenominations.length > 0 && (
@@ -877,10 +928,18 @@ const ZReading = () => {
               </div>
             ))}
             <Divider />
-            <Row label="TOTAL CASH COUNT" value={phCurrency.format(totalCashCount)} />
+            <Row label="TOTAL CASH COUNT"  value={phCurrency.format(totalCashCount)} />
+            <Row label="EXPECTED EOD CASH" value={phCurrency.format(expectedEOD)} />
             {overShort >= 0
-              ? <Row label="OVER"  value={phCurrency.format(overShort)} />
-              : <Row label="SHORT" value={phCurrency.format(Math.abs(overShort))} />}
+              ? <div className="flex justify-between text-[11px] leading-snug font-bold">
+                  <span className="uppercase w-[60%]">OVER</span>
+                  <span className="text-right w-[40%] text-green-700">{phCurrency.format(overShort)}</span>
+                </div>
+              : <div className="flex justify-between text-[11px] leading-snug font-bold">
+                  <span className="uppercase w-[60%]">SHORT</span>
+                  <span className="text-right w-[40%] text-red-600">-{phCurrency.format(Math.abs(overShort))}</span>
+                </div>
+            }
             <Row label="DISCREPANCY" value={phCurrency.format(Math.abs(overShort))} />
           </>
         )}
