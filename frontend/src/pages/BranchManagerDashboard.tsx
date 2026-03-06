@@ -9,7 +9,6 @@ import SalesDashboard from '../components/SalesReport/SalesDashboard';
 import ItemsReport from '../components/SalesReport/ItemsReport';
 import XReading from '../components/SalesReport/XReading';
 import ZReading from '../components/SalesReport/ZReading';
-import MallAccredReport from '../components/SalesReport/MallAccredReport';
 
 // --- Import Menu Management Components ---
 import MenuList from '../components/MenuItems/MenuList';
@@ -61,7 +60,6 @@ const BranchManagerDashboard = () => {
       case 'items-report':      return <ItemsReport />;
       case 'x-reading':         return <XReading />;
       case 'z-reading':         return <ZReading />;
-      case 'mall-accred':       return <MallAccredReport />;
       case 'menu-list':         return <MenuList />;
       case 'category-list':     return <CategoryList />;
       case 'sub-category-list': return <SubCategoryList />;
