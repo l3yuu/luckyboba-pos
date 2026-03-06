@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Observers;
 
 use App\Models\Sale;
@@ -11,13 +10,6 @@ use Illuminate\Support\Facades\Log;
 
 class SaleObserver
 {
-    public function created(Sale $sale): void
-    {
-        if ($sale->status === 'completed') {
-            $this->deductStock($sale);
-        }
-    }
-
     public function updated(Sale $sale): void
     {
         if ($sale->isDirty('status') && $sale->status === 'cancelled') {
@@ -25,19 +17,12 @@ class SaleObserver
         }
     }
 
-    public function deleted(Sale $sale): void {}
-    public function restored(Sale $sale): void {}
-    public function forceDeleted(Sale $sale): void {}
-
-    // ── Private Helpers ───────────────────────────────────────────────────────
-
-    private function deductStock(Sale $sale): void
+    public function deductStock(Sale $sale): void
     {
-        $sale->loadMissing('items');
+        $sale->load('items'); // force fresh load, not loadMissing
 
         DB::transaction(function () use ($sale) {
             foreach ($sale->items as $saleItem) {
-
                 $recipe = Recipe::where('menu_item_id', $saleItem->menu_item_id)
                     ->where('size', $saleItem->size)
                     ->where('is_active', true)
@@ -74,7 +59,6 @@ class SaleObserver
     private function reverseDeductions(Sale $sale): void
     {
         $deductions = StockDeduction::where('sale_id', $sale->id)->get();
-
         if ($deductions->isEmpty()) return;
 
         DB::transaction(function () use ($deductions) {
