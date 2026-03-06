@@ -15,7 +15,7 @@ export interface UserForm {
 const EMPTY_FORM: UserForm = {
   name:     '',
   email:    '',
-  role:     'cashier',
+  role:     'cashier',      // valid: superadmin | system_admin | branch_manager | cashier | customer
   branch:   '',
   password: '',
   status:   'ACTIVE',
@@ -138,15 +138,15 @@ export const useUsers = () => {
     setFormError(null);
 
     try {
-      // Build payload — only include password if provided
-      const payload: Record<string, string> = {
-        name:   form.name,
-        email:  form.email,
+      // Build payload — only include password if provided, send null for empty branch
+      const payload: Record<string, string | null> = {
+        name:   form.name.trim(),
+        email:  form.email.trim(),
         role:   form.role,
         status: form.status,
-        branch: form.branch,
+        branch: form.branch?.trim() || null,  // empty string → null for Laravel nullable rule
       };
-      if (form.password?.trim()) payload.password = form.password;
+      if (form.password?.trim()) payload.password = form.password.trim();
 
       const url    = editingUser
         ? `${API_BASE}/users/${editingUser.id}`
@@ -160,7 +160,13 @@ export const useUsers = () => {
       });
       const json = (await res.json()) as LaravelUserResponse;
 
-      if (!res.ok || !json.success) {
+      // Check HTTP status first — Laravel 422 responses can still carry
+      // success:true in the body, so never trust json.success alone.
+      if (!res.ok) {
+        console.error('[useUsers] Save failed:', res.status, json);
+        throw new Error(extractError(json, `Server error ${res.status}`));
+      }
+      if (!json.success) {
         throw new Error(extractError(json, 'Failed to save user'));
       }
 

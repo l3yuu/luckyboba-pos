@@ -238,10 +238,10 @@ export const UserFormModal = ({
               <select className={inputCls} disabled={isSubmitting}
                 value={form.role}
                 onChange={e => setForm((f: UserFormState) => ({ ...f, role: e.target.value as User['role'] }))}>
-                <option value="superadmin">Super Admin</option>
-                <option value="admin">Admin</option>
-                <option value="manager">Manager</option>
-                <option value="cashier">Cashier</option>
+<option value="branch_manager">Branch Manager</option>
+<option value="cashier">Cashier</option>
+<option value="customer">Customer</option>
+<option value="superadmin">Super Admin</option>
               </select>
             </div>
             <div>

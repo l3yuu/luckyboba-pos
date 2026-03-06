@@ -75,6 +75,8 @@ const Login: React.FC = () => {
     const loggedInUser = await login(credentials);
 
     if (loggedInUser) {
+      console.log('ROLE:', loggedInUser.role);
+      console.log('ROLE_HOME result:', getHomeForRole(loggedInUser.role));
       localStorage.setItem('user_role', loggedInUser.role);
       localStorage.setItem('lucky_boba_user_branch_id', String(loggedInUser.branch_id ?? ''));
       showToast(`Welcome back, ${loggedInUser.name}!`, 'success');

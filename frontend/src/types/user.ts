@@ -1,6 +1,14 @@
 // src/types/user.ts
 
-export type UserRole = 'superadmin' | 'admin' | 'manager' | 'cashier' | 'branch_manager';
+// Must match Laravel's Rule::in() exactly:
+// 'in:superadmin,system_admin,branch_manager,cashier,customer'
+export type UserRole =
+  | 'superadmin'
+  | 'system_admin'    // was 'admin'   ← fixed
+  | 'branch_manager'
+  | 'cashier'
+  | 'customer';       // was 'manager' ← fixed
+
 export type UserStatus = 'ACTIVE' | 'INACTIVE';
 
 export interface User {
@@ -9,9 +17,9 @@ export interface User {
   email: string;
   role: UserRole;
   status: UserStatus;
-  branch?: string;       // ADD this
+  branch?: string;
   branch_name?: string;
-  branch_id?: number;    // ADD this
+  branch_id?: number;
   email_verified_at?: string | null;
 }
 
@@ -25,9 +33,18 @@ export interface CreateUserData {
   name: string;
   email: string;
   role: UserRole;
-  password: string; // required (not optional)
-  branch?: string;  // ADD
-  status?: UserStatus; // ADD
+  password: string;
+  branch?: string;
+  status?: UserStatus;
+}
+
+export interface UpdateUserData {
+  name?: string;
+  email?: string;
+  password?: string;
+  role?: UserRole;
+  branch?: string;
+  status?: UserStatus;
 }
 
 export interface Branch {
@@ -38,13 +55,3 @@ export interface Branch {
   total_sales: number | string;
   today_sales: number | string;
 }
-
-export interface UpdateUserData {
-  name?: string;
-  email?: string;
-  password?: string;
-  role?: UserRole;   // was string
-  branch?: string;
-  status?: UserStatus; // was string
-}
-
