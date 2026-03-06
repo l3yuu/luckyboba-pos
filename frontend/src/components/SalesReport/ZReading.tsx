@@ -127,7 +127,7 @@ const ZReading = () => {
   const [reportData, setReportData] = useState<ZReadingReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showDebug, setShowDebug] = useState(false);
+  const [showDebug] = useState(false);
   const [rawApiResponse, setRawApiResponse] = useState<Record<string, unknown> | unknown[] | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const phCurrency = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
@@ -895,24 +895,8 @@ const ZReading = () => {
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
         <Row label="Transaction Count"   value={txCount} />
         <Row label="Total Qty Sold"      value={qtyTotal} />
-        <Divider />
-        <Row label="Total Cash Sales"    value={phCurrency.format(cashTotal)} />
-        <Row label="Total Non-Cash"      value={phCurrency.format(nonCash)} />
-        <Row label="Total All Payments"  value={phCurrency.format(gross)} />
-        <Row label="(+) Cash In"         value={phCurrency.format(cashIn)} />
-        <Row label="(-) Cash Drop"       value={phCurrency.format(cashDrop)} />
-        <Row label="Expected EOD Cash"   value={phCurrency.format(expectedEOD)} />
-        <Row label="Actual Cash Count"   value={phCurrency.format(totalCashCount)} />
-        {overShort >= 0
-          ? <div className="flex justify-between text-[11px] leading-snug font-bold">
-              <span className="uppercase w-[60%]">OVER</span>
-              <span className="text-right w-[40%] text-green-700">{phCurrency.format(overShort)}</span>
-            </div>
-          : <div className="flex justify-between text-[11px] leading-snug font-bold">
-              <span className="uppercase w-[60%]">SHORT</span>
-              <span className="text-right w-[40%] text-red-600">-{phCurrency.format(Math.abs(overShort))}</span>
-            </div>
-        }
+        <Row label="Cash In"         value={phCurrency.format(cashIn)} />
+        <Row label="Cash Drop"       value={phCurrency.format(cashDrop)} />
 
         {/* ── Cash Denomination Breakdown ── */}
         {cashDenominations.length > 0 && (
@@ -1157,14 +1141,6 @@ const ZReading = () => {
             >
               Print
             </button>
-            {rawApiResponse && (
-              <button
-                onClick={() => setShowDebug(!showDebug)}
-                className="px-4 h-11 bg-amber-500 text-white font-bold text-xs uppercase tracking-widest hover:bg-amber-600 transition-colors rounded-none"
-              >
-                {showDebug ? 'Hide' : 'Debug'}
-              </button>
-            )}
           </div>
         </div>
 
