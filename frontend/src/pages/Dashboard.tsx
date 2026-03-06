@@ -40,6 +40,7 @@ import PurchaseOrder from '../components/Inventory/PurchaseOrder';
 import StockTransfer from '../components/Inventory/StockTransfer';
 import Supplier from '../components/Inventory/Supplier';
 import Settings from '../components/Settings';
+import RawMaterialList from '../components/Inventory/RawMaterialList';
 
 interface DashboardStatsProps {
   stats: DashboardData | null;
@@ -138,6 +139,7 @@ const Dashboard = () => {
       case 'inventory-dashboard': return <InventoryDashboard />;
       case 'inventory-list':      return <InventoryList />;
       case 'inventory-category':  return <InventoryCategoryList />;
+      case 'raw-materials':       return <RawMaterialList />;
       case 'supplier':            return <Supplier />;
       case 'item-checker':        return <ItemChecker />;
       case 'item-serials':        return <ItemSerials />;
@@ -180,7 +182,7 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, onRefr
       <div className="grid grid-cols-12 gap-3">
 
         {/* TERMINAL STATUS */}
-        <div className="col-span-12 lg:col-span-5 bg-[#2a174a] rounded-none p-6 flex flex-col justify-between border border-[#1a0f2e] min-h-[160px]">
+        <div className="col-span-12 lg:col-span-5 bg-[#2a174a] rounded-none p-6 flex flex-col justify-between border border-[#1a0f2e] min-h-40">
           <div className="flex justify-between items-start">
             <div className="flex items-center gap-4">
                <div className="p-2 text-white/70"><Monitor size={20} strokeWidth={1.5}/></div>
@@ -207,7 +209,7 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, onRefr
         </div>
 
         {/* NET REVENUE */}
-        <div className="col-span-12 md:col-span-6 lg:col-span-4 bg-white border border-zinc-300 rounded-none p-6 flex flex-col justify-between min-h-[160px]">
+        <div className="col-span-12 md:col-span-6 lg:col-span-4 bg-white border border-zinc-300 rounded-none p-6 flex flex-col justify-between min-h-40">
           <div className="flex items-center gap-4">
             <div className="p-2 text-[#7c3aed]"><DollarSign size={20} strokeWidth={1.5}/></div>
             <p className="text-[12px] font-extrabold uppercase tracking-[0.2em] text-zinc-700">Net Revenue</p>
@@ -223,7 +225,7 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, onRefr
         </div>
 
         {/* TRANSACTIONS */}
-        <div className="col-span-12 md:col-span-6 lg:col-span-3 bg-white border border-zinc-300 rounded-none p-6 flex flex-col justify-between min-h-[160px]">
+        <div className="col-span-12 md:col-span-6 lg:col-span-3 bg-white border border-zinc-300 rounded-none p-6 flex flex-col justify-between min-h-40">
           <div className="flex items-center gap-4">
             <div className="p-2 text-[#7c3aed]"><Receipt size={20} strokeWidth={1.5}/></div>
             <p className="text-[12px] font-extrabold uppercase tracking-[0.2em] text-zinc-700">Transactions</p>
@@ -305,11 +307,11 @@ const TopSellerRows = ({ sellers, loading }: TopSellerRowsProps) => {
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-4">
                   <span className="text-[11px] font-bold text-zinc-300 tabular-nums w-5">0{i+1}</span>
-                  <span className="text-[13px] font-extrabold text-[#1a0f2e] truncate max-w-[260px]">{item.product_name}</span>
+                  <span className="text-[13px] font-extrabold text-[#1a0f2e] truncate max-w-65">{item.product_name}</span>
                 </div>
                 <span className="text-[11px] font-bold tabular-nums text-emerald-700 bg-emerald-50 border border-emerald-100 px-2 py-0.5 rounded-none">{item.total_qty} sold</span>
               </div>
-              <div className="h-[2px] bg-zinc-100 overflow-hidden">
+              <div className="h-0.5 bg-zinc-100 overflow-hidden">
                 <div className="h-full bg-[#3b2063] transition-all duration-1000" style={{ width: `${(item.total_qty / max) * 100}%` }} />
               </div>
             </>
@@ -341,9 +343,9 @@ const DashboardSkeleton = () => (
     </div>
     <div className="flex-1 p-6 md:p-8 flex flex-col gap-5">
       <div className="grid grid-cols-12 gap-3">
-        <div className="col-span-12 lg:col-span-5 h-[160px] bg-zinc-200/60 animate-pulse rounded-none" />
-        <div className="col-span-12 md:col-span-6 lg:col-span-4 h-[160px] bg-white animate-pulse rounded-none border border-zinc-200" />
-        <div className="col-span-12 md:col-span-6 lg:col-span-3 h-[160px] bg-white animate-pulse rounded-none border border-zinc-200" />
+        <div className="col-span-12 lg:col-span-5 h-40 bg-zinc-200/60 animate-pulse rounded-none" />
+        <div className="col-span-12 md:col-span-6 lg:col-span-4 h-40 bg-white animate-pulse rounded-none border border-zinc-200" />
+        <div className="col-span-12 md:col-span-6 lg:col-span-3 h-40 bg-white animate-pulse rounded-none border border-zinc-200" />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {[1,2,3].map(i => <div key={i} className="h-20 bg-white border border-zinc-200 animate-pulse rounded-none" />)}

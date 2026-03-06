@@ -15,18 +15,16 @@ class Sale extends Model
     protected $fillable = [
         'total_amount',
         'payment_method',
-        'reference_number',   
-        'charge_type', 
+        'reference_number',
+        'charge_type',
         'pax',
         'user_id',
         'branch_id',
         'is_synced',
-        'invoice_number',     
-        'status',             
+        'invoice_number',
+        'status',
         'cancellation_reason',
         'cancelled_at',
-        
-        // --- NEW FIELDS FOR PAX & DISCOUNTS ---
         'pax_regular',
         'pax_senior',
         'pax_pwd',
@@ -36,29 +34,22 @@ class Sale extends Model
         'diplomat_id',
         'discount_remarks',
         'vatable_sales',
-        'vat_amount'
+        'vat_amount',
     ];
-    /**
-     * The attributes that should be cast.
-     */
+
     protected $casts = [
         'cancelled_at' => 'datetime',
         'total_amount' => 'decimal:2',
     ];
 
-    /**
-     * The accessors to append to the model's array form.
-     */
     protected $appends = ['or_number'];
 
-    /**
-     * Accessor for OR Number.
-     * Maps the content of invoice_number to a logical or_number property.
-     */
     public function getOrNumberAttribute()
     {
         return $this->invoice_number;
     }
+
+    // ── Existing Relationships ────────────────────────────────────────────────
 
     public function items(): HasMany
     {
@@ -73,5 +64,12 @@ class Sale extends Model
     public function receipt(): HasOne
     {
         return $this->hasOne(Receipt::class);
+    }
+
+    // ── NEW: Inventory Relationships ──────────────────────────────────────────
+
+    public function stockDeductions(): HasMany
+    {
+        return $this->hasMany(StockDeduction::class);
     }
 }

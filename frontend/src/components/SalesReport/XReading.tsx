@@ -106,7 +106,7 @@ const XReading = () => {
   const [reportData, setReportData] = useState<XReadingReport | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showDebug, setShowDebug] = useState(false);
+  const [showDebug] = useState(false);
   const [rawApiResponse, setRawApiResponse] = useState<Record<string, unknown> | unknown[] | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const phCurrency = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
@@ -940,14 +940,6 @@ const XReading = () => {
             >
               Print
             </button>
-            {rawApiResponse && (
-              <button
-                onClick={() => setShowDebug(!showDebug)}
-                className="px-4 h-11 bg-amber-500 text-white font-bold text-xs uppercase tracking-widest hover:bg-amber-600 transition-colors rounded-none"
-              >
-                {showDebug ? 'Hide' : 'Debug'}
-              </button>
-            )}
           </div>
         </div>
 
