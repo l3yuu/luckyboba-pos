@@ -90,16 +90,19 @@ public function itemsReport(Request $request)
         }
     }
 
-    public function zReading(Request $request) 
+    public function zReading(Request $request)
     {
-        $request->validate(['date' => 'required|date']);
+        // Support both single date and date range
+        $from = $request->input('from', $request->input('date'));
+        $to   = $request->input('to',   $request->input('date'));
+
+        $request->merge(['from' => $from, 'to' => $to]);
+        $request->validate(['from' => 'required|date', 'to' => 'required|date|after_or_equal:from']);
 
         try {
-            $report = $this->salesService->getXReading($request->date); // ← use same service method as X-Reading
-            
+            $report = $this->salesService->getXReading($from, $to); // pass range to service
             $user = auth('sanctum')->user() ?? $request->user();
             $report['prepared_by'] = $user ? $user->name : 'System Admin';
-
             return response()->json($report);
         } catch (\Exception $e) {
             \Log::error("Z-Reading Error: " . $e->getMessage());

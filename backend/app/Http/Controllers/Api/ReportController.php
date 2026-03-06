@@ -273,16 +273,63 @@ class ReportController extends Controller
             'prepared_by' => $cashierName
         ]);
     }
+    
     public function getCashCountSummary(Request $request) {
-        $date = $request->query('date');
-        $cashCount = DB::table('cash_counts')->whereDate('created_at', $date)->latest()->first();
-        return response()->json([
-            'cash_count' => [
-                'denominations' => $cashCount ? json_decode($cashCount->denominations_data) : [],
-                'grand_total' => $cashCount ? (float)$cashCount->total_amount : 0
-            ],
-            'prepared_by' => auth()->user()->name ?? 'System Admin'
-        ]);
+        $date = $request->query('date', now()->toDateString());
+
+        try {
+            $cashCount = DB::table('cash_counts')
+                ->where(function ($q) use ($date) {
+                    $q->whereDate('date', $date)
+                    ->orWhereDate('created_at', $date);
+                })
+                ->latest()
+                ->first();
+
+            if (!$cashCount) {
+                return response()->json([
+                    'cash_count'    => null,
+                    'denominations' => [],
+                    'grand_total'   => 0,
+                    'message'       => 'No cash count recorded for this date.',
+                ]);
+            }
+
+            // Handle whichever column name your DB uses
+            $breakdown = $cashCount->breakdown ?? $cashCount->denominations_data ?? '[]';
+            if (is_string($breakdown)) {
+                $breakdown = json_decode($breakdown, true) ?? [];
+            }
+
+            $denominations = collect($breakdown)->map(fn($item) => [
+                'label' => $item['label'] ?? $item['denomination'] ?? '—',
+                'qty'   => (int)   ($item['qty']      ?? $item['quantity'] ?? 0),
+                'total' => (float) ($item['total']     ?? $item['amount']  ?? 0),
+            ])->values()->toArray();
+
+            $actualAmount   = (float) ($cashCount->actual_amount  ?? $cashCount->total_amount  ?? 0);
+            $expectedAmount = (float) ($cashCount->expected_amount ?? $cashCount->expected_cash ?? 0);
+            $shortOver      = (float) ($cashCount->short_over      ?? ($actualAmount - $expectedAmount));
+
+            $user = auth('sanctum')->user() ?? $request->user();
+
+            return response()->json([
+                'cash_count' => [
+                    'denominations' => $denominations,
+                    'grand_total'   => $actualAmount,
+                ],
+                'expected_amount' => $expectedAmount,
+                'actual_amount'   => $actualAmount,
+                'short_over'      => $shortOver,
+                'date'            => $cashCount->date ?? $date,
+                'remarks'         => $cashCount->remarks ?? '',
+                'prepared_by'     => $user ? $user->name : 'System Admin',
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('CashCount summary error: ' . $e->getMessage());
+            return response()->json(['message' => $e->getMessage()], 500);
+        }
     }
 
     public function getVoidLogs(Request $request) {

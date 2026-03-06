@@ -102,6 +102,9 @@ const Divider = () => <div className="border-t border-dashed border-black my-1.5
 const ZReading = () => {
   const today = new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState(today);
+  const [fromDate, setFromDate] = useState(today);
+  const [toDate, setToDate] = useState(today);
+  const [dateMode, setDateMode] = useState<'single' | 'range'>('single');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [reportData, setReportData] = useState<ZReadingReport | null>(null);
   const [loading, setLoading] = useState(false);
@@ -154,7 +157,7 @@ const ZReading = () => {
       }
 
       const endpointMap: Record<string, { url: string; params: Record<string, string> }> = {
-        z_reading:    { url: '/reports/z-reading',       params: { date: selectedDate } },
+        z_reading:    { url: '/reports/z-reading',       params: dateMode === 'range' ? { from: fromDate, to: toDate } : { date: selectedDate } },
         hourly_sales: { url: '/reports/hourly-sales',    params: { date: selectedDate } },
         void_logs:    { url: '/reports/void-logs',       params: { date: selectedDate } },
         qty_items:    { url: '/reports/item-quantities', params: { date: selectedDate } },
@@ -740,12 +743,15 @@ const ZReading = () => {
     const totalDebit    = debitMethods.reduce((a, m)  => a + (paymentMap.get(m) || 0), 0);
     const totalCard     = totalCredit + totalDebit;
 
+    const isRange = dateMode === 'range';
+    const displayDate = isRange ? `${fromDate} to ${toDate}` : selectedDate;
+
     return (
       <div className="my-2">
         <Divider />
-        <Row label="REPORT DATE"       value={selectedDate} />
-        <Row label="START DATE & TIME" value={`${selectedDate} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
-        <Row label="END DATE & TIME"   value={`${selectedDate} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
+        <Row label="REPORT DATE"       value={displayDate} />
+        <Row label="START DATE & TIME" value={`${isRange ? fromDate : selectedDate} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
+        <Row label="END DATE & TIME"   value={`${isRange ? toDate   : selectedDate} ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`} />
         <Row label="TERMINAL #"        value="POS-01" />
         <Row label="CASHIER"           value={reportData?.prepared_by || cashierName} />
         <Row label="BEG. SI #"         value={reportData?.beg_si || '0000000000'} />
@@ -899,12 +905,56 @@ const ZReading = () => {
 
           {/* Date + Search */}
           <div className="flex-1 w-full flex gap-2">
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="flex-1 px-4 h-11 border border-zinc-300 bg-zinc-50 font-bold text-sm rounded-none focus:outline-none focus:border-[#3b2063]"
-            />
+            {/* Mode toggle — only show for Z-Reading context */}
+            {(!reportData || reportData.report_type === 'z_reading') && (
+              <div className="flex border border-zinc-300 rounded-none overflow-hidden shrink-0">
+                <button
+                  onClick={() => setDateMode('single')}
+                  className={`px-3 h-11 text-xs font-black uppercase tracking-widest transition-colors ${dateMode === 'single' ? 'bg-[#3b2063] text-white' : 'bg-white text-zinc-500 hover:bg-zinc-50'}`}
+                >
+                  Day
+                </button>
+                <button
+                  onClick={() => setDateMode('range')}
+                  className={`px-3 h-11 text-xs font-black uppercase tracking-widest transition-colors border-l border-zinc-300 ${dateMode === 'range' ? 'bg-[#3b2063] text-white' : 'bg-white text-zinc-500 hover:bg-zinc-50'}`}
+                >
+                  Range
+                </button>
+              </div>
+            )}
+
+            {/* Date inputs */}
+            {dateMode === 'range' && (!reportData || reportData.report_type === 'z_reading') ? (
+              <div className="flex gap-2 flex-1">
+                <div className="flex items-center gap-1.5 flex-1">
+                  <span className="text-[10px] font-black uppercase text-zinc-400 shrink-0">From</span>
+                  <input
+                    type="date"
+                    value={fromDate}
+                    onChange={(e) => setFromDate(e.target.value)}
+                    className="flex-1 px-3 h-11 border border-zinc-300 bg-zinc-50 font-bold text-sm rounded-none focus:outline-none focus:border-[#3b2063]"
+                  />
+                </div>
+                <div className="flex items-center gap-1.5 flex-1">
+                  <span className="text-[10px] font-black uppercase text-zinc-400 shrink-0">To</span>
+                  <input
+                    type="date"
+                    value={toDate}
+                    min={fromDate}
+                    onChange={(e) => setToDate(e.target.value)}
+                    className="flex-1 px-3 h-11 border border-zinc-300 bg-zinc-50 font-bold text-sm rounded-none focus:outline-none focus:border-[#3b2063]"
+                  />
+                </div>
+              </div>
+            ) : (
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="flex-1 px-4 h-11 border border-zinc-300 bg-zinc-50 font-bold text-sm rounded-none focus:outline-none focus:border-[#3b2063]"
+              />
+            )}
+
             {reportData?.report_type === 'search' && (
               <div className="flex gap-2 flex-1">
                 <input
@@ -983,11 +1033,20 @@ const ZReading = () => {
                   <p className="uppercase text-[11px] mt-0.5">MAIN BRANCH – QC</p>
                   <Divider />
                   <p className="uppercase text-[12px] font-bold tracking-widest">
-                    {reportData.report_type?.replace(/_/g, ' ') || 'Z READING'}
+                    {reportData.report_type === 'z_reading'
+                      ? dateMode === 'range' ? 'Z-READING (RANGE)' : 'Z-READING'
+                      : reportData.report_type?.replace(/_/g, ' ') || 'Z READING'}
                   </p>
                   <Divider />
                   <div className="text-left text-[11px] mt-1">
-                    <Row label="DATE"        value={selectedDate} />
+                    {reportData.report_type === 'z_reading' && dateMode === 'range' ? (
+                      <>
+                        <Row label="FROM DATE"   value={fromDate} />
+                        <Row label="TO DATE"     value={toDate} />
+                      </>
+                    ) : (
+                      <Row label="DATE" value={selectedDate} />
+                    )}
                     <Row label="REPORT TIME" value={new Date().toLocaleTimeString()} />
                     <Row label="TERMINAL"    value="POS-01" />
                   </div>
