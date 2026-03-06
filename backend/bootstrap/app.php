@@ -20,7 +20,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'logout'
         ]);
 
-        $middleware->append(\App\Http\Middleware\ContentSecurityPolicy::class); 
+        $middleware->append(\App\Http\Middleware\ContentSecurityPolicy::class);
+
+        // Role-based access control
+        $middleware->alias([
+            'role' => \App\Http\Middleware\CheckRole::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //
