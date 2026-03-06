@@ -249,6 +249,7 @@ const CategoryList = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [entriesLimit, setEntriesLimit] = useState(10);
   const toastCounter = useRef(0);
+  const bustServerCache = () => api.post('/menu/clear-cache').catch(() => {});
 
   const addToast = (message: string, type: 'success' | 'error' = 'success') => {
     const id = ++toastCounter.current;
@@ -281,12 +282,16 @@ const CategoryList = () => {
   }, [categories, searchQuery, entriesLimit]);
 
   const handleAddSuccess = (_name: string, data: CategoryData) => {
+    bustServerCache();
     setCategories(prev => [...prev, data]);
+    localStorage.removeItem('pos_menu_cache');
     addToast(`"${data.name}" has been added successfully.`);
   };
 
   const handleEditSuccess = (updated: CategoryData) => {
     setCategories(prev => prev.map((cat) => cat.id === updated.id ? { ...cat, ...updated } : cat));
+    bustServerCache();
+    localStorage.removeItem('pos_menu_cache');
     const cachedData = localStorage.getItem('luckyboba_categories_cache');
     if (cachedData) {
       const parsed = JSON.parse(cachedData);
@@ -302,7 +307,9 @@ const CategoryList = () => {
     setDeleteTarget(null);
     try {
       await api.delete(`/categories/${target.id}`);
+      bustServerCache();
       setCategories(prev => prev.filter((cat) => cat.id !== target.id));
+      localStorage.removeItem('pos_menu_cache');
       addToast(`"${target.name}" has been deleted.`);
     } catch (err) {
       const msg = axios.isAxiosError(err) ? (err.response?.data?.message ?? 'Delete failed.') : 'Delete failed.';
