@@ -113,11 +113,12 @@ const SalesOrder = () => {
             try {
                 const response = await api.get('/receipts/next-sequence');
                 const data = response.data;
-                const serverSeq = data.next_sequence;
+                const serverSeq = parseInt(data.next_sequence, 10);
+                const cleanServerSeq = isNaN(serverSeq) ? 1 : serverSeq;
 
                 // Never go below what we last used locally
                 const localSeq = parseInt(localStorage.getItem('last_or_sequence') || '0');
-                const safeSeq = Math.max(serverSeq, localSeq + 1);
+                const safeSeq = Math.max(cleanServerSeq, localSeq + 1);
 
                 localStorage.setItem('last_or_sequence', String(safeSeq));
                 setOrNumber(generateORNumber(safeSeq));
@@ -502,7 +503,7 @@ const SalesOrder = () => {
             };
 
             await api.post('/sales', orderData);
-            const currentSeq = parseInt(orNumber.replace('OR-', ''), 10);
+            const currentSeq = parseInt(orNumber.replace('SI-', ''), 10);
             if (!isNaN(currentSeq)) {
                 localStorage.setItem('last_or_sequence', String(currentSeq));
             }
@@ -558,10 +559,12 @@ const SalesOrder = () => {
         try {
             const response = await api.get('/receipts/next-sequence');
             const data = response.data;
-            const serverSeq = data.next_sequence;
+            const serverSeq = parseInt(data.next_sequence, 10);
+            const cleanServerSeq = isNaN(serverSeq) ? 1 : serverSeq;
 
+            // Never go below what we last used locally
             const localSeq = parseInt(localStorage.getItem('last_or_sequence') || '0');
-            const safeSeq = Math.max(serverSeq, localSeq + 1);
+            const safeSeq = Math.max(cleanServerSeq, localSeq + 1);
 
             localStorage.setItem('last_or_sequence', String(safeSeq));
             setOrNumber(generateORNumber(safeSeq));
