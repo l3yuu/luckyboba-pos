@@ -115,9 +115,9 @@ const ExportData = ({ onBack }: ExportDataProps) => {
         <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
 
           {/* DATE PICKER CARD */}
-          <div className="bg-white rounded-none shadow-sm border border-zinc-200 p-6 relative">
+          <div className="bg-white rounded-[0.625rem] shadow-sm border border-zinc-200 p-6 relative">
             {loading && (
-              <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center rounded-none backdrop-blur-[1px]">
+              <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center rounded-[0.625rem] backdrop-blur-[1px]">
                 <Loader2 className="animate-spin text-[#3b2063]" size={24} />
               </div>
             )}
@@ -129,7 +129,7 @@ const ExportData = ({ onBack }: ExportDataProps) => {
                     type="date" 
                     value={fromDate} 
                     onChange={(e) => setFromDate(e.target.value)} 
-                    className="w-full px-4 py-3 border border-zinc-300 rounded-none text-sm font-semibold outline-none focus:border-[#3b2063]"
+                    className="w-full px-4 py-3 border border-zinc-300 rounded-[0.625rem] text-sm font-semibold outline-none focus:border-[#3b2063]"
                     disabled={loading}
                   />
                 </div>
@@ -139,7 +139,7 @@ const ExportData = ({ onBack }: ExportDataProps) => {
                     type="date" 
                     value={toDate} 
                     onChange={(e) => setToDate(e.target.value)} 
-                    className="w-full px-4 py-3 border border-zinc-300 rounded-none text-sm font-semibold outline-none focus:border-[#3b2063]"
+                    className="w-full px-4 py-3 border border-zinc-300 rounded-[0.625rem] text-sm font-semibold outline-none focus:border-[#3b2063]"
                     disabled={loading}
                   />
                 </div>
@@ -147,7 +147,7 @@ const ExportData = ({ onBack }: ExportDataProps) => {
               <button 
                 onClick={() => handleExportSales("SALES", "General_Sales")}
                 disabled={loading}
-                className="w-auto h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6 disabled:opacity-50"
+                className="w-auto h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6 disabled:opacity-50"
               >
                 {loading ? <Loader2 className="animate-spin" size={16} /> : <Download size={14} />}
                 {loading ? 'Processing...' : 'GENERATE'}
@@ -172,7 +172,7 @@ const ExportData = ({ onBack }: ExportDataProps) => {
                         key={label} 
                         onClick={action}
                         disabled={loading}
-                        className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm disabled:opacity-50"
+                        className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm disabled:opacity-50"
                       >
                         {label}
                       </button>
@@ -187,7 +187,7 @@ const ExportData = ({ onBack }: ExportDataProps) => {
           <div className="mt-auto pt-6 flex justify-start">
             <button 
               onClick={onBack} 
-              className="px-6 py-3 h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center gap-2"
+              className="px-6 py-3 h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center gap-2"
             >
               <ArrowLeft size={14} /> Back to Settings
             </button>

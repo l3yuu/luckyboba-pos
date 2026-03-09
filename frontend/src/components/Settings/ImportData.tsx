@@ -22,13 +22,13 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
   const renderImportCategory = () => (
     <div className="flex-1 flex flex-col gap-6 animate-in fade-in slide-in-from-right-4 duration-200">
       <div className="flex items-center gap-4">
-        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">
+        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">
           <ArrowLeft size={20} strokeWidth={3} />
         </button>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-8 flex flex-col items-center gap-6">
-        <div className="w-full max-w-lg border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-2xl p-10 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
+      <div className="bg-white rounded-[0.625rem] shadow-sm border border-zinc-200 p-8 flex flex-col items-center gap-6">
+        <div className="w-full max-w-lg border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-[0.625rem] p-10 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
           <div className="p-4 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
             <Upload size={32} className="text-zinc-400 group-hover:text-[#3b2063]" />
           </div>
@@ -43,7 +43,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
             <AlertCircle size={14} className="text-[#3b2063]" />
             <h3 className="text-[10px] font-black text-[#3b2063] uppercase tracking-[0.2em]">Important Tips: Sample Format CSV</h3>
           </div>
-          <div className="border border-zinc-200 rounded-lg overflow-hidden">
+          <div className="border border-zinc-200 rounded-[0.625rem] overflow-hidden">
             <table className="w-full text-left">
               <tbody className="divide-y divide-zinc-100 bg-white">
                 <tr><td className="px-4 py-2 text-xs font-bold text-slate-500 text-center uppercase">Sample Format CSV</td></tr>
@@ -58,10 +58,10 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
       </div>
 
       <div className="flex gap-3">
-        <button className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">
+        <button className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">
           <FileDown size={14} strokeWidth={3} /> Import
         </button>
-        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">Back</button>
+        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">Back</button>
       </div>
     </div>
   );
@@ -70,11 +70,11 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
   const renderImportSubCategory = () => (
     <div className="flex-1 flex flex-col gap-6 animate-in fade-in slide-in-from-right-4 duration-200">
       <div className="flex items-center gap-4">
-        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">
+        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">
           <ArrowLeft size={20} strokeWidth={3} />
         </button>
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-white rounded-lg shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
+          <div className="p-2 bg-white rounded-[0.625rem] shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
           <div>
             <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Import Sub Category</h1>
             <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">Upload CSV Data</p>
@@ -82,8 +82,8 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-8 flex flex-col items-center gap-6">
-        <div className="w-full max-w-lg border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-2xl p-10 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
+      <div className="bg-white rounded-[0.625rem] shadow-sm border border-zinc-200 p-8 flex flex-col items-center gap-6">
+        <div className="w-full max-w-lg border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-[0.625rem] p-10 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
           <div className="p-4 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
             <Upload size={32} className="text-zinc-400 group-hover:text-[#3b2063]" />
           </div>
@@ -98,7 +98,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
             <AlertCircle size={14} className="text-[#3b2063]" />
             <h3 className="text-[10px] font-black text-[#3b2063] uppercase tracking-[0.2em]">Important Tips: Sample Format CSV</h3>
           </div>
-          <div className="border border-zinc-200 rounded-lg overflow-hidden">
+          <div className="border border-zinc-200 rounded-[0.625rem] overflow-hidden">
             <table className="w-full text-left">
               <tbody className="divide-y divide-zinc-100 bg-white">
                 <tr><td className="px-4 py-2 text-xs font-bold text-slate-500 text-center uppercase">Sample Format CSV</td></tr>
@@ -113,10 +113,10 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
       </div>
 
       <div className="flex gap-3">
-        <button className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">
+        <button className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">
           <FileDown size={14} strokeWidth={3} /> Import
         </button>
-        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">Back</button>
+        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">Back</button>
       </div>
     </div>
   );
@@ -125,11 +125,11 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
   const renderImportInventory = () => (
     <div className="flex-1 flex flex-col gap-6 animate-in fade-in slide-in-from-right-4 duration-200">
       <div className="flex items-center gap-4">
-        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">
+        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">
           <ArrowLeft size={20} strokeWidth={3} />
         </button>
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-white rounded-lg shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
+          <div className="p-2 bg-white rounded-[0.625rem] shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
           <div>
             <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Import Inventory Items</h1>
             <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">Bulk Inventory Management</p>
@@ -137,39 +137,39 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-8 flex flex-col gap-6">
+      <div className="bg-white rounded-[0.625rem] shadow-sm border border-zinc-200 p-8 flex flex-col gap-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="space-y-1">
             <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Items with VAT</label>
-            <select className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-[#3b2063] cursor-pointer">
+            <select className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-[#3b2063] cursor-pointer">
               <option>VATABLE</option>
               <option>NOT-VATABLE</option>
             </select>
           </div>
           <div className="space-y-1">
             <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Items Active</label>
-            <select className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-[#3b2063] cursor-pointer">
+            <select className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-[#3b2063] cursor-pointer">
               <option>ACTIVE</option>
               <option>NOT-ACTIVE</option>
             </select>
           </div>
           <div className="space-y-1">
             <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Nonstock</label>
-            <select className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-4 focus:border-[#3b2063] focus:ring-4 focus:ring-[#3b2063]/20 cursor-pointer">
+            <select className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-4 focus:border-[#3b2063] focus:ring-4 focus:ring-[#3b2063]/20 cursor-pointer">
               <option>YES</option>
               <option>NO</option>
             </select>
           </div>
         </div>
 
-        <div className="border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-2xl p-8 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
+        <div className="border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-[0.625rem] p-8 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
           <div className="p-3 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
             <Upload size={24} className="text-zinc-400 group-hover:text-[#3b2063]" />
           </div>
           <p className="text-xs font-black text-slate-700 uppercase tracking-widest">Click to Upload Inventory File</p>
         </div>
 
-        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-3">
+        <div className="bg-blue-50 border border-blue-100 rounded-[0.625rem] p-4 flex gap-3">
           <Info size={16} className="text-blue-600 shrink-0 mt-0.5" />
           <div className="text-[10px] text-blue-800 font-medium space-y-1">
             <p>1. Create CATEGORY first (if category is not yet exist)</p>
@@ -184,7 +184,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
             <AlertCircle size={14} className="text-[#3b2063]" />
             <h3 className="text-[10px] font-black text-[#3b2063] uppercase tracking-[0.2em]">Important Tips: Sample Format CSV</h3>
           </div>
-          <div className="border border-zinc-200 rounded-lg overflow-x-auto">
+          <div className="border border-zinc-200 rounded-[0.625rem] overflow-x-auto">
             <table className="w-full text-left whitespace-nowrap">
               <thead>
                 <tr className="bg-zinc-100 border-b border-zinc-200">
@@ -216,10 +216,10 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
       </div>
 
       <div className="flex gap-3">
-        <button className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">
+        <button className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">
           <FileDown size={14} strokeWidth={3} /> Import
         </button>
-        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">Back</button>
+        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">Back</button>
       </div>
     </div>
   );
@@ -228,11 +228,11 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
   const renderImportFoodItems = () => (
     <div className="flex-1 flex flex-col gap-6 animate-in fade-in slide-in-from-right-4 duration-200">
       <div className="flex items-center gap-4">
-        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">
+        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">
           <ArrowLeft size={20} strokeWidth={3} />
         </button>
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-white rounded-lg shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
+          <div className="p-2 bg-white rounded-[0.625rem] shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
           <div>
             <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Import Food Items</h1>
             <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">Bulk Food & Menu Management</p>
@@ -240,32 +240,32 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-8 flex flex-col gap-6">
+      <div className="bg-white rounded-[0.625rem] shadow-sm border border-zinc-200 p-8 flex flex-col gap-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-1">
             <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Items with VAT</label>
-            <select className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200 cursor-pointer">
+            <select className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200 cursor-pointer">
               <option>VATABLE</option>
               <option>NOT-VATABLE</option>
             </select>
           </div>
           <div className="space-y-1">
             <label className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Items Active</label>
-            <select className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200 cursor-pointer">
+            <select className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200 cursor-pointer">
               <option>ACTIVE</option>
               <option>NOT-ACTIVE</option>
             </select>
           </div>
         </div>
 
-        <div className="border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-2xl p-8 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
+        <div className="border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-[0.625rem] p-8 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
           <div className="p-3 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
             <Upload size={24} className="text-zinc-400 group-hover:text-[#3b2063]" />
           </div>
           <p className="text-xs font-black text-slate-700 uppercase tracking-widest">Click to Upload Food Items File</p>
         </div>
 
-        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-3">
+        <div className="bg-blue-50 border border-blue-100 rounded-[0.625rem] p-4 flex gap-3">
           <Info size={16} className="text-blue-600 shrink-0 mt-0.5" />
           <div className="text-[10px] text-blue-800 font-medium space-y-1">
             <p>1. Create CATEGORY first (if category is not yet exist)</p>
@@ -280,7 +280,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
             <AlertCircle size={14} className="text-[#3b2063]" />
             <h3 className="text-[10px] font-black text-[#3b2063] uppercase tracking-[0.2em]">Important Tips: Sample Format CSV</h3>
           </div>
-          <div className="border border-zinc-200 rounded-lg overflow-x-auto">
+          <div className="border border-zinc-200 rounded-[0.625rem] overflow-x-auto">
             <table className="w-full text-left whitespace-nowrap">
               <thead>
                 <tr className="bg-zinc-100 border-b border-zinc-200">
@@ -328,10 +328,10 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
       </div>
 
       <div className="flex gap-3">
-        <button className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">
+        <button className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">
           <FileDown size={14} strokeWidth={3} /> Import
         </button>
-        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">Back</button>
+        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">Back</button>
       </div>
     </div>
   );
@@ -340,11 +340,11 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
   const renderImportQuantity = () => (
     <div className="flex-1 flex flex-col gap-6 animate-in fade-in slide-in-from-right-4 duration-200">
       <div className="flex items-center gap-4">
-        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">
+        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">
           <ArrowLeft size={20} strokeWidth={3} />
         </button>
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-white rounded-lg shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
+          <div className="p-2 bg-white rounded-[0.625rem] shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
           <div>
             <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Import Quantity</h1>
             <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">Update Stock Levels</p>
@@ -352,8 +352,8 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-8 flex flex-col items-center gap-6">
-        <div className="w-full max-w-lg border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-2xl p-10 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
+      <div className="bg-white rounded-[0.625rem] shadow-sm border border-zinc-200 p-8 flex flex-col items-center gap-6">
+        <div className="w-full max-w-lg border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-[0.625rem] p-10 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
           <div className="p-4 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
             <Upload size={32} className="text-zinc-400 group-hover:text-[#3b2063]" />
           </div>
@@ -364,7 +364,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
         </div>
 
         {/* Reminder Text */}
-        <div className="w-full max-w-lg flex items-center justify-center gap-2 p-3 bg-red-50 border border-red-100 rounded-lg">
+        <div className="w-full max-w-lg flex items-center justify-center gap-2 p-3 bg-red-50 border border-red-100 rounded-[0.625rem]">
           <AlertTriangle size={14} className="text-red-600" />
           <p className="text-[10px] font-black text-red-600 uppercase tracking-wider">Make sure that the ITEMS BARCODE has no DUPLICATE</p>
         </div>
@@ -374,7 +374,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
             <AlertCircle size={14} className="text-[#3b2063]" />
             <h3 className="text-[10px] font-black text-[#3b2063] uppercase tracking-[0.2em]">Important Tips: Sample Format CSV</h3>
           </div>
-          <div className="border border-zinc-200 rounded-lg overflow-hidden">
+          <div className="border border-zinc-200 rounded-[0.625rem] overflow-hidden">
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-zinc-100 border-b border-zinc-200">
@@ -402,10 +402,10 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
       </div>
 
       <div className="flex gap-3">
-        <button className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">
+        <button className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">
           <FileDown size={14} strokeWidth={3} /> Import
         </button>
-        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">Back</button>
+        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">Back</button>
       </div>
     </div>
   );
@@ -414,11 +414,11 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
   const renderImportItemKits = () => (
     <div className="flex-1 flex flex-col gap-6 animate-in fade-in slide-in-from-right-4 duration-200">
       <div className="flex items-center gap-4">
-        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">
+        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">
           <ArrowLeft size={20} strokeWidth={3} />
         </button>
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-white rounded-lg shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
+          <div className="p-2 bg-white rounded-[0.625rem] shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
           <div>
             <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Import Item Kits</h1>
             <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">Bundle & Kit Configuration</p>
@@ -426,8 +426,8 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-8 flex flex-col items-center gap-6">
-        <div className="w-full max-w-lg border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-2xl p-10 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
+      <div className="bg-white rounded-[0.625rem] shadow-sm border border-zinc-200 p-8 flex flex-col items-center gap-6">
+        <div className="w-full max-w-lg border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-[0.625rem] p-10 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
           <div className="p-4 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
             <Upload size={32} className="text-zinc-400 group-hover:text-[#3b2063]" />
           </div>
@@ -442,7 +442,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
             <AlertCircle size={14} className="text-[#3b2063]" />
             <h3 className="text-[10px] font-black text-[#3b2063] uppercase tracking-[0.2em]">Important Tips: Sample Format CSV</h3>
           </div>
-          <div className="border border-zinc-200 rounded-lg overflow-hidden">
+          <div className="border border-zinc-200 rounded-[0.625rem] overflow-hidden">
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-zinc-100 border-b border-zinc-200">
@@ -469,10 +469,10 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
       </div>
 
       <div className="flex gap-3">
-        <button className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">
+        <button className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">
           <FileDown size={14} strokeWidth={3} /> Import
         </button>
-        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">Back</button>
+        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">Back</button>
       </div>
     </div>
   );
@@ -481,11 +481,11 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
   const renderImportUpdate = () => (
     <div className="flex-1 flex flex-col gap-6 animate-in fade-in slide-in-from-right-4 duration-200">
       <div className="flex items-center gap-4">
-        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">
+        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">
           <ArrowLeft size={20} strokeWidth={3} />
         </button>
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-white rounded-lg shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
+          <div className="p-2 bg-white rounded-[0.625rem] shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
           <div>
             <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Import Update</h1>
             <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">Stock Adjustment & Corrections</p>
@@ -493,8 +493,8 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-8 flex flex-col items-center gap-6">
-        <div className="w-full max-w-lg border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-2xl p-10 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
+      <div className="bg-white rounded-[0.625rem] shadow-sm border border-zinc-200 p-8 flex flex-col items-center gap-6">
+        <div className="w-full max-w-lg border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-[0.625rem] p-10 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
           <div className="p-4 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
             <Upload size={32} className="text-zinc-400 group-hover:text-[#3b2063]" />
           </div>
@@ -505,7 +505,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
         </div>
 
         {/* INSTRUCTIONS */}
-        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-3 w-full max-w-lg">
+        <div className="bg-blue-50 border border-blue-100 rounded-[0.625rem] p-4 flex gap-3 w-full max-w-lg">
           <Info size={16} className="text-blue-600 shrink-0 mt-0.5" />
           <div className="text-[10px] text-blue-800 font-medium space-y-1">
             <p>1. Make sure that the ITEMS BARCODE has NO DUPLICATE</p>
@@ -520,7 +520,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
             <AlertCircle size={14} className="text-[#3b2063]" />
             <h3 className="text-[10px] font-black text-[#3b2063] uppercase tracking-[0.2em]">Important Tips: Sample Format CSV</h3>
           </div>
-          <div className="border border-zinc-200 rounded-lg overflow-hidden">
+          <div className="border border-zinc-200 rounded-[0.625rem] overflow-hidden">
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-zinc-100 border-b border-zinc-200">
@@ -548,10 +548,10 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
       </div>
 
       <div className="flex gap-3">
-        <button className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">
+        <button className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">
           <FileDown size={14} strokeWidth={3} /> Import
         </button>
-        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">Back</button>
+        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">Back</button>
       </div>
     </div>
   );
@@ -560,11 +560,11 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
   const renderImportUpdatePrice = () => (
     <div className="flex-1 flex flex-col gap-6 animate-in fade-in slide-in-from-right-4 duration-200">
       <div className="flex items-center gap-4">
-        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">
+        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">
           <ArrowLeft size={20} strokeWidth={3} />
         </button>
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-white rounded-lg shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
+          <div className="p-2 bg-white rounded-[0.625rem] shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
           <div>
             <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Import Update Price</h1>
             <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">Pricing Adjustments</p>
@@ -572,8 +572,8 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-8 flex flex-col items-center gap-6">
-        <div className="w-full max-w-lg border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-2xl p-10 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
+      <div className="bg-white rounded-[0.625rem] shadow-sm border border-zinc-200 p-8 flex flex-col items-center gap-6">
+        <div className="w-full max-w-lg border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-[0.625rem] p-10 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
           <div className="p-4 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
             <Upload size={32} className="text-zinc-400 group-hover:text-[#3b2063]" />
           </div>
@@ -584,7 +584,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
         </div>
 
         {/* REQUIREMENTS */}
-        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-3 w-full max-w-lg">
+        <div className="bg-blue-50 border border-blue-100 rounded-[0.625rem] p-4 flex gap-3 w-full max-w-lg">
           <Info size={16} className="text-blue-600 shrink-0 mt-0.5" />
           <div className="text-[10px] text-blue-800 font-medium space-y-1">
             <p className="font-bold text-[#1e40af]">REQUIREMENTS FOR IMPORTING:</p>
@@ -598,7 +598,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
             <AlertCircle size={14} className="text-[#3b2063]" />
             <h3 className="text-[10px] font-black text-[#3b2063] uppercase tracking-[0.2em]">IMPORT TIPS: SAMPLE FORMAT CSV</h3>
           </div>
-          <div className="border border-zinc-200 rounded-lg overflow-hidden">
+          <div className="border border-zinc-200 rounded-[0.625rem] overflow-hidden">
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-zinc-100 border-b border-zinc-200">
@@ -625,10 +625,10 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
       </div>
 
       <div className="flex gap-3">
-        <button className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">
+        <button className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">
           <FileDown size={14} strokeWidth={3} /> Import
         </button>
-        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">Back</button>
+        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">Back</button>
       </div>
     </div>
   );
@@ -637,11 +637,11 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
   const renderImportCustomers = () => (
     <div className="flex-1 flex flex-col gap-6 animate-in fade-in slide-in-from-right-4 duration-200">
       <div className="flex items-center gap-4">
-        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">
+        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">
           <ArrowLeft size={20} strokeWidth={3} />
         </button>
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-white rounded-lg shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
+          <div className="p-2 bg-white rounded-[0.625rem] shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
           <div>
             <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Import Customers</h1>
             <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">Customer Database Management</p>
@@ -649,8 +649,8 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-8 flex flex-col items-center gap-6">
-        <div className="w-full max-w-lg border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-2xl p-10 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
+      <div className="bg-white rounded-[0.625rem] shadow-sm border border-zinc-200 p-8 flex flex-col items-center gap-6">
+        <div className="w-full max-w-lg border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-[0.625rem] p-10 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
           <div className="p-4 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
             <Upload size={32} className="text-zinc-400 group-hover:text-[#3b2063]" />
           </div>
@@ -661,7 +661,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
         </div>
 
         {/* REQUIREMENTS */}
-        <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-3 w-full max-w-lg">
+        <div className="bg-blue-50 border border-blue-100 rounded-[0.625rem] p-4 flex gap-3 w-full max-w-lg">
           <Info size={16} className="text-blue-600 shrink-0 mt-0.5" />
           <div className="text-[10px] text-blue-800 font-medium space-y-1">
             <p className="font-bold text-[#1e40af]">REQUIREMENTS FOR IMPORTING:</p>
@@ -675,7 +675,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
             <AlertCircle size={14} className="text-[#3b2063]" />
             <h3 className="text-[10px] font-black text-[#3b2063] uppercase tracking-[0.2em]">IMPORT TIPS: SAMPLE FORMAT CSV</h3>
           </div>
-          <div className="border border-zinc-200 rounded-lg overflow-hidden">
+          <div className="border border-zinc-200 rounded-[0.625rem] overflow-hidden">
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-zinc-100 border-b border-zinc-200">
@@ -708,10 +708,10 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
       </div>
 
       <div className="flex gap-3">
-        <button className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">
+        <button className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">
           <FileDown size={14} strokeWidth={3} /> Import
         </button>
-        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">Back</button>
+        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">Back</button>
       </div>
     </div>
   );
@@ -720,11 +720,11 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
   const renderImportCustomersWallet = () => (
     <div className="flex-1 flex flex-col gap-6 animate-in fade-in slide-in-from-right-4 duration-200">
       <div className="flex items-center gap-4">
-        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">
+        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">
           <ArrowLeft size={20} strokeWidth={3} />
         </button>
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-white rounded-lg shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
+          <div className="p-2 bg-white rounded-[0.625rem] shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
           <div>
             <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Import Customers Wallet</h1>
             <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">Loyalty Points & Balance</p>
@@ -732,8 +732,8 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-8 flex flex-col items-center gap-6">
-        <div className="w-full max-w-lg border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-2xl p-10 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
+      <div className="bg-white rounded-[0.625rem] shadow-sm border border-zinc-200 p-8 flex flex-col items-center gap-6">
+        <div className="w-full max-w-lg border-2 border-dashed border-zinc-300 bg-zinc-50 rounded-[0.625rem] p-10 flex flex-col items-center justify-center text-center gap-3 hover:border-[#3b2063] hover:bg-[#f8f6ff] transition-all cursor-pointer group">
           <div className="p-4 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform">
             <Upload size={32} className="text-zinc-400 group-hover:text-[#3b2063]" />
           </div>
@@ -748,7 +748,7 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
             <AlertCircle size={14} className="text-[#3b2063]" />
             <h3 className="text-[10px] font-black text-[#3b2063] uppercase tracking-[0.2em]">IMPORTANT TIPS: SAMPLE FORMAT CSV</h3>
           </div>
-          <div className="border border-zinc-200 rounded-lg overflow-hidden">
+          <div className="border border-zinc-200 rounded-[0.625rem] overflow-hidden">
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-zinc-100 border-b border-zinc-200">
@@ -772,10 +772,10 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
       </div>
 
       <div className="flex gap-3">
-        <button className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">
+        <button className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">
           <FileDown size={14} strokeWidth={3} /> Import
         </button>
-        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">Back</button>
+        <button onClick={() => setActiveView(null)} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">Back</button>
       </div>
     </div>
   );
@@ -784,11 +784,11 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
   const renderMainMenu = () => (
     <div className="flex-1 flex flex-col gap-6 animate-in fade-in duration-200">
       <div className="flex items-center gap-4">
-        <button onClick={onBack} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">
+        <button onClick={onBack} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">
           <ArrowLeft size={20} strokeWidth={3} />
         </button>
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-white rounded-lg shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
+          <div className="p-2 bg-white rounded-[0.625rem] shadow-sm"><FileDown size={24} className="text-[#3b2063]" /></div>
           <div>
             <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Import Data</h1>
             <p className="text-zinc-400 font-bold text-xs uppercase tracking-wider mt-1">External Data Synchronization</p>
@@ -813,14 +813,14 @@ const ImportData = ({ onBack }: { onBack: () => void }) => {
               else if (label === "CUSTOMERS WALLET") setActiveView('CUSTOMERS_WALLET');
               else console.log(label);
             }}
-            className="h-11 bg-white text-[#3b2063] border border-[#3b2063] font-bold text-sm uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6 min-h-20 hover:bg-[#f8f6ff]"
+            className="h-11 bg-white text-[#3b2063] border border-[#3b2063] font-bold text-sm uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6 min-h-20 hover:bg-[#f8f6ff]"
           >
             {label}
           </button>
         ))}
       </div>
 
-      <div className="mt-auto bg-white p-4 rounded-xl border border-zinc-200 flex items-center gap-3 shadow-sm">
+      <div className="mt-auto bg-white p-4 rounded-[0.625rem] border border-zinc-200 flex items-center gap-3 shadow-sm">
         <div className="p-2 bg-zinc-100 rounded-full text-zinc-400"><Database size={16} /></div>
         <p className="text-sm font-bold text-black uppercase tracking-wider">Ensure files are in .CSV or .XLSX format before importing.</p>
       </div>

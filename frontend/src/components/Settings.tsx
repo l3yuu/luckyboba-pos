@@ -161,13 +161,13 @@ const Settings = () => {
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in duration-300">
             {settingActions.map((item, index) => (
-              <button key={index} onClick={item.action} className="group relative overflow-hidden flex flex-col items-center justify-center p-8 rounded-none shadow-sm border border-zinc-200 bg-white transition-all duration-200 active:scale-95 hover:shadow-md hover:border-zinc-300">
+              <button key={index} onClick={item.action} className="group relative overflow-hidden flex flex-col items-center justify-center p-8 rounded-[0.625rem] shadow-sm border border-zinc-200 bg-white transition-all duration-200 active:scale-95 hover:shadow-md hover:border-zinc-300">
                 <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: item.color }} />
                 <div className="mb-4 transition-transform duration-200 group-hover:scale-110" style={{ color: item.iconColor }}>
                   <item.Icon size={32} strokeWidth={1.5} />
                 </div>
                 <span className="text-[11px] font-extrabold text-[#1c1c1e] uppercase tracking-widest text-center">{item.label}</span>
-                <div className="mt-3 px-3 py-1 rounded-none bg-zinc-50 text-[8px] font-bold text-zinc-400 uppercase tracking-tighter border border-zinc-100 group-hover:bg-zinc-200 group-hover:text-zinc-600 transition-colors">Configure</div>
+                <div className="mt-3 px-3 py-1 rounded-[0.625rem] bg-zinc-50 text-[8px] font-bold text-zinc-400 uppercase tracking-tighter border border-zinc-100 group-hover:bg-zinc-200 group-hover:text-zinc-600 transition-colors">Configure</div>
               </button>
             ))}
           </div>
@@ -196,7 +196,7 @@ const Settings = () => {
           {renderContent()}
 
           {/* System audit section */}
-          <div className="mt-4 bg-white rounded-none shadow-sm border border-zinc-200 overflow-hidden shrink-0">
+          <div className="mt-4 bg-white rounded-[0.625rem] shadow-sm border border-zinc-200 overflow-hidden shrink-0">
             <div className="bg-[#3b2063] px-7 py-4 border-b border-zinc-100">
               <h2 className="text-white font-extrabold text-[10px] uppercase tracking-[0.3em] text-center">System Audit & Security</h2>
             </div>
@@ -213,7 +213,7 @@ const Settings = () => {
                 <div>
                   <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Active Session</p>
                   <p className="text-sm font-extrabold text-black uppercase mb-1">{auditInfo.active_session}</p>
-                  <button onClick={() => setIsLogOpen(true)} className="text-[8px] font-bold text-[#3b2063] border border-[#3b2063]/20 px-2 py-0.5 rounded-none hover:bg-[#3b2063] hover:text-white transition-colors">VIEW LOGS</button>
+                  <button onClick={() => setIsLogOpen(true)} className="text-[8px] font-bold text-[#3b2063] border border-[#3b2063]/20 px-2 py-0.5 rounded-[0.625rem] hover:bg-[#3b2063] hover:text-white transition-colors">VIEW LOGS</button>
                 </div>
               </div>
               <div className="flex flex-col items-center text-center gap-2">
@@ -234,7 +234,7 @@ const Settings = () => {
       {/* Activity log modal */}
       {isLogOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-none border border-zinc-200 shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
+          <div className="bg-white rounded-[0.625rem] border border-zinc-200 shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
             <div className="bg-[#3b2063] px-7 py-5 border-b border-zinc-100 flex justify-between items-center">
               <h3 className="text-white font-extrabold text-xs uppercase tracking-widest">System Activity Log</h3>
               <div className="flex items-center gap-4">
@@ -262,7 +262,7 @@ const Settings = () => {
               )}
             </div>
             <div className="p-4 bg-zinc-50 border-t border-zinc-100 flex justify-center">
-              <button onClick={() => setIsLogOpen(false)} className="h-11 px-7 bg-zinc-200 text-zinc-500 rounded-none font-bold text-xs uppercase tracking-widest hover:bg-zinc-300 transition-colors">Close</button>
+              <button onClick={() => setIsLogOpen(false)} className="h-11 px-7 bg-zinc-200 text-zinc-500 rounded-[0.625rem] font-bold text-xs uppercase tracking-widest hover:bg-zinc-300 transition-colors">Close</button>
             </div>
           </div>
         </div>

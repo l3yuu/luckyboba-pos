@@ -135,7 +135,7 @@ const ItemsReport = () => {
         <div className="flex-1 overflow-y-auto p-5 md:p-7 flex flex-col gap-5">
 
           {/* ── Filter Bar ── */}
-          <div className="bg-white border border-zinc-200 p-6 shadow-sm">
+          <div className="bg-white border border-zinc-200 p-6 shadow-sm rounded-[0.625rem]">
             <div className="flex flex-col lg:flex-row gap-3 items-end">
 
               {/* From Date */}
@@ -183,19 +183,19 @@ const ItemsReport = () => {
               <div className="flex gap-2 w-full lg:w-auto">
                 <button
                   onClick={fetchReport} disabled={loading}
-                  className="flex-1 lg:w-32 h-11.5 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-sm uppercase tracking-widest transition-all disabled:opacity-50"
+                  className="flex-1 lg:w-32 h-11.5 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-sm uppercase tracking-widest transition-all disabled:opacity-50 rounded-[0.625rem]"
                 >
                   {loading ? 'Loading...' : 'Query'}
                 </button>
                 <button
                   onClick={generateExcel} disabled={!hasData}
-                  className="w-12 h-11.5 bg-white border border-zinc-200 text-zinc-500 hover:text-[#3b2063] hover:border-[#3b2063] flex items-center justify-center transition-all disabled:opacity-30"
+                  className="w-12 h-11.5 bg-white border border-zinc-200 text-zinc-500 hover:text-[#3b2063] hover:border-[#3b2063] flex items-center justify-center transition-all disabled:opacity-30 rounded-[0.625rem]"
                 >
                   <FileDown size={17} />
                 </button>
                 <button
                   onClick={handlePrint} disabled={!hasData}
-                  className="w-12 h-11.5 bg-white border border-zinc-200 text-zinc-500 hover:text-[#3b2063] hover:border-[#3b2063] flex items-center justify-center transition-all disabled:opacity-30"
+                  className="w-12 h-11.5 bg-white border border-zinc-200 text-zinc-500 hover:text-[#3b2063] hover:border-[#3b2063] flex items-center justify-center transition-all disabled:opacity-30 rounded-[0.625rem]"
                 >
                   <Printer size={17} />
                 </button>
@@ -204,7 +204,7 @@ const ItemsReport = () => {
           </div>
 
           {/* ── Report Table ── */}
-          <div className="flex-1 bg-white border border-zinc-200 shadow-sm flex flex-col overflow-hidden relative">
+          <div className="flex-1 bg-white border border-zinc-200 shadow-sm flex flex-col overflow-hidden relative rounded-[0.625rem]">
 
             {/* Table Header */}
             <div className="px-7 py-5 border-b border-zinc-100 flex justify-between items-center">

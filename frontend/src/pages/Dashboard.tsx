@@ -170,7 +170,7 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, onRefr
       <div className="grid grid-cols-12 gap-4">
 
         {/* Terminal Status */}
-        <div className="col-span-12 lg:col-span-5 bg-[#1e0f3c] rounded-none p-7 flex flex-col justify-between min-h-44 relative overflow-hidden">
+        <div className="col-span-12 lg:col-span-5 bg-[#1e0f3c] rounded-[0.625rem] p-7 flex flex-col justify-between min-h-44 relative overflow-hidden">
           <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
           <div className="relative z-10">
             <div className="flex items-center justify-between">
@@ -194,7 +194,7 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, onRefr
         </div>
 
         {/* Net Revenue */}
-        <div className="col-span-12 md:col-span-6 lg:col-span-4 bg-white border border-zinc-200 rounded-none p-7 flex flex-col justify-between min-h-44 stat-card">
+        <div className="col-span-12 md:col-span-6 lg:col-span-4 bg-white border border-zinc-200 rounded-[0.625rem] p-7 flex flex-col justify-between min-h-44 stat-card">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-violet-50 border border-violet-200 flex items-center justify-center">
@@ -217,7 +217,7 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, onRefr
         </div>
 
         {/* Transactions */}
-        <div className="col-span-12 md:col-span-6 lg:col-span-3 bg-white border border-zinc-200 rounded-none p-7 flex flex-col justify-between min-h-44 stat-card">
+        <div className="col-span-12 md:col-span-6 lg:col-span-3 bg-white border border-zinc-200 rounded-[0.625rem] p-7 flex flex-col justify-between min-h-44 stat-card">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-violet-50 border border-violet-200 flex items-center justify-center">
               <Receipt size={18} className="text-violet-600" strokeWidth={2} />
@@ -259,7 +259,7 @@ interface MetricCardProps {
 const accentMap = { emerald: 'text-emerald-700', zinc: 'text-zinc-800', red: 'text-red-600' };
 
 const MetricCard = ({ icon, label, value, isLoading, accent }: MetricCardProps) => (
-  <div className="bg-white border border-zinc-200 rounded-none px-6 py-5 flex items-center justify-between stat-card">
+  <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center justify-between stat-card">
     <div className="flex items-center gap-3">
       <div className="w-10 h-10 bg-zinc-50 border border-zinc-200 flex items-center justify-center">{icon}</div>
       <p className="text-sm font-bold uppercase tracking-widest text-zinc-700">{label}</p>
@@ -285,7 +285,7 @@ const LeaderboardCard = ({ title, icon, sellers, loading }: LeaderboardCardProps
   const slots = Array.from({ length: 5 }, (_, i) => list[i] || null);
 
   return (
-    <div className="col-span-12 lg:col-span-6 bg-white border border-zinc-200 rounded-none flex flex-col" style={{ minHeight: '380px' }}>
+    <div className="col-span-12 lg:col-span-6 bg-white border border-zinc-200 rounded-[0.625rem] flex flex-col" style={{ minHeight: '380px' }}>
       <div className="flex items-center gap-3 px-7 py-5 border-b border-zinc-200">
         <div className="w-9 h-9 bg-violet-50 border border-violet-200 flex items-center justify-center">{icon}</div>
         <p className="text-sm font-bold uppercase tracking-widest text-zinc-700">{title}</p>
@@ -347,16 +347,16 @@ const DashboardSkeleton = () => (
       </div>
       <div className="flex-1 p-7 flex flex-col gap-5">
         <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-5 h-44 bg-zinc-200/70 animate-pulse" />
-          <div className="col-span-4 h-44 bg-white animate-pulse border border-zinc-200" />
-          <div className="col-span-3 h-44 bg-white animate-pulse border border-zinc-200" />
+          <div className="col-span-5 h-44 bg-zinc-200/70 animate-pulse rounded-[0.625rem]" />
+          <div className="col-span-4 h-44 bg-white animate-pulse border border-zinc-200 rounded-[0.625rem]" />
+          <div className="col-span-3 h-44 bg-white animate-pulse border border-zinc-200 rounded-[0.625rem]" />
         </div>
         <div className="grid grid-cols-3 gap-4">
-          {[1,2,3].map(i => <div key={i} className="h-20 bg-white border border-zinc-200 animate-pulse" />)}
+          {[1,2,3].map(i => <div key={i} className="h-20 bg-white border border-zinc-200 animate-pulse rounded-[0.625rem]" />)}
         </div>
         <div className="grid grid-cols-12 gap-4 flex-1">
-          <div className="col-span-6 bg-white border border-zinc-200 animate-pulse" />
-          <div className="col-span-6 bg-white border border-zinc-200 animate-pulse" />
+          <div className="col-span-6 bg-white border border-zinc-200 animate-pulse rounded-[0.625rem]" />
+          <div className="col-span-6 bg-white border border-zinc-200 animate-pulse rounded-[0.625rem]" />
         </div>
       </div>
     </div>

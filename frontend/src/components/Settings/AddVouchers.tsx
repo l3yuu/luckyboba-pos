@@ -238,7 +238,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
         {/* HEADER SECTION */}
         <div className="flex flex-col md:flex-row justify-between items-end gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-white rounded-lg shadow-sm">
+            <div className="p-2 bg-white rounded-[0.625rem] shadow-sm">
               <Ticket size={24} className="text-[#3b2063]" />
             </div>
           </div>
@@ -246,13 +246,13 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
           <div className="flex gap-2">
             <button
               onClick={handlePrintVouchers}
-              className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-sm uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6"
+              className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-sm uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6"
             >
               <Printer size={14} strokeWidth={3} /> Print Vouchers
             </button>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-sm uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6"
+              className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-sm uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6"
             >
               <Plus size={14} strokeWidth={3} /> Add Vouchers
             </button>
@@ -260,7 +260,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
         </div>
 
         {/* DATA TABLE */}
-        <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
+        <div className="bg-white rounded-[0.625rem] shadow-sm border border-zinc-200 overflow-hidden">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-zinc-50 border-b border-zinc-200">
@@ -315,7 +315,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
             </tbody>
           </table>
           <div className="p-4 bg-zinc-50 border-t border-zinc-200">
-            <button onClick={onBack} className="px-6 py-2 bg-zinc-200 text-zinc-500 rounded-lg font-black uppercase text-sm tracking-widest hover:bg-zinc-300 flex items-center gap-2 transition-all shadow-sm">
+            <button onClick={onBack} className="px-6 py-2 bg-zinc-200 text-zinc-500 rounded-[0.625rem] font-black uppercase text-sm tracking-widest hover:bg-zinc-300 flex items-center gap-2 transition-all shadow-sm">
               <ArrowLeft size={14} strokeWidth={3} /> Back to Settings
             </button>
           </div>
@@ -325,7 +325,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
       {/* ADD VOUCHER MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 relative">
+          <div className="bg-white w-full max-w-md rounded-[0.625rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 relative">
             {loading && (
               <div className="absolute inset-0 bg-white/40 z-50 flex items-center justify-center">
                 <Loader2 className="animate-spin text-[#3b2063]" size={32} />
@@ -345,7 +345,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
                   type="text"
                   value={newVoucher.number}
                   onChange={(e) => setNewVoucher({...newVoucher, number: e.target.value})}
-                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all"
+                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all"
                   placeholder="e.g. VOUCHER-001"
                 />
               </div>
@@ -356,7 +356,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
                   type="text"
                   value={newVoucher.value}
                   onChange={(e) => setNewVoucher({...newVoucher, value: e.target.value})}
-                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all"
+                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all"
                   placeholder="e.g. 20% or 100.00"
                 />
               </div>
@@ -366,7 +366,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
                 <select
                   value={newVoucher.type}
                   onChange={(e) => setNewVoucher({...newVoucher, type: e.target.value})}
-                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-colors duration-200 cursor-pointer"
+                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-colors duration-200 cursor-pointer"
                 >
                   <option value="Percentage">Percentage (%)</option>
                   <option value="Fixed Amount">Fixed Amount (₱)</option>
@@ -378,7 +378,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
                 <button
                   onClick={handleAddVoucher}
                   disabled={loading}
-                  className="w-full h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <Save size={14} /> Add New
                 </button>
@@ -386,13 +386,13 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
                 <div className="flex gap-3">
                   <button
                     onClick={() => setIsModalOpen(false)}
-                    className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6"
+                    className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6"
                   >
                     Back
                   </button>
                   <button
                     onClick={handleImport}
-                    className="flex-1 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6"
+                    className="flex-1 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6"
                   >
                     <Upload size={14} /> Import
                   </button>

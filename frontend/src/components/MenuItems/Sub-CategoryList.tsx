@@ -138,9 +138,9 @@ function AddModal({ mainCategories, onClose, onSuccess }: {
 
         {/* Footer */}
         <div className="flex gap-3 px-7 py-5 border-t border-zinc-100">
-          <button onClick={onClose} disabled={submitting} className="flex-1 h-11 bg-white border border-zinc-200 text-zinc-600 font-bold text-sm uppercase tracking-widest hover:bg-zinc-50 transition-all disabled:opacity-50">Cancel</button>
-          <button onClick={handleSubmit} disabled={submitting} className="flex-1 h-11 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-sm uppercase tracking-widest transition-all disabled:opacity-60 flex items-center justify-center gap-2">
-            {submitting ? <><span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving...</> : 'Add Sub-Category'}
+          <button onClick={onClose} disabled={submitting} className="flex-1 h-11 bg-white border border-zinc-200 text-zinc-600 font-bold text-sm uppercase tracking-widest hover:bg-zinc-50 transition-all disabled:opacity-50 rounded-[0.625rem]">Cancel</button>
+          <button onClick={handleSubmit} disabled={submitting} className="flex-1 h-11 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-sm uppercase tracking-widest transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]">
+            {submitting ? <><span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-[0.625rem] animate-spin" /> Saving...</> : 'Add Sub-Category'}
           </button>
         </div>
       </div>
@@ -216,8 +216,8 @@ function EditModal({ subCategory, mainCategories, onClose, onSuccess }: {
 
         <div className="flex gap-3 px-7 py-5 border-t border-zinc-100">
           <button onClick={onClose} disabled={submitting} className="flex-1 h-11 bg-white border border-zinc-200 text-zinc-600 font-bold text-sm uppercase tracking-widest hover:bg-zinc-50 transition-all">Cancel</button>
-          <button onClick={handleSubmit} disabled={submitting} className="flex-1 h-11 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-sm uppercase tracking-widest transition-all disabled:opacity-60 flex items-center justify-center gap-2">
-            {submitting ? <><span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving...</> : 'Save Changes'}
+          <button onClick={handleSubmit} disabled={submitting} className="flex-1 h-11 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-sm uppercase tracking-widest transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]">
+            {submitting ? <><span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-[0.625rem] animate-spin" /> Saving...</> : 'Save Changes'}
           </button>
         </div>
       </div>
@@ -388,13 +388,13 @@ const SubCategoryList = () => {
             </div>
             <button
               onClick={() => setShowAddModal(true)}
-              className="h-10.5 px-6 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-sm uppercase tracking-widest flex items-center gap-2 transition-colors active:scale-[0.98]">
+              className="h-10.5 px-6 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-sm uppercase tracking-widest flex items-center gap-2 transition-colors active:scale-[0.98] rounded-[0.625rem]">
               <Plus size={15} strokeWidth={2.5} /> Add Sub-Category
             </button>
           </div>
 
           {/* ── Table Card ── */}
-          <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm relative">
+          <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm relative rounded-[0.625rem]">
             {isFetching && (
               <div className="absolute inset-0 bg-white/70 z-10 flex items-center justify-center">
                 <Loader2 className="animate-spin text-[#3b2063]" size={28} />
@@ -471,7 +471,7 @@ const SubCategoryList = () => {
                         <td className="px-5 py-3.5 text-center">
                           <button
                             onClick={() => setEditTarget(sub)}
-                            className="w-9 h-9 inline-flex items-center justify-center bg-[#3b2063] hover:bg-[#2a1647] text-white transition-colors"
+                            className="w-9 h-9 inline-flex items-center justify-center bg-[#3b2063] hover:bg-[#2a1647] text-white transition-colors rounded-[0.625rem]"
                             title="Edit"
                           >
                             <Pencil size={14} strokeWidth={2} />
@@ -480,7 +480,7 @@ const SubCategoryList = () => {
                         <td className="px-7 py-3.5 text-center">
                           <button
                             onClick={() => setDeleteTarget(sub)}
-                            className="w-9 h-9 inline-flex items-center justify-center bg-white border border-red-200 text-red-500 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all"
+                            className="w-9 h-9 inline-flex items-center justify-center bg-white border border-red-200 text-red-500 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all rounded-[0.625rem]"
                             title="Delete"
                           >
                             <Trash2 size={14} strokeWidth={2} />
@@ -504,7 +504,7 @@ const SubCategoryList = () => {
             {/* Footer */}
             <div className="px-7 py-3.5 bg-white border-t border-zinc-100 flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span className="w-1.5 h-1.5 rounded-[0.625rem] bg-emerald-400" />
                 <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Synchronized</span>
               </div>
               <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
