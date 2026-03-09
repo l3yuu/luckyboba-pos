@@ -5,60 +5,28 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import api from '../services/api';
 import { 
-  LayoutGrid, 
-  ShoppingCart, 
-  BarChart3, 
-  BookOpen, 
-  Package, 
-  Wallet, 
-  Settings as SettingsIcon,
-  LogOut,
-  Lock,
-  ChevronDown
+  LayoutGrid, ShoppingCart, BarChart3, BookOpen, Package,
+  Wallet, Settings as SettingsIcon, LogOut, Lock, ChevronDown
 } from 'lucide-react';
 
-// --- INTERFACES ---
-interface MenuItem {
-  id: string;
-  label: string;
-}
-
-interface DropdownConfig {
-  id: string;
-  state: boolean;
-  label: string;
-  items: MenuItem[];
-  icon: React.ReactNode;
-}
-
+interface MenuItem { id: string; label: string; }
+interface DropdownConfig { id: string; state: boolean; label: string; items: MenuItem[]; icon: React.ReactNode; }
 interface SidebarProps {
   isSidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   logo: string;
   currentTab: string;
   setCurrentTab: (tab: string) => void;
-  isLoading?: boolean; 
+  isLoading?: boolean;
 }
+interface NavBtnProps { active: boolean; icon: React.ReactNode; label: string; onClick: () => void; }
 
-interface NavBtnProps {
-  active: boolean;
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-}
-
-const Sidebar: React.FC<SidebarProps> = ({ 
-  isSidebarOpen, 
-  setSidebarOpen, 
-  logo, 
-  currentTab, 
-  setCurrentTab,
-  isLoading = false
+const Sidebar: React.FC<SidebarProps> = ({
+  isSidebarOpen, setSidebarOpen, logo, currentTab, setCurrentTab, isLoading = false
 }) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
-  
-  // --- STATES ---
+
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showCashInRequired, setShowCashInRequired] = useState(false);
@@ -72,53 +40,48 @@ const Sidebar: React.FC<SidebarProps> = ({
     const cachedDate = localStorage.getItem('cashier_lock_date');
     const today = new Date().toDateString();
     if (cachedStatus === 'true' && cachedDate === today) return false;
-    return true; 
+    return true;
   });
 
   useEffect(() => {
     const checkEod = async () => {
       try {
-        const response = await api.get('/cash-counts/status'); 
-        setIsEodLocked(response.data.isEodDone);
-      } catch (error) { console.error("EOD Check failed", error); }
+        const r = await api.get('/cash-counts/status');
+        setIsEodLocked(r.data.isEodDone);
+      } catch (e) { console.error("EOD Check failed", e); }
     };
     checkEod();
   }, [currentTab]);
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentDate(new Date()), 1000);
-    return () => clearInterval(timer);
+    const t = setInterval(() => setCurrentDate(new Date()), 1000);
+    return () => clearInterval(t);
   }, []);
 
   useEffect(() => {
     const checkStatus = async () => {
       try {
-        const response = await api.get('/cash-transactions/status'); 
-        const hasCashedIn = response.data.hasCashedIn;
+        const r = await api.get('/cash-transactions/status');
         const today = new Date().toDateString();
-        setIsMenuLocked(!hasCashedIn);
-        if (hasCashedIn) {
+        setIsMenuLocked(!r.data.hasCashedIn);
+        if (r.data.hasCashedIn) {
           localStorage.setItem('cashier_menu_unlocked', 'true');
           localStorage.setItem('cashier_lock_date', today);
         } else {
           localStorage.removeItem('cashier_menu_unlocked');
           localStorage.removeItem('cashier_lock_date');
         }
-      } catch (error) { console.error("Error checking cash-in status:", error); }
+      } catch (e) { console.error("Cash-in status error:", e); }
     };
     checkStatus();
   }, [currentTab]);
 
   useEffect(() => {
-    const handleEodCompleted = () => {
-      setIsEodLocked(true);
-      setIsMenuLocked(true);
-    };
-    window.addEventListener('eod-completed', handleEodCompleted);
-    return () => window.removeEventListener('eod-completed', handleEodCompleted);
+    const fn = () => { setIsEodLocked(true); setIsMenuLocked(true); };
+    window.addEventListener('eod-completed', fn);
+    return () => window.removeEventListener('eod-completed', fn);
   }, []);
-  
-  // --- MENU DATA ---
+
   const posMenuItems: MenuItem[] = [
     { id: 'cash-in', label: 'Cash In' },
     { id: 'cash-drop', label: 'Cash Drop' },
@@ -126,20 +89,17 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'search-receipts', label: 'Search Receipts' },
     { id: 'cash-count', label: 'Cash Count EOD' },
   ];
-
   const salesReportItems: MenuItem[] = [
     { id: 'sales-dashboard', label: 'Dashboard' },
     { id: 'items-report', label: 'Items Report' },
     { id: 'x-reading', label: 'X Reading' },
     { id: 'z-reading', label: 'Z Reading' },
   ];
-
   const menuManagementItems: MenuItem[] = [
     { id: 'menu-list', label: 'Menu List' },
     { id: 'category-list', label: 'Category List' },
     { id: 'sub-category-list', label: 'Sub-Category List' },
   ];
-
   const inventoryItems: MenuItem[] = [
     { id: 'inventory-dashboard', label: 'Dashboard' },
     { id: 'inventory-list', label: 'Inventory List' },
@@ -152,24 +112,18 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'inventory-report', label: 'Inventory Report' },
   ];
 
-  const [isPosDropdownOpen, setPosDropdownOpen] = useState(() => posMenuItems.some(i => i.id === currentTab));
-  const [isSalesReportDropdownOpen, setSalesReportDropdownOpen] = useState(() => salesReportItems.some(i => i.id === currentTab));
-  const [isMenuItemsDropdownOpen, setMenuItemsDropdownOpen] = useState(() => menuManagementItems.some(i => i.id === currentTab));
-  const [isInventoryDropdownOpen, setInventoryDropdownOpen] = useState(() => inventoryItems.some(i => i.id === currentTab));
+  const [isPosOpen, setPosOpen] = useState(() => posMenuItems.some(i => i.id === currentTab));
+  const [isSalesOpen, setSalesOpen] = useState(() => salesReportItems.some(i => i.id === currentTab));
+  const [isMenuOpen, setMenuOpen] = useState(() => menuManagementItems.some(i => i.id === currentTab));
+  const [isInvOpen, setInvOpen] = useState(() => inventoryItems.some(i => i.id === currentTab));
 
-  const handleDropdownToggle = (id: string) => {
-    setPosDropdownOpen(id === 'pos' ? !isPosDropdownOpen : false);
-    setSalesReportDropdownOpen(id === 'sales' ? !isSalesReportDropdownOpen : false);
-    setMenuItemsDropdownOpen(id === 'menu-items' ? !isMenuItemsDropdownOpen : false);
-    setInventoryDropdownOpen(id === 'inventory' ? !isInventoryDropdownOpen : false);
+  const toggle = (id: string) => {
+    setPosOpen(id === 'pos' ? !isPosOpen : false);
+    setSalesOpen(id === 'sales' ? !isSalesOpen : false);
+    setMenuOpen(id === 'menu-items' ? !isMenuOpen : false);
+    setInvOpen(id === 'inventory' ? !isInvOpen : false);
   };
-
-  const closeAllDropdowns = () => {
-    setPosDropdownOpen(false);
-    setSalesReportDropdownOpen(false);
-    setMenuItemsDropdownOpen(false);
-    setInventoryDropdownOpen(false);
-  };
+  const closeAll = () => { setPosOpen(false); setSalesOpen(false); setMenuOpen(false); setInvOpen(false); };
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
@@ -179,18 +133,18 @@ const Sidebar: React.FC<SidebarProps> = ({
       localStorage.removeItem('cashier_lock_date');
       await logout();
       navigate('/login', { replace: true });
-    } catch (error) { console.error("Logout failed:", error); }
+    } catch (e) { console.error("Logout failed:", e); }
     finally { setIsLoggingOut(false); }
   };
 
   const dropdowns: DropdownConfig[] = [
-    { id: 'pos', state: isPosDropdownOpen, label: 'Point of Sale', items: posMenuItems, icon: <ShoppingCart size={17} /> },
-    { id: 'sales', state: isSalesReportDropdownOpen, label: 'Sales Report', items: salesReportItems, icon: <BarChart3 size={17} /> },
-    { id: 'menu-items', state: isMenuItemsDropdownOpen, label: 'Menu Items', items: menuManagementItems, icon: <BookOpen size={17} /> },
-    { id: 'inventory', state: isInventoryDropdownOpen, label: 'Inventory', items: inventoryItems, icon: <Package size={17} /> }
+    { id: 'pos',        state: isPosOpen,    label: 'Point of Sale', items: posMenuItems,        icon: <ShoppingCart size={17} /> },
+    { id: 'sales',      state: isSalesOpen,  label: 'Sales Report',  items: salesReportItems,    icon: <BarChart3 size={17} /> },
+    { id: 'menu-items', state: isMenuOpen,   label: 'Menu Items',    items: menuManagementItems, icon: <BookOpen size={17} /> },
+    { id: 'inventory',  state: isInvOpen,    label: 'Inventory',     items: inventoryItems,      icon: <Package size={17} /> },
   ];
 
-  // ─── Modal Component ───
+  // ── Modal ──
   const Modal = ({ show, icon, title, desc, action, btnText, cancel, danger }: {
     show: boolean; icon: React.ReactNode; title: string; desc: string;
     action: () => void; btnText: string; cancel?: () => void; danger?: boolean;
@@ -198,16 +152,27 @@ const Sidebar: React.FC<SidebarProps> = ({
     if (!show) return null;
     return (
       <div className="fixed inset-0 z-200 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
-        <div className="bg-white w-full max-w-sm border border-zinc-200 p-10 flex flex-col items-center text-center shadow-2xl rounded-xl">
-          <div className="w-12 h-12 flex items-center justify-center mb-5">{icon}</div>
-          <h3 className="text-[#1a0f2e] font-bold text-base mb-2">{title}</h3>
-          <p className="text-zinc-500 text-sm font-medium mb-8 leading-relaxed">{desc}</p>
+        <div
+          style={{ fontFamily: "'DM Sans', sans-serif" }}
+          className="bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] p-8 flex flex-col items-center text-center shadow-2xl"
+        >
+          <div className={`w-11 h-11 rounded-[0.625rem] flex items-center justify-center mb-5 ${danger ? 'bg-red-50' : 'bg-[#f5f3ff]'}`}>
+            {icon}
+          </div>
+          <h3 className="text-[#1a0f2e] font-bold text-base mb-2 tracking-tight">{title}</h3>
+          <p className="text-zinc-500 text-sm font-medium mb-7 leading-relaxed">{desc}</p>
           <div className="flex flex-col w-full gap-2">
-            <button onClick={action} className={`w-full py-3.5 text-sm font-bold tracking-wide text-white transition-colors rounded-lg ${danger ? 'bg-red-600 hover:bg-red-700' : 'bg-[#3b2063] hover:bg-[#2a174a]'}`}>
+            <button
+              onClick={action}
+              className={`w-full py-3 text-[10px] font-bold tracking-[0.18em] uppercase text-white transition-all rounded-[0.625rem] active:scale-[0.98] ${danger ? 'bg-[#be2525] hover:bg-[#a11f1f]' : 'bg-[#3b2063] hover:bg-[#2a1647]'}`}
+            >
               {btnText}
             </button>
             {cancel && (
-              <button onClick={cancel} className="w-full py-3.5 text-sm font-semibold text-zinc-600 bg-white border border-zinc-200 hover:bg-zinc-50 transition-colors rounded-lg">
+              <button
+                onClick={cancel}
+                className="w-full py-3 text-[10px] font-bold tracking-[0.18em] uppercase text-zinc-500 bg-white border border-zinc-200 hover:bg-zinc-50 transition-all rounded-[0.625rem] active:scale-[0.98]"
+              >
                 Cancel
               </button>
             )}
@@ -217,22 +182,25 @@ const Sidebar: React.FC<SidebarProps> = ({
     );
   };
 
+  // ── Skeleton ──
   if (isLoading) {
     return (
       <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-zinc-200 flex flex-col">
-        <div className="flex-1 px-4 pt-10">
-          <div className="flex flex-col items-center mb-10">
-            <div className="w-40 h-10 bg-zinc-100 animate-pulse mb-4" />
-            <div className="w-20 h-5 bg-zinc-50 animate-pulse" />
+        <div className="flex-1 px-4 pt-8">
+          <div className="flex flex-col items-center mb-6 pb-6 border-b border-zinc-100">
+            <div className="w-36 h-9 bg-zinc-100 animate-pulse rounded-lg mb-3" />
+            <div className="w-24 h-5 bg-zinc-50 animate-pulse rounded-md" />
           </div>
           {[1,2,3,4,5,6].map(i => (
-            <div key={i} className="w-full h-12 bg-zinc-50 animate-pulse border-b border-zinc-100 flex items-center px-5 gap-3">
-              <div className="w-4 h-4 bg-zinc-100" />
-              <div className="w-24 h-3 bg-zinc-100" />
+            <div key={i} className="w-full h-11 bg-zinc-50 animate-pulse border-b border-zinc-100 flex items-center px-5 gap-3">
+              <div className="w-4 h-4 bg-zinc-100 rounded" />
+              <div className="w-20 h-2.5 bg-zinc-100 rounded" />
             </div>
           ))}
         </div>
-        <div className="p-5"><div className="w-full h-12 bg-red-50 animate-pulse" /></div>
+        <div className="p-4 border-t border-zinc-100">
+          <div className="w-full h-11 bg-red-50 animate-pulse rounded-[0.625rem]" />
+        </div>
       </aside>
     );
   }
@@ -240,128 +208,122 @@ const Sidebar: React.FC<SidebarProps> = ({
   return (
     <>
       <style>{`
-        .sidebar-scroll { overflow-y: scroll; scrollbar-gutter: stable; -ms-overflow-style: none; scrollbar-width: none; }
-        .sidebar-scroll::-webkit-scrollbar { display: none; }
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+        .sb-root, .sb-root * { font-family: 'DM Sans', sans-serif !important; }
 
-        .sub-item {
-          position: relative;
-          transition: background 0.15s ease, color 0.15s ease, padding-left 0.15s ease;
-        }
-        .sub-item::before {
-          content: '';
-          position: absolute;
-          left: -1px;
-          top: 50%;
-          transform: translateY(-50%) scaleY(0);
-          width: 2px;
-          height: 55%;
-          background: #3b2063;
-          transition: transform 0.18s cubic-bezier(0.4,0,0.2,1), opacity 0.18s;
-          opacity: 0;
-        }
-        .sub-item:hover::before, .sub-item.active::before {
-          transform: translateY(-50%) scaleY(1);
-          opacity: 1;
-        }
-        .sub-item:hover { background: #f9f8ff; padding-left: 12px !important; color: #1c1c1e; }
-        .sub-item.active { background: #f3f0ff; padding-left: 12px !important; color: #3b2063; font-weight: 700; }
+        .sb-scroll { overflow-y: scroll; scrollbar-gutter: stable; -ms-overflow-style: none; scrollbar-width: none; }
+        .sb-scroll::-webkit-scrollbar { display: none; }
 
-        .nav-btn { transition: background 0.15s ease; }
-        .nav-btn:hover { background: #f5f3ff; }
-        .nav-btn.active { background: #ede8ff; }
-        .dropdown-header { transition: background 0.15s ease; }
-        .dropdown-header:hover { background: #f5f3ff; }
+        /* ── Nav button ── */
+        .sb-btn {
+          width: 100%; display: flex; align-items: center; gap: 13px;
+          padding: 16px 20px; border: none; border-bottom: 1px solid #f4f4f5;
+          background: transparent; cursor: pointer; text-align: left;
+          position: relative; transition: background 0.13s;
+        }
+        .sb-btn:hover { background: #f5f3ff; }
+        .sb-btn.active { background: #ede8ff; }
+        .sb-btn.active::before {
+          content: ''; position: absolute; left: 0; top: 20%; bottom: 20%;
+          width: 3px; background: #3b2063; border-radius: 0 2px 2px 0;
+        }
 
-        @keyframes logout-spin { to { transform: rotate(360deg); } }
-        .logout-spinner { animation: logout-spin 0.7s linear infinite; }
+        /* ── Dropdown header ── */
+        .sb-dh {
+          width: 100%; display: flex; align-items: center; justify-content: space-between;
+          padding: 16px 20px; border: none; border-bottom: 1px solid #f4f4f5;
+          background: transparent; cursor: pointer;
+          position: relative; transition: background 0.13s;
+        }
+        .sb-dh:hover { background: #f5f3ff; }
+        .sb-dh.active { background: #ede8ff; }
+        .sb-dh.active::before {
+          content: ''; position: absolute; left: 0; top: 20%; bottom: 20%;
+          width: 3px; background: #3b2063; border-radius: 0 2px 2px 0;
+        }
+
+        /* ── Sub items ── */
+        .sb-sub {
+          width: 100%; text-align: left; border: none; cursor: pointer;
+          padding: 11px 12px 11px 10px;
+          font-size: 0.82rem; font-weight: 500; color: #52525b;
+          background: transparent; display: flex; align-items: center; justify-content: space-between;
+          border-radius: 0.5rem;
+          transition: background 0.12s, color 0.12s, padding-left 0.12s;
+        }
+        .sb-sub:hover { background: #f0ebff; color: #3b2063; padding-left: 14px; }
+        .sb-sub.active { background: #ede8ff; color: #3b2063; font-weight: 700; padding-left: 14px; }
+
+        /* ── Chevron ── */
+        .sb-chevron { transition: transform 0.25s cubic-bezier(0.4,0,0.2,1); color: #a1a1aa; }
+        .sb-chevron.open { transform: rotate(180deg); }
+
+        /* ── Logout spinner ── */
+        @keyframes sb-spin { to { transform: rotate(360deg); } }
+        .sb-spin { animation: sb-spin 0.7s linear infinite; }
       `}</style>
 
       {/* Modals */}
-      <Modal
-        show={showCashInRequired}
-        icon={<Lock size={22} className="text-[#3b2063]" />}
-        title="Menu Locked"
-        desc="Shift not started. Please input 'Cash In' first."
-        action={() => { setShowCashInRequired(false); setPosDropdownOpen(true); setCurrentTab('cash-in'); }}
-        btnText="Go to Cash In"
-        cancel={() => setShowCashInRequired(false)}
-      />
-      <Modal
-        show={showZReadingBlockedModal}
-        icon={<BarChart3 size={22} className="text-amber-600" />}
-        title="EOD Required"
-        desc="Complete EOD Cash Count before Z-Reading."
-        action={() => { setShowZReadingBlockedModal(false); setPosDropdownOpen(true); setCurrentTab('cash-count'); }}
-        btnText="Go to Cash Count"
-        cancel={() => setShowZReadingBlockedModal(false)}
-      />
-      <Modal
-        show={showLogoutConfirm}
-        icon={<LogOut size={22} className="text-red-600" />}
-        title="End Session?"
-        desc="Are you sure you want to log out?"
-        action={handleLogout}
-        btnText="Logout"
-        cancel={() => setShowLogoutConfirm(false)}
-        danger
-      />
-      <Modal
-        show={showEodLockedModal}
-        icon={<Lock size={22} className="text-red-600" />}
-        title="Terminal Closed"
-        desc="End of Day processed. Terminal locked for new orders."
-        action={() => setShowEodLockedModal(false)}
-        btnText="Dismiss"
-      />
+      <Modal show={showCashInRequired} icon={<Lock size={19} className="text-[#3b2063]" />}
+        title="Menu Locked" desc="Shift not started. Please input Cash In first to unlock the terminal."
+        action={() => { setShowCashInRequired(false); setPosOpen(true); setCurrentTab('cash-in'); }}
+        btnText="Go to Cash In" cancel={() => setShowCashInRequired(false)} />
 
-      {/* Sidebar Shell */}
-      <aside className={`relative inset-y-0 left-0 z-50 w-64 bg-white border-r border-zinc-200 transform transition-transform duration-300 md:relative md:translate-x-0 flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <Modal show={showZReadingBlockedModal} icon={<BarChart3 size={19} className="text-amber-500" />}
+        title="EOD Required" desc="Complete EOD Cash Count before accessing Z-Reading."
+        action={() => { setShowZReadingBlockedModal(false); setPosOpen(true); setCurrentTab('cash-count'); }}
+        btnText="Go to Cash Count" cancel={() => setShowZReadingBlockedModal(false)} />
 
-        <div className="flex-1 sidebar-scroll min-h-0">
+      <Modal show={showLogoutConfirm} icon={<LogOut size={19} className="text-[#be2525]" />}
+        title="End Session?" desc="Are you sure you want to log out of the terminal?"
+        action={handleLogout} btnText="Logout" cancel={() => setShowLogoutConfirm(false)} danger />
 
-          {/* Logo Area */}
-          <div className="px-6 pt-10 pb-8 flex flex-col items-center border-b border-zinc-100">
-            <img src={logo} alt="Logo" className="w-44 h-auto object-contain mb-4 hidden md:block" />
-            <span className="inline-flex items-center px-3 py-1 bg-amber-400 text-[#1a0f2e] text-[10px] font-black uppercase tracking-[0.2em]">
-              POINT OF SALE
+      <Modal show={showEodLockedModal} icon={<Lock size={19} className="text-[#be2525]" />}
+        title="Terminal Closed" desc="End of Day has been processed. Terminal is locked for new orders."
+        action={() => setShowEodLockedModal(false)} btnText="Dismiss" />
+
+      {/* ── Sidebar ── */}
+      <aside className={`sb-root relative inset-y-0 left-0 z-50 w-64 bg-white border-r border-zinc-200 transform transition-transform duration-300 md:relative md:translate-x-0 flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+
+        <div className="flex-1 sb-scroll min-h-0">
+
+          {/* Logo */}
+          <div className="px-5 pt-7 pb-6 flex flex-col items-center border-b border-zinc-100">
+            <img src={logo} alt="Lucky Boba" className="w-40 h-auto object-contain mb-3 hidden md:block" />
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#3b2063] rounded-md">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 opacity-90" />
+              <span className="text-[9px] font-black uppercase tracking-[0.22em] text-white">Point of Sale</span>
             </span>
           </div>
 
-          {/* Nav */}
-          <nav className="w-full py-2">
+          {/* Nav items */}
+          <nav className="w-full py-1">
+
             <NavBtn
               active={currentTab === 'dashboard'}
               icon={<LayoutGrid size={17} />}
               label="Dashboard"
-              onClick={() => { setCurrentTab('dashboard'); closeAllDropdowns(); if (window.innerWidth < 768) setSidebarOpen(false); }}
+              onClick={() => { setCurrentTab('dashboard'); closeAll(); if (window.innerWidth < 768) setSidebarOpen(false); }}
             />
 
-            {dropdowns.map((dropdown) => {
-              const isGroupActive = dropdown.items.some(i => i.id === currentTab);
+            {dropdowns.map((dd) => {
+              const groupActive = dd.items.some(i => i.id === currentTab);
               return (
-                <div key={dropdown.id}>
-                  <button
-                    onClick={() => handleDropdownToggle(dropdown.id)}
-                    className={`dropdown-header w-full px-5 py-3.5 flex items-center justify-between border-b border-zinc-100 ${isGroupActive ? 'bg-[#f3f0ff]' : ''}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className={isGroupActive || dropdown.state ? 'text-[#3b2063]' : 'text-zinc-500'}>
-                        {dropdown.icon}
-                      </span>
-                      <span className={`text-[12px] font-bold uppercase tracking-widest ${isGroupActive || dropdown.state ? 'text-[#1a0f2e]' : 'text-zinc-700'}`}>
-                        {dropdown.label}
+                <div key={dd.id}>
+                  <button onClick={() => toggle(dd.id)} className={`sb-dh ${groupActive ? 'active' : ''}`}>
+                    <div className="flex items-center gap-2.5">
+                      <span className={groupActive || dd.state ? 'text-[#3b2063]' : 'text-zinc-400'}>{dd.icon}</span>
+                      <span className={`text-[13px] font-bold uppercase tracking-[0.14em] ${groupActive || dd.state ? 'text-[#1a0f2e]' : 'text-zinc-600'}`}>
+                        {dd.label}
                       </span>
                     </div>
-                    <ChevronDown
-                      size={13}
-                      className={`transition-transform duration-300 text-zinc-400 ${dropdown.state ? 'rotate-180' : ''}`}
-                    />
+                    <ChevronDown size={12} className={`sb-chevron ${dd.state ? 'open' : ''}`} />
                   </button>
 
-                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${dropdown.state ? 'max-h-125 opacity-100' : 'max-h-0 opacity-0'}`}>
-                    <div className="ml-5 pl-3 border-l-2 border-zinc-100 py-1.5 flex flex-col">
-                      {dropdown.items.map((item) => {
-                        const isLocked =
+                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${dd.state ? 'max-h-125 opacity-100' : 'max-h-0 opacity-0'}`}>
+                    <div className="mx-3 my-1.5 px-1.5 py-1.5 bg-zinc-50/80 rounded-[0.625rem] border border-zinc-100 flex flex-col gap-0.5">
+                      {dd.items.map((item) => {
+                        const locked =
                           (item.id === 'menu' && (isMenuLocked || isEodLocked)) ||
                           (item.id === 'z-reading' && !isEodLocked);
                         return (
@@ -369,8 +331,8 @@ const Sidebar: React.FC<SidebarProps> = ({
                             key={item.id}
                             onClick={() => {
                               if (item.id === 'menu') {
-                                const isUnlockedNow = localStorage.getItem('cashier_menu_unlocked') === 'true';
-                                if (isMenuLocked && !isUnlockedNow) setShowCashInRequired(true);
+                                const ok = localStorage.getItem('cashier_menu_unlocked') === 'true';
+                                if (isMenuLocked && !ok) setShowCashInRequired(true);
                                 else if (isEodLocked) setShowEodLockedModal(true);
                                 else navigate('/pos');
                               } else if (item.id === 'z-reading' && !isEodLocked) {
@@ -380,12 +342,10 @@ const Sidebar: React.FC<SidebarProps> = ({
                                 if (window.innerWidth < 768) setSidebarOpen(false);
                               }
                             }}
-                            className={`sub-item text-left py-2.5 pr-4 flex items-center justify-between w-full text-[13px] font-medium text-zinc-600
-                              ${isLocked ? 'opacity-30 cursor-not-allowed' : ''}
-                              ${currentTab === item.id ? 'active' : ''}`}
+                            className={`sb-sub ${locked ? 'opacity-40 cursor-not-allowed' : ''} ${currentTab === item.id ? 'active' : ''}`}
                           >
                             {item.label}
-                            {isLocked && <Lock size={10} className="text-zinc-400 shrink-0" />}
+                            {locked && <Lock size={9} className="text-zinc-400 shrink-0" />}
                           </button>
                         );
                       })}
@@ -395,58 +355,52 @@ const Sidebar: React.FC<SidebarProps> = ({
               );
             })}
 
-            <NavBtn active={currentTab === 'expense'} icon={<Wallet size={17} />} label="Expense" onClick={() => { setCurrentTab('expense'); closeAllDropdowns(); }} />
-            <NavBtn active={currentTab === 'settings'} icon={<SettingsIcon size={17} />} label="Settings" onClick={() => { setCurrentTab('settings'); closeAllDropdowns(); }} />
+            <NavBtn active={currentTab === 'expense'} icon={<Wallet size={17} />} label="Expense"
+              onClick={() => { setCurrentTab('expense'); closeAll(); }} />
+            <NavBtn active={currentTab === 'settings'} icon={<SettingsIcon size={17} />} label="Settings"
+              onClick={() => { setCurrentTab('settings'); closeAll(); }} />
           </nav>
         </div>
 
         {/* Footer */}
-        <div className="shrink-0 px-5 py-5 bg-white border-t border-zinc-100">
+        <div className="shrink-0 px-4 py-4 bg-white border-t border-zinc-100">
           <button
             onClick={() => setShowLogoutConfirm(true)}
             disabled={isLoggingOut}
-            className="flex items-center justify-center w-full py-3.5 bg-[#be2525] hover:bg-[#a11f1f] text-white text-sm font-bold uppercase tracking-widest transition-colors active:scale-95 disabled:opacity-80 disabled:cursor-not-allowed rounded-lg"
+            className="flex items-center justify-center w-full py-3 bg-[#be2525] hover:bg-[#a11f1f] text-white text-[10px] font-bold uppercase tracking-[0.18em] transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed rounded-[0.625rem]"
           >
             {isLoggingOut ? (
               <>
-                {/* Spinner ring */}
                 <div className="relative w-4 h-4 mr-2 shrink-0">
                   <div className="absolute inset-0 rounded-full border-2 border-white/30" />
-                  <div className="logout-spinner absolute inset-0 rounded-full border-2 border-transparent border-t-white" />
+                  <div className="sb-spin absolute inset-0 rounded-full border-2 border-transparent border-t-white" />
                 </div>
                 Logging out...
               </>
             ) : (
               <>
-                <LogOut size={14} className="mr-2" strokeWidth={2.5} />
+                <LogOut size={13} className="mr-2" strokeWidth={2.5} />
                 Logout
               </>
             )}
           </button>
-          <p className="text-[12px] font-bold text-zinc-800 uppercase tracking-[0.2em] text-center mt-4">
+          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] text-center mt-3">
             Lucky Boba &copy; 2026
           </p>
         </div>
       </aside>
 
       {isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
       )}
     </>
   );
 };
 
-// --- NAV BUTTON ---
 const NavBtn = ({ active, icon, label, onClick }: NavBtnProps) => (
-  <button
-    onClick={onClick}
-    className={`nav-btn w-full px-5 py-3.5 flex items-center gap-3 border-b border-zinc-100 ${active ? 'active' : ''}`}
-  >
-    <span className={active ? 'text-[#3b2063]' : 'text-zinc-500'}>{icon}</span>
-    <span className={`text-[12px] font-bold uppercase tracking-widest ${active ? 'text-[#1a0f2e]' : 'text-zinc-700'}`}>
+  <button onClick={onClick} className={`sb-btn ${active ? 'active' : ''}`}>
+    <span className={active ? 'text-[#3b2063]' : 'text-zinc-400'}>{icon}</span>
+    <span className={`text-[13px] font-bold uppercase tracking-[0.14em] ${active ? 'text-[#1a0f2e]' : 'text-zinc-600'}`}>
       {label}
     </span>
   </button>
