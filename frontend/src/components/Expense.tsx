@@ -169,26 +169,26 @@ const Expense = () => {
             </div>
             <button
               onClick={() => setIsAddModalOpen(true)}
-              className="h-11 px-7 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm"
+              className="h-11 px-7 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm"
             >
               ADD NEW EXPENSE
             </button>
           </div>
 
           {/* Filter bar */}
-          <div className="bg-white border border-zinc-200 p-4 rounded-none shadow-sm flex flex-col xl:flex-row items-center gap-4">
+          <div className="bg-white border border-zinc-200 p-4 rounded-[0.625rem] shadow-sm flex flex-col xl:flex-row items-center gap-4">
             <div className="flex flex-1 gap-2 w-full xl:w-auto">
               <input
                 type="date"
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
-                className="flex-1 px-4 py-3 rounded-none border border-zinc-300 bg-white text-sm font-semibold outline-none focus:border-[#3b2063]"
+                className="flex-1 px-4 py-3 rounded-[0.625rem] border border-zinc-300 bg-white text-sm font-semibold outline-none focus:border-[#3b2063]"
               />
               <input
                 type="date"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
-                className="flex-1 px-4 py-3 rounded-none border border-zinc-300 bg-white text-sm font-semibold outline-none focus:border-[#3b2063]"
+                className="flex-1 px-4 py-3 rounded-[0.625rem] border border-zinc-300 bg-white text-sm font-semibold outline-none focus:border-[#3b2063]"
               />
             </div>
 
@@ -198,7 +198,7 @@ const Expense = () => {
                 placeholder="Search Ref #"
                 value={refNumSearch}
                 onChange={(e) => setRefNumSearch(e.target.value)}
-                className="w-full px-4 py-3 rounded-none border border-zinc-300 bg-white text-sm font-semibold outline-none focus:border-[#3b2063] placeholder:text-zinc-400"
+                className="w-full px-4 py-3 rounded-[0.625rem] border border-zinc-300 bg-white text-sm font-semibold outline-none focus:border-[#3b2063] placeholder:text-zinc-400"
               />
             </div>
 
@@ -206,7 +206,7 @@ const Expense = () => {
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="w-full px-4 py-3 rounded-none border border-zinc-300 bg-white text-sm font-semibold outline-none focus:border-[#3b2063] cursor-pointer"
+                className="w-full px-4 py-3 rounded-[0.625rem] border border-zinc-300 bg-white text-sm font-semibold outline-none focus:border-[#3b2063] cursor-pointer"
               >
                 <option value="ALL">All Categories</option>
                 <option value="Bills">Bills</option>
@@ -220,7 +220,7 @@ const Expense = () => {
             <div className="flex gap-2 w-full xl:w-auto">
               <button
                 onClick={() => fetchExpenses(true)}
-                className="flex-1 xl:flex-none h-11 px-7 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none"
+                className="flex-1 xl:flex-none h-11 px-7 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem]"
               >
                 SEARCH
               </button>
@@ -229,22 +229,22 @@ const Expense = () => {
 
           {/* Summary cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white p-6 rounded-none shadow-sm border border-zinc-200">
+            <div className="bg-white p-6 rounded-[0.625rem] shadow-sm border border-zinc-200">
               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Total Sales</p>
               <p className="text-2xl font-extrabold text-black">{isFetching ? "..." : `₱${summary.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}</p>
             </div>
-            <div className="bg-white p-6 rounded-none shadow-sm border border-zinc-200">
+            <div className="bg-white p-6 rounded-[0.625rem] shadow-sm border border-zinc-200">
               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Total Expense</p>
               <p className="text-2xl font-extrabold text-black">{isFetching ? "..." : `₱${summary.totalExpense.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}</p>
             </div>
-            <div className="bg-white p-6 rounded-none shadow-sm border border-zinc-200">
+            <div className="bg-white p-6 rounded-[0.625rem] shadow-sm border border-zinc-200">
               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Net Total</p>
               <p className="text-2xl font-extrabold text-black">{isFetching ? "..." : `₱${summary.netTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}</p>
             </div>
           </div>
 
           {/* Expense table */}
-          <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-none">
+          <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-[0.625rem]">
             {isFetching && (
               <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center backdrop-blur-[1px]">
                 <Loader2 className="animate-spin text-[#3b2063]" size={32} />
@@ -307,7 +307,7 @@ const Expense = () => {
       {/* Add expense modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-none border border-zinc-200 shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
+          <div className="bg-white rounded-[0.625rem] border border-zinc-200 shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
             <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Finance</p>
@@ -328,7 +328,7 @@ const Expense = () => {
                 <input
                   type="text"
                   placeholder="e.g. BILL-001"
-                  className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white font-mono"
+                  className="w-full px-4 py-3 rounded-[0.625rem] border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white font-mono"
                   value={newExpense.refNum}
                   onChange={(e) => setNewExpense({ ...newExpense, refNum: e.target.value })}
                 />
@@ -338,7 +338,7 @@ const Expense = () => {
                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Description</label>
                 <textarea
                   placeholder="Brief details about the expense..."
-                  className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white h-24 resize-none"
+                  className="w-full px-4 py-3 rounded-[0.625rem] border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white h-24 resize-none"
                   value={newExpense.description}
                   onChange={(e) => setNewExpense({ ...newExpense, description: e.target.value })}
                 />
@@ -349,7 +349,7 @@ const Expense = () => {
                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Date</label>
                   <input
                     type="date"
-                    className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] focus:border-[#3b2063] focus:bg-white cursor-pointer"
+                    className="w-full px-4 py-3 rounded-[0.625rem] border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] focus:border-[#3b2063] focus:bg-white cursor-pointer"
                     value={newExpense.date}
                     onChange={(e) => setNewExpense({ ...newExpense, date: e.target.value })}
                   />
@@ -357,7 +357,7 @@ const Expense = () => {
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Category</label>
                   <select
-                    className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] focus:border-[#3b2063] focus:bg-white cursor-pointer"
+                    className="w-full px-4 py-3 rounded-[0.625rem] border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] focus:border-[#3b2063] focus:bg-white cursor-pointer"
                     value={newExpense.category}
                     onChange={(e) => setNewExpense({ ...newExpense, category: e.target.value })}
                   >
@@ -376,7 +376,7 @@ const Expense = () => {
                   type="number"
                   placeholder="0.00"
                   step="0.01"
-                  className="w-full px-4 py-3 rounded-none border text-lg font-extrabold outline-none transition-all bg-white text-black focus:border-[#3b2063] focus:bg-white"
+                  className="w-full px-4 py-3 rounded-[0.625rem] border text-lg font-extrabold outline-none transition-all bg-white text-black focus:border-[#3b2063] focus:bg-white"
                   value={newExpense.amount}
                   onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
                 />
@@ -385,14 +385,14 @@ const Expense = () => {
               <div className="flex gap-3 px-7 py-5 border-t border-zinc-100">
                 <button
                   onClick={() => setIsAddModalOpen(false)}
-                  className="flex-1 h-11 bg-white border border-red-300 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 hover:border-red-400 transition-all rounded-none"
+                  className="flex-1 h-11 bg-white border border-red-300 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 hover:border-red-400 transition-all rounded-[0.625rem]"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSaveExpense}
                   disabled={isSubmitting}
-                  className="flex-1 h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-60 rounded-none"
+                  className="flex-1 h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-60 rounded-[0.625rem]"
                 >
                   {isSubmitting ? (
                     <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Save Expense</>
