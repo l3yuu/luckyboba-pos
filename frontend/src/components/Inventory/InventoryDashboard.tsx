@@ -10,6 +10,7 @@ import {
   ResponsiveContainer, Legend, PieChart, Pie, Cell
 } from 'recharts';
 import type { ValueType, NameType } from 'recharts/types/component/DefaultTooltipContent';
+import InventoryHistoryModal from './InventoryHistory';
 
 const dashboardFont = { fontFamily: "'Inter', sans-serif" };
 
@@ -741,6 +742,7 @@ const InventoryDashboard = () => {
   const [varianceFilter, setVarianceFilter] = useState<'all' | 'negative' | 'positive' | 'zero'>('all');
   const [usageEntriesLimit, setUsageEntriesLimit] = useState(25);
   const [drawerRow, setDrawerRow] = useState<ReportRow | null>(null);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   // ── Raw materials state ───────────────────────────────────────────────────────
   const [materials, setMaterials] = useState<RawMaterial[]>([]);
@@ -957,6 +959,9 @@ const recipeRows = useMemo(() => {
       {adjustTarget && <AdjustModal item={adjustTarget} onClose={() => setAdjustTarget(null)} onSuccess={handleAdjustSuccess} />}
       {deleteTarget && <DeleteModal item={deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDeleteConfirm} />}
       {drawerRow && <MovementDrawer row={drawerRow} onClose={() => setDrawerRow(null)} />}
+      {isHistoryOpen && (
+        <InventoryHistoryModal onClose={() => setIsHistoryOpen(false)} />
+      )}
       {editTarget && (
         <RecipeEditModal
           menuItem={editTarget.menuItem}
@@ -984,6 +989,12 @@ const recipeRows = useMemo(() => {
             {activeTab === 'usage' && (
               <div className="flex items-center gap-2">
                 <button onClick={() => fetchMaterials(true)} className="h-10 px-4 border border-zinc-300 text-zinc-500 font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all">↻ Refresh</button>
+                <button
+                  onClick={() => setIsHistoryOpen(true)}
+                  className="h-10 px-4 border border-zinc-300 text-zinc-500 font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 hover:border-zinc-400 transition-all rounded-[0.625rem] shadow-sm"
+                >
+                  View History
+                </button>
                 <button onClick={() => exportCSV(reportRows, periodLabel)} className="h-10 px-4 border border-[#3b2063] text-[#3b2063] font-bold text-xs uppercase tracking-widest hover:bg-[#f3f0ff] transition-all flex items-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
