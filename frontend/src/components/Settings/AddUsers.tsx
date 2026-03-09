@@ -174,13 +174,8 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
                   {/* STATUS BUTTON COLUMN */}
                   <td className="px-6 py-4 text-center">
                     <button 
-<<<<<<< HEAD
-                      onClick={() => toggleStatus(user.id)}
-                      className={`px-4 py-1.5 rounded text-[9px] font-black uppercase tracking-widest transition-colors shadow-sm w-24 rounded-[0.625rem] ${
-=======
                       onClick={() => handleStatusToggle(user)}
                       className={`relative group overflow-hidden px-1 sm:px-2 md:px-4 py-1.5 sm:py-2 rounded-full text-[7px] sm:text-[8px] md:text-[9px] font-black uppercase tracking-normal sm:tracking-widest transition-all duration-300 shadow-sm hover:shadow-md active:scale-95 w-20 sm:w-24 md:w-28 min-w-[80px] sm:min-w-[90px] md:min-w-[100px] border-2 ${
->>>>>>> feature/backend-merge
                         user.status === 'Active' 
                         ? 'bg-emerald-50/50 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500 hover:text-white'
                         : 'bg-red-50/50 text-red-600 border-red-500/20 hover:bg-red-500 hover:text-white'
@@ -195,12 +190,6 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
 
                   {/* EDIT/DELETE ACTIONS */}
                   <td className="px-6 py-4 text-center">
-<<<<<<< HEAD
-                    <button className="text-blue-500 hover:text-blue-700 p-2 transition-colors inline-block rounded-[0.625rem]">
-                      <Edit3 size={16} />
-                    </button>
-                    <button className="text-red-400 hover:text-red-600 p-2 transition-colors inline-block ml-2 rounded-[0.625rem]">
-=======
                     <button 
                       onClick={() => handleEditUser(user)}
                       className="text-blue-500 hover:text-blue-700 p-2 transition-colors inline-block rounded-[0.625rem]"
@@ -211,7 +200,6 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
                       onClick={() => handleDeleteUser(user)}
                       className="text-red-400 hover:text-red-600 p-2 transition-colors inline-block ml-2 rounded-[0.625rem]"
                     >
->>>>>>> feature/backend-merge
                       <Trash2 size={16} />
                     </button>
                   </td>

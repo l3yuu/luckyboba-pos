@@ -15,16 +15,10 @@ const getHomeForRole = (role: string): string =>
 
 const Login: React.FC = () => {
   const { showToast } = useToast();
-<<<<<<< HEAD
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false); // Toggle State
-=======
   const [email, setEmail]               = useState('');
   const [password, setPassword]         = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [lockoutTimer, setLockoutTimer] = useState<number>(0);
->>>>>>> feature/backend-merge
   const [searchParams, setSearchParams] = useSearchParams();
 
   const { login, isLoading, error, user } = useAuth();
@@ -60,8 +54,6 @@ const Login: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [error]); // ← showToast intentionally excluded
 
-<<<<<<< HEAD
-=======
   // ── Lockout countdown ────────────────────────────────────────────────────
   useEffect(() => {
     const check = () => {
@@ -72,7 +64,6 @@ const Login: React.FC = () => {
     const id = setInterval(check, 1000);
     return () => clearInterval(id);
   }, []); // ← run once, interval handles updates
->>>>>>> feature/backend-merge
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.getModifierState('CapsLock')) showToast('Caps Lock is ON', 'warning');
@@ -170,15 +161,11 @@ const Login: React.FC = () => {
               disabled={isLoading}
               className="w-full bg-[#3b2063] text-white py-5 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-[#2a174a] active:scale-[0.98] transition-all shadow-xl shadow-purple-900/40 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-<<<<<<< HEAD
-              {isLoading ? 'Authenticating...' : 'Sign In'}
-=======
               {isLoading
                 ? 'Authenticating...'
                 : lockoutTimer > 0
                   ? `Locked (${lockoutTimer}s)`
                   : 'Sign In'}
->>>>>>> feature/backend-merge
             </button>
           </div>
         </form>
