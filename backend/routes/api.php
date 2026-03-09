@@ -3,8 +3,8 @@
 use App\Http\Controllers\Api\{ BackupController, CashCountController, CashTransactionController, CategoryController, DashboardController, DiscountController, ExpenseController, InventoryController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SettingsController, SubCategoryController, UploadController, VoucherController, AddOnController };
 use App\Http\Controllers\Api\CupController;
 use App\Http\Controllers\Api\RawMaterialController;
+use App\Http\Controllers\Api\RecipeController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use App\Models\User;
 use Illuminate\Http\Request; 
 use Illuminate\Support\Facades\Route;
 
@@ -15,8 +15,6 @@ use Illuminate\Support\Facades\Route;
 */
 Route::post('/login', [AuthenticatedSessionController::class, 'store'])
     ->middleware('throttle:5,2');
-Route::get('/users', function () { return User::all(); });
-
 /*
 |--------------------------------------------------------------------------
 | Protected API Routes (Requires auth:sanctum)
@@ -96,17 +94,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // --- 7. ANALYTICS & EXPORT REPORTS ---
     Route::prefix('reports')->group(function () {
-        // Business Intelligence
         Route::get('/x-reading', [SalesDashboardController::class, 'xReading']);
         Route::get('/z-reading', [SalesDashboardController::class, 'zReading']);
         Route::get('/mall-accreditation', [SalesDashboardController::class, 'mallReport']);
-        Route::get('/items-report', [SalesDashboardController::class, 'itemsReport']); // Moved inside for better organization
+        Route::get('/items-report', [SalesDashboardController::class, 'itemsReport']);
         Route::get('/hourly-sales', [ReportController::class, 'getHourlySales']); 
         Route::get('/void-logs', [ReportController::class, 'getVoidLogs']);
         Route::get('/item-quantities', [ReportController::class, 'getItemQuantities']);
         Route::get('/inventory', [InventoryReportController::class, 'index']);
 
-        // Excel/CSV Exports
         Route::get('/sales', [ReportController::class, 'getSalesReport']); 
         Route::get('/food-menu', [ReportController::class, 'getFoodMenu']); 
         Route::get('/export-sales', [ReportController::class, 'exportSales']);
@@ -125,12 +121,20 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/upload-discounts', [UploadController::class, 'uploadDiscounts']);
     });
 
-    // --- RAW MATERIALS ---
+    // --- 9. RAW MATERIALS ---
     Route::get('/raw-materials/low-stock', [RawMaterialController::class, 'lowStock']);
     Route::post('/raw-materials/{rawMaterial}/adjust', [RawMaterialController::class, 'adjust']);
     Route::get('/raw-materials/{rawMaterial}/history', [RawMaterialController::class, 'history']);
     Route::apiResource('raw-materials', RawMaterialController::class);
 
+    // --- 10. RECIPES ---
+    // Note: explicit named routes must be defined BEFORE apiResource
+    // to avoid the {recipe} wildcard swallowing them.
+    Route::get('/recipes/by-menu-item/{menuItemId}', [RecipeController::class, 'byMenuItem']);
+    Route::patch('/recipes/{recipe}/toggle', [RecipeController::class, 'toggle']);
+    Route::apiResource('recipes', RecipeController::class);
+
+    // --- 11. GENERAL SETTINGS ---
     Route::get('/settings', [SettingsController::class, 'index']);
     Route::post('/settings', [SettingsController::class, 'update']);
 });

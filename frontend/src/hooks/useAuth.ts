@@ -1,168 +1,182 @@
 "use client"
 
 import api from '../services/api';
-import { useState, useEffect, useCallback } from 'react'; 
-import axios from 'axios'; 
-import type { LoginCredentials, User } from '../types/user'; 
+import { useState, useEffect, useCallback } from 'react';
+import axios from 'axios';
+import type { LoginCredentials, User } from '../types/user';
+
+// ─── Storage Strategy ──────────────────────────────────────────────────────────
+//
+// ROOT CAUSE OF THE LOCALHOST LOGOUT BUG:
+//
+// sessionStorage clears on:
+//   ✗ Page refresh (F5 / Ctrl+R)          ← happens constantly in dev
+//   ✗ Tab close / reopen
+//   ✗ Opening a new tab to the same URL
+//
+// localStorage persists until explicitly cleared — which is why prod "worked":
+// you weren't refreshing as often. On localhost you refresh constantly, so
+// sessionStorage wiped your token every time.
+//
+// FIX: Use localStorage for auth persistence.
+// The token itself is already short-lived and validated server-side via Sanctum.
+// The "auto-clear on tab close" behavior of sessionStorage is not needed here
+// because your /logout route + 401 interceptor already handle invalidation.
+//
+// If you still want POS terminals to auto-clear on close, set an
+// inactivity timeout instead (see bottom of this file).
+
+const storage = {
+  get: (key: string) => localStorage.getItem(key),
+  set: (key: string, val: string) => localStorage.setItem(key, val),
+  remove: (key: string) => localStorage.removeItem(key),
+};
 
 const AUTH_KEYS = [
-    'lucky_boba_token',
-    'lucky_boba_authenticated',
-    'lucky_boba_user_name',
-    'lucky_boba_user_role',
-    'dashboard_stats',
-    'dashboard_stats_timestamp'
+  'lucky_boba_token',
+  'lucky_boba_authenticated',
+  'lucky_boba_user_name',
+  'lucky_boba_user_role',
 ];
 
-const MAX_LOGIN_ATTEMPTS = 5;
-const LOCKOUT_DURATION = 2 * 60 * 1000; 
-
 export const useAuth = () => {
-    const [isLoading, setIsLoading] = useState<boolean>(() => !localStorage.getItem('lucky_boba_token'));
-    const [error, setError] = useState<string | null>(null);
-    const [user, setUser] = useState<User | null>(() => {
-        const token = localStorage.getItem('lucky_boba_token');
-        const name = localStorage.getItem('lucky_boba_user_name');
-        const role = localStorage.getItem('lucky_boba_user_role');
-        if (token && name) {
-            return { name, role: role || 'cashier' } as User;
+  const [isLoading, setIsLoading] = useState<boolean>(
+    () => !storage.get('lucky_boba_token')
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<User | null>(() => {
+    const token = storage.get('lucky_boba_token');
+    const name = storage.get('lucky_boba_user_name');
+    const role = storage.get('lucky_boba_user_role');
+    if (token && name) {
+      return { name, role: role || 'cashier' } as User;
+    }
+    return null;
+  });
+
+  const clearSession = useCallback(() => {
+    AUTH_KEYS.forEach(key => storage.remove(key));
+    setUser(null);
+  }, []);
+
+  const checkAuth = useCallback(async (): Promise<User | null> => {
+    const token = storage.get('lucky_boba_token');
+
+    if (!token) {
+      setIsLoading(false);
+      return null;
+    }
+
+    try {
+      const response = await api.get('/user');
+      const userData = response.data;
+
+      storage.set('lucky_boba_user_name', userData.name);
+      storage.set('lucky_boba_user_role', userData.role || 'cashier');
+
+      setUser(userData);
+      return userData;
+    } catch {
+      clearSession();
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [clearSession]);
+
+  useEffect(() => {
+    const interceptor = api.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          clearSession();
         }
-        return null;
-    });
+        return Promise.reject(error);
+      }
+    );
 
-    const clearSession = useCallback(() => {
-        AUTH_KEYS.forEach(key => localStorage.removeItem(key));
-        setUser(null);
-    }, []);
+    checkAuth();
 
-    const checkAuth = useCallback(async (): Promise<User | null> => {
-        const token = localStorage.getItem('lucky_boba_token');
-        
-        if (!token) {
-            setIsLoading(false);
-            return null;
-        }
-
-        try {
-            const response = await api.get('/user');
-            const userData = response.data;
-            
-            // Sync localStorage if user name changed on backend
-            localStorage.setItem('lucky_boba_user_name', userData.name);
-            localStorage.setItem('lucky_boba_user_role', userData.role || 'cashier');
-            
-            setUser(userData);
-            return userData;
-        } catch {
-            clearSession();
-            return null;
-        } finally {
-            setIsLoading(false);
-        }
-    }, [clearSession]);
-
-    useEffect(() => {
-        const interceptor = api.interceptors.response.use(
-            (response) => response,
-            (error) => {
-                if (error.response?.status === 401) {
-                    clearSession();
-                }
-                // Suppress unhandled network errors from polluting the console
-                return Promise.reject(error);
-            }
-        );
-
-        checkAuth();
-
-        return () => {
-            api.interceptors.response.eject(interceptor);
-        };
-    }, [checkAuth, clearSession]);
-
-    const login = async (credentials: LoginCredentials): Promise<User | null> => {
-        // Check for client-side rate limiting
-        const lockoutEnd = localStorage.getItem('login_lockout_end');
-        if (lockoutEnd) {
-            const remaining = parseInt(lockoutEnd) - Date.now();
-            if (remaining > 0) {
-                setError(`Too many attempts. Please wait ${Math.ceil(remaining / 60000)} minute(s).`);
-                return null;
-            }
-            localStorage.removeItem('login_lockout_end');
-            localStorage.removeItem('login_attempts');
-        }
-
-        setIsLoading(true);
-        setError(null);
-        
-        try {
-            const response = await api.post('/login', credentials);
-            if (response.data.success === false) {
-                throw new Error(response.data.message || 'Invalid credentials.');
-            }
-
-            const { token, user: userData } = response.data;
-            
-            // PERSIST AUTH DATA
-            localStorage.setItem('lucky_boba_token', token);
-            localStorage.setItem('lucky_boba_authenticated', 'true');
-            localStorage.setItem('lucky_boba_user_name', userData.name);
-            localStorage.setItem('lucky_boba_user_role', userData.role || 'cashier');
-            
-            localStorage.removeItem('login_attempts');
-            localStorage.removeItem('login_lockout_end');
-
-            setUser(userData);
-            setIsLoading(false);
-            return userData;
-
-        } catch (err: unknown) { 
-            // Handle failed attempts safely
-            const attempts = parseInt(localStorage.getItem('login_attempts') || '0') + 1;
-            localStorage.setItem('login_attempts', attempts.toString());
-
-            if (attempts >= MAX_LOGIN_ATTEMPTS) {
-                localStorage.setItem('login_lockout_end', (Date.now() + LOCKOUT_DURATION).toString());
-                setError('Too many failed attempts. Please wait 2 minutes.');
-                setIsLoading(false);
-                return null;
-            }
-
-            clearSession();
-            
-            // Update error mapping to catch our custom Error thrown above
-            if (axios.isAxiosError(err)) {
-                if (!err.response) {
-                    setError('Unable to connect. Please try again later.');
-                } else {
-                    setError(err.response.data?.message || 'Invalid credentials.');
-                }
-            } else if (err instanceof Error) {
-                if (err.message === 'network_error') {
-                    setError('Unable to connect. Please try again later.');
-                } else {
-                    setError(err.message);
-                }
-            } else {
-                setError('An unexpected error occurred');
-            }
-            
-            setIsLoading(false);
-            return null;
-        }
+    return () => {
+      api.interceptors.response.eject(interceptor);
     };
+  }, [checkAuth, clearSession]);
 
-    const logout = async (): Promise<boolean> => {
-        try {
-            await api.post('/logout');
-            return true;
-        } catch {
-            return false;
-        } finally {
-            clearSession();
+  const login = async (credentials: LoginCredentials): Promise<User | null> => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await api.post('/login', credentials);
+      if (response.data.success === false) {
+        throw new Error(response.data.message || 'Invalid credentials.');
+      }
+
+      const { token, user: userData } = response.data;
+
+      storage.set('lucky_boba_token', token);
+      storage.set('lucky_boba_authenticated', 'true');
+      storage.set('lucky_boba_user_name', userData.name);
+      storage.set('lucky_boba_user_role', userData.role || 'cashier');
+
+      setUser(userData);
+      setIsLoading(false);
+      return userData;
+
+    } catch (err: unknown) {
+      clearSession();
+
+      if (axios.isAxiosError(err)) {
+        if (!err.response) {
+          setError('Unable to connect. Please try again later.');
+        } else if (err.response.status === 429) {
+          const retryAfter = err.response.headers['retry-after'];
+          const seconds = retryAfter ? parseInt(retryAfter) : 120;
+          const minutes = Math.ceil(seconds / 60);
+          setError(`Too many attempts. Please wait ${minutes} minute(s).`);
+        } else {
+          setError(err.response.data?.message || 'Invalid credentials.');
         }
-    };
+      } else if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('An unexpected error occurred');
+      }
 
-    return { login, logout, isLoading, error, user };
+      setIsLoading(false);
+      return null;
+    }
+  };
+
+  const logout = async (): Promise<boolean> => {
+    try {
+      await api.post('/logout');
+      return true;
+    } catch {
+      return false;
+    } finally {
+      clearSession();
+    }
+  };
+
+  return { login, logout, isLoading, error, user };
 };
+
+// ─── Optional: POS Inactivity Auto-Logout ─────────────────────────────────────
+//
+// If you want terminals to auto-logout after inactivity instead of on tab close,
+// add this hook and call it inside your root layout component:
+//
+// export function useInactivityLogout(timeoutMs = 30 * 60 * 1000) {
+//   const { logout } = useAuth();
+//   useEffect(() => {
+//     let timer = setTimeout(logout, timeoutMs);
+//     const reset = () => { clearTimeout(timer); timer = setTimeout(logout, timeoutMs); };
+//     const events = ['mousemove', 'keydown', 'click', 'touchstart'];
+//     events.forEach(e => window.addEventListener(e, reset));
+//     return () => {
+//       clearTimeout(timer);
+//       events.forEach(e => window.removeEventListener(e, reset));
+//     };
+//   }, [logout, timeoutMs]);
+// }

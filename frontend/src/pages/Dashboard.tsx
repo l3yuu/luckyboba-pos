@@ -29,7 +29,6 @@ import PurchaseOrder from '../components/Inventory/PurchaseOrder';
 import StockTransfer from '../components/Inventory/StockTransfer';
 import Supplier from '../components/Inventory/Supplier';
 import Settings from '../components/Settings';
-import RawMaterialList from '../components/Inventory/RawMaterialList';
 
 interface DashboardStatsProps {
   stats: DashboardData | null;
@@ -126,7 +125,6 @@ const Dashboard = () => {
       case 'inventory-dashboard': return <InventoryDashboard />;
       case 'inventory-list':      return <InventoryList />;
       case 'inventory-category':  return <InventoryCategoryList />;
-      case 'raw-materials':       return <RawMaterialList />;
       case 'supplier':            return <Supplier />;
       case 'item-checker':        return <ItemChecker />;
       case 'item-serials':        return <ItemSerials />;
