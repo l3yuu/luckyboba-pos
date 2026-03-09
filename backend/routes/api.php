@@ -35,7 +35,8 @@ use Illuminate\Support\Facades\DB;
 | customer        → Public routes only
 |--------------------------------------------------------------------------
 */
-
+Route::post('/login', [AuthenticatedSessionController::class, 'store'])
+    ->middleware('throttle:5,2');
 /*
 |--------------------------------------------------------------------------
 | Mobile App & Public API Routes (No Auth Required)

@@ -35,7 +35,7 @@ const Login: React.FC = () => {
     hasRedirected.current = true;
     navigate(getHomeForRole(user.role), { replace: true });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, user]); // navigate intentionally excluded — adding it causes infinite loop // ← navigate intentionally excluded
+  }, [isLoading, user]); // navigate intentionally excluded — adding it causes infinite loop
 
   // ── Session expired toast (run once on mount) ────────────────────────────
   useEffect(() => {
@@ -118,7 +118,6 @@ const Login: React.FC = () => {
                 className="w-full px-6 py-4 rounded-2xl border border-white/20 focus:border-[#3b2063] focus:ring-4 focus:ring-[#3b2063]/10 outline-none transition-all bg-white/80 placeholder:text-zinc-400"
                 placeholder="name@luckyboba.com"
                 required
-                disabled={lockoutTimer > 0}
               />
             </div>
 
@@ -135,7 +134,6 @@ const Login: React.FC = () => {
                   className="w-full px-6 py-4 rounded-2xl border border-white/20 focus:border-[#3b2063] focus:ring-4 focus:ring-[#3b2063]/10 outline-none transition-all bg-white/80 placeholder:text-zinc-400"
                   placeholder="••••••••"
                   required
-                  disabled={lockoutTimer > 0}
                 />
                 <button
                   type="button"
