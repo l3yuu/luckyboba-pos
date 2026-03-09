@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import TopNavbar from '../TopNavbar';
 import api from '../../services/api';
 import { getCache, setCache, clearCache } from '../../utils/cache';
-import InventoryHistoryModal from './InventoryHistory'; // Ensure this path is correct
 
 const dashboardFont = { fontFamily: "'Inter', sans-serif" };
 
@@ -40,8 +39,6 @@ const InventoryList = () => {
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   
-  // --- NEW STATE FOR HISTORY MODAL ---
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   const [newItem, setNewItem] = useState({
     name: '', barcode: '', quantity: '', price: '', cost: '', category_id: '' 
@@ -160,13 +157,6 @@ const InventoryList = () => {
             </div>
             
             <div className="flex gap-2">
-              {/* --- NEW HISTORY BUTTON --- */}
-              <button 
-                onClick={() => setIsHistoryOpen(true)} 
-                className="h-11 px-7 border border-zinc-300 text-zinc-500 font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 hover:border-zinc-400 transition-all rounded-[0.625rem] shadow-sm"
-              >
-                View History
-              </button>
               <button 
                 onClick={() => setIsAddModalOpen(true)} 
                 className="h-11 px-7 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm"
@@ -399,11 +389,6 @@ const InventoryList = () => {
               </form>
             </div>
           </div>
-        )}
-
-        {/* --- RENDER HISTORY MODAL --- */}
-        {isHistoryOpen && (
-          <InventoryHistoryModal onClose={() => setIsHistoryOpen(false)} />
         )}
       </div>
     </>
