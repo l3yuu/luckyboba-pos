@@ -1,8 +1,5 @@
 import { useState } from 'react';
 import CustomerReport from './CustomerReport';
-
-type TabType = 'CUSTOMER' | 'REPORT';
-
 import { Search, Printer, Plus, ArrowLeft } from 'lucide-react';
 
 const dashboardFont = { fontFamily: "'Inter', sans-serif" };
@@ -12,12 +9,18 @@ interface AddCustomersProps {
 }
 
 const AddCustomers = ({ onBack }: AddCustomersProps) => {
-  const [activeTab, setActiveTab] = useState<TabType>('CUSTOMER');
+  const [isReport, setIsReport] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);
 
-  if (activeTab === 'REPORT') {
-    return <CustomerReport onBack={onBack} activeTab={activeTab} setActiveTab={setActiveTab} />;
+  if (isReport) {
+    return (
+      <CustomerReport
+        onBack={onBack}
+        activeTab="REPORT"
+        setActiveTab={(tab) => setIsReport(tab === 'REPORT')}
+      />
+    );
   }
 
   return (
@@ -33,16 +36,15 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
               <h1 className="text-lg font-extrabold text-[#1c1c1e] mt-0.5">Customers</h1>
             </div>
             <div className="flex gap-2">
-              {/* Flip to literal === variable so TS doesn't complain about narrowed activeTab */}
               <button
-                onClick={() => setActiveTab('CUSTOMER')}
-                className={`h-11 px-7 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm ${'CUSTOMER' === activeTab ? 'bg-[#3b2063] text-white' : 'bg-white border border-zinc-300 text-zinc-500 hover:bg-zinc-50'}`}
+                onClick={() => setIsReport(false)}
+                className={`h-11 px-7 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm ${!isReport ? 'bg-[#3b2063] text-white' : 'bg-white border border-zinc-300 text-zinc-500 hover:bg-zinc-50'}`}
               >
                 Customer
               </button>
               <button
-                onClick={() => setActiveTab('REPORT')}
-                className={`h-11 px-7 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm ${'REPORT' === activeTab ? 'bg-[#e9c46a] text-white' : 'bg-white border border-zinc-300 text-zinc-500 hover:bg-zinc-50'}`}
+                onClick={() => setIsReport(true)}
+                className={`h-11 px-7 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm ${isReport ? 'bg-[#e9c46a] text-white' : 'bg-white border border-zinc-300 text-zinc-500 hover:bg-zinc-50'}`}
               >
                 Report
               </button>
