@@ -160,7 +160,7 @@ const SearchReceipts = () => {
         {/* ── Search Bar ── */}
         <div className="w-full max-w-6xl flex flex-col lg:flex-row gap-3">
           {/* Search Input */}
-          <div className="flex-1 bg-white border border-zinc-200 flex items-center shadow-sm">
+          <div className="flex-1 bg-white border border-zinc-200 flex items-center shadow-sm rounded-[0.625rem]">
             <div className="px-4 text-zinc-400"><Search size={17} /></div>
             <input
               type="text"
@@ -172,7 +172,7 @@ const SearchReceipts = () => {
               className="flex-1 h-12 px-2 outline-none text-[#1a0f2e] font-semibold text-sm placeholder:text-zinc-300 bg-transparent"
             />
             {searchQuery && (
-              <button onClick={() => { setSearchQuery(''); handleSearch('', selectedDate); }} className="px-4 text-zinc-300 hover:text-red-500 transition-colors">
+              <button onClick={() => { setSearchQuery(''); handleSearch('', selectedDate); }} className="px-4 text-zinc-300 hover:text-red-500 transition-colors rounded-[0.625rem]">
                 <X size={15} />
               </button>
             )}
@@ -180,7 +180,7 @@ const SearchReceipts = () => {
 
           <div className="flex gap-3">
             {/* Date Picker */}
-            <div className="bg-white border border-zinc-200 flex items-center px-5 gap-3 shadow-sm min-w-52">
+            <div className="bg-white border border-zinc-200 flex items-center px-5 gap-3 shadow-sm min-w-52 rounded-[0.625rem]">
               <Calendar size={15} className="text-violet-500 shrink-0" />
               <input
                 type="date"
@@ -194,7 +194,7 @@ const SearchReceipts = () => {
             <button
               onClick={() => handleSearch()}
               disabled={isLoading}
-              className="bg-[#3b2063] hover:bg-[#2a1647] text-white px-8 font-bold text-sm uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 h-12"
+              className="bg-[#3b2063] hover:bg-[#2a1647] text-white px-8 font-bold text-sm uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 h-12 rounded-[0.625rem]"
             >
               {isLoading ? '...' : 'Search'}
             </button>
@@ -202,7 +202,7 @@ const SearchReceipts = () => {
             {/* Refresh */}
             <button
               onClick={handleRefresh}
-              className="bg-white border border-zinc-200 text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-4 transition-all duration-300 hover:rotate-180 shadow-sm"
+              className="bg-white border border-zinc-200 text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-4 transition-all duration-300 hover:rotate-180 shadow-sm rounded-[0.625rem]"
             >
               <RotateCcw size={16} />
             </button>
@@ -217,7 +217,7 @@ const SearchReceipts = () => {
         </div>
 
         {/* ── Table ── */}
-        <div className="w-full max-w-6xl bg-white border border-zinc-200 overflow-hidden flex-1 flex flex-col shadow-sm">
+        <div className="w-full max-w-6xl bg-white border border-zinc-200 overflow-hidden flex-1 flex flex-col shadow-sm rounded-[0.625rem]">
 
           {/* Table Header */}
           <div className="px-7 py-5 border-b border-zinc-100 flex justify-between items-center">
@@ -286,7 +286,7 @@ const SearchReceipts = () => {
                         {item.status !== 'cancelled' ? (
                           <button
                             onClick={() => { setSelectedSaleId(item.sale_id); setIsReasonModalOpen(true); }}
-                            className="w-9 h-9 inline-flex items-center justify-center bg-white border border-red-200 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all"
+                            className="w-9 h-9 inline-flex items-center justify-center bg-white border border-red-200 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all rounded-[0.625rem]"
                           >
                             <X size={14} strokeWidth={2.5} />
                           </button>
@@ -315,7 +315,7 @@ const SearchReceipts = () => {
       {/* ── Void Modal ── */}
       {isReasonModalOpen && (
         <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-md border border-zinc-200 p-9 shadow-2xl">
+          <div className="bg-white w-full max-w-md border border-zinc-200 p-9 shadow-2xl rounded-[0.625rem]">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 bg-red-50 border border-red-100 flex items-center justify-center">
                 <ShieldAlert size={18} className="text-red-600" />
@@ -340,14 +340,14 @@ const SearchReceipts = () => {
               <button
                 onClick={() => { setIsReasonModalOpen(false); setCancelReason(''); }}
                 disabled={isVoiding}
-                className="flex-1 py-3.5 bg-white border border-zinc-200 text-zinc-600 font-bold text-sm uppercase tracking-widest hover:bg-zinc-50 transition-colors"
+                className="flex-1 py-3.5 bg-white border border-zinc-200 text-zinc-600 font-bold text-sm uppercase tracking-widest hover:bg-zinc-50 transition-colors rounded-[0.625rem]"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmCancel}
                 disabled={isVoiding || !cancelReason.trim()}
-                className="flex-1 py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold text-sm uppercase tracking-widest transition-colors disabled:opacity-50 active:scale-[0.98]"
+                className="flex-1 py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold text-sm uppercase tracking-widest transition-colors disabled:opacity-50 active:scale-[0.98] rounded-[0.625rem]"
               >
                 {isVoiding ? 'Processing...' : 'Confirm Void'}
               </button>
@@ -363,7 +363,7 @@ const SearchReceipts = () => {
 const StatBox = ({ label, value, icon, isDanger, isBrand }: {
   label: string; value: number; icon: React.ReactNode; isDanger?: boolean; isBrand?: boolean;
 }) => (
-  <div className={`px-6 py-5 border flex items-center justify-between shadow-sm ${isBrand ? 'bg-[#3b2063] border-[#2a1647]' : 'bg-white border-zinc-200'}`}>
+  <div className={`px-6 py-5 border flex items-center justify-between shadow-sm rounded-[0.625rem] ${isBrand ? 'bg-[#3b2063] border-[#2a1647]' : 'bg-white border-zinc-200'}`}>
     <div>
       <p className={`text-[11px] font-bold uppercase tracking-widest mb-1 ${isBrand ? 'text-violet-300' : 'text-zinc-500'}`}>{label}</p>
       <p className={`text-2xl font-bold tabular-nums ${isBrand ? 'text-white' : isDanger ? 'text-red-600' : 'text-[#1a0f2e]'}`}>

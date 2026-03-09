@@ -31,7 +31,7 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
           <div className="flex gap-2">
             <button
               onClick={() => setActiveTab('CUSTOMER')}
-              className={`h-11 px-7 font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm ${
+              className={`h-11 px-7 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm ${
                 activeTab === 'CUSTOMER' ? 'bg-[#3b2063] text-white' : 'bg-white border border-zinc-300 text-zinc-500 hover:bg-zinc-50'
               }`}
             >
@@ -39,7 +39,7 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
             </button>
             <button
               onClick={() => setActiveTab('REPORT')}
-              className={`h-11 px-7 font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm ${
+              className={`h-11 px-7 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm ${
                 activeTab === 'REPORT' ? 'bg-[#e9c46a] text-white' : 'bg-white border border-zinc-300 text-zinc-500 hover:bg-zinc-50'
               }`}
             >
@@ -49,14 +49,14 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
         </div>
 
         {/* Table card */}
-        <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-none">
+        <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-[0.625rem]">
           {/* Table toolbar */}
-          <div className="px-6 py-4 border-b border-zinc-100 flex flex-col md:flex-row justify-between items-center gap-3 bg-white">
+          <div className="px-6 py-4 border-b border-zinc-100 flex flex-col md:flex-row justify-between items-center gap-3 bg-white rounded-[0.625rem]">
             <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
               <span>Card #:</span>
               <input
                 type="text"
-                className="border border-zinc-300 bg-white px-4 py-2 text-sm outline-none focus:border-[#3b2063] w-32 font-semibold text-[#1c1c1e] rounded-none placeholder:text-zinc-400"
+                className="border border-zinc-300 bg-white px-4 py-2 text-sm outline-none focus:border-[#3b2063] w-32 font-semibold text-[#1c1c1e] rounded-[0.625rem] placeholder:text-zinc-400"
                 placeholder="1001"
               />
               <span>Name:</span>
@@ -64,15 +64,15 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
                 type="text"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="border border-zinc-300 bg-white px-4 py-2 text-sm outline-none focus:border-[#3b2063] w-48 font-semibold text-[#1c1c1e] rounded-none placeholder:text-zinc-400"
+                className="border border-zinc-300 bg-white px-4 py-2 text-sm outline-none focus:border-[#3b2063] w-48 font-semibold text-[#1c1c1e] rounded-[0.625rem] placeholder:text-zinc-400"
                 placeholder="Search name..."
               />
             </div>
             <div className="flex gap-2">
-              <button className="h-11 px-6 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center gap-2">
+              <button className="h-11 px-6 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center gap-2">
                 <Search size={14} strokeWidth={2.5} /> Search
               </button>
-              <button className="h-11 px-6 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center gap-2">
+              <button className="h-11 px-6 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center gap-2">
                 <Printer size={14} strokeWidth={2.5} /> Print
               </button>
             </div>
@@ -119,7 +119,7 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
           </div>
 
           {/* Footer */}
-          <div className="px-7 py-4 bg-white border-t border-zinc-100 flex justify-between items-center">
+          <div className="px-7 py-4 bg-white border-t border-zinc-100 flex justify-between items-center rounded-[0.625rem]">
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Synchronized</span>
@@ -127,11 +127,11 @@ const AddCustomers = ({ onBack }: AddCustomersProps) => {
             <div className="flex gap-3">
               <button
                 onClick={onBack}
-                className="h-11 px-7 bg-white border border-zinc-300 text-zinc-500 font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-colors rounded-none flex items-center gap-2"
+                className="h-11 px-7 bg-white border border-zinc-300 text-zinc-500 font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-colors rounded-[0.625rem] flex items-center gap-2"
               >
                 <ArrowLeft size={14} strokeWidth={2.5} /> Back
               </button>
-              <button className="h-11 px-7 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none flex items-center gap-2 shadow-sm">
+              <button className="h-11 px-7 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] flex items-center gap-2 shadow-sm">
                 <Plus size={14} strokeWidth={2.5} /> Add New Customer
               </button>
             </div>

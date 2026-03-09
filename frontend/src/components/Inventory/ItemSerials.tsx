@@ -148,25 +148,25 @@ const ItemSerials = () => {
             </div>
             <button 
               onClick={() => setIsModalOpen(true)} 
-              className="h-11 px-7 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm"
+              className="h-11 px-7 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm"
             >
               REGISTER SERIAL
             </button>
           </div>
 
           {/* Search and filter bar */}
-          <div className="bg-white border border-zinc-200 p-4 rounded-none shadow-sm flex gap-4">
+          <div className="bg-white border border-zinc-200 p-4 rounded-[0.625rem] shadow-sm flex gap-4">
             <input 
               type="text" 
               placeholder="Search Serial Number..." 
               value={searchTerm} 
               onChange={(e) => setSearchTerm(e.target.value)} 
-              className="flex-1 px-4 py-3 bg-white border border-zinc-300 rounded-none text-sm font-semibold outline-none focus:border-[#3b2063] placeholder:text-zinc-400" 
+              className="flex-1 px-4 py-3 bg-white border border-zinc-300 rounded-[0.625rem] text-sm font-semibold outline-none focus:border-[#3b2063] placeholder:text-zinc-400" 
             />
             <select 
               value={statusFilter} 
               onChange={(e) => setStatusFilter(e.target.value)} 
-              className="px-4 py-3 bg-white border border-zinc-300 rounded-none text-sm font-semibold outline-none cursor-pointer focus:border-[#3b2063]"
+              className="px-4 py-3 bg-white border border-zinc-300 rounded-[0.625rem] text-sm font-semibold outline-none cursor-pointer focus:border-[#3b2063]"
             >
               <option>All Status</option>
               <option>In Stock</option>
@@ -176,7 +176,7 @@ const ItemSerials = () => {
           </div>
 
           {/* Table card */}
-          <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-none">
+          <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-[0.625rem]">
             {isFetching && <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10 backdrop-blur-[1px]"><Loader2 className="animate-spin text-[#3b2063]" size={32} /></div>}
             <table className="w-full text-left border-collapse">
               <thead className="sticky top-0 bg-white z-10 border-b-2 border-zinc-100">
@@ -199,7 +199,7 @@ const ItemSerials = () => {
                         <span className="text-[18px] font-bold text-black font-mono">{record.serialNumber}</span>
                       </td>
                       <td className="px-7 py-3.5 text-center">
-                        <span className={`px-3 py-1 rounded-none text-[9px] font-bold uppercase tracking-tighter ${record.status === 'In Stock' ? 'bg-emerald-100 text-emerald-600' : record.status === 'Sold' ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600'}`}>{record.status}</span>
+                        <span className={`px-3 py-1 rounded-[0.625rem] text-[9px] font-bold uppercase tracking-tighter ${record.status === 'In Stock' ? 'bg-emerald-100 text-emerald-600' : record.status === 'Sold' ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600'}`}>{record.status}</span>
                       </td>
                       <td className="px-7 py-3.5 text-center">
                         <span className="text-[12px] font-semibold text-zinc-500">{record.dateAdded}</span>
@@ -207,7 +207,7 @@ const ItemSerials = () => {
                       <td className="px-7 py-3.5 text-center">
                         <button 
                           onClick={() => openUpdateModal(record)} 
-                          className="h-9 w-9 inline-flex items-center justify-center bg-[#3b2063] hover:bg-[#2a174a] text-white transition-colors rounded-none"
+                          className="h-9 w-9 inline-flex items-center justify-center bg-[#3b2063] hover:bg-[#2a174a] text-white transition-colors rounded-[0.625rem]"
                           title="Update"
                         >
                           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
@@ -243,7 +243,7 @@ const ItemSerials = () => {
       {/* --- ADD MODAL --- */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-none border border-zinc-200 shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
+          <div className="bg-white rounded-[0.625rem] border border-zinc-200 shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
             <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
@@ -260,7 +260,7 @@ const ItemSerials = () => {
                   type="text" 
                   value={formData.itemName} 
                   onChange={(e) => setFormData({...formData, itemName: e.target.value})} 
-                  className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white" 
+                  className="w-full px-4 py-3 rounded-[0.625rem] border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white" 
                   placeholder="Enter product name..." 
                 />
               </div>
@@ -271,7 +271,7 @@ const ItemSerials = () => {
                   type="text" 
                   value={formData.serialNumber} 
                   onChange={(e) => setFormData({...formData, serialNumber: e.target.value})} 
-                  className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white font-mono" 
+                  className="w-full px-4 py-3 rounded-[0.625rem] border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white font-mono" 
                   placeholder="Scan or type SN..." 
                 />
               </div>
@@ -280,7 +280,7 @@ const ItemSerials = () => {
                 <select 
                   value={formData.status} 
                   onChange={(e) => setFormData({...formData, status: e.target.value as SerialStatus})} 
-                  className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] focus:border-[#3b2063] focus:bg-white cursor-pointer"
+                  className="w-full px-4 py-3 rounded-[0.625rem] border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] focus:border-[#3b2063] focus:bg-white cursor-pointer"
                 >
                   <option value="In Stock">In Stock</option>
                   <option value="Defective">Defective</option>
@@ -290,14 +290,14 @@ const ItemSerials = () => {
                 <button 
                   type="button" 
                   onClick={() => setIsModalOpen(false)} 
-                  className="flex-1 h-11 bg-white border border-red-300 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 hover:border-red-400 transition-all rounded-none"
+                  className="flex-1 h-11 bg-white border border-red-300 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 hover:border-red-400 transition-all rounded-[0.625rem]"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit" 
                   disabled={isSubmitting} 
-                  className="flex-1 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#2a174a] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-none"
+                  className="flex-1 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#2a174a] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]"
                 >
                   {isSubmitting ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Confirm Registration</> : 'Confirm Registration'}
                 </button>
@@ -310,7 +310,7 @@ const ItemSerials = () => {
       {/* --- UPDATE STATUS MODAL --- */}
       {isUpdateModalOpen && selectedSerial && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-none border border-zinc-200 shadow-2xl w-full max-w-sm flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
+          <div className="bg-white rounded-[0.625rem] border border-zinc-200 shadow-2xl w-full max-w-sm flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
             <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
@@ -328,7 +328,7 @@ const ItemSerials = () => {
                 <select 
                   value={newStatus} 
                   onChange={(e) => setNewStatus(e.target.value as SerialStatus)} 
-                  className="w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] focus:border-[#3b2063] focus:bg-white cursor-pointer"
+                  className="w-full px-4 py-3 rounded-[0.625rem] border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] focus:border-[#3b2063] focus:bg-white cursor-pointer"
                 >
                   <option value="In Stock">In Stock</option>
                   <option value="Sold">Sold</option>
@@ -340,14 +340,14 @@ const ItemSerials = () => {
                 <button 
                   type="button" 
                   onClick={() => setIsUpdateModalOpen(false)} 
-                  className="flex-1 h-11 bg-white border border-red-300 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 hover:border-red-400 transition-all rounded-none"
+                  className="flex-1 h-11 bg-white border border-red-300 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 hover:border-red-400 transition-all rounded-[0.625rem]"
                 >
                   Cancel
                 </button>
                 <button 
                   type="submit" 
                   disabled={isSubmitting} 
-                  className="flex-1 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#2a174a] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-none"
+                  className="flex-1 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#2a174a] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]"
                 >
                   {isSubmitting ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Save Changes</> : 'Save Changes'}
                 </button>
