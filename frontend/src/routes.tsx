@@ -53,7 +53,8 @@ export const router = createBrowserRouter([
     element: <ProtectedRoute allowedRoles={['cashier']} />,
     errorElement: <ErrorFallback />,
     children: [
-      { path: '/cashier', element: <SalesOrder /> },
+      { path: '/cashier',     element: <Dashboard /> },
+      { path: '/cashier/pos', element: <SalesOrder /> },
     ],
   },
 
