@@ -40,24 +40,24 @@ const CashierManagement = () => {
   });
 
   // ── Fetch cashiers scoped to this branch manager's branch ──────────────────
-const fetchUsers = useCallback(async () => {
-  setIsFetching(true);
-  try {
-    const data = await UserService.getAllUsers({
-      role: 'cashier',
-      branch: resolveBranch(currentUser),
-    });
-    setUsers(data);
-  } catch (err: unknown) {
-    // Only show error toast on a real server error (5xx), not empty results
-    if (axios.isAxiosError(err) && (err.response?.status ?? 0) >= 500) {
-      showToast('Failed to load cashiers', 'error');
+  const fetchUsers = useCallback(async () => {
+    setIsFetching(true);
+    try {
+      const data = await UserService.getAllUsers({
+        role: 'cashier',
+        branch: resolveBranch(currentUser),
+      });
+      setUsers(data);
+    } catch (err: unknown) {
+      // Only show error toast on a real server error (5xx), not empty results
+      if (axios.isAxiosError(err) && (err.response?.status ?? 0) >= 500) {
+        showToast('Failed to load cashiers', 'error');
+      }
+      setUsers([]); // Silently show empty table for 403/404/no results
+    } finally {
+      setIsFetching(false);
     }
-    setUsers([]); // Silently show empty table for 403/404/no results
-  } finally {
-    setIsFetching(false);
-  }
-}, [currentUser?.branch, currentUser?.branch_id, showToast]);
+  }, [currentUser, showToast]); // ✅ use currentUser directly — resolveBranch takes the whole object
 
   useEffect(() => {
     fetchUsers();

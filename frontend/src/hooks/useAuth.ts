@@ -1,14 +1,3 @@
-<<<<<<< HEAD
-import { useContext } from 'react';
-import { AuthContext } from '../context/AuthContext';
-
-export const useAuth = () => {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used inside <AuthProvider>');
-  return ctx;
-=======
-"use client"
-
 import api from '../services/api';
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
@@ -152,11 +141,6 @@ export const useAuth = () => {
         setError('An unexpected error occurred');
       }
 
-<<<<<<< HEAD
-    return { login, logout, isLoading, error, user };
->>>>>>> 999e1ca (refactor: update authentication flow to use sessionStorage, enhance token management, and improve security settings)
-};
-=======
       setIsLoading(false);
       return null;
     }
@@ -194,4 +178,3 @@ export const useAuth = () => {
 //     };
 //   }, [logout, timeoutMs]);
 // }
->>>>>>> fb1bb19 (refactor: update Sidebar and Dashboard components to remove Raw Materials references)
