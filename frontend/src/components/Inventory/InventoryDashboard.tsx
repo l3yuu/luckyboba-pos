@@ -75,7 +75,7 @@ interface MenuItem {
   id: number;
   name: string;
   category_id: number;
-  price: string;
+  price: number;
   size: string;
   type: string;
 }
@@ -93,6 +93,7 @@ interface RecipeItem {
 interface Recipe {
   id: number;
   menu_item_id: number;
+  menu_item: MenuItem;
   size: string | null;
   is_active: boolean;
   notes: string | null;
@@ -753,7 +754,6 @@ const InventoryDashboard = () => {
   const [matEntriesLimit, setMatEntriesLimit] = useState(25);
 
   // ── Recipe Editor state ───────────────────────────────────────────────────────
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [recipeLoading, setRecipeLoading] = useState(true);
   const [recipeSearch, setRecipeSearch] = useState('');
@@ -804,10 +804,10 @@ const InventoryDashboard = () => {
     try {
       const [matRes, movRes] = await Promise.all([
         api.get('/raw-materials'),
-        api.get('/raw-materials/movements').catch(() => ({ data: [] })),
+        api.get('/raw-materials/movements').catch(() => ({ data: { data: [] } })),
       ]);
       setMaterials(matRes.data);
-      setMovements(movRes.data);
+      setMovements(movRes.data?.data ?? []); // ← unwrap paginated response
       localStorage.setItem(RAW_MATERIALS_CACHE_KEY, JSON.stringify(matRes.data));
     } catch { addToast('Failed to load materials.', 'error'); }
     finally { setMaterialsLoading(false); setReportLoading(false); }
@@ -815,19 +815,14 @@ const InventoryDashboard = () => {
 
   useEffect(() => { fetchMaterials(); }, [fetchMaterials]);
 
-  const fetchRecipes = useCallback(async () => {
-    setRecipeLoading(true);
-    try {
-      const [menuRes, recipeRes] = await Promise.all([
-        api.get('/menu-list'),
-        api.get('/recipes'),
-      ]);
-      const raw = menuRes.data?.data ?? menuRes.data;
-      setMenuItems(Array.isArray(raw) ? raw : []);
-      setRecipes(recipeRes.data);
-    } catch { addToast('Failed to load recipes.', 'error'); }
-    finally { setRecipeLoading(false); }
-  }, [addToast]);
+const fetchRecipes = useCallback(async () => {
+  setRecipeLoading(true);
+  try {
+    const recipeRes = await api.get('/recipes');
+    setRecipes(recipeRes.data);
+  } catch { addToast('Failed to load recipes.', 'error'); }
+  finally { setRecipeLoading(false); }
+}, [addToast]);
 
   useEffect(() => { fetchRecipes(); }, [fetchRecipes]);
 
@@ -895,23 +890,18 @@ const InventoryDashboard = () => {
     return matEntriesLimit === -1 ? data : data.slice(0, matEntriesLimit);
   }, [materials, matCategory, lowStockOnly, matSearch, matEntriesLimit]);
 
-  const recipeRows = useMemo(() => {
-    const recipeMap = new Map<string, Recipe>();
-    recipes.forEach(r => {
-      const sizeKey = r.size ?? 'none';
-      recipeMap.set(`${r.menu_item_id}__${sizeKey}`, r);
-    });
-    const result: { menuItem: MenuItem; size: string | null; sizeLabel: string; recipe: Recipe | null; hasRecipe: boolean }[] = [];
-    menuItems
-      .filter(item => item.type === 'food' || item.type === 'drink')
-      .forEach(item => {
-        const sizeVal = item.size && item.size.toLowerCase() !== 'none' ? item.size : null;
-        const key = sizeVal ? `${item.id}__${sizeVal}` : `${item.id}__none`;
-        const recipe = recipeMap.get(key) ?? null;
-        result.push({ menuItem: item, size: sizeVal, sizeLabel: sizeVal ?? '—', recipe, hasRecipe: !!recipe });
-      });
-    return result;
-  }, [menuItems, recipes]);
+const recipeRows = useMemo(() => {
+  return recipes.map(r => {
+    const sizeVal = r.size ? r.size.toUpperCase() : null;
+    return {
+      menuItem: r.menu_item as MenuItem,
+      size: sizeVal,
+      sizeLabel: sizeVal ?? '—',
+      recipe: r,
+      hasRecipe: true,
+    };
+  }).sort((a, b) => a.menuItem.name.localeCompare(b.menuItem.name));
+}, [recipes]);
 
   const recipeStats = useMemo(() => ({
     total: recipeRows.length,
@@ -1511,7 +1501,7 @@ const InventoryDashboard = () => {
                             className={`transition-colors ${!row.hasRecipe ? 'bg-amber-50/40 hover:bg-amber-50' : 'hover:bg-[#f9f8ff]'}`}>
                             <td className="px-7 py-3.5">
                               <span className="text-[13px] font-extrabold text-[#3b2063]">{row.menuItem.name}</span>
-                              <span className="ml-2 text-[11px] text-zinc-400 font-semibold">₱{parseFloat(row.menuItem.price).toFixed(2)}</span>
+                              <span className="ml-2 text-[11px] text-zinc-400 font-semibold">₱{Number(row.menuItem.price).toFixed(2)}</span>
                             </td>
                             <td className="px-5 py-3.5 text-center">
                               <span className={`text-[11px] font-bold uppercase tracking-widest px-2 py-0.5 ${row.sizeLabel === 'M' ? 'bg-blue-50 text-blue-600' : row.sizeLabel === 'L' ? 'bg-purple-50 text-purple-600' : 'bg-zinc-100 text-zinc-500'}`}>
@@ -1532,7 +1522,7 @@ const InventoryDashboard = () => {
                             <td className="px-5 py-3.5">
                               {row.recipe ? (
                                 <div className="flex flex-wrap gap-1">
-                                  {row.recipe.items.slice(0, 4).map(ri => (
+                                  {row.recipe.items.slice(0, 4).map((ri: RecipeItem) => (
                                     <span key={ri.id} className="text-[10px] font-semibold bg-[#f3f0ff] text-[#3b2063] px-2 py-0.5 border border-[#ddd6fe]">
                                       {ri.raw_material?.name ?? `RM#${ri.raw_material_id}`} · {parseFloat(String(ri.quantity)).toFixed(2)}{ri.unit}
                                     </span>

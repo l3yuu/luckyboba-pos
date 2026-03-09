@@ -184,4 +184,31 @@ class RawMaterialController extends Controller
             'items' => $items,
         ]);
     }
+
+        /**
+     * GET /api/raw-materials/movements
+     * Paginated stock movement log across all raw materials.
+     */
+    public function movements(Request $request)
+    {
+        $query = RawMaterialLog::with('rawMaterial:id,name,unit')
+            ->orderBy('date', 'desc')
+            ->orderBy('id', 'desc');
+
+        // Optional filters
+        if ($request->filled('raw_material_id')) {
+            $query->where('raw_material_id', $request->raw_material_id);
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('date', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('date', '<=', $request->date_to);
+        }
+
+        $movements = $query->get(); // instead of ->paginate(...)
+        return response()->json($movements); // returns a plain array
+    }
 }
