@@ -144,7 +144,7 @@ export const useUsers = () => {
         email:  form.email.trim(),
         role:   form.role,
         status: form.status,
-        branch: form.branch?.trim() || null,  // empty string → null for Laravel nullable rule
+        branch: form.branch?.trim() || '',  // empty string → null for Laravel nullable rule
       };
       if (form.password?.trim()) payload.password = form.password.trim();
 

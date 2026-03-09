@@ -42,6 +42,10 @@ const SalesOrder = () => {
     const [branchName] = useState<string>(() =>
         localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'
     );
+    const [branchId] = useState<number | null>(() => {
+    const stored = localStorage.getItem('lucky_boba_user_branch_id');
+    return stored ? parseInt(stored) : null;
+});
     const [currentDate, setCurrentDate] = useState(new Date());
     const [searchQuery, setSearchQuery] = useState('');
     const [categories, setCategories] = useState<Category[]>(() => {
@@ -474,6 +478,7 @@ const SalesOrder = () => {
         try {
             const orderData = {
                 si_number: orNumber,
+                branch_id: branchId,
                 items: cart.map(item => ({
                     menu_item_id: item.id,
                     name: item.name,

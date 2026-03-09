@@ -119,8 +119,11 @@ class UserController extends Controller
     /**
      * POST /api/users
      */
+    
     public function store(Request $request)
     {
+
+    
         $authUser = $request->user();
 
         // Branch managers can only create cashiers — force the role
@@ -146,6 +149,13 @@ class UserController extends Controller
         }
 
         try {
+
+        \Log::info('UserController@store payload', [
+        'all'        => $request->all(),
+        'branch'     => $request->branch,
+        'has_branch' => $request->has('branch'),
+        'filled'     => $request->filled('branch'),
+    ]);
             $isBranchManager = $authUser->role === 'branch_manager';
 
             $branchId   = null;
@@ -155,20 +165,20 @@ class UserController extends Controller
                 // Always inherit branch from the branch manager
                 $branchId   = $authUser->branch_id;
                 $branchName = $authUser->branch_name;
-            } elseif ($request->filled('branch')) {
-                $branch = Branch::where('name', $request->branch)->first();
+            } elseif ($request->has('branch') && $request->branch !== '' && $request->branch !== null) {
+    $branch = Branch::where('name', $request->branch)->first();  // ← this line is missing!
 
-                if (! $branch) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'Branch not found',
-                        'error'   => "No branch found with the name: {$request->branch}"
-                    ], 404);
-                }
+    if (! $branch) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Branch not found',
+            'error'   => "No branch found with the name: {$request->branch}"
+        ], 404);
+    }
 
-                $branchId   = $branch->id;
-                $branchName = $branch->name;
-            }
+    $branchId   = $branch->id;
+    $branchName = $branch->name;
+}
 
             $user = User::create([
                 'name'        => $request->name,

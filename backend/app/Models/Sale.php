@@ -35,6 +35,7 @@ class Sale extends Model
         'discount_remarks',
         'vatable_sales',
         'vat_amount',
+        'branch_id',
     ];
 
     protected $casts = [

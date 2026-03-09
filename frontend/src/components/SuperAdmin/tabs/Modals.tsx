@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import type { Branch } from '../../../services/BranchService';
 import type { User }   from '../../../types/user';
 import type { BranchFormState } from '../../../hooks/useBranches';
@@ -199,7 +199,39 @@ interface UserFormModalProps {
 export const UserFormModal = ({
   isOpen, editingUser, form, setForm, formError, isSubmitting, onSubmit, onClose,
 }: UserFormModalProps) => {
+  const [branches, setBranches] = useState<{ id: number; name: string }[]>([]);
+  const [loadingBranches, setLoadingBranches] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const fetchBranches = async () => {
+        setLoadingBranches(true);
+        try {
+            const res = await fetch(
+                `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/branches`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('auth_token') || localStorage.getItem('lucky_boba_token') || ''}`,
+                        Accept: 'application/json',
+                    },
+                }
+            );
+            const data = await res.json();
+            const list = Array.isArray(data) ? data : (data.data ?? []);
+            setBranches(list);
+        } catch {
+            setBranches([]);
+        } finally {
+            setLoadingBranches(false);
+        }
+    };
+
+    fetchBranches();
+}, [isOpen]);
+
   if (!isOpen) return null;
+
   return (
     <ModalOverlay>
       <div className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl p-6 space-y-5">
@@ -238,10 +270,10 @@ export const UserFormModal = ({
               <select className={inputCls} disabled={isSubmitting}
                 value={form.role}
                 onChange={e => setForm((f: UserFormState) => ({ ...f, role: e.target.value as User['role'] }))}>
-<option value="branch_manager">Branch Manager</option>
-<option value="cashier">Cashier</option>
-<option value="customer">Customer</option>
-<option value="superadmin">Super Admin</option>
+                <option value="branch_manager">Branch Manager</option>
+                <option value="cashier">Cashier</option>
+                <option value="customer">Customer</option>
+                <option value="superadmin">Super Admin</option>
               </select>
             </div>
             <div>
@@ -256,10 +288,18 @@ export const UserFormModal = ({
           </div>
           <div>
             <label className={labelCls}>Branch</label>
-            <input className={inputCls} type="text" disabled={isSubmitting}
-              placeholder="e.g. SM City, Ayala, All Branches"
+            <select
+              className={inputCls}
+              disabled={isSubmitting || loadingBranches}
               value={form.branch}
-              onChange={e => setForm((f: UserFormState) => ({ ...f, branch: e.target.value }))} />
+              onChange={e => setForm((f: UserFormState) => ({ ...f, branch: e.target.value }))}>
+              <option value="">
+                {loadingBranches ? 'Loading branches...' : '— Select Branch —'}
+              </option>
+              {branches.map(b => (
+                <option key={b.id} value={b.name}>{b.name}</option>
+              ))}
+            </select>
           </div>
           <div className="pt-2 flex justify-end gap-3">
             <button type="button" onClick={onClose} disabled={isSubmitting}
