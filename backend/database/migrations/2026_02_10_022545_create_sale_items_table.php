@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('sale_items', function (Blueprint $table) {
             $table->id();
             $table->foreignId('sale_id')->constrained('sales')->onDelete('cascade');
-            $table->foreignId('menu_item_id')->nullable()->constrained('menu_items')->onDelete('set null');
+            $table->unsignedBigInteger('menu_item_id')->nullable();
             $table->string('product_name');
             $table->integer('quantity')->default(1);
             $table->decimal('price', 10, 2);
@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('sugar_level')->nullable();
             $table->json('options')->nullable();
             $table->json('add_ons')->nullable();
-            $table->foreignId('branch_id')->nullable()->constrained('branches')->onDelete('set null');
+            $table->unsignedBigInteger('branch_id')->nullable();
             $table->timestamps();
         });
     }
