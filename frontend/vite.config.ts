@@ -3,25 +3,37 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+
+  server: {
+    proxy: {
+      // Proxy all /api calls to your Laravel backend on localhost
+      // Change the target port to wherever your Laravel dev server runs
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
+
   build: {
-    sourcemap: false,        // hides source code from DevTools
-    minify: 'terser',        // stronger obfuscation
+    sourcemap: false,
+    minify: 'terser',
     terserOptions: {
       compress: {
-        drop_console: true,  // removes console.logs in production
+        drop_console: true,
         drop_debugger: true,
       },
       mangle: {
-        toplevel: true,      // aggressively renames variables/functions
-      }
+        toplevel: true,
+      },
     },
     rollupOptions: {
       output: {
-        // randomizes chunk filenames — harder to map to source
         entryFileNames: 'assets/[hash].js',
         chunkFileNames: 'assets/[hash].js',
         assetFileNames: 'assets/[hash].[ext]',
-      }
-    }
-  }
+      },
+    },
+  },
 })
