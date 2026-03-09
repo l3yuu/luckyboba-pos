@@ -477,6 +477,7 @@ const SalesOrder = () => {
                     unit_price: Number(item.price),
                     total_price: item.finalPrice,
                     size: item.size !== 'none' ? item.size : null,
+                    cup_size_label: item.cupSizeLabel ?? null,
                     sugar_level: item.sugarLevel || null,
                     options: item.options || [],
                     add_ons: item.addOns || [],
