@@ -130,7 +130,7 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
         {/* HEADER */}
         <div className="flex justify-between items-end">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-white rounded-lg shadow-sm">
+            <div className="p-2 bg-white rounded-[0.625rem] shadow-sm">
               <UserCog size={24} className="text-[#3b2063]" />
             </div>
             <div>
@@ -140,14 +140,14 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
           </div>
           <button 
             onClick={() => setIsModalOpen(true)}
-            className="px-6 py-2.5 bg-[#10b981] text-white rounded-lg font-black text-[10px] uppercase tracking-widest hover:bg-[#059669] flex items-center gap-2 shadow-lg transition-all active:scale-95"
+            className="px-6 py-2.5 bg-[#10b981] text-white rounded-[0.625rem] font-black text-[10px] uppercase tracking-widest hover:bg-[#059669] flex items-center gap-2 shadow-lg transition-all active:scale-95"
           >
             <Plus size={14} strokeWidth={3} /> Add New User
           </button>
         </div>
 
         {/* DATA TABLE */}
-        <div className="bg-white rounded-xl shadow-sm border border-zinc-200 overflow-hidden">
+        <div className="bg-white rounded-[0.625rem] shadow-sm border border-zinc-200 overflow-hidden">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-zinc-50 border-b border-zinc-200">
@@ -165,7 +165,7 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
                   <td className="px-6 py-4 text-xs font-black text-[#3b2063] uppercase">{user.username}</td>
                   <td className="px-6 py-4 text-xs font-bold text-slate-700">{user.name}</td>
                   <td className="px-6 py-4 text-xs font-bold text-slate-500">
-                    <span className="bg-zinc-100 px-2 py-1 rounded border border-zinc-200 text-[10px] font-black uppercase tracking-wider">
+                    <span className="bg-zinc-100 px-2 py-1 rounded border border-zinc-200 text-[10px] font-black uppercase tracking-wider rounded-[0.625rem]">
                       {user.position}
                     </span>
                   </td>
@@ -192,13 +192,13 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
                   <td className="px-6 py-4 text-center">
                     <button 
                       onClick={() => handleEditUser(user)}
-                      className="text-blue-500 hover:text-blue-700 p-2 transition-colors inline-block"
+                      className="text-blue-500 hover:text-blue-700 p-2 transition-colors inline-block rounded-[0.625rem]"
                     >
                       <Edit3 size={16} />
                     </button>
                     <button 
                       onClick={() => handleDeleteUser(user)}
-                      className="text-red-400 hover:text-red-600 p-2 transition-colors inline-block ml-2"
+                      className="text-red-400 hover:text-red-600 p-2 transition-colors inline-block ml-2 rounded-[0.625rem]"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -208,8 +208,8 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
             </tbody>
           </table>
           
-          <div className="p-4 bg-zinc-50 border-t border-zinc-200">
-            <button onClick={onBack} className="px-6 py-2 bg-zinc-200 text-zinc-500 rounded-lg font-black uppercase text-[10px] tracking-widest hover:bg-zinc-300 flex items-center gap-2 transition-all shadow-sm">
+          <div className="p-4 bg-zinc-50 border-t border-zinc-200 rounded-[0.625rem]">
+            <button onClick={onBack} className="px-6 py-2 bg-zinc-200 text-zinc-500 rounded-[0.625rem] font-black uppercase text-[10px] tracking-widest hover:bg-zinc-300 flex items-center gap-2 transition-all shadow-sm">
               <ArrowLeft size={14} strokeWidth={3} /> Back to Settings
             </button>
           </div>
@@ -219,12 +219,12 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
       {/* CREATE NEW USER MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white w-full max-w-md rounded-[0.625rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
             
             {/* Modal Header */}
-            <div className="bg-[#3b2063] px-6 py-4 flex justify-between items-center sticky top-0 z-10">
+            <div className="bg-[#3b2063] px-6 py-4 flex justify-between items-center sticky top-0 z-10 rounded-[0.625rem]">
               <h2 className="text-white font-black text-xs uppercase tracking-[0.2em]">Create New Account</h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-white/70 hover:text-white transition-colors">
+              <button onClick={() => setIsModalOpen(false)} className="text-white/70 hover:text-white transition-colors rounded-[0.625rem]">
                 <X size={20} />
               </button>
             </div>
@@ -242,7 +242,7 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
                     type="text" 
                     value={newUser.name}
                     onChange={(e) => setNewUser({...newUser, name: e.target.value})}
-                    className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-blue-500 transition-all"
+                    className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-blue-500 transition-all"
                     placeholder="Enter full name"
                   />
                 </div>
@@ -260,7 +260,7 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
                       type="text" 
                       value={newUser.username}
                       onChange={(e) => setNewUser({...newUser, username: e.target.value})}
-                      className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-blue-500 transition-all"
+                      className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-blue-500 transition-all"
                       placeholder="Enter username"
                     />
                   </div>
@@ -271,8 +271,8 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
                       type="password" 
                       value={newUser.password}
                       onChange={(e) => setNewUser({...newUser, password: e.target.value})}
-                      className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-blue-500 transition-all"
-                      placeholder="•••••••"
+                      className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-blue-500 transition-all"
+                      placeholder="••••••••"
                     />
                   </div>
 
@@ -282,8 +282,8 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
                       type="password" 
                       value={newUser.passwordConfirm}
                       onChange={(e) => setNewUser({...newUser, passwordConfirm: e.target.value})}
-                      className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-blue-500 transition-all"
-                      placeholder="•••••••"
+                      className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-blue-500 transition-all"
+                      placeholder="••••••••"
                     />
                   </div>
 
@@ -293,7 +293,7 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
                       <select 
                         value={newUser.position}
                         onChange={(e) => setNewUser({...newUser, position: e.target.value})}
-                        className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-slate-700 outline-none focus:border-blue-500 cursor-pointer appearance-none"
+                        className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-blue-500 cursor-pointer appearance-none"
                       >
                         {positionOptions.map(pos => (
                           <option key={pos} value={pos}>{pos}</option>
@@ -311,13 +311,13 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
               <div className="flex gap-3 pt-4 border-t border-zinc-100">
                 <button 
                   onClick={handleAddUser}
-                  className="flex-1 bg-[#10b981] hover:bg-[#059669] text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
+                  className="flex-1 bg-[#10b981] hover:bg-[#059669] text-white py-3 rounded-[0.625rem] font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
                 >
                   <Save size={14} /> Add Account
                 </button>
                 <button 
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-500 py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] transition-all"
+                  className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-500 py-3 rounded-[0.625rem] font-black text-[10px] uppercase tracking-[0.2em] transition-all"
                 >
                   Back to settings
                 </button>

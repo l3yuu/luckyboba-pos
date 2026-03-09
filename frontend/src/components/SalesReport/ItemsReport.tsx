@@ -219,8 +219,8 @@ const ItemsReport = () => {
 
         <div className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col gap-4">
 
-          {/* FILTER CONSOLE */}
-          <div className="bg-white border border-zinc-200 rounded-none p-6 shadow-sm">
+          {/* ── Filter Bar ── */}
+          <div className="bg-white border border-zinc-200 p-6 shadow-sm rounded-[0.625rem]">
             <div className="flex flex-col lg:flex-row gap-3 items-end">
 
               {/* From Date */}
@@ -263,14 +263,23 @@ const ItemsReport = () => {
 
               {/* Actions */}
               <div className="flex gap-2 w-full lg:w-auto">
-                <button onClick={fetchReport} disabled={loading} className="flex-1 lg:w-32 bg-[#3b2063] text-white rounded-none font-black uppercase text-[10px] tracking-[0.2em] h-[50px] shadow-lg hover:bg-[#2a174a] transition-all disabled:opacity-50">
-                  {loading ? 'SYNCING...' : 'QUERY'}
+                <button
+                  onClick={fetchReport} disabled={loading}
+                  className="flex-1 lg:w-32 h-11.5 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-sm uppercase tracking-widest transition-all disabled:opacity-50 rounded-[0.625rem]"
+                >
+                  {loading ? 'Loading...' : 'Query'}
                 </button>
-                <button onClick={generateExcel} disabled={!hasData} className="w-14 h-[50px] bg-white border border-zinc-200 text-[#3b2063] rounded-none flex items-center justify-center hover:bg-zinc-50 transition-all disabled:opacity-40">
-                  <FileDown size={18} />
+                <button
+                  onClick={generateExcel} disabled={!hasData}
+                  className="w-12 h-11.5 bg-white border border-zinc-200 text-zinc-500 hover:text-[#3b2063] hover:border-[#3b2063] flex items-center justify-center transition-all disabled:opacity-30 rounded-[0.625rem]"
+                >
+                  <FileDown size={17} />
                 </button>
-                <button onClick={handlePrint} disabled={!hasData} className="w-14 h-[50px] bg-white border border-zinc-200 text-[#3b2063] rounded-none flex items-center justify-center hover:bg-zinc-50 transition-all disabled:opacity-40">
-                  <Printer size={18} />
+                <button
+                  onClick={handlePrint} disabled={!hasData}
+                  className="w-12 h-11.5 bg-white border border-zinc-200 text-zinc-500 hover:text-[#3b2063] hover:border-[#3b2063] flex items-center justify-center transition-all disabled:opacity-30 rounded-[0.625rem]"
+                >
+                  <Printer size={17} />
                 </button>
               </div>
             </div>
@@ -280,11 +289,15 @@ const ItemsReport = () => {
             )}
           </div>
 
-          {/* REPORT DATA PANEL */}
-          <div className="flex-1 bg-white rounded-none border border-zinc-200 shadow-sm flex flex-col overflow-hidden relative">
-            <div className="px-8 py-5 border-b border-zinc-100 bg-zinc-50 flex justify-between items-center">
-              <div className="flex items-center gap-4">
-                <div className="p-2.5 bg-[#3b2063] text-white rounded-none shadow-md shadow-purple-900/10"><FileText size={18} /></div>
+          {/* ── Report Table ── */}
+          <div className="flex-1 bg-white border border-zinc-200 shadow-sm flex flex-col overflow-hidden relative rounded-[0.625rem]">
+
+            {/* Table Header */}
+            <div className="px-7 py-5 border-b border-zinc-100 flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-[#3b2063] flex items-center justify-center">
+                  <FileText size={16} className="text-white" />
+                </div>
                 <div>
                   <h3 className="text-sm font-bold text-[#1a0f2e] uppercase tracking-widest">
                     {reportType === 'category-summary' ? 'Category Summary' : 'Item Performance Ledger'}

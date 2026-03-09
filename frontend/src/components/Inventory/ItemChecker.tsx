@@ -58,7 +58,7 @@ const ItemChecker = () => {
           </div>
 
           {/* SCANNER INPUT */}
-          <div className="bg-white p-8 rounded-none shadow-sm border border-zinc-200 w-full max-w-md text-center">
+          <div className="bg-white p-8 rounded-[0.625rem] shadow-sm border border-zinc-200 w-full max-w-md text-center">
             <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-4">
               Scan or Enter Barcode
             </label>
@@ -69,13 +69,13 @@ const ItemChecker = () => {
                 type="text" 
                 value={barcode}
                 onChange={(e) => setBarcode(e.target.value)}
-                className="w-full px-4 py-4 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white text-center mb-4" 
+                className="w-full px-4 py-4 rounded-[0.625rem] border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white text-center mb-4" 
                 placeholder="00000000" 
               />
               <button 
                 type="submit"
                 disabled={loading}
-                className="w-full h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none disabled:opacity-50"
+                className="w-full h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] disabled:opacity-50"
               >
                 {loading ? "Searching..." : "Check Item"}
               </button>
@@ -84,7 +84,7 @@ const ItemChecker = () => {
 
           {/* RESULT CARD */}
           {item && (
-            <div className="w-full max-w-md bg-white rounded-none shadow-xl border-4 border-emerald-500 overflow-hidden animate-in zoom-in duration-300">
+            <div className="w-full max-w-md bg-white rounded-[0.625rem] shadow-xl border-4 border-emerald-500 overflow-hidden animate-in zoom-in duration-300">
               <div className="bg-emerald-500 p-4 text-center">
                 <span className="text-[10px] font-bold text-white uppercase tracking-widest">Product Found</span>
               </div>

@@ -19,18 +19,18 @@ const CACHE_KEY = 'lucky_boba_sales_analytics';
 const FIXED_TODAY_MAX = 5000;
 
 // ============================================================
-// TYPES  (mirrors SalesDashboardController::dashboardData())
+// TYPES
 // ============================================================
 
 interface WeeklyDataPoint {
-  day: string;        // "Mon"
-  date: string;       // "Feb 17"
+  day: string;
+  date: string;
   value: number;
-  full_date: string;  // "2026-02-17"
+  full_date: string;
 }
 
 interface TodayDataPoint {
-  time: string;   // "9 AM" — Carbon format('g A')
+  time: string;
   value: number;
 }
 
@@ -75,7 +75,6 @@ interface HoveredValuePoint {
   date: string;
 }
 
-// ── STAT CARD ──
 interface StatCardProps {
   label: string;
   value: string;
@@ -84,6 +83,10 @@ interface StatCardProps {
   isBrand?: boolean;
   isDanger?: boolean;
 }
+
+// ============================================================
+// STAT CARD
+// ============================================================
 
 const StatCard = ({ label, value, icon, isSuccess, isBrand, isDanger }: StatCardProps) => (
   <div className={`px-5 py-4 border flex flex-col justify-between shadow-sm transition-all ${
@@ -125,10 +128,6 @@ const SalesDashboard = () => {
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
   const [animatedBars, setAnimatedBars] = useState(false);
   const barRef = useRef<HTMLDivElement>(null);
-
-  // ============================================================
-  // FETCH  — /reports/dashboard-data → dashboardData()
-  // ============================================================
 
   useEffect(() => {
     const fetchAnalytics = async () => {
@@ -215,9 +214,12 @@ const SalesDashboard = () => {
   const yLabels = [5000, 4000, 3000, 2000, 1000, 0];
 
   const DISPLAY_HOURS = [9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,0];
-  const HOUR_LABELS: Record<number, string> = { 9: '9AM', 10: '10AM', 11: '11AM', 12: '12PM', 13: '1PM', 14: '2PM', 15: '3PM', 16: '4PM', 17: '5PM', 18: '6PM', 19: '7PM', 20: '8PM', 21: '9PM', 22: '10PM', 23: '11PM', 0: '12MN' };
+  const HOUR_LABELS: Record<number, string> = {
+    9: '9AM', 10: '10AM', 11: '11AM', 12: '12PM', 13: '1PM', 14: '2PM',
+    15: '3PM', 16: '4PM', 17: '5PM', 18: '6PM', 19: '7PM', 20: '8PM',
+    21: '9PM', 22: '10PM', 23: '11PM', 0: '12MN',
+  };
 
-  // Parse "9 AM" / "1 PM" → 24-hour integer (Carbon format 'g A')
   const parseHour = (timeStr: string): number => {
     const match = timeStr.toUpperCase().trim().match(/^(\d+)\s*(AM|PM)$/);
     if (!match) return -1;
@@ -234,7 +236,12 @@ const SalesDashboard = () => {
   });
 
   const LABEL_HOURS = new Set([9, 12, 15, 18, 21, 0]);
-  const fmt = (v: number) => `₱ ${Number(v).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const fmt = (v: number) =>
+    `₱ ${Number(v).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  // ============================================================
+  // RENDER
+  // ============================================================
 
   return (
     <div className="flex-1 bg-[#f8f6ff] h-full flex flex-col overflow-hidden">
@@ -281,8 +288,14 @@ const SalesDashboard = () => {
                 <svg className="absolute inset-0 w-full h-full overflow-visible"
                   viewBox={`0 0 100 ${WEEKLY_HEIGHT}`} preserveAspectRatio="none">
                   <defs>
-                    <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stopColor="#3b2063" /><stop offset="100%" stopColor="#7c3aed" /></linearGradient>
-                    <linearGradient id="fillGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#3b2063" stopOpacity="0.08" /><stop offset="100%" stopColor="#3b2063" stopOpacity="0" /></linearGradient>
+                    <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#3b2063" />
+                      <stop offset="100%" stopColor="#7c3aed" />
+                    </linearGradient>
+                    <linearGradient id="fillGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3b2063" stopOpacity="0.08" />
+                      <stop offset="100%" stopColor="#3b2063" stopOpacity="0" />
+                    </linearGradient>
                   </defs>
                   {linePoints.length > 1 && (
                     <path d={buildFillPath(linePoints)} fill="url(#fillGrad)" vectorEffect="non-scaling-stroke" />

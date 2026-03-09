@@ -239,7 +239,7 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
               <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">Bulk Import</h1>
               <button 
                 onClick={downloadTemplate} 
-                className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6"
+                className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6"
               >
                 <Download size={14} /> Download Template
               </button>
@@ -250,7 +250,7 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
               onClick={() => !selectedFile && fileInputRef.current?.click()}
-              className={`bg-white p-12 rounded-xl border-2 border-dashed transition-all duration-200 ${
+              className={`bg-white p-12 rounded-[0.625rem] border-2 border-dashed transition-all duration-200 ${
                 selectedFile 
                   ? 'border-emerald-400 bg-emerald-50/20' 
                   : isDragging 
@@ -295,7 +295,7 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
             </div>
 
             {preview.length > 0 && (
-              <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden shadow-sm animate-in zoom-in-95">
+              <div className="bg-white rounded-[0.625rem] border border-zinc-200 overflow-hidden shadow-sm animate-in zoom-in-95">
                 <div className="p-3 bg-zinc-50 border-b border-zinc-200 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <AlertCircle size={14} className="text-orange-500" />
@@ -334,7 +334,7 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
               <History size={20} /> System Import Logs
             </h1>
 
-            <div className="bg-white rounded-xl border border-zinc-200 overflow-hidden shadow-sm">
+            <div className="bg-white rounded-[0.625rem] border border-zinc-200 overflow-hidden shadow-sm">
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
@@ -374,13 +374,13 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
             <button 
               onClick={handleUpload} 
               disabled={isUploading || !selectedFile} 
-              className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6 disabled:opacity-50"
+              className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6 disabled:opacity-50"
             >
               {isUploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
               {isUploading ? 'Importing...' : 'Confirm & Process'}
             </button>
           )}
-          <button onClick={onBack} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2 px-6">
+          <button onClick={onBack} className="h-11 bg-zinc-200 hover:bg-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6">
             <ArrowLeft size={14} /> Back
           </button>
         </div>
@@ -388,7 +388,7 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
 
       {summary && (
         <div className="fixed inset-0 z-150 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+          <div className="bg-white w-full max-w-md rounded-[0.625rem] shadow-2xl overflow-hidden">
             <div className="bg-[#3b2063] p-4 flex justify-between items-center text-white">
               <span className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                 <ClipboardCheck size={14} /> Import Summary
@@ -397,11 +397,11 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
             </div>
             <div className="p-8 space-y-6">
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 text-center">
+                <div className="bg-emerald-50 p-4 rounded-[0.625rem] border border-emerald-100 text-center">
                   <p className="text-2xl font-black text-emerald-600">{summary.success}</p>
                   <p className="text-[9px] font-black text-emerald-400 uppercase">Successful</p>
                 </div>
-                <div className="bg-red-50 p-4 rounded-xl border border-red-100 text-center">
+                <div className="bg-red-50 p-4 rounded-[0.625rem] border border-red-100 text-center">
                   <p className="text-2xl font-black text-red-600">{summary.failed}</p>
                   <p className="text-[9px] font-black text-red-400 uppercase">Failed</p>
                 </div>
@@ -418,7 +418,7 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
                       <FileWarning size={10} /> Download Log
                     </button>
                   </div>
-                  <div className="max-h-32 overflow-y-auto bg-zinc-50 rounded-lg p-3 border border-zinc-200">
+                  <div className="max-h-32 overflow-y-auto bg-zinc-50 rounded-[0.625rem] p-3 border border-zinc-200">
                     {summary.errorDetails.map((err, i) => (
                       <p key={i} className="text-[10px] font-bold text-red-500 mb-1 leading-tight">• {err}</p>
                     ))}
@@ -428,7 +428,7 @@ const UploadData = ({ onBack }: { onBack: () => void }) => {
 
               <button 
                 onClick={() => setSummary(null)}
-                className="w-full h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm flex items-center justify-center gap-2"
+                className="w-full h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2"
               >
                 Close Report
               </button>

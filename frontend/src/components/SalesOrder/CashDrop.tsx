@@ -194,7 +194,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
         <div className={`flex-1 flex flex-row items-start justify-center p-5 md:p-7 gap-5 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-80' : ''}`}>
 
           {/* ── LEFT: Drop Form ── */}
-          <div className="bg-white w-full flex-1 border border-zinc-200 flex flex-col h-full shadow-sm">
+          <div className="bg-white w-full flex-1 border border-zinc-200 flex flex-col h-full shadow-sm rounded-[0.625rem]">
 
             {/* Card Header */}
             <div className="px-6 py-5 border-b border-zinc-100 flex items-center justify-between">
@@ -290,7 +290,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
               <button
                 onClick={handleSubmit}
                 disabled={isLoading || isEodLocked || grandTotal <= 0}
-                className={`w-full py-4 font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all ${
+                className={`w-full py-4 font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all rounded-[0.625rem] ${
                   isEodLocked
                     ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
                     : 'bg-[#3b2063] hover:bg-[#2a1647] text-white active:scale-[0.99] disabled:opacity-50'
@@ -307,7 +307,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
           </div>
 
           {/* ── RIGHT: History ── */}
-          <div className="w-full flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm" style={{ minHeight: 0 }}>
+          <div className="w-full flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-[0.625rem]" style={{ minHeight: 0 }}>
             <div className="px-6 py-5 border-b border-zinc-100 flex items-center gap-3">
               <div className="w-9 h-9 bg-zinc-50 border border-zinc-200 flex items-center justify-center">
                 <HistoryIcon size={17} className="text-violet-600" />
@@ -347,7 +347,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
                       <td className="px-6 py-3.5 text-center">
                         <button
                           onClick={() => handlePrint(tx)}
-                          className="w-9 h-9 inline-flex items-center justify-center bg-zinc-50 border border-zinc-200 text-zinc-500 hover:bg-[#3b2063] hover:text-white hover:border-[#3b2063] transition-all"
+                          className="w-9 h-9 inline-flex items-center justify-center bg-zinc-50 border border-zinc-200 text-zinc-500 hover:bg-[#3b2063] hover:text-white hover:border-[#3b2063] transition-all rounded-[0.625rem]"
                         >
                           <Printer size={14} strokeWidth={2} />
                         </button>
@@ -372,7 +372,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
         {!isEodLocked && (
           <button
             onClick={() => setShowKeyboard(prev => !prev)}
-            className={`fixed bottom-6 right-6 z-100 w-14 h-14 shadow-xl flex items-center justify-center transition-all active:scale-95 ${
+            className={`fixed bottom-6 right-6 z-100 w-14 h-14 shadow-xl flex items-center justify-center transition-all active:scale-95 rounded-[0.625rem] ${
               showKeyboard ? 'bg-red-600 text-white' : 'bg-[#3b2063] text-white hover:bg-[#2a1647]'
             }`}
           >
@@ -387,7 +387,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
               <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest">
                 {layoutName === 'numpad' ? 'Numeric Keypad' : 'Text Input'}
               </span>
-              <button onClick={() => setShowKeyboard(false)} className="text-[11px] font-bold text-[#3b2063] uppercase tracking-widest hover:underline">
+              <button onClick={() => setShowKeyboard(false)} className="text-[11px] font-bold text-[#3b2063] uppercase tracking-widest hover:underline rounded-[0.625rem]">
                 Close
               </button>
             </div>

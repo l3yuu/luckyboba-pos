@@ -34,7 +34,7 @@
           <div key={toast.id} className={`flex items-center gap-3 px-5 py-3 shadow-xl text-white text-sm font-semibold pointer-events-auto border border-white/10 animate-in slide-in-from-right-full ${toast.type === 'success' ? 'bg-[#1a0f2e]' : 'bg-red-600'}`}>
             {toast.type === 'success' ? <CheckCircle2 size={15} /> : <X size={15} />}
             <span>{toast.message}</span>
-            <button onClick={() => onRemove(toast.id)} className="ml-1 text-white/50 hover:text-white transition-colors"><X size={13} /></button>
+            <button onClick={() => onRemove(toast.id)} className="ml-1 text-white/50 hover:text-white transition-colors rounded-[0.625rem]"><X size={13} /></button>
           </div>
         ))}
       </div>
@@ -86,7 +86,7 @@
 
     return (
       <ModalShell onClose={onClose}>
-        <div className="bg-white border border-zinc-200 shadow-2xl w-full max-w-md flex flex-col overflow-hidden">
+        <div className="bg-white border border-zinc-200 shadow-2xl w-full max-w-md flex flex-col overflow-hidden rounded-[0.625rem]">
           {/* Header */}
           <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100">
             <div className="flex items-center gap-3">
@@ -137,8 +137,8 @@
 
           {/* Footer */}
           <div className="flex gap-3 px-7 py-5 border-t border-zinc-100">
-            <button onClick={onClose} disabled={submitting} className="flex-1 h-11 bg-white border border-zinc-200 text-zinc-600 font-bold text-sm uppercase tracking-widest hover:bg-zinc-50 transition-all disabled:opacity-50">Cancel</button>
-            <button onClick={handleSubmit} disabled={submitting} className="flex-1 h-11 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-sm uppercase tracking-widest transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+            <button onClick={onClose} disabled={submitting} className="flex-1 h-11 bg-white border border-zinc-200 text-zinc-600 font-bold text-sm uppercase tracking-widest hover:bg-zinc-50 transition-all disabled:opacity-50 rounded-[0.625rem]">Cancel</button>
+            <button onClick={handleSubmit} disabled={submitting} className="flex-1 h-11 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-sm uppercase tracking-widest transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]">
               {submitting ? <><span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving...</> : 'Add Category'}
             </button>
           </div>
@@ -168,7 +168,7 @@
 
     return (
       <ModalShell onClose={onClose}>
-        <div className="bg-white border border-zinc-200 shadow-2xl w-full max-w-md flex flex-col overflow-hidden">
+        <div className="bg-white border border-zinc-200 shadow-2xl w-full max-w-md flex flex-col overflow-hidden rounded-[0.625rem]">
           <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 bg-zinc-50 border border-zinc-200 flex items-center justify-center">
@@ -198,7 +198,7 @@
 
           <div className="flex gap-3 px-7 py-5 border-t border-zinc-100">
             <button onClick={onClose} disabled={submitting} className="flex-1 h-11 bg-white border border-zinc-200 text-zinc-600 font-bold text-sm uppercase tracking-widest hover:bg-zinc-50 transition-all">Cancel</button>
-            <button onClick={handleSubmit} disabled={submitting} className="flex-1 h-11 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-sm uppercase tracking-widest transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+            <button onClick={handleSubmit} disabled={submitting} className="flex-1 h-11 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-sm uppercase tracking-widest transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]">
               {submitting ? <><span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Saving...</> : 'Save Changes'}
             </button>
           </div>
@@ -211,7 +211,7 @@
   function DeleteModal({ category, onClose, onConfirm }: { category: CategoryData; onClose: () => void; onConfirm: () => void }) {
     return (
       <ModalShell onClose={onClose}>
-        <div className="bg-white border border-zinc-200 shadow-2xl w-full max-w-sm flex flex-col overflow-hidden">
+        <div className="bg-white border border-zinc-200 shadow-2xl w-full max-w-sm flex flex-col overflow-hidden rounded-[0.625rem]">
           <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 bg-red-50 border border-red-200 flex items-center justify-center">
@@ -344,13 +344,13 @@
                 <h1 className="text-lg font-bold text-[#1a0f2e] mt-0.5">Categories</h1>
               </div>
               <button onClick={() => setShowAddModal(true)}
-                className="h-10.5 px-6 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-sm uppercase tracking-widest flex items-center gap-2 transition-colors active:scale-[0.98]">
+                className="h-10.5 px-6 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-sm uppercase tracking-widest flex items-center gap-2 transition-colors active:scale-[0.98] rounded-[0.625rem]">
                 <Plus size={15} strokeWidth={2.5} /> Add Category
               </button>
             </div>
 
             {/* ── Table Card ── */}
-            <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm">
+            <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-[0.625rem]">
 
               {/* Toolbar */}
               <div className="px-6 py-4 border-b border-zinc-100 flex flex-col md:flex-row justify-between items-center gap-3">
@@ -407,13 +407,13 @@
                           </td>
                           <td className="px-5 py-3.5 text-center">
                             <button onClick={() => setEditTarget(cat)}
-                              className="w-9 h-9 inline-flex items-center justify-center bg-[#3b2063] hover:bg-[#2a1647] text-white transition-colors">
+                              className="w-9 h-9 inline-flex items-center justify-center bg-[#3b2063] hover:bg-[#2a1647] text-white transition-colors rounded-[0.625rem]">
                               <Pencil size={14} strokeWidth={2} />
                             </button>
                           </td>
                           <td className="px-7 py-3.5 text-center">
                             <button onClick={() => setDeleteTarget(cat)}
-                              className="w-9 h-9 inline-flex items-center justify-center bg-white border border-red-200 text-red-500 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all">
+                              className="w-9 h-9 inline-flex items-center justify-center bg-white border border-red-200 text-red-500 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all rounded-[0.625rem]">
                               <Trash2 size={14} strokeWidth={2} />
                             </button>
                           </td>

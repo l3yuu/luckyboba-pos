@@ -71,7 +71,7 @@ const BackupSystem = ({ onBack }: { onBack: () => void }) => {
         <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">System Backup</h1>
 
         {showSuccess && (
-          <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+          <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-[0.625rem] flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
             <CheckCircle2 className="text-emerald-500" size={20} />
             <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide">
               Backup successfully generated and downloaded!
@@ -79,9 +79,9 @@ const BackupSystem = ({ onBack }: { onBack: () => void }) => {
           </div>
         )}
 
-        <div className="bg-white p-6 rounded-xl border border-zinc-200 flex items-center justify-between shadow-sm">
+        <div className="bg-white p-6 rounded-[0.625rem] border border-zinc-200 flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-[#3b2063]/10 rounded-lg">
+            <div className="p-3 bg-[#3b2063]/10 rounded-[0.625rem]">
               <Database className="text-[#3b2063]" size={24} />
             </div>
             <div>
@@ -93,14 +93,14 @@ const BackupSystem = ({ onBack }: { onBack: () => void }) => {
           <button
             onClick={handleRunBackup}
             disabled={isProcessing}
-            className="px-6 py-3 bg-[#3b2063] text-white rounded-lg font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:bg-[#2a1647] transition-all disabled:opacity-50"
+            className="px-6 py-3 bg-[#3b2063] text-white rounded-[0.625rem] font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:bg-[#2a1647] transition-all disabled:opacity-50"
           >
             {isProcessing ? <Loader2 className="animate-spin" size={14} /> : <Download size={14} />}
             {isProcessing ? 'Generating...' : 'Run New Backup'}
           </button>
         </div>
 
-        <button onClick={onBack} className="w-fit px-6 py-3 bg-zinc-200 text-zinc-500 rounded-lg font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:bg-zinc-300 transition-colors">
+        <button onClick={onBack} className="w-fit px-6 py-3 bg-zinc-200 text-zinc-500 rounded-[0.625rem] font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:bg-zinc-300 transition-colors">
           <ArrowLeft size={14} /> Back
         </button>
       </div>

@@ -1,372 +1,340 @@
+import React from 'react';
+import { useState } from 'react';
 import TopNavbar from '../TopNavbar';
-import * as XLSX from 'xlsx';
-import { useState, useCallback, useEffect } from 'react';
-import api from '../../services/api';
 import { 
-  Calendar, 
-  FileText, 
-  LayoutGrid, 
-  FileDown, 
-  Printer, 
-  Database, 
-  ChevronDown,
-  Activity,
-  Terminal
+  Calendar,
+  Terminal,
+  Search,
+  X,
+  RotateCcw,
+  Clock,
+  Receipt as ReceiptIcon,
+  ShieldAlert,
+  FileCheck,
 } from 'lucide-react';
+import api from '../../services/api';
 
 // ============================================================
 // TYPE DEFINITIONS
 // ============================================================
 
-interface ReportItem {
-  id: number;
-  name: string;
-  category: string;
-  qty: number;
-  amount: number;
+interface SaleItem {
+  sale_id: number;
+  si_number: string;
+  status: string;
+  terminal: string;
+  items_count: number;
+  total_amount: number;
+  created_at: string;
 }
 
-interface ReportResponse {
-  items: ReportItem[];
-  total_qty: number;
-  grand_total: number;
-  cashier_name?: string;
+interface Stats {
+  gross: number;
+  voided: number;
+  net: number;
 }
 
 // ============================================================
-// HELPER — defined outside component so it's never in TDZ
+// STAT BOX
 // ============================================================
 
-const CACHE_KEY_PREFIX = 'lucky_boba_items_report_';
+const StatBox = ({ label, value, icon, isDanger, isBrand }: {
+  label: string; value: number; icon: React.ReactNode; isDanger?: boolean; isBrand?: boolean;
+}) => (
+  <div className={`px-6 py-5 border flex items-center justify-between shadow-sm rounded-[0.625rem] ${isBrand ? 'bg-[#3b2063] border-[#2a1647]' : 'bg-white border-zinc-200'}`}>
+    <div>
+      <p className={`text-[11px] font-bold uppercase tracking-widest mb-1 ${isBrand ? 'text-violet-300' : 'text-zinc-500'}`}>{label}</p>
+      <p className={`text-2xl font-bold tabular-nums ${isBrand ? 'text-white' : isDanger ? 'text-red-600' : 'text-[#1a0f2e]'}`}>
+        {isDanger && value > 0 && <span className="text-base mr-1">-</span>}
+        ₱{value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+      </p>
+    </div>
+    <div className={`w-10 h-10 flex items-center justify-center ${isBrand ? 'bg-white/10 text-violet-200' : 'bg-zinc-50 border border-zinc-200 text-zinc-400'}`}>
+      {icon}
+    </div>
+  </div>
+);
 
-const buildCacheKey = (from: string, to: string, type: string) =>
-  `${CACHE_KEY_PREFIX}${from}_${to}_${type}`;
+// ============================================================
+// TABLE SKELETON
+// ============================================================
 
-const getLocalToday = () => {
-  const now = new Date();
-  const offset = now.getTimezoneOffset() * 60000;
-  return new Date(now.getTime() - offset).toISOString().split('T')[0];
-};
+const TableSkeleton = () => (
+  <>
+    {[...Array(5)].map((_, i) => (
+      <tr key={i} className="animate-pulse">
+        <td className="px-7 py-4"><div className="h-4 bg-zinc-100 rounded w-32" /></td>
+        <td className="px-6 py-4 text-center"><div className="h-4 bg-zinc-100 rounded w-12 mx-auto" /></td>
+        <td className="px-6 py-4 text-center"><div className="h-4 bg-zinc-100 rounded w-8 mx-auto" /></td>
+        <td className="px-7 py-4 text-right"><div className="h-4 bg-zinc-100 rounded w-20 ml-auto" /></td>
+        <td className="px-6 py-4 text-center"><div className="h-8 w-9 bg-zinc-100 rounded mx-auto" /></td>
+      </tr>
+    ))}
+  </>
+);
 
 // ============================================================
 // COMPONENT
 // ============================================================
 
-const ItemsReport = () => {
-  const today = getLocalToday();
-  const phCurrency = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
+const SearchReceipts = () => {
+  const today = new Date().toISOString().split('T')[0];
 
-  const [fromDate, setFromDate] = useState(today);
-  const [toDate, setToDate] = useState(today);
-  const [reportType, setReportType] = useState<'item-list' | 'category-summary'>('item-list');
-  const [loading, setLoading] = useState(false);
-  const [_error, _setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedDate, setSelectedDate] = useState(today);
+  const [searchResults, setSearchResults] = useState<SaleItem[]>([]);
+  const [stats, setStats] = useState<Stats>({ gross: 0, voided: 0, net: 0 });
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [showKeyboard, setShowKeyboard] = useState(false);
 
-  // ✅ FIX: buildCacheKey is a plain function defined above — no TDZ
-  const [data, setData] = useState<ReportResponse | null>(() => {
-    const key = buildCacheKey(today, today, 'item-list');
-    const saved = localStorage.getItem(key);
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [isReasonModalOpen, setIsReasonModalOpen] = useState(false);
+  const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [isVoiding, setIsVoiding] = useState(false);
 
-  // Memoised wrapper (stable ref for useEffect deps)
-  const getCacheKey = useCallback(
-    (from: string, to: string, type: string) => buildCacheKey(from, to, type),
-    []
-  );
-
-  const fetchReport = useCallback(async () => {
-    const key = getCacheKey(fromDate, toDate, reportType);
-    setLoading(true);
-    try {
-      const response = await api.get('/reports/items-report', {
-        params: { from: fromDate, to: toDate, type: reportType },
-      });
-      localStorage.setItem(key, JSON.stringify(response.data));
-      setData(response.data);
-    } catch (error) {
-      console.error('Error fetching fresh report:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [fromDate, toDate, reportType, getCacheKey]);
-
-  useEffect(() => {
-    const key = getCacheKey(fromDate, toDate, reportType);
-    const saved = localStorage.getItem(key);
-    if (saved) setData(JSON.parse(saved));
-    else fetchReport();
-  }, [fromDate, toDate, reportType, getCacheKey, fetchReport]);
-
-  const generateExcel = useCallback(() => {
-    if (!data || data.items.length === 0) {
-      alert('No data to export');
-      return;
-    }
-
-    const rows = data.items.map((item, index) => ({
-      '#': index + 1,
-      [reportType === 'category-summary' ? 'Category' : 'Item Name']: item.name,
-      Category: item.category,
-      'Qty Sold': item.qty,
-      'Total Sales': item.amount,
-    }));
-
-    rows.push({
-      '#': '',
-      [reportType === 'category-summary' ? 'Category' : 'Item Name']: 'GRAND TOTAL',
-      Category: '',
-      'Qty Sold': data.total_qty,
-      'Total Sales': data.grand_total,
-    } as never);
-
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Report');
-    XLSX.writeFile(wb, `items_report_${fromDate}_to_${toDate}.xlsx`);
-  }, [data, fromDate, toDate, reportType]);
-
-  const handlePrint = () => {
-    if (!data || data.items.length === 0) {
-      alert('No data to print');
-      return;
-    }
-    setTimeout(() => window.print(), 150);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
   };
 
-  const hasData = data && data.items.length > 0;
+  const handleSearch = async (query = searchQuery, date = selectedDate) => {
+    setIsLoading(true);
+    setHasSearched(true);
+    try {
+      const response = await api.get('/receipts/search', {
+        params: { query, date },
+      });
+      setSearchResults(response.data.results ?? []);
+      setStats(response.data.stats ?? { gross: 0, voided: 0, net: 0 });
+    } catch (error) {
+      console.error('Search error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  // ============================================================
-  // RENDER
-  // ============================================================
+  const handleRefresh = () => {
+    setSearchQuery('');
+    setSelectedDate(today);
+    setSearchResults([]);
+    setStats({ gross: 0, voided: 0, net: 0 });
+    setHasSearched(false);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!selectedSaleId || !cancelReason.trim()) return;
+    setIsVoiding(true);
+    try {
+      await api.post(`/receipts/${selectedSaleId}/void`, { reason: cancelReason });
+      setIsReasonModalOpen(false);
+      setCancelReason('');
+      handleSearch();
+    } catch (error) {
+      console.error('Void error:', error);
+    } finally {
+      setIsVoiding(false);
+    }
+  };
 
   return (
-    <>
-      <style>
-        {`
-          .printable-receipt { display: none; }
-          @media print {
-            @page { size: 80mm auto; margin: 0; }
-            html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
-            #dashboard-main-container { display: none !important; }
-            .printable-receipt { display: block !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 80mm !important; padding: 6mm !important; background: white !important; color: black !important; font-family: 'Courier New', monospace; }
-            .receipt-divider { border-top: 1px dashed #000 !important; margin: 8px 0; width: 100%; }
-            .flex-between { display: flex !important; justify-content: space-between !important; width: 100%; }
-          }
-          .receipt-divider { border-top: 1px dashed #000; margin: 8px 0; width: 100%; }
-          .flex-between { display: flex; justify-content: space-between; width: 100%; }
-        `}
-      </style>
+    <div className="flex flex-col h-full w-full bg-[#f4f2fb] overflow-hidden relative">
+      <TopNavbar />
 
-      {/* PRINTABLE RECEIPT */}
-      <div className="printable-receipt text-slate-800">
-        <div className="text-center space-y-1">
-          <h1 className="font-black text-[14px] uppercase leading-tight">Lucky Boba Milktea</h1>
-          <p className="text-[10px] uppercase font-bold">Main Branch - QC</p>
-          <div className="receipt-divider" />
-          <h2 className="font-black text-[11px] uppercase tracking-widest">
-            {reportType === 'category-summary' ? 'Category Summary' : 'Item Sales'} Report
-          </h2>
-          <div className="text-left text-[10px] space-y-0.5 mt-2 uppercase">
-            <div className="flex-between"><span>From Date</span><span>{fromDate}</span></div>
-            <div className="flex-between"><span>To Date</span><span>{toDate}</span></div>
-            <div className="flex-between"><span>Print Time</span><span>{new Date().toLocaleTimeString()}</span></div>
-            <div className="flex-between"><span>Terminal</span><span>POS-01</span></div>
-          </div>
-        </div>
-        <div className="my-4 pt-2">
-          <div className="receipt-divider" />
-          <table className="w-full text-[10px]">
-            <thead>
-              <tr className="font-black border-b border-black text-left">
-                <th className="pb-1 uppercase tracking-tighter w-1/2">
-                  {reportType === 'category-summary' ? 'Category' : 'Item'}
-                </th>
-                <th className="pb-1 text-center">QTY</th>
-                <th className="pb-1 text-right">TOTAL</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data?.items.map((item, idx) => (
-                <tr key={idx}>
-                  <td className="py-1 uppercase text-[9px] font-bold">{item.name}</td>
-                  <td className="py-1 text-center font-bold">x{item.qty}</td>
-                  <td className="py-1 text-right">{phCurrency.format(item.amount)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <div className="receipt-divider" />
-          <div className="space-y-1 mt-2">
-            <div className="flex-between text-[10px]"><span>TOTAL ITEMS SOLD</span><span className="font-bold">{data?.total_qty || 0}</span></div>
-            <div className="flex-between font-black text-[12px] pt-1 border-t border-black"><span>TOTAL REVENUE</span><span>{phCurrency.format(data?.grand_total || 0)}</span></div>
-          </div>
-        </div>
+      <div className={`flex-1 flex flex-col items-center justify-start p-5 md:p-7 gap-5 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-72' : ''}`}>
 
-        <div className="mt-8 text-center space-y-4">
-          <div className="receipt-divider" />
-          <div className="pt-2">
-            <p className="text-[10px] font-bold uppercase">{data?.cashier_name || 'System Admin'}</p>
-            <p className="text-[10px] leading-none">____________________</p>
-            <p className="text-[8px] uppercase mt-1">Prepared By</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Main UI */}
-      <div id="items-report-main" className="flex flex-col h-full w-full bg-[#f4f2fb] overflow-hidden relative print:hidden">
-        <TopNavbar />
-
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 flex flex-col gap-4">
-
-          {/* FILTER CONSOLE */}
-          <div className="bg-white border border-zinc-200 rounded-none p-6 shadow-sm">
-            <div className="flex flex-col lg:flex-row gap-3 items-end">
-
-              {/* From Date */}
-              <div className="flex-1 w-full space-y-1.5">
-                <label className="flex items-center gap-2 text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] ml-1">
-                  <Calendar size={12} /> From Date
-                </label>
-                <input
-                  type="date" value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
-                  className="w-full px-4 py-3 border border-zinc-200 bg-[#f4f2fb] font-semibold text-sm text-[#1a0f2e] outline-none focus:border-[#3b2063] transition-colors"
-                />
-              </div>
-
-              {/* To Date */}
-              <div className="flex-1 w-full space-y-1.5">
-                <label className="flex items-center gap-2 text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] ml-1">
-                  <Calendar size={12} /> To Date
-                </label>
-                <input
-                  type="date" value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                  className="w-full px-4 py-3 border border-zinc-200 bg-[#f4f2fb] font-semibold text-sm text-[#1a0f2e] outline-none focus:border-[#3b2063] transition-colors"
-                />
-              </div>
-
-              {/* Report Type */}
-              <div className="flex-1 w-full space-y-1.5">
-                <label className="flex items-center gap-2 text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] ml-1">
-                  <LayoutGrid size={12} /> Report Mode
-                </label>
-                <div className="relative group">
-                  <select value={reportType} onChange={(e) => setReportType(e.target.value as 'item-list' | 'category-summary')} className="w-full p-3.5 pr-10 rounded-none border border-zinc-200 bg-[#f8f6ff] font-black text-[#3b2063] text-xs uppercase tracking-widest outline-none cursor-pointer appearance-none">
-                    <option value="item-list">Detailed Item List</option>
-                    <option value="category-summary">Category Summary</option>
-                  </select>
-                  <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-                </div>
-              </div>
-
-              {/* Actions */}
-              <div className="flex gap-2 w-full lg:w-auto">
-                <button onClick={fetchReport} disabled={loading} className="flex-1 lg:w-32 bg-[#3b2063] text-white rounded-none font-black uppercase text-[10px] tracking-[0.2em] h-[50px] shadow-lg hover:bg-[#2a174a] transition-all disabled:opacity-50">
-                  {loading ? 'SYNCING...' : 'QUERY'}
-                </button>
-                <button onClick={generateExcel} disabled={!hasData} className="w-14 h-[50px] bg-white border border-zinc-200 text-[#3b2063] rounded-none flex items-center justify-center hover:bg-zinc-50 transition-all disabled:opacity-40">
-                  <FileDown size={18} />
-                </button>
-                <button onClick={handlePrint} disabled={!hasData} className="w-14 h-[50px] bg-white border border-zinc-200 text-[#3b2063] rounded-none flex items-center justify-center hover:bg-zinc-50 transition-all disabled:opacity-40">
-                  <Printer size={18} />
-                </button>
-              </div>
-            </div>
-
-            {_error && (
-              <p className="mt-3 text-xs font-bold text-red-500 bg-red-50 px-4 py-2 rounded-xl">{_error}</p>
+        {/* ── Search Bar ── */}
+        <div className="w-full max-w-6xl flex flex-col lg:flex-row gap-3">
+          <div className="flex-1 bg-white border border-zinc-200 flex items-center shadow-sm rounded-[0.625rem]">
+            <div className="px-4 text-zinc-400"><Search size={17} /></div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={handleInputChange}
+              onFocus={() => setShowKeyboard(true)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              placeholder="Search by OR number or transaction..."
+              className="flex-1 h-12 px-2 outline-none text-[#1a0f2e] font-semibold text-sm placeholder:text-zinc-300 bg-transparent"
+            />
+            {searchQuery && (
+              <button onClick={() => { setSearchQuery(''); handleSearch('', selectedDate); }} className="px-4 text-zinc-300 hover:text-red-500 transition-colors rounded-[0.625rem]">
+                <X size={15} />
+              </button>
             )}
           </div>
 
-          {/* REPORT DATA PANEL */}
-          <div className="flex-1 bg-white rounded-none border border-zinc-200 shadow-sm flex flex-col overflow-hidden relative">
-            <div className="px-8 py-5 border-b border-zinc-100 bg-zinc-50 flex justify-between items-center">
-              <div className="flex items-center gap-4">
-                <div className="p-2.5 bg-[#3b2063] text-white rounded-none shadow-md shadow-purple-900/10"><FileText size={18} /></div>
-                <div>
-                  <h3 className="text-sm font-bold text-[#1a0f2e] uppercase tracking-widest">
-                    {reportType === 'category-summary' ? 'Category Summary' : 'Item Performance Ledger'}
-                  </h3>
-                  <p className="text-[11px] font-medium text-zinc-400 mt-0.5">
-                    Terminal Audit · POS-01
-                    {data?.cashier_name && ` · ${data.cashier_name}`}
-                  </p>
-                </div>
+          <div className="flex gap-3">
+            <div className="bg-white border border-zinc-200 flex items-center px-5 gap-3 shadow-sm min-w-52 rounded-[0.625rem]">
+              <Calendar size={15} className="text-violet-500 shrink-0" />
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => { setSelectedDate(e.target.value); handleSearch(searchQuery, e.target.value); }}
+                className="outline-none text-[#1a0f2e] font-semibold bg-transparent cursor-pointer text-sm flex-1"
+              />
+            </div>
+
+            <button
+              onClick={() => handleSearch()}
+              disabled={isLoading}
+              className="bg-[#3b2063] hover:bg-[#2a1647] text-white px-8 font-bold text-sm uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 h-12 rounded-[0.625rem]"
+            >
+              {isLoading ? '...' : 'Search'}
+            </button>
+
+            <button
+              onClick={handleRefresh}
+              className="bg-white border border-zinc-200 text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-4 transition-all duration-300 hover:rotate-180 shadow-sm rounded-[0.625rem]"
+            >
+              <RotateCcw size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* ── Stats Strip ── */}
+        <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-3 gap-4">
+          <StatBox label="Gross Sales" value={stats.gross} icon={<ReceiptIcon size={16} />} />
+          <StatBox label="Voided Sales" value={stats.voided} icon={<ShieldAlert size={16} />} isDanger />
+          <StatBox label="Net Sales" value={stats.net} icon={<FileCheck size={16} />} isBrand />
+        </div>
+
+        {/* ── Table ── */}
+        <div className="w-full max-w-6xl bg-white border border-zinc-200 overflow-hidden flex-1 flex flex-col shadow-sm rounded-[0.625rem]">
+          <div className="px-7 py-5 border-b border-zinc-100 flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-[#3b2063] flex items-center justify-center">
+                <Terminal size={15} className="text-white" />
               </div>
-              <div className="flex items-center gap-6">
-                <div className="text-right hidden md:block">
-                  <p className="text-[8px] font-black text-zinc-300 uppercase tracking-widest">Operator</p>
-                  <p className="text-[10px] font-black text-[#3b2063] uppercase">{data?.cashier_name || 'Terminal Root'}</p>
-                </div>
-                <div className="bg-white border border-zinc-200 px-4 py-2 flex items-center gap-2">
-                  <Activity size={12} className="text-emerald-500" />
-                  <span className="text-[9px] font-black text-[#3b2063] uppercase tracking-widest">{data?.items.length || 0} Records</span>
+              <div>
+                <h3 className="text-sm font-bold text-[#1a0f2e] uppercase tracking-widest">Transaction Audit Journal</h3>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <Clock size={11} className="text-zinc-400" />
+                  <span className="text-[11px] font-medium text-zinc-400">
+                    {new Date(selectedDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                  </span>
                 </div>
               </div>
             </div>
+            <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest bg-zinc-50 border border-zinc-200 px-4 py-2">
+              {searchResults.length} entries
+            </span>
+          </div>
 
-            {/* Table Body */}
-            <div className="flex-1 overflow-auto">
-              <table className="w-full text-left">
-                <thead className="sticky top-0 bg-white z-10 border-b border-zinc-100">
-                  <tr>
-                    <th className="px-8 py-5 text-[9px] font-black text-zinc-400 uppercase tracking-[0.3em]">
-                      {reportType === 'category-summary' ? 'Category Classification' : 'Item Description'}
-                    </th>
-                    <th className="px-8 py-5 text-[9px] font-black text-zinc-400 uppercase tracking-[0.3em] text-right">Units Sold</th>
-                    <th className="px-8 py-5 text-[9px] font-black text-zinc-400 uppercase tracking-[0.3em] text-right">Revenue Accumulation</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-100">
-                  {data?.items.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-[#f4f2fb] transition-colors">
-                      <td className="px-7 py-3.5 text-sm font-semibold text-[#1a0f2e]">{item.name}</td>
-                      <td className="px-7 py-3.5 text-sm font-bold text-zinc-500 text-right tabular-nums">{item.qty}</td>
-                      <td className="px-7 py-3.5 text-sm font-bold text-[#1a0f2e] text-right tabular-nums">{phCurrency.format(item.amount)}</td>
-                    </tr>
-                  ))}
-                  {!loading && !hasData && (
-                    <tr>
-                      <td colSpan={3} className="px-8 py-20 text-center">
-                        <Database size={40} className="mx-auto text-zinc-100 mb-3" />
-                        <p className="text-[10px] text-zinc-300 uppercase font-black tracking-[0.4em]">No database entries for selected range</p>
+          <div className="flex-1 overflow-auto">
+            <table className="w-full text-left">
+              <thead className="sticky top-0 bg-white z-10 border-b border-zinc-100">
+                <tr>
+                  <th className="px-7 py-3.5 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">OR / Status</th>
+                  <th className="px-6 py-3.5 text-center text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Terminal</th>
+                  <th className="px-6 py-3.5 text-center text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Items</th>
+                  <th className="px-7 py-3.5 text-right text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Total</th>
+                  <th className="px-6 py-3.5 text-center text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Void</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {isLoading ? (
+                  <TableSkeleton />
+                ) : searchResults.length > 0 ? (
+                  searchResults.map((item, index) => (
+                    <tr key={item.sale_id || item.si_number || `receipt-${index}`} className="hover:bg-[#f4f2fb] transition-colors">
+                      <td className="px-7 py-4">
+                        <div className="flex items-center gap-2.5">
+                          <span className="font-bold text-[#1a0f2e] text-sm tabular-nums">#{item.si_number}</span>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 border uppercase tracking-widest ${
+                            item.status === 'cancelled'
+                              ? 'bg-red-50 text-red-600 border-red-100'
+                              : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                          }`}>
+                            {item.status === 'cancelled' ? 'Voided' : 'Settled'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-zinc-400 font-medium mt-0.5">
+                          {item.created_at
+                            ? new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+                            : 'N/A'}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4 text-center text-sm font-semibold text-zinc-500 tabular-nums">{item.terminal}</td>
+                      <td className="px-6 py-4 text-center text-sm font-bold text-[#1a0f2e] tabular-nums">{item.items_count}</td>
+                      <td className="px-7 py-4 text-right">
+                        <span className={`text-sm font-bold tabular-nums ${item.status === 'cancelled' ? 'text-zinc-300 line-through' : 'text-[#1a0f2e]'}`}>
+                          ₱{Number(item.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        {item.status !== 'cancelled' ? (
+                          <button
+                            onClick={() => { setSelectedSaleId(item.sale_id); setIsReasonModalOpen(true); }}
+                            className="w-9 h-9 inline-flex items-center justify-center bg-white border border-red-200 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all rounded-[0.625rem]"
+                          >
+                            <X size={14} strokeWidth={2.5} />
+                          </button>
+                        ) : (
+                          <div className="w-9 h-9" />
+                        )}
                       </td>
                     </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* GRAND TOTAL BAR */}
-            <div className="bg-[#3b2063] text-white flex justify-between items-center px-8 py-6">
-              <div className="flex items-center gap-3">
-                <Terminal size={16} className="text-purple-300/50" />
-                <span className="text-[11px] font-black uppercase tracking-[0.3em] text-purple-300">Shift Total Settlement</span>
-              </div>
-              <div className="flex gap-12 text-right">
-                <div>
-                  <p className="text-[8px] font-black text-purple-300/50 uppercase tracking-widest mb-1">Volume</p>
-                  <p className="text-xl font-black tabular-nums">{data?.total_qty || 0}</p>
-                </div>
-                <div>
-                  <p className="text-[8px] font-black text-purple-300/50 uppercase tracking-widest mb-1">Revenue</p>
-                  <p className="text-xl font-black tabular-nums tracking-tighter text-emerald-400">{phCurrency.format(data?.grand_total || 0)}</p>
-                </div>
-              </div>
-            </div>
-
-            {loading && data && (
-              <div className="absolute top-0 left-0 right-0 h-1 bg-purple-200">
-                <div className="h-full bg-[#3b2063] animate-pulse" />
-              </div>
-            )}
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="py-24 text-center">
+                      <ReceiptIcon size={36} className="mx-auto text-zinc-200 mb-3" />
+                      <p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">
+                        {hasSearched ? 'No matching transactions found' : 'Search to load journal entries'}
+                      </p>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
-    </>
+
+      {/* ── Void Modal ── */}
+      {isReasonModalOpen && (
+        <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-md border border-zinc-200 p-9 shadow-2xl rounded-[0.625rem]">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-red-50 border border-red-100 flex items-center justify-center">
+                <ShieldAlert size={18} className="text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-[#1a0f2e] uppercase tracking-widest">Void Transaction</h3>
+                <p className="text-[11px] text-zinc-400 font-medium mt-0.5">This action cannot be undone</p>
+              </div>
+            </div>
+
+            <div className="space-y-2 mb-6">
+              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Reason for void</label>
+              <textarea
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="Enter reason..."
+                className="w-full px-4 py-3 border border-zinc-200 text-sm font-semibold text-[#1a0f2e] outline-none focus:border-[#3b2063] transition-colors resize-none h-24 rounded-[0.625rem] placeholder:text-zinc-300"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setIsReasonModalOpen(false); setCancelReason(''); }}
+                disabled={isVoiding}
+                className="flex-1 py-3.5 bg-white border border-zinc-200 text-zinc-600 font-bold text-sm uppercase tracking-widest hover:bg-zinc-50 transition-colors rounded-[0.625rem]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmCancel}
+                disabled={isVoiding || !cancelReason.trim()}
+                className="flex-1 py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold text-sm uppercase tracking-widest transition-colors disabled:opacity-50 active:scale-[0.98] rounded-[0.625rem]"
+              >
+                {isVoiding ? 'Processing...' : 'Confirm Void'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
-export default ItemsReport;
+export default SearchReceipts;

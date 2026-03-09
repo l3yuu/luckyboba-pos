@@ -1028,7 +1028,7 @@ const ZReading = () => {
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className={`flex items-center gap-2 font-bold text-xs px-4 h-11 border transition-colors rounded-none ${isMenuOpen ? 'bg-[#3b2063] text-white border-[#3b2063]' : 'text-zinc-700 border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'}`}
+              className={`flex items-center gap-2 font-bold text-xs px-4 h-11 border transition-colors rounded-[0.625rem] ${isMenuOpen ? 'bg-[#3b2063] text-white border-[#3b2063]' : 'text-zinc-700 border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'}`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -1036,13 +1036,13 @@ const ZReading = () => {
               MENU
             </button>
             {isMenuOpen && (
-              <div className="absolute top-full left-0 mt-1 w-96 bg-white border border-zinc-200 shadow-2xl p-5 z-50 max-h-[70vh] overflow-y-auto rounded-none">
+              <div className="absolute top-full left-0 mt-1 w-96 bg-white border border-zinc-200 shadow-2xl p-5 z-50 max-h-[70vh] overflow-y-auto rounded-[0.625rem]">
                 <div className="grid grid-cols-2 gap-3">
                   {menuCards.map((card, index) => (
                     <div
                       key={index}
                       onClick={() => { handleMenuAction(card.type); setIsMenuOpen(false); }}
-                      className={`bg-white border-l-4 ${card.color} shadow-sm p-4 h-20 flex flex-col justify-center cursor-pointer group hover:bg-slate-50 transition-all rounded-none`}
+                      className={`bg-white border-l-4 ${card.color} shadow-sm p-4 h-20 flex flex-col justify-center cursor-pointer group hover:bg-slate-50 transition-all rounded-[0.625rem]`}
                     >
                       <h3 className="text-zinc-400 font-bold uppercase tracking-widest text-[9px] mb-1">{card.label}</h3>
                       <h2 className="text-sm font-black text-slate-800 uppercase group-hover:text-[#3b2063]">{card.title || card.actionLabel}</h2>
@@ -1057,7 +1057,7 @@ const ZReading = () => {
           <div className="flex-1 w-full flex gap-2">
             {/* Mode toggle — only show for Z-Reading context */}
             {(!reportData || reportData.report_type === 'z_reading') && (
-              <div className="flex border border-zinc-300 rounded-none overflow-hidden shrink-0">
+              <div className="flex border border-zinc-300 rounded-[0.625rem] overflow-hidden shrink-0">
                 <button
                   onClick={() => setDateMode('single')}
                   className={`px-3 h-11 text-xs font-black uppercase tracking-widest transition-colors ${dateMode === 'single' ? 'bg-[#3b2063] text-white' : 'bg-white text-zinc-500 hover:bg-zinc-50'}`}
@@ -1082,7 +1082,7 @@ const ZReading = () => {
                     type="date"
                     value={fromDate}
                     onChange={(e) => setFromDate(e.target.value)}
-                    className="flex-1 px-3 h-11 border border-zinc-300 bg-zinc-50 font-bold text-sm rounded-none focus:outline-none focus:border-[#3b2063]"
+                    className="flex-1 px-3 h-11 border border-zinc-300 bg-zinc-50 font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#3b2063]"
                   />
                 </div>
                 <div className="flex items-center gap-1.5 flex-1">
@@ -1092,7 +1092,7 @@ const ZReading = () => {
                     value={toDate}
                     min={fromDate}
                     onChange={(e) => setToDate(e.target.value)}
-                    className="flex-1 px-3 h-11 border border-zinc-300 bg-zinc-50 font-bold text-sm rounded-none focus:outline-none focus:border-[#3b2063]"
+                    className="flex-1 px-3 h-11 border border-zinc-300 bg-zinc-50 font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#3b2063]"
                   />
                 </div>
               </div>
@@ -1101,7 +1101,7 @@ const ZReading = () => {
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="flex-1 px-4 h-11 border border-zinc-300 bg-zinc-50 font-bold text-sm rounded-none focus:outline-none focus:border-[#3b2063]"
+                className="flex-1 px-4 h-11 border border-zinc-300 bg-zinc-50 font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#3b2063]"
               />
             )}
 
@@ -1113,12 +1113,12 @@ const ZReading = () => {
                   onChange={(e) => setInvoiceQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && fetchReportData('search')}
                   placeholder="Search invoice / cashier..."
-                  className="flex-1 px-4 h-11 border border-zinc-300 bg-zinc-50 font-bold text-sm rounded-none focus:outline-none focus:border-[#3b2063]"
+                  className="flex-1 px-4 h-11 border border-zinc-300 bg-zinc-50 font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#3b2063]"
                 />
                 <button
                   onClick={() => fetchReportData('search')}
                   disabled={loading}
-                  className="px-5 h-11 bg-zinc-800 text-white font-bold text-xs uppercase tracking-widest hover:bg-zinc-900 transition-colors disabled:opacity-50 rounded-none"
+                  className="px-5 h-11 bg-zinc-800 text-white font-bold text-xs uppercase tracking-widest hover:bg-zinc-900 transition-colors disabled:opacity-50 rounded-[0.625rem]"
                 >
                   Search
                 </button>
@@ -1131,13 +1131,13 @@ const ZReading = () => {
             <button
               onClick={handleGenerate}
               disabled={loading}
-              className="px-6 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#2a174a] active:bg-[#1a0f2e] transition-colors disabled:opacity-50 rounded-none border border-[#3b2063]"
+              className="px-6 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#2a174a] active:bg-[#1a0f2e] transition-colors disabled:opacity-50 rounded-[0.625rem] border border-[#3b2063]"
             >
               {loading ? 'Processing...' : 'Generate'}
             </button>
             <button
               onClick={handlePrint}
-              className="px-6 h-11 bg-white text-[#3b2063] font-bold text-xs uppercase tracking-widest border border-[#3b2063] hover:bg-[#f3f0ff] active:bg-[#ede8ff] transition-colors rounded-none"
+              className="px-6 h-11 bg-white text-[#3b2063] font-bold text-xs uppercase tracking-widest border border-[#3b2063] hover:bg-[#f3f0ff] active:bg-[#ede8ff] transition-colors rounded-[0.625rem]"
             >
               Print
             </button>

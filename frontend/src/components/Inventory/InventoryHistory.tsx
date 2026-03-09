@@ -24,15 +24,15 @@ const InventoryHistoryModal: React.FC<InventoryHistoryModalProps> = ({ onClose }
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl flex flex-col max-h-[80vh] animate-in fade-in zoom-in duration-200">
-        <div className="p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-50 rounded-t-2xl">
+      <div className="bg-white w-full max-w-2xl rounded-[0.625rem] shadow-2xl flex flex-col max-h-[80vh] animate-in fade-in zoom-in duration-200">
+        <div className="p-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-50 rounded-t-[0.625rem]">
           <div className="flex items-center gap-3">
             <Clock className="text-[#3b2063]" size={20} />
             <h2 className="text-[#3b2063] font-black uppercase tracking-widest text-sm">Stock History</h2>
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-zinc-200 text-zinc-400 hover:text-zinc-600 transition-colors font-bold text-xl"
+          <button 
+            onClick={onClose} 
+            className="w-8 h-8 flex items-center justify-center rounded-[0.625rem] hover:bg-zinc-200 text-zinc-400 hover:text-zinc-600 transition-colors font-bold text-xl"
           >
             ×
           </button>
@@ -81,10 +81,10 @@ const InventoryHistoryModal: React.FC<InventoryHistoryModalProps> = ({ onClose }
           )}
         </div>
 
-        <div className="p-4 bg-zinc-50 border-t border-zinc-100 rounded-b-2xl flex justify-end">
-          <button
-            onClick={onClose}
-            className="px-6 py-2 bg-white border border-zinc-200 text-zinc-600 rounded-lg font-bold text-[10px] uppercase tracking-widest hover:bg-zinc-100 transition-all"
+        <div className="p-4 bg-zinc-50 border-t border-zinc-100 rounded-b-[0.625rem] flex justify-end">
+          <button 
+            onClick={onClose} 
+            className="px-6 py-2 bg-white border border-zinc-200 text-zinc-600 rounded-[0.625rem] font-bold text-[10px] uppercase tracking-widest hover:bg-zinc-100 transition-all"
           >
             Close
           </button>

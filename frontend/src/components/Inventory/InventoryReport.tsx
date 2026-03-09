@@ -70,18 +70,18 @@ const InventoryReport = () => {
               <h1 className="text-lg font-extrabold text-[#1c1c1e] mt-0.5">Inventory Report</h1>
             </div>
             <div className="flex gap-2">
-              <button className="h-11 px-7 bg-white border border-zinc-300 text-zinc-500 font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-colors rounded-none">Export CSV</button>
-              <button className="h-11 px-7 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm">Print PDF</button>
+              <button className="h-11 px-7 bg-white border border-zinc-300 text-zinc-500 font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-colors rounded-[0.625rem]">Export CSV</button>
+              <button className="h-11 px-7 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm">Print PDF</button>
             </div>
           </div>
 
           {/* Metrics cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {loading ? (
-              [...Array(4)].map((_, i) => <div key={i} className="h-24 bg-white animate-pulse rounded-none border border-zinc-200" />)
+              [...Array(4)].map((_, i) => <div key={i} className="h-24 bg-white animate-pulse rounded-[0.625rem] border border-zinc-200" />)
             ) : (
               metrics.map((m, i) => (
-                <div key={i} className="bg-white p-6 rounded-none shadow-sm border border-zinc-200">
+                <div key={i} className="bg-white p-6 rounded-[0.625rem] shadow-sm border border-zinc-200">
                   <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">{m.label}</p>
                   <p className={`text-xl font-extrabold ${m.color}`}>{m.value}</p>
                 </div>
@@ -90,7 +90,7 @@ const InventoryReport = () => {
           </div>
 
           {/* Critical stock alerts table */}
-          <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-none">
+          <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-[0.625rem]">
             {loading && <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10 backdrop-blur-[1px]"><Loader2 className="animate-spin text-[#3b2063]" size={32} /></div>}
             <div className="bg-red-50 px-7 py-4 border-b border-red-100 flex items-center gap-2">
               <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
