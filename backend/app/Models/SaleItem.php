@@ -20,6 +20,7 @@ class SaleItem extends Model
         'final_price',
         'sugar_level',
         'size',
+        'cup_size_label',
         'options',
         'add_ons',
     ];

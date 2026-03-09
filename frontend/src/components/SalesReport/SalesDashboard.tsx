@@ -182,7 +182,7 @@ const SalesDashboard = () => {
                   <div key={i} className="absolute z-10 group cursor-pointer"
                     style={{ left: `${p.x}%`, top: `${(p.y / WEEKLY_HEIGHT) * 100}%`, transform: 'translate(-50%, -50%)' }}
                     onMouseEnter={() => setHoveredValue(p)} onMouseLeave={() => setHoveredValue(null)}>
-                    <div className="w-3.5 h-3.5 bg-white border-2 border-[#3b2063] group-hover:scale-125 transition-transform duration-150 shadow-sm rounded-full" />
+                    <div className="w-3.5 h-3.5 bg-white border-2 border-[#3b2063] group-hover:scale-125 transition-transform duration-150 shadow-sm rounded-[0.625rem] full" />
                     {hoveredValue === p && (
                       <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 pointer-events-none z-20">
                         <div className="bg-[#1e1720] text-white px-3 py-2 border border-white/10 shadow-2xl text-center whitespace-nowrap">
@@ -234,7 +234,7 @@ const SalesDashboard = () => {
                 </div>
               </div>
               <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 border border-emerald-200">
-                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-[0.625rem] full animate-pulse" />
                 <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-600">Live</span>
               </div>
             </div>

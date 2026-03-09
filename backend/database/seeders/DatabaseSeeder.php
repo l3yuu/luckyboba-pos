@@ -21,7 +21,7 @@ class DatabaseSeeder extends Seeder
             AddOnSeeder::class,
             DiscountSeeder::class,
             SettingSeeder::class,
-            ReceiptSeeder::class,
+            RecipeSeeder::class,
             CashCountSeeder::class,
             RawMaterialSeeder::class,
         ]);

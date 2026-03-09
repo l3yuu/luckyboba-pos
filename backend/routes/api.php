@@ -122,10 +122,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
 
     // --- 9. RAW MATERIALS ---
-    Route::get('/raw-materials/low-stock', [RawMaterialController::class, 'lowStock']);
-    Route::post('/raw-materials/{rawMaterial}/adjust', [RawMaterialController::class, 'adjust']);
-    Route::get('/raw-materials/{rawMaterial}/history', [RawMaterialController::class, 'history']);
-    Route::apiResource('raw-materials', RawMaterialController::class);
+    Route::get('/raw-materials/low-stock',              [RawMaterialController::class, 'lowStock']);
+    Route::get('/raw-materials/movements',              [RawMaterialController::class, 'movements']); // 👈 moved up
+    Route::post('/raw-materials/{rawMaterial}/adjust',  [RawMaterialController::class, 'adjust']);
+    Route::get('/raw-materials/{rawMaterial}/history',  [RawMaterialController::class, 'history']);
+    Route::apiResource('raw-materials', RawMaterialController::class); // wildcard last
 
     // --- 10. RECIPES ---
     // Note: explicit named routes must be defined BEFORE apiResource

@@ -640,12 +640,54 @@ const XReading = () => {
               </div>
             )}
           </>
-        )}
-        <Divider />
-        <div className="flex text-[11px] justify-end gap-2 mb-0.5">
-          <span className="uppercase">TOTAL:</span>
-          <span className="w-[35%] text-right font-bold">{phCurrency.format(reportData?.gross_sales || 0)}</span>
-        </div>
+)}
+          {/* ── Cup Size Totals ── */}
+          {(() => {
+            const sizeTotals = new Map<string, number>();
+            let noSizeTotal = 0;
+            reportData?.categories?.forEach(cat => {
+              cat.products.forEach(product => {
+                if (product.size) {
+                  sizeTotals.set(product.size, (sizeTotals.get(product.size) ?? 0) + product.total_qty);
+                } else {
+                  noSizeTotal += product.total_qty;
+                }
+              });
+            });
+            const SIZE_ORDER = ['SM', 'UM', 'PCM', 'JR', 'SL', 'UL', 'PCL'];
+            const orderedSizes = [
+              ...SIZE_ORDER.filter(s => sizeTotals.has(s)),
+              ...[...sizeTotals.keys()].filter(s => !SIZE_ORDER.includes(s)).sort(),
+            ];
+            const grandTotalQty = orderedSizes.reduce((a, s) => a + (sizeTotals.get(s) ?? 0), 0) + noSizeTotal;
+            if (orderedSizes.length === 0 && noSizeTotal === 0) return null;
+            return (
+              <>
+                <p className="text-[11px] uppercase font-bold mb-0.5">CUP SIZE TOTALS</p>
+                {orderedSizes.map(size => (
+                  <div key={size} className="flex text-[11px] leading-snug">
+                    <span className="w-[65%] uppercase pl-2">{size}</span>
+                    <span className="w-[35%] text-right">{sizeTotals.get(size) ?? 0} cups</span>
+                  </div>
+                ))}
+                {noSizeTotal > 0 && (
+                  <div className="flex text-[11px] leading-snug">
+                    <span className="w-[65%] uppercase pl-2">OTHER / NO SIZE</span>
+                    <span className="w-[35%] text-right">{noSizeTotal} pcs</span>
+                  </div>
+                )}
+                <div className="flex text-[11px] border-t border-dashed border-zinc-800 mt-0.5 pt-0.5">
+                  <span className="w-[65%] uppercase font-bold">TOTAL CUPS SOLD</span>
+                  <span className="w-[35%] text-right font-bold">{grandTotalQty}</span>
+                </div>
+              </>
+            );
+          })()}
+          <Divider />
+          <div className="flex text-[11px] justify-end gap-2 mb-0.5">
+            <span className="uppercase">TOTAL:</span>
+            <span className="w-[35%] text-right font-bold">{phCurrency.format(reportData?.gross_sales || 0)}</span>
+          </div>
         <Divider />
         {(() => {
           const gross        = reportData?.gross_sales       || 0;
@@ -872,7 +914,7 @@ const XReading = () => {
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className={`flex items-center gap-2 font-bold text-xs px-4 h-11 border transition-colors rounded-none ${isMenuOpen ? 'bg-[#3b2063] text-white border-[#3b2063]' : 'text-zinc-700 border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'}`}
+              className={`flex items-center gap-2 font-bold text-xs px-4 h-11 border transition-colors rounded-[0.625rem] ${isMenuOpen ? 'bg-[#3b2063] text-white border-[#3b2063]' : 'text-zinc-700 border-zinc-300 hover:border-zinc-400 hover:bg-zinc-50'}`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -880,13 +922,13 @@ const XReading = () => {
               MENU
             </button>
             {isMenuOpen && (
-              <div className="absolute top-full left-0 mt-1 w-96 bg-white border border-zinc-200 shadow-2xl p-5 z-50 max-h-[70vh] overflow-y-auto rounded-none">
+              <div className="absolute top-full left-0 mt-1 w-96 bg-white border border-zinc-200 shadow-2xl p-5 z-50 max-h-[70vh] overflow-y-auto rounded-[0.625rem]">
                 <div className="grid grid-cols-2 gap-3">
                   {menuCards.map((card, index) => (
                     <div
                       key={index}
                       onClick={() => { handleMenuAction(card.type); setIsMenuOpen(false); }}
-                      className={`bg-white border-l-4 ${card.color} shadow-sm p-4 h-20 flex flex-col justify-center cursor-pointer group hover:bg-slate-50 transition-all rounded-none`}
+                      className={`bg-white border-l-4 ${card.color} shadow-sm p-4 h-20 flex flex-col justify-center cursor-pointer group hover:bg-slate-50 transition-all rounded-[0.625rem]`}
                     >
                       <h3 className="text-zinc-400 font-bold uppercase tracking-widest text-[9px] mb-1">{card.label}</h3>
                       <h2 className="text-sm font-black text-slate-800 uppercase group-hover:text-[#3b2063]">{card.title || card.actionLabel}</h2>
@@ -903,7 +945,7 @@ const XReading = () => {
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="flex-1 px-4 h-11 border border-zinc-300 bg-zinc-50 font-bold text-sm rounded-none focus:outline-none focus:border-[#3b2063]"
+              className="flex-1 px-4 h-11 border border-zinc-300 bg-zinc-50 font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#3b2063]"
             />
             {reportData?.report_type === 'search' && (
               <div className="flex gap-2 flex-1">
@@ -913,12 +955,12 @@ const XReading = () => {
                   onChange={(e) => setInvoiceQuery(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && fetchReportData('search')}
                   placeholder="Search invoice / cashier..."
-                  className="flex-1 px-4 h-11 border border-zinc-300 bg-zinc-50 font-bold text-sm rounded-none focus:outline-none focus:border-[#3b2063]"
+                  className="flex-1 px-4 h-11 border border-zinc-300 bg-zinc-50 font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#3b2063]"
                 />
                 <button
                   onClick={() => fetchReportData('search')}
                   disabled={loading}
-                  className="px-5 h-11 bg-zinc-800 text-white font-bold text-xs uppercase tracking-widest hover:bg-zinc-900 transition-colors disabled:opacity-50 rounded-none"
+                  className="px-5 h-11 bg-zinc-800 text-white font-bold text-xs uppercase tracking-widest hover:bg-zinc-900 transition-colors disabled:opacity-50 rounded-[0.625rem]"
                 >
                   Search
                 </button>
@@ -931,13 +973,13 @@ const XReading = () => {
             <button
               onClick={handleGenerate}
               disabled={loading}
-              className="px-6 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#2a174a] active:bg-[#1a0f2e] transition-colors disabled:opacity-50 rounded-none border border-[#3b2063]"
+              className="px-6 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#2a174a] active:bg-[#1a0f2e] transition-colors disabled:opacity-50 rounded-[0.625rem] border border-[#3b2063]"
             >
               {loading ? 'Processing...' : 'Generate'}
             </button>
             <button
               onClick={handlePrint}
-              className="px-6 h-11 bg-white text-[#3b2063] font-bold text-xs uppercase tracking-widest border border-[#3b2063] hover:bg-[#f3f0ff] active:bg-[#ede8ff] transition-colors rounded-none"
+              className="px-6 h-11 bg-white text-[#3b2063] font-bold text-xs uppercase tracking-widest border border-[#3b2063] hover:bg-[#f3f0ff] active:bg-[#ede8ff] transition-colors rounded-[0.625rem]"
             >
               Print
             </button>

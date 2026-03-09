@@ -164,8 +164,7 @@ function AddItemModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
 
   return (
     <div ref={overlayRef} onClick={handleBackdropClick} className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white border border-zinc-200 shadow-2xl w-full max-w-lg flex flex-col overflow-hidden">
-
+      <div className="bg-white border border-zinc-200 shadow-2xl w-full max-w-lg flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 rounded-[0.625rem]">
         {/* Modal Header */}
         <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100">
           <div className="flex items-center gap-3">
@@ -277,10 +276,10 @@ function AddItemModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
 
         {/* Modal Footer */}
         <div className="flex gap-3 px-7 py-5 border-t border-zinc-100">
-          <button onClick={onClose} disabled={submitting} className="flex-1 h-11 bg-white border border-zinc-200 text-zinc-600 font-bold text-sm uppercase tracking-widest hover:bg-zinc-50 transition-all disabled:opacity-50">
+          <button onClick={onClose} disabled={submitting} className="flex-1 h-11 bg-white border border-zinc-200 text-zinc-600 font-bold text-sm uppercase tracking-widest hover:bg-zinc-50 transition-all disabled:opacity-50 rounded-[0.625rem]">
             Cancel
           </button>
-          <button onClick={handleSubmit} disabled={submitting} className="flex-1 h-11 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-sm uppercase tracking-widest transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+          <button onClick={handleSubmit} disabled={submitting} className="flex-1 h-11 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-sm uppercase tracking-widest transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]">
             {submitting ? <RefreshCw size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
             {submitting ? 'Saving...' : 'Add Item'}
           </button>
@@ -363,7 +362,7 @@ function MenuList() {
       <div className="flex-1 overflow-y-auto p-5 md:p-7 flex flex-col gap-4">
 
         {/* ── Filter Bar ── */}
-        <div className="bg-white border border-zinc-200 p-5 shadow-sm">
+        <div className="bg-white border border-zinc-200 p-5 shadow-sm rounded-[0.625rem]">
           <div className="flex flex-col xl:flex-row gap-3 items-end">
             <div className="flex-1 w-full space-y-1.5">
               <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
@@ -378,12 +377,12 @@ function MenuList() {
                 <Layers size={10} /> Category
               </label>
               <input type="text" value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}
-                className="w-full px-4 py-3 border border-zinc-200 bg-[#f4f2fb] text-[#1a0f2e] font-semibold text-sm outline-none focus:border-[#3b2063] focus:bg-white transition-all placeholder:text-zinc-300"
+                className="w-full px-4 py-3 border border-zinc-200 bg-[#f4f2fb] text-[#1a0f2e] font-semibold text-sm outline-none focus:border-[#3b2063] focus:bg-white transition-all placeholder:text-zinc-300 rounded-[0.625rem]"
                 placeholder="Filter by category..." />
             </div>
             <div className="flex gap-2 w-full xl:w-auto">
               <button onClick={() => setShowAddModal(true)}
-                className="flex-1 xl:flex-none h-11.5 px-6 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-colors active:scale-[0.98]">
+                className="flex-1 xl:flex-none h-11.5 px-6 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-colors active:scale-[0.98] rounded-[0.625rem]">
                 <Plus size={15} strokeWidth={2.5} /> Add New Item
               </button>
             </div>
@@ -392,10 +391,10 @@ function MenuList() {
 
         {/* ── Action Ribbon ── */}
         <div className="flex gap-2 items-center">
-          <button onClick={() => window.print()} className="h-9 px-4 bg-white border border-zinc-200 text-zinc-600 font-bold text-[11px] uppercase tracking-widest hover:border-[#3b2063] hover:text-[#3b2063] transition-colors flex items-center gap-2">
+          <button onClick={() => window.print()} className="h-9 px-4 bg-white border border-zinc-200 text-zinc-600 font-bold text-[11px] uppercase tracking-widest hover:border-[#3b2063] hover:text-[#3b2063] transition-colors flex items-center gap-2 rounded-[0.625rem]">
             <Printer size={13} strokeWidth={2} /> Print
           </button>
-          <button onClick={generateExcel} className="h-9 px-4 bg-white border border-zinc-200 text-zinc-600 font-bold text-[11px] uppercase tracking-widest hover:border-[#3b2063] hover:text-[#3b2063] transition-colors flex items-center gap-2">
+          <button onClick={generateExcel} className="h-9 px-4 bg-white border border-zinc-200 text-zinc-600 font-bold text-[11px] uppercase tracking-widest hover:border-[#3b2063] hover:text-[#3b2063] transition-colors flex items-center gap-2 rounded-[0.625rem]">
             <FileDown size={13} strokeWidth={2} /> Export XLS
           </button>
           <div className="flex-1" />
@@ -408,7 +407,7 @@ function MenuList() {
         </div>
 
         {/* ── Table ── */}
-        <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm">
+        <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-[0.625rem]">
           <div className="flex-1 overflow-auto">
             <table className="w-full text-left">
               <thead className="sticky top-0 bg-white z-10 border-b border-zinc-100">
@@ -466,7 +465,7 @@ function MenuList() {
               <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">POS Terminal 01</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              <span className="w-1.5 h-1.5 rounded-[0.625rem] bg-emerald-400" />
               <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Synchronized</span>
             </div>
           </div>

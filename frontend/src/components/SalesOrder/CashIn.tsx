@@ -184,7 +184,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
             >
               
               {/* Front: Form */}
-              <div className="absolute w-full h-full bg-white border border-zinc-200 p-8 flex flex-col" style={{ backfaceVisibility: 'hidden' }}>
+              <div className="absolute w-full h-full bg-white border border-zinc-200 p-8 flex flex-col rounded-[0.625rem]" style={{ backfaceVisibility: 'hidden' }}>
                 
                 {/* Header */}
                 <div className="flex items-center justify-between pb-5 mb-6 border-b border-zinc-100">
@@ -238,7 +238,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
                 <button
                   onClick={handleSubmit}
                   disabled={!amount || isLoading || isEodLocked}
-                  className={`w-full py-4 font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all mt-6 ${
+                  className={`w-full py-4 font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all mt-6 rounded-[0.625rem] ${
                     isEodLocked
                       ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
                       : 'bg-[#3b2063] hover:bg-[#2a1647] text-white active:scale-[0.99] disabled:opacity-50'
@@ -255,7 +255,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
 
               {/* Back: Receipt Preview */}
               <div
-                className="absolute w-full h-full bg-white border border-zinc-200 p-10 flex flex-col"
+                className="absolute w-full h-full bg-white border border-zinc-200 p-10 flex flex-col rounded-[0.625rem]"
                 style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
               >
                 <div className="text-center border-b-2 border-dashed border-zinc-100 pb-6">
@@ -278,7 +278,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
 
                 <button
                   onClick={handleNewTransaction}
-                  className="w-full bg-white border border-zinc-200 text-zinc-700 py-3.5 font-bold text-sm uppercase tracking-widest hover:bg-zinc-50 transition-all"
+                  className="w-full bg-white border border-zinc-200 text-zinc-700 py-3.5 font-bold text-sm uppercase tracking-widest hover:bg-zinc-50 transition-all rounded-[0.625rem]"
                 >
                   Reset Terminal
                 </button>
@@ -287,7 +287,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
           </div>
 
           {/* ── Print Panel ── */}
-          <div className="bg-white w-full max-w-sm border border-zinc-200 p-7 flex flex-col gap-5 shadow-sm">
+          <div className="bg-white w-full max-w-sm border border-zinc-200 p-7 flex flex-col gap-5 shadow-sm rounded-[0.625rem]">
             <div className="flex items-center gap-3 pb-4 border-b border-zinc-100">
               <div className="w-9 h-9 bg-zinc-50 border border-zinc-200 flex items-center justify-center">
                 <Printer size={17} className="text-zinc-500" />
@@ -331,7 +331,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
         {!isEodLocked && (
           <button
             onClick={() => setShowKeyboard(prev => !prev)}
-            className={`fixed bottom-6 right-6 z-100 w-14 h-14 shadow-xl flex items-center justify-center transition-all duration-200 active:scale-95 ${
+            className={`fixed bottom-6 right-6 z-100 w-14 h-14 shadow-xl flex items-center justify-center transition-all duration-200 active:scale-95 rounded-[0.625rem] ${
               showKeyboard ? 'bg-red-600 text-white' : 'bg-[#3b2063] text-white hover:bg-[#2a1647]'
             }`}
           >
@@ -344,7 +344,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center justify-between px-6 py-3 bg-zinc-50 border-b border-zinc-100">
               <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest">Numeric Keypad</span>
-              <button onClick={() => setShowKeyboard(false)} className="text-[11px] font-bold text-[#3b2063] uppercase tracking-widest hover:underline">
+              <button onClick={() => setShowKeyboard(false)} className="text-[11px] font-bold text-[#3b2063] uppercase tracking-widest hover:underline rounded-[0.625rem]">
                 Close
               </button>
             </div>

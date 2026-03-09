@@ -133,7 +133,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
       {/* Loading Overlay */}
       {isLoading && (
         <div className="fixed inset-0 z-9999 flex items-center justify-center bg-white/90 backdrop-blur-sm">
-          <div className="bg-white px-12 py-10 border border-zinc-200 flex flex-col items-center gap-5 shadow-2xl">
+          <div className="bg-white px-12 py-10 border border-zinc-200 flex flex-col items-center gap-5 shadow-2xl rounded-[0.625rem]">
             <RefreshCw className="w-10 h-10 text-[#3b2063] animate-spin" strokeWidth={1.5} />
             <div className="text-center">
               <p className="text-sm font-bold text-[#1a0f2e] uppercase tracking-widest">Terminal Syncing</p>
@@ -197,7 +197,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
         <div className={`flex-1 flex flex-row items-start justify-center p-5 md:p-7 gap-5 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-80' : ''}`}>
 
           {/* ── LEFT: Counting Form ── */}
-          <div className="bg-white w-full flex-1 border border-zinc-200 flex flex-col relative shadow-sm" style={{ minHeight: 0 }}>
+          <div className="bg-white w-full flex-1 border border-zinc-200 flex flex-col relative shadow-sm rounded-[0.625rem]" style={{ minHeight: 0 }}>
 
             {/* Card Header */}
             <div className="px-6 py-5 border-b border-zinc-100 flex items-center justify-between">
@@ -221,7 +221,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
             {/* EOD Locked Overlay */}
             {isEodLocked && (
               <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px] z-20 flex items-center justify-center p-8">
-                <div className="bg-white px-10 py-9 border border-zinc-200 flex flex-col items-center text-center shadow-xl">
+                <div className="bg-white px-10 py-9 border border-zinc-200 flex flex-col items-center text-center shadow-xl rounded-[0.625rem]">
                   <div className="w-14 h-14 bg-red-50 border border-red-100 flex items-center justify-center mb-5">
                     <AlertTriangle size={24} className="text-red-500" />
                   </div>
@@ -308,7 +308,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
               {!latestTx && !isEodLocked ? (
                 <button
                   onClick={handleSubmit} disabled={isLoading}
-                  className="w-full py-4 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-[0.99] disabled:opacity-50"
+                  className="w-full py-4 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-[0.99] disabled:opacity-50 rounded-[0.625rem]"
                 >
                   <CheckCircle2 size={16} />
                   {isLoading ? 'Finalizing...' : 'Submit EOD Count'}
@@ -316,7 +316,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
               ) : (
                 <button
                   onClick={handleNewCount} disabled={isEodLocked}
-                  className={`w-full py-4 font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${
+                  className={`w-full py-4 font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all rounded-[0.625rem] ${
                     isEodLocked
                       ? 'bg-zinc-100 text-zinc-400 border border-zinc-200'
                       : 'bg-white border border-[#3b2063] text-[#3b2063] hover:bg-[#f4f2fb] active:scale-[0.99]'
@@ -330,7 +330,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
           </div>
 
           {/* ── RIGHT: Print Panel ── */}
-          <div className="bg-white w-full max-w-sm border border-zinc-200 flex flex-col shadow-sm overflow-hidden h-fit">
+          <div className="bg-white w-full max-w-sm border border-zinc-200 flex flex-col shadow-sm overflow-hidden h-fit rounded-[0.625rem]">
 
             {/* Status bar */}
             <div className={`h-1 w-full ${latestTx ? 'bg-emerald-500' : 'bg-zinc-200'}`} />
@@ -367,7 +367,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
               {/* Print Button */}
               <button
                 onClick={handlePrint} disabled={!latestTx}
-                className={`w-full py-4 font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all ${
+                className={`w-full py-4 font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all rounded-[0.625rem] ${
                   latestTx
                     ? 'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95'
                     : 'bg-zinc-50 border border-zinc-200 text-zinc-300 cursor-not-allowed'
@@ -384,7 +384,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
         {!isEodLocked && (
           <button
             onClick={() => setShowKeyboard(prev => !prev)}
-            className={`fixed bottom-6 right-6 z-100 w-14 h-14 shadow-xl flex items-center justify-center transition-all active:scale-95 ${
+            className={`fixed bottom-6 right-6 z-100 w-14 h-14 shadow-xl flex items-center justify-center transition-all active:scale-95 rounded-[0.625rem] ${
               showKeyboard ? 'bg-red-600 text-white' : 'bg-[#3b2063] text-white hover:bg-[#2a1647]'
             }`}
           >
@@ -399,7 +399,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
               <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest">
                 {layoutName === 'numpad' ? 'Numeric Keypad' : 'Text Input'}
               </span>
-              <button onClick={() => setShowKeyboard(false)} className="text-[11px] font-bold text-[#3b2063] uppercase tracking-widest hover:underline">
+              <button onClick={() => setShowKeyboard(false)} className="text-[11px] font-bold text-[#3b2063] uppercase tracking-widest hover:underline rounded-[0.625rem]">
                 Close
               </button>
             </div>

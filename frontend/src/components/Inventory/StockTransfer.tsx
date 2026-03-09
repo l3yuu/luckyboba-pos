@@ -18,24 +18,24 @@ const StockTransfer = () => {
           </div>
           
           {/* Transfer Form */}
-          <div className="bg-white p-8 rounded-none shadow-sm border border-zinc-200 w-full max-w-lg">
+          <div className="bg-white p-8 rounded-[0.625rem] shadow-sm border border-zinc-200 w-full max-w-lg">
             <div className="space-y-5">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">From Branch</label>
-                  <select className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-none text-sm font-semibold outline-none focus:border-[#3b2063]">
+                  <select className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-[0.625rem] text-sm font-semibold outline-none focus:border-[#3b2063]">
                     <option>Main Branch</option>
                   </select>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">To Branch</label>
-                  <select className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-none text-sm font-semibold outline-none focus:border-[#3b2063]">
+                  <select className="w-full px-4 py-3 bg-white border border-zinc-300 rounded-[0.625rem] text-sm font-semibold outline-none focus:border-[#3b2063]">
                     <option>Select Destination</option>
                   </select>
                 </div>
               </div>
               
-              <button className="w-full h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-none shadow-sm">
+              <button className="w-full h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm">
                 Initiate Transfer
               </button>
             </div>

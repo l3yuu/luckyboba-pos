@@ -75,7 +75,7 @@ interface MenuItem {
   id: number;
   name: string;
   category_id: number;
-  price: string;
+  price: number;
   size: string;
   type: string;
 }
@@ -93,6 +93,7 @@ interface RecipeItem {
 interface Recipe {
   id: number;
   menu_item_id: number;
+  menu_item: MenuItem;
   size: string | null;
   is_active: boolean;
   notes: string | null;
@@ -140,9 +141,9 @@ function exportCSV(rows: ReportRow[], period: string) {
 }
 
 const inputCls = (hasError?: boolean) =>
-  `w-full px-4 py-3 rounded-none border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white ${hasError ? 'border-red-400' : 'border-zinc-300'}`;
+  `w-full px-4 py-3 rounded-[0.625rem] border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white ${hasError ? 'border-red-400' : 'border-zinc-300'}`;
 
-const selectCls = `w-full px-4 py-3 rounded-none border border-zinc-300 bg-white text-[#1c1c1e] font-semibold text-sm outline-none focus:border-[#3b2063] cursor-pointer`;
+const selectCls = `w-full px-4 py-3 rounded-[0.625rem] border border-zinc-300 bg-white text-[#1c1c1e] font-semibold text-sm outline-none focus:border-[#3b2063] cursor-pointer`;
 
 // ─── Toast ─────────────────────────────────────────────────────────────────────
 
@@ -203,7 +204,7 @@ function AddModal({ onClose, onSuccess }: {
 
   return (
     <div ref={overlayRef} onClick={(e) => { if (e.target === overlayRef.current) onClose(); }} className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-none border border-zinc-200 shadow-2xl w-full max-w-lg flex flex-col overflow-hidden" style={dashboardFont}>
+      <div className="bg-white rounded-[0.625rem] border border-zinc-200 shadow-2xl w-full max-w-lg flex flex-col overflow-hidden" style={dashboardFont}>
         <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Raw Materials</p>
@@ -255,7 +256,7 @@ function AddModal({ onClose, onSuccess }: {
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Notes</label>
             <textarea value={form.notes} onChange={(e) => setForm(f => ({ ...f, notes: e.target.value }))}
-              className="w-full px-4 py-3 rounded-none border border-zinc-300 text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] h-20 resize-none"
+              className="w-full px-4 py-3 rounded-[0.625rem] border border-zinc-300 text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] h-20 resize-none"
               placeholder="Optional notes..." />
           </div>
 
@@ -268,8 +269,8 @@ function AddModal({ onClose, onSuccess }: {
         </div>
 
         <div className="flex gap-3 px-7 py-5 border-t border-zinc-100">
-          <button onClick={onClose} disabled={submitting} className="flex-1 h-11 bg-white border border-red-300 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 hover:border-red-400 transition-all disabled:opacity-50 rounded-none">Cancel</button>
-          <button onClick={handleSubmit} disabled={submitting} className="flex-1 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#2a174a] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-none">
+          <button onClick={onClose} disabled={submitting} className="flex-1 h-11 bg-white border border-red-300 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 hover:border-red-400 transition-all disabled:opacity-50 rounded-[0.625rem]">Cancel</button>
+          <button onClick={handleSubmit} disabled={submitting} className="flex-1 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#2a174a] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]">
             {submitting ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Saving...</> : 'Save Item'}
           </button>
         </div>
@@ -322,7 +323,7 @@ function AdjustModal({ item, onClose, onSuccess }: {
 
   return (
     <div ref={overlayRef} onClick={(e) => { if (e.target === overlayRef.current) onClose(); }} className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-none border border-zinc-200 shadow-2xl w-full max-w-md flex flex-col overflow-hidden" style={dashboardFont}>
+      <div className="bg-white rounded-[0.625rem] border border-zinc-200 shadow-2xl w-full max-w-md flex flex-col overflow-hidden" style={dashboardFont}>
         <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Raw Materials</p>
@@ -346,7 +347,7 @@ function AdjustModal({ item, onClose, onSuccess }: {
             <div className="grid grid-cols-3 gap-2">
               {(['add', 'subtract', 'set'] as const).map((t) => (
                 <button key={t} onClick={() => setType(t)}
-                  className={`h-10 text-[11px] font-bold uppercase tracking-widest rounded-none border transition-all ${type === t ? 'bg-[#3b2063] text-white border-[#3b2063]' : 'bg-white text-zinc-500 border-zinc-300 hover:border-[#3b2063]'}`}>
+                  className={`h-10 text-[11px] font-bold uppercase tracking-widest rounded-[0.625rem] border transition-all ${type === t ? 'bg-[#3b2063] text-white border-[#3b2063]' : 'bg-white text-zinc-500 border-zinc-300 hover:border-[#3b2063]'}`}>
                   {t === 'add' ? '+ Add' : t === 'subtract' ? '− Subtract' : '= Set'}
                 </button>
               ))}
@@ -378,8 +379,8 @@ function AdjustModal({ item, onClose, onSuccess }: {
         </div>
 
         <div className="flex gap-3 px-7 py-5 border-t border-zinc-100">
-          <button onClick={onClose} disabled={submitting} className="flex-1 h-11 bg-white border border-red-300 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 hover:border-red-400 transition-all rounded-none">Cancel</button>
-          <button onClick={handleSubmit} disabled={submitting || !quantity} className="flex-1 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#2a174a] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-none">
+          <button onClick={onClose} disabled={submitting} className="flex-1 h-11 bg-white border border-red-300 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 hover:border-red-400 transition-all rounded-[0.625rem]">Cancel</button>
+          <button onClick={handleSubmit} disabled={submitting || !quantity} className="flex-1 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#2a174a] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]">
             {submitting ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Updating...</> : 'Confirm'}
           </button>
         </div>
@@ -405,7 +406,7 @@ function DeleteModal({ item, onClose, onConfirm }: {
 
   return (
     <div ref={overlayRef} onClick={(e) => { if (e.target === overlayRef.current) onClose(); }} className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-none border border-zinc-200 shadow-2xl w-full max-w-sm flex flex-col overflow-hidden" style={dashboardFont}>
+      <div className="bg-white rounded-[0.625rem] border border-zinc-200 shadow-2xl w-full max-w-sm flex flex-col overflow-hidden" style={dashboardFont}>
         <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100">
           <h2 className="text-sm font-extrabold text-[#1c1c1e]">Delete Item</h2>
           <button onClick={onClose} className="text-zinc-300 hover:text-zinc-600 transition-colors p-1 text-lg leading-none">×</button>
@@ -420,8 +421,8 @@ function DeleteModal({ item, onClose, onConfirm }: {
           <p className="text-[11px] text-zinc-400 font-semibold">This cannot be undone. Items used in recipes cannot be deleted.</p>
         </div>
         <div className="flex gap-3 px-7 py-5 border-t border-zinc-100">
-          <button onClick={onClose} className="flex-1 h-11 bg-white border border-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all rounded-none">Cancel</button>
-          <button onClick={onConfirm} className="flex-1 h-11 bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-widest transition-all rounded-none">Delete</button>
+          <button onClick={onClose} className="flex-1 h-11 bg-white border border-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all rounded-[0.625rem]">Cancel</button>
+          <button onClick={onConfirm} className="flex-1 h-11 bg-red-600 hover:bg-red-700 text-white font-bold text-xs uppercase tracking-widest transition-all rounded-[0.625rem]">Delete</button>
         </div>
       </div>
     </div>
@@ -604,7 +605,7 @@ function RecipeEditModal({
   return (
     <div ref={overlayRef} onClick={(e) => { if (e.target === overlayRef.current) onClose(); }}
       className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-none border border-zinc-200 shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden"
+      <div className="bg-white rounded-[0.625rem] border border-zinc-200 shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden"
         style={{ ...dashboardFont, maxHeight: '90vh' }}>
         <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100 shrink-0">
           <div>
@@ -630,7 +631,7 @@ function RecipeEditModal({
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Ingredients <span className="text-red-400">*</span></label>
-              <button onClick={addRow} className="h-7 px-3 bg-[#3b2063] text-white text-[10px] font-bold uppercase tracking-widest hover:bg-[#2a174a] transition-colors rounded-none flex items-center gap-1">
+              <button onClick={addRow} className="h-7 px-3 bg-[#3b2063] text-white text-[10px] font-bold uppercase tracking-widest hover:bg-[#2a174a] transition-colors rounded-[0.625rem] flex items-center gap-1">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3 h-3">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                 </svg>
@@ -648,7 +649,7 @@ function RecipeEditModal({
                 <div key={row._key} className={`grid grid-cols-[2fr_1fr_1fr_auto] items-center ${idx < rows.length - 1 ? 'border-b border-zinc-100' : ''}`}>
                   <div className="px-2 py-1.5">
                     <select value={row.raw_material_id} onChange={e => updateRow(row._key, 'raw_material_id', e.target.value)}
-                      className="w-full px-2 py-2 rounded-none border border-zinc-200 bg-white text-[#1c1c1e] font-semibold text-xs outline-none focus:border-[#3b2063] cursor-pointer">
+                      className="w-full px-2 py-2 rounded-[0.625rem] border border-zinc-200 bg-white text-[#1c1c1e] font-semibold text-xs outline-none focus:border-[#3b2063] cursor-pointer">
                       <option value="">— Select ingredient —</option>
                       {rawMaterials.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                     </select>
@@ -656,15 +657,15 @@ function RecipeEditModal({
                   <div className="px-2 py-1.5">
                     <input type="number" min="0" step="0.0001" value={row.quantity}
                       onChange={e => updateRow(row._key, 'quantity', e.target.value)} placeholder="0"
-                      className="w-full px-2 py-2 rounded-none border border-zinc-200 text-xs font-semibold outline-none focus:border-[#3b2063] bg-white text-[#1c1c1e]" />
+                      className="w-full px-2 py-2 rounded-[0.625rem] border border-zinc-200 text-xs font-semibold outline-none focus:border-[#3b2063] bg-white text-[#1c1c1e]" />
                   </div>
                   <div className="px-2 py-1.5">
                     <input type="text" value={row.unit} onChange={e => updateRow(row._key, 'unit', e.target.value)}
-                      className="w-full px-2 py-2 rounded-none border border-zinc-200 text-xs font-bold outline-none focus:border-[#3b2063] bg-white text-zinc-700 uppercase" />
+                      className="w-full px-2 py-2 rounded-[0.625rem] border border-zinc-200 text-xs font-bold outline-none focus:border-[#3b2063] bg-white text-zinc-700 uppercase" />
                   </div>
                   <div className="px-2 py-1.5 flex justify-center">
                     <button onClick={() => removeRow(row._key)} disabled={rows.length === 1}
-                      className="w-7 h-7 flex items-center justify-center text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-colors rounded-none disabled:opacity-20">
+                      className="w-7 h-7 flex items-center justify-center text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-colors rounded-[0.625rem] disabled:opacity-20">
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
                       </svg>
@@ -678,7 +679,7 @@ function RecipeEditModal({
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Recipe Notes</label>
             <textarea value={recipeNotes} onChange={e => setRecipeNotes(e.target.value)}
-              className="w-full px-4 py-3 rounded-none border border-zinc-300 text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] h-16 resize-none"
+              className="w-full px-4 py-3 rounded-[0.625rem] border border-zinc-300 text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] h-16 resize-none"
               placeholder="Optional notes about this recipe..." />
           </div>
         </div>
@@ -686,16 +687,16 @@ function RecipeEditModal({
         <div className="flex gap-3 px-7 py-5 border-t border-zinc-100 shrink-0">
           {existingRecipe && (
             <button onClick={handleDelete} disabled={submitting}
-              className="h-11 px-5 bg-white border border-red-300 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 hover:border-red-400 transition-all rounded-none disabled:opacity-50">
+              className="h-11 px-5 bg-white border border-red-300 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 hover:border-red-400 transition-all rounded-[0.625rem] disabled:opacity-50">
               Delete
             </button>
           )}
           <button onClick={onClose} disabled={submitting}
-            className="flex-1 h-11 bg-white border border-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all disabled:opacity-50 rounded-none">
+            className="flex-1 h-11 bg-white border border-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all disabled:opacity-50 rounded-[0.625rem]">
             Cancel
           </button>
           <button onClick={handleSave} disabled={submitting}
-            className="flex-1 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#2a174a] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-none">
+            className="flex-1 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#2a174a] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]">
             {submitting ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Saving...</> : existingRecipe ? 'Update Recipe' : 'Save Recipe'}
           </button>
         </div>
@@ -753,7 +754,6 @@ const InventoryDashboard = () => {
   const [matEntriesLimit, setMatEntriesLimit] = useState(25);
 
   // ── Recipe Editor state ───────────────────────────────────────────────────────
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [recipeLoading, setRecipeLoading] = useState(true);
   const [recipeSearch, setRecipeSearch] = useState('');
@@ -804,10 +804,10 @@ const InventoryDashboard = () => {
     try {
       const [matRes, movRes] = await Promise.all([
         api.get('/raw-materials'),
-        api.get('/raw-materials/movements').catch(() => ({ data: [] })),
+        api.get('/raw-materials/movements').catch(() => ({ data: { data: [] } })),
       ]);
       setMaterials(matRes.data);
-      setMovements(movRes.data);
+      setMovements(movRes.data?.data ?? []); // ← unwrap paginated response
       localStorage.setItem(RAW_MATERIALS_CACHE_KEY, JSON.stringify(matRes.data));
     } catch { addToast('Failed to load materials.', 'error'); }
     finally { setMaterialsLoading(false); setReportLoading(false); }
@@ -815,19 +815,14 @@ const InventoryDashboard = () => {
 
   useEffect(() => { fetchMaterials(); }, [fetchMaterials]);
 
-  const fetchRecipes = useCallback(async () => {
-    setRecipeLoading(true);
-    try {
-      const [menuRes, recipeRes] = await Promise.all([
-        api.get('/menu-list'),
-        api.get('/recipes'),
-      ]);
-      const raw = menuRes.data?.data ?? menuRes.data;
-      setMenuItems(Array.isArray(raw) ? raw : []);
-      setRecipes(recipeRes.data);
-    } catch { addToast('Failed to load recipes.', 'error'); }
-    finally { setRecipeLoading(false); }
-  }, [addToast]);
+const fetchRecipes = useCallback(async () => {
+  setRecipeLoading(true);
+  try {
+    const recipeRes = await api.get('/recipes');
+    setRecipes(recipeRes.data);
+  } catch { addToast('Failed to load recipes.', 'error'); }
+  finally { setRecipeLoading(false); }
+}, [addToast]);
 
   useEffect(() => { fetchRecipes(); }, [fetchRecipes]);
 
@@ -895,23 +890,18 @@ const InventoryDashboard = () => {
     return matEntriesLimit === -1 ? data : data.slice(0, matEntriesLimit);
   }, [materials, matCategory, lowStockOnly, matSearch, matEntriesLimit]);
 
-  const recipeRows = useMemo(() => {
-    const recipeMap = new Map<string, Recipe>();
-    recipes.forEach(r => {
-      const sizeKey = r.size ?? 'none';
-      recipeMap.set(`${r.menu_item_id}__${sizeKey}`, r);
-    });
-    const result: { menuItem: MenuItem; size: string | null; sizeLabel: string; recipe: Recipe | null; hasRecipe: boolean }[] = [];
-    menuItems
-      .filter(item => item.type === 'food' || item.type === 'drink')
-      .forEach(item => {
-        const sizeVal = item.size && item.size.toLowerCase() !== 'none' ? item.size : null;
-        const key = sizeVal ? `${item.id}__${sizeVal}` : `${item.id}__none`;
-        const recipe = recipeMap.get(key) ?? null;
-        result.push({ menuItem: item, size: sizeVal, sizeLabel: sizeVal ?? '—', recipe, hasRecipe: !!recipe });
-      });
-    return result;
-  }, [menuItems, recipes]);
+const recipeRows = useMemo(() => {
+  return recipes.map(r => {
+    const sizeVal = r.size ? r.size.toUpperCase() : null;
+    return {
+      menuItem: r.menu_item as MenuItem,
+      size: sizeVal,
+      sizeLabel: sizeVal ?? '—',
+      recipe: r,
+      hasRecipe: true,
+    };
+  }).sort((a, b) => a.menuItem.name.localeCompare(b.menuItem.name));
+}, [recipes]);
 
   const recipeStats = useMemo(() => ({
     total: recipeRows.length,
@@ -1007,12 +997,12 @@ const InventoryDashboard = () => {
               <div className="flex items-center gap-2">
                 {lowStockCount > 0 && (
                   <button onClick={() => setLowStockOnly(v => !v)}
-                    className={`h-10 px-4 font-bold text-xs uppercase tracking-widest flex items-center gap-2 rounded-none border transition-all ${lowStockOnly ? 'bg-red-600 text-white border-red-600' : 'bg-white text-red-500 border-red-300 hover:bg-red-50'}`}>
+                    className={`h-10 px-4 font-bold text-xs uppercase tracking-widest flex items-center gap-2 rounded-[0.625rem] border transition-all ${lowStockOnly ? 'bg-red-600 text-white border-red-600' : 'bg-white text-red-500 border-red-300 hover:bg-red-50'}`}>
                     <span className="w-2 h-2 rounded-full bg-current animate-pulse" />{lowStockCount} Low Stock
                   </button>
                 )}
                 <button onClick={() => fetchMaterials(true)} className="h-10 px-4 border border-zinc-300 text-zinc-500 font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all">↻ Refresh</button>
-                <button onClick={() => setShowAddModal(true)} className="h-10 px-5 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-colors shadow-sm rounded-none">
+                <button onClick={() => setShowAddModal(true)} className="h-10 px-5 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-colors shadow-sm rounded-[0.625rem]">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                   </svg>
@@ -1065,7 +1055,7 @@ const InventoryDashboard = () => {
 
           {activeTab === 'sales' && (
             <>
-              <div className="bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-none">
+              <div className="bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-[0.625rem]">
                 <div className="bg-white px-7 py-5 border-b border-zinc-100">
                   <h2 className="text-[#3b2063] font-black text-xs uppercase tracking-[0.15em] text-center">
                     TOP 5 PRODUCTS by Qty Sold FROM {start} TO {end}
@@ -1122,7 +1112,7 @@ const InventoryDashboard = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-6">
-                <div className="bg-white border border-zinc-200 p-6 flex flex-col shadow-sm rounded-none">
+                <div className="bg-white border border-zinc-200 p-6 flex flex-col shadow-sm rounded-[0.625rem]">
                   <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-4">Profit vs Cost Breakdown</div>
                   <div style={{ height: '220px' }}>
                     {salesData.length > 0 ? (
@@ -1140,7 +1130,7 @@ const InventoryDashboard = () => {
                     ) : <div className="flex items-center justify-center h-full text-zinc-300 text-xs italic">No data available</div>}
                   </div>
                 </div>
-                <div className="bg-white border border-zinc-200 p-6 flex flex-col shadow-sm rounded-none">
+                <div className="bg-white border border-zinc-200 p-6 flex flex-col shadow-sm rounded-[0.625rem]">
                   <div className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-4">Sales Quantity Share</div>
                   <div style={{ height: '220px' }}>
                     {salesData.length > 0 ? (
@@ -1329,14 +1319,14 @@ const InventoryDashboard = () => {
           {/* ══════════════════════════════════════════════════════════════════ */}
 
           {activeTab === 'materials' && (
-            <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-none">
+            <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-[0.625rem]">
 
               {/* Toolbar */}
               <div className="px-6 py-4 border-b border-zinc-100 flex flex-col md:flex-row justify-between items-center gap-3 bg-white">
                 <div className="flex items-center gap-3 flex-wrap">
                   <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                     <span>Show</span>
-                    <select value={matEntriesLimit} onChange={e => setMatEntriesLimit(Number(e.target.value))} className="border border-zinc-300 bg-white px-2 py-1.5 outline-none text-[#1c1c1e] font-semibold text-xs rounded-none focus:border-[#3b2063]">
+                    <select value={matEntriesLimit} onChange={e => setMatEntriesLimit(Number(e.target.value))} className="border border-zinc-300 bg-white px-2 py-1.5 outline-none text-[#1c1c1e] font-semibold text-xs rounded-[0.625rem] focus:border-[#3b2063]">
                       <option value={10}>10</option>
                       <option value={25}>25</option>
                       <option value={50}>50</option>
@@ -1346,7 +1336,7 @@ const InventoryDashboard = () => {
                   </div>
                   <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                     <span>Category</span>
-                    <select value={matCategory} onChange={e => setMatCategory(e.target.value)} className="border border-zinc-300 bg-white px-2 py-1.5 outline-none text-[#1c1c1e] font-semibold text-xs rounded-none focus:border-[#3b2063]">
+                    <select value={matCategory} onChange={e => setMatCategory(e.target.value)} className="border border-zinc-300 bg-white px-2 py-1.5 outline-none text-[#1c1c1e] font-semibold text-xs rounded-[0.625rem] focus:border-[#3b2063]">
                       <option value="All">All</option>
                       {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
@@ -1355,7 +1345,7 @@ const InventoryDashboard = () => {
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Search:</span>
                   <input type="text" value={matSearch} onChange={e => setMatSearch(e.target.value)} placeholder="Find item..."
-                    className="border border-zinc-300 bg-white px-4 py-2 text-sm outline-none focus:border-[#3b2063] w-56 font-semibold text-[#1c1c1e] rounded-none placeholder:text-zinc-400" />
+                    className="border border-zinc-300 bg-white px-4 py-2 text-sm outline-none focus:border-[#3b2063] w-56 font-semibold text-[#1c1c1e] rounded-[0.625rem] placeholder:text-zinc-400" />
                 </div>
               </div>
 
@@ -1402,7 +1392,7 @@ const InventoryDashboard = () => {
                             <td className="px-5 py-3.5 text-center"><span className="text-[12px] font-semibold text-zinc-400">{parseNum(item.reorder_level).toFixed(2)}</span></td>
                             <td className="px-5 py-3.5 text-center">
                               <button onClick={() => setAdjustTarget(item)}
-                                className="h-9 w-9 inline-flex items-center justify-center bg-[#3b2063] hover:bg-[#2a174a] text-white transition-colors rounded-none" title="Adjust Stock">
+                                className="h-9 w-9 inline-flex items-center justify-center bg-[#3b2063] hover:bg-[#2a174a] text-white transition-colors rounded-[0.625rem]" title="Adjust Stock">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
                                   <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897L16.863 4.487Zm0 0L19.5 7.125" />
                                 </svg>
@@ -1410,7 +1400,7 @@ const InventoryDashboard = () => {
                             </td>
                             <td className="px-7 py-3.5 text-center">
                               <button onClick={() => setDeleteTarget(item)}
-                                className="h-9 w-9 inline-flex items-center justify-center bg-white border border-red-300 text-red-500 hover:bg-red-50 hover:border-red-400 transition-colors rounded-none" title="Delete">
+                                className="h-9 w-9 inline-flex items-center justify-center bg-white border border-red-300 text-red-500 hover:bg-red-50 hover:border-red-400 transition-colors rounded-[0.625rem]" title="Delete">
                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
                                   <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
                                 </svg>
@@ -1459,12 +1449,12 @@ const InventoryDashboard = () => {
                 ))}
               </div>
 
-              <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-none">
+              <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-[0.625rem]">
                 <div className="px-6 py-4 border-b border-zinc-100 flex flex-col md:flex-row justify-between items-center gap-3 bg-white">
                   <div className="flex items-center gap-3 flex-wrap">
                     <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                       <span>Show</span>
-                      <select value={recipeEntriesLimit} onChange={e => setRecipeEntriesLimit(Number(e.target.value))} className="border border-zinc-300 bg-white px-2 py-1.5 outline-none text-[#1c1c1e] font-semibold text-xs rounded-none focus:border-[#3b2063]">
+                      <select value={recipeEntriesLimit} onChange={e => setRecipeEntriesLimit(Number(e.target.value))} className="border border-zinc-300 bg-white px-2 py-1.5 outline-none text-[#1c1c1e] font-semibold text-xs rounded-[0.625rem] focus:border-[#3b2063]">
                         <option value={25}>25</option>
                         <option value={50}>50</option>
                         <option value={100}>100</option>
@@ -1474,7 +1464,7 @@ const InventoryDashboard = () => {
                     </div>
                     <div className="flex items-center gap-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
                       <span>Filter</span>
-                      <select value={recipeFilterStatus} onChange={e => setRecipeFilterStatus(e.target.value as 'all' | 'with' | 'without')} className="border border-zinc-300 bg-white px-2 py-1.5 outline-none text-[#1c1c1e] font-semibold text-xs rounded-none focus:border-[#3b2063]">
+                      <select value={recipeFilterStatus} onChange={e => setRecipeFilterStatus(e.target.value as 'all' | 'with' | 'without')} className="border border-zinc-300 bg-white px-2 py-1.5 outline-none text-[#1c1c1e] font-semibold text-xs rounded-[0.625rem] focus:border-[#3b2063]">
                         <option value="all">All Items</option>
                         <option value="with">Has Recipe</option>
                         <option value="without">Missing Recipe</option>
@@ -1484,7 +1474,7 @@ const InventoryDashboard = () => {
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Search:</span>
                     <input type="text" value={recipeSearch} onChange={e => setRecipeSearch(e.target.value)} placeholder="Find menu item..."
-                      className="border border-zinc-300 bg-white px-4 py-2 text-sm outline-none focus:border-[#3b2063] w-56 font-semibold text-[#1c1c1e] rounded-none placeholder:text-zinc-400" />
+                      className="border border-zinc-300 bg-white px-4 py-2 text-sm outline-none focus:border-[#3b2063] w-56 font-semibold text-[#1c1c1e] rounded-[0.625rem] placeholder:text-zinc-400" />
                   </div>
                 </div>
 
@@ -1511,7 +1501,7 @@ const InventoryDashboard = () => {
                             className={`transition-colors ${!row.hasRecipe ? 'bg-amber-50/40 hover:bg-amber-50' : 'hover:bg-[#f9f8ff]'}`}>
                             <td className="px-7 py-3.5">
                               <span className="text-[13px] font-extrabold text-[#3b2063]">{row.menuItem.name}</span>
-                              <span className="ml-2 text-[11px] text-zinc-400 font-semibold">₱{parseFloat(row.menuItem.price).toFixed(2)}</span>
+                              <span className="ml-2 text-[11px] text-zinc-400 font-semibold">₱{Number(row.menuItem.price).toFixed(2)}</span>
                             </td>
                             <td className="px-5 py-3.5 text-center">
                               <span className={`text-[11px] font-bold uppercase tracking-widest px-2 py-0.5 ${row.sizeLabel === 'M' ? 'bg-blue-50 text-blue-600' : row.sizeLabel === 'L' ? 'bg-purple-50 text-purple-600' : 'bg-zinc-100 text-zinc-500'}`}>
@@ -1532,7 +1522,7 @@ const InventoryDashboard = () => {
                             <td className="px-5 py-3.5">
                               {row.recipe ? (
                                 <div className="flex flex-wrap gap-1">
-                                  {row.recipe.items.slice(0, 4).map(ri => (
+                                  {row.recipe.items.slice(0, 4).map((ri: RecipeItem) => (
                                     <span key={ri.id} className="text-[10px] font-semibold bg-[#f3f0ff] text-[#3b2063] px-2 py-0.5 border border-[#ddd6fe]">
                                       {ri.raw_material?.name ?? `RM#${ri.raw_material_id}`} · {parseFloat(String(ri.quantity)).toFixed(2)}{ri.unit}
                                     </span>
@@ -1547,7 +1537,7 @@ const InventoryDashboard = () => {
                             </td>
                             <td className="px-7 py-3.5 text-center">
                               <button onClick={() => setEditTarget({ menuItem: row.menuItem, size: row.size, recipe: row.recipe })}
-                                className={`h-9 px-4 text-[11px] font-bold uppercase tracking-widest rounded-none transition-colors ${row.hasRecipe ? 'bg-white border border-zinc-300 text-zinc-600 hover:border-[#3b2063] hover:text-[#3b2063]' : 'bg-[#3b2063] text-white hover:bg-[#2a174a]'}`}>
+                                className={`h-9 px-4 text-[11px] font-bold uppercase tracking-widest rounded-[0.625rem] transition-colors ${row.hasRecipe ? 'bg-white border border-zinc-300 text-zinc-600 hover:border-[#3b2063] hover:text-[#3b2063]' : 'bg-[#3b2063] text-white hover:bg-[#2a174a]'}`}>
                                 {row.hasRecipe ? 'Edit' : 'Add'}
                               </button>
                             </td>

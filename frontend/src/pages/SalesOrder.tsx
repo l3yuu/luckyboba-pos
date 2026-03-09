@@ -29,7 +29,7 @@ const DrinkIcon = ({ className }: { className?: string }) => (
     </svg>
 );
 
-const generateORNumber = (count = 1) => `OR-${String(count).padStart(10, '0')}`;
+const generateORNumber = (count = 1) => `SI-${String(count).padStart(10, '0')}`;
 const generateQueueNumber = (count = 1) => String(count).padStart(3, '0');
 
 const SalesOrder = () => {
@@ -113,11 +113,12 @@ const SalesOrder = () => {
             try {
                 const response = await api.get('/receipts/next-sequence');
                 const data = response.data;
-                const serverSeq = data.next_sequence;
+                const serverSeq = parseInt(data.next_sequence, 10);
+                const cleanServerSeq = isNaN(serverSeq) ? 1 : serverSeq;
 
                 // Never go below what we last used locally
                 const localSeq = parseInt(localStorage.getItem('last_or_sequence') || '0');
-                const safeSeq = Math.max(serverSeq, localSeq + 1);
+                const safeSeq = Math.max(cleanServerSeq, localSeq + 1);
 
                 localStorage.setItem('last_or_sequence', String(safeSeq));
                 setOrNumber(generateORNumber(safeSeq));
@@ -476,6 +477,7 @@ const SalesOrder = () => {
                     unit_price: Number(item.price),
                     total_price: item.finalPrice,
                     size: item.size !== 'none' ? item.size : null,
+                    cup_size_label: item.cupSizeLabel ?? null,
                     sugar_level: item.sugarLevel || null,
                     options: item.options || [],
                     add_ons: item.addOns || [],
@@ -502,7 +504,7 @@ const SalesOrder = () => {
             };
 
             await api.post('/sales', orderData);
-            const currentSeq = parseInt(orNumber.replace('OR-', ''), 10);
+            const currentSeq = parseInt(orNumber.replace('SI-', ''), 10);
             if (!isNaN(currentSeq)) {
                 localStorage.setItem('last_or_sequence', String(currentSeq));
             }
@@ -558,10 +560,12 @@ const SalesOrder = () => {
         try {
             const response = await api.get('/receipts/next-sequence');
             const data = response.data;
-            const serverSeq = data.next_sequence;
+            const serverSeq = parseInt(data.next_sequence, 10);
+            const cleanServerSeq = isNaN(serverSeq) ? 1 : serverSeq;
 
+            // Never go below what we last used locally
             const localSeq = parseInt(localStorage.getItem('last_or_sequence') || '0');
-            const safeSeq = Math.max(serverSeq, localSeq + 1);
+            const safeSeq = Math.max(cleanServerSeq, localSeq + 1);
 
             localStorage.setItem('last_or_sequence', String(safeSeq));
             setOrNumber(generateORNumber(safeSeq));
@@ -608,7 +612,7 @@ const SalesOrder = () => {
                                 <div className={`font-black uppercase leading-none ${titleSize}`}>LUCKY BOBA</div>
                                 <div className={`font-bold uppercase leading-none opacity-120 tracking-widest ${isVeryCrowded ? 'text-[5px] mt-0.5' : 'text-[6.5px] mt-1'}`}>Main Branch - QC</div>
                                 <div className={`w-full flex justify-between items-center font-bold border-b-[1.5px] border-black px-1 ${isVeryCrowded ? 'text-[10px] pb-0 mb-0.5 mt-0.5' : 'text-[10px] pb-0.5 mb-1 mt-1'}`}>
-                                    <span>Q: {queueNumber} | OR: {orNumber.slice(-6)}</span>
+                                    <span>Q: {queueNumber} | SI: {orNumber.slice(-6)}</span>
                                     <span>{drinkIndex}/{totalDrinks}</span>
                                 </div>
                             </div>
@@ -1020,17 +1024,16 @@ const SalesOrder = () => {
                                                 <h3 className="font-black text-sm text-[#3b2063] uppercase mb-3 tracking-wider">Payment Method</h3>
                                                 <div className="grid grid-cols-3 gap-2 mb-5">
                                                     {([
-                                                        { id: 'cash',    label: 'Cash',   icon: '💵' },
-                                                        { id: 'gcash',   label: 'GCash',  icon: '📱' },
-                                                        { id: 'paymaya', label: 'Maya',   icon: '💙' },
-                                                        { id: 'credit',  label: 'Credit', icon: '💳' },
-                                                        { id: 'debit',   label: 'Debit',  icon: '🏦' },
-                                                    ] as const).map(({ id, label, icon }) => (
+                                                        { id: 'cash',    label: 'Cash' },
+                                                        { id: 'gcash',   label: 'GCash'},
+                                                        { id: 'paymaya', label: 'Maya'},
+                                                        { id: 'credit',  label: 'Credit'},
+                                                        { id: 'debit',   label: 'Debit'},
+                                                    ] as const).map(({ id, label }) => (
                                                         <button key={id}
                                                             onClick={() => { setPaymentMethod(id); setReferenceNumber(''); setCashTendered(''); }}
                                                             className={`py-3 rounded-none font-black text-sm uppercase transition-all border-2 flex flex-col items-center gap-1
                                                                 ${paymentMethod === id ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-md' : 'bg-zinc-50 text-[#3b2063] border-zinc-200 hover:border-[#3b2063]/40'}`}>
-                                                            <span className="text-lg">{icon}</span>
                                                             {label}
                                                         </button>
                                                     ))}
@@ -1214,7 +1217,7 @@ const SalesOrder = () => {
                                     ${printedKitchen ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-white border-zinc-200 text-zinc-600 hover:border-[#3b2063] hover:text-[#3b2063] hover:bg-[#f9f7ff]'}`}>
                                 <div className="flex items-center gap-3">
                                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.866 8.21 8.21 0 0 0 3 2.48Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 18a3.75 3.75 0 0 0 .495-7.468 5.99 5.99 0 0 0-1.925 3.547 5.975 5.975 0 0 1-2.133-1.001A3.75 3.75 0 0 0 12 18Z" /></svg>
-                                    <span>Kitchen Ticket</span>
+                                    <span>Order Ticket</span>
                                 </div>
                                 {printedKitchen ? <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Printed ✓</span> : <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 opacity-40"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>}
                             </button>
@@ -1237,7 +1240,7 @@ const SalesOrder = () => {
                             {(() => {
                                 const required = [
                                     { label: 'Receipt',        done: printedReceipt },
-                                    { label: 'Kitchen Ticket', done: printedKitchen },
+                                    { label: 'Order Ticket', done: printedKitchen },
                                     ...(hasStickers ? [{ label: 'Stickers', done: printedStickers }] : []),
                                 ];
                                 const pending = required.filter(r => !r.done);
@@ -1551,7 +1554,7 @@ const SalesOrder = () => {
                         <img src={logo} alt="Lucky Boba Logo" className="w-48 h-auto mx-auto mb-2 grayscale" style={{ filter: 'grayscale(100%) contrast(1.2)' }} />
                         <h1 className="uppercase leading-tight font-bold text-xl">LUCKY BOBA MILKTEA</h1>
                         <p className="text-base mt-1">Quezon City</p>
-                        <h2 className="text-lg mt-2">OR # {orNumber}</h2>
+                        <h2 className="text-lg mt-2">SI # {orNumber}</h2>
                         <p className="text-sm mt-1">{formattedDate} {formattedTime}</p>
                     </div>
                     <div className="text-xs space-y-1 mb-3">
@@ -1646,19 +1649,19 @@ const SalesOrder = () => {
         )}
 
         {/* ================================================================ */}
-        {/* PRINT: KITCHEN TICKET (80mm)                                     */}
+        {/* PRINT: Order TICKET (80mm)                                     */}
         {/* ================================================================ */}
         {printTarget === 'kitchen' && (
             <div className="printable-receipt-container hidden print:block">
                 <div className="receipt-area bg-white text-black">
                     <div className="text-center mb-4 border-b-4 border-black pb-3">
-                        <h1 className="uppercase leading-tight font-black text-3xl mb-1">KITCHEN TICKET</h1>
+                        <h1 className="uppercase leading-tight font-black text-3xl mb-1">ORDER TICKET</h1>
                         <h2 className="font-bold text-lg mt-1 uppercase tracking-widest">Main Branch - QC</h2>
                         <div className="py-3 my-3 text-black">
                             <p className="text-sm tracking-widest uppercase mb-1">Queue</p>
                             <h2 className="font-black text-5xl tracking-widest">#{queueNumber}</h2>
                         </div>
-                        <h2 className="text-m mt-1">OR # {orNumber}</h2>
+                        <h2 className="text-m mt-1">SI # {orNumber}</h2>
                         <p className="text-sm mt-1">{formattedDate} {formattedTime}</p>
                     </div>
                     <div className="mt-2">
