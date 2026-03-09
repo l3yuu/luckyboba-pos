@@ -1,25 +1,28 @@
-import { Navigate, Outlet } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import logo from '../assets/logo.png'; // Adding your logo for a branded feel
+import { ROLE_HOME } from '../utils/roleRoutes';
+import logo from '../assets/logo.png';
 
-export const ProtectedRoute = () => {
+type Role = 'super_admin' | 'superadmin' | 'system_admin' | 'admin' | 'manager' | 'branch_manager' | 'cashier';
+
+interface ProtectedRouteProps {
+  allowedRoles?: Role[];
+}
+
+export const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
   const { user, isLoading } = useAuth();
+  const location = useLocation();
 
-  // Wait for the 'checkAuth' inside useAuth to finish
   if (isLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#f8f6ff]">
         <div className="relative flex flex-col items-center">
-          {/* Branded Logo with a gentle pulse instead of just a spinner */}
-          <img 
-            src={logo} 
-            alt="Lucky Boba" 
-            className="h-16 w-auto object-contain animate-pulse mb-6 opacity-80" 
+          <img
+            src={logo}
+            alt="Lucky Boba"
+            className="h-16 w-auto object-contain animate-pulse mb-6 opacity-80"
           />
-          
-          {/* Clean custom spinner matching your dashboard purple */}
-          <div className="w-12 h-12 border-4 border-zinc-200 border-t-[#3b2063] rounded-full animate-spin"></div>
-          
+          <div className="w-12 h-12 border-4 border-zinc-200 border-t-[#3b2063] rounded-full animate-spin" />
           <p className="mt-6 text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400">
             Authenticating...
           </p>
@@ -28,11 +31,20 @@ export const ProtectedRoute = () => {
     );
   }
 
-  // If loading is done and there is still no user, send to login
   if (!user) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // If user exists, show the child routes (Dashboard/POS)
+  if (allowedRoles && allowedRoles.length > 0) {
+    const userRole  = (user.role as string ?? '').toLowerCase().trim();
+    const hasAccess = allowedRoles.includes(userRole as Role);
+
+    if (!hasAccess) {
+      const redirectTo = ROLE_HOME[userRole] ?? '/login';
+      if (location.pathname === redirectTo) return <Outlet />;
+      return <Navigate to={redirectTo} replace />;
+    }
+  }
+
   return <Outlet />;
 };

@@ -21,7 +21,15 @@ return Application::configure(basePath: dirname(__DIR__))
             'logout'
         ]);
 
-        $middleware->append(\App\Http\Middleware\ContentSecurityPolicy::class); 
+        $middleware->append(\App\Http\Middleware\ContentSecurityPolicy::class);
+
+        // Role-based access control
+        $middleware->alias([
+            'role' => \App\Http\Middleware\CheckRole::class,
+        ]);
+    })
+    ->withSchedule(function (Schedule $schedule) {          
+        $schedule->command('sanctum:prune-expired --hours=8')->daily();
     })
     ->withSchedule(function (Schedule $schedule) {          
         $schedule->command('sanctum:prune-expired --hours=8')->daily();

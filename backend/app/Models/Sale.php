@@ -19,6 +19,7 @@ class Sale extends Model
         'charge_type',
         'pax',
         'user_id',
+        'branch_id',
         'is_synced',
         'invoice_number',
         'status',
@@ -34,6 +35,7 @@ class Sale extends Model
         'discount_remarks',
         'vatable_sales',
         'vat_amount',
+        'branch_id',
     ];
 
     protected $casts = [

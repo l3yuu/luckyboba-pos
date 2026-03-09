@@ -1,165 +1,149 @@
-"use client"
+import React from 'react';
+import { useState } from 'react';
+import TopNavbar from '../TopNavbar';
+import { 
+  Calendar,
+  Terminal,
+  Search,
+  X,
+  RotateCcw,
+  Clock,
+  Receipt as ReceiptIcon,
+  ShieldAlert,
+  FileCheck,
+} from 'lucide-react';
+import api from '../../services/api';
 
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import 'react-simple-keyboard/build/css/index.css';
-import TopNavbar from '../TopNavbar'; 
-import type { KeyboardRef, Receipt } from '../../types/transactions';
-import api from '../../services/api'; 
-import { Calendar, Clock, Search, X, RotateCcw, ShieldAlert, FileCheck, Receipt as ReceiptIcon, Terminal } from 'lucide-react';
-import { useToast } from '../../hooks/useToast';
+// ============================================================
+// TYPE DEFINITIONS
+// ============================================================
 
-interface SimpleKeyboardInstance {
-  setInput: (input: string) => void;
+interface SaleItem {
+  sale_id: number;
+  si_number: string;
+  status: string;
+  terminal: string;
+  items_count: number;
+  total_amount: number;
+  created_at: string;
 }
 
-const CACHE_KEY = 'lucky_boba_receipt_cache';
-let hasInitialized = false;
+interface Stats {
+  gross: number;
+  voided: number;
+  net: number;
+}
 
-// ── Skeleton ──────────────────────────────────────────────────────────────────
+// ============================================================
+// STAT BOX
+// ============================================================
+
+const StatBox = ({ label, value, icon, isDanger, isBrand }: {
+  label: string; value: number; icon: React.ReactNode; isDanger?: boolean; isBrand?: boolean;
+}) => (
+  <div className={`px-6 py-5 border flex items-center justify-between shadow-sm rounded-[0.625rem] ${isBrand ? 'bg-[#3b2063] border-[#2a1647]' : 'bg-white border-zinc-200'}`}>
+    <div>
+      <p className={`text-[11px] font-bold uppercase tracking-widest mb-1 ${isBrand ? 'text-violet-300' : 'text-zinc-500'}`}>{label}</p>
+      <p className={`text-2xl font-bold tabular-nums ${isBrand ? 'text-white' : isDanger ? 'text-red-600' : 'text-[#1a0f2e]'}`}>
+        {isDanger && value > 0 && <span className="text-base mr-1">-</span>}
+        ₱{value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+      </p>
+    </div>
+    <div className={`w-10 h-10 flex items-center justify-center ${isBrand ? 'bg-white/10 text-violet-200' : 'bg-zinc-50 border border-zinc-200 text-zinc-400'}`}>
+      {icon}
+    </div>
+  </div>
+);
+
+// ============================================================
+// TABLE SKELETON
+// ============================================================
+
 const TableSkeleton = () => (
   <>
     {[...Array(5)].map((_, i) => (
-      <tr key={`skeleton-${i}`} className="animate-pulse border-b border-zinc-100">
-        <td className="px-7 py-4">
-          <div className="h-4 w-32 bg-zinc-100 mb-2" />
-          <div className="h-3 w-20 bg-zinc-50" />
-        </td>
-        <td className="px-6 py-4"><div className="h-4 w-10 bg-zinc-100 mx-auto" /></td>
-        <td className="px-6 py-4"><div className="h-4 w-8 bg-zinc-100 mx-auto" /></td>
-        <td className="px-6 py-4"><div className="h-4 w-28 bg-zinc-100 ml-auto" /></td>
-        <td className="px-6 py-4"><div className="h-9 w-9 bg-zinc-100 mx-auto" /></td>
+      <tr key={i} className="animate-pulse">
+        <td className="px-7 py-4"><div className="h-4 bg-zinc-100 rounded w-32" /></td>
+        <td className="px-6 py-4 text-center"><div className="h-4 bg-zinc-100 rounded w-12 mx-auto" /></td>
+        <td className="px-6 py-4 text-center"><div className="h-4 bg-zinc-100 rounded w-8 mx-auto" /></td>
+        <td className="px-7 py-4 text-right"><div className="h-4 bg-zinc-100 rounded w-20 ml-auto" /></td>
+        <td className="px-6 py-4 text-center"><div className="h-8 w-9 bg-zinc-100 rounded mx-auto" /></td>
       </tr>
     ))}
   </>
 );
 
-// ── Main Component ────────────────────────────────────────────────────────────
+// ============================================================
+// COMPONENT
+// ============================================================
+
 const SearchReceipts = () => {
-  const { showToast } = useToast();
+  const today = new Date().toISOString().split('T')[0];
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [searchResults, setSearchResults] = useState<Receipt[]>([]);
+  const [selectedDate, setSelectedDate] = useState(today);
+  const [searchResults, setSearchResults] = useState<SaleItem[]>([]);
+  const [stats, setStats] = useState<Stats>({ gross: 0, voided: 0, net: 0 });
+  const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [showKeyboard, setShowKeyboard] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isVoiding, setIsVoiding] = useState(false);
-  const [isReady, setIsReady] = useState(false);
+
   const [isReasonModalOpen, setIsReasonModalOpen] = useState(false);
   const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
   const [cancelReason, setCancelReason] = useState('');
-  const keyboardRef = useRef<KeyboardRef>(null);
+  const [isVoiding, setIsVoiding] = useState(false);
 
-  const stats = useMemo(() => {
-    const data = Array.isArray(searchResults) ? searchResults : [];
-    const gross = data.reduce((acc, item) => acc + Number(item.total_amount || 0), 0);
-    const voided = data.filter(i => i.status === 'cancelled').reduce((acc, i) => acc + Number(i.total_amount || 0), 0);
-    return { gross, voided, net: gross - voided };
-  }, [searchResults]);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
 
-  const handleSearch = useCallback(async (queryOverride?: string, dateOverride?: string) => {
-    const activeQuery = typeof queryOverride === 'string' ? queryOverride : searchQuery;
-    const activeDate = dateOverride || selectedDate;
+  const handleSearch = async (query = searchQuery, date = selectedDate) => {
     setIsLoading(true);
     setHasSearched(true);
     try {
-      const response = await api.get('/receipts/search', { params: { query: activeQuery, date: activeDate } });
-      const data = Array.isArray(response.data) ? response.data : (response.data.data || []);
-      setSearchResults(data);
-      sessionStorage.setItem(`${CACHE_KEY}_query`, activeQuery);
-      sessionStorage.setItem(`${CACHE_KEY}_date`, activeDate);
-      sessionStorage.setItem(`${CACHE_KEY}_results`, JSON.stringify(data));
+      const response = await api.get('/receipts/search', {
+        params: { query, date },
+      });
+      setSearchResults(response.data.results ?? []);
+      setStats(response.data.stats ?? { gross: 0, voided: 0, net: 0 });
     } catch (error) {
-      console.error("Search Error:", error);
-      setSearchResults([]);
+      console.error('Search error:', error);
     } finally {
       setIsLoading(false);
-      setShowKeyboard(false);
     }
-  }, [searchQuery, selectedDate]);
-
-  useEffect(() => {
-    if (!isReady) return;
-    if (!searchQuery && !hasSearched) return;
-    const t = setTimeout(() => handleSearch(searchQuery, selectedDate), 500);
-    return () => clearTimeout(t);
-  }, [searchQuery, selectedDate, handleSearch, hasSearched, isReady]);
-
-  useEffect(() => {
-    if (hasInitialized) return;
-    hasInitialized = true;
-    const cachedResults = sessionStorage.getItem(`${CACHE_KEY}_results`);
-    const cachedQuery = sessionStorage.getItem(`${CACHE_KEY}_query`);
-    const cachedDate = sessionStorage.getItem(`${CACHE_KEY}_date`);
-    if (cachedResults) {
-      try {
-        const parsed = JSON.parse(cachedResults);
-        if (Array.isArray(parsed)) {
-          setSearchResults(parsed);
-          setSearchQuery(cachedQuery || '');
-          if (cachedDate) setSelectedDate(cachedDate);
-          setHasSearched(true);
-          setIsReady(true);
-          return;
-        }
-      } catch { sessionStorage.removeItem(`${CACHE_KEY}_results`); }
-    }
-    handleSearch('', selectedDate).then(() => setIsReady(true));
-  }, [handleSearch, selectedDate]);
+  };
 
   const handleRefresh = () => {
-    const today = new Date().toISOString().split('T')[0];
-    sessionStorage.removeItem(`${CACHE_KEY}_query`);
-    sessionStorage.removeItem(`${CACHE_KEY}_results`);
-    sessionStorage.removeItem(`${CACHE_KEY}_date`);
-    hasInitialized = false;
     setSearchQuery('');
     setSelectedDate(today);
-    setIsReady(false);
-    handleSearch('', today).then(() => setIsReady(true));
+    setSearchResults([]);
+    setStats({ gross: 0, voided: 0, net: 0 });
+    setHasSearched(false);
   };
 
   const handleConfirmCancel = async () => {
-    if (!cancelReason.trim() || !selectedSaleId) return;
+    if (!selectedSaleId || !cancelReason.trim()) return;
     setIsVoiding(true);
     try {
-      const response = await api.patch(`/sales/${selectedSaleId}/cancel`, { reason: cancelReason });
-      if (response.status === 200) {
-        const updated = searchResults.map(item =>
-          item.sale_id === selectedSaleId
-            ? { ...item, status: 'cancelled' as const, cancellation_reason: cancelReason }
-            : item
-        );
-        setSearchResults(updated);
-        sessionStorage.setItem(`${CACHE_KEY}_results`, JSON.stringify(updated));
-        setIsReasonModalOpen(false);
-        setCancelReason('');
-        localStorage.setItem('dashboard_needs_refresh', 'true');
-        showToast('Order voided successfully!', 'success');
-      }
+      await api.post(`/receipts/${selectedSaleId}/void`, { reason: cancelReason });
+      setIsReasonModalOpen(false);
+      setCancelReason('');
+      handleSearch();
     } catch (error) {
-      console.error("Cancellation failed:", error);
-      showToast('Failed to cancel order.', 'error');
-    } finally { setIsVoiding(false); }
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setSearchQuery(val);
-    if (keyboardRef.current) {
-      (keyboardRef.current as unknown as SimpleKeyboardInstance).setInput(val);
+      console.error('Void error:', error);
+    } finally {
+      setIsVoiding(false);
     }
   };
 
   return (
-    <div className="flex flex-col h-full w-full bg-[#f4f2fb] relative overflow-hidden">
+    <div className="flex flex-col h-full w-full bg-[#f4f2fb] overflow-hidden relative">
       <TopNavbar />
 
       <div className={`flex-1 flex flex-col items-center justify-start p-5 md:p-7 gap-5 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-72' : ''}`}>
 
         {/* ── Search Bar ── */}
         <div className="w-full max-w-6xl flex flex-col lg:flex-row gap-3">
-          {/* Search Input */}
           <div className="flex-1 bg-white border border-zinc-200 flex items-center shadow-sm rounded-[0.625rem]">
             <div className="px-4 text-zinc-400"><Search size={17} /></div>
             <input
@@ -179,7 +163,6 @@ const SearchReceipts = () => {
           </div>
 
           <div className="flex gap-3">
-            {/* Date Picker */}
             <div className="bg-white border border-zinc-200 flex items-center px-5 gap-3 shadow-sm min-w-52 rounded-[0.625rem]">
               <Calendar size={15} className="text-violet-500 shrink-0" />
               <input
@@ -190,7 +173,6 @@ const SearchReceipts = () => {
               />
             </div>
 
-            {/* Search Button */}
             <button
               onClick={() => handleSearch()}
               disabled={isLoading}
@@ -199,7 +181,6 @@ const SearchReceipts = () => {
               {isLoading ? '...' : 'Search'}
             </button>
 
-            {/* Refresh */}
             <button
               onClick={handleRefresh}
               className="bg-white border border-zinc-200 text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-4 transition-all duration-300 hover:rotate-180 shadow-sm rounded-[0.625rem]"
@@ -218,8 +199,6 @@ const SearchReceipts = () => {
 
         {/* ── Table ── */}
         <div className="w-full max-w-6xl bg-white border border-zinc-200 overflow-hidden flex-1 flex flex-col shadow-sm rounded-[0.625rem]">
-
-          {/* Table Header */}
           <div className="px-7 py-5 border-b border-zinc-100 flex justify-between items-center">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 bg-[#3b2063] flex items-center justify-center">
@@ -240,7 +219,6 @@ const SearchReceipts = () => {
             </span>
           </div>
 
-          {/* Table Body */}
           <div className="flex-1 overflow-auto">
             <table className="w-full text-left">
               <thead className="sticky top-0 bg-white z-10 border-b border-zinc-100">
@@ -321,18 +299,18 @@ const SearchReceipts = () => {
                 <ShieldAlert size={18} className="text-red-600" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Authorization Required</p>
-                <h2 className="text-sm font-bold text-[#1a0f2e] uppercase tracking-widest">Void Transaction</h2>
+                <h3 className="text-sm font-bold text-[#1a0f2e] uppercase tracking-widest">Void Transaction</h3>
+                <p className="text-[11px] text-zinc-400 font-medium mt-0.5">This action cannot be undone</p>
               </div>
             </div>
 
-            <div className="space-y-1.5 mb-5">
-              <label className="text-[11px] font-bold uppercase tracking-widest text-zinc-500 block">Reason for Cancellation</label>
+            <div className="space-y-2 mb-6">
+              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Reason for void</label>
               <textarea
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
-                placeholder="Describe the reason for this void..."
-                className="w-full h-28 p-4 bg-[#f4f2fb] border border-zinc-200 outline-none focus:border-[#3b2063] transition-all text-sm font-medium text-[#1a0f2e] resize-none"
+                placeholder="Enter reason..."
+                className="w-full px-4 py-3 border border-zinc-200 text-sm font-semibold text-[#1a0f2e] outline-none focus:border-[#3b2063] transition-colors resize-none h-24 rounded-[0.625rem] placeholder:text-zinc-300"
               />
             </div>
 
@@ -358,23 +336,5 @@ const SearchReceipts = () => {
     </div>
   );
 };
-
-// ── Stat Box ──────────────────────────────────────────────────────────────────
-const StatBox = ({ label, value, icon, isDanger, isBrand }: {
-  label: string; value: number; icon: React.ReactNode; isDanger?: boolean; isBrand?: boolean;
-}) => (
-  <div className={`px-6 py-5 border flex items-center justify-between shadow-sm rounded-[0.625rem] ${isBrand ? 'bg-[#3b2063] border-[#2a1647]' : 'bg-white border-zinc-200'}`}>
-    <div>
-      <p className={`text-[11px] font-bold uppercase tracking-widest mb-1 ${isBrand ? 'text-violet-300' : 'text-zinc-500'}`}>{label}</p>
-      <p className={`text-2xl font-bold tabular-nums ${isBrand ? 'text-white' : isDanger ? 'text-red-600' : 'text-[#1a0f2e]'}`}>
-        {isDanger && value > 0 && <span className="text-base mr-1">-</span>}
-        ₱{value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-      </p>
-    </div>
-    <div className={`w-10 h-10 flex items-center justify-center ${isBrand ? 'bg-white/10 text-violet-200' : 'bg-zinc-50 border border-zinc-200 text-zinc-400'}`}>
-      {icon}
-    </div>
-  </div>
-);
 
 export default SearchReceipts;

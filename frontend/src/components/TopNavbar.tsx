@@ -11,15 +11,19 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked }) => {
   const [isNotifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
-  const [cashierName] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const name = localStorage.getItem('lucky_boba_user_name');
-      const role = localStorage.getItem('lucky_boba_user_role');
-      if (name) return name.toUpperCase();
-      if (role) return role.toUpperCase();
-    }
-    return 'SYSTEM ADMIN';
-  });
+const [cashierInfo] = useState(() => {
+  if (typeof window !== 'undefined') {
+    const name = localStorage.getItem('lucky_boba_user_name');
+    const role = localStorage.getItem('lucky_boba_user_role');
+    const branch = localStorage.getItem('lucky_boba_user_branch');
+    return {
+      name: name ? name.toUpperCase() : 'SYSTEM ADMIN',
+      role: role ? role.toUpperCase() : '',
+      branch: branch ? branch.toUpperCase() : 'MAIN BRANCH',
+    };
+  }
+  return { name: 'SYSTEM ADMIN', role: '', branch: 'MAIN BRANCH' };
+});
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -45,8 +49,8 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked }) => {
             <Store size={13} className="text-white" strokeWidth={2.5} />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-violet-400 uppercase tracking-widest leading-none">Branch</p>
-            <p className="text-sm font-bold text-[#1a0f2e] leading-tight mt-0.5">Main Branch · QC</p>
+            <div className="text-[9px] font-bold text-[#3b2063]/50 uppercase tracking-widest leading-none">Branch</div>
+            <div className="text-[11px] font-black text-[#3b2063] uppercase leading-tight mt-0.5">{cashierInfo.branch}</div>
           </div>
         </div>
 
@@ -56,8 +60,8 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked }) => {
             <User size={13} className="text-zinc-500" strokeWidth={2.5} />
           </div>
           <div>
-            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-none">Cashier</p>
-            <p className="text-sm font-bold text-zinc-700 leading-tight mt-0.5">{cashierName}</p>
+            <div className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest leading-none">Cashier</div>
+            <div className="text-[11px] font-black text-zinc-700 uppercase leading-tight mt-0.5">{cashierInfo.name}</div>
           </div>
         </div>
 

@@ -84,7 +84,7 @@ const ExportData = ({ onBack }: ExportDataProps) => {
   const reportGroups = [
     {
       title: "Sales Reports",
-      color: "bg-[#3b2063]",
+      color: "bg-zinc-500",
       items: [
         { label: "SALES", action: () => handleExportSales("SALES", "General_Sales") },
         { label: "SALES SUMMARY", action: () => handleExportSales("SUMMARY", "Sales_Summary") },

@@ -45,7 +45,7 @@ const GlobalFont = () => (
     *, *::before, *::after, body, input, button, select, textarea {
       font-family: 'DM Sans', sans-serif !important;
     }
-    .stat-card { transition: transform 0.15s ease, box-shadow 0.15s ease; }
+    .stat-card { transition: transform 0.15s ease, box-shadow 0.15s ease; border-radius:10px }
     .stat-card:hover { transform: translateY(-1px); box-shadow: 0 4px 24px rgba(59,32,99,0.08); }
     .rank-bar { transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1); }
   `}</style>
@@ -338,7 +338,7 @@ const DashboardSkeleton = () => (
       * { font-family: 'DM Sans', sans-serif !important; }
     `}</style>
     <div className="flex h-screen bg-[#f4f2fb] overflow-hidden">
-      <div className="w-64 bg-white border-r border-zinc-200 hidden md:flex flex-col justify-between">
+      <div className="w-64 bg-white border-r border-radius:10 border-zinc-200 hidden md:flex flex-col justify-between">
         <div className="px-4 pt-10 flex flex-col gap-2">
           <div className="w-36 h-10 bg-zinc-100 animate-pulse mx-auto mb-8" />
           {[1,2,3,4,5].map(i => <div key={i} className="w-full h-11 bg-zinc-50 animate-pulse border-b border-zinc-100" />)}

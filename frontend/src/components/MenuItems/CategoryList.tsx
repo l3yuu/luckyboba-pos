@@ -441,6 +441,9 @@
                 </p>
               </div>
             </div>
+            <p className="text-right text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+              Showing {displayData.length} of {categories.length} Categories
+            </p>
           </div>
         </div>
       </>

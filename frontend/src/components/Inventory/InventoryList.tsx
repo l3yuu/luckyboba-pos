@@ -1,10 +1,10 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import TopNavbar from '../TopNavbar';
 import api from '../../services/api';
-import { getCache, setCache, clearCache } from '../../utils/cache';
-import InventoryHistoryModal from './InventoryHistory'; // Ensure this path is correct
+import { useCache } from '../../UseCache';
+import InventoryHistoryModal from './InventoryHistory';
 
 const dashboardFont = { fontFamily: "'Inter', sans-serif" };
 
@@ -24,77 +24,36 @@ interface Category {
 }
 
 const InventoryList = () => {
-  const [inventory, setInventory] = useState<InventoryItem[]>(
-    getCache<InventoryItem[]>('inventory') ?? []
-  );
-  const [categories, setCategories] = useState<Category[]>(
-    getCache<Category[]>('categories') ?? []
-  );
-  const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
-  const [addQty, setAddQty] = useState<string>("");
-  const [updating, setUpdating] = useState(false);
+  const { all, loading, ready, reloadTable } = useCache();
 
+  const inventory: InventoryItem[] = all<InventoryItem>('stock_transactions');
+  const categories: Category[] = all<Category>('categories');
+
+  const isLoading = !ready || loading;
+
+  const [searchTerm, setSearchTerm]         = useState("");
+  const [isModalOpen, setIsModalOpen]       = useState(false);
+  const [selectedItem, setSelectedItem]     = useState<InventoryItem | null>(null);
+  const [addQty, setAddQty]                 = useState<string>("");
+  const [updating, setUpdating]             = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  
-  // --- NEW STATE FOR HISTORY MODAL ---
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-
+  const [isHistoryOpen, setIsHistoryOpen]   = useState(false);
   const [newItem, setNewItem] = useState({
-    name: '', barcode: '', quantity: '', price: '', cost: '', category_id: '' 
+    name: '', barcode: '', quantity: '', price: '', cost: '', category_id: ''
   });
 
-  const fetchData = useCallback(async (forceRefresh = false) => {
-    const cachedInv = getCache<InventoryItem[]>('inventory');
-    const cachedCat = getCache<Category[]>('categories');
-
-    if (!forceRefresh && cachedInv && cachedCat) {
-      setInventory(cachedInv);
-      setCategories(cachedCat);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const [invRes, catRes] = await Promise.all([
-        api.get('/inventory'),
-        api.get('/categories')
-      ]);
-      
-      setCache('inventory', invRes.data);
-      setCache('categories', catRes.data);
-      
-      setInventory(invRes.data);
-      setCategories(catRes.data);
-    } catch (err) { 
-      console.error("Failed to fetch data:", err); 
-    } finally { 
-      setLoading(false); 
-    }
-  }, []);
-
-  useEffect(() => { 
-    fetchData(); 
-  }, [fetchData]);
-
-  const filteredInventory = useMemo(() => {
-    return inventory.filter(item => 
+  const filteredInventory = useMemo(() =>
+    inventory.filter((item: InventoryItem) =>
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (item.barcode && item.barcode.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
-  }, [inventory, searchTerm]);
+    ), [inventory, searchTerm]);
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
     setUpdating(true);
     try {
       await api.post('/inventory', newItem);
-      clearCache('inventory');
-      clearCache('categories');
-      await fetchData(true);
+      await reloadTable('stock_transactions');
       setIsAddModalOpen(false);
       setNewItem({ name: '', barcode: '', quantity: '', price: '', cost: '', category_id: '' });
     } catch (err) {
@@ -114,12 +73,10 @@ const InventoryList = () => {
   const handleUpdateStock = async () => {
     const qtyToUpdate = parseInt(addQty);
     if (!selectedItem || isNaN(qtyToUpdate) || qtyToUpdate === 0) return;
-    
     setUpdating(true);
     try {
       await api.patch(`/inventory/${selectedItem.id}/quantity`, { quantity: qtyToUpdate });
-      clearCache('inventory');
-      await fetchData(true);
+      await reloadTable('stock_transactions');
       setIsModalOpen(false);
     } catch (err) {
       console.error("Update failed:", err);
@@ -129,7 +86,7 @@ const InventoryList = () => {
     }
   };
 
-  if (loading && inventory.length === 0) {
+  if (isLoading) {
     return (
       <>
         <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');`}</style>

@@ -1,5 +1,3 @@
-"use client"
-
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import TopNavbar from '../TopNavbar';
@@ -704,7 +702,6 @@ function RecipeEditModal({
   );
 }
 
-
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 const InventoryDashboard = () => {
@@ -794,7 +791,7 @@ const InventoryDashboard = () => {
     })();
   }, []);
 
-  // ── Fetch materials + movements (shared between Usage and Raw Materials tabs) ─
+  // ── Fetch materials + movements ───────────────────────────────────────────────
   const fetchMaterials = useCallback(async (forceRefresh = false) => {
     const cached = localStorage.getItem(RAW_MATERIALS_CACHE_KEY);
     if (!forceRefresh && cached) {
@@ -873,7 +870,7 @@ const InventoryDashboard = () => {
     materials.filter(m => parseNum(m.current_stock) < parseNum(m.reorder_level) && parseNum(m.reorder_level) > 0).length,
     [materials]);
 
-  // ── Filtered rows for Usage tab ────────────────────────────────────────────────
+  // ── Filtered rows for Usage tab ───────────────────────────────────────────────
   const displayUsageRows = useMemo(() => {
     let data = [...reportRows];
     if (categoryFilter !== 'All') data = data.filter(r => r.material.category === categoryFilter);
@@ -885,7 +882,7 @@ const InventoryDashboard = () => {
     return usageEntriesLimit === -1 ? data : data.slice(0, usageEntriesLimit);
   }, [reportRows, categoryFilter, varianceFilter, usageSearch, usageEntriesLimit]);
 
-  // ── Filtered rows for Materials tab ───────────────────────────────────────────
+  // ── Filtered rows for Materials tab ──────────────────────────────────────────
   const displayMaterials = useMemo(() => {
     let data = [...materials];
     if (matCategory !== 'All') data = data.filter(m => m.category === matCategory);
@@ -990,7 +987,6 @@ const InventoryDashboard = () => {
               <h1 className="text-lg font-extrabold text-[#1c1c1e] mt-0.5">Dashboard</h1>
             </div>
 
-            {/* Tab-contextual header actions */}
             {activeTab === 'usage' && (
               <div className="flex items-center gap-2">
                 <button onClick={() => fetchMaterials(true)} className="h-10 px-4 border border-zinc-300 text-zinc-500 font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all">↻ Refresh</button>
@@ -1019,6 +1015,10 @@ const InventoryDashboard = () => {
                   Add Item
                 </button>
               </div>
+            )}
+
+            {activeTab === 'recipes' && (
+              <button onClick={() => fetchRecipes()} className="h-10 px-4 border border-zinc-300 text-zinc-500 font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all">↻ Refresh</button>
             )}
           </div>
 
@@ -1359,7 +1359,6 @@ const InventoryDashboard = () => {
                 </div>
               </div>
 
-              {/* Table */}
               <div className="flex-1 overflow-auto">
                 {materialsLoading && materials.length === 0 ? (
                   <div className="py-16 flex flex-col items-center gap-2">
@@ -1428,16 +1427,11 @@ const InventoryDashboard = () => {
                 )}
               </div>
 
-              {/* Footer */}
               <div className="px-7 py-4 bg-white border-t border-zinc-100 flex justify-between items-center">
                 <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /><span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Synchronized</span></div>
                 <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Showing {displayMaterials.length} of {materials.length} items</p>
               </div>
             </div>
-          )}
-
-          {activeTab === 'recipes' && (
-            <button onClick={() => fetchRecipes()} className="h-10 px-4 border border-zinc-300 text-zinc-500 font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all">↻ Refresh</button>
           )}
 
           {/* ══════════════════════════════════════════════════════════════════ */}

@@ -1,10 +1,8 @@
 "use client"
 
-import { useState, useEffect } from 'react';
-import api from '../../services/api';
 import { Loader2, Clock } from 'lucide-react';
+import { useCache } from '../../UseCache';
 
-// FIX: Define a proper interface instead of using 'any'
 interface LogEntry {
   id: number;
   product_name: string;
@@ -18,24 +16,11 @@ interface InventoryHistoryModalProps {
   onClose: () => void;
 }
 
-// FIX: Export the component so Fast Refresh works
 const InventoryHistoryModal: React.FC<InventoryHistoryModalProps> = ({ onClose }) => {
-  const [history, setHistory] = useState<LogEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { all, loading, ready } = useCache();
 
-  useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        const res = await api.get('/inventory/history');
-        setHistory(res.data);
-      } catch (err) {
-        console.error("History fetch failed", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchHistory();
-  }, []);
+  const history = all<LogEntry>('stock_transactions');
+  const isLoading = !ready || loading;
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -54,7 +39,7 @@ const InventoryHistoryModal: React.FC<InventoryHistoryModalProps> = ({ onClose }
         </div>
 
         <div className="flex-1 overflow-y-auto p-6">
-          {loading ? (
+          {isLoading ? (
             <div className="flex flex-col items-center justify-center py-12">
               <Loader2 className="animate-spin text-[#3b2063] mb-4" size={32} />
               <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Loading Logs...</p>
@@ -70,11 +55,13 @@ const InventoryHistoryModal: React.FC<InventoryHistoryModalProps> = ({ onClose }
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-50">
-                {history.map((log) => (
+                {history.map((log: LogEntry) => (
                   <tr key={log.id} className="text-xs hover:bg-zinc-50/50 transition-colors">
                     <td className="py-4 text-zinc-500 font-medium">
-                      {new Date(log.created_at).toLocaleDateString()} <br/>
-                      <span className="text-[9px] opacity-60">{new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      {new Date(log.created_at).toLocaleDateString()}<br />
+                      <span className="text-[9px] opacity-60">
+                        {new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </span>
                     </td>
                     <td className="py-4 font-bold text-[#3b2063] uppercase">{log.product_name}</td>
                     <td className={`py-4 text-center font-black ${log.quantity_change > 0 ? 'text-emerald-500' : 'text-red-500'}`}>

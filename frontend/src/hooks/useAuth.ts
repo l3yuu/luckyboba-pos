@@ -1,5 +1,3 @@
-"use client"
-
 import api from '../services/api';
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';

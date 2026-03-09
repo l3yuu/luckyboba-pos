@@ -372,20 +372,6 @@ class MenuSeeder extends Seeder
                 ['name' => "OK BROWN SUGAR CHEESE MOUSSE + MILO", 'price' => 149.00, 'barcode' => "OKL3", 'size' => 'L'],
             ],
 
-            'PROMOS' => [
-                ['name' => "STUDENT FREE UPSIZE",         'price' => 0.00, 'barcode' => "STFUPZ",  'size' => 'none'],
-                ['name' => "10% EMPLOYEE DISCOUNT",       'price' => 0.00, 'barcode' => "EMPDSC",  'size' => 'none'],
-                ['name' => "GROCERY TIE UP -FREE UPSIZE", 'price' => 0.00, 'barcode' => "GCTP",    'size' => 'none'],
-                ['name' => "LOYALTY CARD CLAIM",          'price' => 0.00, 'barcode' => "LCCCM",   'size' => 'none'],
-                ['name' => "LUCKY CARD CLAIM -BOGO",      'price' => 0.00, 'barcode' => "LCBG",    'size' => 'none'],
-                ['name' => "LUCKY CARD CLAIM -10%",       'price' => 0.00, 'barcode' => "LC10",    'size' => 'none'],
-                ['name' => "FREE LARGE DRINK",            'price' => 0.00, 'barcode' => "FLDR",    'size' => 'none'],
-                ['name' => "FREE MEDIUM DRINK",           'price' => 0.00, 'barcode' => "FLMD",    'size' => 'none'],
-                ['name' => "FREE BLACK PEARL",            'price' => 0.00, 'barcode' => "FBPRL",   'size' => 'none'],
-                ['name' => "FREE LUCKY CARD",             'price' => 0.00, 'barcode' => "FLLCKYC", 'size' => 'none'],
-                ['name' => "FREE DELIVERY",               'price' => 0.00, 'barcode' => "FRDY",    'size' => 'none'],
-            ],
-
             'PUMPKIN SPICE' => [
                 ['name' => "PS MILK TEA",      'price' => 145.00, 'barcode' => "PO1", 'size' => 'L'],
                 ['name' => "PS ICED COFFEE",   'price' => 165.00, 'barcode' => "PO4", 'size' => 'L'],
@@ -423,6 +409,22 @@ class MenuSeeder extends Seeder
                 ['name' => "WAFFLE WHIP CREAM STRAWBERRY",    'price' => 105.00, 'barcode' => "WFWHSTRW",  'size' => 'none'],
                 ['name' => "WAFFLE WHIP CREAM BLUEBERRY",     'price' => 105.00, 'barcode' => "WFCBRY",    'size' => 'none'],
             ],
+
+            'PROMOS' => [
+                ['name' => "STUDENT FREE UPSIZE",         'price' => 0.00, 'barcode' => "STFUPZ",  'size' => 'none'],
+                ['name' => "10% EMPLOYEE DISCOUNT",       'price' => 0.00, 'barcode' => "EMPDSC",  'size' => 'none'],
+                ['name' => "GROCERY TIE UP -FREE UPSIZE", 'price' => 0.00, 'barcode' => "GCTP",    'size' => 'none'],
+                ['name' => "LOYALTY CARD CLAIM",          'price' => 0.00, 'barcode' => "LCCCM",   'size' => 'none'],
+                ['name' => "LUCKY CARD CLAIM -BOGO",      'price' => 0.00, 'barcode' => "LCBG",    'size' => 'none'],
+                ['name' => "LUCKY CARD CLAIM -10%",       'price' => 0.00, 'barcode' => "LC10",    'size' => 'none'],
+                ['name' => "FREE LARGE DRINK",            'price' => 0.00, 'barcode' => "FLDR",    'size' => 'none'],
+                ['name' => "FREE MEDIUM DRINK",           'price' => 0.00, 'barcode' => "FLMD",    'size' => 'none'],
+                ['name' => "FREE BLACK PEARL",            'price' => 0.00, 'barcode' => "FBPRL",   'size' => 'none'],
+                ['name' => "FREE LUCKY CARD",             'price' => 0.00, 'barcode' => "FLLCKYC", 'size' => 'none'],
+                ['name' => "FREE DELIVERY",               'price' => 0.00, 'barcode' => "FRDY",    'size' => 'none'],
+            ],
+
+            
 
             'YAKULT SERIES' => [
                 ['name' => "Green Apple Yakult", 'price' => 105.00, 'barcode' => "YSM1", 'size' => 'M'],
