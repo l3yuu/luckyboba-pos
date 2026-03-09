@@ -198,16 +198,16 @@ const Sidebar: React.FC<SidebarProps> = ({
     if (!show) return null;
     return (
       <div className="fixed inset-0 z-200 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
-        <div className="bg-white w-full max-w-sm border border-zinc-200 p-10 flex flex-col items-center text-center shadow-2xl">
+        <div className="bg-white w-full max-w-sm border border-zinc-200 p-10 flex flex-col items-center text-center shadow-2xl rounded-xl">
           <div className="w-12 h-12 flex items-center justify-center mb-5">{icon}</div>
           <h3 className="text-[#1a0f2e] font-bold text-base mb-2">{title}</h3>
           <p className="text-zinc-500 text-sm font-medium mb-8 leading-relaxed">{desc}</p>
           <div className="flex flex-col w-full gap-2">
-            <button onClick={action} className={`w-full py-3.5 text-sm font-bold tracking-wide text-white transition-colors ${danger ? 'bg-red-600 hover:bg-red-700' : 'bg-[#3b2063] hover:bg-[#2a174a]'}`}>
+            <button onClick={action} className={`w-full py-3.5 text-sm font-bold tracking-wide text-white transition-colors rounded-lg ${danger ? 'bg-red-600 hover:bg-red-700' : 'bg-[#3b2063] hover:bg-[#2a174a]'}`}>
               {btnText}
             </button>
             {cancel && (
-              <button onClick={cancel} className="w-full py-3.5 text-sm font-semibold text-zinc-600 bg-white border border-zinc-200 hover:bg-zinc-50 transition-colors">
+              <button onClick={cancel} className="w-full py-3.5 text-sm font-semibold text-zinc-600 bg-white border border-zinc-200 hover:bg-zinc-50 transition-colors rounded-lg">
                 Cancel
               </button>
             )}
@@ -405,7 +405,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           <button
             onClick={() => setShowLogoutConfirm(true)}
             disabled={isLoggingOut}
-            className="flex items-center justify-center w-full py-3.5 bg-[#be2525] hover:bg-[#a11f1f] text-white text-sm font-bold uppercase tracking-widest transition-colors active:scale-95 disabled:opacity-80 disabled:cursor-not-allowed"
+            className="flex items-center justify-center w-full py-3.5 bg-[#be2525] hover:bg-[#a11f1f] text-white text-sm font-bold uppercase tracking-widest transition-colors active:scale-95 disabled:opacity-80 disabled:cursor-not-allowed rounded-lg"
           >
             {isLoggingOut ? (
               <>

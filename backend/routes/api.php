@@ -136,6 +136,16 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/sub-categories/filter/{categoryId}', [SubCategoryController::class, 'getByCategory']);
         Route::get('/cups', [CupController::class, 'index']);
 
+        Route::prefix('inventory')->group(function () {
+            Route::get('/',             [InventoryController::class, 'index']);
+            Route::get('/top-products', [InventoryDashboardController::class, 'getWeeklyTopProducts']);
+            Route::get('/history',      [InventoryController::class, 'getTransactionHistory']);
+        });
+
+        Route::get('/raw-materials/low-stock',             [RawMaterialController::class, 'lowStock']);
+        Route::get('/raw-materials/movements',             [RawMaterialController::class, 'movements']);
+        Route::get('/raw-materials/{rawMaterial}/history', [RawMaterialController::class, 'history']);
+        Route::apiResource('raw-materials', RawMaterialController::class)->only(['index', 'show']);
     });
 
     /*
@@ -143,7 +153,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     | BRANCH MANAGER + SUPERADMIN
     |----------------------------------------------------------------------
     */
-    Route::middleware(['role:superadmin,branch_manager'])->group(function () {
+    Route::middleware(['role:superadmin,branch_manager,cashier'])->group(function () {
 
         // Inventory & Procurement
         Route::prefix('inventory')->group(function () {
@@ -308,11 +318,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     });
 
     // --- 9. RAW MATERIALS ---
-    Route::get('/raw-materials/low-stock',              [RawMaterialController::class, 'lowStock']);
-    Route::get('/raw-materials/movements',              [RawMaterialController::class, 'movements']); // 👈 moved up
-    Route::post('/raw-materials/{rawMaterial}/adjust',  [RawMaterialController::class, 'adjust']);
-    Route::get('/raw-materials/{rawMaterial}/history',  [RawMaterialController::class, 'history']);
-    Route::apiResource('raw-materials', RawMaterialController::class); // wildcard last
+    Route::get('/raw-materials/low-stock',             [RawMaterialController::class, 'lowStock']);
+    Route::get('/raw-materials/movements',             [RawMaterialController::class, 'movements']); // ← ADD THIS
+    Route::post('/raw-materials/{rawMaterial}/adjust', [RawMaterialController::class, 'adjust']);
+    Route::get('/raw-materials/{rawMaterial}/history', [RawMaterialController::class, 'history']);
+    Route::apiResource('raw-materials', RawMaterialController::class);
 
     // --- 10. RECIPES ---
     // Note: explicit named routes must be defined BEFORE apiResource
