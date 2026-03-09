@@ -272,8 +272,8 @@ const Sidebar: React.FC<SidebarProps> = ({
         .dropdown-header { transition: background 0.15s ease; }
         .dropdown-header:hover { background: #f5f3ff; }
 
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .logout-spinner { animation: spin 0.7s linear infinite; }
+        @keyframes logout-spin { to { transform: rotate(360deg); } }
+        .logout-spinner { animation: logout-spin 0.7s linear infinite; }
       `}</style>
 
       {/* Modals */}
@@ -301,7 +301,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         title="End Session?"
         desc="Are you sure you want to log out?"
         action={handleLogout}
-        btnText={isLoggingOut ? "Processing..." : "Logout"}
+        btnText="Logout"
         cancel={() => setShowLogoutConfirm(false)}
         danger
       />
@@ -316,17 +316,6 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar Shell */}
       <aside className={`relative inset-y-0 left-0 z-50 w-64 bg-white border-r border-zinc-200 transform transition-transform duration-300 md:relative md:translate-x-0 flex flex-col ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-
-        {/* Logout Loading Overlay */}
-        {isLoggingOut && (
-          <div className="absolute inset-0 z-50 bg-white/85 backdrop-blur-sm flex flex-col items-center justify-center gap-4 pointer-events-all">
-            <div className="relative w-11 h-11">
-              <div className="absolute inset-0 rounded-full border-[3px] border-zinc-100" />
-              <div className="logout-spinner absolute inset-0 rounded-full border-[3px] border-transparent border-t-[#3b2063]" />
-            </div>
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400">Logging out…</p>
-          </div>
-        )}
 
         <div className="flex-1 sidebar-scroll min-h-0">
 
@@ -416,10 +405,23 @@ const Sidebar: React.FC<SidebarProps> = ({
           <button
             onClick={() => setShowLogoutConfirm(true)}
             disabled={isLoggingOut}
-            className="flex items-center justify-center w-full py-3.5 bg-[#be2525] hover:bg-[#a11f1f] text-white text-sm font-bold uppercase tracking-widest transition-colors active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="flex items-center justify-center w-full py-3.5 bg-[#be2525] hover:bg-[#a11f1f] text-white text-sm font-bold uppercase tracking-widest transition-colors active:scale-95 disabled:opacity-80 disabled:cursor-not-allowed"
           >
-            <LogOut size={14} className="mr-2" strokeWidth={2.5} />
-            Logout
+            {isLoggingOut ? (
+              <>
+                {/* Spinner ring */}
+                <div className="relative w-4 h-4 mr-2 shrink-0">
+                  <div className="absolute inset-0 rounded-full border-2 border-white/30" />
+                  <div className="logout-spinner absolute inset-0 rounded-full border-2 border-transparent border-t-white" />
+                </div>
+                Logging out...
+              </>
+            ) : (
+              <>
+                <LogOut size={14} className="mr-2" strokeWidth={2.5} />
+                Logout
+              </>
+            )}
           </button>
           <p className="text-[12px] font-bold text-zinc-800 uppercase tracking-[0.2em] text-center mt-4">
             Lucky Boba &copy; 2026

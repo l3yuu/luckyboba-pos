@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react';
-import logo from '../../assets/logo.png';
+import logo from '../../../assets/logo.png';
 import { Pencil, ArrowLeft, Check, X, Save, Loader2 } from 'lucide-react';
 import api from '../../../services/api';
 import { useToast } from '../../../hooks/useToast';
