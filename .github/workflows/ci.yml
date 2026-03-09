@@ -113,6 +113,7 @@ jobs:
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
+            php artisan schedule:run >> /dev/null 2>&1  # ✅ Run scheduled tasks (token pruning etc.)
             cd ..
 
             # Restore root index.html with corrected asset paths
@@ -129,6 +130,9 @@ jobs:
             Options -Indexes
             <IfModule mod_headers.c>
                 Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https://luckybobastores.com https://staging.luckybobastores.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:;"
+                Header always set X-Frame-Options "DENY"
+                Header always set X-Content-Type-Options "nosniff"
+                Header always set Referrer-Policy "strict-origin-when-cross-origin"
             </IfModule>
             <IfModule mod_rewrite.c>
                 RewriteEngine On
@@ -209,6 +213,7 @@ jobs:
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
+            php artisan schedule:run >> /dev/null 2>&1  # ✅ Run scheduled tasks (token pruning etc.)
             cd ..
 
             # Restore root index.html with corrected asset paths (same as prod)
@@ -225,6 +230,9 @@ jobs:
             Options -Indexes
             <IfModule mod_headers.c>
                 Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https://luckybobastores.com https://staging.luckybobastores.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:;"
+                Header always set X-Frame-Options "DENY"
+                Header always set X-Content-Type-Options "nosniff"
+                Header always set Referrer-Policy "strict-origin-when-cross-origin"
             </IfModule>
             <IfModule mod_rewrite.c>
                 RewriteEngine On
