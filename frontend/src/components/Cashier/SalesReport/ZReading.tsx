@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import TopNavbar from '../TopNavbar';
-import api from '../../services/api';
+import api from '../../../services/api';
 
 interface ZReadingReport {
   date?: string;

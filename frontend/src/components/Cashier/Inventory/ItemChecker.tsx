@@ -2,9 +2,9 @@
 
 import { useState, useRef } from 'react';
 import TopNavbar from '../TopNavbar';
-import api from '../../services/api';
+import api from '../../../services/api';
 import { isAxiosError } from 'axios';
-import { useToast } from '../../hooks/useToast';
+import { useToast } from '../../../hooks/useToast';
 
 const dashboardFont = { fontFamily: "'Inter', sans-serif" };
 

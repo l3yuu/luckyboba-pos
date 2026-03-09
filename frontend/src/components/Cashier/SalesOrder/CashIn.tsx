@@ -3,10 +3,10 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import Keyboard from 'react-simple-keyboard';
 import 'react-simple-keyboard/build/css/index.css';
 import type { AxiosError } from 'axios'; 
-import api from '../../services/api';
-import type { KeyboardRef, CashInProps, ReceiptData } from '../../types/transactions';
+import api from '../../../services/api';
+import type { KeyboardRef, CashInProps, ReceiptData } from '../../../types/transactions';
 import TopNavbar from '../TopNavbar';
-import { useToast } from '../../context/ToastContext'; 
+import { useToast } from '../../../context/ToastContext'; 
 import { Monitor, Calculator, Printer, Wallet, CheckCircle2, AlertTriangle, X, RefreshCw } from 'lucide-react';
 
 const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {

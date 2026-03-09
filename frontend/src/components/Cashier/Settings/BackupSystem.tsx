@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ArrowLeft, Database, Download, Loader2, CheckCircle2 } from 'lucide-react';
-import api from '../../services/api';
-import { getCache, setCache, clearCache } from '../../utils/cache';
+import api from '../../../services/api';
+import { getCache, setCache, clearCache } from '../../../utils/cache';
 
 const BACKUP_STATUS_KEY = 'settings-backup-status';
 const AUDIT_CACHE_KEY   = 'settings-audit';

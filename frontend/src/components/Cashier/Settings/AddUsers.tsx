@@ -165,7 +165,7 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
                   <td className="px-6 py-4 text-xs font-black text-[#3b2063] uppercase">{user.username}</td>
                   <td className="px-6 py-4 text-xs font-bold text-slate-700">{user.name}</td>
                   <td className="px-6 py-4 text-xs font-bold text-slate-500">
-                    <span className="bg-zinc-100 px-2 py-1 rounded border border-zinc-200 text-[10px] font-black uppercase tracking-wider rounded-[0.625rem]">
+                    <span className="bg-zinc-100 px-2 py-1 rounded border border-zinc-200 text-[10px] font-black uppercase tracking-wider">
                       {user.position}
                     </span>
                   </td>
@@ -175,7 +175,7 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
                   <td className="px-6 py-4 text-center">
                     <button 
                       onClick={() => handleStatusToggle(user)}
-                      className={`relative group overflow-hidden px-1 sm:px-2 md:px-4 py-1.5 sm:py-2 rounded-full text-[7px] sm:text-[8px] md:text-[9px] font-black uppercase tracking-normal sm:tracking-widest transition-all duration-300 shadow-sm hover:shadow-md active:scale-95 w-20 sm:w-24 md:w-28 min-w-[80px] sm:min-w-[90px] md:min-w-[100px] border-2 ${
+                      className={`relative group overflow-hidden px-1 sm:px-2 md:px-4 py-1.5 sm:py-2 rounded-full text-[7px] sm:text-[8px] md:text-[9px] font-black uppercase tracking-normal sm:tracking-widest transition-all duration-300 shadow-sm hover:shadow-md active:scale-95 w-20 sm:w-24 md:w-28 min-w-20 sm:min-w-22.5 md:min-w-25 border-2 ${
                         user.status === 'Active' 
                         ? 'bg-emerald-50/50 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500 hover:text-white'
                         : 'bg-red-50/50 text-red-600 border-red-500/20 hover:bg-red-500 hover:text-white'
@@ -218,7 +218,7 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
 
       {/* CREATE NEW USER MODAL */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-md rounded-[0.625rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
             
             {/* Modal Header */}
@@ -330,7 +330,7 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
 
       {/* === EDIT USER MODAL === */}
       {isEditModalOpen && editingUser && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
             
             {/* Modal Header */}
@@ -420,7 +420,7 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
 
       {/* === CONFIRM STATUS TOGGLE MODAL === */}
       {isConfirmModalOpen && selectedUser && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className={`px-6 py-4 flex justify-between items-center ${
               selectedUser.status === 'Active' ? 'bg-red-500' : 'bg-emerald-500'
@@ -484,7 +484,7 @@ const AddUsers = ({ onBack }: { onBack: () => void }) => {
 
       {/* === DELETE USER MODAL === */}
       {isDeleteModalOpen && selectedUser && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="px-6 py-4 flex justify-between items-center bg-red-500">
               <h2 className="text-white font-black text-xs uppercase tracking-[0.2em]">

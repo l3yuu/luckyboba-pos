@@ -67,7 +67,7 @@ export class ErrorBoundary extends Component<Props, State> {
       if (this.state.errorCount >= 3) {
         return (
           <div className="min-h-screen flex flex-col items-center justify-center bg-[#f8f6ff] p-6">
-            <div className="bg-white rounded-[2rem] shadow-xl border border-red-100 p-10 max-w-md w-full text-center space-y-4">
+            <div className="bg-white rounded-4xl shadow-xl border border-red-100 p-10 max-w-md w-full text-center space-y-4">
               <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="#be2525" className="w-8 h-8">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />

@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import TopNavbar from '../TopNavbar';
-import api from '../../services/api';
+import api from '../../../services/api';
 import { Loader2 } from 'lucide-react';
-import { getCache, setCache } from '../../utils/cache';
+import { getCache, setCache } from '../../../utils/cache';
 
 const dashboardFont = { fontFamily: "'Inter', sans-serif" };
 

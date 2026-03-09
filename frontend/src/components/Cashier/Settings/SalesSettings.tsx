@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import logo from '../../assets/logo.png';
 import { Pencil, ArrowLeft, Check, X, Save, Loader2 } from 'lucide-react';
-import api from '../../services/api';
-import { useToast } from '../../hooks/useToast';
-import { getCache, setCache } from '../../utils/cache';
+import api from '../../../services/api';
+import { useToast } from '../../../hooks/useToast';
+import { getCache, setCache } from '../../../utils/cache';
 
 const CACHE_KEY = 'sales-settings';
 const CACHE_TTL = 10 * 60 * 1000; // 10 min — settings rarely change

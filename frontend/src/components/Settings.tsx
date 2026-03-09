@@ -1,15 +1,15 @@
 "use client"
 
 import { useState, useEffect } from 'react';
-import TopNavbar from './TopNavbar';
-import SalesSettings from './Settings/SalesSettings';
-import AddCustomers from './Settings/AddCustomers';
-import DiscountSettings from './Settings/DiscountSettings';
-import ExportData from './Settings/ExportData';
-import UploadData from './Settings/UploadData';
-import AddVouchers from './Settings/AddVouchers';
-import ImportData from './Settings/ImportData';
-import BackupSystem from './Settings/BackupSystem';
+import TopNavbar from './Cashier/TopNavbar';
+import SalesSettings from './Cashier/Settings/SalesSettings';
+import AddCustomers from './Cashier/Settings/AddCustomers';
+import DiscountSettings from './Cashier/Settings/DiscountSettings';
+import ExportData from './Cashier/Settings/ExportData';
+import UploadData from './Cashier/Settings/UploadData';
+import AddVouchers from './Cashier/Settings/AddVouchers';
+import ImportData from './Cashier/Settings/ImportData';
+import BackupSystem from './Cashier/Settings/BackupSystem';
 
 import { 
   Settings as SettingsIcon, UserPlus, Percent, FileUp, 

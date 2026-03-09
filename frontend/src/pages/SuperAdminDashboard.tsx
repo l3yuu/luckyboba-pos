@@ -163,7 +163,7 @@ const SuperAdminDashboard: React.FC = () => {
         fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-zinc-200
         transform transition-transform duration-300 ease-in-out
         md:relative md:translate-x-0 flex flex-col
-        rounded-r-[2rem] md:rounded-r-[1.5rem] overflow-hidden
+        rounded-r-4xl md:rounded-r-3xl overflow-hidden
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="flex flex-col flex-1 overflow-y-auto">
@@ -250,7 +250,7 @@ const SuperAdminDashboard: React.FC = () => {
         {/* Branch Create / Edit Modal */}
         {isModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-            <div className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl p-6 space-y-5">
+            <div className="bg-white w-full max-w-lg rounded-4xl shadow-2xl p-6 space-y-5">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-black text-[#3b2063] uppercase tracking-wider">
                   {showCreate ? 'Add Branch' : 'Edit Branch'}
@@ -320,7 +320,7 @@ const SuperAdminDashboard: React.FC = () => {
         {/* View Branch Modal */}
         {viewBranch && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-            <div className="bg-white w-full max-w-lg rounded-[2rem] shadow-2xl p-6 space-y-5">
+            <div className="bg-white w-full max-w-lg rounded-4xl shadow-2xl p-6 space-y-5">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-black text-[#3b2063] uppercase tracking-wider">Branch Details</h2>
                 <button onClick={() => setViewBranch(null)} className="text-zinc-400 hover:text-zinc-600">

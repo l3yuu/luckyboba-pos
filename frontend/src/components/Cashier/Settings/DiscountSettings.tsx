@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { Plus, Trash2, ArrowLeft, AlertTriangle } from 'lucide-react';
-import api from '../../services/api';
-import { useToast } from '../../context/ToastContext';
-import { getCache, setCache } from '../../utils/cache';
+import api from '../../../services/api';
+import { useToast } from '../../../context/ToastContext';
+import { getCache, setCache } from '../../../utils/cache';
 
 const dashboardFont = { fontFamily: "'Inter', sans-serif" };
 

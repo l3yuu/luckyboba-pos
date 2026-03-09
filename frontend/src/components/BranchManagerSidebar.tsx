@@ -98,7 +98,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
         fixed inset-y-0 left-0 z-50 w-56 sm:w-64 bg-white border-r border-zinc-200 
         transform transition-transform duration-300 ease-in-out
         md:relative md:translate-x-0 flex flex-col justify-between
-        rounded-r-[1.5rem] md:rounded-r-[2rem] overflow-hidden
+        rounded-r-3xl md:rounded-r-4xl overflow-hidden
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         {/* TOP SECTION: Logo and Navigation */}

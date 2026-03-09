@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import TopNavbar from '../TopNavbar';
-import api from '../../services/api';
+import api from '../../../services/api';
 
 interface InventoryCategory {
   id: number;

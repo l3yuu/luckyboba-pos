@@ -3,10 +3,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Keyboard from 'react-simple-keyboard';
 import 'react-simple-keyboard/build/css/index.css';
-import type { Transaction, ActiveInput } from '../../types/cash-count';
-import api from '../../services/api';
+import type { Transaction, ActiveInput } from '../../../types/cash-count';
+import api from '../../../services/api';
 import TopNavbar from '../TopNavbar';
-import { useToast } from '../../hooks/useToast';
+import { useToast } from '../../../hooks/useToast';
 import { Calculator, Printer, CheckCircle2, Lock, AlertTriangle, MessageSquare, RefreshCw, X, Banknote } from 'lucide-react';
 
 interface SimpleKeyboardInstance {

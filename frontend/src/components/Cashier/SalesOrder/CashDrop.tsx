@@ -4,10 +4,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import Keyboard from 'react-simple-keyboard';
 import 'react-simple-keyboard/build/css/index.css';
 import type { AxiosError } from 'axios';
-import api from '../../services/api';
-import type { BackendTransaction, Transaction, KeyboardRef, CashDropProps } from '../../types/transactions';
+import api from '../../../services/api';
+import type { BackendTransaction, Transaction, KeyboardRef, CashDropProps } from '../../../types/transactions';
 import TopNavbar from '../TopNavbar';
-import { getCache, setCache } from '../../utils/cache';
+import { getCache, setCache } from '../../../utils/cache';
 import { Banknote, History as HistoryIcon, Printer, Calculator, MessageSquare, ArrowDownCircle, CheckCircle2, X, Clock, RefreshCw } from 'lucide-react';
 
 const CACHE_KEY = 'cash-drop-history';

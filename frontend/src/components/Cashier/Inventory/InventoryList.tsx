@@ -2,8 +2,8 @@
 
 import { useState, useMemo } from 'react';
 import TopNavbar from '../TopNavbar';
-import api from '../../services/api';
-import { useCache } from '../../UseCache';
+import api from '../../../services/api';
+import { useCache } from '../../../UseCache';
 
 const dashboardFont = { fontFamily: "'Inter', sans-serif" };
 

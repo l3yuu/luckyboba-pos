@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import axios from 'axios';
 import TopNavbar from '../TopNavbar';
-import api from '../../services/api';
-import { getCache, setCache } from '../../utils/cache';
+import api from '../../../services/api';
+import { getCache, setCache } from '../../../utils/cache';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend, PieChart, Pie, Cell

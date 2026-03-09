@@ -12,7 +12,7 @@ import {
   ShieldAlert,
   FileCheck,
 } from 'lucide-react';
-import api from '../../services/api';
+import api from '../../../services/api';
 
 // ============================================================
 // TYPE DEFINITIONS
