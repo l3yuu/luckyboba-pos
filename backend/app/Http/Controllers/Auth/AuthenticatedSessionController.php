@@ -9,39 +9,34 @@ use Illuminate\Http\JsonResponse;
 
 class AuthenticatedSessionController extends Controller
 {
-    /**
-     * Handle an incoming authentication request.
-     */
     public function store(LoginRequest $request): JsonResponse
     {
         $request->authenticate();
 
-        // Get the authenticated user
-        $user = $request->user();
-
-        // Generate the Sanctum Token
-        $token = $user->createToken('lucky_boba_token')->plainTextToken;
+        $user  = $request->user();
+        $token = $user->createToken('pos|' . now()->toDateTimeString())->plainTextToken;
 
         return response()->json([
-            'user' => $user,
+            'user' => [
+                'id'    => $user->id,
+                'name'  => $user->name,
+                'email' => $user->email,
+                'role'  => $user->role,
+            ],
             'token' => $token,
         ]);
     }
 
-    /**
-     * Destroy an authenticated session.
-     */
-public function destroy(Request $request)
-{
-    $user = $request->user();
-    
-    // Defensive check to see if the token exists before deleting
-    if ($user && $user->currentAccessToken()) {
-        $user->currentAccessToken()->delete();
-    }
+    public function destroy(Request $request): JsonResponse
+    {
+        $user = $request->user();
 
-    return response()->json([
-        'message' => 'Logged out successfully'
-    ]);
-}
+        if ($user && $user->currentAccessToken()) {
+            $user->currentAccessToken()->delete();
+        }
+
+        return response()->json([
+            'message' => 'Logged out successfully'
+        ]);
+    }
 }

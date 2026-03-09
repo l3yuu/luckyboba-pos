@@ -5,7 +5,6 @@ use App\Http\Controllers\Api\CupController;
 use App\Http\Controllers\Api\RawMaterialController;
 use App\Http\Controllers\Api\RecipeController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use App\Models\User;
 use Illuminate\Http\Request; 
 use Illuminate\Support\Facades\Route;
 
@@ -16,8 +15,6 @@ use Illuminate\Support\Facades\Route;
 */
 Route::post('/login', [AuthenticatedSessionController::class, 'store'])
     ->middleware('throttle:5,2');
-Route::get('/users', function () { return User::all(); });
-
 /*
 |--------------------------------------------------------------------------
 | Protected API Routes (Requires auth:sanctum)
