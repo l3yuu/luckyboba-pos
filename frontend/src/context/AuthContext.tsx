@@ -6,7 +6,6 @@ import axios from 'axios';
 
 const AUTH_KEYS = [
   'lucky_boba_token',
-  'lucky_boba_authenticated',
   'lucky_boba_user_name',
   'lucky_boba_user_role',
   'lucky_boba_user_branch',
@@ -108,7 +107,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const { token, user: userData } = response.data;
       localStorage.setItem('lucky_boba_token', token);
-      localStorage.setItem('lucky_boba_authenticated', 'true');
       localStorage.setItem('lucky_boba_user_name', userData.name);
       localStorage.setItem('lucky_boba_user_role', userData.role || 'cashier');
       localStorage.setItem('lucky_boba_user_branch', userData.branch_name ?? '');

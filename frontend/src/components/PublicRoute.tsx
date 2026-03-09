@@ -1,19 +1,32 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { ROLE_HOME } from '../utils/roleRoutes';
+import logo from '../assets/logo.png';
 
 export const PublicRoute = () => {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#f8f6ff]">
+        <div className="relative flex flex-col items-center">
+          <img
+            src={logo}
+            alt="Lucky Boba"
+            className="h-16 w-auto object-contain animate-pulse mb-6 opacity-80"
+          />
+          <div className="w-12 h-12 border-4 border-zinc-200 border-t-[#3b2063] rounded-full animate-spin" />
+          <p className="mt-6 text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400">
+            Authenticating...
+          </p>
+        </div>
+      </div>
+    );
   }
 
   if (user) {
-    // Redirect to the correct home page based on their role
     const role = (user.role as string ?? '').toLowerCase().trim();
-    const redirectTo = ROLE_HOME[role] ?? '/login';
-    return <Navigate to={redirectTo} replace />;
+    return <Navigate to={ROLE_HOME[role] ?? '/login'} replace />;
   }
 
   return <Outlet />;

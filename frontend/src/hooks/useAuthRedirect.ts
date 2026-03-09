@@ -3,7 +3,29 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from './useAuth';
 import { ROLE_HOME } from '../utils/roleRoutes';
 
-type Role = 'superadmin' | 'admin' | 'manager' | 'cashier';
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type Role = keyof typeof ROLE_HOME;
+
+type LocationState = {
+  from?: { pathname: string };
+};
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const normalizeRole = (role: string | undefined): Role => {
+  return ((role ?? '').toLowerCase().trim() || 'cashier') as Role;
+};
+
+const resolveDestination = (
+  intendedPath: string | undefined,
+  roleHome: string
+): string => {
+  if (!intendedPath || intendedPath === '/login') return roleHome;
+  return intendedPath;
+};
+
+// ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export const useAuthRedirect = () => {
   const { user, isLoading } = useAuth();
@@ -11,13 +33,12 @@ export const useAuthRedirect = () => {
   const location = useLocation();
 
   useEffect(() => {
-    if (isLoading) return;
-    if (!user)    return;
+    if (isLoading || !user) return;
 
-    const userRole    = (user.role as string ?? '').toLowerCase().trim() as Role;
-    const roleHome    = ROLE_HOME[userRole] ?? '/dashboard';
-    const intended    = (location.state as { from?: { pathname: string } })?.from?.pathname;
-    const destination = intended && intended !== '/login' ? intended : roleHome;
+    const role        = normalizeRole(user.role as string);
+    const roleHome    = ROLE_HOME[role] ?? '/dashboard';
+    const intended    = (location.state as LocationState)?.from?.pathname;
+    const destination = resolveDestination(intended, roleHome);
 
     navigate(destination, { replace: true });
   }, [user, isLoading, navigate, location.state]);
