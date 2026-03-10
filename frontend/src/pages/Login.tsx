@@ -157,11 +157,11 @@ const Login: React.FC = () => {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 0.85rem;
+          gap: 0;
           position: relative;
           z-index: 1;
           width: 100%;
-          margin-top: 0;
+          margin-top: -100px;
         }
 
         /* Logo block */
@@ -170,12 +170,12 @@ const Login: React.FC = () => {
           flex-direction: column;
           align-items: center;
           gap: 0.5rem;
-          margin-top: -1rem;
-          margin-bottom: -10rem;
+          margin-top: -5rem;
+          margin-bottom: -8.5rem;
         }
         .lb-logo-hero img {
-          width: 450px;
-          height: 450px;
+          width: 580px;
+          height: 580px;
           object-fit: contain;
           filter: drop-shadow(0 8px 24px rgba(0,0,0,0.35));
         }
@@ -478,8 +478,6 @@ const Login: React.FC = () => {
           <div className="lb-left-center">
             <div className="lb-logo-hero">
               <img src={logo} alt="Lucky Boba" />
-              <span className="lb-logo-tagline">Point of Sale System</span>
-              <span style={{ fontSize: '0.5rem', color: 'rgba(255,255,255,0.3)', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}>450 × 450</span>
             </div>
 
             <div className="lb-pills">

@@ -24,7 +24,7 @@ interface NavBtnProps { active: boolean; icon: React.ReactNode; label: string; o
 const Sidebar: React.FC<SidebarProps> = ({
   isSidebarOpen, setSidebarOpen, logo, currentTab, setCurrentTab, isLoading = false
 }) => {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
 
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -76,7 +76,9 @@ const Sidebar: React.FC<SidebarProps> = ({
         }
       } catch (e) { console.error("Cash-in status error:", e); }
     };
-    checkStatus();
+    checkStatus(); // immediate on mount + tab change
+    const interval = setInterval(checkStatus, 30_000); // recheck every 30s
+    return () => clearInterval(interval);
   }, [currentTab]);
 
   // ── EOD completed event listener ──
@@ -372,6 +374,20 @@ const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Footer */}
         <div className="shrink-0 px-4 py-4 bg-white border-t border-zinc-100">
+            {/* Current user info */}
+            {user && (
+              <div className="flex items-center gap-2.5 px-3 py-2.5 mb-3 bg-zinc-50 border border-zinc-200 rounded-[0.625rem]">
+                <div className="w-7 h-7 rounded-full bg-[#3b2063] flex items-center justify-center shrink-0">
+                  <span className="text-[10px] font-black text-white uppercase">
+                    {user.name?.charAt(0) ?? '?'}
+                  </span>
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[11px] font-bold text-[#1a0f2e] truncate leading-tight">{user.name}</span>
+                  <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-zinc-400 leading-tight">{user.role}</span>
+                </div>
+              </div>
+            )}
           <button
             onClick={() => setShowLogoutConfirm(true)}
             disabled={isLoggingOut}
