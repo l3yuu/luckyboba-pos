@@ -34,10 +34,11 @@ const STYLES = `
 interface ApiUser {
   id:          number;
   name:        string;
-  email:       string;         // used as username in display
-  role:        string;         // 'cashier' | 'branch_manager' | 'superadmin'
-  status:      string;         // 'ACTIVE' | 'INACTIVE'
-  branch_name?: string | null;
+  email:       string;
+  role:        string;
+  status:      string;
+  branch?:     string | null;   // matches transformUser() which returns 'branch'
+  branch_name?: string | null;  // kept for backward compat
   branch_id?:  number | null;
   created_at?: string;
   last_login_at?: string | null;
@@ -50,7 +51,6 @@ interface FormState {
   password:        string;
   passwordConfirm: string;
   role:            string;
-  branch_name:     string;
 }
 
 const ROLE_OPTIONS = ['cashier', 'branch_manager'];
@@ -67,7 +67,7 @@ const positionColor: Record<string, string> = {
   cashier:        'bg-gray-100 text-gray-600 border-gray-200',
 };
 
-const blankForm = (): FormState => ({ name: '', email: '', password: '', passwordConfirm: '', role: 'cashier', branch_name: '' });
+const blankForm = (): FormState => ({ name: '', email: '', password: '', passwordConfirm: '', role: 'cashier' });
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -99,13 +99,17 @@ const UserManagement: React.FC = () => {
     setApiError(null);
     try {
       const res = await api.get('/users');
-      // Handle both plain array and Laravel paginated { data: [...] } responses
       const payload = res.data;
-      const list: ApiUser[] = Array.isArray(payload)
+      // Controller returns { success, data: [...], message }
+      const raw: unknown[] = Array.isArray(payload)
         ? payload
         : Array.isArray(payload?.data)
         ? payload.data
         : [];
+      // Filter out any non-object / malformed entries to prevent toLowerCase crash
+      const list: ApiUser[] = raw.filter(
+        (u): u is ApiUser => !!u && typeof u === 'object' && 'id' in (u as object)
+      );
       setUsers(list);
     } catch (e: unknown) {
       const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -150,7 +154,7 @@ const UserManagement: React.FC = () => {
 
   const openEdit = (user: ApiUser) => {
     setEditingUser(user);
-    setForm({ name: user.name, email: user.email, password: '', passwordConfirm: '', role: user.role, branch_name: user.branch_name ?? '' });
+    setForm({ name: user.name, email: user.email, password: '', passwordConfirm: '', role: user.role });
     setFormError(null);
     setIsModalOpen(true);
   };
@@ -166,27 +170,40 @@ const UserManagement: React.FC = () => {
     setSaving(true);
     try {
       if (editingUser) {
-        // Update — only send password if changed
-        const payload: Record<string, string> = { name: form.name, email: form.email, role: form.role, branch: form.branch_name };
-        if (form.password) payload.password = form.password;
-        const res = await api.put<ApiUser>(`/users/${editingUser.id}`, payload);
-        // Use the fresh server response so branch_name reflects what was actually saved
-        setUsers(prev => prev.map(u => u.id === editingUser.id ? res.data : u));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const payload: Record<string, any> = { name: form.name, email: form.email, role: form.role };
+        if (form.password) {
+          payload.password = form.password;
+          payload.password_confirmation = form.passwordConfirm;
+        }
+        const res = await api.put(`/users/${editingUser.id}`, payload);
+        // Controller wraps response: { success, data: {...user}, message }
+        const updated: ApiUser = res.data?.data ?? res.data;
+        setUsers(prev => prev.map(u => u.id === editingUser.id ? updated : u));
       } else {
-        // Create
-        const res = await api.post<ApiUser>('/users', {
-          name:     form.name,
-          email:    form.email,
-          password: form.password,
-          role:     form.role,
-          branch:   form.branch_name,
+        const res = await api.post('/users', {
+          name:                  form.name,
+          email:                 form.email,
+          password:              form.password,
+          password_confirmation: form.passwordConfirm,
+          role:                  form.role,
+          status:                'ACTIVE',   // required by backend validation
         });
-        setUsers(prev => [res.data, ...prev]);
+        // Controller wraps response: { success, data: {...user}, message }
+        const created: ApiUser = res.data?.data ?? res.data;
+        setUsers(prev => [created, ...prev]);
       }
       closeModal();
     } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setFormError(msg ?? 'Failed to save user.');
+      // Laravel returns { message, errors: { field: [msg, ...] } } on 422
+      type LaravelError = { response?: { data?: { message?: string; errors?: Record<string, string[]> } } };
+      const errData = (e as LaravelError)?.response?.data;
+      if (errData?.errors) {
+        const msgs = Object.values(errData.errors).flat().join(' · ');
+        setFormError(msgs);
+      } else {
+        setFormError(errData?.message ?? 'Failed to save user.');
+      }
     } finally {
       setSaving(false);
     }
@@ -213,8 +230,9 @@ const UserManagement: React.FC = () => {
     if (!selectedUser) return;
     setSaving(true);
     try {
-      const res = await api.patch<ApiUser>(`/users/${selectedUser.id}/toggle-status`);
-      setUsers(prev => prev.map(u => u.id === selectedUser.id ? res.data : u));
+      const res = await api.patch(`/users/${selectedUser.id}/toggle-status`);
+      const toggled: ApiUser = res.data?.data ?? res.data;
+      setUsers(prev => prev.map(u => u.id === selectedUser.id ? toggled : u));
       setIsConfirmModalOpen(false);
       setSelectedUser(null);
     } catch (e: unknown) {
@@ -366,9 +384,9 @@ const UserManagement: React.FC = () => {
                       <div className="min-w-0">
                         <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1a0f2e', lineHeight: 1.2 }} className="truncate">{user.name}</p>
                         <p className="um-sub truncate">{user.email}</p>
-                        {user.branch_name && (
+                        {(user.branch ?? user.branch_name) && (
                           <p className="truncate" style={{ fontSize: '0.6rem', fontWeight: 600, color: '#7c3aed', letterSpacing: '0.06em', marginTop: 1 }}>
-                            📍 {user.branch_name}
+                            📍 {user.branch ?? user.branch_name}
                           </p>
                         )}
                       </div>
@@ -432,7 +450,7 @@ const UserManagement: React.FC = () => {
                     { label: 'Member Since',   value: user.created_at ? new Date(user.created_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }) : '—', icon: <Clock size={12}/> },
                     { label: 'Total Logins',   value: `${(user.login_count ?? 0).toLocaleString()} sessions`,  icon: <Key    size={12}/> },
                     { label: 'Role',           value: roleLabel[user.role] ?? user.role.toUpperCase(),          icon: <Shield size={12}/> },
-                    { label: 'Branch',         value: user.branch_name ?? '—',                                  icon: <Users  size={12}/> },
+                    { label: 'Branch',         value: user.branch ?? user.branch_name ?? '—',                  icon: <Users  size={12}/> },
                   ].map((d, di) => (
                     <div key={di} className="flex flex-col gap-1">
                       <div className="flex items-center gap-1.5 um-label" style={{ color: '#7c3aed' }}>{d.icon}{d.label}</div>
@@ -499,16 +517,6 @@ const UserManagement: React.FC = () => {
                   <select className="um-input" value={form.role} onChange={e => setForm({...form, role: e.target.value})}>
                     {ROLE_OPTIONS.map(r => <option key={r} value={r}>{roleLabel[r] ?? r.toUpperCase()}</option>)}
                   </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="um-label flex items-center gap-1.5">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
-                    Branch Name
-                  </label>
-                  <input className="um-input" type="text" value={form.branch_name}
-                    onChange={e => setForm({...form, branch_name: e.target.value})}
-                    placeholder="e.g. Branch #1, Main Branch…" />
                 </div>
 
                 <div className="bg-violet-50 border border-violet-100 rounded-xl p-3 flex gap-2.5">
