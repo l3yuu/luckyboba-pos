@@ -20,14 +20,23 @@ class SalesDashboardController extends Controller
 
     /**
      * GET /api/sales-analytics
+     * Returns analytics scoped to the authenticated user's branch.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         try {
-            return response()->json($this->salesService->getAnalyticsData());
+            $user     = auth('sanctum')->user() ?? $request->user();
+            $branchId = $user?->branch_id; // null for superadmin → all branches
+
+            return response()->json(
+                $this->salesService->getAnalyticsData($branchId)
+            );
         } catch (\Exception $e) {
             Log::error('Sales Analytics Error: ' . $e->getMessage());
-            return response()->json(['message' => 'Failed to load sales analytics.', 'error' => $e->getMessage()], 500);
+            return response()->json([
+                'message' => 'Failed to load sales analytics.',
+                'error'   => $e->getMessage(),
+            ], 500);
         }
     }
 
@@ -64,7 +73,6 @@ class SalesDashboardController extends Controller
 
     /**
      * GET /api/reports/x-reading?date=
-     * Single-day report for the authenticated user's branch.
      */
     public function xReading(Request $request): JsonResponse
     {
@@ -86,11 +94,9 @@ class SalesDashboardController extends Controller
 
     /**
      * GET /api/reports/z-reading?from=&to=   (or ?date= for single-day)
-     * Date-range report, branch-filtered — same logic as X-Reading.
      */
     public function zReading(Request $request): JsonResponse
     {
-        // Accept either ?date= (single day) or ?from=&to= (range)
         $from = $request->input('from', $request->input('date'));
         $to   = $request->input('to',   $request->input('date'));
 
@@ -102,7 +108,7 @@ class SalesDashboardController extends Controller
 
         try {
             $user     = auth('sanctum')->user() ?? $request->user();
-            $branchId = $user?->branch_id;  // ← same branch filter as xReading
+            $branchId = $user?->branch_id;
 
             $report                = $this->salesService->generateZReading($from, $to, $branchId);
             $report['prepared_by'] = $user?->name ?? 'System Admin';
@@ -132,10 +138,10 @@ class SalesDashboardController extends Controller
     /**
      * GET /api/reports/dashboard-data
      */
-    public function dashboardData(): JsonResponse
+    public function dashboardData(Request $request): JsonResponse
     {
         try {
-            $user     = auth('sanctum')->user();
+            $user     = auth('sanctum')->user() ?? $request->user();
             $branchId = $user?->branch_id;
 
             $today     = now()->toDateString();
@@ -178,8 +184,15 @@ class SalesDashboardController extends Controller
                 ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
                 ->orderBy('id', 'desc')->first();
 
-            $todayTotal     = (float) \App\Models\Sale::whereDate('created_at', $today)->where('status', '!=', 'cancelled')->when($branchId, fn($q) => $q->where('branch_id', $branchId))->sum('total_amount');
-            $cancelledTotal = (float) \App\Models\Sale::whereDate('created_at', $today)->where('status', 'cancelled')->when($branchId, fn($q) => $q->where('branch_id', $branchId))->sum('total_amount');
+            $todayTotal     = (float) \App\Models\Sale::whereDate('created_at', $today)
+                ->where('status', '!=', 'cancelled')
+                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                ->sum('total_amount');
+
+            $cancelledTotal = (float) \App\Models\Sale::whereDate('created_at', $today)
+                ->where('status', 'cancelled')
+                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                ->sum('total_amount');
 
             return response()->json([
                 'success' => true,

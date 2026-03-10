@@ -50,7 +50,7 @@ const normalize = (values: number[], height = 180): number[] => {
 const DeleteBranchModal: React.FC<{ branch: Branch; loading: boolean; onConfirm: () => void; onCancel: () => void }> = ({
   branch, loading, onConfirm, onCancel,
 }) => (
-  <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+  <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
     <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center">
       <div className="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center mb-4 bg-red-100 text-red-600">
         <Trash2 size={26} />
@@ -195,7 +195,7 @@ const HourlyChart: React.FC<{ hourlyTotals: number[]; hourlyLabels: string[]; ho
             const isHovered = hoveredIndex === i;
             const hasData = hourlyTotals[i] > 0;
             return (
-              <div key={i} className="flex flex-col items-center min-w-[2rem] flex-1 h-full justify-end relative"
+              <div key={i} className="flex flex-col items-center min-w-8 flex-1 h-full justify-end relative"
                 onMouseEnter={() => setHoveredIndex(i)} onMouseLeave={() => setHoveredIndex(null)}
                 style={{ cursor: hasData ? 'pointer' : 'default' }}>
                 {isHovered && hasData && (
@@ -203,7 +203,7 @@ const HourlyChart: React.FC<{ hourlyTotals: number[]; hourlyLabels: string[]; ho
                     style={{ bottom: 'calc(100% - 20px)' }}>
                     <p className="text-[8px] font-bold text-gray-400 text-center">{hourlyLabels[i]}</p>
                     <p className="text-xs font-black text-white text-center">{fmt(hourlyTotals[i])}</p>
-                    <div className="absolute left-1/2 -translate-x-1/2 bottom-[-5px] w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[5px] border-t-gray-900" />
+                    <div className="absolute left-1/2 -translate-x-1/2 -bottom-1.25 w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[5px] border-t-gray-900" />
                   </div>
                 )}
                 <div className="w-full rounded-t-md transition-all duration-200"
@@ -254,13 +254,13 @@ const AnalyticsModal: React.FC<{ branch: Branch; onClose: () => void }> = ({ bra
   const yAxisMax = analytics ? Math.ceil(Math.max(...weeklyTotals, 1) / 1000) * 1000 : 10000;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 md:p-8 overflow-y-auto">
+    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 md:p-8 overflow-y-auto">
       <div className="w-full max-w-5xl my-auto bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center text-sm font-black flex-shrink-0">
+            <div className="w-9 h-9 rounded-xl bg-violet-100 text-violet-700 flex items-center justify-center text-sm font-black shrink-0">
               {branch.name.charAt(0)}
             </div>
             <div>
@@ -383,7 +383,7 @@ const BranchesTab: React.FC<BranchesTabProps> = ({
             { label: "Today's Sales",  value: fmtShort(todaySales),  color: '#0891b2', bg: '#cffafe' },
           ].map((s, i) => (
             <div key={i} className="bg-white border border-gray-100 rounded-xl px-4 py-3 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
                 style={{ background: s.bg, color: s.color }}>
                 <GitBranch size={14} />
               </div>
@@ -464,7 +464,7 @@ const BranchesTab: React.FC<BranchesTabProps> = ({
                   {/* Card header */}
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black flex-shrink-0 ${
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-sm font-black shrink-0 ${
                         isActive ? 'bg-violet-100 text-violet-700' : 'bg-gray-100 text-gray-400'
                       }`}>
                         {branch.name.charAt(0)}

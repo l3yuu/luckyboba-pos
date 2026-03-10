@@ -90,7 +90,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
   const toggleGroup = (id: GroupId) => {
     setOpenGroups(prev => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
       return next;
     });
   };
@@ -143,7 +143,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
       <style>{SB_STYLES}</style>
 
       <aside className={`
-        bm-sb-root fixed inset-y-0 left-0 z-50 w-[240px] bg-white border-r border-zinc-100
+        bm-sb-root fixed inset-y-0 left-0 z-50 w-60 bg-white border-r border-zinc-100
         flex flex-col transform transition-transform duration-300
         md:relative md:translate-x-0
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -266,7 +266,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
           <button
             onClick={() => setShowLogoutModal(true)}
             disabled={isLoggingOut}
-            className="bm-sb-item hover:!bg-red-50 hover:!text-red-600"
+            className="bm-sb-item hover:bg-red-50! hover:text-red-600!"
             style={{ color: '#be2525' }}
           >
             {isLoggingOut ? (

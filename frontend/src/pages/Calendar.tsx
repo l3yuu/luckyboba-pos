@@ -216,7 +216,7 @@ const Calendar: React.FC = () => {
         <header className="h-20 flex items-center justify-between px-8 bg-white border-b border-[#3b2063]/5 shadow-sm">
           {/* ... (Header content remains same until navigation buttons) ... */}
           <div className="flex items-center gap-6">
-            <div className="flex flex-col items-center justify-center bg-[#f8f6ff] rounded-2xl p-3 min-w-[60px] border border-[#3b2063]/10 shadow-inner">
+            <div className="flex flex-col items-center justify-center bg-[#f8f6ff] rounded-2xl p-3 min-w-15 border border-[#3b2063]/10 shadow-inner">
               <span className="text-[10px] uppercase font-black text-[#3b2063]/40 leading-none mb-1 tracking-widest">
                 {selectedDate.toLocaleDateString('en-US', { month: 'short' })}
               </span>
@@ -292,7 +292,7 @@ const Calendar: React.FC = () => {
         <div className="flex-1 overflow-y-auto relative bg-white m-4 rounded-[2.5rem] shadow-xl border border-[#3b2063]/5">
           <div className="min-h-full">
             {hours.map((hour) => (
-              <div key={hour} className="flex border-b border-[#f8f6ff] group min-h-[120px]">
+              <div key={hour} className="flex border-b border-[#f8f6ff] group min-h-30">
                 <div className="w-24 py-6 px-4 text-right text-[10px] font-black text-[#3b2063]/40 uppercase tracking-widest select-none">
                   {hour > 12 ? hour - 12 : hour} {hour >= 12 ? 'PM' : 'AM'}
                 </div>
@@ -338,7 +338,7 @@ const Calendar: React.FC = () => {
       </div>
 
       {/* Sidebar Area */}
-      <aside className="w-[380px] flex flex-col bg-white border-l border-[#3b2063]/5 shadow-2xl">
+      <aside className="w-95 flex flex-col bg-white border-l border-[#3b2063]/5 shadow-2xl">
         {/* Mini Calendar */}
         <div className="p-8 border-b border-[#f8f6ff]">
           <div className="flex items-center justify-between mb-6 px-2">
@@ -501,7 +501,7 @@ const Calendar: React.FC = () => {
 
               <div className="pt-8 border-t border-[#f8f6ff]">
                 <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#3b2063]/40 mb-4">Reservation Notes</h4>
-                <div className="bg-[#f8f6ff] p-6 rounded-[2rem] border border-[#3b2063]/5 italic text-sm text-[#3b2063]/70 leading-relaxed shadow-inner">
+                <div className="bg-[#f8f6ff] p-6 rounded-4xl border border-[#3b2063]/5 italic text-sm text-[#3b2063]/70 leading-relaxed shadow-inner">
                   "{selectedReservation.notes || 'No special requests provided for this booking.'}"
                 </div>
               </div>
@@ -550,7 +550,7 @@ const Calendar: React.FC = () => {
 
       {/* Reservation Modal */}
       {isReservationModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#3b2063]/40 backdrop-blur-md p-4">
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-[#3b2063]/40 backdrop-blur-md p-4">
           <div className="bg-white w-full max-w-md rounded-[3rem] shadow-2xl p-10 space-y-8 border border-white/20">
             <div className="flex items-center justify-between">
               <h2 className="text-3xl font-black text-[#3b2063] uppercase tracking-tight leading-none">
@@ -587,7 +587,7 @@ const Calendar: React.FC = () => {
                 <select
                   value={reservationForm.reservationType}
                   onChange={(e) => setReservationForm(f => ({ ...f, reservationType: e.target.value as Reservation['reservationType'] }))}
-                  className="w-full px-6 py-4 rounded-[1.5rem] border border-[#3b2063]/10 text-sm font-black text-[#3b2063] bg-[#f8f6ff] focus:outline-none focus:ring-8 focus:ring-[#3b2063]/5 focus:bg-white focus:shadow-lg transition-all appearance-none cursor-pointer"
+                  className="w-full px-6 py-4 rounded-3xl border border-[#3b2063]/10 text-sm font-black text-[#3b2063] bg-[#f8f6ff] focus:outline-none focus:ring-8 focus:ring-[#3b2063]/5 focus:bg-white focus:shadow-lg transition-all appearance-none cursor-pointer"
                 >
                   <option value="table">Table Reservation</option>
                   <option value="party">Party/Event</option>
@@ -603,7 +603,7 @@ const Calendar: React.FC = () => {
                   type="text"
                   value={reservationForm.customerName}
                   onChange={(e) => setReservationForm(f => ({ ...f, customerName: e.target.value }))}
-                  className="w-full px-6 py-4 rounded-[1.5rem] border border-[#3b2063]/10 text-sm font-black text-[#3b2063] bg-[#f8f6ff] focus:outline-none focus:ring-8 focus:ring-[#3b2063]/5 focus:bg-white focus:shadow-lg transition-all"
+                  className="w-full px-6 py-4 rounded-3xl border border-[#3b2063]/10 text-sm font-black text-[#3b2063] bg-[#f8f6ff] focus:outline-none focus:ring-8 focus:ring-[#3b2063]/5 focus:bg-white focus:shadow-lg transition-all"
                   placeholder="Enter full name"
                   required
                 />
@@ -617,7 +617,7 @@ const Calendar: React.FC = () => {
                   type="tel"
                   value={reservationForm.customerPhone}
                   onChange={handlePhoneChange}
-                  className="w-full px-6 py-4 rounded-[1.5rem] border border-[#3b2063]/10 text-sm font-black text-[#3b2063] bg-[#f8f6ff] focus:outline-none focus:ring-8 focus:ring-[#3b2063]/5 focus:bg-white focus:shadow-lg transition-all"
+                  className="w-full px-6 py-4 rounded-3xl border border-[#3b2063]/10 text-sm font-black text-[#3b2063] bg-[#f8f6ff] focus:outline-none focus:ring-8 focus:ring-[#3b2063]/5 focus:bg-white focus:shadow-lg transition-all"
                   placeholder="Ex: 09123456789"
                   required
                 />
@@ -634,7 +634,7 @@ const Calendar: React.FC = () => {
                     max="50"
                     value={reservationForm.partySize}
                     onChange={(e) => setReservationForm(f => ({ ...f, partySize: parseInt(e.target.value) || 1 }))}
-                    className="w-full px-6 py-4 rounded-[1.5rem] border border-[#3b2063]/10 text-sm font-black text-[#3b2063] bg-[#f8f6ff] focus:outline-none focus:ring-8 focus:ring-[#3b2063]/5 focus:bg-white focus:shadow-lg transition-all"
+                    className="w-full px-6 py-4 rounded-3xl border border-[#3b2063]/10 text-sm font-black text-[#3b2063] bg-[#f8f6ff] focus:outline-none focus:ring-8 focus:ring-[#3b2063]/5 focus:bg-white focus:shadow-lg transition-all"
                   />
                 </div>
                 <div>
@@ -645,7 +645,7 @@ const Calendar: React.FC = () => {
                     type="time"
                     value={reservationForm.time}
                     onChange={(e) => setReservationForm(f => ({ ...f, time: e.target.value }))}
-                    className="w-full px-6 py-4 rounded-[1.5rem] border border-[#3b2063]/10 text-sm font-black text-[#3b2063] bg-[#f8f6ff] focus:outline-none focus:ring-8 focus:ring-[#3b2063]/5 focus:bg-white focus:shadow-lg transition-all"
+                    className="w-full px-6 py-4 rounded-3xl border border-[#3b2063]/10 text-sm font-black text-[#3b2063] bg-[#f8f6ff] focus:outline-none focus:ring-8 focus:ring-[#3b2063]/5 focus:bg-white focus:shadow-lg transition-all"
                     required
                   />
                 </div>
@@ -658,7 +658,7 @@ const Calendar: React.FC = () => {
                 <textarea
                   value={reservationForm.notes}
                   onChange={(e) => setReservationForm(f => ({ ...f, notes: e.target.value }))}
-                  className="w-full px-6 py-4 rounded-[1.5rem] border border-[#3b2063]/10 text-sm font-black text-[#3b2063] bg-[#f8f6ff] focus:outline-none focus:ring-8 focus:ring-[#3b2063]/5 focus:bg-white focus:shadow-lg transition-all resize-none"
+                  className="w-full px-6 py-4 rounded-3xl border border-[#3b2063]/10 text-sm font-black text-[#3b2063] bg-[#f8f6ff] focus:outline-none focus:ring-8 focus:ring-[#3b2063]/5 focus:bg-white focus:shadow-lg transition-all resize-none"
                   rows={3}
                   placeholder="Any dietary restrictions or requests?"
                 />
@@ -667,7 +667,7 @@ const Calendar: React.FC = () => {
               <div className="pt-4">
                 <button
                   type="submit"
-                  className="w-full py-5 bg-[#3b2063] hover:bg-[#2a1839] text-white rounded-[1.5rem] text-base font-black uppercase tracking-widest transition-all shadow-xl hover:shadow-2xl active:scale-95 border-b-4 border-black/20"
+                  className="w-full py-5 bg-[#3b2063] hover:bg-[#2a1839] text-white rounded-3xl text-base font-black uppercase tracking-widest transition-all shadow-xl hover:shadow-2xl active:scale-95 border-b-4 border-black/20"
                 >
                   {editingReservation ? 'Save Changes' : 'Confirm Booking'}
                 </button>
