@@ -21,7 +21,7 @@ const Login: React.FC = () => {
   const [lockoutTimer, setLockoutTimer] = useState<number>(0);
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const { login, isLoading, error, user } = useAuth();
+  const { login, isLoading, user } = useAuth();
   const navigate        = useNavigate();
   const hasRedirected   = useRef(false);
   const didJustLogin    = useRef(false);
@@ -47,11 +47,6 @@ const Login: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (error) showToast(error, 'error');
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [error]);
-
-  useEffect(() => {
     const check = () => {
       const end = localStorage.getItem('login_lockout_end');
       setLockoutTimer(end ? Math.max(0, Math.ceil((parseInt(end) - Date.now()) / 1000)) : 0);
@@ -68,14 +63,19 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const credentials: LoginCredentials = { email, password };
-    const loggedInUser = await login(credentials);
-    if (loggedInUser) {
-      localStorage.setItem('user_role', loggedInUser.role);
-      localStorage.setItem('lucky_boba_user_branch_id', String(loggedInUser.branch_id ?? ''));
-      showToast(`Welcome back, ${loggedInUser.name}!`, 'success');
-      didJustLogin.current  = true;
-      hasRedirected.current = true;
-      navigate(getHomeForRole(loggedInUser.role), { replace: true });
+    try {
+      const loggedInUser = await login(credentials);
+      if (loggedInUser) {
+        localStorage.setItem('user_role', loggedInUser.role);
+        localStorage.setItem('lucky_boba_user_branch_id', String(loggedInUser.branch_id ?? ''));
+        showToast(`Welcome back, ${loggedInUser.name}!`, 'success');
+        didJustLogin.current  = true;
+        hasRedirected.current = true;
+        navigate(getHomeForRole(loggedInUser.role), { replace: true });
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Invalid email or password.';
+      showToast(message, 'error');
     }
   };
 
