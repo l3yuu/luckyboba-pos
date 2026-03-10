@@ -138,8 +138,8 @@ return new class extends Migration
         if (DB::table('branches')->count() === 0) {
             DB::table('branches')->insert([
                 [
-                    'name' => 'Lucky Boba - SM City',
-                    'location' => 'SM City Cebu',
+                    'name' => 'Lucky Boba - Main Branch',
+                    'location' => 'Vipra',
                     'status' => 'active',
                     'total_sales' => 0.00,
                     'today_sales' => 0.00,
