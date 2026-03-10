@@ -222,7 +222,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
 
       {/* ── Logout modal ── */}
       {showLogoutConfirm && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
+        <div className="fixed inset-0 z-200 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
           <div style={{ fontFamily: "'DM Sans', sans-serif" }}
             className="bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] p-8 flex flex-col items-center text-center shadow-2xl">
             <div className="w-11 h-11 rounded-[0.625rem] flex items-center justify-center mb-5 bg-red-50">
@@ -248,7 +248,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
 
       {/* ── Sidebar shell ── */}
       <aside className={`
-        sb-root fixed inset-y-0 left-0 z-50 w-[210px] bg-white border-r border-zinc-100
+        sb-root fixed inset-y-0 left-0 z-50 w-52.5 bg-white border-r border-zinc-100
         flex flex-col transform transition-transform duration-300
         md:relative md:translate-x-0
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
