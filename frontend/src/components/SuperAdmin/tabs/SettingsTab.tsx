@@ -4,35 +4,34 @@ import AddCustomers from '../../Cashier/Settings/AddCustomers';
 import DiscountSettings from '../../Cashier/Settings/DiscountSettings';
 import ExportData from '../../Cashier/Settings/ExportData';
 import UploadData from '../../Cashier/Settings/UploadData';
-import AddUsers from '../../Cashier/Settings/AddUsers';
 import AddVouchers from '../../Cashier/Settings/AddVouchers';
 import ImportData from '../../Cashier/Settings/ImportData';
 import BackupSystem from '../../Cashier/Settings/BackupSystem';
 import {
   SalesSettingsIcon, AddCustomersIcon, DiscountIcon, ExportDataIcon,
-  UploadDataIcon, AddUsersIcon, AddVouchersIcon, ImportDataIcon, BackupSystemIcon,
+  UploadDataIcon, AddVouchersIcon, ImportDataIcon, BackupSystemIcon,
   LastBackupIcon, ActiveSessionIcon, SystemStatusIcon,
 } from '../icons';
+import { Settings, Shield, ChevronRight } from 'lucide-react';
 
 type SubView = 'add-customers' | 'discount' | 'export-data' | 'upload-data'
-             | 'add-users' | 'add-vouchers' | 'import-data' | 'backup-system';
+             | 'add-vouchers' | 'import-data' | 'backup-system';
 
 const SETTING_ACTIONS = [
-  { label: 'Sales Settings', Icon: SalesSettingsIcon, key: 'sales-settings' as const },
-  { label: 'Add Customers',  Icon: AddCustomersIcon,  key: 'add-customers'  as SubView },
-  { label: 'Discount',       Icon: DiscountIcon,      key: 'discount'       as SubView },
-  { label: 'Export Data',    Icon: ExportDataIcon,    key: 'export-data'    as SubView },
-  { label: 'Upload Data',    Icon: UploadDataIcon,    key: 'upload-data'    as SubView },
-  { label: 'Add Users',      Icon: AddUsersIcon,      key: 'add-users'      as SubView },
-  { label: 'Add Vouchers',   Icon: AddVouchersIcon,   key: 'add-vouchers'   as SubView },
-  { label: 'Import Data',    Icon: ImportDataIcon,    key: 'import-data'    as SubView },
-  { label: 'Backup System',  Icon: BackupSystemIcon,  key: 'backup-system'  as SubView },
+  { label: 'Sales Settings', Icon: SalesSettingsIcon, key: 'sales-settings' as const,  desc: 'Configure POS & tax settings'   },
+  { label: 'Add Customers',  Icon: AddCustomersIcon,  key: 'add-customers'  as SubView, desc: 'Manage customer records'         },
+  { label: 'Discount',       Icon: DiscountIcon,      key: 'discount'       as SubView, desc: 'Set discount rules & promos'     },
+  { label: 'Export Data',    Icon: ExportDataIcon,    key: 'export-data'    as SubView, desc: 'Export reports to CSV / Excel'   },
+  { label: 'Upload Data',    Icon: UploadDataIcon,    key: 'upload-data'    as SubView, desc: 'Upload data files to the system' },
+  { label: 'Add Vouchers',   Icon: AddVouchersIcon,   key: 'add-vouchers'   as SubView, desc: 'Create discount voucher codes'   },
+  { label: 'Import Data',    Icon: ImportDataIcon,    key: 'import-data'    as SubView, desc: 'Import external data sources'    },
+  { label: 'Backup System',  Icon: BackupSystemIcon,  key: 'backup-system'  as SubView, desc: 'Backup & restore system data'    },
 ];
 
 const AUDIT_ITEMS = [
-  { label: 'Last Backup',     value: 'February 11, 2026', valueCls: 'text-slate-700 italic', Icon: LastBackupIcon,    border: false },
-  { label: 'Active Session',  value: 'Administrator',      valueCls: 'text-[#1e40af]',        Icon: ActiveSessionIcon, border: true  },
-  { label: 'System Status',   value: 'Online',             valueCls: 'text-slate-700',        Icon: SystemStatusIcon,  border: false },
+  { label: 'Last Backup',    value: 'Feb 11, 2026',  Icon: LastBackupIcon,    status: 'neutral' },
+  { label: 'Active Session', value: 'Administrator', Icon: ActiveSessionIcon, status: 'info'    },
+  { label: 'System Status',  value: 'Online',        Icon: SystemStatusIcon,  status: 'active'  },
 ];
 
 export const SettingsTab = () => {
@@ -41,72 +40,126 @@ export const SettingsTab = () => {
 
   const closeSubView = () => setActiveSubView(null);
 
-  // Sub-view routing
   const SUB_VIEWS: Record<SubView, React.ReactElement> = {
-    'add-customers': <AddCustomers onBack={closeSubView} />,
+    'add-customers': <AddCustomers     onBack={closeSubView} />,
     'discount':      <DiscountSettings onBack={closeSubView} />,
-    'export-data':   <ExportData onBack={closeSubView} />,
-    'upload-data':   <UploadData onBack={closeSubView} />,
-    'add-users':     <AddUsers onBack={closeSubView} />,
-    'add-vouchers':  <AddVouchers onBack={closeSubView} />,
-    'import-data':   <ImportData onBack={closeSubView} />,
-    'backup-system': <BackupSystem onBack={closeSubView} />,
+    'export-data':   <ExportData       onBack={closeSubView} />,
+    'upload-data':   <UploadData       onBack={closeSubView} />,
+    'add-vouchers':  <AddVouchers      onBack={closeSubView} />,
+    'import-data':   <ImportData       onBack={closeSubView} />,
+    'backup-system': <BackupSystem     onBack={closeSubView} />,
   };
 
   if (activeSubView) return SUB_VIEWS[activeSubView];
 
   return (
-    <div className="flex-1 bg-[#f8f6ff] h-full flex flex-col overflow-hidden font-sans">
-      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+    <section className="px-5 md:px-8 pb-8 pt-5 space-y-5">
 
-        {/* Setting action cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {SETTING_ACTIONS.map(({ label, Icon, key }) => (
+      {/* ── Summary strip ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: 'Total Settings', value: SETTING_ACTIONS.length, color: '#7c3aed', bg: '#ede9fe' },
+          { label: 'Active Session', value: 1,                      color: '#16a34a', bg: '#dcfce7' },
+          { label: 'System Status',  value: 'Online',               color: '#0891b2', bg: '#cffafe' },
+          { label: 'Last Backup',    value: 'Feb 11',               color: '#d97706', bg: '#fef9c3' },
+        ].map((s, i) => (
+          <div key={i} className="bg-white border border-gray-100 rounded-xl px-4 py-3 flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+              style={{ background: s.bg, color: s.color }}>
+              <Settings size={14} />
+            </div>
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-widest text-gray-400">{s.label}</p>
+              <p className="text-sm font-black text-gray-900 leading-tight">{s.value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Settings cards ── */}
+      <div className="bg-white border border-gray-100 rounded-2xl p-5">
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-50">
+          <div>
+            <h2 className="text-sm font-black text-gray-900">Configuration</h2>
+            <p className="text-[10px] text-gray-400 mt-0.5 uppercase tracking-wider">Manage system settings</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {SETTING_ACTIONS.map(({ label, Icon, key, desc }) => (
             <button
               key={key}
               onClick={() => key === 'sales-settings' ? setIsSalesSettingsOpen(true) : setActiveSubView(key as SubView)}
-              className="group relative overflow-hidden flex flex-col items-center justify-center p-8 rounded-2xl shadow-sm border border-zinc-200 bg-white transition-all duration-200 active:scale-95 hover:shadow-md hover:border-zinc-300"
+              className="group flex items-center gap-3 p-4 bg-gray-50 border border-gray-100 rounded-xl hover:border-violet-200 hover:bg-violet-50/40 hover:shadow-sm transition-all text-left"
             >
-              <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#1e40af]" />
-              <div className="mb-4 transition-transform duration-200 group-hover:scale-110 w-8 h-8 flex items-center justify-center text-[#1e40af]">
+              {/* Icon */}
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-white border border-gray-100 text-violet-600 group-hover:bg-violet-100 group-hover:border-violet-200 transition-all">
                 <Icon />
               </div>
-              <span className="text-[11px] font-black text-[#3b2063] uppercase tracking-widest text-center">{label}</span>
-              <div className="mt-3 px-3 py-1 rounded-full bg-zinc-50 text-[8px] font-bold text-zinc-400 uppercase tracking-tighter group-hover:bg-zinc-200 group-hover:text-zinc-600 transition-colors border border-zinc-100">
-                Configure
+
+              {/* Text */}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-gray-900 leading-tight group-hover:text-violet-700 transition-colors truncate">{label}</p>
+                <p className="text-[10px] text-gray-400 mt-0.5 truncate">{desc}</p>
               </div>
+
+              {/* Arrow */}
+              <ChevronRight size={14} className="text-gray-300 group-hover:text-violet-400 flex-shrink-0 transition-colors" />
             </button>
           ))}
         </div>
+      </div>
 
-        {/* System audit panel */}
-        <div className="mt-4 bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden">
-          <div className="bg-[#1e40af] px-6 py-3">
-            <h2 className="text-white font-black text-[10px] uppercase tracking-[0.2em] text-center">System Audit & Security</h2>
+      {/* ── System audit panel ── */}
+      <div className="bg-white border border-gray-100 rounded-2xl p-5">
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-50">
+          <div>
+            <h2 className="text-sm font-black text-gray-900">System Audit & Security</h2>
+            <p className="text-[10px] text-gray-400 mt-0.5 uppercase tracking-wider">Real-time system health</p>
           </div>
-          <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-8">
-            {AUDIT_ITEMS.map(({ label, value, valueCls, Icon, border }) => (
-              <div key={label} className={`flex flex-col items-center text-center gap-2 ${border ? 'border-x border-zinc-100 px-4' : ''}`}>
-                <div className="p-2 bg-[#1e40af] rounded-full text-white"><Icon /></div>
-                <div>
-                  <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">{label}</p>
-                  {label === 'System Status' ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-[#1e40af] animate-pulse" />
-                      <p className={`text-sm font-black uppercase ${valueCls}`}>{value}</p>
-                    </div>
-                  ) : (
-                    <p className={`text-sm font-black uppercase ${valueCls}`}>{value}</p>
-                  )}
+          <Shield size={14} className="text-violet-400" />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {AUDIT_ITEMS.map(({ label, value, Icon, status }) => (
+            <div key={label} className="bg-gray-50 border border-gray-100 rounded-xl p-4 flex flex-col gap-3">
+              {/* Icon + label */}
+              <div className="flex items-center gap-2.5">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                  status === 'active' ? 'bg-emerald-100 text-emerald-600'
+                  : status === 'info' ? 'bg-blue-50 text-blue-600'
+                  : 'bg-violet-100 text-violet-600'
+                }`}>
+                  <Icon />
                 </div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{label}</p>
               </div>
-            ))}
-          </div>
+
+              {/* Value */}
+              {status === 'active' ? (
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
+                  <p className="text-sm font-black text-emerald-700">{value}</p>
+                </div>
+              ) : status === 'info' ? (
+                <p className="text-sm font-black text-blue-700">{value}</p>
+              ) : (
+                <p className="text-sm font-black text-gray-700">{value}</p>
+              )}
+
+              {/* Sub label */}
+              <p className="text-[10px] text-gray-400 border-t border-gray-100 pt-2">
+                {label === 'Last Backup'    && 'Automatic backup completed'}
+                {label === 'Active Session' && 'Logged in as Super Admin'}
+                {label === 'System Status'  && 'All services operational'}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
 
       <SalesSettings isOpen={isSalesSettingsOpen} onClose={() => setIsSalesSettingsOpen(false)} />
-    </div>
+    </section>
   );
 };
 
