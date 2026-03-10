@@ -10,19 +10,24 @@ class AuthenticationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_users_can_authenticate_using_the_login_screen(): void
-    {
-        $user = User::factory()->create();
+public function test_users_can_authenticate_using_the_login_screen(): void
+{
+    $user = User::factory()->create();
 
-        $response = $this->post('/login', [
-            'email' => $user->email,
-            'password' => 'password',
-        ]);
+    $response = $this->postJson('/api/login', [
+        'email' => $user->email,
+        'password' => 'password',
+    ]);
 
-        $response->assertOk();         
-        $this->assertAuthenticatedAs($user);
-    }
+    $response->assertOk()
+             ->assertJsonStructure([
+                 'token',
+                 'user' => ['id', 'email']
+             ]);
 
+    // Verify a token was actually created for this user
+    $this->assertCount(1, $user->tokens);
+}
     public function test_users_can_not_authenticate_with_invalid_password(): void
     {
         $user = User::factory()->create();

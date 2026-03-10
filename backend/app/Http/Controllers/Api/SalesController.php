@@ -36,6 +36,7 @@ class SalesController extends Controller
             'items.*.unit_price'       => 'required|numeric|min:0',
             'items.*.total_price'      => 'required|numeric|min:0',
             'items.*.size'             => 'nullable|string',
+            'items.*.cup_size_label'   => 'nullable|string',
             'items.*.sugar_level'      => 'nullable|string',
             'items.*.options'          => 'nullable|array',
             'items.*.add_ons'          => 'nullable|array',
@@ -60,8 +61,11 @@ class SalesController extends Controller
 
         $user        = auth('sanctum')->user();
         $cashierName = $request->input('cashier_name') ?? ($user ? $user->name : 'System Admin');
-        $userId      = $user ? $user->id : null;
-        $officialOR  = $validated['si_number'];
+        $userId = $user ? $user->id : null;
+        $branchId = $user ? $user->branch_id : null;
+        
+        // Explicitly use the OR number sent from React
+        $officialOR = $validated['si_number']; 
 
         try {
             DB::beginTransaction();
@@ -79,26 +83,30 @@ class SalesController extends Controller
 
             // ── 1. Create Sale ─────────────────────────────────────────────────────
             $sale = Sale::create([
-                'user_id'             => $userId,
-                'total_amount'        => $validated['total'],
-                'invoice_number'      => $officialOR,
-                'status'              => 'completed',
-                'payment_method'      => $request->input('payment_method', 'cash'),
-                'reference_number'    => $request->input('reference_number'),
-                'charge_type'         => $chargeType,
-                'pax_regular'         => $validated['pax_regular'],
-                'pax_senior'          => $validated['pax_senior'],
-                'pax_pwd'             => $validated['pax_pwd'],
-                'pax_diplomat'        => $validated['pax_diplomat'],
-                'senior_id'           => $validated['senior_id']        ?? null,
-                'pwd_id'              => $validated['pwd_id']           ?? null,
-                'diplomat_id'         => $validated['diplomat_id']      ?? null,
-                'discount_remarks'    => $validated['discount_remarks'] ?? null,
-                'vatable_sales'       => $validated['vatable_sales'],
-                'vat_amount'          => $validated['vat_amount'],
-                'pax'                 => $validated['pax_regular'] + $validated['pax_senior']
-                                       + $validated['pax_pwd']    + $validated['pax_diplomat'],
-                'is_synced'           => false,
+                'user_id' => $userId,
+                'branch_id'      => $branchId,
+                'total_amount' => $validated['total'],
+                'invoice_number' => $officialOR, // Save OR here
+                'status' => 'completed',
+                'payment_method' => $request->input('payment_method', 'cash'),
+                'reference_number' => $request->input('reference_number'),
+                'charge_type' => $chargeType,
+                
+                // Map the new fields to the database columns
+                'pax_regular' => $validated['pax_regular'],
+                'pax_senior' => $validated['pax_senior'],
+                'pax_pwd' => $validated['pax_pwd'],
+                'pax_diplomat' => $validated['pax_diplomat'],
+                'senior_id' => $validated['senior_id'] ?? null,
+                'pwd_id' => $validated['pwd_id'] ?? null,
+                'diplomat_id' => $validated['diplomat_id'] ?? null,
+                'discount_remarks' => $validated['discount_remarks'] ?? null,
+                'vatable_sales' => $validated['vatable_sales'],
+                'vat_amount' => $validated['vat_amount'],
+                
+                // Keep total pax for backward compatibility with your old code if needed
+                'pax' => $validated['pax_regular'] + $validated['pax_senior'] + $validated['pax_pwd'] + $validated['pax_diplomat'],
+                'is_synced' => false,
             ]);
 
             // ── 2. Create Sale Items ───────────────────────────────────────────────
@@ -111,6 +119,7 @@ class SalesController extends Controller
                     'price'        => (float) $item['unit_price'] + (($item['size'] ?? null) === 'L' ? 20 : 0),
                     'final_price'  => $item['total_price'],
                     'size'         => $item['size']        ?? null,
+                    'cup_size_label'  => $item['cup_size_label'] ?? null,
                     'sugar_level'  => $item['sugar_level'] ?? null,
                     'options'      => $item['options']     ?? null,
                     'add_ons'      => $item['add_ons']     ?? null,
@@ -130,6 +139,7 @@ class SalesController extends Controller
                 'cashier_name' => $cashierName,
                 'total_amount' => $validated['total'],
                 'sale_id'      => $sale->id,
+                'branch_id'    => $branchId,
             ]);
 
             // ── 4. Deduct Raw Materials ────────────────────────────────────────────
@@ -138,7 +148,7 @@ class SalesController extends Controller
             app(SaleObserver::class)->deductStock($sale);
 
             DB::commit();
-            $this->dashboardService->clearTodayCache();
+            $this->dashboardService->clearTodayCache($sale->branch_id);
 
             return response()->json([
                 'status'    => 'success',
@@ -157,10 +167,17 @@ class SalesController extends Controller
      * List all sales.
      */
     public function index()
-    {
-        $sales = Sale::with('items', 'user')->latest()->paginate(20);
-        return response()->json($sales);
+{
+    $user = auth('sanctum')->user();
+    $query = Sale::with('items', 'user')->latest();
+
+    if ($user && !in_array($user->role, ['superadmin', 'admin'])) {
+        $query->where('branch_id', $user->branch_id);
     }
+
+    $sales = $query->paginate(20);
+    return response()->json($sales);
+}
 
     /**
      * Void/Cancel a sale.
@@ -201,7 +218,7 @@ class SalesController extends Controller
             ]);
 
             DB::commit();
-            $this->dashboardService->clearTodayCache();
+            $this->dashboardService->clearTodayCache($sale->branch_id);
 
             return response()->json(['status' => 'success', 'message' => 'Voided successfully']);
 

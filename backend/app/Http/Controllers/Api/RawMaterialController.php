@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\RawMaterial;
 use App\Models\RawMaterialLog;
+use App\Models\StockMovement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -19,17 +20,14 @@ class RawMaterialController extends Controller
     {
         $query = RawMaterial::query();
 
-        // Filter by category
         if ($request->filled('category')) {
             $query->where('category', $request->category);
         }
 
-        // Filter low stock only
         if ($request->boolean('low_stock')) {
             $query->whereColumn('current_stock', '<=', 'reorder_level');
         }
 
-        // Search by name
         if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
         }
@@ -98,7 +96,6 @@ class RawMaterialController extends Controller
      */
     public function destroy(RawMaterial $rawMaterial)
     {
-        // Prevent deletion if it has recipe items linked
         if ($rawMaterial->recipeItems()->exists()) {
             return response()->json([
                 'message' => 'Cannot delete: this material is used in ' .
@@ -113,7 +110,7 @@ class RawMaterialController extends Controller
 
     /**
      * POST /api/raw-materials/{id}/adjust
-     * Manual stock adjustment (restock, correction, spoilage entry).
+     * Manual stock adjustment — also writes to stock_movements for Usage Report.
      */
     public function adjust(Request $request, RawMaterial $rawMaterial)
     {
@@ -136,6 +133,14 @@ class RawMaterialController extends Controller
                         $rawMaterial->update(['current_stock' => $validated['quantity']]);
                         break;
                 }
+
+                // Record in stock_movements so Usage Report reflects manual adjustments
+                StockMovement::create([
+                    'raw_material_id' => $rawMaterial->id,
+                    'type'            => $validated['type'],
+                    'quantity'        => $validated['quantity'],
+                    'reason'          => $validated['reason'] ?? ucfirst($validated['type']) . ' (manual)',
+                ]);
             });
 
             $rawMaterial->refresh();
@@ -183,5 +188,24 @@ class RawMaterialController extends Controller
             'count' => $items->count(),
             'items' => $items,
         ]);
+    }
+
+    /**
+     * GET /api/raw-materials/movements
+     * Stock movement log across all raw materials.
+     * Used by the Inventory Dashboard Usage Report tab.
+     */
+    public function movements(Request $request)
+    {
+        $query = StockMovement::with('rawMaterial:id,name,unit')
+            ->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc');
+
+        if ($request->filled('raw_material_id')) {
+            $query->where('raw_material_id', $request->raw_material_id);
+        }
+
+        $movements = $query->get();
+        return response()->json($movements);
     }
 }

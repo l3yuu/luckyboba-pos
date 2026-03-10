@@ -47,11 +47,11 @@ class SettingsController extends Controller
     /**
      * Fetch System Audit Logs (Fixes the 404 error in Settings.tsx)
      */
-public function getAuditLogs()
+public function getAuditLogs(Request $request)
 {
     try {
-        // Gets the authenticated Cashier Ichigo user
-        $user = auth()->user(); 
+        /** @var \App\Models\User $user */
+        $user = $request->user();
 
         $logs = \App\Models\AuditLog::with('user')
             ->latest()

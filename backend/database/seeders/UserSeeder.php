@@ -16,7 +16,7 @@ class UserSeeder extends Seeder
             [
                 'name' => 'Bina Admin',
                 'password' => Hash::make('password123'),
-                'role' => 'admin',
+                'role' => 'superadmin',
                 'status' => 'ACTIVE',
                 'branch_name' => 'Main Branch',
                 'email_verified_at' => now(),
@@ -31,9 +31,34 @@ class UserSeeder extends Seeder
                 'password' => Hash::make('password123'),
                 'role' => 'cashier',
                 'status' => 'ACTIVE',
-                'branch_name' => null,
+                'branch_id' => '1',
+                'branch_name' => 'Main Branch',
                 'email_verified_at' => now(),
             ]
         );
+        User::updateOrCreate(
+        ['email' => 'Superadmin@luckyboba.com'],
+        [
+            'name' => 'Super Admin',
+            'password' => Hash::make('Super123'),
+            'role' => 'superadmin',
+            'branch_id' => '1',
+            'status' => 'ACTIVE',
+            'branch_name' => 'Main Branch',
+            'email_verified_at' => now(),
+        ]
+    );
+    User::updateOrCreate(
+        ['email' => 'MainBranch@luckyboba.com'],
+        [
+            'name' => 'Main Branch',
+            'password' => Hash::make('Main Branch'),
+            'role' => 'branch_manager',
+            'branch_id' => '1',
+            'status' => 'ACTIVE',
+            'branch_name' => 'Main Branch',
+            'email_verified_at' => now(),
+        ]
+    );
     }
 }
