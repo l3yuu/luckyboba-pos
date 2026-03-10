@@ -62,7 +62,7 @@ export const BranchFormModal = ({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-100 pb-4">
           <div className="flex items-center gap-3">
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
               isCreate ? 'bg-violet-100 text-violet-600' : 'bg-blue-50 text-blue-600'
             }`}>
               <GitBranch size={16} />
@@ -226,7 +226,7 @@ export const UserFormModal = ({
       setLoadingBranches(true);
       try {
         const res = await fetch(
-          `${import.meta.env.VITE_API_URL || 'http://localhost:8000/api'}/branches`,
+          `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api'}/branches`,
           {
             headers: {
               Authorization: `Bearer ${localStorage.getItem('auth_token') || localStorage.getItem('lucky_boba_token') || ''}`,
@@ -256,7 +256,7 @@ export const UserFormModal = ({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-100 pb-4">
           <div className="flex items-center gap-3">
-            <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+            <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
               isEdit ? 'bg-blue-50 text-blue-600' : 'bg-violet-100 text-violet-600'
             }`}>
               {isEdit ? <Edit3 size={16} /> : <UserPlus size={16} />}
@@ -388,7 +388,7 @@ export const DeleteUserModal = ({ user, loading, onConfirm, onCancel }: DeleteUs
         </div>
 
         <div className="flex items-center justify-center gap-2 mb-3">
-          <div className="w-7 h-7 rounded-lg bg-violet-100 text-violet-700 flex items-center justify-center text-xs font-black flex-shrink-0">
+          <div className="w-7 h-7 rounded-lg bg-violet-100 text-violet-700 flex items-center justify-center text-xs font-black shrink-0">
             {user.name.charAt(0).toUpperCase()}
           </div>
           <span className="text-sm font-bold text-gray-700">{user.name}</span>

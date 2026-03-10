@@ -25,7 +25,7 @@ interface BranchesTabProps {
 }
 
 // ── API ────────────────────────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api';
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api';
 const getHeaders = (): Record<string, string> => {
   const token = localStorage.getItem('auth_token') ?? localStorage.getItem('lucky_boba_token') ?? localStorage.getItem('token') ?? '';
   return { 'Content-Type': 'application/json', Accept: 'application/json', Authorization: `Bearer ${token}` };

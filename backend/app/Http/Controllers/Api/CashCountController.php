@@ -58,7 +58,6 @@ class CashCountController extends Controller
                 ->sum('amount');
 
             // 6. Expected cash on hand = opening float + sales + mid-shift additions - removals
-            //    Simplifies to: totalCashIn + totalSales - cashOut
             $expectedCashDrop = ($initialCash + $totalSales + $otherCashIn) - $cashOut;
 
             // 7. Shortage (negative) or overage (positive)
@@ -95,6 +94,7 @@ class CashCountController extends Controller
 
     /**
      * Check if EOD is already done for today (used by Sidebar lock check)
+     * Checks per-user so each cashier must do their own EOD.
      */
     public function checkEodStatus(Request $request): JsonResponse
     {
@@ -110,12 +110,18 @@ class CashCountController extends Controller
     }
 
     /**
-     * Check if the cashier has performed their opening Cash In for today
+     * Check if the branch has had an opening Cash In today.
+     * Any cashier on the same branch performing Cash In unlocks the terminal
+     * for all cashiers on that branch — no need for each cashier to cash in separately.
      */
     public function checkInitialCash(Request $request): JsonResponse
     {
         try {
-            $hasCashedIn = CashTransaction::where('user_id', $request->user()->id)
+            $user     = $request->user();
+            $branchId = $user->branch_id;
+
+            // ✅ Check by branch_id, not user_id — shared cash-in unlocks the whole branch
+            $hasCashedIn = CashTransaction::where('branch_id', $branchId)
                 ->where('type', 'cash_in')
                 ->whereDate('created_at', now()->toDateString())
                 ->exists();
