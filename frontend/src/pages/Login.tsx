@@ -254,7 +254,7 @@ const Login: React.FC = () => {
           align-items: center;
           justify-content: flex-end;
           padding: 1.5rem 2.5rem;
-          border-bottom: 1px solid #f4f4f5;
+          border-bottom: 2px solid #f4f4f5;
           flex-shrink: 0;
         }
 
@@ -446,7 +446,7 @@ const Login: React.FC = () => {
         /* bottom bar */
         .lb-right-bottom {
           padding: 1.25rem 2.5rem;
-          border-top: 1px solid #f4f4f5;
+          border-top: 2px solid #f4f4f5;
           display: flex;
           align-items: center;
           justify-content: space-between;
