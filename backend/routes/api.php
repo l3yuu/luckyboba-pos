@@ -22,7 +22,8 @@ use Illuminate\Support\Facades\Route;
 | branch_manager  → Sales, Transactions, EOD, Catalog, Inventory,
 |                   Expenses/Discounts/Vouchers, Reports, Settings, Branches,
 |                   Create/Edit/Delete/Toggle CASHIER users only
-| cashier         → Sales, Transactions, EOD, Catalog, Menu only
+| cashier         → Sales, Transactions, EOD, Catalog, Menu,
+|                   + read-only: purchase-orders, item-serials, reports/inventory
 |--------------------------------------------------------------------------
 */
 
@@ -132,6 +133,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/raw-materials/movements',             [RawMaterialController::class, 'movements']);
         Route::get('/raw-materials/{rawMaterial}/history', [RawMaterialController::class, 'history']);
         Route::apiResource('raw-materials', RawMaterialController::class)->only(['index', 'show']);
+
+        // Procurement & Reports (read-only for cashier)
+        Route::get('/purchase-orders',   [PurchaseOrderController::class, 'index']);
+        Route::get('/item-serials',       [ItemSerialController::class, 'index']);
+        Route::get('/reports/inventory',  [InventoryReportController::class, 'index']);
     });
 
     /*
@@ -148,15 +154,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::patch('/{id}/quantity', [InventoryController::class, 'updateQuantity']);
         });
 
-        // Procurement
+        // Procurement (write access — GET is already allowed above for cashier)
         Route::prefix('purchase-orders')->group(function () {
-            Route::get('/',              [PurchaseOrderController::class, 'index']);
             Route::post('/',             [PurchaseOrderController::class, 'store']);
             Route::patch('/{id}/status', [PurchaseOrderController::class, 'updateStatus']);
         });
 
         Route::prefix('item-serials')->group(function () {
-            Route::get('/',              [ItemSerialController::class, 'index']);
             Route::post('/',             [ItemSerialController::class, 'store']);
             Route::patch('/{id}/status', [ItemSerialController::class, 'updateStatus']);
         });
@@ -172,7 +176,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::get('/x-reading',          [SalesDashboardController::class, 'xReading']);
             Route::get('/z-reading',          [SalesDashboardController::class, 'zReading']);
             Route::get('/mall-accreditation', [SalesDashboardController::class, 'mallReport']);
-            Route::get('/items-report', [ItemsReportController::class, 'getItemsSoldReport']);
+            Route::get('/items-report',       [ItemsReportController::class, 'getItemsSoldReport']);
             Route::get('/hourly-sales',       [ReportController::class, 'getHourlySales']);
             Route::get('/void-logs',          [ReportController::class, 'getVoidLogs']);
             Route::get('/item-quantities',    [ReportController::class, 'getItemQuantities']);
