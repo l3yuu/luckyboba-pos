@@ -95,9 +95,11 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
     });
   };
 
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+
   const handleLogout = async () => {
-    if (!window.confirm('Are you sure you want to log out?')) return;
     setIsLoggingOut(true);
+    setShowLogoutModal(false);
     ['auth_token', 'lucky_boba_token', 'token', 'user_role', 'lucky_boba_authenticated']
       .forEach(k => localStorage.removeItem(k));
     sessionStorage.clear();
@@ -262,7 +264,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
           <div className="bm-sb-divider my-2" />
 
           <button
-            onClick={handleLogout}
+            onClick={() => setShowLogoutModal(true)}
             disabled={isLoggingOut}
             className="bm-sb-item hover:!bg-red-50 hover:!text-red-600"
             style={{ color: '#be2525' }}
@@ -296,6 +298,34 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
           className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden"
           onClick={() => setSidebarOpen(false)}
         />
+      )}
+
+      {/* ── Logout Confirmation Modal ── */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          style={{ fontFamily: "'DM Sans', sans-serif" }}>
+          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center">
+            <div className="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center mb-4 bg-red-100 text-red-600">
+              <LogOut size={26} />
+            </div>
+            <h3 className="text-lg font-black text-gray-900 mb-1">End Session?</h3>
+            <p className="text-gray-400 text-sm mb-5">Are you sure you want to log out of the Branch Manager system?</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="flex-1 bg-white border border-gray-200 text-gray-700 py-2.5 rounded-xl text-sm font-bold hover:bg-gray-50 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl text-sm font-bold transition-all"
+              >
+                Log out
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
