@@ -91,6 +91,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/purchase-orders', [PurchaseOrderController::class, 'index']);
         Route::get('/item-serials',    [ItemSerialController::class, 'index']);
 
+        // Additional read-only for cashier
+        Route::get('/recipes',    [RecipeController::class, 'index']);
+        Route::get('/expenses',   [ExpenseController::class, 'index']);
+
         // Reports (read-only for cashier)
         Route::prefix('reports')->group(function () {
             Route::get('/inventory',       [InventoryReportController::class, 'index']);
