@@ -54,15 +54,16 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
         amount: parseFloat(amount),
         note: 'Initial drawer cash-in'
       });
-      if (response.data.success) {
-        localStorage.setItem('cashier_menu_unlocked', 'true');
-        localStorage.setItem('cashier_lock_date', new Date().toDateString());
-        showToast(response.data.message || "Cash In recorded successfully!", "success");
-        setReceiptData(getCurrentDateTime());
-        setIsFlipped(true); 
-        setShowKeyboard(false);
-        if (onSuccess) onSuccess();
-      } else {
+    if (response.data.success) {
+      localStorage.setItem('cashier_menu_unlocked', 'true');
+      localStorage.setItem('cashier_lock_date', new Date().toDateString());
+      localStorage.removeItem('dashboard_stats_timestamp'); // ← bust cache
+      showToast(response.data.message || "Cash In recorded successfully!", "success");
+      setReceiptData(getCurrentDateTime());
+      setIsFlipped(true);
+      setShowKeyboard(false);
+      if (onSuccess) onSuccess();
+    } else {
         showToast(response.data.message || "Cash In already recorded.", "warning");
       }
     } catch (error: unknown) {

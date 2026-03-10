@@ -69,6 +69,7 @@ const Dashboard = () => {
     return Date.now() - Number(ts) > 5 * 60 * 1000;
   });
   const isFetching = useRef(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/login', { replace: true });
@@ -76,7 +77,7 @@ const Dashboard = () => {
 
   const fetchStats = useCallback(async (force = false) => {
     if (isFetching.current) return;
-    if (!force && stats) {
+    if (!force) {
       const lastFetch = localStorage.getItem('dashboard_stats_timestamp');
       if (lastFetch && Date.now() - Number(lastFetch) < 5 * 60 * 1000) {
         setLoading(false); setIsInitialLoad(false); setIsStale(false);
@@ -96,17 +97,21 @@ const Dashboard = () => {
     } finally {
       setLoading(false); setIsInitialLoad(false); isFetching.current = false;
     }
-  }, [stats]);
+  }, []); // ← empty deps, reads localStorage directly instead of closing over stats
 
   useEffect(() => {
     if (!user || activeTab !== 'dashboard') return;
-    void (async () => { await fetchStats(); })();
-  }, [user, activeTab, fetchStats]);
+    void fetchStats(refreshKey > 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, activeTab, refreshKey]);
 
   if (authLoading || (isInitialLoad && !stats)) return <DashboardSkeleton />;
   if (!user) return null;
 
-  const refreshStats = () => { void (async () => { await fetchStats(true); })(); };
+  const refreshStats = () => {
+    localStorage.removeItem('dashboard_stats_timestamp');
+    setRefreshKey(k => k + 1);
+  };
 
   const renderContent = () => {
     switch (activeTab) {

@@ -56,7 +56,7 @@ class DashboardService
             $query = DB::table('sale_items')
                 ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
                 ->where('sales.status', 'completed')
-                ->whereBetween('sale_items.created_at', [$start, $end]);
+                ->whereBetween('sales.created_at', [$start, $end]);  // ← more reliable
 
             if ($branchId) {
                 $query->where('sales.branch_id', $branchId);
