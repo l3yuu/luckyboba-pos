@@ -58,6 +58,15 @@ export const router = createBrowserRouter([
     ],
   },
 
+  // ── POS — accessible to cashier, branch_manager, superadmin ──────────────
+  {
+    element: <ProtectedRoute allowedRoles={['cashier', 'branch_manager', 'superadmin']} />,
+    errorElement: <ErrorFallback />,
+    children: [
+      { path: '/pos', element: <SalesOrder /> },
+    ],
+  },
+
   // ── Root & catch-all ─────────────────────────────────────────────────────
   { path: '/',  element: <Navigate to="/login" replace /> },
   { path: '*',  element: <ErrorFallback /> },

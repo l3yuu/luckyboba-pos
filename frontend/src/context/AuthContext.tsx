@@ -9,6 +9,7 @@ const AUTH_KEYS = [
   'lucky_boba_user_name',
   'lucky_boba_user_role',
   'lucky_boba_user_branch',
+  'lucky_boba_user_branch_id',
   'dashboard_stats',
   'dashboard_stats_timestamp',
 ];
@@ -58,6 +59,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('lucky_boba_user_name', userData.name);
       localStorage.setItem('lucky_boba_user_role', userData.role || 'cashier');
       localStorage.setItem('lucky_boba_user_branch', userData.branch_name ?? '');
+      localStorage.setItem('lucky_boba_user_branch_id', String(userData.branch_id ?? '')); // ← add this
       setUser(userData);
     } catch {
       // Token is invalid/expired — clear everything and send to login
@@ -110,6 +112,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('lucky_boba_user_name', userData.name);
       localStorage.setItem('lucky_boba_user_role', userData.role || 'cashier');
       localStorage.setItem('lucky_boba_user_branch', userData.branch_name ?? '');
+      localStorage.setItem('lucky_boba_user_branch_id', String(userData.branch_id ?? ''));
       localStorage.removeItem('login_attempts');
       localStorage.removeItem('login_lockout_end');
 

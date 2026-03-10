@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import api from '../../services/api';
@@ -34,36 +34,39 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [showZReadingBlockedModal, setShowZReadingBlockedModal] = useState(false);
   const [, setCurrentDate] = useState(new Date());
   const [isEodLocked, setIsEodLocked] = useState(false);
+  const [isMenuLocked, setIsMenuLocked] = useState(true);
 
-  const [isMenuLocked, setIsMenuLocked] = useState(() => {
-    const cachedStatus = localStorage.getItem('cashier_menu_unlocked');
-    const cachedDate = localStorage.getItem('cashier_lock_date');
-    const today = new Date().toDateString();
-    if (cachedStatus === 'true' && cachedDate === today) return false;
-    return true;
-  });
+  // Refs so click handlers always read the latest value without stale closures
+  const isMenuLockedRef = useRef(true);
+  const isEodLockedRef = useRef(false);
 
+  // ── EOD status check ──
   useEffect(() => {
     const checkEod = async () => {
       try {
         const r = await api.get('/cash-counts/status');
         setIsEodLocked(r.data.isEodDone);
+        isEodLockedRef.current = r.data.isEodDone;
       } catch (e) { console.error("EOD Check failed", e); }
     };
     checkEod();
   }, [currentTab]);
 
+  // ── Clock ──
   useEffect(() => {
     const t = setInterval(() => setCurrentDate(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
 
+  // ── Cash-in status check ──
   useEffect(() => {
     const checkStatus = async () => {
       try {
         const r = await api.get('/cash-transactions/status');
         const today = new Date().toDateString();
-        setIsMenuLocked(!r.data.hasCashedIn);
+        const locked = !r.data.hasCashedIn;
+        setIsMenuLocked(locked);
+        isMenuLockedRef.current = locked;
         if (r.data.hasCashedIn) {
           localStorage.setItem('cashier_menu_unlocked', 'true');
           localStorage.setItem('cashier_lock_date', today);
@@ -76,8 +79,14 @@ const Sidebar: React.FC<SidebarProps> = ({
     checkStatus();
   }, [currentTab]);
 
+  // ── EOD completed event listener ──
   useEffect(() => {
-    const fn = () => { setIsEodLocked(true); setIsMenuLocked(true); };
+    const fn = () => {
+      setIsEodLocked(true);
+      isEodLockedRef.current = true;
+      setIsMenuLocked(true);
+      isMenuLockedRef.current = true;
+    };
     window.addEventListener('eod-completed', fn);
     return () => window.removeEventListener('eod-completed', fn);
   }, []);
@@ -138,10 +147,10 @@ const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const dropdowns: DropdownConfig[] = [
-    { id: 'pos',        state: isPosOpen,    label: 'Point of Sale', items: posMenuItems,        icon: <ShoppingCart size={17} /> },
-    { id: 'sales',      state: isSalesOpen,  label: 'Sales Report',  items: salesReportItems,    icon: <BarChart3 size={17} /> },
-    { id: 'menu-items', state: isMenuOpen,   label: 'Menu Items',    items: menuManagementItems, icon: <BookOpen size={17} /> },
-    { id: 'inventory',  state: isInvOpen,    label: 'Inventory',     items: inventoryItems,      icon: <Package size={17} /> },
+    { id: 'pos',        state: isPosOpen,   label: 'Point of Sale', items: posMenuItems,        icon: <ShoppingCart size={17} /> },
+    { id: 'sales',      state: isSalesOpen, label: 'Sales Report',  items: salesReportItems,    icon: <BarChart3 size={17} /> },
+    { id: 'menu-items', state: isMenuOpen,  label: 'Menu Items',    items: menuManagementItems, icon: <BookOpen size={17} /> },
+    { id: 'inventory',  state: isInvOpen,   label: 'Inventory',     items: inventoryItems,      icon: <Package size={17} /> },
   ];
 
   // ── Modal ──
@@ -214,7 +223,6 @@ const Sidebar: React.FC<SidebarProps> = ({
         .sb-scroll { overflow-y: scroll; scrollbar-gutter: stable; -ms-overflow-style: none; scrollbar-width: none; }
         .sb-scroll::-webkit-scrollbar { display: none; }
 
-        /* ── Nav button ── */
         .sb-btn {
           width: 100%; display: flex; align-items: center; gap: 13px;
           padding: 16px 20px; border: none; border-bottom: 1px solid #f4f4f5;
@@ -228,7 +236,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           width: 3px; background: #3b2063; border-radius: 0 2px 2px 0;
         }
 
-        /* ── Dropdown header ── */
         .sb-dh {
           width: 100%; display: flex; align-items: center; justify-content: space-between;
           padding: 16px 20px; border: none; border-bottom: 1px solid #f4f4f5;
@@ -242,7 +249,6 @@ const Sidebar: React.FC<SidebarProps> = ({
           width: 3px; background: #3b2063; border-radius: 0 2px 2px 0;
         }
 
-        /* ── Sub items ── */
         .sb-sub {
           width: 100%; text-align: left; border: none; cursor: pointer;
           padding: 11px 12px 11px 10px;
@@ -254,11 +260,9 @@ const Sidebar: React.FC<SidebarProps> = ({
         .sb-sub:hover { background: #f0ebff; color: #3b2063; padding-left: 14px; }
         .sb-sub.active { background: #ede8ff; color: #3b2063; font-weight: 700; padding-left: 14px; }
 
-        /* ── Chevron ── */
         .sb-chevron { transition: transform 0.25s cubic-bezier(0.4,0,0.2,1); color: #a1a1aa; }
         .sb-chevron.open { transform: rotate(180deg); }
 
-        /* ── Logout spinner ── */
         @keyframes sb-spin { to { transform: rotate(360deg); } }
         .sb-spin { animation: sb-spin 0.7s linear infinite; }
       `}</style>
@@ -331,11 +335,15 @@ const Sidebar: React.FC<SidebarProps> = ({
                             key={item.id}
                             onClick={() => {
                               if (item.id === 'menu') {
-                                const ok = localStorage.getItem('cashier_menu_unlocked') === 'true';
-                                if (isMenuLocked && !ok) setShowCashInRequired(true);
-                                else if (isEodLocked) setShowEodLockedModal(true);
-                                else navigate('/pos');
-                              } else if (item.id === 'z-reading' && !isEodLocked) {
+                                // Use refs for always-current values
+                                if (isMenuLockedRef.current) {
+                                  setShowCashInRequired(true);
+                                } else if (isEodLockedRef.current) {
+                                  setShowEodLockedModal(true);
+                                } else {
+                                  navigate('/pos');
+                                }
+                              } else if (item.id === 'z-reading' && !isEodLockedRef.current) {
                                 setShowZReadingBlockedModal(true);
                               } else {
                                 setCurrentTab(item.id);

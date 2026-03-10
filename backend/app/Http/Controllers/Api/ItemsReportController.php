@@ -3,111 +3,127 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Services\ItemsReportService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 class ItemsReportController extends Controller
 {
-    protected ItemsReportService $itemsReportService;
-
-    public function __construct(ItemsReportService $itemsReportService)
-    {
-        $this->itemsReportService = $itemsReportService;
-    }
-
     /**
-     * Get items sold report for a specific date range
-     * 
-     * @param Request $request
-     * @return JsonResponse
+     * GET /api/reports/items-report
+     * Params: from, to, type (item-list | category-summary)
+     *
+     * Response shape expected by ItemsReport.tsx:
+     * { items, total_qty, grand_total, cashier_name }
      */
     public function getItemsSoldReport(Request $request): JsonResponse
     {
         try {
-            // Validate request
-            $validated = $request->validate([
-                'from_date' => 'required|date',
-                'to_date' => 'required|date|after_or_equal:from_date',
-                'filter' => 'nullable|string',
-                'report_type' => 'nullable|string|in:category-summary,item-list,category-per-item,per-hour'
+            $from = $request->query('from');
+            $to   = $request->query('to');
+            $type = $request->query('type', 'item-list');
+
+            if (!$from || !$to) {
+                return response()->json([
+                    'items'        => [],
+                    'total_qty'    => 0,
+                    'grand_total'  => 0,
+                    'cashier_name' => auth()->user()?->name ?? 'System Admin',
+                ]);
+            }
+
+            $user     = auth('sanctum')->user() ?? $request->user();
+            $branchId = $user?->branch_id;
+
+            $query = DB::table('sale_items')
+                ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+                ->whereBetween('sales.created_at', [
+                    $from . ' 00:00:00',
+                    $to   . ' 23:59:59',
+                ])
+                ->where('sales.status', '!=', 'cancelled')
+                ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId));
+
+            // Both modes use the same grouping — category join doesn't exist yet
+            $items = $query
+                ->select(
+                    'sale_items.product_name as name',
+                    DB::raw('SUM(sale_items.quantity) as qty'),
+                    DB::raw('SUM(sale_items.final_price) as amount')
+                )
+                ->groupBy('sale_items.product_name')
+                ->orderByDesc('amount')
+                ->get();
+
+            return response()->json([
+                'items'        => $items,
+                'total_qty'    => (int)   $items->sum('qty'),
+                'grand_total'  => (float) $items->sum('amount'),
+                'cashier_name' => $user?->name ?? 'System Admin',
             ]);
 
-            $fromDate = $validated['from_date'];
-            $toDate = $validated['to_date'];
-            $filter = $validated['filter'] ?? 'all';
-            $reportType = $validated['report_type'] ?? 'item-list';
-
-            // Get the report data based on report type
-            $reportData = match($reportType) {
-                'category-summary' => $this->itemsReportService->getCategorySummary($fromDate, $toDate, $filter),
-                'item-list' => $this->itemsReportService->getItemsList($fromDate, $toDate, $filter),
-                'category-per-item' => $this->itemsReportService->getCategoryPerItem($fromDate, $toDate, $filter),
-                'per-hour' => $this->itemsReportService->getPerHourReport($fromDate, $toDate, $filter),
-                default => $this->itemsReportService->getItemsList($fromDate, $toDate, $filter)
-            };
-
-            return response()->json([
-                'success' => true,
-                'data' => $reportData,
-                'period' => [
-                    'from' => $fromDate,
-                    'to' => $toDate
-                ]
-            ], 200);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation error',
-                'errors' => $e->errors()
-            ], 422);
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false,
-                'message' => 'Error generating report: ' . $e->getMessage()
+                'items'       => [],
+                'total_qty'   => 0,
+                'grand_total' => 0,
+                'message'     => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Get items sold for a specific day (quick endpoint)
-     * 
-     * @param Request $request
-     * @return JsonResponse
+     * GET /api/reports/items-today
+     * Quick endpoint for today's items
      */
     public function getItemsSoldToday(Request $request): JsonResponse
     {
         try {
-            $date = $request->input('date', now()->toDateString());
-            
-            $reportData = $this->itemsReportService->getItemsList($date, $date, 'all');
+            $date     = $request->input('date', now()->toDateString());
+            $user     = auth('sanctum')->user() ?? $request->user();
+            $branchId = $user?->branch_id;
+
+            $items = DB::table('sale_items')
+                ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+                ->whereDate('sales.created_at', $date)
+                ->where('sales.status', '!=', 'cancelled')
+                ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+                ->select(
+                    'sale_items.product_name as name',
+                    DB::raw('SUM(sale_items.quantity) as qty'),
+                    DB::raw('SUM(sale_items.final_price) as amount')
+                )
+                ->groupBy('sale_items.product_name')
+                ->orderByDesc('amount')
+                ->get();
 
             return response()->json([
-                'success' => true,
-                'data' => $reportData,
-                'date' => $date
-            ], 200);
+                'items'        => $items,
+                'total_qty'    => (int)   $items->sum('qty'),
+                'grand_total'  => (float) $items->sum('amount'),
+                'cashier_name' => $user?->name ?? 'System Admin',
+                'date'         => $date,
+            ]);
 
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false,
-                'message' => 'Error fetching items sold: ' . $e->getMessage()
+                'items'       => [],
+                'total_qty'   => 0,
+                'grand_total' => 0,
+                'message'     => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Test endpoint to verify setup
-     * 
-     * @return JsonResponse
+     * GET /api/reports/items-test
      */
     public function test(): JsonResponse
     {
         return response()->json([
-            'success' => true,
-            'message' => 'Items Report API is working!',
-            'timestamp' => now()->toDateTimeString()
-        ], 200);
+            'success'   => true,
+            'message'   => 'Items Report API is working!',
+            'timestamp' => now()->toDateTimeString(),
+        ]);
     }
 }

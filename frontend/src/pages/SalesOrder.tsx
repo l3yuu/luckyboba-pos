@@ -14,6 +14,7 @@ import {
 } from '../types/index'; 
 import { useToast } from '../hooks/useToast';
 import api from '../services/api';
+import { useAuth } from '../hooks/useAuth';
 
 interface Discount {
     id: number;
@@ -35,17 +36,23 @@ const generateQueueNumber = (count = 1) => String(count).padStart(3, '0');
 const SalesOrder = () => {
     const navigate = useNavigate();
     const { showToast } = useToast();
+
+    const { user } = useAuth();
+    const branchId = user?.branch_id ?? null;
+    const branchName = user?.branch_name ?? localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch';
+
+    const handleNavClick = (label: string) => {
+    if (label === 'Home') {
+        if (user?.role === 'cashier') navigate('/cashier');
+        else if (user?.role === 'branch_manager') navigate('/branch-manager');
+        else navigate('/dashboard');
+    }
+    };
     
     const [cashierName, setCashierName] = useState<string>(() =>
         localStorage.getItem('lucky_boba_user_name') ?? 'Admin'
     );
-    const [branchName] = useState<string>(() =>
-        localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'
-    );
-    const [branchId] = useState<number | null>(() => {
-    const stored = localStorage.getItem('lucky_boba_user_branch_id');
-    return stored ? parseInt(stored) : null;
-});
+
     const [currentDate, setCurrentDate] = useState(new Date());
     const [searchQuery, setSearchQuery] = useState('');
     const [categories, setCategories] = useState<Category[]>(() => {
@@ -238,8 +245,6 @@ const SalesOrder = () => {
 
     const formattedDate = currentDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
     const formattedTime = currentDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-
-    const handleNavClick = (label: string) => { if (label === 'Home') navigate('/dashboard'); };
 
     const handleCategoryClick = (cat: Category) => {
         setSelectedCategory(cat);
@@ -518,7 +523,6 @@ const SalesOrder = () => {
             if (!isNaN(currentSeq)) {
                 localStorage.setItem('last_or_sequence', String(currentSeq));
             }
-            localStorage.setItem('last_or_sequence', String(currentSeq));
             localStorage.setItem('dashboard_stats_timestamp', '0');
 
             const today = new Date().toISOString().split('T')[0];
