@@ -1,25 +1,18 @@
 <?php
 
-use App\Http\Controllers\Api\{
-    BackupController, CashCountController, CashTransactionController, CategoryController,
-    DashboardController, DiscountController, ExpenseController, InventoryController,
-    InventoryDashboardController, InventoryReportController, ItemSerialController,
-    MenuController, MenuListController, PurchaseOrderController, ReceiptController,
-    ReportController, SalesController, SalesDashboardController, SettingsController,
-    SubCategoryController, UploadController, VoucherController, BranchController,
-    AddOnController, SuperAdminReportController, CardPurchaseController
-};
-use App\Http\Controllers\CacheController;
+use App\Http\Controllers\Api\{ BackupController, CashCountController, CashTransactionController, CategoryController, DashboardController, DiscountController, ExpenseController, InventoryController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController };
 use App\Http\Controllers\Api\CupController;
+use App\Http\Controllers\Api\ItemsReportController;
 use App\Http\Controllers\Api\RawMaterialController;
 use App\Http\Controllers\Api\RecipeController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\UserController;
+use App\Http\Controllers\CacheController;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -179,7 +172,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::get('/x-reading',          [SalesDashboardController::class, 'xReading']);
             Route::get('/z-reading',          [SalesDashboardController::class, 'zReading']);
             Route::get('/mall-accreditation', [SalesDashboardController::class, 'mallReport']);
-            Route::get('/items-report',       [SalesDashboardController::class, 'itemsReport']);
+            Route::get('/items-report', [ItemsReportController::class, 'getItemsSoldReport']);
             Route::get('/hourly-sales',       [ReportController::class, 'getHourlySales']);
             Route::get('/void-logs',          [ReportController::class, 'getVoidLogs']);
             Route::get('/item-quantities',    [ReportController::class, 'getItemQuantities']);
