@@ -1,3 +1,5 @@
+"use client"
+
 import React, { useState } from 'react';
 import logo from '../assets/logo.png';
 import type { Branch } from '../services/BranchService';
@@ -12,10 +14,59 @@ import {
 } from '../components/SuperAdmin/tabs';
 import {
   LayoutGrid, GitBranch, Users, BarChart2,
-  Settings as SettingsIcon, LogOut, HelpCircle, Menu
+  Settings as SettingsIcon, LogOut, HelpCircle, Menu, X
 } from 'lucide-react';
 
 type TabId = 'overview' | 'branches' | 'users' | 'reports' | 'settings';
+
+// ── Inline generic confirmation modal (no external dependency needed) ─────────
+interface ConfirmModalProps {
+  show:    boolean;
+  icon?:   React.ReactNode;
+  title:   string;
+  desc?:   string;
+  action:  () => void;
+  btnText?: string;
+  cancel:  () => void;
+  danger?: boolean;
+}
+
+const ConfirmModal: React.FC<ConfirmModalProps> = ({
+  show, icon, title, desc, action, btnText = 'Confirm', cancel, danger = false,
+}) => {
+  if (!show) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-4">
+        <div className="flex flex-col items-center gap-3 text-center">
+          {icon && (
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${danger ? 'bg-red-50' : 'bg-violet-50'}`}>
+              {icon}
+            </div>
+          )}
+          <h2 className="text-base font-black text-[#1a0f2e]">{title}</h2>
+          {desc && <p className="text-sm text-gray-400">{desc}</p>}
+        </div>
+        <div className="flex gap-3 pt-2">
+          <button
+            onClick={cancel}
+            className="flex-1 bg-white border border-gray-200 text-gray-700 py-2.5 rounded-xl text-sm font-bold hover:bg-gray-50 transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={action}
+            className={`flex-1 py-2.5 rounded-xl text-sm font-bold text-white shadow-sm transition-all ${
+              danger ? 'bg-red-500 hover:bg-red-600' : 'bg-violet-600 hover:bg-violet-700'
+            }`}
+          >
+            {btnText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // ── Sidebar styles (mirrors BranchManagerSidebar exactly) ─────────────────────
 const SB_STYLES = `
@@ -55,12 +106,12 @@ const SB_STYLES = `
 
 // ── Sidebar Component ─────────────────────────────────────────────────────────
 interface SidebarProps {
-  isSidebarOpen: boolean;
+  isSidebarOpen:  boolean;
   setSidebarOpen: (v: boolean) => void;
-  activeTab: TabId;
-  setActiveTab: (t: TabId) => void;
-  onLogout: () => void;
-  isLoggingOut: boolean;
+  activeTab:      TabId;
+  setActiveTab:   (t: TabId) => void;
+  onLogout:       () => void;
+  isLoggingOut:   boolean;
 }
 
 const SuperAdminSidebar: React.FC<SidebarProps> = ({
@@ -72,10 +123,10 @@ const SuperAdminSidebar: React.FC<SidebarProps> = ({
   };
 
   const navItems: { id: TabId; label: string; icon: React.ReactNode }[] = [
-    { id: 'overview',  label: 'Overview',          icon: <LayoutGrid size={14} /> },
-    { id: 'branches',  label: 'Branch Management', icon: <GitBranch  size={14} /> },
-    { id: 'users',     label: 'User Management',   icon: <Users      size={14} /> },
-    { id: 'reports',   label: 'Reports',           icon: <BarChart2  size={14} /> },
+    { id: 'overview', label: 'Overview',          icon: <LayoutGrid size={14} /> },
+    { id: 'branches', label: 'Branch Management', icon: <GitBranch  size={14} /> },
+    { id: 'users',    label: 'User Management',   icon: <Users      size={14} /> },
+    { id: 'reports',  label: 'Reports',           icon: <BarChart2  size={14} /> },
   ];
 
   return (
@@ -122,17 +173,15 @@ const SuperAdminSidebar: React.FC<SidebarProps> = ({
               {item.label}
             </button>
           ))}
-
         </div>
 
-        {/* ── Logo — sits above the border line ── */}
+        {/* ── Logo ── */}
         <div className="shrink-0 flex justify-center px-4 pb-4">
           <img src={logo} alt="Lucky Boba" className="h-20 w-auto object-contain" />
         </div>
 
         {/* ── Bottom-pinned ── */}
         <div className="shrink-0 px-3 pb-4 pt-2 border-t border-zinc-100">
-
           <button
             onClick={() => goTo('settings')}
             className={`sa-sb-item ${activeTab === 'settings' ? 'active' : ''}`}
@@ -260,20 +309,20 @@ const SuperAdminDashboard: React.FC = () => {
   const isModalOpen = showCreate || showEdit;
 
   const pageTitle: Record<TabId, string> = {
-    overview:  'Dashboard Overview',
-    branches:  'Branch Management',
-    users:     'User Management',
-    reports:   'System Reports',
-    settings:  'System Settings',
+    overview: 'Dashboard Overview',
+    branches: 'Branch Management',
+    users:    'User Management',
+    reports:  'System Reports',
+    settings: 'System Settings',
   };
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'overview':  return <OverviewTab totalRevenue={totalRevenue} todayRevenue={todayRevenue} activeBranches={activeBranches} activeUsers={activeUsers} branches={branches} loading={branchLoading} />;
-      case 'branches':  return <BranchesTab branches={branches} loading={branchLoading} error={branchError} onCreateBranch={openCreate} onEditBranch={openEdit} onDeleteBranch={handleDelete} />;
-      case 'users':     return <UsersTab {...usersHook} />;
-      case 'reports':   return <ReportsTab />;
-      case 'settings':  return <SettingsTab />;
+      case 'overview': return <OverviewTab totalRevenue={totalRevenue} todayRevenue={todayRevenue} activeBranches={activeBranches} activeUsers={activeUsers} branches={branches} loading={branchLoading} />;
+      case 'branches': return <BranchesTab branches={branches} loading={branchLoading} error={branchError} onCreateBranch={openCreate} onEditBranch={openEdit} onDeleteBranch={handleDelete} />;
+      case 'users':    return <UsersTab {...usersHook} />;
+      case 'reports':  return <ReportsTab />;
+      case 'settings': return <SettingsTab />;
     }
   };
 
@@ -300,7 +349,7 @@ const SuperAdminDashboard: React.FC = () => {
       {/* Main */}
       <main className="flex-1 flex flex-col overflow-hidden">
 
-        {/* Top bar — same pattern as BranchManagerDashboard */}
+        {/* Top bar */}
         <div className="shrink-0 flex items-center justify-between px-6 md:px-10 py-4 bg-white border-b border-gray-200 shadow-sm min-h-[72px]">
           <div className="flex items-center gap-3">
             <h1 className="font-semibold text-[0.95rem] text-[#3b2063]">{pageTitle[activeTab]}</h1>
@@ -348,7 +397,7 @@ const SuperAdminDashboard: React.FC = () => {
                 <p className="text-xs text-gray-400 mt-0.5">{showCreate ? 'Register a new branch location' : 'Update branch details'}</p>
               </div>
               <button onClick={closeModal} disabled={branchLoading} className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                <X size={18} />
               </button>
             </div>
 
@@ -360,7 +409,7 @@ const SuperAdminDashboard: React.FC = () => {
 
             <form onSubmit={handleSave} className="space-y-4">
               {[
-                { label: 'Branch Name', key: 'name', placeholder: 'e.g. Lucky Boba – SM City' },
+                { label: 'Branch Name', key: 'name',     placeholder: 'e.g. Lucky Boba – SM City' },
                 { label: 'Location',    key: 'location', placeholder: 'e.g. SM City Cebu' },
               ].map(f => (
                 <div key={f.key} className="space-y-1.5">
@@ -409,7 +458,7 @@ const SuperAdminDashboard: React.FC = () => {
             <div className="flex items-center justify-between border-b border-gray-100 pb-4">
               <h2 className="text-base font-black text-[#3b2063]">Branch Details</h2>
               <button onClick={() => setViewBranch(null)} className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                <X size={18} />
               </button>
             </div>
             <div className="space-y-4">
@@ -456,27 +505,17 @@ const SuperAdminDashboard: React.FC = () => {
       )}
 
       {/* Logout Confirmation Modal */}
-      {isLogoutModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center">
-            <div className="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center mb-4 bg-red-100 text-red-600">
-              <LogOut size={26} />
-            </div>
-            <h3 className="text-lg font-black text-gray-900 mb-1">End Session?</h3>
-            <p className="text-gray-400 text-sm mb-5">Are you sure you want to log out of the Super Admin system?</p>
-            <div className="flex gap-3">
-              <button onClick={() => setIsLogoutModalOpen(false)}
-                className="flex-1 bg-white border border-gray-200 text-gray-700 py-2.5 rounded-xl text-sm font-bold hover:bg-gray-50 transition-all">
-                Cancel
-              </button>
-              <button onClick={confirmLogout}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl text-sm font-bold transition-all">
-                Log out
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        show={isLogoutModalOpen}
+        icon={<LogOut size={19} className="text-[#be2525]" />}
+        title="End Session?"
+        desc="Are you sure you want to log out of the terminal?"
+        action={confirmLogout}
+        btnText="Logout"
+        cancel={() => setIsLogoutModalOpen(false)}
+        danger
+      />
+
     </div>
   );
 };

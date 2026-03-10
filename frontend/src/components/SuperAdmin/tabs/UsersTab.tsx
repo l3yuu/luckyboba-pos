@@ -1,4 +1,3 @@
-import type { User } from '../../../types/user';
 import type { useUsers } from '../../../hooks/useUsers';
 import { UserFormModal, DeleteUserModal } from './Modals';
 import { useToast } from '../../../context/ToastContext';

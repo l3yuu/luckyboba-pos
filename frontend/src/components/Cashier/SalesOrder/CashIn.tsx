@@ -1,25 +1,22 @@
+"use client"
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import Keyboard from 'react-simple-keyboard';
-import 'react-simple-keyboard/build/css/index.css';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { AxiosError } from 'axios'; 
 import api from '../../../services/api';
-import type { KeyboardRef, CashInProps, ReceiptData } from '../../../types/transactions';
+import type { CashInProps, ReceiptData } from '../../../types/transactions';
 import TopNavbar from '../TopNavbar';
 import { useToast } from '../../../context/ToastContext'; 
-import { Monitor, Calculator, Printer, Wallet, CheckCircle2, AlertTriangle, X, RefreshCw } from 'lucide-react';
+import { Monitor, Printer, Wallet, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
 
 const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
   const { showToast } = useToast();
   const phCurrency = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
 
   const [amount, setAmount] = useState('');
-  const [showKeyboard, setShowKeyboard] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isLoading, setIsLoading] = useState(false); 
   const [isEodLocked, setIsEodLocked] = useState(false);
   const [receiptData, setReceiptData] = useState<ReceiptData>({ date: '', time: '' });
-  const keyboardRef = useRef<KeyboardRef | null>(null);
 
   const cashierName = useMemo(() => {
     return localStorage.getItem('lucky_boba_user_name') || 'Staff';
@@ -54,16 +51,15 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
         amount: parseFloat(amount),
         note: 'Initial drawer cash-in'
       });
-    if (response.data.success) {
-      localStorage.setItem('cashier_menu_unlocked', 'true');
-      localStorage.setItem('cashier_lock_date', new Date().toDateString());
-      localStorage.removeItem('dashboard_stats_timestamp'); // ← bust cache
-      showToast(response.data.message || "Cash In recorded successfully!", "success");
-      setReceiptData(getCurrentDateTime());
-      setIsFlipped(true);
-      setShowKeyboard(false);
-      if (onSuccess) onSuccess();
-    } else {
+      if (response.data.success) {
+        localStorage.setItem('cashier_menu_unlocked', 'true');
+        localStorage.setItem('cashier_lock_date', new Date().toDateString());
+        localStorage.removeItem('dashboard_stats_timestamp');
+        showToast(response.data.message || "Cash In recorded successfully!", "success");
+        setReceiptData(getCurrentDateTime());
+        setIsFlipped(true);
+        if (onSuccess) onSuccess();
+      } else {
         showToast(response.data.message || "Cash In already recorded.", "warning");
       }
     } catch (error: unknown) {
@@ -77,25 +73,17 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
   const handleNewTransaction = () => {
     setIsFlipped(false);
     setAmount('');
-    if (keyboardRef.current) keyboardRef.current.setInput("");
   };
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (isEodLocked) return; 
     const value = e.target.value.replace(/[^0-9.]/g, '');
     setAmount(value);
-    if (keyboardRef.current) keyboardRef.current.setInput(value);
   };
 
-  const onKeyboardChange = (input: string) => {
-    if (isEodLocked) return;
-    setAmount(input.replace(/[^0-9.]/g, ''));
-  };
-
-  const onKeyPress = (button: string) => {
-    if (button === "{enter}") {
-      setShowKeyboard(false);
-      if (amount && !isEodLocked) handleSubmit();
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && amount && !isEodLocked) {
+      handleSubmit();
     }
   };
 
@@ -105,14 +93,14 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
   }, [isFlipped]);
 
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
+    const handleGlobalKeyDown = (event: KeyboardEvent) => {
       if (isFlipped && event.altKey && (event.key === 'p' || event.key === 'P')) {
         event.preventDefault();
         handlePrint();
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, [isFlipped, handlePrint]); 
 
   return (
@@ -132,11 +120,6 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
           .receipt-divider { border-top: 1px dashed #000 !important; margin: 8px 0; width: 100%; }
           .flex-between { display: flex !important; justify-content: space-between !important; width: 100%; }
         }
-        .simple-keyboard { background-color: white !important; border-radius: 0 !important; border-top: 1px solid #e4e4e7 !important; }
-        .hg-button { border-radius: 0 !important; height: 64px !important; font-weight: 800 !important; font-size: 1.3rem !important; border: 1px solid #f4f4f5 !important; background: white !important; font-family: 'DM Sans', sans-serif !important; }
-        .hg-button:hover { background: #f5f3ff !important; }
-        .hg-button-enter { background: #3b2063 !important; color: white !important; font-size: 0.8rem !important; letter-spacing: 0.1em; }
-        .hg-button-bksp { background: #fff1f2 !important; color: #e11d48 !important; }
       `}</style>
 
       {/* PRINTABLE RECEIPT */}
@@ -174,19 +157,16 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
       <div id="dashboard-main-container" className="flex flex-col h-full w-full bg-[#f4f2fb] relative overflow-hidden">
         <TopNavbar isEodLocked={isEodLocked} />
         
-        <div className={`flex-1 flex flex-col xl:flex-row items-center justify-center p-5 md:p-8 gap-5 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-85' : ''}`}>
+        <div className="flex-1 flex flex-col xl:flex-row items-center justify-center p-5 md:p-8 gap-5 overflow-y-auto transition-all duration-300">
           
-          {/* ── Flip Card ── */}
+          {/* Flip Card */}
           <div className="relative w-full max-w-xl h-120" style={{ perspective: '1200px' }}>
             <div
               className="relative w-full h-full transition-transform duration-700 shadow-lg"
               style={{ transformStyle: 'preserve-3d', transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)' }}
             >
-              
               {/* Front: Form */}
               <div className="absolute w-full h-full bg-white border border-zinc-200 p-8 flex flex-col rounded-[0.625rem]" style={{ backfaceVisibility: 'hidden' }}>
-                
-                {/* Header */}
                 <div className="flex items-center justify-between pb-5 mb-6 border-b border-zinc-100">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 bg-[#3b2063] flex items-center justify-center">
@@ -204,7 +184,6 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
                 </div>
 
                 <div className="flex-1 flex flex-col gap-5">
-                  {/* Cashier */}
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest block">Assigned Cashier</label>
                     <div className="w-full bg-[#f4f2fb] border border-zinc-200 text-[#3b2063] font-bold text-sm px-5 py-3.5 uppercase tracking-widest">
@@ -212,18 +191,18 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
                     </div>
                   </div>
 
-                  {/* Amount Input */}
                   <div className="space-y-1.5">
                     <label className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest block">Drawer Starting Balance</label>
                     <div className="relative">
                       <span className="absolute left-5 top-1/2 -translate-y-1/2 text-[#3b2063] font-bold text-2xl tabular-nums">₱</span>
                       <input
                         type="text"
+                        autoFocus
                         value={amount}
                         onChange={handleAmountChange}
+                        onKeyDown={handleKeyDown}
                         placeholder={isEodLocked ? "SHIFT CLOSED" : "0.00"}
                         disabled={isEodLocked}
-                        onFocus={() => { if (!isEodLocked) setShowKeyboard(true); }}
                         className={`w-full text-[#1a0f2e] font-bold text-4xl pl-14 pr-5 py-5 border outline-none tabular-nums transition-all ${
                           isEodLocked
                             ? 'bg-zinc-50 border-zinc-200 text-zinc-400'
@@ -234,7 +213,6 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
                   </div>
                 </div>
 
-                {/* Submit */}
                 <button
                   onClick={handleSubmit}
                   disabled={!amount || isLoading || isEodLocked}
@@ -262,7 +240,6 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
                   <h1 className="font-bold text-lg text-[#3b2063] uppercase tracking-tight">Lucky Boba</h1>
                   <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Transaction Success</p>
                 </div>
-                
                 <div className="flex-1 py-7 flex flex-col gap-3">
                   <ReceiptRow label="Date" value={receiptData.date} />
                   <ReceiptRow label="Time" value={receiptData.time} />
@@ -275,7 +252,6 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
                     </p>
                   </div>
                 </div>
-
                 <button
                   onClick={handleNewTransaction}
                   className="w-full bg-white border border-zinc-200 text-zinc-700 py-3.5 font-bold text-sm uppercase tracking-widest hover:bg-zinc-50 transition-all rounded-[0.625rem]"
@@ -286,7 +262,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
             </div>
           </div>
 
-          {/* ── Print Panel ── */}
+          {/* Print Panel */}
           <div className="bg-white w-full max-w-sm border border-zinc-200 p-7 flex flex-col gap-5 shadow-sm rounded-[0.625rem]">
             <div className="flex items-center gap-3 pb-4 border-b border-zinc-100">
               <div className="w-9 h-9 bg-zinc-50 border border-zinc-200 flex items-center justify-center">
@@ -297,14 +273,12 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
                 <p className="text-sm font-bold text-zinc-700">Print Receipt</p>
               </div>
             </div>
-
             <div className="px-4 py-3 bg-[#f4f2fb] border border-violet-100">
               <p className="text-[11px] font-medium text-zinc-500 leading-relaxed">
                 Receipt printing available after shift initialization.<br />
                 Press <span className="font-bold text-[#3b2063]">ALT + P</span> for quick print.
               </p>
             </div>
-
             <button
               onClick={handlePrint}
               disabled={!isFlipped}
@@ -317,7 +291,6 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
               <Printer size={16} />
               Print Receipt
             </button>
-
             {isFlipped && (
               <div className="flex items-center gap-2 justify-center">
                 <CheckCircle2 size={14} className="text-emerald-500" />
@@ -327,44 +300,11 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
           </div>
         </div>
 
-        {/* ── Keyboard Toggle FAB ── */}
-        {!isEodLocked && (
-          <button
-            onClick={() => setShowKeyboard(prev => !prev)}
-            className={`fixed bottom-6 right-6 z-100 w-14 h-14 shadow-xl flex items-center justify-center transition-all duration-200 active:scale-95 rounded-[0.625rem] ${
-              showKeyboard ? 'bg-red-600 text-white' : 'bg-[#3b2063] text-white hover:bg-[#2a1647]'
-            }`}
-          >
-            {showKeyboard ? <X size={22} /> : <Calculator size={22} />}
-          </button>
-        )}
-
-        {/* ── Virtual Keyboard ── */}
-        <div className={`fixed bottom-0 left-0 right-0 bg-white shadow-[0_-8px_32px_rgba(0,0,0,0.1)] transition-transform duration-500 z-90 ${showKeyboard ? 'translate-y-0' : 'translate-y-full'}`}>
-          <div className="max-w-4xl mx-auto">
-            <div className="flex items-center justify-between px-6 py-3 bg-zinc-50 border-b border-zinc-100">
-              <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest">Numeric Keypad</span>
-              <button onClick={() => setShowKeyboard(false)} className="text-[11px] font-bold text-[#3b2063] uppercase tracking-widest hover:underline rounded-[0.625rem]">
-                Close
-              </button>
-            </div>
-            <div className="p-4 bg-white">
-              <Keyboard
-                keyboardRef={r => { if (r) keyboardRef.current = r; }}
-                onChange={onKeyboardChange}
-                onKeyPress={onKeyPress}
-                layout={{ default: ["1 2 3", "4 5 6", "7 8 9", ". 0 {bksp}", "{enter}"] }}
-                display={{ "{bksp}": "⌫", "{enter}": "CONFIRM AMOUNT" }}
-              />
-            </div>
-          </div>
-        </div>
       </div>
     </>
   );
 };
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 const ReceiptRow = ({ label, value }: { label: string; value: string }) => (
   <div className="flex items-center justify-between">
     <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">{label}</span>
