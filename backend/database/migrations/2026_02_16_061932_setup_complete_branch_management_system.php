@@ -155,33 +155,6 @@ return new class extends Migration
                     'created_at' => Carbon::now(),
                     'updated_at' => Carbon::now(),
                 ],
-                [
-                    'name' => 'Lucky Boba - IT Park',
-                    'location' => 'Cebu IT Park',
-                    'status' => 'active',
-                    'total_sales' => 0.00,
-                    'today_sales' => 0.00,
-                    'created_at' => Carbon::now(),
-                    'updated_at' => Carbon::now(),
-                ],
-                [
-                    'name' => 'Lucky Boba - Banilad',
-                    'location' => 'Banilad Town Center',
-                    'status' => 'inactive',
-                    'total_sales' => 0.00,
-                    'today_sales' => 0.00,
-                    'created_at' => Carbon::now(),
-                    'updated_at' => Carbon::now(),
-                ],
-                [
-                    'name' => 'Lucky Boba - Capitol',
-                    'location' => 'Capitol Site',
-                    'status' => 'active',
-                    'total_sales' => 0.00,
-                    'today_sales' => 0.00,
-                    'created_at' => Carbon::now(),
-                    'updated_at' => Carbon::now(),
-                ],
             ]);
         }
 
