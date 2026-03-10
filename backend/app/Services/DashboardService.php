@@ -97,9 +97,20 @@ class DashboardService
         });
     }
 
-    public function clearTodayCache()
+    public function clearTodayCache(?int $branchId = null)
     {
         Cache::forget('top_seller_all_time');
+        if ($branchId) {
+            Cache::forget("top_seller_all_time_branch_{$branchId}");
+        }
+    }
+    
+    public function clearAllTimeCache(?int $branchId = null)
+    {
+        Cache::forget('top_seller_all_time'); // global
+        if ($branchId) {
+            Cache::forget("top_seller_all_time_branch_{$branchId}");
+        }
     }
 
     public function getTodayTotals()

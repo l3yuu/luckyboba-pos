@@ -148,7 +148,7 @@ class SalesController extends Controller
             app(SaleObserver::class)->deductStock($sale);
 
             DB::commit();
-            $this->dashboardService->clearTodayCache();
+            $this->dashboardService->clearTodayCache($sale->branch_id);
 
             return response()->json([
                 'status'    => 'success',
@@ -218,7 +218,7 @@ class SalesController extends Controller
             ]);
 
             DB::commit();
-            $this->dashboardService->clearTodayCache();
+            $this->dashboardService->clearTodayCache($sale->branch_id);
 
             return response()->json(['status' => 'success', 'message' => 'Voided successfully']);
 
