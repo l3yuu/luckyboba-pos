@@ -1,4 +1,3 @@
-import type { User } from '../../../types/user';
 import type { useUsers } from '../../../hooks/useUsers';
 import { UserFormModal, DeleteUserModal } from './Modals';
 import { useToast } from '../../../context/ToastContext';
@@ -90,7 +89,7 @@ export const UsersTab = (props: UsersTabProps) => {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {summaryCards.map((s, i) => (
           <div key={i} className="bg-white border border-gray-100 rounded-xl px-4 py-3 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
               style={{ background: s.bg, color: s.color }}>
               {s.icon}
             </div>
@@ -106,7 +105,7 @@ export const UsersTab = (props: UsersTabProps) => {
       <div className="bg-white border border-gray-100 rounded-2xl p-4 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
         <div className="flex items-center gap-3 flex-1 flex-wrap">
           {/* Search */}
-          <div className="relative flex-1 min-w-[200px] max-w-xs">
+          <div className="relative flex-1 min-w-50 max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={15} />
             <input
               type="text"
@@ -197,7 +196,7 @@ export const UsersTab = (props: UsersTabProps) => {
 
                 {/* Avatar + Name */}
                 <div className="col-span-12 sm:col-span-4 flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black flex-shrink-0 ${
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black shrink-0 ${
                     isActive ? 'bg-violet-100 text-violet-700' : 'bg-gray-100 text-gray-400'
                   }`}>
                     {user.name.charAt(0).toUpperCase()}
@@ -220,7 +219,7 @@ export const UsersTab = (props: UsersTabProps) => {
                 {/* Branch */}
                 <div className="hidden sm:flex col-span-2 items-center gap-1.5">
                   {user.branch
-                    ? <><GitBranch size={11} className="text-gray-300 flex-shrink-0" /><p className="text-xs text-gray-500 truncate">{user.branch}</p></>
+                    ? <><GitBranch size={11} className="text-gray-300 shrink-0" /><p className="text-xs text-gray-500 truncate">{user.branch}</p></>
                     : <span className="text-xs text-gray-300">—</span>
                   }
                 </div>
