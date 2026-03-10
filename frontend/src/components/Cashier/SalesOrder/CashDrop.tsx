@@ -1,14 +1,12 @@
 "use client"
 
-import React, { useState, useRef, useEffect } from 'react';
-import Keyboard from 'react-simple-keyboard';
-import 'react-simple-keyboard/build/css/index.css';
+import React, { useState, useEffect } from 'react';
 import type { AxiosError } from 'axios';
 import api from '../../../services/api';
-import type { BackendTransaction, Transaction, KeyboardRef, CashDropProps } from '../../../types/transactions';
+import type { BackendTransaction, Transaction, CashDropProps } from '../../../types/transactions';
 import TopNavbar from '../TopNavbar';
 import { getCache, setCache } from '../../../utils/cache';
-import { Banknote, History as HistoryIcon, Printer, Calculator, MessageSquare, ArrowDownCircle, CheckCircle2, X, Clock, RefreshCw } from 'lucide-react';
+import { Banknote, History as HistoryIcon, Printer, MessageSquare, ArrowDownCircle, CheckCircle2, Clock, RefreshCw } from 'lucide-react';
 
 const CACHE_KEY = 'cash-drop-history';
 const CACHE_TTL = 5 * 60 * 1000;
@@ -21,10 +19,6 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
   const [transactions, setTransactions] = useState<Transaction[]>(getCache<Transaction[]>(CACHE_KEY) ?? []);
   const [isLoading, setIsLoading] = useState(false);
   const [printData, setPrintData] = useState<Transaction | null>(null);
-  const [activeInput, setActiveInput] = useState<{ type: 'count' | 'remarks'; id?: number } | null>(null);
-  const [layoutName, setLayoutName] = useState('numpad');
-  const [showKeyboard, setShowKeyboard] = useState(false);
-  const keyboardRef = useRef<KeyboardRef | null>(null);
 
   useEffect(() => {
     void (async () => { await fetchTodaysDrops(); })();
@@ -60,34 +54,6 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
   const getGrandTotal = (c: { [key: number]: string }) =>
     denominations.reduce((sum, d) => sum + d * (parseFloat(c[d] || '0') || 0), 0);
 
-  const handleCountFocus = (denom: number) => {
-    if (isEodLocked) return;
-    setActiveInput({ type: 'count', id: denom });
-    setLayoutName('numpad');
-    if (keyboardRef.current) keyboardRef.current.setInput(counts[denom] || '');
-    setShowKeyboard(true);
-  };
-
-  const handleRemarksFocus = () => {
-    if (isEodLocked) return;
-    setActiveInput({ type: 'remarks' });
-    setLayoutName('default');
-    if (keyboardRef.current) keyboardRef.current.setInput(remarks);
-    setShowKeyboard(true);
-  };
-
-  const handleInputChange = (val: string) => {
-    if (!activeInput || isEodLocked) return;
-    if (activeInput.type === 'count' && activeInput.id !== undefined) {
-      setCounts(prev => ({ ...prev, [activeInput.id!]: val.replace(/[^0-9.]/g, '') }));
-    } else if (activeInput.type === 'remarks') {
-      setRemarks(val);
-    }
-  };
-
-  const onKeyboardChange = (input: string) => handleInputChange(input);
-  const onKeyPress = (button: string) => { if (button === "{enter}") setShowKeyboard(false); };
-
   const handleSubmit = async () => {
     const total = getGrandTotal(counts);
     if (total <= 0 || isLoading || isEodLocked) return;
@@ -114,8 +80,8 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
         const updatedHistory = [newTx, ...transactions];
         setTransactions(updatedHistory);
         setCache<Transaction[]>(CACHE_KEY, updatedHistory, CACHE_TTL);
-        setCounts({}); setRemarks(''); setShowKeyboard(false);
-        if (keyboardRef.current) keyboardRef.current.setInput("");
+        setCounts({}); 
+        setRemarks(''); 
         if (onSuccess) onSuccess();
         handlePrint(newTx);
       }
@@ -144,11 +110,6 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
           .printable-receipt { display: block !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; max-width: 76mm !important; }
           .receipt-area { width: 66mm !important; margin: 0 auto !important; padding: 3mm 0 15mm 0 !important; font-family: Arial, sans-serif !important; font-size: 11px !important; }
         }
-        .simple-keyboard { background-color: white !important; border-radius: 0 !important; border-top: 1px solid #e4e4e7 !important; }
-        .hg-button { border-radius: 0 !important; height: 60px !important; font-weight: 800 !important; font-size: 1.2rem !important; border: 1px solid #f4f4f5 !important; background: white !important; font-family: 'DM Sans', sans-serif !important; }
-        .hg-button:hover { background: #f5f3ff !important; }
-        .hg-button-enter { background: #3b2063 !important; color: white !important; font-size: 0.75rem !important; letter-spacing: 0.1em; }
-        .hg-button-bksp { background: #fff1f2 !important; color: #e11d48 !important; }
       `}</style>
 
       {/* PRINTABLE RECEIPT */}
@@ -191,7 +152,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
       <div id="main-ui" className="flex flex-col h-full w-full bg-[#f4f2fb] relative overflow-hidden">
         <TopNavbar />
 
-        <div className={`flex-1 flex flex-row items-start justify-center p-5 md:p-7 gap-5 overflow-y-auto transition-all duration-300 ${showKeyboard ? 'pb-80' : ''}`}>
+        <div className="flex-1 flex flex-row items-start justify-center p-5 md:p-7 gap-5 overflow-y-auto transition-all duration-300">
 
           {/* ── LEFT: Drop Form ── */}
           <div className="bg-white w-full flex-1 border border-zinc-200 flex flex-col h-full shadow-sm rounded-[0.625rem]">
@@ -225,9 +186,8 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
                 {denominations.map((denom) => {
                   const qty = counts[denom] || '';
                   const rowTotal = denom * (parseFloat(qty) || 0);
-                  const isActive = activeInput?.type === 'count' && activeInput?.id === denom;
                   return (
-                    <div key={denom} className={`grid grid-cols-12 gap-3 items-center px-6 py-3 transition-colors ${isActive ? 'bg-[#f4f2fb]' : 'hover:bg-zinc-50'}`}>
+                    <div key={denom} className="grid grid-cols-12 gap-3 items-center px-6 py-3 transition-colors hover:bg-zinc-50 focus-within:bg-[#f4f2fb]">
                       <div className="col-span-4 flex items-center gap-2">
                         <Banknote size={15} className="text-zinc-400 shrink-0" />
                         <span className="font-bold text-[#1a0f2e] text-sm tabular-nums">
@@ -237,16 +197,16 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
                       <div className="col-span-4">
                         <input
                           type="text"
-                          inputMode="none"
+                          inputMode="decimal"
                           value={qty}
-                          onFocus={() => handleCountFocus(denom)}
-                          onChange={(e) => handleInputChange(e.target.value)}
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/[^0-9.]/g, '');
+                            setCounts(prev => ({ ...prev, [denom]: val }));
+                          }}
                           placeholder="0"
                           disabled={isEodLocked}
                           className={`w-full text-center font-bold text-sm py-2 border outline-none transition-all ${
-                            isActive
-                              ? 'border-[#3b2063] bg-white'
-                              : isEodLocked
+                            isEodLocked
                               ? 'bg-zinc-50 border-zinc-100 cursor-not-allowed text-zinc-300'
                               : 'bg-[#f4f2fb] border-transparent focus:border-[#3b2063] focus:bg-white'
                           }`}
@@ -276,8 +236,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
                 <MessageSquare size={14} className="absolute left-4 top-3.5 text-zinc-400" />
                 <textarea
                   value={remarks}
-                  onFocus={handleRemarksFocus}
-                  onChange={(e) => handleInputChange(e.target.value)}
+                  onChange={(e) => setRemarks(e.target.value)}
                   placeholder="Drop remarks / notes (optional)..."
                   disabled={isEodLocked}
                   className={`w-full pl-10 pr-4 py-3 border outline-none text-sm font-medium resize-none h-14 transition-all ${
@@ -364,45 +323,6 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
                   )}
                 </tbody>
               </table>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Keyboard FAB ── */}
-        {!isEodLocked && (
-          <button
-            onClick={() => setShowKeyboard(prev => !prev)}
-            className={`fixed bottom-6 right-6 z-100 w-14 h-14 shadow-xl flex items-center justify-center transition-all active:scale-95 rounded-[0.625rem] ${
-              showKeyboard ? 'bg-red-600 text-white' : 'bg-[#3b2063] text-white hover:bg-[#2a1647]'
-            }`}
-          >
-            {showKeyboard ? <X size={22} /> : <Calculator size={22} />}
-          </button>
-        )}
-
-        {/* ── Keyboard Drawer ── */}
-        <div className={`fixed bottom-0 left-0 right-0 bg-white shadow-[0_-8px_32px_rgba(0,0,0,0.1)] transition-transform duration-500 z-90 ${showKeyboard ? 'translate-y-0' : 'translate-y-full'}`}>
-          <div className="max-w-4xl mx-auto">
-            <div className="flex items-center justify-between px-6 py-3 bg-zinc-50 border-b border-zinc-100">
-              <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest">
-                {layoutName === 'numpad' ? 'Numeric Keypad' : 'Text Input'}
-              </span>
-              <button onClick={() => setShowKeyboard(false)} className="text-[11px] font-bold text-[#3b2063] uppercase tracking-widest hover:underline rounded-[0.625rem]">
-                Close
-              </button>
-            </div>
-            <div className="p-4 bg-white">
-              <Keyboard
-                keyboardRef={r => { if (r) keyboardRef.current = r; }}
-                layoutName={layoutName}
-                onChange={onKeyboardChange}
-                onKeyPress={onKeyPress}
-                layout={{
-                  numpad: ["1 2 3", "4 5 6", "7 8 9", "0 {bksp}", "{enter}"],
-                  default: ["q w e r t y u i o p {bksp}", "a s d f g h j k l {enter}", "z x c v b n m , .", "{space}"]
-                }}
-                display={{ "{bksp}": "⌫", "{enter}": "DONE", "{space}": "SPACE" }}
-              />
             </div>
           </div>
         </div>
