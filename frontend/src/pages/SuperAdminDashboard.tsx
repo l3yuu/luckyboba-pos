@@ -36,32 +36,35 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
 }) => {
   if (!show) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-4">
-        <div className="flex flex-col items-center gap-3 text-center">
-          {icon && (
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center ${danger ? 'bg-red-50' : 'bg-violet-50'}`}>
-              {icon}
-            </div>
-          )}
-          <h2 className="text-base font-black text-[#1a0f2e]">{title}</h2>
-          {desc && <p className="text-sm text-gray-400">{desc}</p>}
-        </div>
-        <div className="flex gap-3 pt-2">
-          <button
-            onClick={cancel}
-            className="flex-1 bg-white border border-gray-200 text-gray-700 py-2.5 rounded-xl text-sm font-bold hover:bg-gray-50 transition-all"
-          >
-            Cancel
-          </button>
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
+      <div
+        style={{ fontFamily: "'DM Sans', sans-serif" }}
+        className="bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] p-8 flex flex-col items-center text-center shadow-2xl"
+      >
+        {icon && (
+          <div className={`w-11 h-11 rounded-[0.625rem] flex items-center justify-center mb-5 ${danger ? 'bg-red-50' : 'bg-[#f5f3ff]'}`}>
+            {icon}
+          </div>
+        )}
+        <h3 className="text-[#1a0f2e] font-bold text-base mb-2 tracking-tight">{title}</h3>
+        {desc && <p className="text-zinc-500 text-sm font-medium mb-7 leading-relaxed">{desc}</p>}
+        <div className="flex flex-col w-full gap-2">
           <button
             onClick={action}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-bold text-white shadow-sm transition-all ${
-              danger ? 'bg-red-500 hover:bg-red-600' : 'bg-violet-600 hover:bg-violet-700'
+            className={`w-full py-3 text-[10px] font-bold tracking-[0.18em] uppercase text-white transition-all rounded-[0.625rem] active:scale-[0.98] ${
+              danger ? 'bg-[#be2525] hover:bg-[#a11f1f]' : 'bg-[#3b2063] hover:bg-[#2a1647]'
             }`}
           >
             {btnText}
           </button>
+          {cancel && (
+            <button
+              onClick={cancel}
+              className="w-full py-3 text-[10px] font-bold tracking-[0.18em] uppercase text-zinc-500 bg-white border border-zinc-200 hover:bg-zinc-50 transition-all rounded-[0.625rem] active:scale-[0.98]"
+            >
+              Cancel
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -515,6 +518,7 @@ const SuperAdminDashboard: React.FC = () => {
         cancel={() => setIsLogoutModalOpen(false)}
         danger
       />
+
 
     </div>
   );
