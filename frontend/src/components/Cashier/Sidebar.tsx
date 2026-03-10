@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
-import api from '../services/api';
+import { useAuth } from '../../hooks/useAuth';
+import api from '../../services/api';
 import { 
   LayoutGrid, ShoppingCart, BarChart3, BookOpen, Package,
   Wallet, Settings as SettingsIcon, LogOut, Lock, ChevronDown

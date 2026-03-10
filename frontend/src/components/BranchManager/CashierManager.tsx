@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Users, Plus, Trash2, Edit3, X, Save, Shield } from 'lucide-react';
-import { useToast } from '../context/ToastContext';
-import { useAuth } from '../hooks/useAuth';
-import { UserService } from '../services/UserService';
-import type { User as ApiUser } from '../services/UserService';
+import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../hooks/useAuth';
+import { UserService } from '../../services/UserService';
+import type { User as ApiUser } from '../../services/UserService';
 import axios from 'axios';
 
 // Resolve branch string from currentUser — handles both branch and branch_id

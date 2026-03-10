@@ -14,7 +14,7 @@ import StockTransfer from '../components/Cashier/Inventory/StockTransfer';
 import Supplier from '../components/Cashier/Inventory/Supplier';
 
 // --- Import Settings Component ---
-import Settings from '../components/Settings';
+import Settings from '../components/Cashier/Settings/Settings';
 
 // --- Import Sales Report Components ---
 import SalesDashboard from '../components/Cashier/SalesReport/SalesDashboard';

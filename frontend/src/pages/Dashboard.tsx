@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import Sidebar from "../components/Sidebar";
+import Sidebar from "../components/Cashier/Sidebar";
 import logo from '../assets/logo.png';
 import api from '../services/api'; 
 import type { DashboardData, TopSeller } from '../types/dashboard';
@@ -18,7 +18,7 @@ import ZReading from '../components/Cashier/SalesReport/ZReading';
 import MenuList from '../components/Cashier/MenuItems/MenuList';
 import CategoryList from '../components/Cashier/MenuItems/CategoryList';
 import SubCategoryList from '../components/Cashier/MenuItems/Sub-CategoryList';
-import Expense from '../components/Expense';
+import Expense from '../components/Cashier/Expense';
 import InventoryDashboard from '../components/Cashier/Inventory/InventoryDashboard';
 import InventoryCategoryList from '../components/Cashier/Inventory/InventoryCategoryList';
 import InventoryList from '../components/Cashier/Inventory/InventoryList';
@@ -28,7 +28,7 @@ import ItemSerials from '../components/Cashier/Inventory/ItemSerials';
 import PurchaseOrder from '../components/Cashier/Inventory/PurchaseOrder';
 import StockTransfer from '../components/Cashier/Inventory/StockTransfer';
 import Supplier from '../components/Cashier/Inventory/Supplier';
-import Settings from '../components/Settings';
+import Settings from '../components/Cashier/Settings/Settings';
 
 interface DashboardStatsProps {
   stats: DashboardData | null;

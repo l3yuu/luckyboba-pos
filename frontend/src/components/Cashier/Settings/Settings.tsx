@@ -1,23 +1,23 @@
 "use client"
 
 import { useState, useEffect } from 'react';
-import TopNavbar from './Cashier/TopNavbar';
-import SalesSettings from './Cashier/Settings/SalesSettings';
-import AddCustomers from './Cashier/Settings/AddCustomers';
-import DiscountSettings from './Cashier/Settings/DiscountSettings';
-import ExportData from './Cashier/Settings/ExportData';
-import UploadData from './Cashier/Settings/UploadData';
-import AddVouchers from './Cashier/Settings/AddVouchers';
-import ImportData from './Cashier/Settings/ImportData';
-import BackupSystem from './Cashier/Settings/BackupSystem';
+import TopNavbar from '../TopNavbar';
+import SalesSettings from './SalesSettings';
+import AddCustomers from './AddCustomers';
+import DiscountSettings from './DiscountSettings';
+import ExportData from './ExportData';
+import UploadData from './UploadData';
+import AddVouchers from './AddVouchers';
+import ImportData from './ImportData';
+import BackupSystem from './BackupSystem';
 
 import { 
   Settings as SettingsIcon, UserPlus, Percent, FileUp, 
   Upload, Ticket, FileDown, Database, ShieldCheck, 
   Clock, Activity, X, AlertTriangle
 } from 'lucide-react';
-import api from '../services/api';
-import { getCache, setCache } from '../utils/cache';
+import api from '../../../services/api';
+import { getCache, setCache } from '../../../utils/cache';
 
 const dashboardFont = { fontFamily: "'Inter', sans-serif" };
 

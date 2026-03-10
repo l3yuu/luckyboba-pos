@@ -1,11 +1,11 @@
 "use client"
 
 import { useState, useEffect, useCallback } from 'react';
-import TopNavbar from './Cashier/TopNavbar';
-import api from '../services/api';
-import { useToast } from '../hooks/useToast';
+import TopNavbar from './TopNavbar';
+import api from '../../services/api';
+import { useToast } from '../../hooks/useToast';
 import { Loader2 } from 'lucide-react';
-import { getCache, setCache, clearCache } from '../utils/cache';
+import { getCache, setCache, clearCache } from '../../utils/cache';
 
 const dashboardFont = { fontFamily: "'Inter', sans-serif" };
 

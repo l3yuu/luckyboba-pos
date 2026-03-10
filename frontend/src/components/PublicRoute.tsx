@@ -136,7 +136,7 @@ export const PublicRoute = () => {
 
           .lb-auth-brand {
             font-size: 0.6rem;
-            font-weight: 600;
+            font-weight: 1000;
             letter-spacing: 0.16em;
             text-transform: uppercase;
             color: #d4d4d8;

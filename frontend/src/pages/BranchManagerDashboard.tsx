@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import BranchManagerSidebar from '../components/BranchManagerSidebar';
+import BranchManagerSidebar from '../components/BranchManager/BranchManagerSidebar';
 import logo from '../assets/logo.png';
-import CashierManagement from '../components/CashierManager';
+import CashierManagement from '../components/BranchManager/CashierManager';
 import api from '../services/api';
 
 // --- Import Sales Report Components ---
@@ -27,7 +27,7 @@ import StockTransfer from '../components/Cashier/Inventory/StockTransfer';
 import Supplier from '../components/Cashier/Inventory/Supplier';
 
 // --- Import Settings Component ---
-import Settings from '../components/Settings';
+import Settings from '../components/Cashier/Settings/Settings';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
