@@ -78,8 +78,8 @@ const DeleteBranchModal: React.FC<{
   onConfirm: () => void;
   onCancel: () => void;
 }> = ({ branch, loading, onConfirm, onCancel }) => (
-  <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-    <div className="bg-white rounded-[2rem] shadow-2xl p-8 w-full max-w-sm text-center">
+  <div className="fixed inset-0 z-200 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div className="bg-white rounded-4xl shadow-2xl p-8 w-full max-w-sm text-center">
       <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="#ef4444" className="w-7 h-7">
           <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
@@ -246,7 +246,7 @@ const HourlyChart: React.FC<{
             const isHovered = hoveredIndex === i;
             const hasData = hourlyTotals[i] > 0;
             return (
-              <div key={i} className="flex flex-col items-center min-w-[2.5rem] flex-1 h-full justify-end relative"
+              <div key={i} className="flex flex-col items-center min-w-10 flex-1 h-full justify-end relative"
                 onMouseEnter={() => setHoveredIndex(i)} onMouseLeave={() => setHoveredIndex(null)}
                 style={{ cursor: hasData ? 'pointer' : 'default' }}>
                 {isHovered && hasData && (
@@ -254,7 +254,7 @@ const HourlyChart: React.FC<{
                     style={{ bottom: 'calc(100% - 24px)' }}>
                     <p className="text-[8px] font-black uppercase text-purple-300 text-center">{hourlyLabels[i]}</p>
                     <p className="text-[11px] font-black text-white text-center">{fmt(hourlyTotals[i])}</p>
-                    <div className="absolute left-1/2 -translate-x-1/2 bottom-[-5px] w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[5px] border-t-[#3b2063]" />
+                    <div className="absolute left-1/2 -translate-x-1/2 -bottom-1.25 w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[5px] border-t-[#3b2063]" />
                   </div>
                 )}
                 <div className="w-full rounded-t-lg transition-all duration-200"
@@ -317,7 +317,7 @@ const AnalyticsModal: React.FC<{ branch: Branch; onClose: () => void }> = ({ bra
   const yAxisMax = analytics ? Math.ceil(Math.max(...weeklyTotals, 1) / 1000) * 1000 : 10000;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 md:p-10">
+    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 md:p-10">
       <div className="w-full max-w-7xl max-h-[95vh] flex flex-col bg-[#f8f6ff] rounded-[2.5rem] shadow-2xl overflow-hidden">
         <div className="flex justify-between items-center bg-white px-8 py-6 border-b border-zinc-100 shrink-0">
           <div>
@@ -355,7 +355,7 @@ const AnalyticsModal: React.FC<{ branch: Branch; onClose: () => void }> = ({ bra
                   { label: "Avg Order Value",    value: fmt(analytics.avg_order_value),                sub: "Per transaction", positive: true },
                   { label: "Total Transactions", value: analytics.total_transactions.toLocaleString(), sub: "Last 7 days",     positive: true },
                 ].map((kpi, i) => (
-                  <div key={i} className="bg-white rounded-[1.5rem] p-6 border border-zinc-100 shadow-sm">
+                  <div key={i} className="bg-white rounded-3xl p-6 border border-zinc-100 shadow-sm">
                     <p className="text-[9px] font-black uppercase tracking-[0.2em] text-zinc-300 mb-2">{kpi.label}</p>
                     <p className="font-black text-xl text-[#3b2063] leading-none">{kpi.value}</p>
                     <p className={`text-[10px] font-bold mt-2 ${kpi.positive ? 'text-emerald-500' : 'text-red-400'}`}>{kpi.sub}</p>

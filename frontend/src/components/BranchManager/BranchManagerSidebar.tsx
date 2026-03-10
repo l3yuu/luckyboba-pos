@@ -222,7 +222,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
       )}
 
       <aside className={`
-        sb-root fixed inset-y-0 left-0 z-50 w-[240px] bg-white border-r border-zinc-100
+        sb-root fixed inset-y-0 left-0 z-50 w-60 bg-white border-r border-zinc-100
         flex flex-col transform transition-transform duration-300
         md:relative md:translate-x-0
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -230,7 +230,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
 
         {/* ── Brand (Now Centered Perfectly) ── */}
         <div className="shrink-0 px-4 pt-6 pb-6 border-b border-zinc-100 flex flex-col items-center text-center">
-          <div className="w-full flex justify-center mb-5 hidden md:flex">
+          <div className="w-full flex justify-center mb-5 md:flex">
              <img src={logo} alt="Lucky Boba" className="h-11 w-auto object-contain" />
           </div>
           <div className="flex items-center justify-center gap-3 w-full">
@@ -282,7 +282,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
           <button
             onClick={() => setShowLogoutConfirm(true)}
             disabled={isLoggingOut}
-            className="sb-item hover:!bg-red-50 hover:!text-red-600"
+            className="sb-item hover:bg-red-50! hover:text-red-600!"
             style={{ color: '#be2525' }}
           >
             {isLoggingOut ? (
