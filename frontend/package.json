@@ -16,7 +16,7 @@
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.13.0",
     "react-simple-keyboard": "^3.8.166",
-    "recharts": "^3.7.0",
+    "recharts": "^3.8.0",
     "xlsx": "^0.18.5",
     "zustand": "^5.0.11"
   },
