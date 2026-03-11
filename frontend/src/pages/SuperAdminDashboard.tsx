@@ -14,23 +14,22 @@ import {
 } from '../components/SuperAdmin/tabs';
 import {
   LayoutGrid, GitBranch, Users, BarChart2,
-  Settings as SettingsIcon, LogOut, HelpCircle, Menu, X
+  Settings as SettingsIcon, LogOut, HelpCircle, Menu, X,
 } from 'lucide-react';
 
 type TabId = 'overview' | 'branches' | 'users' | 'reports' | 'settings';
 
-// ── Inline generic confirmation modal (no external dependency needed) ─────────
+// ── Confirm Modal ─────────────────────────────────────────────────────────────
 interface ConfirmModalProps {
-  show:    boolean;
-  icon?:   React.ReactNode;
-  title:   string;
-  desc?:   string;
-  action:  () => void;
+  show:     boolean;
+  icon?:    React.ReactNode;
+  title:    string;
+  desc?:    string;
+  action:   () => void;
   btnText?: string;
-  cancel:  () => void;
-  danger?: boolean;
+  cancel:   () => void;
+  danger?:  boolean;
 }
-
 const ConfirmModal: React.FC<ConfirmModalProps> = ({
   show, icon, title, desc, action, btnText = 'Confirm', cancel, danger = false,
 }) => {
@@ -54,16 +53,12 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
             className={`w-full py-3 text-[10px] font-bold tracking-[0.18em] uppercase text-white transition-all rounded-[0.625rem] active:scale-[0.98] ${
               danger ? 'bg-[#be2525] hover:bg-[#a11f1f]' : 'bg-[#3b2063] hover:bg-[#2a1647]'
             }`}
-          >
-            {btnText}
-          </button>
+          >{btnText}</button>
           {cancel && (
             <button
               onClick={cancel}
               className="w-full py-3 text-[10px] font-bold tracking-[0.18em] uppercase text-zinc-500 bg-white border border-zinc-200 hover:bg-zinc-50 transition-all rounded-[0.625rem] active:scale-[0.98]"
-            >
-              Cancel
-            </button>
+            >Cancel</button>
           )}
         </div>
       </div>
@@ -71,20 +66,23 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   );
 };
 
-// ── Sidebar styles (mirrors BranchManagerSidebar exactly) ─────────────────────
+// ── Sidebar Styles ────────────────────────────────────────────────────────────
 const SB_STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&display=swap');
+
   .sa-sb-root, .sa-sb-root * { font-family: 'DM Sans', sans-serif !important; box-sizing: border-box; }
 
   .sa-sb-scroll { overflow-y: auto; -ms-overflow-style: none; scrollbar-width: none; }
   .sa-sb-scroll::-webkit-scrollbar { display: none; }
 
+  /* ── Desktop: section label ── */
   .sa-sb-sec {
     padding: 14px 14px 3px;
     font-size: 0.58rem; font-weight: 700; letter-spacing: 0.18em;
     text-transform: uppercase; color: #b4b4b8;
   }
 
+  /* ── Desktop: nav item ── */
   .sa-sb-item {
     display: flex; align-items: center; gap: 8px;
     width: 100%; padding: 6.5px 10px; border: none;
@@ -103,6 +101,67 @@ const SB_STYLES = `
   .sa-sb-icon { flex-shrink: 0; width: 15px; display: flex; align-items: center; justify-content: center; }
   .sa-sb-divider { height: 1px; background: #f0f0f2; margin: 6px 10px; }
 
+  /* ── Mobile: overlay ── */
+  @keyframes sa-overlay-in  { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes sa-overlay-out { from { opacity: 1; } to { opacity: 0; } }
+  .sa-overlay-enter { animation: sa-overlay-in  0.2s ease forwards; }
+  .sa-overlay-exit  { animation: sa-overlay-out 0.25s ease forwards; }
+
+  /* ── Mobile: panel slide in / out ── */
+  @keyframes sa-panel-in  { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+  @keyframes sa-panel-out { from { transform: translateX(0); }      to { transform: translateX(-100%); } }
+  .sa-panel-enter { animation: sa-panel-in  0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+  .sa-panel-exit  { animation: sa-panel-out 0.26s cubic-bezier(0.4, 0, 1, 1)    forwards; }
+
+  /* ── Mobile: section label ── */
+  .sa-sec {
+    padding: 16px 4px 5px;
+    font-size: 0.58rem; font-weight: 700; letter-spacing: 0.18em;
+    text-transform: uppercase; color: #c4c4c8;
+  }
+
+  /* ── Mobile: nav item ── */
+  .sa-item {
+    display: flex; align-items: center; gap: 14px;
+    width: 100%; padding: 13px 14px; border: none;
+    background: transparent; cursor: pointer; text-align: left;
+    border-radius: 0.75rem; margin: 2px 0;
+    color: #3f3f46; font-size: 0.95rem; font-weight: 500;
+    transition: background 0.12s, color 0.12s;
+    position: relative;
+  }
+  .sa-item:hover  { background: #f4f2ff; color: #3b2063; }
+  .sa-item.active { background: #ede8ff; color: #3b2063; font-weight: 600; }
+  .sa-item.active::before {
+    content: ''; position: absolute; left: 0; top: 20%; bottom: 20%;
+    width: 3px; background: #3b2063; border-radius: 0 3px 3px 0;
+  }
+
+  /* ── Mobile: icon box ── */
+  .sa-item-icon {
+    flex-shrink: 0; width: 38px; height: 38px;
+    border-radius: 0.6rem; background: #f4f4f5;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.12s;
+  }
+  .sa-item.active .sa-item-icon { background: #ddd5ff; }
+  .sa-item:hover  .sa-item-icon { background: #ede8ff; }
+
+  /* ── Mobile: logout ── */
+  .sa-logout {
+    display: flex; align-items: center; gap: 14px;
+    width: 100%; padding: 13px 14px; border: none;
+    background: transparent; cursor: pointer; text-align: left;
+    border-radius: 0.75rem; margin: 2px 0;
+    color: #be2525; font-size: 0.95rem; font-weight: 500;
+    transition: background 0.12s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .sa-logout:hover { background: #fff0f0; }
+  .sa-logout .sa-item-icon { background: #fff0f0; }
+
+  .sa-divider { height: 1px; background: #f0f0f2; margin: 6px 0; }
+
   @keyframes sa-sb-spin { to { transform: rotate(360deg); } }
   .sa-sb-spin { animation: sa-sb-spin 0.7s linear infinite; }
 `;
@@ -117,40 +176,42 @@ interface SidebarProps {
   isLoggingOut:   boolean;
 }
 
+const navItems: { id: TabId; label: string; icon: React.ReactNode; mobileIcon: React.ReactNode }[] = [
+  { id: 'overview', label: 'Overview',          icon: <LayoutGrid size={14} />, mobileIcon: <LayoutGrid size={18} /> },
+  { id: 'branches', label: 'Branch Management', icon: <GitBranch  size={14} />, mobileIcon: <GitBranch  size={18} /> },
+  { id: 'users',    label: 'User Management',   icon: <Users      size={14} />, mobileIcon: <Users      size={18} /> },
+  { id: 'reports',  label: 'Reports',           icon: <BarChart2  size={14} />, mobileIcon: <BarChart2  size={18} /> },
+];
+
 const SuperAdminSidebar: React.FC<SidebarProps> = ({
   isSidebarOpen, setSidebarOpen, activeTab, setActiveTab, onLogout, isLoggingOut,
 }) => {
-  const goTo = (id: TabId) => {
-    setActiveTab(id);
-    if (window.innerWidth < 768) setSidebarOpen(false);
+  const [isClosing, setIsClosing] = useState(false);
+
+  const closePanel = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      setSidebarOpen(false);
+    }, 260);
   };
 
-  const navItems: { id: TabId; label: string; icon: React.ReactNode }[] = [
-    { id: 'overview', label: 'Overview',          icon: <LayoutGrid size={14} /> },
-    { id: 'branches', label: 'Branch Management', icon: <GitBranch  size={14} /> },
-    { id: 'users',    label: 'User Management',   icon: <Users      size={14} /> },
-    { id: 'reports',  label: 'Reports',           icon: <BarChart2  size={14} /> },
-  ];
+  const goTo = (id: TabId) => {
+    setActiveTab(id);
+    if (window.innerWidth < 768) closePanel();
+  };
 
   return (
     <>
       <style>{SB_STYLES}</style>
 
-      <aside className={`
-        sa-sb-root fixed inset-y-0 left-0 z-50 w-[240px] bg-white border-r border-zinc-100
-        flex flex-col transform transition-transform duration-300
-        md:relative md:translate-x-0
-        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-      `}>
+      {/* ══ DESKTOP SIDEBAR (md+) ══ */}
+      <aside className="sa-sb-root fixed inset-y-0 left-0 z-50 w-[240px] bg-white border-r border-zinc-100 flex-col transform transition-transform duration-300 hidden md:flex md:relative md:translate-x-0">
 
-        {/* ── Brand ── */}
+        {/* Brand */}
         <div className="shrink-0 px-4 pt-6 pb-4 border-b border-zinc-100">
           <div className="flex items-center gap-3">
-            <div style={{
-              width: 32, height: 32, borderRadius: '0.4rem',
-              background: '#3b2063', flexShrink: 0,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
+            <div style={{ width: 32, height: 32, borderRadius: '0.4rem', background: '#3b2063', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ fontSize: '0.6rem', fontWeight: 800, color: '#fff', letterSpacing: '0.02em' }}>SA</span>
             </div>
             <div className="text-left">
@@ -160,58 +221,36 @@ const SuperAdminSidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
-        {/* ── Nav ── */}
+        {/* Desktop Nav */}
         <div className="flex-1 sa-sb-scroll min-h-0 px-3 py-2">
           <div className="sa-sb-sec mt-2">Home</div>
-
           {navItems.map(item => (
-            <button
-              key={item.id}
-              onClick={() => goTo(item.id)}
-              className={`sa-sb-item ${activeTab === item.id ? 'active' : ''}`}
-            >
-              <span className="sa-sb-icon" style={{ color: activeTab === item.id ? '#3b2063' : '#a1a1aa' }}>
-                {item.icon}
-              </span>
+            <button key={item.id} onClick={() => goTo(item.id)} className={`sa-sb-item ${activeTab === item.id ? 'active' : ''}`}>
+              <span className="sa-sb-icon" style={{ color: activeTab === item.id ? '#3b2063' : '#a1a1aa' }}>{item.icon}</span>
               {item.label}
             </button>
           ))}
+
+          <div className="sa-sb-sec">System</div>
+          <button onClick={() => goTo('settings')} className={`sa-sb-item ${activeTab === 'settings' ? 'active' : ''}`}>
+            <span className="sa-sb-icon" style={{ color: activeTab === 'settings' ? '#3b2063' : '#a1a1aa' }}><SettingsIcon size={14} /></span>
+            Settings
+          </button>
         </div>
 
-        {/* ── Logo ── */}
+        {/* Logo */}
         <div className="shrink-0 flex justify-center px-4 pb-4">
           <img src={logo} alt="Lucky Boba" className="h-20 w-auto object-contain" />
         </div>
 
-        {/* ── Bottom-pinned ── */}
+        {/* Desktop Bottom */}
         <div className="shrink-0 px-3 pb-4 pt-2 border-t border-zinc-100">
-          <button
-            onClick={() => goTo('settings')}
-            className={`sa-sb-item ${activeTab === 'settings' ? 'active' : ''}`}
-          >
-            <span className="sa-sb-icon" style={{ color: activeTab === 'settings' ? '#3b2063' : '#a1a1aa' }}>
-              <SettingsIcon size={14} />
-            </span>
-            Settings
-          </button>
-
-          <button
-            className="sa-sb-item"
-            style={{ color: '#71717a' }}
-            onClick={() => window.open('mailto:support@luckyboba.com')}
-          >
+          <button className="sa-sb-item" style={{ color: '#71717a' }} onClick={() => window.open('mailto:support@luckyboba.com')}>
             <span className="sa-sb-icon" style={{ color: '#a1a1aa' }}><HelpCircle size={14} /></span>
             Get Help
           </button>
-
           <div className="sa-sb-divider my-2" />
-
-          <button
-            onClick={onLogout}
-            disabled={isLoggingOut}
-            className="sa-sb-item hover:!bg-red-50 hover:!text-red-600"
-            style={{ color: '#be2525' }}
-          >
+          <button onClick={onLogout} disabled={isLoggingOut} className="sa-sb-item hover:!bg-red-50 hover:!text-red-600" style={{ color: '#be2525' }}>
             {isLoggingOut ? (
               <>
                 <span className="sa-sb-icon">
@@ -229,18 +268,107 @@ const SuperAdminSidebar: React.FC<SidebarProps> = ({
               </>
             )}
           </button>
-
           <div className="mt-3 text-[9px] font-bold uppercase tracking-widest text-zinc-300 text-center">
             Lucky Boba 2026
           </div>
         </div>
       </aside>
 
-      {isSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
+      {/* ══ MOBILE: full-viewport panel ══ */}
+      {(isSidebarOpen || isClosing) && (
+        <>
+          {/* Backdrop */}
+          <div
+            className={`${isClosing ? 'sa-overlay-exit' : 'sa-overlay-enter'} md:hidden`}
+            onClick={closePanel}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(3px)', zIndex: 40 }}
+          />
+
+          {/* Panel */}
+          <div
+            className={`sa-panel-enter${isClosing ? ' sa-panel-exit' : ''} sa-sb-root md:hidden`}
+            style={{
+              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+              background: '#fff', zIndex: 50,
+              display: 'flex', flexDirection: 'column', overflow: 'hidden',
+            }}
+          >
+            {/* Profile header */}
+            <div style={{ padding: '28px 20px 16px', paddingTop: 'max(28px, calc(env(safe-area-inset-top) + 16px))', flexShrink: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{
+                    width: 48, height: 48, borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #7c3aed, #3b2063)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    flexShrink: 0, boxShadow: '0 0 0 3px #ede8ff',
+                  }}>
+                    <span style={{ fontSize: '1rem', fontWeight: 800, color: '#fff' }}>SA</span>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.65rem', color: '#a1a1aa', fontWeight: 500, marginBottom: 1 }}>Hello,</div>
+                    <div style={{ fontSize: '1rem', fontWeight: 700, color: '#1a0f2e', lineHeight: 1.2 }}>Super Admin</div>
+                    <div style={{ fontSize: '0.68rem', color: '#a1a1aa', fontWeight: 500, marginTop: 1 }}>Lucky Boba</div>
+                  </div>
+                </div>
+                <button
+                  onClick={closePanel}
+                  style={{ width: 32, height: 32, borderRadius: '50%', border: 'none', background: '#f4f4f5', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+                >
+                  <X size={14} color="#71717a" />
+                </button>
+              </div>
+            </div>
+
+            <div className="sa-divider" style={{ margin: '0 20px' }} />
+
+            {/* Mobile Nav */}
+            <div className="sa-sb-scroll" style={{ flex: 1, minHeight: 0, padding: '8px 14px' }}>
+              <div className="sa-sec">Home</div>
+              {navItems.map(item => (
+                <button key={item.id} onClick={() => goTo(item.id)} className={`sa-item ${activeTab === item.id ? 'active' : ''}`}>
+                  <span className="sa-item-icon">{item.mobileIcon}</span>
+                  {item.label}
+                </button>
+              ))}
+
+              <div className="sa-sec">System</div>
+              <button onClick={() => goTo('settings')} className={`sa-item ${activeTab === 'settings' ? 'active' : ''}`}>
+                <span className="sa-item-icon"><SettingsIcon size={18} color={activeTab === 'settings' ? '#3b2063' : '#71717a'} /></span>
+                Settings
+              </button>
+            </div>
+
+            {/* Mobile Bottom */}
+            <div style={{ flexShrink: 0, padding: '8px 14px', paddingBottom: 'max(24px, env(safe-area-inset-bottom))', borderTop: '1px solid #f0f0f2' }}>
+              <button className="sa-item" style={{ color: '#71717a' }} onClick={() => window.open('mailto:support@luckyboba.com')}>
+                <span className="sa-item-icon"><HelpCircle size={18} color="#a1a1aa" /></span>
+                Get Help
+              </button>
+              <button onClick={onLogout} disabled={isLoggingOut} className="sa-logout">
+                {isLoggingOut ? (
+                  <>
+                    <span className="sa-item-icon">
+                      <div style={{ position: 'relative', width: 16, height: 16 }}>
+                        <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1.5px solid #fca5a5' }} />
+                        <div className="sa-sb-spin" style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1.5px solid transparent', borderTopColor: '#be2525' }} />
+                      </div>
+                    </span>
+                    Logging out...
+                  </>
+                ) : (
+                  <>
+                    <span className="sa-item-icon"><LogOut size={18} color="#be2525" /></span>
+                    Log out
+                  </>
+                )}
+              </button>
+              <div style={{ marginTop: 14, fontSize: '0.56rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.18em', color: '#d4d4d8', textAlign: 'center' }}>
+                Lucky Boba 2026
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </>
   );
@@ -335,7 +463,10 @@ const SuperAdminDashboard: React.FC = () => {
       {/* Mobile header */}
       <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 shrink-0">
         <img src={logo} alt="Lucky Boba" className="h-8 w-auto object-contain" />
-        <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-2 rounded-md text-[#3b2063] hover:bg-[#f5f3ff] transition-colors">
+        <button
+          onClick={() => setSidebarOpen(!isSidebarOpen)}
+          className="p-2 rounded-md text-[#3b2063] hover:bg-[#f5f3ff] transition-colors"
+        >
           <Menu size={20} strokeWidth={2} />
         </button>
       </div>
@@ -403,13 +534,11 @@ const SuperAdminDashboard: React.FC = () => {
                 <X size={18} />
               </button>
             </div>
-
             {modalError && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
                 <p className="text-sm text-red-600 font-bold">{modalError}</p>
               </div>
             )}
-
             <form onSubmit={handleSave} className="space-y-4">
               {[
                 { label: 'Branch Name', key: 'name',     placeholder: 'e.g. Lucky Boba – SM City' },
@@ -518,8 +647,6 @@ const SuperAdminDashboard: React.FC = () => {
         cancel={() => setIsLogoutModalOpen(false)}
         danger
       />
-
-
     </div>
   );
 };
