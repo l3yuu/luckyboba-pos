@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react';
-import TopNavbar from '../TopNavbar';
+import TopNavbar from '../../Cashier/TopNavbar';
 import SalesSettings from './SalesSettings';
 import AddCustomers from './AddCustomers';
 import DiscountSettings from './DiscountSettings';

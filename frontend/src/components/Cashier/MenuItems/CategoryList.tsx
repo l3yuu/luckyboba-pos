@@ -2,7 +2,7 @@
 
   import { useState, useEffect, useRef, useMemo } from 'react';
   import axios from 'axios';
-  import TopNavbar from '../TopNavbar';
+  import TopNavbar from '../../Cashier/TopNavbar';
   import api from '../../../services/api';
   import { Plus, Search, Pencil, Trash2, CheckCircle2, X, Tag, AlertTriangle } from 'lucide-react';
 

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from 'react';
-import TopNavbar from '../TopNavbar';
+import TopNavbar from '../../Cashier/TopNavbar';
 import api from '../../../services/api';
 import { useCache } from '../../../UseCache';
 

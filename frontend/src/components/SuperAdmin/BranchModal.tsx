@@ -131,3 +131,4 @@ export const BranchModal: React.FC<BranchModalProps> = ({ isOpen, branch, onClos
     </div>
   );
 };
+

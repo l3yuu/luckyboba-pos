@@ -15,10 +15,10 @@ import {
   BarChart, Bar, Cell
 } from 'recharts';
 
-import SalesDashboard        from '../components/Cashier/SalesReport/SalesDashboard';
-import ItemsReport           from '../components/Cashier/SalesReport/ItemsReport';
-import XReading              from '../components/Cashier/SalesReport/XReading';
-import ZReading              from '../components/Cashier/SalesReport/ZReading';
+import SalesDashboard        from '../components/BranchManager/SalesReport/SalesDashboard';
+import ItemsReport           from '../components/BranchManager/SalesReport/ItemsReport';
+import XReading              from '../components/BranchManager/SalesReport/X-Reading';
+import ZReading              from '../components/BranchManager/SalesReport/Z-Reading';
 import MenuList              from '../components/Cashier/MenuItems/MenuList';
 import CategoryList          from '../components/Cashier/MenuItems/CategoryList';
 import SubCategoryList       from '../components/Cashier/MenuItems/Sub-CategoryList';

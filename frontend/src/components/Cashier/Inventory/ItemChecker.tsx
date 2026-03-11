@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef } from 'react';
-import TopNavbar from '../TopNavbar';
+import TopNavbar from '../../Cashier/TopNavbar';
 import api from '../../../services/api';
 import { isAxiosError } from 'axios';
 import { useToast } from '../../../hooks/useToast';

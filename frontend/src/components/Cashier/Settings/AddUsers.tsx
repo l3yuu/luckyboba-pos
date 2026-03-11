@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import TopNavbar from '../TopNavbar';
+import TopNavbar from '../../Cashier/TopNavbar';
 import { ArrowLeft, UserCog, Plus, Trash2, Edit3, X, Save, Shield } from 'lucide-react';
 
 interface User {
