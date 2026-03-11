@@ -1,6 +1,6 @@
 "use client"
 
-import TopNavbar from '../TopNavbar';
+import TopNavbar from '../../Cashier/TopNavbar';
 
 const dashboardFont = { fontFamily: "'Inter', sans-serif" };
 

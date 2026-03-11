@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useRef, useEffect } from 'react';
-import TopNavbar from '../TopNavbar';
+import TopNavbar from '../../Cashier/TopNavbar';
 import api from '../../../services/api';
 
 interface XReadingReport {

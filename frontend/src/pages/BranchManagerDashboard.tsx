@@ -15,13 +15,16 @@ import {
   BarChart, Bar, Cell
 } from 'recharts';
 
-import SalesDashboard        from '../components/Cashier/SalesReport/SalesDashboard';
-import ItemsReport           from '../components/Cashier/SalesReport/ItemsReport';
-import XReading              from '../components/Cashier/SalesReport/XReading';
-import ZReading              from '../components/Cashier/SalesReport/ZReading';
-import MenuList              from '../components/Cashier/MenuItems/MenuList';
-import CategoryList          from '../components/Cashier/MenuItems/CategoryList';
-import SubCategoryList       from '../components/Cashier/MenuItems/Sub-CategoryList';
+import SalesDashboard        from '../components/BranchManager/SalesReport/SalesDashboard';
+import ItemsReport           from '../components/BranchManager/SalesReport/ItemsReport';
+import XReading              from '../components/BranchManager/SalesReport/X-Reading';
+import ZReading              from '../components/BranchManager/SalesReport/Z-Reading';
+
+// ── BranchManager-specific Menu Items (replaces Cashier versions) ─────────────
+import BM_MenuList           from '../components/BranchManager/MenuItems/BM_MenuList';
+import BM_Categories         from '../components/BranchManager/MenuItems/BM_Categories';
+import BM_SubCategories      from '../components/BranchManager/MenuItems/BM_Sub-Categories';
+
 import InventoryDashboard    from '../components/Cashier/Inventory/InventoryDashboard';
 import InventoryCategoryList from '../components/Cashier/Inventory/InventoryCategoryList';
 import InventoryList         from '../components/Cashier/Inventory/InventoryList';
@@ -55,7 +58,7 @@ const STYLES = `
   .bm-pill { font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 100px; padding: 3px 9px; border: 1px solid #e4e4e7; background: #f4f4f5; color: #71717a; }
 `;
 
-// ─── Confirm Modal (consistent with SuperAdminDashboard) ─────────────────────
+// ─── Confirm Modal ────────────────────────────────────────────────────────────
 interface ConfirmModalProps {
   show:     boolean;
   icon?:    React.ReactNode;
@@ -189,9 +192,13 @@ const BranchManagerDashboard = () => {
       case 'items-report':        return <ItemsReport />;
       case 'x-reading':           return <XReading />;
       case 'z-reading':           return <ZReading />;
-      case 'menu-list':           return <MenuList />;
-      case 'category-list':       return <CategoryList />;
-      case 'sub-category-list':   return <SubCategoryList />;
+
+      // ── Menu Items — now using BranchManager-specific components ──────────
+      case 'menu-list':           return <BM_MenuList />;
+      case 'category-list':       return <BM_Categories />;
+      case 'sub-category-list':   return <BM_SubCategories />;
+
+      // ── Inventory — still using Cashier components ─────────────────────
       case 'inventory-dashboard': return <InventoryDashboard />;
       case 'inventory-list':      return <InventoryList />;
       case 'inventory-category':  return <InventoryCategoryList />;
@@ -267,7 +274,6 @@ const BranchManagerDashboard = () => {
         </main>
       </div>
 
-      {/* Logout Confirmation Modal — consistent with SuperAdminDashboard */}
       <ConfirmModal
         show={isLogoutModalOpen}
         icon={<LogOut size={19} className="text-[#be2525]" />}

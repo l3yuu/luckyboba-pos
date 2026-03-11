@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react';
-import TopNavbar from '../TopNavbar';
+import TopNavbar from '../../Cashier/TopNavbar';
 import api from '../../../services/api';
 import { Loader2 } from 'lucide-react';
 import { getCache, setCache } from '../../../utils/cache';
