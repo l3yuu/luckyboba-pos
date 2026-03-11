@@ -660,7 +660,7 @@ const SalesOrder = () => {
           name:           item.name,
           quantity:       item.qty,
           unit_price:     Number(item.price),
-          total_price:    item.finalPrice,
+          total_price:    item.finalPrice + ((item.charges?.grab || item.charges?.panda) ? 30 * item.qty : 0),
           size:           item.size !== 'none' ? item.size : null,
           cup_size_label: item.cupSizeLabel ?? null,
           sugar_level:    item.sugarLevel || null,
@@ -1257,7 +1257,9 @@ const SalesOrder = () => {
                                 {item.remarks && <p className="italic">• {item.remarks}</p>}
                               </div>
                             </div>
-                            <p className="font-black text-sm text-[#3b2063]">₱ {item.finalPrice.toFixed(2)}</p>
+                            <p className="font-black text-sm text-[#3b2063]">
+                              ₱ {(item.finalPrice + ((item.charges?.grab || item.charges?.panda) ? 30 * item.qty : 0)).toFixed(2)}
+                            </p>
                           </div>
                         ))}
                       </div>
@@ -1267,6 +1269,12 @@ const SalesOrder = () => {
                     <div className="space-y-1.5 text-[11px] font-bold text-zinc-600">
                       <div className="flex justify-between"><span>Quantity (Items)</span><span>{totalCount}</span></div>
                       <div className="flex justify-between"><span>Sub Total</span><span>₱ {subtotal.toFixed(2)}</span></div>
+                      {cart.some(i => i.charges?.grab || i.charges?.panda) && (
+                        <div className="flex justify-between text-zinc-500">
+                          <span>{orderCharge === 'grab' ? 'Grab' : 'FoodPanda'} Surcharge</span>
+                          <span>₱ {cart.reduce((acc, i) => acc + ((i.charges?.grab || i.charges?.panda) ? 30 * i.qty : 0), 0).toFixed(2)}</span>
+                        </div>
+                      )}
                       <div className="flex justify-between"><span>VATable Sales</span><span>₱ {vatableSales.toFixed(2)}</span></div>
                       <div className="flex justify-between"><span>VAT Amount</span><span>₱ {vatAmount.toFixed(2)}</span></div>
                       <div className="flex justify-between"><span>VAT Exempt Sales</span><span>₱ 0.00</span></div>
