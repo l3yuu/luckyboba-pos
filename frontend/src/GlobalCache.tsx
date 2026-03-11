@@ -132,7 +132,7 @@ const EMPTY_STORE: CacheStore = {
   audit_logs:         [],
 };
 
-// ─── Fetch Helper ──────────────────────────────────────────────────────────────
+// ─── Helpers ───────────────────────────────────────────────────────────────────
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const token = localStorage.getItem(AUTH_TOKEN_KEY);
@@ -152,6 +152,15 @@ function getAuthToken(): string | null {
   return localStorage.getItem(AUTH_TOKEN_KEY);
 }
 
+/**
+ * Returns true when we're on a super-admin route.
+ * The cache/all endpoint is not authorized for super-admin users,
+ * so we skip loading entirely to avoid the 403.
+ */
+function isSuperAdminRoute(): boolean {
+  return window.location.pathname.startsWith("/super-admin");
+}
+
 // ─── Provider ──────────────────────────────────────────────────────────────────
 
 export function CacheProvider({ children }: { children: ReactNode }) {
@@ -160,10 +169,6 @@ export function CacheProvider({ children }: { children: ReactNode }) {
   const [error, setError]     = useState<string | null>(null);
   const [ready, setReady]     = useState(false);
 
-  /**
-   * ref mirrors state so callbacks always read the latest store
-   * without re-creating themselves on every render (avoids stale closures).
-   */
   const ref = useRef<CacheStore>(EMPTY_STORE);
 
   const sync = useCallback((s: CacheStore) => {
@@ -174,10 +179,14 @@ export function CacheProvider({ children }: { children: ReactNode }) {
   // ── Data Loading ─────────────────────────────────────────────────────────────
 
   const loadAll = useCallback(async () => {
-    if (!getAuthToken()) {
+    // ✅ Skip cache loading on super-admin routes — the endpoint returns 403
+    // for super-admin users. Each super-admin tab fetches its own data directly.
+    if (!getAuthToken() || isSuperAdminRoute()) {
       setLoading(false);
+      setReady(true); // mark ready so consumers don't show infinite loading
       return;
     }
+
     setLoading(true);
     setError(null);
     try {
@@ -185,13 +194,21 @@ export function CacheProvider({ children }: { children: ReactNode }) {
       sync(data);
       setReady(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Cache failed to load");
+      // ✅ Gracefully handle 403/401 — don't block the UI
+      const msg = err instanceof Error ? err.message : "Cache failed to load";
+      if (msg.includes("[403]") || msg.includes("[401]")) {
+        // Not authorized for this endpoint — silently skip
+        setReady(true);
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
   }, [sync]);
 
   const reloadTable = useCallback(async (table: TableName) => {
+    if (isSuperAdminRoute()) return; // no-op on super-admin
     const result = await apiFetch<{ rows: Row[]; message: string }>(
       `/cache/reload/${table}`, { method: "POST" }
     );
