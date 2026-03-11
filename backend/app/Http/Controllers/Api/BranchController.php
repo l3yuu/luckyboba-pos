@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\AuditHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Carbon\Carbon;
 
 
 class BranchController extends Controller
@@ -50,6 +51,8 @@ class BranchController extends Controller
             'status.required'   => 'Status is required.',
             'status.in'         => 'Status must be active or inactive.',
         ]);
+
+        AuditHelper::log('branch', "Created branch: {$branch->name}");
 
         if ($validator->fails()) {
             return response()->json([

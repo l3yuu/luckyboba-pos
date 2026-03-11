@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\{ BackupController, CashCountController, CashTransactionController, CategoryController, DashboardController, DiscountController, ExpenseController, InventoryController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController };
+use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\CupController;
 use App\Http\Controllers\Api\ItemsReportController;
 use App\Http\Controllers\Api\RawMaterialController;
@@ -179,6 +180,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     // SUPERADMIN ONLY
     Route::middleware(['role:superadmin'])->group(function () {
+
+    Route::get('/audit-logs',       [AuditLogController::class, 'index']);
+    Route::get('/audit-logs/stats', [AuditLogController::class, 'stats']);
 
         Route::prefix('reports')->group(function () {
             Route::get('/sales-summary',     [SuperAdminReportController::class, 'salesSummary']);

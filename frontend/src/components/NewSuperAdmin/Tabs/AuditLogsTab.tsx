@@ -1,35 +1,25 @@
 // components/NewSuperAdmin/Tabs/AuditLogsTab.tsx
-import { Search, Filter, Download, Clock, XCircle, Users, Activity, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import {
+  Search, Download, Clock, XCircle, Users, Activity,
+  RefreshCw, ChevronLeft, ChevronRight, AlertCircle,
+} from "lucide-react";
 
 type ColorKey   = "violet" | "emerald" | "red" | "amber";
 type VariantKey = "primary" | "secondary" | "danger" | "ghost";
 type SizeKey    = "sm" | "md" | "lg";
-type AuditType  = "void" | "create" | "edit" | "delete" | "cash" | "discount" | "promo" | "report";
 
 interface StatCardProps {
-  icon:   React.ReactNode;
-  label:  string;
-  value:  string | number;
-  sub?:   string;
-  trend?: number;
-  color?: ColorKey;
-}
-interface SectionHeaderProps {
-  title:   string;
-  desc?:   string;
-  action?: React.ReactNode;
+  icon: React.ReactNode; label: string; value: string | number;
+  sub?: string; trend?: number; color?: ColorKey;
 }
 interface BtnProps {
-  children:   React.ReactNode;
-  variant?:   VariantKey;
-  size?:      SizeKey;
-  onClick?:   () => void;
-  className?: string;
-  disabled?:  boolean;
-  type?:      "button" | "submit" | "reset";
+  children: React.ReactNode; variant?: VariantKey; size?: SizeKey;
+  onClick?: () => void; className?: string; disabled?: boolean;
+  type?: "button" | "submit" | "reset";
 }
 
-const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, trend, color = "violet" }) => {
+const StatCard: React.FC<StatCardProps> = ({ icon, label, value, color = "violet" }) => {
   const colors: Record<ColorKey, { bg: string; border: string; icon: string }> = {
     violet:  { bg: "bg-violet-50",  border: "border-violet-200",  icon: "text-violet-600"  },
     emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
@@ -38,36 +28,17 @@ const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, trend, col
   };
   const c = colors[color];
   return (
-    <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center justify-between card">
-      <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 ${c.bg} border ${c.border} flex items-center justify-center rounded-[0.4rem]`}>
-          <span className={c.icon}>{icon}</span>
-        </div>
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{label}</p>
-          <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">{value}</p>
-        </div>
+    <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center gap-3 card">
+      <div className={`w-10 h-10 ${c.bg} border ${c.border} flex items-center justify-center rounded-[0.4rem] shrink-0`}>
+        <span className={c.icon}>{icon}</span>
       </div>
-      {trend !== undefined && (
-        <div className={`flex items-center gap-1 text-xs font-bold ${trend >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-          {trend >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-          {Math.abs(trend)}%
-        </div>
-      )}
-      {sub && <p className="text-xs text-zinc-400 font-medium">{sub}</p>}
+      <div>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{label}</p>
+        <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">{value}</p>
+      </div>
     </div>
   );
 };
-
-const SectionHeader: React.FC<SectionHeaderProps> = ({ title, desc, action }) => (
-  <div className="flex items-center justify-between mb-5">
-    <div>
-      <h2 className="text-base font-bold text-[#1a0f2e]">{title}</h2>
-      {desc && <p className="text-xs text-zinc-400 mt-0.5">{desc}</p>}
-    </div>
-    {action}
-  </div>
-);
 
 const Btn: React.FC<BtnProps> = ({
   children, variant = "primary", size = "sm",
@@ -88,114 +59,301 @@ const Btn: React.FC<BtnProps> = ({
   );
 };
 
-const BRANCHES = [
-  { id: 1, name: "SM City"    },
-  { id: 2, name: "Ayala"     },
-  { id: 3, name: "Robinsons" },
-  { id: 4, name: "IT Park"   },
-];
+// ── Types ─────────────────────────────────────────────────────────────────────
+interface AuditLog {
+  id:         number;
+  user_id:    number;
+  action:     string;
+  module:     string;
+  details:    string | null;
+  ip_address: string | null;
+  created_at: string;
+  user?:      { id: number; name: string };
+}
+interface Stats {
+  total_events: number;
+  today_count:  number;
+  voids_today:  number;
+  unique_users: number;
+  modules:      string[];
+}
+interface Meta {
+  current_page: number;
+  last_page:    number;
+  per_page:     number;
+  total:        number;
+}
 
-const AUDIT_LOGS: { id: number; user: string; action: string; branch: string; type: AuditType; time: string; date: string }[] = [
-  { id: 1, user: "Ana Reyes",   action: "Voided transaction #T-4821",        branch: "SM City",      type: "void",     time: "10:42 AM", date: "Today"     },
-  { id: 2, user: "Super Admin", action: "Created branch: Mandaue",           branch: "System",       type: "create",   time: "09:15 AM", date: "Today"     },
-  { id: 3, user: "Mark Santos", action: "Updated menu price: Taro Milk Tea", branch: "Ayala",        type: "edit",     time: "08:58 AM", date: "Today"     },
-  { id: 4, user: "Super Admin", action: "Disabled user: Jose Delos Reyes",   branch: "System",       type: "delete",   time: "08:30 AM", date: "Today"     },
-  { id: 5, user: "Lea Cruz",    action: "Cash drop ₱5,000",                  branch: "Robinsons",    type: "cash",     time: "07:55 AM", date: "Today"     },
-  { id: 6, user: "Maria Gomez", action: "Applied discount: BDAY10",          branch: "SM City",      type: "discount", time: "06:20 PM", date: "Yesterday" },
-  { id: 7, user: "Super Admin", action: "Published promo: Buy 2 Get 1",      branch: "All Branches", type: "promo",    time: "03:00 PM", date: "Yesterday" },
-  { id: 8, user: "Carlo Diaz",  action: "Z-Reading generated",               branch: "Ayala",        type: "report",   time: "11:59 PM", date: "Yesterday" },
-];
+// ── API ───────────────────────────────────────────────────────────────────────
+const getToken = () =>
+  localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
+const authHeaders = () => ({
+  "Content-Type": "application/json",
+  "Accept":       "application/json",
+  ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
+});
 
+// Module → badge style
+const MODULE_STYLE: Record<string, string> = {
+  void:     "text-red-500 bg-red-50 border-red-200",
+  create:   "text-emerald-600 bg-emerald-50 border-emerald-200",
+  edit:     "text-amber-600 bg-amber-50 border-amber-200",
+  delete:   "text-red-500 bg-red-50 border-red-200",
+  cash:     "text-violet-600 bg-violet-50 border-violet-200",
+  discount: "text-blue-600 bg-blue-50 border-blue-200",
+  promo:    "text-pink-600 bg-pink-50 border-pink-200",
+  report:   "text-zinc-600 bg-zinc-50 border-zinc-200",
+  branch:   "text-emerald-600 bg-emerald-50 border-emerald-200",
+  user:     "text-violet-600 bg-violet-50 border-violet-200",
+  menu:     "text-amber-600 bg-amber-50 border-amber-200",
+  sale:     "text-blue-600 bg-blue-50 border-blue-200",
+};
+const moduleStyle = (m: string) =>
+  MODULE_STYLE[m?.toLowerCase()] ?? "text-zinc-600 bg-zinc-50 border-zinc-200";
+
+const initials = (name?: string) =>
+  (name ?? "?").split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase();
+
+const formatDate = (iso: string) => {
+  const d    = new Date(iso);
+  const now  = new Date();
+  const diff = now.getTime() - d.getTime();
+  if (diff < 86400000 && d.getDate() === now.getDate()) return "Today";
+  if (diff < 172800000) return "Yesterday";
+  return d.toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" });
+};
+const formatTime = (iso: string) =>
+  new Date(iso).toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", hour12: true });
+
+// ── Main Component ─────────────────────────────────────────────────────────────
 const AuditLogsTab: React.FC = () => {
-  const typeConfig: Record<AuditType, { color: string; label: string }> = {
-    void:     { color: "text-red-500 bg-red-50 border-red-200",             label: "Void"     },
-    create:   { color: "text-emerald-600 bg-emerald-50 border-emerald-200", label: "Create"   },
-    edit:     { color: "text-amber-600 bg-amber-50 border-amber-200",       label: "Edit"     },
-    delete:   { color: "text-red-500 bg-red-50 border-red-200",             label: "Delete"   },
-    cash:     { color: "text-violet-600 bg-violet-50 border-violet-200",    label: "Cash"     },
-    discount: { color: "text-blue-600 bg-blue-50 border-blue-200",          label: "Discount" },
-    promo:    { color: "text-pink-600 bg-pink-50 border-pink-200",          label: "Promo"    },
-    report:   { color: "text-zinc-600 bg-zinc-50 border-zinc-200",          label: "Report"   },
+  const [logs,    setLogs]    = useState<AuditLog[]>([]);
+  const [stats,   setStats]   = useState<Stats | null>(null);
+  const [meta,    setMeta]    = useState<Meta | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState("");
+  const [search,  setSearch]  = useState("");
+  const [module,  setModule]  = useState("all");
+  const [page,    setPage]    = useState(1);
+
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ✅ No external state deps — callers always pass s/m explicitly,
+  //    so fetchLogs is stable across renders (empty dep array is correct).
+  const fetchLogs = useCallback(async (p = 1, s = "", m = "all") => {
+    setLoading(true);
+    setError("");
+    try {
+      const params = new URLSearchParams({ per_page: "20", page: String(p) });
+      if (s)           params.set("search", s);
+      if (m !== "all") params.set("module", m);
+
+      const res  = await fetch(`/api/audit-logs?${params}`, { headers: authHeaders() });
+      const data = await res.json();
+
+      if (!data.success) throw new Error("Failed");
+
+      setLogs(data.data);
+      setStats(data.stats);
+      setMeta(data.meta);
+    } catch {
+      setError("Failed to load audit logs.");
+    } finally {
+      setLoading(false);
+    }
+  }, []); // stable — authHeaders() reads localStorage at call time, no closure needed
+
+  // ✅ fetchLogs is now a stable reference, so this effect only runs once on mount.
+  useEffect(() => { fetchLogs(1); }, [fetchLogs]);
+
+  // Debounced search — passes current search value explicitly
+  const handleSearch = (val: string) => {
+    setSearch(val);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    searchTimer.current = setTimeout(() => {
+      setPage(1);
+      fetchLogs(1, val, module);
+    }, 400);
   };
+
+  const handleModule = (val: string) => {
+    setModule(val);
+    setPage(1);
+    fetchLogs(1, search, val);
+  };
+
+  const handlePage = (p: number) => {
+    setPage(p);
+    fetchLogs(p, search, module);
+  };
+
+  // Derived modules list from stats
+  const moduleOptions = stats?.modules ?? [];
+
   return (
     <div className="p-6 md:p-8 fade-in">
-      <SectionHeader
-        title="Audit Logs"
-        desc="Complete activity trail across all branches"
-        action={
-          <div className="flex items-center gap-2">
-            <Btn variant="secondary" onClick={() => {}}><Filter size={13} /> Filter</Btn>
-            <Btn variant="secondary" onClick={() => {}}><Download size={13} /> Export</Btn>
-          </div>
-        }
-      />
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-        <StatCard icon={<Activity size={16} />} label="Total Events" value="1,284"                                             color="violet"  />
-        <StatCard icon={<Clock    size={16} />} label="Today"        value={AUDIT_LOGS.filter(l => l.date === "Today").length} color="emerald" />
-        <StatCard icon={<XCircle  size={16} />} label="Voids Today"  value={1}                                                color="red"     />
-        <StatCard icon={<Users    size={16} />} label="Unique Users" value={5}                                                color="amber"   />
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="text-base font-bold text-[#1a0f2e]">Audit Logs</h2>
+          <p className="text-xs text-zinc-400 mt-0.5">Complete activity trail across all branches</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Btn variant="secondary" onClick={() => fetchLogs(page, search, module)} disabled={loading}>
+            <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
+          </Btn>
+          <Btn variant="secondary"><Download size={13} /> Export</Btn>
+        </div>
       </div>
+
+      {/* Error */}
+      {error && (
+        <div className="flex items-center gap-2 mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <AlertCircle size={14} className="text-red-500 shrink-0" />
+          <p className="text-xs text-red-600 font-medium">{error}</p>
+          <Btn variant="secondary" size="sm" onClick={() => fetchLogs(page, search, module)} className="ml-auto">Retry</Btn>
+        </div>
+      )}
+
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+        <StatCard icon={<Activity size={16} />} label="Total Events" value={stats ? stats.total_events.toLocaleString() : "—"} color="violet"  />
+        <StatCard icon={<Clock    size={16} />} label="Today"        value={stats ? stats.today_count  : "—"}                  color="emerald" />
+        <StatCard icon={<XCircle  size={16} />} label="Voids Today"  value={stats ? stats.voids_today  : "—"}                  color="red"     />
+        <StatCard icon={<Users    size={16} />} label="Unique Users" value={stats ? stats.unique_users : "—"}                  color="amber"   />
+      </div>
+
+      {/* Table card */}
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-100">
-          <div className="flex-1 flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
-            <Search size={13} className="text-zinc-400" />
-            <input className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400" placeholder="Search logs by user, action, or branch..." />
+
+        {/* Filters */}
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-100 flex-wrap">
+          <div className="flex-1 min-w-48 flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
+            <Search size={13} className="text-zinc-400 shrink-0" />
+            <input
+              value={search}
+              onChange={e => handleSearch(e.target.value)}
+              className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400"
+              placeholder="Search by user, action, or module..."
+            />
           </div>
-          <select className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none">
-            <option>All Types</option>
-            <option>Void</option><option>Create</option><option>Edit</option><option>Delete</option>
-          </select>
-          <select className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none">
-            <option>All Branches</option>
-            {BRANCHES.map(b => <option key={b.id}>{b.name}</option>)}
+          <select
+            value={module}
+            onChange={e => handleModule(e.target.value)}
+            className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none"
+          >
+            <option value="all">All Modules</option>
+            {moduleOptions.map(m => (
+              <option key={m} value={m}>{m.charAt(0).toUpperCase() + m.slice(1)}</option>
+            ))}
           </select>
         </div>
+
+        {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100">
-                {["#", "User", "Action", "Branch", "Type", "Date", "Time"].map(h => (
+                {["#", "User", "Action", "Details", "Module", "IP", "Date", "Time"].map(h => (
                   <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {AUDIT_LOGS.map(log => {
-                const tc = typeConfig[log.type];
-                return (
-                  <tr key={log.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
-                    <td className="px-5 py-3.5 text-zinc-300 text-xs font-bold">#{String(log.id).padStart(4, "0")}</td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-[#ede8ff] flex items-center justify-center text-[9px] font-bold text-[#3b2063]">
-                          {log.user.split(" ").map(n => n[0]).join("").slice(0, 2)}
-                        </div>
-                        <span className="font-medium text-[#1a0f2e] text-xs">{log.user}</span>
+              {/* Skeleton */}
+              {loading && [...Array(8)].map((_, i) => (
+                <tr key={i} className="border-b border-zinc-50">
+                  {[...Array(8)].map((_, j) => (
+                    <td key={j} className="px-5 py-4">
+                      <div className="h-3 bg-zinc-100 rounded animate-pulse" style={{ width: `${50 + Math.random() * 40}%` }} />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+
+              {/* Empty */}
+              {!loading && logs.length === 0 && (
+                <tr>
+                  <td colSpan={8} className="px-5 py-12 text-center text-zinc-400 text-xs font-medium">
+                    {search || module !== "all"
+                      ? "No logs match your filters."
+                      : "No audit logs recorded yet. Actions performed through the system will appear here."}
+                  </td>
+                </tr>
+              )}
+
+              {/* Rows */}
+              {!loading && logs.map(log => (
+                <tr key={log.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
+                  <td className="px-5 py-3.5 text-zinc-300 text-xs font-bold">
+                    #{String(log.id).padStart(4, "0")}
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-[#ede8ff] flex items-center justify-center text-[9px] font-bold text-[#3b2063] shrink-0">
+                        {initials(log.user?.name)}
                       </div>
-                    </td>
-                    <td className="px-5 py-3.5 text-zinc-600 text-xs max-w-64">{log.action}</td>
-                    <td className="px-5 py-3.5 text-zinc-500 text-xs">{log.branch}</td>
-                    <td className="px-5 py-3.5">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${tc.color}`}>
-                        {tc.label}
+                      <span className="font-medium text-[#1a0f2e] text-xs whitespace-nowrap">
+                        {log.user?.name ?? `User #${log.user_id}`}
                       </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-zinc-400 text-xs">{log.date}</td>
-                    <td className="px-5 py-3.5 text-zinc-400 text-xs tabular-nums">{log.time}</td>
-                  </tr>
-                );
-              })}
+                    </div>
+                  </td>
+                  <td className="px-5 py-3.5 text-zinc-700 text-xs max-w-48 truncate">{log.action}</td>
+                  <td className="px-5 py-3.5 text-zinc-500 text-xs max-w-48 truncate">{log.details ?? "—"}</td>
+                  <td className="px-5 py-3.5">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${moduleStyle(log.module)}`}>
+                      {log.module}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3.5 text-zinc-400 text-xs font-mono">{log.ip_address ?? "—"}</td>
+                  <td className="px-5 py-3.5 text-zinc-400 text-xs whitespace-nowrap">{formatDate(log.created_at)}</td>
+                  <td className="px-5 py-3.5 text-zinc-400 text-xs tabular-nums whitespace-nowrap">{formatTime(log.created_at)}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
-        <div className="flex items-center justify-between px-5 py-3 border-t border-zinc-100">
-          <p className="text-xs text-zinc-400">Showing 8 of 1,284 entries</p>
-          <div className="flex items-center gap-1">
-            {[1, 2, 3, "...", 128].map((p, i) => (
-              <button key={i} className={`w-7 h-7 text-xs font-bold rounded-[0.4rem] transition-colors ${p === 1 ? "bg-[#3b2063] text-white" : "text-zinc-400 hover:bg-zinc-100"}`}>{p}</button>
-            ))}
+
+        {/* Pagination */}
+        {meta && meta.last_page > 1 && (
+          <div className="flex items-center justify-between px-5 py-3 border-t border-zinc-100">
+            <p className="text-xs text-zinc-400">
+              Showing {((meta.current_page - 1) * meta.per_page) + 1}–{Math.min(meta.current_page * meta.per_page, meta.total)} of {meta.total.toLocaleString()} entries
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => handlePage(page - 1)} disabled={page === 1}
+                className="w-7 h-7 flex items-center justify-center text-zinc-400 hover:bg-zinc-100 rounded-[0.4rem] disabled:opacity-30 transition-colors">
+                <ChevronLeft size={13} />
+              </button>
+              {Array.from({ length: Math.min(5, meta.last_page) }, (_, i) => {
+                const p = meta.last_page <= 5 ? i + 1
+                  : page <= 3 ? i + 1
+                  : page >= meta.last_page - 2 ? meta.last_page - 4 + i
+                  : page - 2 + i;
+                return (
+                  <button key={p} onClick={() => handlePage(p)}
+                    className={`w-7 h-7 text-xs font-bold rounded-[0.4rem] transition-colors ${p === page ? "bg-[#3b2063] text-white" : "text-zinc-400 hover:bg-zinc-100"}`}>
+                    {p}
+                  </button>
+                );
+              })}
+              <button
+                onClick={() => handlePage(page + 1)} disabled={page === meta.last_page}
+                className="w-7 h-7 flex items-center justify-center text-zinc-400 hover:bg-zinc-100 rounded-[0.4rem] disabled:opacity-30 transition-colors">
+                <ChevronRight size={13} />
+              </button>
+            </div>
           </div>
-        </div>
+        )}
+
+        {meta && (
+          <div className="px-5 py-2 border-t border-zinc-50">
+            <p className="text-[10px] text-zinc-300 font-medium">
+              {meta.total.toLocaleString()} total entries · Page {meta.current_page} of {meta.last_page}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
