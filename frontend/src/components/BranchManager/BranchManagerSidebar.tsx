@@ -4,7 +4,7 @@ import {
   Package, Settings as SettingsIcon, LogOut, HelpCircle, ChevronDown,
 } from 'lucide-react';
 
-// ── Sidebar styles (same pattern as SuperAdminSidebar) ────────────────────────
+// ── Sidebar styles ────────────────────────────────────────────────────────────
 const SB_STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
   .bm-sb-root, .bm-sb-root * { font-family: 'DM Sans', sans-serif !important; box-sizing: border-box; }
@@ -67,20 +67,28 @@ const SB_STYLES = `
 `;
 
 interface BranchManagerSidebarProps {
-  isSidebarOpen: boolean;
+  isSidebarOpen:  boolean;
   setSidebarOpen: (v: boolean) => void;
-  logo: string;
-  currentTab: string;
-  setCurrentTab: (tab: string) => void;
+  logo:           string;
+  currentTab:     string;
+  setCurrentTab:  (tab: string) => void;
+  onLogout?:      () => void;
+  isLoggingOut?:  boolean;
 }
 
 type GroupId = 'sales' | 'menu' | 'inventory';
 
 const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
   isSidebarOpen, setSidebarOpen, logo, currentTab, setCurrentTab,
+  onLogout, isLoggingOut: externalLoggingOut,
 }) => {
   const [openGroups, setOpenGroups] = useState<Set<GroupId>>(new Set(['sales']));
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+  // Support both external (from BranchManagerDashboard) and internal logout
+  const [internalLoggingOut,  setInternalLoggingOut]  = useState(false);
+  const [showLogoutModal,     setShowLogoutModal]      = useState(false);
+
+  const isLoggingOut = externalLoggingOut ?? internalLoggingOut;
 
   const goTo = (tab: string) => {
     setCurrentTab(tab);
@@ -95,18 +103,24 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
     });
   };
 
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const handleLogoutClick = () => setShowLogoutModal(true);
 
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
+  const handleLogoutConfirm = async () => {
     setShowLogoutModal(false);
+    // If parent passed onLogout, delegate to it (BranchManagerDashboard handles it)
+    if (onLogout) {
+      onLogout();
+      return;
+    }
+    // Fallback: handle internally
+    setInternalLoggingOut(true);
     ['auth_token', 'lucky_boba_token', 'token', 'user_role', 'lucky_boba_authenticated']
       .forEach(k => localStorage.removeItem(k));
     sessionStorage.clear();
     window.location.href = '/login';
   };
 
-  const isActive = (tab: string) => currentTab === tab;
+  const isActive  = (tab: string) => currentTab === tab;
   const iconColor = (tab: string) => isActive(tab) ? '#3b2063' : '#a1a1aa';
 
   const salesItems = [
@@ -115,13 +129,11 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
     { tab: 'x-reading',       label: 'X-Reading'       },
     { tab: 'z-reading',       label: 'Z-Reading'       },
   ];
-
   const menuItems = [
-    { tab: 'menu-list',          label: 'Menu List'      },
-    { tab: 'category-list',      label: 'Categories'     },
-    { tab: 'sub-category-list',  label: 'Sub-Categories' },
+    { tab: 'menu-list',         label: 'Menu List'      },
+    { tab: 'category-list',     label: 'Categories'     },
+    { tab: 'sub-category-list', label: 'Sub-Categories' },
   ];
-
   const inventoryItems = [
     { tab: 'inventory-dashboard', label: 'Dashboard'       },
     { tab: 'inventory-list',      label: 'Inventory List'  },
@@ -187,11 +199,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
               <BarChart2 size={14} />
             </span>
             <span className="flex-1">Sales Reports</span>
-            <ChevronDown size={12} style={{
-              color: '#a1a1aa',
-              transform: salesOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 0.2s',
-            }} />
+            <ChevronDown size={12} style={{ color: '#a1a1aa', transform: salesOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
           </button>
           {salesOpen && salesItems.map(({ tab, label }) => (
             <button key={tab} onClick={() => goTo(tab)} className={`bm-sb-sub ${isActive(tab) ? 'active' : ''}`}>
@@ -206,11 +214,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
               <ShoppingBag size={14} />
             </span>
             <span className="flex-1">Menu Items</span>
-            <ChevronDown size={12} style={{
-              color: '#a1a1aa',
-              transform: menuOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 0.2s',
-            }} />
+            <ChevronDown size={12} style={{ color: '#a1a1aa', transform: menuOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
           </button>
           {menuOpen && menuItems.map(({ tab, label }) => (
             <button key={tab} onClick={() => goTo(tab)} className={`bm-sb-sub ${isActive(tab) ? 'active' : ''}`}>
@@ -225,11 +229,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
               <Package size={14} />
             </span>
             <span className="flex-1">Inventory</span>
-            <ChevronDown size={12} style={{
-              color: '#a1a1aa',
-              transform: inventoryOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 0.2s',
-            }} />
+            <ChevronDown size={12} style={{ color: '#a1a1aa', transform: inventoryOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
           </button>
           {inventoryOpen && inventoryItems.map(({ tab, label }) => (
             <button key={tab} onClick={() => goTo(tab)} className={`bm-sb-sub ${isActive(tab) ? 'active' : ''}`}>
@@ -245,7 +245,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
 
         </div>
 
-        {/* ── Logo — sits above the border line ── */}
+        {/* ── Logo ── */}
         <div className="shrink-0 flex justify-center px-4 pb-4">
           <img src={logo} alt="Lucky Boba" className="h-20 w-auto object-contain" />
         </div>
@@ -264,7 +264,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
           <div className="bm-sb-divider my-2" />
 
           <button
-            onClick={() => setShowLogoutModal(true)}
+            onClick={handleLogoutClick}
             disabled={isLoggingOut}
             className="bm-sb-item hover:bg-red-50! hover:text-red-600!"
             style={{ color: '#be2525' }}
@@ -300,28 +300,32 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
         />
       )}
 
-      {/* ── Logout Confirmation Modal ── */}
+      {/* ── Logout Confirmation Modal — matches cashier style exactly ── */}
       {showLogoutModal && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
-          style={{ fontFamily: "'DM Sans', sans-serif" }}>
-          <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center">
-            <div className="w-14 h-14 mx-auto rounded-2xl flex items-center justify-center mb-4 bg-red-100 text-red-600">
-              <LogOut size={26} />
+        <div
+          className="fixed inset-0 z-200 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm"
+          style={{ fontFamily: "'DM Sans', sans-serif" }}
+        >
+          <div className="bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] p-8 flex flex-col items-center text-center shadow-2xl">
+            <div className="w-11 h-11 rounded-[0.625rem] flex items-center justify-center mb-5 bg-red-50">
+              <LogOut size={19} className="text-[#be2525]" />
             </div>
-            <h3 className="text-lg font-black text-gray-900 mb-1">End Session?</h3>
-            <p className="text-gray-400 text-sm mb-5">Are you sure you want to log out of the Branch Manager system?</p>
-            <div className="flex gap-3">
+            <h3 className="text-[#1a0f2e] font-bold text-base mb-2 tracking-tight">End Session?</h3>
+            <p className="text-zinc-500 text-sm font-medium mb-7 leading-relaxed">
+              Are you sure you want to log out of the terminal?
+            </p>
+            <div className="flex flex-col w-full gap-2">
               <button
-                onClick={() => setShowLogoutModal(false)}
-                className="flex-1 bg-white border border-gray-200 text-gray-700 py-2.5 rounded-xl text-sm font-bold hover:bg-gray-50 transition-all"
+                onClick={handleLogoutConfirm}
+                className="w-full py-3 text-[10px] font-bold tracking-[0.18em] uppercase text-white bg-[#be2525] hover:bg-[#a11f1f] transition-all rounded-[0.625rem] active:scale-[0.98]"
               >
-                Cancel
+                Logout
               </button>
               <button
-                onClick={handleLogout}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl text-sm font-bold transition-all"
+                onClick={() => setShowLogoutModal(false)}
+                className="w-full py-3 text-[10px] font-bold tracking-[0.18em] uppercase text-zinc-500 bg-white border border-zinc-200 hover:bg-zinc-50 transition-all rounded-[0.625rem] active:scale-[0.98]"
               >
-                Log out
+                Cancel
               </button>
             </div>
           </div>

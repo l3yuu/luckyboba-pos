@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\{ BackupController, CashCountController, CashTransactionController, CategoryController, DashboardController, DiscountController, ExpenseController, InventoryController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController };
+use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\CupController;
 use App\Http\Controllers\Api\ItemsReportController;
 use App\Http\Controllers\Api\RawMaterialController;
@@ -114,6 +115,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::get('/export-sales',    [ReportController::class, 'exportSales']);
             Route::get('/export-items',    [ReportController::class, 'exportItems']);
         });
+        Route::prefix('discounts')->group(function () {
+            Route::get   ('/',                    [DiscountController::class, 'index']);
+            Route::post  ('/',                    [DiscountController::class, 'store']);
+            Route::put   ('/{discount}',          [DiscountController::class, 'update']);          // ← NEW
+            Route::put   ('/{discount}/toggle',   [DiscountController::class, 'toggleStatus']);
+            Route::put   ('/{discount}/branches', [DiscountController::class, 'updateBranches']);
+            Route::post  ('/{discount}/use',      [DiscountController::class, 'recordUsage']);
+            Route::delete('/{discount}',          [DiscountController::class, 'destroy']);
+        });
     });
 
     // BRANCH MANAGER + SUPERADMIN
@@ -182,9 +192,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // SUPERADMIN ONLY
     Route::middleware(['role:superadmin'])->group(function () {
 
+    Route::get('/audit-logs',       [AuditLogController::class, 'index']);
+    Route::get('/audit-logs/stats', [AuditLogController::class, 'stats']);
+
         Route::prefix('reports')->group(function () {
-            Route::post('/sales-summary',     [SuperAdminReportController::class, 'salesSummary']);
-            Route::post('/branch-comparison', [SuperAdminReportController::class, 'branchComparison']);
+            Route::get('/sales-summary',     [SuperAdminReportController::class, 'salesSummary']);
+            Route::get('/branch-comparison', [SuperAdminReportController::class, 'branchComparison']);
         });
 
         Route::prefix('system')->group(function () {

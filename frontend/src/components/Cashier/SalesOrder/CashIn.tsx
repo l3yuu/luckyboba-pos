@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { AxiosError } from 'axios'; 
 import api from '../../../services/api';
 import type { CashInProps, ReceiptData } from '../../../types/transactions';
-import TopNavbar from '../TopNavbar';
+import TopNavbar from '../../Cashier/TopNavbar';
 import { useToast } from '../../../context/ToastContext'; 
 import { Monitor, Printer, Wallet, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
 

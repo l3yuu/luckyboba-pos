@@ -1,4 +1,4 @@
-import TopNavbar from '../TopNavbar';
+import TopNavbar from '../../Cashier/TopNavbar';
 
 const Supplier = () => {
   return (
