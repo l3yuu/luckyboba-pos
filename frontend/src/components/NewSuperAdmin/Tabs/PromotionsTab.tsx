@@ -175,7 +175,7 @@ const DeleteModal: React.FC<{
 }> = ({ discount, onConfirm, onCancel, deleting }) =>
   createPortal(
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-6"
+      className="fixed inset-0 z-9999 flex items-center justify-center p-6"
       style={BACKDROP_STYLE}
     >
       {/* backdrop click */}
@@ -320,7 +320,7 @@ const DiscountModal: React.FC<{
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-6"
+      className="fixed inset-0 z-9999 flex items-center justify-center p-6"
       style={BACKDROP_STYLE}
     >
       {/* backdrop click */}

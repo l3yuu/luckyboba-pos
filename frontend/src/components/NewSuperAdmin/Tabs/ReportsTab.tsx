@@ -164,7 +164,6 @@ const ReportsTab: React.FC = () => {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  // ── Derived chart data ────────────────────────────────────────────────────
   const chartData = breakdown.map(r => ({
     month:   r.date,
     revenue: Number(r.revenue),
@@ -172,13 +171,12 @@ const ReportsTab: React.FC = () => {
 
   const totalRevenue = branchPerf.reduce((s, b) => s + Number(b.total_revenue), 0);
 
-  // P&L estimates (revenue breakdown since expenses aren't in this controller)
-  const cogsPct     = 0.34;
-  const opexPct     = 0.15;
-  const grandTotal  = totals?.grand_total  ?? 0;
-  const cogs        = grandTotal * cogsPct;
-  const opex        = grandTotal * opexPct;
-  const netProfit   = grandTotal - cogs - opex;
+  const cogsPct    = 0.34;
+  const opexPct    = 0.15;
+  const grandTotal = totals?.grand_total  ?? 0;
+  const cogs       = grandTotal * cogsPct;
+  const opex       = grandTotal * opexPct;
+  const netProfit  = grandTotal - cogs - opex;
 
   return (
     <div className="p-6 md:p-8 fade-in">
@@ -203,7 +201,6 @@ const ReportsTab: React.FC = () => {
         }
       />
 
-      {/* Error */}
       {error && (
         <div className="flex items-center gap-2 mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
           <AlertCircle size={14} className="text-red-500 shrink-0" />
@@ -214,10 +211,10 @@ const ReportsTab: React.FC = () => {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-        <StatCard icon={<TrendingUp   size={16} />} label="Gross Revenue"  value={loading ? "—" : fmt(grandTotal)}                            color="violet"  />
-        <StatCard icon={<FileText     size={16} />} label="Total Orders"   value={loading ? "—" : (totals?.total_orders ?? 0).toLocaleString()} color="emerald" />
-        <StatCard icon={<TrendingDown size={16} />} label="Avg Order Value" value={loading ? "—" : fmt(totals?.avg_order_value ?? 0)}           color="red"     />
-        <StatCard icon={<DollarSign   size={16} />} label="Net Profit (est)" value={loading ? "—" : fmt(netProfit)}                            color="amber"   />
+        <StatCard icon={<TrendingUp   size={16} />} label="Gross Revenue"   value={loading ? "—" : fmt(grandTotal)}                             color="violet"  />
+        <StatCard icon={<FileText     size={16} />} label="Total Orders"    value={loading ? "—" : (totals?.total_orders ?? 0).toLocaleString()} color="emerald" />
+        <StatCard icon={<TrendingDown size={16} />} label="Avg Order Value" value={loading ? "—" : fmt(totals?.avg_order_value ?? 0)}            color="red"     />
+        <StatCard icon={<DollarSign   size={16} />} label="Net Profit (est)" value={loading ? "—" : fmt(netProfit)}                             color="amber"   />
       </div>
 
       {/* Chart + P&L */}
@@ -243,7 +240,11 @@ const ReportsTab: React.FC = () => {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fontWeight: 600, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11, fontWeight: 600, fill: "#a1a1aa" }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
-                <Tooltip formatter={(v: number | undefined) => [`₱${(v ?? 0).toLocaleString()}`, ""]} contentStyle={{ borderRadius: 10, border: "1px solid #e5e7eb", fontSize: 12 }} />
+                {/* ✅ Fix: cast value to number */}
+                <Tooltip
+                  formatter={(v) => [`₱${Number(v ?? 0).toLocaleString()}`, ""] as [string, string]}
+                  contentStyle={{ borderRadius: 10, border: "1px solid #e5e7eb", fontSize: 12 }}
+                />
                 <Area type="monotone" dataKey="revenue" stroke="#3b2063" strokeWidth={2.5} fill="url(#rg2)" name="Revenue" />
               </AreaChart>
             </ResponsiveContainer>
@@ -260,10 +261,10 @@ const ReportsTab: React.FC = () => {
             </div>
           ) : (
             [
-              { label: "Gross Revenue",      value: fmt(grandTotal), pct: 100,                                          color: "#3b2063" },
-              { label: "Cost of Goods (est)", value: `−${fmt(cogs)}`, pct: Math.round(cogsPct * 100),                  color: "#ef4444" },
-              { label: "Operating Exp (est)", value: `−${fmt(opex)}`, pct: Math.round(opexPct * 100),                  color: "#f59e0b" },
-              { label: "Net Profit (est)",    value: fmt(netProfit),  pct: Math.round((netProfit / (grandTotal || 1)) * 100), color: "#10b981" },
+              { label: "Gross Revenue",       value: fmt(grandTotal), pct: 100,                                                color: "#3b2063" },
+              { label: "Cost of Goods (est)", value: `−${fmt(cogs)}`, pct: Math.round(cogsPct * 100),                         color: "#ef4444" },
+              { label: "Operating Exp (est)", value: `−${fmt(opex)}`, pct: Math.round(opexPct * 100),                         color: "#f59e0b" },
+              { label: "Net Profit (est)",    value: fmt(netProfit),  pct: Math.round((netProfit / (grandTotal || 1)) * 100),  color: "#10b981" },
             ].map((r, i) => (
               <div key={i} className="mb-3">
                 <div className="flex items-center justify-between mb-1">

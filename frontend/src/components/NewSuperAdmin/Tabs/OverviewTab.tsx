@@ -148,45 +148,45 @@ const OverviewTab: React.FC = () => {
   const fmt   = (v: number) => `₱${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
   const fmtK  = (v: number) => `₱${((v ?? 0) / 1000).toFixed(0)}k`;
 
-const fetchAll = useCallback(async () => {
-  setLoading(true);
-  try {
-    const [summaryRes, comparisonRes, usersRes, branchesRes] = await Promise.all([
-      fetch(`/api/reports/sales-summary?period=${period}`,     { headers: authHeaders() }),
-      fetch(`/api/reports/branch-comparison?period=${period}`, { headers: authHeaders() }),
-      fetch(`/api/users/stats`,                                { headers: authHeaders() }),
-      fetch(`/api/branches`,                                   { headers: authHeaders() }),
-    ]);
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [summaryRes, comparisonRes, usersRes, branchesRes] = await Promise.all([
+        fetch(`/api/reports/sales-summary?period=${period}`,     { headers: authHeaders() }),
+        fetch(`/api/reports/branch-comparison?period=${period}`, { headers: authHeaders() }),
+        fetch(`/api/users/stats`,                                { headers: authHeaders() }),
+        fetch(`/api/branches`,                                   { headers: authHeaders() }),
+      ]);
 
-    const [summary, comparison, users, branches] = await Promise.all([
-      summaryRes.json(),
-      comparisonRes.json(),
-      usersRes.json(),
-      branchesRes.json(),
-    ]);
+      const [summary, comparison, users, branches] = await Promise.all([
+        summaryRes.json(),
+        comparisonRes.json(),
+        usersRes.json(),
+        branchesRes.json(),
+      ]);
 
-    if (summary.totals)        setTotals(summary.totals);
-    if (summary.breakdown)     setBreakdown(summary.breakdown);
-    if (summary.top_products)  setTopProducts(summary.top_products.slice(0, 5));
-    if (comparison.comparison) setBranchPerf(comparison.comparison);
+      if (summary.totals)        setTotals(summary.totals);
+      if (summary.breakdown)     setBreakdown(summary.breakdown);
+      if (summary.top_products)  setTopProducts(summary.top_products.slice(0, 5));
+      if (comparison.comparison) setBranchPerf(comparison.comparison);
 
-    if (users.success && users.data) {
-      setUserStats({ active: users.data.active, total: users.data.total });
+      if (users.success && users.data) {
+        setUserStats({ active: users.data.active, total: users.data.total });
+      }
+      if (branches.success && branches.data) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const list = branches.data as any[];
+        setBranchStats({
+          total:  list.length,
+          active: list.filter((b: { status: string }) => b.status === "active").length,
+        });
+      }
+    } catch (e) {
+      console.error("OverviewTab fetch error", e);
+    } finally {
+      setLoading(false);
     }
-    if (branches.success && branches.data) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const list = branches.data as any[];
-      setBranchStats({
-        total:  list.length,
-        active: list.filter((b: { status: string }) => b.status === "active").length,
-      });
-    }
-  } catch (e) {
-    console.error("OverviewTab fetch error", e);
-  } finally {
-    setLoading(false);
-  }
-}, [period]);
+  }, [period]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -194,10 +194,9 @@ const fetchAll = useCallback(async () => {
   const revenueChartData = breakdown.map(r => ({
     month:    r.date,
     revenue:  r.revenue,
-    expenses: 0, // expenses not in this endpoint — show revenue only
+    expenses: 0,
   }));
 
-  // Pie from branch comparison
   const PIE_COLORS = ["#3b2063", "#6d3fa8", "#9b6bd4", "#c4a8e8", "#ddd0f8"];
   const totalRev   = branchPerf.reduce((s, b) => s + Number(b.total_revenue), 0);
   const pieData    = branchPerf.slice(0, 5).map((b, i) => ({
@@ -291,7 +290,11 @@ const fetchAll = useCallback(async () => {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" />
                 <XAxis dataKey="month" tick={{ fontSize: 11, fontWeight: 600, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11, fontWeight: 600, fill: "#a1a1aa" }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
-                <Tooltip formatter={(v: number | undefined) => [`₱${(v ?? 0).toLocaleString()}`, ""]} contentStyle={{ borderRadius: 10, border: "1px solid #e5e7eb", fontSize: 12 }} />
+                {/* ✅ Fix: cast value to number */}
+                <Tooltip
+                  formatter={(v) => [`₱${Number(v ?? 0).toLocaleString()}`, ""] as [string, string]}
+                  contentStyle={{ borderRadius: 10, border: "1px solid #e5e7eb", fontSize: 12 }}
+                />
                 <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#3b2063" strokeWidth={2.5} fill="url(#revGrad)" />
               </AreaChart>
             </ResponsiveContainer>
@@ -312,7 +315,8 @@ const fetchAll = useCallback(async () => {
                   <Pie data={pieData} cx="50%" cy="50%" innerRadius={45} outerRadius={70} paddingAngle={3} dataKey="value">
                     {pieData.map((e, i) => <Cell key={i} fill={e.color} />)}
                   </Pie>
-                  <Tooltip formatter={(v: number | undefined) => [`${v ?? 0}%`, ""]} />
+                  {/* ✅ Fix: cast value to number */}
+                  <Tooltip formatter={(v) => [`${Number(v ?? 0)}%`, ""] as [string, string]} />
                 </RePieChart>
               </ResponsiveContainer>
               <div className="flex flex-col gap-2 mt-2">
@@ -331,7 +335,7 @@ const fetchAll = useCallback(async () => {
         </div>
       </div>
 
-      {/* Branch bar + Top products / Alerts */}
+      {/* Branch bar + Top products */}
       <div className="grid grid-cols-12 gap-4">
         <div className="col-span-12 lg:col-span-7 bg-white border border-zinc-200 rounded-[0.625rem] p-6">
           <SectionHeader title="Branch Performance" desc={`${period} revenue comparison`} />
@@ -345,7 +349,11 @@ const fetchAll = useCallback(async () => {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" vertical={false} />
                 <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 600, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11, fontWeight: 600, fill: "#a1a1aa" }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
-                <Tooltip formatter={(v: number | undefined) => [`₱${(v ?? 0).toLocaleString()}`, "Revenue"]} contentStyle={{ borderRadius: 10, fontSize: 12 }} />
+                {/* ✅ Fix: cast value to number */}
+                <Tooltip
+                  formatter={(v) => [`₱${Number(v ?? 0).toLocaleString()}`, "Revenue"] as [string, string]}
+                  contentStyle={{ borderRadius: 10, fontSize: 12 }}
+                />
                 <Bar dataKey="sales" fill="#3b2063" radius={[4, 4, 0, 0]} />
               </ReBarChart>
             </ResponsiveContainer>
