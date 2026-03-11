@@ -18,7 +18,6 @@ import Settings from '../components/Cashier/Settings/Settings';
 
 // --- Import Sales Report Components ---
 import SalesDashboard from '../components/Cashier/SalesReport/SalesDashboard';
-import ItemsReport from '../components/Cashier/SalesReport/ItemsReport';
 import XReading from '../components/Cashier/SalesReport/XReading';
 import ZReading from '../components/Cashier/SalesReport/ZReading';
 
@@ -32,8 +31,6 @@ export const getComponentForTab = (activeTab: string) => {
     // --- SALES REPORT TABS ---
     case 'sales-dashboard':
       return SalesDashboard;
-    case 'items-report':
-      return ItemsReport;
     case 'x-reading':
       return XReading;
     case 'z-reading':
