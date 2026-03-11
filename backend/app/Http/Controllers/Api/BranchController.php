@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\AuditHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Carbon\Carbon;
-
 
 class BranchController extends Controller
 {
@@ -18,7 +18,14 @@ class BranchController extends Controller
     public function index()
     {
         try {
-            $branches = Branch::orderBy('created_at', 'desc')->get();
+            $branches = Branch::withCount('users as staff_count')
+                ->with(['manager:id,name,branch_id,role'])
+                ->orderBy('created_at', 'desc')
+                ->get()
+                ->map(fn($branch) => array_merge($branch->toArray(), [
+                    'manager_name' => $branch->manager?->name ?? '—',
+                    'staff_count'  => $branch->staff_count ?? 0,
+                ]));
 
             return response()->json([
                 'success' => true,
@@ -68,6 +75,8 @@ class BranchController extends Controller
                 'today_sales' => 0.00,
             ]);
 
+            AuditHelper::log('branch', "Created branch: {$branch->name}");
+
             return response()->json([
                 'success' => true,
                 'data'    => $branch,
@@ -88,11 +97,18 @@ class BranchController extends Controller
     public function show($id)
     {
         try {
-            $branch = Branch::findOrFail($id);
+            $branch = Branch::withCount('users as staff_count')
+                ->with(['manager:id,name,branch_id,role'])
+                ->findOrFail($id);
+
+            $data = array_merge($branch->toArray(), [
+                'manager_name' => $branch->manager?->name ?? '—',
+                'staff_count'  => $branch->staff_count ?? 0,
+            ]);
 
             return response()->json([
                 'success' => true,
-                'data'    => $branch,
+                'data'    => $data,
                 'message' => 'Branch retrieved successfully',
             ], 200);
         } catch (\Exception $e) {
@@ -127,9 +143,21 @@ class BranchController extends Controller
             $branch = Branch::findOrFail($id);
             $branch->update($request->only(['name', 'location', 'status']));
 
+            AuditHelper::log('branch', "Updated branch: {$branch->name}");
+
+            // Return fresh with manager and staff count
+            $fresh = Branch::withCount('users as staff_count')
+                ->with(['manager:id,name,branch_id,role'])
+                ->findOrFail($id);
+
+            $data = array_merge($fresh->toArray(), [
+                'manager_name' => $fresh->manager?->name ?? '—',
+                'staff_count'  => $fresh->staff_count ?? 0,
+            ]);
+
             return response()->json([
                 'success' => true,
-                'data'    => $branch->fresh(),
+                'data'    => $data,
                 'message' => 'Branch updated successfully',
             ], 200);
         } catch (\Exception $e) {
@@ -159,6 +187,8 @@ class BranchController extends Controller
                     'message' => 'Cannot delete a branch that still has users or sales records. Mark it as inactive instead.',
                 ], 400);
             }
+
+            AuditHelper::log('branch', "Deleted branch: {$branch->name}");
 
             $branch->delete();
 
@@ -306,89 +336,87 @@ class BranchController extends Controller
         }
     }
 
+    /**
+     * GET /api/branches/{id}/analytics
+     */
     public function analytics($id)
-{
-    try {
-        $branch = \App\Models\Branch::findOrFail($id);
+    {
+        try {
+            $branch    = Branch::findOrFail($id);
+            $today     = Carbon::today();
+            $weekStart = Carbon::today()->subDays(6)->startOfDay();
 
-        $today     = Carbon::today();
-        $weekStart = Carbon::today()->subDays(6)->startOfDay();
+            // ── Weekly sales (last 7 days) ───────────────────────────────────
+            $weeklyRaw = DB::table('sales')
+                ->selectRaw('DATE(created_at) as date, SUM(total_amount) as total, COUNT(*) as count')
+                ->where('branch_id', $id)
+                ->where('status', 'completed')
+                ->whereBetween('created_at', [$weekStart, Carbon::now()])
+                ->groupByRaw('DATE(created_at)')
+                ->orderBy('date')
+                ->get()
+                ->keyBy('date');
 
-        // ── Weekly sales (last 7 days) ───────────────────────────────────────
-        $weeklyRaw = DB::table('sales')
-            ->selectRaw('DATE(created_at) as date, SUM(total_amount) as total, COUNT(*) as count')
-            ->where('branch_id', $id)
-            ->where('status', 'completed')
-            ->whereBetween('created_at', [$weekStart, Carbon::now()])
-            ->groupByRaw('DATE(created_at)')
-            ->orderBy('date')
-            ->get()
-            ->keyBy('date');
+            $weeklySales = [];
+            for ($i = 6; $i >= 0; $i--) {
+                $date          = Carbon::today()->subDays($i);
+                $key           = $date->toDateString();
+                $weeklySales[] = [
+                    'date'      => $key,
+                    'day_label' => $date->format('D'),
+                    'total'     => isset($weeklyRaw[$key]) ? (float) $weeklyRaw[$key]->total : 0,
+                    'count'     => isset($weeklyRaw[$key]) ? (int)   $weeklyRaw[$key]->count : 0,
+                ];
+            }
 
-        // Build a full 7-day array (fill missing days with 0)
-        $weeklySales = [];
-        for ($i = 6; $i >= 0; $i--) {
-            $date  = Carbon::today()->subDays($i);
-            $key   = $date->toDateString();
-            $weeklySales[] = [
-                'date'      => $key,
-                'day_label' => $date->format('D'),   // Mon, Tue …
-                'total'     => isset($weeklyRaw[$key]) ? (float) $weeklyRaw[$key]->total : 0,
-                'count'     => isset($weeklyRaw[$key]) ? (int) $weeklyRaw[$key]->count : 0,
-            ];
+            // ── Today's hourly breakdown ─────────────────────────────────────
+            $hourlyRaw = DB::table('sales')
+                ->selectRaw('HOUR(created_at) as hour, SUM(total_amount) as total, COUNT(*) as count')
+                ->where('branch_id', $id)
+                ->where('status', 'completed')
+                ->whereDate('created_at', $today)
+                ->groupByRaw('HOUR(created_at)')
+                ->orderBy('hour')
+                ->get()
+                ->keyBy('hour');
+
+            $todayHourly = [];
+            for ($h = 8; $h <= 22; $h++) {
+                $label = $h < 12
+                    ? "{$h} AM"
+                    : ($h === 12 ? '12 PM' : (($h - 12) . ' PM'));
+
+                $todayHourly[] = [
+                    'hour'  => $h,
+                    'label' => $label,
+                    'total' => isset($hourlyRaw[$h]) ? (float) $hourlyRaw[$h]->total : 0,
+                    'count' => isset($hourlyRaw[$h]) ? (int)   $hourlyRaw[$h]->count : 0,
+                ];
+            }
+
+            $weeklyTotal = collect($weeklySales)->sum('total');
+            $todayTotal  = collect($todayHourly)->sum('total');
+            $txCount     = collect($weeklySales)->sum('count');
+            $avgOrder    = $txCount > 0 ? $weeklyTotal / $txCount : 0;
+
+            return response()->json([
+                'success' => true,
+                'data'    => [
+                    'branch_id'          => (int) $id,
+                    'weekly_sales'       => $weeklySales,
+                    'today_hourly'       => $todayHourly,
+                    'weekly_total'       => round($weeklyTotal, 2),
+                    'today_total'        => round($todayTotal,  2),
+                    'avg_order_value'    => round($avgOrder,    2),
+                    'total_transactions' => (int) $txCount,
+                ],
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load analytics',
+                'error'   => $e->getMessage(),
+            ], 500);
         }
-
-        // ── Today's hourly breakdown ─────────────────────────────────────────
-        $hourlyRaw = DB::table('sales')
-            ->selectRaw('HOUR(created_at) as hour, SUM(total_amount) as total, COUNT(*) as count')
-            ->where('branch_id', $id)
-            ->where('status', 'completed')
-            ->whereDate('created_at', $today)
-            ->groupByRaw('HOUR(created_at)')
-            ->orderBy('hour')
-            ->get()
-            ->keyBy('hour');
-
-        // Show business hours 8 AM – 10 PM
-        $todayHourly = [];
-        for ($h = 8; $h <= 22; $h++) {
-            $label = $h <= 12
-                ? ($h === 12 ? '12 PM' : "{$h} AM")
-                : (($h - 12) . ' PM');
-
-            $todayHourly[] = [
-                'hour'  => $h,
-                'label' => $label,
-                'total' => isset($hourlyRaw[$h]) ? (float) $hourlyRaw[$h]->total : 0,
-                'count' => isset($hourlyRaw[$h]) ? (int) $hourlyRaw[$h]->count : 0,
-            ];
-        }
-
-        // ── Summary stats ────────────────────────────────────────────────────
-        $weeklyTotal = collect($weeklySales)->sum('total');
-        $todayTotal  = collect($todayHourly)->sum('total');
-        $txCount     = collect($weeklySales)->sum('count');
-        $avgOrder    = $txCount > 0 ? $weeklyTotal / $txCount : 0;
-
-        return response()->json([
-            'success' => true,
-            'data'    => [
-                'branch_id'          => (int) $id,
-                'weekly_sales'       => $weeklySales,
-                'today_hourly'       => $todayHourly,
-                'weekly_total'       => round($weeklyTotal, 2),
-                'today_total'        => round($todayTotal, 2),
-                'avg_order_value'    => round($avgOrder, 2),
-                'total_transactions' => (int) $txCount,
-            ],
-        ], 200);
-
-    } catch (\Exception $e) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Failed to load analytics',
-            'error'   => $e->getMessage(),
-        ], 500);
     }
-}
 }

@@ -8,30 +8,43 @@ import api from '../services/api';
 import {
   TrendingUp, TrendingDown, DollarSign, AlertCircle, Menu,
   ShoppingBag, Activity, Clock, ArrowUpRight, ArrowDownRight,
-  MapPin, Wallet
+  MapPin, Wallet, LogOut
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Cell
 } from 'recharts';
 
-import SalesDashboard        from '../components/Cashier/SalesReport/SalesDashboard';
-import ItemsReport           from '../components/Cashier/SalesReport/ItemsReport';
-import XReading              from '../components/Cashier/SalesReport/XReading';
-import ZReading              from '../components/Cashier/SalesReport/ZReading';
-import MenuList              from '../components/Cashier/MenuItems/MenuList';
-import CategoryList          from '../components/Cashier/MenuItems/CategoryList';
-import SubCategoryList       from '../components/Cashier/MenuItems/Sub-CategoryList';
-import InventoryDashboard    from '../components/Cashier/Inventory/InventoryDashboard';
-import InventoryCategoryList from '../components/Cashier/Inventory/InventoryCategoryList';
-import InventoryList         from '../components/Cashier/Inventory/InventoryList';
-import InventoryReport       from '../components/Cashier/Inventory/InventoryReport';
-import ItemChecker           from '../components/Cashier/Inventory/ItemChecker';
-import ItemSerials           from '../components/Cashier/Inventory/ItemSerials';
-import PurchaseOrder         from '../components/Cashier/Inventory/PurchaseOrder';
-import StockTransfer         from '../components/Cashier/Inventory/StockTransfer';
-import Supplier              from '../components/Cashier/Inventory/Supplier';
-import Settings              from '../components/Cashier/Settings/Settings';
+import SalesDashboard        from '../components/BranchManager/SalesReport/BM_SalesDashboard';
+import ItemsReport           from '../components/BranchManager/SalesReport/BM_ItemsReport';
+import XReading              from '../components/BranchManager/SalesReport/BM_X-Reading';
+import ZReading              from '../components/BranchManager/SalesReport/BM_Z-Reading';
+
+// ── BranchManager-specific Menu Items ─────────────
+import BM_MenuList           from '../components/BranchManager/MenuItems/BM_MenuList';
+import BM_Categories         from '../components/BranchManager/MenuItems/BM_Categories';
+import BM_SubCategories      from '../components/BranchManager/MenuItems/BM_Sub-Categories';
+
+// ── BranchManager-specific Inventory Items ─────────────
+import BM_InventoryDashboard     from '../components/BranchManager/Inventory/BM_InventoryDashboard';
+import BM_InventoryCategories    from '../components/BranchManager/Inventory/BM_InventoryCategories';
+import BM_InventoryList          from '../components/BranchManager/Inventory/BM_InventoryList';
+import BM_InventoryReports       from '../components/BranchManager/Inventory/BM_InventoryReports';
+import BM_InventoryItemChecker   from '../components/BranchManager/Inventory/BM_InventoryItemChecker';
+import BM_InventoryItemSerials   from '../components/BranchManager/Inventory/BM_InventoryItemSerials';
+import BM_InventoryPurchaseOrder from '../components/BranchManager/Inventory/BM_InventoryPurchaseOrder';
+import BM_InventoryStockTransfer from '../components/BranchManager/Inventory/BM_InventoryStockTransfer';
+import BM_InventorySuppliers     from '../components/BranchManager/Inventory/BM_InventorySuppliers';
+
+// ── BranchManager-specific Settings Items ─────────────
+import BM_AddCustomers       from '../components/BranchManager/Settings/BM_AddCustomers';
+import BM_AddVouchers        from '../components/BranchManager/Settings/BM_AddVouchers';
+import BM_BackupSystem       from '../components/BranchManager/Settings/BM_BackupSystem';
+import BM_CustomerReport     from '../components/BranchManager/Settings/BM_CustomerReport';
+import BM_ImportData         from '../components/BranchManager/Settings/BM_ImportData';
+import BM_SalesSettings      from '../components/BranchManager/Settings/BM_SalesSettings';
+import BM_Settings           from '../components/BranchManager/Settings/BM_Settings';
+import BM_UploadData         from '../components/BranchManager/Settings/BM_UploadData';
 
 // ─── Font tokens ──────────────────────────────────────────────────────────────
 const STYLES = `
@@ -55,6 +68,58 @@ const STYLES = `
   .bm-pill { font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 100px; padding: 3px 9px; border: 1px solid #e4e4e7; background: #f4f4f5; color: #71717a; }
 `;
 
+// ─── Confirm Modal ────────────────────────────────────────────────────────────
+interface ConfirmModalProps {
+  show:     boolean;
+  icon?:    React.ReactNode;
+  title:    string;
+  desc?:    string;
+  action:   () => void;
+  btnText?: string;
+  cancel:   () => void;
+  danger?:  boolean;
+}
+
+const ConfirmModal: React.FC<ConfirmModalProps> = ({
+  show, icon, title, desc, action, btnText = 'Confirm', cancel, danger = false,
+}) => {
+  if (!show) return null;
+  return (
+    <div className="fixed inset-0 z-200 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
+      <div
+        style={{ fontFamily: "'DM Sans', sans-serif" }}
+        className="bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] p-8 flex flex-col items-center text-center shadow-2xl"
+      >
+        {icon && (
+          <div className={`w-11 h-11 rounded-[0.625rem] flex items-center justify-center mb-5 ${danger ? 'bg-red-50' : 'bg-[#f5f3ff]'}`}>
+            {icon}
+          </div>
+        )}
+        <h3 className="text-[#1a0f2e] font-bold text-base mb-2 tracking-tight">{title}</h3>
+        {desc && <p className="text-zinc-500 text-sm font-medium mb-7 leading-relaxed">{desc}</p>}
+        <div className="flex flex-col w-full gap-2">
+          <button
+            onClick={action}
+            className={`w-full py-3 text-[10px] font-bold tracking-[0.18em] uppercase text-white transition-all rounded-[0.625rem] active:scale-[0.98] ${
+              danger ? 'bg-[#be2525] hover:bg-[#a11f1f]' : 'bg-[#3b2063] hover:bg-[#2a1647]'
+            }`}
+          >
+            {btnText}
+          </button>
+          {cancel && (
+            <button
+              onClick={cancel}
+              className="w-full py-3 text-[10px] font-bold tracking-[0.18em] uppercase text-zinc-500 bg-white border border-zinc-200 hover:bg-zinc-50 transition-all rounded-[0.625rem] active:scale-[0.98]"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface TopSellerItem { product_name: string; total_qty: number; }
@@ -66,19 +131,16 @@ interface DashboardStatsData {
   voided_sales_today:  number;
   top_seller_today:    TopSellerItem[];
   top_seller_all_time: TopSellerItem[];
-  // Real 7-day sparkline arrays from the backend [oldest … today]
   spark_cash_in?:  number[];
   spark_cash_out?: number[];
   spark_sales?:    number[];
   spark_voided?:   number[];
   spark_overall?:  number[];
-  // Yesterday values for real "vs yesterday" trend computation
   cash_in_yesterday?:      number;
   cash_out_yesterday?:     number;
   sales_yesterday?:        number;
   voided_yesterday?:       number;
   overall_cash_yesterday?: number;
-  // Overall cash in drawer today
   overall_cash_today?: number;
 }
 interface SalesAnalyticsResponse {
@@ -94,13 +156,12 @@ interface ChartTipProps {
 interface AuthUser {
   id:        number;
   name:      string;
+  email:     string;  
   role:      string;
   branch_id: number | null;
   branch?:   { id: number; name: string; location?: string };
 }
 
-// Bump this version string whenever the analytics response shape changes.
-// Old cache entries with a different version are automatically discarded.
 const CACHE_VERSION = 'v4';
 const cacheKey = (branchId: number | null) =>
   `lucky_boba_analytics_${CACHE_VERSION}_branch_${branchId ?? 'all'}`;
@@ -108,18 +169,40 @@ const cacheKey = (branchId: number | null) =>
 // ─── Root layout ─────────────────────────────────────────────────────────────
 
 const BranchManagerDashboard = () => {
-  const [isSidebarOpen, setSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab]       = useState('dashboard');
-  const [authUser, setAuthUser]         = useState<AuthUser | null>(null);
+  const [isSidebarOpen,    setSidebarOpen]    = useState(false);
+  const [activeTab,        setActiveTab]      = useState('dashboard');
+  const [authUser,         setAuthUser]       = useState<AuthUser | null>(null);
+  const [isLogoutModalOpen, setLogoutModalOpen] = useState(false);
+  const [isLoggingOut,     setIsLoggingOut]   = useState(false);
 
-  useEffect(() => {
-    api.get<AuthUser>('/user')
-      .then(res => setAuthUser(res.data))
-      .catch(err => console.error('Failed to load user', err));
-  }, []);
+useEffect(() => {
+  api.get<AuthUser>('/user')
+    .then(res => {
+      const u = res.data;
+      setAuthUser({
+        id:        u.id,
+        name:      u.name,
+        email:     u.email,
+        role:      u.role,
+        branch_id: u.branch_id,
+        branch:    u.branch ?? undefined,
+      });
+    })
+    .catch(err => console.error('Failed to load user', err));
+}, []);
 
-  const branchLabel = authUser?.branch?.name
-    ?? (authUser?.branch_id ? `Branch #${authUser.branch_id}` : null);
+const branchLabel = authUser?.name ?? null; // 'Main Branch' comes from here
+
+  const handleLogoutClick = () => setLogoutModalOpen(true);
+
+  const confirmLogout = async () => {
+    setIsLoggingOut(true);
+    setLogoutModalOpen(false);
+    ['auth_token', 'lucky_boba_token', 'token', 'user_role', 'lucky_boba_authenticated']
+      .forEach(k => localStorage.removeItem(k));
+    sessionStorage.clear();
+    window.location.href = '/login';
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -129,19 +212,38 @@ const BranchManagerDashboard = () => {
       case 'items-report':        return <ItemsReport />;
       case 'x-reading':           return <XReading />;
       case 'z-reading':           return <ZReading />;
-      case 'menu-list':           return <MenuList />;
-      case 'category-list':       return <CategoryList />;
-      case 'sub-category-list':   return <SubCategoryList />;
-      case 'inventory-dashboard': return <InventoryDashboard />;
-      case 'inventory-list':      return <InventoryList />;
-      case 'inventory-category':  return <InventoryCategoryList />;
-      case 'supplier':            return <Supplier />;
-      case 'item-checker':        return <ItemChecker />;
-      case 'item-serials':        return <ItemSerials />;
-      case 'purchase-order':      return <PurchaseOrder />;
-      case 'stock-transfer':      return <StockTransfer />;
-      case 'inventory-report':    return <InventoryReport />;
-      case 'settings':            return <Settings />;
+
+      // ── Menu Items ──
+      case 'menu-list':          return <BM_MenuList />;
+      case 'category-list':      return <BM_Categories />;
+      case 'sub-category-list':  return <BM_SubCategories />;
+
+      // ── Inventory ──
+      case 'inventory-dashboard': return <BM_InventoryDashboard />;
+      case 'inventory-list':      return <BM_InventoryList />;
+      case 'inventory-category':  return <BM_InventoryCategories />;
+      case 'supplier':            return <BM_InventorySuppliers />;
+      case 'item-checker':        return <BM_InventoryItemChecker />;
+      case 'item-serials':        return <BM_InventoryItemSerials />;
+      case 'purchase-order':      return <BM_InventoryPurchaseOrder />;
+      case 'stock-transfer':      return <BM_InventoryStockTransfer />;
+      case 'inventory-report':    return <BM_InventoryReports />;
+      
+      // ── Settings ──
+      case 'settings':            return <BM_Settings />;
+      case 'add-customers':       return <BM_AddCustomers onBack={() => setActiveTab('settings')} />;
+      case 'add-vouchers':        return <BM_AddVouchers onBack={() => setActiveTab('settings')} />;
+      case 'backup-system':       return <BM_BackupSystem onBack={() => setActiveTab('settings')} />;
+      case 'customer-report':
+        return <BM_CustomerReport 
+          onBack={() => setActiveTab('settings')} 
+          activeTab={activeTab as unknown as React.ComponentProps<typeof BM_CustomerReport>['activeTab']} 
+          setActiveTab={setActiveTab as unknown as React.ComponentProps<typeof BM_CustomerReport>['setActiveTab']} 
+        />;
+      case 'import-data':         return <BM_ImportData onBack={() => setActiveTab('settings')} />;
+      case 'sales-settings':      return <BM_SalesSettings isOpen={true} onClose={() => setActiveTab('settings')} />;
+      case 'upload-data':         return <BM_UploadData onBack={() => setActiveTab('settings')} />;
+
       default:                    return <DashboardPanel branchId={authUser?.branch_id ?? null} />;
     }
   };
@@ -166,6 +268,8 @@ const BranchManagerDashboard = () => {
         <BranchManagerSidebar
           isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen}
           logo={logo} currentTab={activeTab} setCurrentTab={setActiveTab}
+          onLogout={handleLogoutClick}
+          isLoggingOut={isLoggingOut}
         />
 
         <main className="flex-1 flex flex-col overflow-hidden">
@@ -204,15 +308,23 @@ const BranchManagerDashboard = () => {
           </div>
         </main>
       </div>
+
+      <ConfirmModal
+        show={isLogoutModalOpen}
+        icon={<LogOut size={19} className="text-[#be2525]" />}
+        title="End Session?"
+        desc="Are you sure you want to log out of the terminal?"
+        action={confirmLogout}
+        btnText="Logout"
+        cancel={() => setLogoutModalOpen(false)}
+        danger
+      />
     </>
   );
 };
 
 // ─── Interactive Sparkline bar ────────────────────────────────────────────────
 
-// Labels relative to today — computed dynamically from the actual array length.
-// A brand-new branch that only has today's data gets ["Today"] (length 1).
-// A branch with a full week gets ["6d ago", …, "Yesterday", "Today"].
 const ALL_SPARK_LABELS = ['6d ago', '5d ago', '4d ago', '3d ago', '2d ago', 'Yesterday', 'Today'];
 
 const getSparkLabels = (len: number): string[] => ALL_SPARK_LABELS.slice(ALL_SPARK_LABELS.length - len);
@@ -231,7 +343,6 @@ const MiniBar = ({
   const [hovered, setHovered] = useState<number | null>(null);
   const [pinned,  setPinned]  = useState<number | null>(null);
 
-  // whichever is hovered takes priority; click pins/unpins
   const activeTip = hovered ?? pinned;
 
   return (
@@ -239,7 +350,6 @@ const MiniBar = ({
       {values.map((v, i) => {
         const isActive = activeTip === i;
         const isPinned = pinned === i;
-        const isLast   = i === values.length - 1;
         const isZero   = v === 0;
         const barH     = isZero ? 0 : Math.max((v / max) * 100, 8);
 
@@ -251,23 +361,13 @@ const MiniBar = ({
             onMouseLeave={() => setHovered(null)}
             onClick={() => setPinned(isPinned ? null : i)}
           >
-            {/* Floating tooltip */}
             {isActive && (
               <div style={{
-                position:      'absolute',
-                bottom:        'calc(100% + 7px)',
-                left:          '50%',
-                transform:     'translateX(-50%)',
-                zIndex:        30,
-                background:    '#1a0f2e',
-                color:         '#fff',
-                borderRadius:  '0.45rem',
-                padding:       '5px 10px',
-                whiteSpace:    'nowrap',
-                pointerEvents: 'none',
-                boxShadow:     '0 4px 16px rgba(0,0,0,0.2)',
-                minWidth:      '70px',
-                textAlign:     'center',
+                position: 'absolute', bottom: 'calc(100% + 7px)', left: '50%',
+                transform: 'translateX(-50%)', zIndex: 30,
+                background: '#1a0f2e', color: '#fff', borderRadius: '0.45rem',
+                padding: '5px 10px', whiteSpace: 'nowrap', pointerEvents: 'none',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.2)', minWidth: '70px', textAlign: 'center',
               }}>
                 <p style={{ fontSize: '0.5rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', opacity: 0.55, margin: 0, marginBottom: 2 }}>
                   {labels[i] ?? `Day ${i + 1}`}
@@ -275,38 +375,26 @@ const MiniBar = ({
                 <p style={{ fontSize: '0.76rem', fontWeight: 800, margin: 0, letterSpacing: '-0.015em' }}>
                   {formatter(v)}
                 </p>
-                {/* Caret */}
                 <div style={{
-                  position:     'absolute',
-                  top:          '100%',
-                  left:         '50%',
-                  transform:    'translateX(-50%)',
-                  width:        0,
-                  height:       0,
-                  borderLeft:   '5px solid transparent',
-                  borderRight:  '5px solid transparent',
-                  borderTop:    '5px solid #1a0f2e',
+                  position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
+                  width: 0, height: 0,
+                  borderLeft: '5px solid transparent', borderRight: '5px solid transparent',
+                  borderTop: '5px solid #1a0f2e',
                 }} />
               </div>
             )}
 
-            {/* Bar — hidden for zero values, visible otherwise */}
             {isZero ? (
-              // Show a faint baseline tick so the slot isn't totally empty
-              <div style={{
-                width: '100%', height: '2px',
-                background: color, borderRadius: '1px', opacity: 0.12,
-              }} />
+              <div style={{ width: '100%', height: '2px', background: color, borderRadius: '1px', opacity: 0.12 }} />
             ) : (
               <div style={{
-                width:         '100%',
-                height:        `${barH}%`,
-                background:    isPinned ? '#1a0f2e' : color,
-                borderRadius:  '2px',
-                opacity:       isActive ? 1 : isLast ? 1 : 0.3 + (i / values.length) * 0.5,
-                transform:     isActive ? 'scaleX(1.2)' : 'scaleX(1)',
-                transition:    'opacity 0.08s, transform 0.08s, background 0.08s',
-                outline:       isPinned ? `2px solid ${color}` : 'none',
+                width: '100%', height: `${barH}%`,
+                background: isPinned ? '#1a0f2e' : color,
+                borderRadius: '2px',
+                opacity: isActive ? 1 : 0.3 + (i / values.length) * 0.5,
+                transform: isActive ? 'scaleX(1.2)' : 'scaleX(1)',
+                transition: 'opacity 0.08s, transform 0.08s, background 0.08s',
+                outline: isPinned ? `2px solid ${color}` : 'none',
                 outlineOffset: '1px',
               }} />
             )}
@@ -361,44 +449,36 @@ const DashboardPanel = ({ branchId }: { branchId: number | null }) => {
     if (n >= 1_000)     return `₱${(n / 1_000).toFixed(1)}K`;
     return `₱${n.toFixed(0)}`;
   };
-  // Compact formatter used inside sparkline tooltips
   const fmtTip = (v: number): string => {
     if (v >= 1_000_000) return `₱${(v / 1_000_000).toFixed(2)}M`;
     if (v >= 1_000)     return `₱${(v / 1_000).toFixed(1)}K`;
     return `₱${v.toFixed(2)}`;
   };
 
-  // Use real 7-day sparkline data from the API.
-  // Always override the last slot with the live today value so the
-  // "Today" bar and tooltip are never stale, even if the spark array
-  // was cached before today's transactions came in.
   const toSpark = (apiSpark: number[] | undefined, todayVal: number): number[] => {
     if (!apiSpark || apiSpark.length === 0) return [todayVal];
     const arr = [...apiSpark];
-    arr[arr.length - 1] = todayVal; // always use the live stat for today
+    arr[arr.length - 1] = todayVal;
     return arr;
   };
 
   const sparklines = {
-    cashIn:   toSpark(sd?.spark_cash_in,  Number(sd?.cash_in_today      ?? 0)),
-    cashOut:  toSpark(sd?.spark_cash_out, Number(sd?.cash_out_today     ?? 0)),
-    sales:    toSpark(sd?.spark_sales,    Number(sd?.total_sales_today   ?? 0)),
-    voided:   toSpark(sd?.spark_voided,   Number(sd?.voided_sales_today  ?? 0)),
-    overall:  toSpark(sd?.spark_overall,  Number(sd?.overall_cash_today  ?? 0)),
+    cashIn:  toSpark(sd?.spark_cash_in,  Number(sd?.cash_in_today     ?? 0)),
+    cashOut: toSpark(sd?.spark_cash_out, Number(sd?.cash_out_today    ?? 0)),
+    sales:   toSpark(sd?.spark_sales,    Number(sd?.total_sales_today  ?? 0)),
+    voided:  toSpark(sd?.spark_voided,   Number(sd?.voided_sales_today ?? 0)),
+    overall: toSpark(sd?.spark_overall,  Number(sd?.overall_cash_today ?? 0)),
   };
 
   const chartData = (() => {
-    // Pick the right dataset based on active filter
     const raw =
       timeFilter === '30days'  ? (analytics?.monthly   || []) :
       timeFilter === '3months' ? (analytics?.quarterly || []) :
                                   (analytics?.weekly    || []);
-
     return raw.map(d => {
       const o = new Date(d.date);
       let label: string;
       if (timeFilter === '3months') {
-        // Weekly buckets: "Wk Mar 03"
         label = isNaN(o.getTime()) ? d.day : `Wk ${o.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
       } else {
         label = isNaN(o.getTime()) ? d.date : o.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -411,13 +491,10 @@ const DashboardPanel = ({ branchId }: { branchId: number | null }) => {
   const avgRevenue   = chartData.length ? totalRevenue / chartData.length : 0;
   const maxDay       = chartData.reduce((a, b) => b.value > a.value ? b : a, chartData[0] || { name: '—', value: 0 });
 
-  // Compute nice Y-axis ticks based on actual data range
-  // 7D / 30D: steps of 2k    → [0, 2k, 4k, 6k, 8k, 10k]
-  // 3M:       steps of 10k   → [0, 10k, 20k, 30k, 40k, 50k]
-  const maxVal     = Math.max(...chartData.map(d => d.value), 1);
-  const stepSize   = timeFilter === '3months' ? 10_000 : 2_000;
-  const niceMax    = Math.ceil(maxVal / stepSize) * stepSize;
-  const yTicks     = Array.from({ length: Math.min(Math.ceil(niceMax / stepSize) + 1, 7) }, (_, i) => i * stepSize);
+  const maxVal   = Math.max(...chartData.map(d => d.value), 1);
+  const stepSize = timeFilter === '3months' ? 10_000 : 2_000;
+  const niceMax  = Math.ceil(maxVal / stepSize) * stepSize;
+  const yTicks   = Array.from({ length: Math.min(Math.ceil(niceMax / stepSize) + 1, 7) }, (_, i) => i * stepSize);
 
   const yFmt = (v: number) => {
     if (v === 0) return '₱0';
@@ -447,8 +524,6 @@ const DashboardPanel = ({ branchId }: { branchId: number | null }) => {
     );
   };
 
-  // Compute real "vs yesterday" trend from actual data.
-  // Returns { label: "+12.4%" | "-3.1%" | "—", up: boolean | null }
   const computeTrend = (today: number, yesterday: number): { label: string; up: boolean | null } => {
     if (yesterday === 0 && today === 0) return { label: '—', up: null };
     if (yesterday === 0) return { label: 'New', up: true };
@@ -458,26 +533,26 @@ const DashboardPanel = ({ branchId }: { branchId: number | null }) => {
   };
 
   const trendCashIn  = computeTrend(Number(sd?.cash_in_today      ?? 0), Number(sd?.cash_in_yesterday      ?? 0));
-  const trendCashOut = computeTrend(Number(sd?.cash_out_today     ?? 0), Number(sd?.cash_out_yesterday     ?? 0));
-  const trendSales   = computeTrend(Number(sd?.total_sales_today  ?? 0), Number(sd?.sales_yesterday        ?? 0));
-  const trendVoided  = computeTrend(Number(sd?.voided_sales_today ?? 0), Number(sd?.voided_yesterday       ?? 0));
-  const trendOverall = computeTrend(Number(sd?.overall_cash_today ?? 0), Number(sd?.overall_cash_yesterday ?? 0));
+  const trendCashOut = computeTrend(Number(sd?.cash_out_today      ?? 0), Number(sd?.cash_out_yesterday     ?? 0));
+  const trendSales   = computeTrend(Number(sd?.total_sales_today   ?? 0), Number(sd?.sales_yesterday        ?? 0));
+  const trendVoided  = computeTrend(Number(sd?.voided_sales_today  ?? 0), Number(sd?.voided_yesterday       ?? 0));
+  const trendOverall = computeTrend(Number(sd?.overall_cash_today  ?? 0), Number(sd?.overall_cash_yesterday ?? 0));
 
   const overallCash = Number(sd?.cash_in_today ?? 0) + Number(sd?.total_sales_today ?? 0) - Number(sd?.cash_out_today ?? 0);
 
   const statCards = [
-    { label:'Cash In',      sub:'Opening float today',      value:fmt(sd?.cash_in_today),      compact:fmtS(sd?.cash_in_today),      icon:<TrendingUp   size={14} strokeWidth={2.5}/>, iconBg:'#dcfce7', iconColor:'#16a34a', valueColor:'#1a0f2e', trend:trendCashIn.label,  trendUp:trendCashIn.up  ?? true,  sparkColor:'#16a34a', spark:sparklines.cashIn,  sparkFmt:fmtTip },
-    { label:'Cash Out',     sub:'Total disbursed today',     value:fmt(sd?.cash_out_today),     compact:fmtS(sd?.cash_out_today),     icon:<TrendingDown size={14} strokeWidth={2.5}/>, iconBg:'#fee2e2', iconColor:'#dc2626', valueColor:'#1a0f2e', trend:trendCashOut.label, trendUp:trendCashOut.up ?? false, sparkColor:'#dc2626', spark:sparklines.cashOut, sparkFmt:fmtTip },
-    { label:'Total Sales',  sub:'Gross revenue today',       value:fmt(sd?.total_sales_today),  compact:fmtS(sd?.total_sales_today),  icon:<DollarSign   size={14} strokeWidth={2.5}/>, iconBg:'#ede9fe', iconColor:'#7c3aed', valueColor:'#3b2063', trend:trendSales.label,   trendUp:trendSales.up   ?? true,  sparkColor:'#7c3aed', spark:sparklines.sales,   sparkFmt:fmtTip },
-    { label:'Voided Sales', sub:'Cancelled transactions',    value:fmt(sd?.voided_sales_today), compact:fmtS(sd?.voided_sales_today), icon:<AlertCircle  size={14} strokeWidth={2.5}/>, iconBg:'#fef9c3', iconColor:'#ca8a04', valueColor:'#1a0f2e', trend:trendVoided.label,  trendUp:trendVoided.up  ?? false, sparkColor:'#ca8a04', spark:sparklines.voided,  sparkFmt:fmtTip },
-    { label:'Overall Cash', sub:'Cash In + Sales − Drop',    value:fmt(overallCash),            compact:fmtS(overallCash),            icon:<Wallet       size={14} strokeWidth={2.5}/>, iconBg:'#e0f2fe', iconColor:'#0284c7', valueColor:'#0c4a6e', trend:trendOverall.label, trendUp:trendOverall.up ?? true,  sparkColor:'#0284c7', spark:sparklines.overall, sparkFmt:fmtTip },
+    { label:'Cash In',      sub:'Opening float today',   value:fmt(sd?.cash_in_today),      compact:fmtS(sd?.cash_in_today),      icon:<TrendingUp   size={14} strokeWidth={2.5}/>, iconBg:'#dcfce7', iconColor:'#16a34a', valueColor:'#1a0f2e', trend:trendCashIn.label,  trendUp:trendCashIn.up  ?? true,  sparkColor:'#16a34a', spark:sparklines.cashIn,  sparkFmt:fmtTip },
+    { label:'Cash Out',     sub:'Total disbursed today', value:fmt(sd?.cash_out_today),     compact:fmtS(sd?.cash_out_today),     icon:<TrendingDown size={14} strokeWidth={2.5}/>, iconBg:'#fee2e2', iconColor:'#dc2626', valueColor:'#1a0f2e', trend:trendCashOut.label, trendUp:trendCashOut.up ?? false, sparkColor:'#dc2626', spark:sparklines.cashOut, sparkFmt:fmtTip },
+    { label:'Total Sales',  sub:'Gross revenue today',   value:fmt(sd?.total_sales_today),  compact:fmtS(sd?.total_sales_today),  icon:<DollarSign   size={14} strokeWidth={2.5}/>, iconBg:'#ede9fe', iconColor:'#7c3aed', valueColor:'#3b2063', trend:trendSales.label,   trendUp:trendSales.up   ?? true,  sparkColor:'#7c3aed', spark:sparklines.sales,   sparkFmt:fmtTip },
+    { label:'Voided Sales', sub:'Cancelled transactions',value:fmt(sd?.voided_sales_today), compact:fmtS(sd?.voided_sales_today), icon:<AlertCircle  size={14} strokeWidth={2.5}/>, iconBg:'#fef9c3', iconColor:'#ca8a04', valueColor:'#1a0f2e', trend:trendVoided.label,  trendUp:trendVoided.up  ?? false, sparkColor:'#ca8a04', spark:sparklines.voided,  sparkFmt:fmtTip },
+    { label:'Overall Cash', sub:'Cash In + Sales − Drop',value:fmt(overallCash),            compact:fmtS(overallCash),            icon:<Wallet       size={14} strokeWidth={2.5}/>, iconBg:'#e0f2fe', iconColor:'#0284c7', valueColor:'#0c4a6e', trend:trendOverall.label, trendUp:trendOverall.up ?? true,  sparkColor:'#0284c7', spark:sparklines.overall, sparkFmt:fmtTip },
   ];
 
   const quickStats = [
-    { label:'Total Orders',    value: Number(sd?.total_orders_today ?? 0),                                                                                         icon:<ShoppingBag size={12}/>, color:'#3b82f6' },
-    { label:'Avg Order Value', value: fmt(Number(sd?.total_sales_today ?? 0) / Math.max(Number(sd?.total_orders_today ?? 1), 1)),                                   icon:<Activity    size={12}/>, color:'#8b5cf6' },
-    { label:'Net Cash Flow',   value: fmt(Number(sd?.cash_in_today ?? 0) - Number(sd?.cash_out_today ?? 0)),                                                        icon:<ArrowUpRight size={12}/>, color:'#10b981' },
-    { label:'Void Rate',       value: `${((Number(sd?.voided_sales_today ?? 0) / Math.max(Number(sd?.total_sales_today ?? 1), 1)) * 100).toFixed(1)}%`,            icon:<AlertCircle size={12}/>, color:'#f59e0b' },
+    { label:'Total Orders',    value: Number(sd?.total_orders_today ?? 0),                                                                         icon:<ShoppingBag size={12}/>, color:'#3b82f6' },
+    { label:'Avg Order Value', value: fmt(Number(sd?.total_sales_today ?? 0) / Math.max(Number(sd?.total_orders_today ?? 1), 1)),                                icon:<Activity    size={12}/>, color:'#8b5cf6' },
+    { label:'Net Cash Flow',   value: fmt(Number(sd?.cash_in_today ?? 0) - Number(sd?.cash_out_today ?? 0)),                                                     icon:<ArrowUpRight size={12}/>, color:'#10b981' },
+    { label:'Void Rate',       value: `${((Number(sd?.voided_sales_today ?? 0) / Math.max(Number(sd?.total_sales_today ?? 1), 1)) * 100).toFixed(1)}%`,          icon:<AlertCircle size={12}/>, color:'#f59e0b' },
   ];
 
   const purples = ['#3b2063','#6d28d9','#7c3aed','#a78bfa','#c4b5fd','#ede9fe'];
@@ -501,10 +576,7 @@ const DashboardPanel = ({ branchId }: { branchId: number | null }) => {
               <p className="bm-value" style={{ color: s.valueColor }}>{s.compact}</p>
               <p className="bm-sub" style={{ marginTop: 4 }}>{s.value}</p>
             </div>
-
-            {/* ↓ Interactive sparkline — hover to inspect a day, click to pin */}
             <MiniBar values={s.spark} color={s.sparkColor} formatter={s.sparkFmt} />
-
             <div className="flex items-center justify-between pt-1 border-t border-gray-50">
               <span className="bm-sub">vs yesterday</span>
               {s.trend === '—' ? (
@@ -536,7 +608,6 @@ const DashboardPanel = ({ branchId }: { branchId: number | null }) => {
 
       {/* ── CHART + TODAY TOP SELLERS ── */}
       <div className="grid gap-4 grid-cols-1 xl:grid-cols-3">
-
         <div className="xl:col-span-2 bg-white border border-gray-100 rounded-2xl p-5">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
             <div>
@@ -570,7 +641,7 @@ const DashboardPanel = ({ branchId }: { branchId: number | null }) => {
               })}
             </div>
           </div>
-          <div style={{ height:220, width:'100%', minHeight: 220 }}>
+          <div style={{ height: 220, width: '100%', minHeight: 220, minWidth: 0 }}>
             {chartData.length === 0 ? (
               <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                 <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#f4f4f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -591,11 +662,8 @@ const DashboardPanel = ({ branchId }: { branchId: number | null }) => {
                   <CartesianGrid vertical={false} stroke="#f4f4f5"/>
                   <XAxis dataKey="name" axisLine={false} tickLine={false} dy={8} minTickGap={20}
                     tick={{ fontSize:9, fill:'#a1a1aa', fontWeight:700 }}/>
-                  <YAxis axisLine={false} tickLine={false}
-                    ticks={yTicks}
-                    domain={[0, niceMax]}
-                    tick={{ fontSize:9, fill:'#a1a1aa', fontWeight:600 }}
-                    tickFormatter={yFmt}/>
+                  <YAxis axisLine={false} tickLine={false} ticks={yTicks} domain={[0, niceMax]}
+                    tick={{ fontSize:9, fill:'#a1a1aa', fontWeight:600 }} tickFormatter={yFmt}/>
                   <Tooltip content={<ChartTip/>} cursor={{ stroke:'#ddd6f7', strokeWidth:1, strokeDasharray:'3 3' }}/>
                   <Area type="monotone" dataKey="value" stroke="#3b2063" strokeWidth={2}
                     fillOpacity={1} fill="url(#bmGrad)"
@@ -646,7 +714,6 @@ const DashboardPanel = ({ branchId }: { branchId: number | null }) => {
 
       {/* ── ALL-TIME + RANK ── */}
       <div className="grid gap-4 grid-cols-1 xl:grid-cols-2">
-
         <div className="bg-white border border-gray-100 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-4">
             <div>

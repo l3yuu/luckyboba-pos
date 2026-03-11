@@ -1,6 +1,6 @@
 import React from 'react';
 import { useState } from 'react';
-import TopNavbar from '../TopNavbar';
+import TopNavbar from '../../Cashier/TopNavbar';
 import { 
   Calendar,
   Terminal,
