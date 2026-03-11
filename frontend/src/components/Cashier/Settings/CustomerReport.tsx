@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import TopNavbar from '../TopNavbar';
+import TopNavbar from '../../Cashier/TopNavbar';
 import { Search, Printer, Download, ArrowLeft, Calendar } from 'lucide-react';
 
 // Define tab types for consistency
@@ -233,3 +233,4 @@ const CustomerReport = ({ onBack, activeTab, setActiveTab }: CustomerReportProps
 };
 
 export default CustomerReport;
+

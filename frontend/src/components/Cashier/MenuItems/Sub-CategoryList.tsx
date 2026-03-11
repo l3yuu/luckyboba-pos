@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import axios from 'axios';
-import TopNavbar from '../TopNavbar';
+import TopNavbar from '../../Cashier/TopNavbar';
 import api from '../../../services/api';
 import { Plus, Search, Pencil, Trash2, CheckCircle2, X, Tag, AlertTriangle, Loader2 } from 'lucide-react';
 import { getCache, setCache } from '../../../utils/cache';

@@ -86,3 +86,4 @@ export const BranchViewModal: React.FC<BranchViewModalProps> = ({ branch, onClos
     </div>
   );
 };
+

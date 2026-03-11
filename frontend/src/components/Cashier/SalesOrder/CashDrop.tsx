@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import type { AxiosError } from 'axios';
 import api from '../../../services/api';
 import type { BackendTransaction, Transaction, CashDropProps } from '../../../types/transactions';
-import TopNavbar from '../TopNavbar';
+import TopNavbar from '../../Cashier/TopNavbar';
 import { getCache, setCache } from '../../../utils/cache';
 import { Banknote, History as HistoryIcon, Printer, MessageSquare, ArrowDownCircle, CheckCircle2, Clock, RefreshCw } from 'lucide-react';
 

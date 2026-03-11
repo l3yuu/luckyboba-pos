@@ -2,15 +2,16 @@
 
 namespace App\Http\Controllers\Auth;
 
-use Illuminate\Support\Facades\Auth;
+use App\Helpers\AuditHelper;
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use App\Models\Branch;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\DB;
+use App\Models\User;
 use Exception;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 
 class UserController extends Controller
 {
@@ -397,6 +398,8 @@ class UserController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
+
+        AuditHelper::log('user', "Toggled status for user: {$user->name}", "New status: {$user->status}");
     }
 
     /**

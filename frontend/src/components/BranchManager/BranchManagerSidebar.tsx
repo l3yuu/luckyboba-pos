@@ -400,7 +400,13 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
             Get Help
           </button>
           <div className="bm-sb-divider my-2" />
-          <button onClick={handleLogoutClick} disabled={isLoggingOut} className="bm-sb-item hover:!bg-red-50 hover:!text-red-600" style={{ color: '#be2525' }}>
+
+          <button
+            onClick={handleLogoutClick}
+            disabled={isLoggingOut}
+            className="bm-sb-item hover:bg-red-50! hover:text-red-600!"
+            style={{ color: '#be2525' }}
+          >
             {isLoggingOut ? (
               <>
                 <span className="bm-sb-icon">
@@ -607,12 +613,8 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
       {/* ── Logout Confirmation Modal ── */}
       {showLogoutModal && (
         <div
-          style={{
-            position: 'fixed', inset: 0, zIndex: 200,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            padding: 24, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)',
-            fontFamily: "'DM Sans', sans-serif",
-          }}
+          className="fixed inset-0 z-200 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm"
+          style={{ fontFamily: "'DM Sans', sans-serif" }}
         >
           <div style={{
             background: '#fff', width: '100%', maxWidth: 360,

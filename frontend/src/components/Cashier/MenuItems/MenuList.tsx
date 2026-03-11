@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import axios from 'axios';
-import TopNavbar from '../TopNavbar';
+import TopNavbar from '../../Cashier/TopNavbar';
 import api from '../../../services/api';
 import * as XLSX from 'xlsx';
 import { Search, Plus, Printer, FileDown, Tag, Layers, CheckCircle2, X, Terminal, Database, Package, RefreshCw } from 'lucide-react';
