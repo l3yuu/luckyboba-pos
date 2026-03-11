@@ -36,7 +36,15 @@ import BM_InventoryPurchaseOrder from '../components/BranchManager/Inventory/BM_
 import BM_InventoryStockTransfer from '../components/BranchManager/Inventory/BM_InventoryStockTransfer';
 import BM_InventorySuppliers     from '../components/BranchManager/Inventory/BM_InventorySuppliers';
 
-import Settings              from '../components/Cashier/Settings/Settings';
+// ── BranchManager-specific Settings Items ─────────────
+import BM_AddCustomers       from '../components/BranchManager/Settings/BM_AddCustomers';
+import BM_AddVouchers        from '../components/BranchManager/Settings/BM_AddVouchers';
+import BM_BackupSystem       from '../components/BranchManager/Settings/BM_BackupSystem';
+import BM_CustomerReport     from '../components/BranchManager/Settings/BM_CustomerReport';
+import BM_ImportData         from '../components/BranchManager/Settings/BM_ImportData';
+import BM_SalesSettings      from '../components/BranchManager/Settings/BM_SalesSettings';
+import BM_Settings           from '../components/BranchManager/Settings/BM_Settings';
+import BM_UploadData         from '../components/BranchManager/Settings/BM_UploadData';
 
 // ─── Font tokens ──────────────────────────────────────────────────────────────
 const STYLES = `
@@ -221,7 +229,21 @@ const branchLabel = authUser?.name ?? null; // 'Main Branch' comes from here
       case 'stock-transfer':      return <BM_InventoryStockTransfer />;
       case 'inventory-report':    return <BM_InventoryReports />;
       
-      case 'settings':            return <Settings />;
+      // ── Settings ──
+      case 'settings':            return <BM_Settings />;
+      case 'add-customers':       return <BM_AddCustomers onBack={() => setActiveTab('settings')} />;
+      case 'add-vouchers':        return <BM_AddVouchers onBack={() => setActiveTab('settings')} />;
+      case 'backup-system':       return <BM_BackupSystem onBack={() => setActiveTab('settings')} />;
+      case 'customer-report':
+        return <BM_CustomerReport 
+          onBack={() => setActiveTab('settings')} 
+          activeTab={activeTab as unknown as React.ComponentProps<typeof BM_CustomerReport>['activeTab']} 
+          setActiveTab={setActiveTab as unknown as React.ComponentProps<typeof BM_CustomerReport>['setActiveTab']} 
+        />;
+      case 'import-data':         return <BM_ImportData onBack={() => setActiveTab('settings')} />;
+      case 'sales-settings':      return <BM_SalesSettings isOpen={true} onClose={() => setActiveTab('settings')} />;
+      case 'upload-data':         return <BM_UploadData onBack={() => setActiveTab('settings')} />;
+
       default:                    return <DashboardPanel branchId={authUser?.branch_id ?? null} />;
     }
   };
