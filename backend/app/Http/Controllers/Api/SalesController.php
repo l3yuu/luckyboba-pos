@@ -29,101 +29,107 @@ class SalesController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'si_number'                => 'required|string',
-            'items'                    => 'required|array|min:1',
-            'items.*.menu_item_id'     => 'required|exists:menu_items,id',
-            'items.*.name'             => 'required|string',
-            'items.*.quantity'         => 'required|integer|min:1',
-            'items.*.unit_price'       => 'required|numeric|min:0',
-            'items.*.total_price'      => 'required|numeric|min:0',
-            'items.*.size'             => 'nullable|string',
-            'items.*.cup_size_label'   => 'nullable|string',
-            'items.*.sugar_level'      => 'nullable|string',
-            'items.*.options'          => 'nullable|array',
-            'items.*.add_ons'          => 'nullable|array',
-            'items.*.remarks'          => 'nullable|string',
-            'items.*.charges'          => 'nullable|array',
-            'subtotal'                 => 'required|numeric|min:0',
-            'total'                    => 'required|numeric|min:0',
-            'cashier_name'             => 'nullable|string',
-            'payment_method'           => 'nullable|string',
-            'reference_number'         => 'nullable|string',
-            'pax_regular'              => 'required|integer|min:0',
-            'pax_senior'               => 'required|integer|min:0',
-            'pax_pwd'                  => 'required|integer|min:0',
-            'pax_diplomat'             => 'required|integer|min:0',
-            'senior_id'                => 'nullable|string',
-            'pwd_id'                   => 'nullable|string',
-            'diplomat_id'              => 'nullable|string',
-            'discount_remarks'         => 'nullable|string',
-            'vatable_sales'            => 'required|numeric',
-            'vat_amount'               => 'required|numeric',
+            'si_number'              => 'required|string',
+            'items'                  => 'required|array|min:1',
+            'items.*.menu_item_id'   => 'required|exists:menu_items,id',
+            'items.*.name'           => 'required|string',
+            'items.*.quantity'       => 'required|integer|min:1',
+            'items.*.unit_price'     => 'required|numeric|min:0',
+            'items.*.total_price'    => 'required|numeric|min:0',
+            'items.*.size'           => 'nullable|string',
+            'items.*.cup_size_label' => 'nullable|string',
+            'items.*.sugar_level'    => 'nullable|string',
+            'items.*.options'        => 'nullable|array',
+            'items.*.add_ons'        => 'nullable|array',
+            'items.*.remarks'        => 'nullable|string',
+            'items.*.charges'        => 'nullable|array',
+            'items.*.charges.grab'   => 'nullable|boolean',
+            'items.*.charges.panda'  => 'nullable|boolean',
+            'subtotal'               => 'required|numeric|min:0',
+            'total'                  => 'required|numeric|min:0',
+            'cashier_name'           => 'nullable|string',
+            'payment_method'         => 'nullable|string',
+            'reference_number'       => 'nullable|string',
+            'pax_regular'            => 'required|integer|min:0',
+            'pax_senior'             => 'required|integer|min:0',
+            'pax_pwd'                => 'required|integer|min:0',
+            'pax_diplomat'           => 'required|integer|min:0',
+            'senior_id'              => 'nullable|string',
+            'pwd_id'                 => 'nullable|string',
+            'diplomat_id'            => 'nullable|string',
+            'discount_remarks'       => 'nullable|string',
+            'vatable_sales'          => 'required|numeric',
+            'vat_amount'             => 'required|numeric',
         ]);
 
         $user        = auth('sanctum')->user();
         $cashierName = $request->input('cashier_name') ?? ($user ? $user->name : 'System Admin');
-        $userId = $user ? $user->id : null;
-        $branchId = $user ? $user->branch_id : null;
-        
-        // Explicitly use the OR number sent from React
-        $officialOR = $validated['si_number']; 
+        $userId      = $user?->id;
+        $branchId    = $user?->branch_id;
+        $officialOR  = $validated['si_number'];
 
         try {
             DB::beginTransaction();
 
+            // ── Determine order-level charge type ─────────────────────────────────
             $chargeType = null;
-            $totalQty   = 0;
-
             foreach ($validated['items'] as $item) {
-                $totalQty += $item['quantity'];
-                if (isset($item['charges'])) {
-                    if ($item['charges']['grab']  ?? false) $chargeType = 'grab';
-                    if ($item['charges']['panda'] ?? false) $chargeType = 'panda';
-                }
+                if (!empty($item['charges']['grab']))  { $chargeType = 'grab';  break; }
+                if (!empty($item['charges']['panda'])) { $chargeType = 'panda'; break; }
             }
 
-            // ── 1. Create Sale ─────────────────────────────────────────────────────
+            // ── 1. Create Sale (total_amount = 0, recalculated after items) ───────
             $sale = Sale::create([
-                'user_id' => $userId,
-                'branch_id'      => $branchId,
-                'total_amount' => $validated['total'],
-                'invoice_number' => $officialOR, // Save OR here
-                'status' => 'completed',
-                'payment_method' => $request->input('payment_method', 'cash'),
+                'user_id'          => $userId,
+                'branch_id'        => $branchId,
+                'total_amount'     => 0,
+                'invoice_number'   => $officialOR,
+                'status'           => 'completed',
+                'payment_method'   => $request->input('payment_method', 'cash'),
                 'reference_number' => $request->input('reference_number'),
-                'charge_type' => $chargeType,
-                
-                // Map the new fields to the database columns
-                'pax_regular' => $validated['pax_regular'],
-                'pax_senior' => $validated['pax_senior'],
-                'pax_pwd' => $validated['pax_pwd'],
-                'pax_diplomat' => $validated['pax_diplomat'],
-                'senior_id' => $validated['senior_id'] ?? null,
-                'pwd_id' => $validated['pwd_id'] ?? null,
-                'diplomat_id' => $validated['diplomat_id'] ?? null,
+                'charge_type'      => $chargeType,
+                'pax_regular'      => $validated['pax_regular'],
+                'pax_senior'       => $validated['pax_senior'],
+                'pax_pwd'          => $validated['pax_pwd'],
+                'pax_diplomat'     => $validated['pax_diplomat'],
+                'senior_id'        => $validated['senior_id']        ?? null,
+                'pwd_id'           => $validated['pwd_id']           ?? null,
+                'diplomat_id'      => $validated['diplomat_id']      ?? null,
                 'discount_remarks' => $validated['discount_remarks'] ?? null,
-                'vatable_sales' => $validated['vatable_sales'],
-                'vat_amount' => $validated['vat_amount'],
-                
-                // Keep total pax for backward compatibility with your old code if needed
-                'pax' => $validated['pax_regular'] + $validated['pax_senior'] + $validated['pax_pwd'] + $validated['pax_diplomat'],
-                'is_synced' => false,
+                'vatable_sales'    => $validated['vatable_sales'],
+                'vat_amount'       => $validated['vat_amount'],
+                'pax'              => $validated['pax_regular'] + $validated['pax_senior']
+                                    + $validated['pax_pwd']     + $validated['pax_diplomat'],
+                'is_synced'        => false,
             ]);
 
-            // ── 2. Create Sale Items ───────────────────────────────────────────────
+            // ── 2. Create Sale Items (backend enforces surcharge) ─────────────────
+            $totalQty = 0;
+
             foreach ($validated['items'] as $item) {
+                $hasCharge  = !empty($item['charges']['grab']) || !empty($item['charges']['panda']);
+                $surcharge  = $hasCharge ? 30 * $item['quantity'] : 0;
+                $basePrice  = (float) $item['unit_price'];
+                $finalPrice = ($basePrice * $item['quantity']) + $surcharge;
+
+                $totalQty += $item['quantity'];
+
                 SaleItem::create([
-                    'sale_id'      => $sale->id,
-                    'menu_item_id' => $item['menu_item_id'],
-                    'product_name' => $item['name'],
-                    'quantity'     => $item['quantity'],
-                    'price'        => (float) $item['unit_price'] + (($item['size'] ?? null) === 'L' ? 20 : 0),
-                    'final_price'  => $item['total_price'],
-                    'size'         => $item['size']        ?? null,
-                    'cup_size_label'  => $item['cup_size_label'] ?? null,
-                    'sugar_level'  => $item['sugar_level'] ?? null,
-                    'options'      => $item['options']     ?? null,
-                    'add_ons'      => $item['add_ons']     ?? null,
+                    'sale_id'        => $sale->id,
+                    'menu_item_id'   => $item['menu_item_id'],
+                    'product_name'   => $item['name'],
+                    'quantity'       => $item['quantity'],
+                    'price'          => $basePrice,
+                    'final_price'    => $finalPrice,
+                    'size'           => $item['size']           ?? null,
+                    'cup_size_label' => $item['cup_size_label'] ?? null,
+                    'sugar_level'    => $item['sugar_level']    ?? null,
+                    'options'        => $item['options']        ?? null,
+                    'add_ons'        => $item['add_ons']        ?? null,
+                    'charge_type'    => $hasCharge
+                                        ? ($item['charges']['grab'] ? 'grab' : 'panda')
+                                        : null,
+                    'surcharge'      => $surcharge,
                 ]);
 
                 $menuItem = MenuItem::find($item['menu_item_id']);
@@ -132,20 +138,25 @@ class SalesController extends Controller
                 }
             }
 
-            // ── 3. Create Receipt ──────────────────────────────────────────────────
+            // ── 3. Recalculate total from actual saved items ──────────────────────
+            $recalculatedTotal = DB::table('sale_items')
+                ->where('sale_id', $sale->id)
+                ->sum('final_price');
+
+            $sale->update(['total_amount' => $recalculatedTotal]);
+
+            // ── 4. Create Receipt ─────────────────────────────────────────────────
             Receipt::create([
                 'si_number'    => $officialOR,
                 'terminal'     => '01',
                 'items_count'  => $totalQty,
                 'cashier_name' => $cashierName,
-                'total_amount' => $validated['total'],
+                'total_amount' => $recalculatedTotal,
                 'sale_id'      => $sale->id,
                 'branch_id'    => $branchId,
             ]);
 
-            // ── 4. Deduct Raw Materials ────────────────────────────────────────────
-            // Called here (after SaleItems exist) so the observer has rows to query.
-            // Runs inside the same DB transaction — rolls back automatically on error.
+            // ── 5. Deduct Raw Materials ───────────────────────────────────────────
             app(SaleObserver::class)->deductStock($sale);
 
             DB::commit();
@@ -168,21 +179,19 @@ class SalesController extends Controller
      * List all sales.
      */
     public function index()
-{
-    $user = auth('sanctum')->user();
-    $query = Sale::with('items', 'user')->latest();
+    {
+        $user  = auth('sanctum')->user();
+        $query = Sale::with('items', 'user')->latest();
 
-    if ($user && !in_array($user->role, ['superadmin', 'admin'])) {
-        $query->where('branch_id', $user->branch_id);
+        if ($user && !in_array($user->role, ['superadmin', 'admin'])) {
+            $query->where('branch_id', $user->branch_id);
+        }
+
+        return response()->json($query->paginate(20));
     }
-
-    $sales = $query->paginate(20);
-    return response()->json($sales);
-}
 
     /**
      * Void/Cancel a sale.
-     * Restores both MenuItem quantity AND raw material stock.
      */
     public function cancel(Request $request, $id)
     {
@@ -199,7 +208,7 @@ class SalesController extends Controller
                 return response()->json(['message' => 'Sale already cancelled'], 400);
             }
 
-            // ── Restore MenuItem quantities ────────────────────────────────────────
+            // ── Restore MenuItem quantities ───────────────────────────────────────
             foreach ($sale->items as $item) {
                 $menuItem = MenuItem::find($item->menu_item_id);
                 if ($menuItem) {
@@ -209,17 +218,17 @@ class SalesController extends Controller
                 }
             }
 
-            // ── Update Sale Status ─────────────────────────────────────────────────
-            // The SaleObserver@updated will detect status → 'cancelled'
-            // and automatically reverse all raw material deductions.
+            // ── Update Sale Status ────────────────────────────────────────────────
             $sale->update([
-                'status'               => 'cancelled',
-                'cancellation_reason'  => $request->reason,
-                'cancelled_at'         => now(),
+                'status'              => 'cancelled',
+                'cancellation_reason' => $request->reason,
+                'cancelled_at'        => now(),
             ]);
 
             DB::commit();
             $this->dashboardService->clearTodayCache($sale->branch_id);
+
+            AuditHelper::log('void', "Voided transaction #{$sale->id}", "Amount: {$sale->total_amount}");
 
             return response()->json(['status' => 'success', 'message' => 'Voided successfully']);
 
@@ -228,7 +237,5 @@ class SalesController extends Controller
             Log::error('Sale cancellation failed: ' . $e->getMessage());
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
-
-        AuditHelper::log('void', "Voided transaction #{$sale->id}", "Amount: {$sale->total_amount}");
     }
 }

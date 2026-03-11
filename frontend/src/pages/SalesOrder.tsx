@@ -227,7 +227,10 @@ const SalesOrder = () => {
   const isCombo = selectedCategory?.name?.toUpperCase() === 'COMBO MEALS';
   const categoryHasOnlyOneSize = (selectedCategory?.sub_categories?.length ?? 0) <= 1;
 
-  const subtotal   = cart.reduce((acc, item) => acc + item.finalPrice, 0);
+const subtotal = cart.reduce((acc, item) => {
+  const surcharge = (item.charges?.grab || item.charges?.panda) ? 30 * item.qty : 0;
+  return acc + item.finalPrice + surcharge;
+}, 0);
   const totalCount = cart.reduce((acc, item) => acc + item.qty, 0);
   const hasStickers = cart.some(item => item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L');
 
@@ -437,19 +440,15 @@ const SalesOrder = () => {
 
   // ── Order charge toggle ───────────────────────────────────────────────────────
 
-  const toggleOrderCharge = (type: 'grab' | 'panda') => {
+const toggleOrderCharge = (type: 'grab' | 'panda') => {
     const next = orderCharge === type ? null : type;
     setOrderCharge(next);
-    setCart(prev => prev.map(item => {
-      const hadCharge  = item.charges.grab || item.charges.panda;
-      const basePrice  = hadCharge ? item.finalPrice - 10 * item.qty : item.finalPrice;
-      return {
+    // ── Just update the charge flag — backend calculates price ──────
+    setCart(prev => prev.map(item => ({
         ...item,
-        charges:    { grab: next === 'grab', panda: next === 'panda' },
-        finalPrice: next ? basePrice + 10 * item.qty : basePrice,
-      };
-    }));
-  };
+        charges: { grab: next === 'grab', panda: next === 'panda' },
+    })));
+};
 
   // ── Options / add-ons toggles ─────────────────────────────────────────────────
 
@@ -505,12 +504,12 @@ const SalesOrder = () => {
   const addToOrder = () => {
     if (!selectedItem || !selectedCategory) return;
 
-    let extraCost = orderCharge ? 10 : 0;
+     let extraCost = 0;
     if (isDrink) {
-      selectedAddOns.forEach(name => {
-        const addon = addOnsData.find(a => a.name === name);
-        if (addon) extraCost += Number(addon.price);
-      });
+        selectedAddOns.forEach(name => {
+            const addon = addOnsData.find(a => a.name === name);
+            if (addon) extraCost += Number(addon.price);
+        });
     }
 
     const cartSize: 'M' | 'L' | 'none' = isDrink ? size : 'none';
@@ -1675,7 +1674,9 @@ const SalesOrder = () => {
                             <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
                           </svg>
                         </div>
-                        <p className="font-black text-sm text-[#3b2063]">₱{item.finalPrice.toFixed(2)}</p>
+                        <p className="font-black text-sm text-[#3b2063]">
+  ₱{(item.finalPrice + ((item.charges?.grab || item.charges?.panda) ? 30 * item.qty : 0)).toFixed(2)}
+</p>
                       </div>
                     </div>
                   ))}
@@ -1724,9 +1725,15 @@ const SalesOrder = () => {
                 <div key={i} className="mb-2">
                   <div className="uppercase">{item.name} {item.cupSizeLabel ? `(${item.cupSizeLabel})` : ''}</div>
                   <div className="flex justify-between w-full mt-0.5">
-                    <span>{item.qty} X {(item.finalPrice / item.qty).toFixed(2)}</span>
-                    <span>{item.finalPrice.toFixed(2)}</span>
-                  </div>
+  <span>{item.qty} X {(item.finalPrice / item.qty).toFixed(2)}</span>
+  <span>{item.finalPrice.toFixed(2)}</span>
+</div>
+{(item.charges?.grab || item.charges?.panda) && (
+  <div className="flex justify-between w-full text-[10px]">
+    <span>  • {item.charges.grab ? 'Grab' : 'FoodPanda'} Surcharge</span>
+    <span>+{(30 * item.qty).toFixed(2)}</span>
+  </div>
+)}
                   {item.discountLabel && (
                     <div className="flex justify-between w-full text-[10px] italic">
                       <span>  • Discount: {item.discountLabel}</span>
