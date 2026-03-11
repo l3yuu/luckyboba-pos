@@ -58,6 +58,25 @@ const Sidebar: React.FC<SidebarProps> = ({
     return () => clearInterval(t);
   }, []);
 
+  // ── Boot prefetch ── runs once on mount, parallel fire-and-forget
+  // Everything the POS needs is fetched immediately so by the time
+  // the cashier submits cash-in, menu/add-ons/sequence are already cached.
+  useEffect(() => {
+    api.get('/menu').then(r => {
+      if (Array.isArray(r.data)) localStorage.setItem('pos_menu_cache', JSON.stringify(r.data));
+    }).catch(() => {});
+    api.get('/add-ons').then(r => {
+      if (Array.isArray(r.data)) localStorage.setItem('pos_addons_cache', JSON.stringify(r.data));
+    }).catch(() => {});
+    api.get('/receipts/next-sequence').then(r => {
+      const seq = parseInt(r.data?.next_sequence, 10);
+      if (!isNaN(seq)) localStorage.setItem('last_or_sequence', String(seq));
+    }).catch(() => {});
+    api.get('/discounts').then(r => {
+      if (Array.isArray(r.data)) localStorage.setItem('pos_discounts_cache', JSON.stringify(r.data));
+    }).catch(() => {});
+  }, []);
+
   // ── Cash-in status check ──
   useEffect(() => {
     const checkStatus = async () => {
@@ -76,8 +95,8 @@ const Sidebar: React.FC<SidebarProps> = ({
         }
       } catch (e) { console.error("Cash-in status error:", e); }
     };
-    checkStatus(); // immediate on mount + tab change
-    const interval = setInterval(checkStatus, 30_000); // recheck every 30s
+    checkStatus();
+    const interval = setInterval(checkStatus, 30_000);
     return () => clearInterval(interval);
   }, [currentTab]);
 
@@ -91,6 +110,19 @@ const Sidebar: React.FC<SidebarProps> = ({
     };
     window.addEventListener('eod-completed', fn);
     return () => window.removeEventListener('eod-completed', fn);
+  }, []);
+
+  // ── Cash-in completed event listener ──
+  // Unlock sidebar instantly. Data is already cached from boot prefetch.
+  useEffect(() => {
+    const fn = () => {
+      setIsMenuLocked(false);
+      isMenuLockedRef.current = false;
+      localStorage.setItem('cashier_menu_unlocked', 'true');
+      localStorage.setItem('cashier_lock_date', new Date().toDateString());
+    };
+    window.addEventListener('cash-in-completed', fn);
+    return () => window.removeEventListener('cash-in-completed', fn);
   }, []);
 
   const posMenuItems: MenuItem[] = [
@@ -337,7 +369,6 @@ const Sidebar: React.FC<SidebarProps> = ({
                             key={item.id}
                             onClick={() => {
                               if (item.id === 'menu') {
-                                // Use refs for always-current values
                                 if (isMenuLockedRef.current) {
                                   setShowCashInRequired(true);
                                 } else if (isEodLockedRef.current) {
@@ -374,20 +405,19 @@ const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Footer */}
         <div className="shrink-0 px-4 py-4 bg-white border-t border-zinc-100">
-            {/* Current user info */}
-            {user && (
-              <div className="flex items-center gap-2.5 px-3 py-2.5 mb-3 bg-zinc-50 border border-zinc-200 rounded-[0.625rem]">
-                <div className="w-7 h-7 rounded-full bg-[#3b2063] flex items-center justify-center shrink-0">
-                  <span className="text-[10px] font-black text-white uppercase">
-                    {user.name?.charAt(0) ?? '?'}
-                  </span>
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[11px] font-bold text-[#1a0f2e] truncate leading-tight">{user.name}</span>
-                  <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-zinc-400 leading-tight">{user.role}</span>
-                </div>
+          {user && (
+            <div className="flex items-center gap-2.5 px-3 py-2.5 mb-3 bg-zinc-50 border border-zinc-200 rounded-[0.625rem]">
+              <div className="w-7 h-7 rounded-full bg-[#3b2063] flex items-center justify-center shrink-0">
+                <span className="text-[10px] font-black text-white uppercase">
+                  {user.name?.charAt(0) ?? '?'}
+                </span>
               </div>
-            )}
+              <div className="flex flex-col min-w-0">
+                <span className="text-[11px] font-bold text-[#1a0f2e] truncate leading-tight">{user.name}</span>
+                <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-zinc-400 leading-tight">{user.role}</span>
+              </div>
+            </div>
+          )}
           <button
             onClick={() => setShowLogoutConfirm(true)}
             disabled={isLoggingOut}

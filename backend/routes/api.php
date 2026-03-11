@@ -53,9 +53,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
         });
 
         Route::prefix('cash-transactions')->group(function () {
-            Route::get('/',       [CashTransactionController::class, 'index']);
-            Route::post('/',      [CashTransactionController::class, 'store']);
-            Route::get('/status', [CashCountController::class, 'checkInitialCash']);
+            Route::get('/',         [CashTransactionController::class, 'index']);
+            Route::post('/',        [CashTransactionController::class, 'store']);
+            Route::get('/status',   [CashCountController::class, 'checkInitialCash']);
+            Route::post('/cash-in', [CashCountController::class, 'storeCashIn']);
         });
 
         Route::get('/receipts/search',        [ReceiptController::class, 'search']);
@@ -71,6 +72,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/menu/clear-cache', [MenuController::class, 'clearCache']);
         Route::apiResource('menu-list',  MenuListController::class)->only(['index', 'store']);
         Route::get('/add-ons',           [AddOnController::class, 'index']);
+        Route::get('/discounts',         [DiscountController::class, 'index']); // ← ALL roles can read discounts
         Route::apiResource('categories', CategoryController::class);
         Route::apiResource('sub-categories', SubCategoryController::class);
         Route::get('/sub-categories/filter/{categoryId}', [SubCategoryController::class, 'getByCategory']);
@@ -92,8 +94,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/item-serials',    [ItemSerialController::class, 'index']);
 
         // Additional read-only for cashier
-        Route::get('/recipes',    [RecipeController::class, 'index']);
-        Route::get('/expenses',   [ExpenseController::class, 'index']);
+        Route::get('/recipes',  [RecipeController::class, 'index']);
+        Route::get('/expenses', [ExpenseController::class, 'index']);
 
         // Reports (read-only for cashier)
         Route::prefix('reports')->group(function () {
@@ -134,7 +136,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         });
 
         Route::apiResource('expenses',  ExpenseController::class)->only(['index', 'store']);
-        Route::apiResource('discounts', DiscountController::class)->except(['show', 'update']);
+        Route::apiResource('discounts', DiscountController::class)->except(['show', 'update', 'index']); // ← 'index' removed, handled above
         Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
         Route::apiResource('vouchers', VoucherController::class)->only(['index', 'store']);
 
