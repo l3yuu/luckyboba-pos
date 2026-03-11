@@ -41,7 +41,6 @@ import BM_AddCustomers       from '../components/BranchManager/Settings/BM_AddCu
 import BM_AddVouchers        from '../components/BranchManager/Settings/BM_AddVouchers';
 import BM_BackupSystem       from '../components/BranchManager/Settings/BM_BackupSystem';
 import BM_CustomerReport     from '../components/BranchManager/Settings/BM_CustomerReport';
-import BM_ExportData         from '../components/BranchManager/Settings/BM_ExportData';
 import BM_ImportData         from '../components/BranchManager/Settings/BM_ImportData';
 import BM_SalesSettings      from '../components/BranchManager/Settings/BM_SalesSettings';
 import BM_Settings           from '../components/BranchManager/Settings/BM_Settings';
@@ -235,8 +234,12 @@ const branchLabel = authUser?.name ?? null; // 'Main Branch' comes from here
       case 'add-customers':       return <BM_AddCustomers onBack={() => setActiveTab('settings')} />;
       case 'add-vouchers':        return <BM_AddVouchers onBack={() => setActiveTab('settings')} />;
       case 'backup-system':       return <BM_BackupSystem onBack={() => setActiveTab('settings')} />;
-       case 'customer-report':     return <BM_CustomerReport onBack={() => setActiveTab('settings')} activeTab={activeTab as any} setActiveTab={setActiveTab as any} />;
-      case 'export-data':         return <BM_ExportData onBack={() => setActiveTab('settings')} />;
+      case 'customer-report':
+        return <BM_CustomerReport 
+          onBack={() => setActiveTab('settings')} 
+          activeTab={activeTab as unknown as React.ComponentProps<typeof BM_CustomerReport>['activeTab']} 
+          setActiveTab={setActiveTab as unknown as React.ComponentProps<typeof BM_CustomerReport>['setActiveTab']} 
+        />;
       case 'import-data':         return <BM_ImportData onBack={() => setActiveTab('settings')} />;
       case 'sales-settings':      return <BM_SalesSettings isOpen={true} onClose={() => setActiveTab('settings')} />;
       case 'upload-data':         return <BM_UploadData onBack={() => setActiveTab('settings')} />;
