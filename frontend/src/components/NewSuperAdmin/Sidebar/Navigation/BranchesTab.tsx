@@ -57,7 +57,6 @@ const authHeaders = (): Record<string, string> => ({
   "Accept":       "application/json",
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mapBranch = (b: RawBranch): Branch => ({
   id:       b.id,
   name:     b.name,
