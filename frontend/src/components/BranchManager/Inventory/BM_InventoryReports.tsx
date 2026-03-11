@@ -3,10 +3,14 @@
 import { useState, useEffect } from 'react';
 import TopNavbar from '../../Cashier/TopNavbar';
 import api from '../../../services/api';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Download, Printer, AlertCircle, CheckCircle } from 'lucide-react';
 import { getCache, setCache } from '../../../utils/cache';
 
-const dashboardFont = { fontFamily: "'Inter', sans-serif" };
+const STYLES = `
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
+  .bm-root, .bm-root * { font-family: 'DM Sans', sans-serif !important; box-sizing: border-box; }
+  .bm-label { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #3f3f46; }
+`;
 
 interface CriticalItem {
   name: string;
@@ -26,12 +30,21 @@ interface ReportData {
   criticalItems: CriticalItem[];
 }
 
-// FIX: Changed 'InventoryReport' to 'BM_InventoryReports' to match the export
+// Map old Tailwind color classes from API to hex values for inline styles
+const colorMap: Record<string, { value: string; bg: string }> = {
+  'text-emerald-600': { value: '#16a34a', bg: '#dcfce7' },
+  'text-red-500':     { value: '#dc2626', bg: '#fef2f2' },
+  'text-blue-600':    { value: '#2563eb', bg: '#eff6ff' },
+  'text-amber-500':   { value: '#d97706', bg: '#fef9c3' },
+  'text-[#3b2063]':   { value: '#3b2063', bg: '#ede9fe' },
+  'text-zinc-700':    { value: '#3f3f46', bg: '#f4f4f5' },
+};
+
 const BM_InventoryReports = () => {
   const cached = getCache<ReportData>('reports-inventory');
-  const [metrics, setMetrics] = useState<MetricItem[]>(cached?.metrics ?? []);
+  const [metrics, setMetrics]             = useState<MetricItem[]>(cached?.metrics ?? []);
   const [criticalItems, setCriticalItems] = useState<CriticalItem[]>(cached?.criticalItems ?? []);
-  const [loading, setLoading] = useState(cached === null);
+  const [loading, setLoading]             = useState(cached === null);
 
   useEffect(() => {
     const cached = getCache<ReportData>('reports-inventory');
@@ -49,7 +62,7 @@ const BM_InventoryReports = () => {
         setMetrics(res.data.metrics);
         setCriticalItems(res.data.criticalItems);
       } catch (err) {
-        console.error("Report Error:", err);
+        console.error('Report Error:', err);
       } finally {
         setLoading(false);
       }
@@ -60,90 +73,149 @@ const BM_InventoryReports = () => {
 
   return (
     <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');`}</style>
-      <div className="flex-1 bg-[#f3f0ff] h-full flex flex-col overflow-hidden font-sans" style={dashboardFont}>
+      <style>{STYLES}</style>
+      <div className="bm-root flex-1 bg-[#f5f4f8] h-full flex flex-col overflow-hidden">
         <TopNavbar />
-        <div className="flex-1 overflow-y-auto p-5 md:p-7 flex flex-col gap-4">
-          {/* Header */}
+
+        <div className="flex-1 overflow-y-auto px-5 md:px-8 py-5 flex flex-col gap-5">
+
+          {/* ── Header ── */}
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
-              <h1 className="text-lg font-extrabold text-[#1c1c1e] mt-0.5">Inventory Report</h1>
+              <p className="bm-label" style={{ color: '#a1a1aa' }}>Inventory</p>
+              <h1 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.03em', margin: 0, marginTop: 2 }}>
+                Inventory Report
+              </h1>
             </div>
             <div className="flex gap-2">
-              <button className="h-11 px-7 bg-white border border-zinc-300 text-zinc-500 font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-colors rounded-[0.625rem]">Export CSV</button>
-              <button className="h-11 px-7 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm">Print PDF</button>
+              <button
+                className="flex items-center gap-2 h-10 px-4 bg-white border border-gray-100 hover:border-[#ddd6f7] text-[#3b2063] transition-all rounded-xl shadow-sm active:scale-[0.98]"
+                style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}
+              >
+                <Download size={13} strokeWidth={2.5} />
+                Export CSV
+              </button>
+              <button
+                className="flex items-center gap-2 h-10 px-4 bg-[#3b2063] hover:bg-[#2a1647] text-white transition-all rounded-xl shadow-sm active:scale-[0.98]"
+                style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}
+              >
+                <Printer size={13} strokeWidth={2.5} />
+                Print PDF
+              </button>
             </div>
           </div>
 
-          {/* Metrics cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* ── Metric cards ── */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {loading ? (
-              [...Array(4)].map((_, i) => <div key={i} className="h-24 bg-white animate-pulse rounded-[0.625rem] border border-zinc-200" />)
-            ) : (
-              metrics.map((m, i) => (
-                <div key={i} className="bg-white p-6 rounded-[0.625rem] shadow-sm border border-zinc-200">
-                  <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">{m.label}</p>
-                  <p className={`text-xl font-extrabold ${m.color}`}>{m.value}</p>
-                </div>
+              [...Array(4)].map((_, i) => (
+                <div key={i} className="h-24 bg-white animate-pulse rounded-2xl border border-gray-100" />
               ))
+            ) : (
+              metrics.map((m, i) => {
+                const colors = colorMap[m.color] ?? { value: '#1a0f2e', bg: '#f4f4f5' };
+                return (
+                  <div key={i} className="bg-white border border-gray-100 rounded-2xl px-5 py-4 hover:shadow-sm transition-all">
+                    <div className="flex items-start justify-between mb-2">
+                      <p className="bm-label" style={{ color: '#a1a1aa' }}>{m.label}</p>
+                      <div className="w-6 h-6 rounded-lg flex items-center justify-center"
+                        style={{ background: colors.bg }}>
+                        <span className="w-2 h-2 rounded-full" style={{ background: colors.value }} />
+                      </div>
+                    </div>
+                    <p style={{ fontSize: '1.5rem', fontWeight: 800, color: colors.value, letterSpacing: '-0.03em', lineHeight: 1 }}>
+                      {m.value}
+                    </p>
+                  </div>
+                );
+              })
             )}
           </div>
 
-          {/* Critical stock alerts table */}
-          <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-[0.625rem]">
-            {loading && <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10 backdrop-blur-[1px]"><Loader2 className="animate-spin text-[#3b2063]" size={32} /></div>}
-            <div className="bg-red-50 px-7 py-4 border-b border-red-100 flex items-center gap-2">
-              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-              <h2 className="text-red-600 font-extrabold text-xs uppercase tracking-widest">Critical Stock Alerts</h2>
+          {/* ── Critical stock table ── */}
+          <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden flex flex-col shadow-sm flex-1 relative">
+            {loading && (
+              <div className="absolute inset-0 bg-white/60 flex items-center justify-center z-10 backdrop-blur-[2px] rounded-2xl">
+                <Loader2 className="animate-spin text-[#3b2063]" size={28} />
+              </div>
+            )}
+
+            {/* Alert header */}
+            <div className="px-6 py-4 border-b border-red-100 flex items-center gap-2.5"
+              style={{ background: '#fef2f2' }}>
+              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              <span className="bm-label" style={{ color: '#dc2626' }}>Critical Stock Alerts</span>
+              {criticalItems.length > 0 && (
+                <span className="ml-auto inline-flex items-center gap-1"
+                  style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+                    background: '#fecaca', color: '#dc2626', borderRadius: '100px', padding: '2px 8px' }}>
+                  <AlertCircle size={9} strokeWidth={2.5} />
+                  {criticalItems.length} items
+                </span>
+              )}
             </div>
+
             <table className="w-full text-left border-collapse">
-              <thead className="sticky top-0 bg-white z-10 border-b-2 border-zinc-100">
+              <thead className="sticky top-0 bg-white z-10 border-b border-gray-100">
                 <tr>
-                  <th className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Item Name</th>
-                  <th className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center">Remaining</th>
-                  <th className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center">Unit Cost</th>
-                  <th className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-right">Potential Loss</th>
+                  {['Item Name', 'Remaining', 'Unit Cost', 'Potential Loss'].map((h, i) => (
+                    <th key={h} className={`px-6 py-3.5 ${i >= 1 ? 'text-center' : ''} ${i === 3 ? 'text-right' : ''}`}>
+                      <span className="bm-label" style={{ color: '#a1a1aa' }}>{h}</span>
+                    </th>
+                  ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {criticalItems.length > 0 ? (
-                  criticalItems.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-[#f9f8ff] transition-colors">
-                      <td className="px-7 py-3.5">
-                        <span className="text-[13px] font-extrabold text-[#3b2063]">{item.name}</span>
-                      </td>
-                      <td className="px-7 py-3.5 text-center">
-                        <span className="text-red-500 font-extrabold">{item.remaining} Units</span>
-                      </td>
-                      <td className="px-7 py-3.5 text-center">
-                        <span className="text-[12px] font-semibold text-zinc-500">₱{item.unitCost.toLocaleString()}</span>
-                      </td>
-                      <td className="px-7 py-3.5 text-right">
-                        <span className="text-[13px] font-extrabold text-[#1c1c1e]">₱{item.potentialLoss.toLocaleString()}</span>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
+              <tbody>
+                {criticalItems.length > 0 ? criticalItems.map((item, idx) => (
+                  <tr key={idx} className="border-t border-gray-50 hover:bg-[#faf9ff] transition-colors">
+                    <td className="px-6 py-3.5">
+                      <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#1a0f2e' }}>{item.name}</span>
+                    </td>
+                    <td className="px-6 py-3.5 text-center">
+                      <span className="inline-flex items-center gap-1.5"
+                        style={{ fontSize: '0.82rem', fontWeight: 800, color: '#dc2626' }}>
+                        <AlertCircle size={11} strokeWidth={2.5} />
+                        {item.remaining} units
+                      </span>
+                    </td>
+                    <td className="px-6 py-3.5 text-center">
+                      <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#71717a' }}>
+                        ₱{item.unitCost.toLocaleString()}
+                      </span>
+                    </td>
+                    <td className="px-6 py-3.5 text-right">
+                      <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#1a0f2e' }}>
+                        ₱{item.potentialLoss.toLocaleString()}
+                      </span>
+                    </td>
+                  </tr>
+                )) : (
                   <tr>
-                    <td colSpan={4} className="px-8 py-20 text-center">
-                      <p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">All stock levels are healthy</p>
+                    <td colSpan={4} className="px-6 py-20 text-center">
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-10 h-10 rounded-full bg-green-50 flex items-center justify-center">
+                          <CheckCircle size={18} strokeWidth={1.5} className="text-green-400" />
+                        </div>
+                        <p className="bm-label" style={{ color: '#d4d4d8' }}>All stock levels are healthy</p>
+                      </div>
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
+
             {/* Footer */}
-            <div className="px-7 py-4 bg-white border-t border-zinc-100 flex justify-between items-center">
+            <div className="px-6 py-3 bg-white border-t border-gray-50 flex justify-between items-center mt-auto">
               <div className="flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Synchronized</span>
+                <span className="bm-label" style={{ color: '#d4d4d8' }}>Synchronized</span>
               </div>
-              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+              <p className="bm-label" style={{ color: '#a1a1aa' }}>
                 Showing {criticalItems.length} critical items
               </p>
             </div>
           </div>
+
         </div>
       </div>
     </>
