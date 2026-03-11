@@ -241,45 +241,34 @@ const BranchManagerDashboard = () => {
         />
 
         <main className="flex-1 flex flex-col overflow-hidden">
-          {/* ── Header ── */}
           <div className="shrink-0 flex items-center justify-between px-6 md:px-10 py-4 bg-white border-b border-gray-200 shadow-sm min-h-18">
-            {/* Left: title + badges (badges hidden on mobile) */}
-            <div className="flex items-center gap-2 min-w-0">
-              <h1 style={{
-                fontSize: '0.95rem', fontWeight: 800, color: '#1a0f2e',
-                letterSpacing: '-0.03em', margin: 0, whiteSpace: 'nowrap',
-              }}>
+            <div className="flex items-center gap-3 min-w-0">
+              <h1 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.03em', margin: 0, flexShrink: 0 }}>
                 {pageTitle}
               </h1>
-              <span className="bm-label hidden sm:inline-block" style={{ background: '#f4f4f5', padding: '3px 8px', borderRadius: '0.375rem', color: '#a1a1aa', whiteSpace: 'nowrap' }}>
+              <span className="bm-label hidden sm:inline-block" style={{ background: '#f4f4f5', padding: '3px 8px', borderRadius: '0.375rem', color: '#a1a1aa' }}>
                 {new Date().toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
               </span>
               {branchLabel && (
                 <span className="hidden sm:inline-flex items-center gap-1.5"
                   style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
                     background: '#ede9fe', color: '#3b2063', border: '1px solid #ddd6f7',
-                    borderRadius: '100px', padding: '3px 9px', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                    borderRadius: '100px', padding: '3px 9px', flexShrink: 0 }}>
                   <MapPin size={9} strokeWidth={2.5} />
                   {branchLabel}
                 </span>
               )}
             </div>
-            {/* Right: live badge always visible; last updated on sm+ only */}
-            <div className="flex items-center gap-3 shrink-0 ml-4">
-              <div className="hidden sm:flex items-center gap-2 bm-sub" style={{ whiteSpace: 'nowrap' }}>
+            <div className="flex items-center gap-3 shrink-0">
+              <div className="hidden sm:flex items-center gap-2 bm-sub">
                 <Clock size={12} />
                 <span>Last updated: {new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
-              <div className="bm-live" style={{ flexShrink: 0 }}>
+              <div className="bm-live">
                 <div className="bm-live-dot" />
                 <span className="bm-live-text">Live</span>
               </div>
             </div>
-          </div>
-          {/* Mobile-only: last updated shown below the header bar */}
-          <div className="sm:hidden flex items-center gap-1.5 px-6 py-1.5 bg-white border-b border-gray-100 bm-sub">
-            <Clock size={11} />
-            <span>Last updated: {new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })}</span>
           </div>
 
           <div className="flex-1 overflow-auto">
