@@ -2,11 +2,29 @@ import { useState, useEffect } from "react";
 import {
   LayoutGrid, GitBranch, Users, BarChart2, Settings,
   LogOut, HelpCircle, ShieldCheck, Tag, ChevronDown,
+  ChevronRight, UtensilsCrossed, Layers, List, Package,
+  TrendingUp, FileText, ClipboardList, Receipt, Repeat2,
+  Truck, ScanLine, Hash, ShoppingCart, ArrowLeftRight,
+  DollarSign, BookOpen, FlaskConical, Wallet,
 } from "lucide-react";
 
+// ── Tab IDs ───────────────────────────────────────────────────────────────────
 export type TabId =
-  | "overview" | "branches" | "users" | "reports"
-  | "audit"    | "promotions" | "settings";
+  // Navigation
+  | "overview" | "branches" | "users"
+  // Reports
+  | "sales_report" | "analytics" | "items_report"
+  | "cross_branch_reports" | "x_reading" | "z_reading"
+  // Menu Management
+  | "menu_items" | "categories" | "subcategories"
+  // Inventory
+  | "inv_overview" | "raw_materials" | "usage_report"
+  | "recipes" | "supplier" | "item_checker"
+  | "item_serials" | "purchase_order" | "stock_transfer"
+  // Expenses
+  | "expenses"
+  // System
+  | "promotions" | "audit" | "settings";
 
 export interface SuperAdminSidebarProps {
   open:          boolean;
@@ -25,14 +43,54 @@ interface AuthUser {
   branch?: string | null;
 }
 
+// ── Nav group definitions ─────────────────────────────────────────────────────
 const NAV_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
-  { id: "overview",   label: "Overview",               icon: <LayoutGrid  size={14} /> },
-  { id: "branches",   label: "Branch Management",      icon: <GitBranch   size={14} /> },
-  { id: "users",      label: "User Management",        icon: <Users       size={14} /> },
-  { id: "reports",    label: "Cross-Branch Reports",   icon: <BarChart2   size={14} /> },
-  { id: "audit",      label: "Audit Logs",             icon: <ShieldCheck size={14} /> },
-  { id: "promotions", label: "Promotions & Discounts", icon: <Tag         size={14} /> },
+  { id: "overview",  label: "Overview",          icon: <LayoutGrid size={14} /> },
+  { id: "branches",  label: "Branch Management", icon: <GitBranch  size={14} /> },
+  { id: "users",     label: "User Management",   icon: <Users      size={14} /> },
 ];
+
+const REPORTS_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
+  { id: "sales_report",        label: "Sales Report",         icon: <Receipt      size={13} /> },
+  { id: "analytics",           label: "Analytics & Sales",    icon: <TrendingUp   size={13} /> },
+  { id: "items_report",        label: "Items Report",         icon: <ClipboardList size={13} /> },
+  { id: "cross_branch_reports",label: "Cross-Branch Reports", icon: <BarChart2    size={13} /> },
+  { id: "x_reading",           label: "X Reading",            icon: <Repeat2      size={13} /> },
+  { id: "z_reading",           label: "Z Reading",            icon: <FileText     size={13} /> },
+];
+
+const MENU_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
+  { id: "menu_items",    label: "Menu List",       icon: <BookOpen        size={13} /> },
+  { id: "categories",    label: "Categories",      icon: <Layers          size={13} /> },
+  { id: "subcategories", label: "Sub-Categories",  icon: <List            size={13} /> },
+];
+
+const INVENTORY_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
+  { id: "inv_overview",   label: "Overview",        icon: <Package        size={13} /> },
+  { id: "raw_materials",  label: "Raw Materials",   icon: <FlaskConical   size={13} /> },
+  { id: "usage_report",   label: "Usage Report",    icon: <ClipboardList  size={13} /> },
+  { id: "recipes",        label: "Recipes",         icon: <BookOpen       size={13} /> },
+  { id: "supplier",       label: "Supplier",        icon: <Truck          size={13} /> },
+  { id: "item_checker",   label: "Item Checker",    icon: <ScanLine       size={13} /> },
+  { id: "item_serials",   label: "Item Serials",    icon: <Hash           size={13} /> },
+  { id: "purchase_order", label: "Purchase Order",  icon: <ShoppingCart   size={13} /> },
+  { id: "stock_transfer", label: "Stock Transfer",  icon: <ArrowLeftRight size={13} /> },
+];
+
+const EXPENSES_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
+  { id: "expenses", label: "Expenses", icon: <Wallet size={13} /> },
+];
+
+const SYSTEM_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
+  { id: "promotions", label: "Promotions & Discounts", icon: <Tag         size={14} /> },
+  { id: "audit",      label: "Audit Logs",             icon: <ShieldCheck size={14} /> },
+];
+
+// ── ID sets for group detection ───────────────────────────────────────────────
+const REPORTS_IDS:   TabId[] = REPORTS_ITEMS.map(i => i.id);
+const MENU_IDS:      TabId[] = MENU_ITEMS.map(i => i.id);
+const INVENTORY_IDS: TabId[] = INVENTORY_ITEMS.map(i => i.id);
+const EXPENSES_IDS:  TabId[] = EXPENSES_ITEMS.map(i => i.id);
 
 const ROLE_LABELS: Record<string, string> = {
   superadmin:     "Super Admin",
@@ -45,6 +103,67 @@ const getToken = () =>
   localStorage.getItem("auth_token") ||
   localStorage.getItem("lucky_boba_token") || "";
 
+// ── Sub-nav item component ────────────────────────────────────────────────────
+const SubItem = ({
+  item, active, onClick,
+}: {
+  item: { id: TabId; label: string; icon: React.ReactNode };
+  active: boolean;
+  onClick: () => void;
+}) => (
+  <button
+    onClick={onClick}
+    className={`sa-tab flex items-center gap-2 w-full pl-7 pr-2.5 py-1.5 text-[0.76rem] font-medium mb-0.5 text-left relative
+      ${active ? "active text-[#3b2063]" : "text-zinc-500"}`}
+  >
+    <span className="absolute left-4 top-1/2 -translate-y-1/2 w-px h-3 bg-zinc-200 rounded-full" />
+    <span className={`shrink-0 ${active ? "text-[#3b2063]" : "text-zinc-400"}`}>{item.icon}</span>
+    {item.label}
+  </button>
+);
+
+// ── Collapsible group component ───────────────────────────────────────────────
+const NavGroup = ({
+  label, icon, items, activeTab, isGroupActive, expanded, onToggle, onNavigate,
+}: {
+  label:         string;
+  icon:          React.ReactNode;
+  items:         { id: TabId; label: string; icon: React.ReactNode }[];
+  activeTab:     TabId;
+  isGroupActive: boolean;
+  expanded:      boolean;
+  onToggle:      () => void;
+  onNavigate:    (id: TabId) => void;
+}) => (
+  <>
+    <button
+      onClick={onToggle}
+      className={`sa-tab flex items-center gap-2 w-full px-2.5 py-1.5 text-[0.8rem] font-medium mb-0.5 text-left relative transition-colors
+        ${isGroupActive ? "active text-[#3b2063]" : "text-zinc-500"}`}
+    >
+      <span className={`shrink-0 ${isGroupActive ? "text-[#3b2063]" : "text-zinc-400"}`}>{icon}</span>
+      <span className="flex-1">{label}</span>
+      <span className={`shrink-0 transition-transform duration-200 ${expanded ? "rotate-90" : ""}`}>
+        <ChevronRight size={12} className="text-zinc-300" />
+      </span>
+    </button>
+    <div
+      className="overflow-hidden transition-all duration-200"
+      style={{ maxHeight: expanded ? `${items.length * 36}px` : "0px" }}
+    >
+      {items.map(item => (
+        <SubItem
+          key={item.id}
+          item={item}
+          active={activeTab === item.id}
+          onClick={() => onNavigate(item.id)}
+        />
+      ))}
+    </div>
+  </>
+);
+
+// ── Main Component ────────────────────────────────────────────────────────────
 const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
   open, setOpen, active, setActive, onLogout, isLoggingOut: externalLoggingOut,
 }) => {
@@ -52,34 +171,36 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
   const [internalLoggingOut, setInternalLoggingOut] = useState(false);
   const [authUser,           setAuthUser]           = useState<AuthUser | null>(null);
 
+  // ── Collapsible group state (derived + manual toggle) ─────────────────────
+  const [reportsExpanded,   setReportsExpanded]   = useState(false);
+  const [menuExpanded,      setMenuExpanded]      = useState(false);
+  const [inventoryExpanded, setInventoryExpanded] = useState(false);
+  const [expensesExpanded,  setExpensesExpanded]  = useState(false);
+
+  const reportsOpen   = REPORTS_IDS.includes(active)   || reportsExpanded;
+  const menuOpen      = MENU_IDS.includes(active)      || menuExpanded;
+  const inventoryOpen = INVENTORY_IDS.includes(active) || inventoryExpanded;
+  const expensesOpen  = EXPENSES_IDS.includes(active)  || expensesExpanded;
+
   const isLoggingOut = externalLoggingOut ?? internalLoggingOut;
 
-  // ── Fetch logged-in user ───────────────────────────────────────────────────
+  // ── Fetch logged-in user ──────────────────────────────────────────────────
   useEffect(() => {
     const fetchMe = async () => {
       try {
         const token = getToken();
-        const res   = await fetch("/api/user", {
+        const res = await fetch("/api/user", {
           headers: {
-            "Accept":        "application/json",
-            "Content-Type":  "application/json",
+            "Accept":       "application/json",
+            "Content-Type": "application/json",
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
         });
         if (!res.ok) return;
         const data = await res.json();
-        // handles both { data: { ... } } and flat { id, name, ... }
         const u = data.data ?? data;
-        setAuthUser({
-          id:     u.id,
-          name:   u.name,
-          email:  u.email,
-          role:   u.role,
-          branch: u.branch ?? u.branch_name ?? null,
-        });
-      } catch {
-        // silently fail — sidebar still works without user info
-      }
+        setAuthUser({ id: u.id, name: u.name, email: u.email, role: u.role, branch: u.branch ?? u.branch_name ?? null });
+      } catch { /* silently fail */ }
     };
     fetchMe();
   }, []);
@@ -89,7 +210,6 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
     if (window.innerWidth < 768) setOpen(false);
   };
 
-  const handleLogoutClick   = () => setShowLogoutModal(true);
   const handleLogoutConfirm = async () => {
     setShowLogoutModal(false);
     if (onLogout) { onLogout(); return; }
@@ -100,7 +220,6 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
     window.location.href = "/login";
   };
 
-  // ── Avatar initials ────────────────────────────────────────────────────────
   const initials = authUser
     ? authUser.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()
     : "SA";
@@ -128,38 +247,99 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
           </div>
         </div>
 
-        {/* Nav links */}
+        {/* Scrollable nav area */}
         <div className="flex-1 overflow-y-auto px-3 py-2 min-h-0" style={{ scrollbarWidth: "none" }}>
-          <p className="px-2 pt-4 pb-1 text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">
-            Navigation
-          </p>
+
+          {/* ── Navigation ──────────────────────────────────────────────── */}
+          <p className="px-2 pt-4 pb-1 text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">Navigation</p>
           {NAV_ITEMS.map(t => (
             <button
               key={t.id}
               onClick={() => go(t.id)}
-              className={`sa-tab flex items-center gap-2 w-full px-2.5 py-1.5 text-[0.8rem] font-medium text-zinc-500 mb-0.5 text-left relative ${active === t.id ? "active" : ""}`}
+              className={`sa-tab flex items-center gap-2 w-full px-2.5 py-1.5 text-[0.8rem] font-medium mb-0.5 text-left relative ${active === t.id ? "active" : "text-zinc-500"}`}
             >
-              <span className={`shrink-0 ${active === t.id ? "text-[#3b2063]" : "text-zinc-400"}`}>
-                {t.icon}
-              </span>
+              <span className={`shrink-0 ${active === t.id ? "text-[#3b2063]" : "text-zinc-400"}`}>{t.icon}</span>
               {t.label}
             </button>
           ))}
+
+          {/* ── Reports ─────────────────────────────────────────────────── */}
+          <p className="px-2 pt-4 pb-1 text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">Reports</p>
+          <NavGroup
+            label="Reports"
+            icon={<BarChart2 size={14} />}
+            items={REPORTS_ITEMS}
+            activeTab={active}
+            isGroupActive={REPORTS_IDS.includes(active)}
+            expanded={reportsOpen}
+            onToggle={() => setReportsExpanded(v => !v)}
+            onNavigate={go}
+          />
+
+          {/* ── Menu Management ─────────────────────────────────────────── */}
+          <p className="px-2 pt-4 pb-1 text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">Menu Management</p>
+          <NavGroup
+            label="Menu Management"
+            icon={<UtensilsCrossed size={14} />}
+            items={MENU_ITEMS}
+            activeTab={active}
+            isGroupActive={MENU_IDS.includes(active)}
+            expanded={menuOpen}
+            onToggle={() => setMenuExpanded(v => !v)}
+            onNavigate={go}
+          />
+
+          {/* ── Inventory ───────────────────────────────────────────────── */}
+          <p className="px-2 pt-4 pb-1 text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">Inventory</p>
+          <NavGroup
+            label="Inventory"
+            icon={<Package size={14} />}
+            items={INVENTORY_ITEMS}
+            activeTab={active}
+            isGroupActive={INVENTORY_IDS.includes(active)}
+            expanded={inventoryOpen}
+            onToggle={() => setInventoryExpanded(v => !v)}
+            onNavigate={go}
+          />
+
+          {/* ── Expenses ────────────────────────────────────────────────── */}
+          <p className="px-2 pt-4 pb-1 text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">Expenses</p>
+          <NavGroup
+            label="Expenses"
+            icon={<DollarSign size={14} />}
+            items={EXPENSES_ITEMS}
+            activeTab={active}
+            isGroupActive={EXPENSES_IDS.includes(active)}
+            expanded={expensesOpen}
+            onToggle={() => setExpensesExpanded(v => !v)}
+            onNavigate={go}
+          />
+
+          {/* ── System ──────────────────────────────────────────────────── */}
+          <p className="px-2 pt-4 pb-1 text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">System</p>
+          {SYSTEM_ITEMS.map(t => (
+            <button
+              key={t.id}
+              onClick={() => go(t.id)}
+              className={`sa-tab flex items-center gap-2 w-full px-2.5 py-1.5 text-[0.8rem] font-medium mb-0.5 text-left relative ${active === t.id ? "active" : "text-zinc-500"}`}
+            >
+              <span className={`shrink-0 ${active === t.id ? "text-[#3b2063]" : "text-zinc-400"}`}>{t.icon}</span>
+              {t.label}
+            </button>
+          ))}
+
+          <div className="pb-4" />
         </div>
 
-        {/* ── Logged-in user card ─────────────────────────────────────────── */}
+        {/* User card */}
         <div className="shrink-0 px-3 py-3 mx-3 mb-2 bg-[#f9f8ff] border border-violet-100 rounded-xl">
           {authUser ? (
             <div className="flex items-center gap-2.5">
-              {/* Avatar */}
               <div className="w-8 h-8 rounded-full bg-[#3b2063] flex items-center justify-center shrink-0">
                 <span className="text-[0.6rem] font-bold text-white">{initials}</span>
               </div>
-              {/* Info */}
               <div className="flex-1 min-w-0">
-                <p className="text-[0.75rem] font-bold text-[#1a0f2e] truncate leading-tight">
-                  {authUser.name}
-                </p>
+                <p className="text-[0.75rem] font-bold text-[#1a0f2e] truncate leading-tight">{authUser.name}</p>
                 <p className="text-[0.6rem] font-semibold text-violet-500 truncate">
                   {ROLE_LABELS[authUser.role] ?? authUser.role}
                 </p>
@@ -167,7 +347,6 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
               <ChevronDown size={12} className="text-zinc-300 shrink-0" />
             </div>
           ) : (
-            // Skeleton while loading
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-full bg-zinc-200 animate-pulse shrink-0" />
               <div className="flex-1 flex flex-col gap-1.5">
@@ -176,8 +355,6 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
               </div>
             </div>
           )}
-
-          {/* Email row */}
           {authUser && (
             <p className="mt-1.5 text-[0.58rem] text-zinc-400 font-medium truncate pl-10.5">
               {authUser.email}
@@ -189,7 +366,7 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
         <div className="shrink-0 px-3 pb-4 pt-2 border-t border-zinc-100">
           <button
             onClick={() => go("settings")}
-            className={`sa-tab flex items-center gap-2 w-full px-2.5 py-1.5 text-[0.8rem] font-medium text-zinc-500 mb-0.5 text-left relative ${active === "settings" ? "active" : ""}`}
+            className={`sa-tab flex items-center gap-2 w-full px-2.5 py-1.5 text-[0.8rem] font-medium mb-0.5 text-left relative ${active === "settings" ? "active" : "text-zinc-500"}`}
           >
             <span className={`shrink-0 ${active === "settings" ? "text-[#3b2063]" : "text-zinc-400"}`}>
               <Settings size={14} />
@@ -208,7 +385,7 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
           <div className="h-px bg-zinc-100 my-2" />
 
           <button
-            onClick={handleLogoutClick}
+            onClick={() => setShowLogoutModal(true)}
             disabled={isLoggingOut}
             className="sa-tab flex items-center gap-2 w-full px-2.5 py-1.5 text-[0.8rem] font-medium text-left"
             style={{ color: "#be2525" }}
@@ -259,7 +436,6 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
             <p className="text-zinc-500 text-sm font-medium mb-7 leading-relaxed">
               Are you sure you want to log out of the Super Admin panel?
             </p>
-            {/* Show who is logged in inside the modal too */}
             {authUser && (
               <div className="w-full mb-5 flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl text-left">
                 <div className="w-8 h-8 rounded-full bg-[#3b2063] flex items-center justify-center shrink-0">
