@@ -2,11 +2,11 @@
 
 use App\Http\Controllers\Api\{ BackupController, CashCountController, CashTransactionController, CategoryController, DashboardController, DiscountController, ExpenseController, InventoryController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController };
 use App\Http\Controllers\Api\AuditLogController;
+use App\Http\Controllers\Api\AuthController;          // ← added
 use App\Http\Controllers\Api\CupController;
 use App\Http\Controllers\Api\ItemsReportController;
 use App\Http\Controllers\Api\RawMaterialController;
 use App\Http\Controllers\Api\RecipeController;
-use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\CacheController;
 use App\Models\User;
@@ -15,7 +15,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 
-Route::post('/login', [AuthenticatedSessionController::class, 'store'])->middleware('throttle:5,2');
+// ✅ Use AuthController so login/logout events are audit-logged
+Route::post('/login',  [AuthController::class, 'login'])->middleware('throttle:5,2');
+Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
+
 Route::post('/purchase-card',              [CardPurchaseController::class, 'purchase']);
 Route::post('/check-card-status/{userId}', [CardPurchaseController::class, 'checkStatus']);
 
@@ -36,8 +39,8 @@ Route::post('/register', function (Request $request) {
 
 Route::middleware(['auth:sanctum'])->group(function () {
 
-    Route::get('/user',    fn (Request $request) => $request->user());
-    Route::post('/logout', [AuthenticatedSessionController::class, 'destroy']);
+    Route::get('/user', fn (Request $request) => $request->user());
+    // Note: /logout is now outside this group (defined above with auth:sanctum middleware directly)
 
     // CASHIER + BRANCH MANAGER + SUPERADMIN
     Route::middleware(['role:superadmin,branch_manager,cashier'])->group(function () {
@@ -88,15 +91,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/raw-materials/{rawMaterial}/history', [RawMaterialController::class, 'history']);
         Route::apiResource('raw-materials', RawMaterialController::class)->only(['index', 'show']);
 
-        // Procurement (read-only for cashier)
         Route::get('/purchase-orders', [PurchaseOrderController::class, 'index']);
         Route::get('/item-serials',    [ItemSerialController::class, 'index']);
 
-        // Additional read-only for cashier
         Route::get('/recipes',    [RecipeController::class, 'index']);
         Route::get('/expenses',   [ExpenseController::class, 'index']);
 
-        // Reports (read-only for cashier)
         Route::prefix('reports')->group(function () {
             Route::get('/inventory',       [InventoryReportController::class, 'index']);
             Route::get('/x-reading',       [SalesDashboardController::class, 'xReading']);
@@ -113,10 +113,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::get('/export-sales',    [ReportController::class, 'exportSales']);
             Route::get('/export-items',    [ReportController::class, 'exportItems']);
         });
+
         Route::prefix('discounts')->group(function () {
             Route::get   ('/',                    [DiscountController::class, 'index']);
             Route::post  ('/',                    [DiscountController::class, 'store']);
-            Route::put   ('/{discount}',          [DiscountController::class, 'update']);          // ← NEW
+            Route::put   ('/{discount}',          [DiscountController::class, 'update']);
             Route::put   ('/{discount}/toggle',   [DiscountController::class, 'toggleStatus']);
             Route::put   ('/{discount}/branches', [DiscountController::class, 'updateBranches']);
             Route::post  ('/{discount}/use',      [DiscountController::class, 'recordUsage']);
@@ -148,7 +149,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
         Route::apiResource('vouchers', VoucherController::class)->only(['index', 'store']);
 
-        // Reports (branch_manager extras only)
         Route::prefix('reports')->group(function () {
             Route::get('/mall-accreditation', [SalesDashboardController::class, 'mallReport']);
         });
@@ -190,8 +190,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // SUPERADMIN ONLY
     Route::middleware(['role:superadmin'])->group(function () {
 
-    Route::get('/audit-logs',       [AuditLogController::class, 'index']);
-    Route::get('/audit-logs/stats', [AuditLogController::class, 'stats']);
+        Route::get('/audit-logs',       [AuditLogController::class, 'index']);
+        Route::get('/audit-logs/stats', [AuditLogController::class, 'stats']);
 
         Route::prefix('reports')->group(function () {
             Route::get('/sales-summary',     [SuperAdminReportController::class, 'salesSummary']);
