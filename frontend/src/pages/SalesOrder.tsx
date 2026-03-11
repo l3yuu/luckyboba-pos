@@ -144,13 +144,13 @@ const SalesOrder = () => {
   // cash-in is handled by CashIn.tsx — no modal state needed here
 
   // Menu / category
-  const [categories, setCategories] = useState<Category[]>(() => {
+  const [categories] = useState<Category[]>(() => {
     const cached = localStorage.getItem('pos_menu_cache');
     return cached ? JSON.parse(cached) : [];
   });
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [categorySize, setCategorySize]         = useState<string | null>(null);
-  const [loading, setLoading]                   = useState(!localStorage.getItem('pos_menu_cache'));
+  const [loading]                   = useState(!localStorage.getItem('pos_menu_cache'));
   const [searchQuery, setSearchQuery]           = useState('');
 
   // Item selection modal
@@ -165,7 +165,7 @@ const SalesOrder = () => {
   const [isAddOnModalOpen, setIsAddOnModalOpen] = useState(false);
 
   // Add-ons data
-  const [addOnsData, setAddOnsData]             = useState<{ id: number; name: string; price: number }[]>(() => {
+  const [addOnsData]             = useState<{ id: number; name: string; price: number }[]>(() => {
     try { const c = localStorage.getItem('pos_addons_cache'); return c ? JSON.parse(c) : []; } catch { return []; }
   });
 
@@ -199,7 +199,7 @@ const SalesOrder = () => {
   const [pax, setPax]                           = useState({ regular: 1, senior: 0, pwd: 0, diplomat: 0 });
   const [discountIDs, setDiscountIDs]           = useState({ senior: '', pwd: '', diplomat: '' });
   const [discountRemarks, setDiscountRemarks]   = useState('');
-  const [discounts, setDiscounts]               = useState<Discount[]>(() => {
+  const [discounts]               = useState<Discount[]>(() => {
     try {
       const c = localStorage.getItem('pos_discounts_cache');
       const all = c ? JSON.parse(c) : [];
