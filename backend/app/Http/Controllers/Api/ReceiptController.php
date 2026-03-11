@@ -38,39 +38,53 @@ class ReceiptController extends Controller
     {
         $query = $request->input('query');
         $date  = $request->input('date');
+        $user  = auth()->user();
 
         $dbQuery = Receipt::query()
             ->leftJoin('sales', 'receipts.sale_id', '=', 'sales.id')
             ->select([
-                'receipts.sale_id',        
+                'receipts.sale_id',
                 'receipts.si_number',
                 'receipts.total_amount',
                 'receipts.cashier_name',
                 'receipts.terminal',
-                'receipts.items_count',  
+                'receipts.items_count',
                 'receipts.created_at',
                 'sales.status',
                 'sales.cancellation_reason',
             ]);
 
-        // Filter by date if provided
+        if ($user->role !== 'superadmin' && $user->branch_id) {
+            $dbQuery->where('receipts.branch_id', $user->branch_id);
+        }
+
         if (!empty($date)) {
             $dbQuery->whereDate('receipts.created_at', $date);
         }
 
-        // Filter by invoice number, cashier name, or terminal
         if (!empty($query)) {
             $lowQuery = strtolower($query);
             $dbQuery->where(function ($q) use ($lowQuery) {
-                $q->whereRaw('LOWER(receipts.si_number) LIKE ?',    ["%{$lowQuery}%"])
-                  ->orWhereRaw('LOWER(receipts.cashier_name) LIKE ?', ["%{$lowQuery}%"])
-                  ->orWhereRaw('LOWER(receipts.terminal) LIKE ?',    ["%{$lowQuery}%"]);
+                $q->whereRaw('LOWER(receipts.si_number) LIKE ?',      ["%{$lowQuery}%"])
+                ->orWhereRaw('LOWER(receipts.cashier_name) LIKE ?', ["%{$lowQuery}%"])
+                ->orWhereRaw('LOWER(receipts.terminal) LIKE ?',     ["%{$lowQuery}%"]);
             });
         }
 
-        // Return a flat array — the frontend normalizer maps si_number → Invoice etc.
         $results = $dbQuery->latest('receipts.created_at')->limit(50)->get();
 
-        return response()->json($results->values());
+        // Calculate stats from the result set
+        $gross  = $results->sum('total_amount');
+        $voided = $results->where('status', 'cancelled')->sum('total_amount');
+        $net    = $gross - $voided;
+
+        return response()->json([
+            'results' => $results->values(),
+            'stats'   => [
+                'gross'  => round($gross, 2),
+                'voided' => round($voided, 2),
+                'net'    => round($net, 2),
+            ],
+        ]);
     }
 }

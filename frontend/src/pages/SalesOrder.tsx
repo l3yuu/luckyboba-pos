@@ -14,6 +14,7 @@ import {
 } from '../types/index'; 
 import { useToast } from '../hooks/useToast';
 import api from '../services/api';
+import { useAuth } from '../hooks/useAuth';
 
 interface Discount {
     id: number;
@@ -35,8 +36,23 @@ const generateQueueNumber = (count = 1) => String(count).padStart(3, '0');
 const SalesOrder = () => {
     const navigate = useNavigate();
     const { showToast } = useToast();
+
+    const { user } = useAuth();
+    const branchId = user?.branch_id ?? null;
+    const branchName = user?.branch_name ?? localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch';
+
+    const handleNavClick = (label: string) => {
+    if (label === 'Home') {
+        if (user?.role === 'cashier') navigate('/cashier');
+        else if (user?.role === 'branch_manager') navigate('/branch-manager');
+        else navigate('/dashboard');
+    }
+    };
     
-    const [cashierName, setCashierName] = useState<string | null>(null);
+    const [cashierName, setCashierName] = useState<string>(() =>
+        localStorage.getItem('lucky_boba_user_name') ?? 'Admin'
+    );
+
     const [currentDate, setCurrentDate] = useState(new Date());
     const [searchQuery, setSearchQuery] = useState('');
     const [categories, setCategories] = useState<Category[]>(() => {
@@ -229,8 +245,6 @@ const SalesOrder = () => {
 
     const formattedDate = currentDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
     const formattedTime = currentDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-
-    const handleNavClick = (label: string) => { if (label === 'Home') navigate('/dashboard'); };
 
     const handleCategoryClick = (cat: Category) => {
         setSelectedCategory(cat);
@@ -470,6 +484,7 @@ const SalesOrder = () => {
         try {
             const orderData = {
                 si_number: orNumber,
+                branch_id: branchId,
                 items: cart.map(item => ({
                     menu_item_id: item.id,
                     name: item.name,
@@ -508,7 +523,6 @@ const SalesOrder = () => {
             if (!isNaN(currentSeq)) {
                 localStorage.setItem('last_or_sequence', String(currentSeq));
             }
-            localStorage.setItem('last_or_sequence', String(currentSeq));
             localStorage.setItem('dashboard_stats_timestamp', '0');
 
             const today = new Date().toISOString().split('T')[0];
@@ -610,7 +624,7 @@ const SalesOrder = () => {
                         <div key={`sticker-${cartIndex}-${i}`} className={`sticker-area page-break bg-white text-black flex flex-col justify-between items-center h-full w-full ${paddingClass}`} style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
                             <div className="w-full text-center flex flex-col items-center">
                                 <div className={`font-black uppercase leading-none ${titleSize}`}>LUCKY BOBA</div>
-                                <div className={`font-bold uppercase leading-none opacity-120 tracking-widest ${isVeryCrowded ? 'text-[5px] mt-0.5' : 'text-[6.5px] mt-1'}`}>Main Branch - QC</div>
+                                <div className={`font-bold uppercase leading-none opacity-120 tracking-widest ${isVeryCrowded ? 'text-[5px] mt-0.5' : 'text-[6.5px] mt-1'}`}>{branchName.toUpperCase()}</div>
                                 <div className={`w-full flex justify-between items-center font-bold border-b-[1.5px] border-black px-1 ${isVeryCrowded ? 'text-[10px] pb-0 mb-0.5 mt-0.5' : 'text-[10px] pb-0.5 mb-1 mt-1'}`}>
                                     <span>Q: {queueNumber} | SI: {orNumber.slice(-6)}</span>
                                     <span>{drinkIndex}/{totalDrinks}</span>
@@ -1300,7 +1314,7 @@ const SalesOrder = () => {
                     <div className="bg-[#f0ebff] border-2 border-[#3b2063]/20 rounded-[0.625rem] flex items-center justify-center px-4">
                         <div className="text-center">
                             <div className="text-[9px] font-black uppercase text-[#3b2063]/50 tracking-widest leading-none">Branch</div>
-                            <div className="text-[11px] font-black text-[#3b2063] uppercase leading-tight mt-0.5">Main - QC</div>
+                            <div className="text-[11px] font-black text-[#3b2063] uppercase leading-tight mt-0.5">{branchName}</div>
                         </div>
                     </div>
                     <div className="bg-[#3b2063] rounded-[0.625rem] flex items-center justify-center px-4 min-w-22.5 shadow-md">

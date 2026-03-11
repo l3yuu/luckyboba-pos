@@ -9,161 +9,349 @@ use App\Models\ZReading;
 
 class SalesDashboardService
 {
-    public function getAnalyticsData()
-    {
-        $startOfWeek = Carbon::now()->subDays(7)->startOfDay();
-        $today = Carbon::today();
+    // ─── Analytics (BranchManagerDashboard) ──────────────────────────────────
 
-        // 1. Weekly Sales
+    /**
+     * GET /api/sales-analytics
+     *
+     * Returns the full analytics payload consumed by BranchManagerDashboard.
+     * Pass $branchId = null for superadmin (all branches).
+     *
+     * Response shape:
+     * {
+     *   weekly: [{ date, day, value }],
+     *   stats: {
+     *     cash_in_today, cash_out_today,
+     *     total_sales_today, total_orders_today, voided_sales_today,
+     *     top_seller_today:    [{ product_name, total_qty }],
+     *     top_seller_all_time: [{ product_name, total_qty }],
+     *   }
+     * }
+     */
+    public function getAnalyticsData(?int $branchId = null): array
+    {
+        $today       = Carbon::today();
+        $startOfWeek = Carbon::now()->subDays(6)->startOfDay(); // last 7 days incl. today
+
+        // ── 7-day chart (daily points) ────────────────────────────────────────
         $weekly = Sale::where('created_at', '>=', $startOfWeek)
             ->where('status', 'completed')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->select(
-                DB::raw('DATE_FORMAT(created_at, "%b %d") as date'),
+                DB::raw('DATE(created_at) as date'),
                 DB::raw('DATE_FORMAT(created_at, "%a") as day'),
                 DB::raw('SUM(total_amount) as value')
             )
             ->groupBy('date', 'day')
             ->orderBy('date', 'ASC')
-            ->get();
+            ->get()
+            ->map(fn($row) => [
+                'date'  => $row->date,
+                'day'   => $row->day,
+                'value' => (float) $row->value,
+            ]);
 
-        // 2. Today's Hourly Sales
-        $todayHourly = Sale::whereDate('created_at', $today)
+        // ── 30-day chart (daily points) ───────────────────────────────────────
+        $start30 = Carbon::now()->subDays(29)->startOfDay();
+        $monthly = Sale::where('created_at', '>=', $start30)
             ->where('status', 'completed')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->select(
-                DB::raw('HOUR(created_at) as hour'),
+                DB::raw('DATE(created_at) as date'),
                 DB::raw('SUM(total_amount) as value')
             )
-            ->groupBy('hour')
+            ->groupBy('date')
+            ->orderBy('date', 'ASC')
             ->get()
-            ->map(function ($item) {
-                return [
-                    'time' => Carbon::createFromTime($item->hour)->format('g A'),
-                    'value' => (float) $item->value
-                ];
-            });
+            ->map(fn($row) => [
+                'date'  => $row->date,
+                'day'   => Carbon::parse($row->date)->format('M d'),
+                'value' => (float) $row->value,
+            ]);
 
-        // 3. Stats Summary
-        $stats = [
-            'total_revenue' => (float) ($weekly->sum('value') ?? 0),
-            'today_sales' => (float) (Sale::whereDate('created_at', $today)
-                ->where('status', 'completed')
-                ->sum('total_amount') ?? 0),
-            'cancelled_sales' => (float) (Sale::whereDate('created_at', $today)
-                ->where('status', 'cancelled')
-                ->sum('total_amount') ?? 0),
-            'beginning_or' => Sale::whereDate('created_at', $today)->min('invoice_number') ?? '---',
-            'ending_or' => Sale::whereDate('created_at', $today)->max('invoice_number') ?? '---',
-        ];
+        // ── 3-month chart (weekly buckets, Mon–Sun) ───────────────────────────
+        $start3m = Carbon::now()->subMonths(3)->startOfDay();
+        $quarterly = Sale::where('created_at', '>=', $start3m)
+            ->where('status', 'completed')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->select(
+                // ISO week start (Monday) as the bucket key
+                DB::raw('DATE(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY)) as week_start'),
+                DB::raw('SUM(total_amount) as value')
+            )
+            ->groupBy('week_start')
+            ->orderBy('week_start', 'ASC')
+            ->get()
+            ->map(fn($row) => [
+                'date'  => $row->week_start,
+                'day'   => 'Wk ' . Carbon::parse($row->week_start)->format('M d'),
+                'value' => (float) $row->value,
+            ]);
+
+        // ── Today base query (reused below) ───────────────────────────────────
+        $baseToday = fn() => DB::table('sales')
+            ->whereDate('created_at', $today)
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
+
+        // ── Yesterday base queries (for "vs yesterday" trends) ────────────────
+        $yesterday         = Carbon::yesterday();
+        $baseYest          = fn() => DB::table('sales')
+            ->whereDate('created_at', $yesterday)
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
+        $baseCashYest      = fn() => DB::table('cash_transactions')
+            ->whereDate('created_at', $yesterday)
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
+
+        $cashInYesterday   = (float) ($baseCashYest)()->where('type', 'cash_in')->sum('amount');
+        $cashOutYesterday  = (float) ($baseCashYest)()->whereIn('type', ['cash_out', 'cash_drop'])->sum('amount');
+        $salesYesterday    = (float) ($baseYest)()->where('status', 'completed')->sum('total_amount');
+        $voidedYesterday   = (float) ($baseYest)()->where('status', 'cancelled')->sum('total_amount');
+
+        // ── Cash in / out today ───────────────────────────────────────────────
+        // Both come from the cash_transactions table.
+        // Types stored by CashTransactionController: 'cash_in' | 'cash_out' | 'cash_drop'
+        // cash_in_today  = opening float / shift cash-in
+        // cash_out_today = cash_out + cash_drop (any money removed from drawer)
+        $baseCash = fn() => DB::table('cash_transactions')
+            ->whereDate('created_at', $today)
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
+
+        $cashInToday = (float) ($baseCash)()
+            ->where('type', 'cash_in')
+            ->sum('amount');
+
+        $cashOutToday = (float) ($baseCash)()
+            ->whereIn('type', ['cash_out', 'cash_drop'])
+            ->sum('amount');
+
+        // ── Sales totals today ────────────────────────────────────────────────
+        $totalSalesToday = (float) ($baseToday)()
+            ->where('status', 'completed')
+            ->sum('total_amount');
+
+        $totalOrdersToday = (int) ($baseToday)()
+            ->where('status', 'completed')
+            ->count();
+
+        $voidedSalesToday = (float) ($baseToday)()
+            ->where('status', 'cancelled')
+            ->sum('total_amount');
+
+        // ── Top sellers today ─────────────────────────────────────────────────
+        $topSellerToday = DB::table('sale_items')
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->whereDate('sales.created_at', $today)
+            ->where('sales.status', 'completed')
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+            ->select(
+                'sale_items.product_name',
+                DB::raw('SUM(sale_items.quantity) as total_qty')
+            )
+            ->groupBy('sale_items.product_name')
+            ->orderByDesc('total_qty')
+            ->limit(10)
+            ->get();
+
+        // ── Top sellers all-time ──────────────────────────────────────────────
+        $topSellerAllTime = DB::table('sale_items')
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->where('sales.status', 'completed')
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+            ->select(
+                'sale_items.product_name',
+                DB::raw('SUM(sale_items.quantity) as total_qty')
+            )
+            ->groupBy('sale_items.product_name')
+            ->orderByDesc('total_qty')
+            ->limit(10)
+            ->get();
+
+        // ── 7-day sparkline series (real data, gaps filled with 0) ────────────
+        // Build a fixed 7-slot window: [6 days ago … today].
+        // Any day with no records gets 0 — this is what the frontend renders.
+        $last7Dates = collect(range(6, 0))->map(
+            fn($d) => Carbon::now()->subDays($d)->toDateString()
+        );
+
+        $salesByDay = Sale::where('created_at', '>=', $startOfWeek)
+            ->where('status', 'completed')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(total_amount) as total'))
+            ->groupBy('date')->pluck('total', 'date');
+
+        $voidedByDay = Sale::where('created_at', '>=', $startOfWeek)
+            ->where('status', 'cancelled')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(total_amount) as total'))
+            ->groupBy('date')->pluck('total', 'date');
+
+        $cashInByDay = DB::table('cash_transactions')
+            ->where('created_at', '>=', $startOfWeek)
+            ->where('type', 'cash_in')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(amount) as total'))
+            ->groupBy('date')->pluck('total', 'date');
+
+        $cashOutByDay = DB::table('cash_transactions')
+            ->where('created_at', '>=', $startOfWeek)
+            ->whereIn('type', ['cash_out', 'cash_drop'])
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(amount) as total'))
+            ->groupBy('date')->pluck('total', 'date');
+
+        // Map to ordered 7-element arrays; missing dates become 0
+        $sparkSales   = $last7Dates->map(fn($d) => (float) ($salesByDay[$d]   ?? 0))->values()->all();
+        $sparkVoided  = $last7Dates->map(fn($d) => (float) ($voidedByDay[$d]  ?? 0))->values()->all();
+        $sparkCashIn  = $last7Dates->map(fn($d) => (float) ($cashInByDay[$d]  ?? 0))->values()->all();
+        $sparkCashOut = $last7Dates->map(fn($d) => (float) ($cashOutByDay[$d] ?? 0))->values()->all();
+        $sparkOverall = $last7Dates->map(fn($d) =>
+            (float) ($cashInByDay[$d] ?? 0) + (float) ($salesByDay[$d] ?? 0) - (float) ($cashOutByDay[$d] ?? 0)
+        )->values()->all();
 
         return [
-            'weekly' => $weekly,
-            'today_hourly' => $todayHourly,
-            'stats' => $stats,
+            'weekly'    => $weekly,
+            'monthly'   => $monthly,
+            'quarterly' => $quarterly,
+            'stats'  => [
+                'cash_in_today'       => $cashInToday,
+                'cash_out_today'      => $cashOutToday,
+                'total_sales_today'   => $totalSalesToday,
+                'total_orders_today'  => $totalOrdersToday,
+                'voided_sales_today'  => $voidedSalesToday,
+
+                // Overall cash in drawer: cash_in + sales_cash - cash_out/drop
+                'overall_cash_today'  => $cashInToday + $totalSalesToday - $cashOutToday,
+                'top_seller_today'    => $topSellerToday,
+                'top_seller_all_time' => $topSellerAllTime,
+
+                // Real 7-day sparkline arrays [oldest … today]
+                'spark_cash_in'  => $sparkCashIn,
+                'spark_cash_out' => $sparkCashOut,
+                'spark_sales'    => $sparkSales,
+                'spark_voided'   => $sparkVoided,
+                'spark_overall'  => $sparkOverall,
+
+                // Yesterday values — used by frontend to compute real "vs yesterday" trend
+                'cash_in_yesterday'      => $cashInYesterday,
+                'cash_out_yesterday'     => $cashOutYesterday,
+                'sales_yesterday'        => $salesYesterday,
+                'voided_yesterday'       => $voidedYesterday,
+                'overall_cash_yesterday' => $cashInYesterday + $salesYesterday - $cashOutYesterday,
+
+                // Legacy keys kept so older consumers don't break
+                'total_revenue'   => (float) $weekly->sum('value'),
+                'today_sales'     => $totalSalesToday,
+                'cancelled_sales' => $voidedSalesToday,
+                'beginning_or'    => Sale::whereDate('created_at', $today)
+                                        ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                                        ->min('invoice_number') ?? '---',
+                'ending_or'       => Sale::whereDate('created_at', $today)
+                                        ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                                        ->max('invoice_number') ?? '---',
+            ],
         ];
     }
 
-    public function getItemReport($fromDate, $toDate, $reportType = 'item-list')
+    // ─── Items report ─────────────────────────────────────────────────────────
+
+    public function getItemReport($fromDate, $toDate, $reportType = 'item-list'): array
     {
-        $query = DB::table('sale_items')
+        $items = DB::table('sale_items')
             ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
-            ->join('menu_items', 'sale_items.menu_item_id', '=', 'menu_items.id')
-            ->join('categories', 'menu_items.category_id', '=', 'categories.id')
             ->where('sales.status', 'completed')
             ->whereBetween('sales.created_at', [
-                \Carbon\Carbon::parse($fromDate)->startOfDay(),
-                \Carbon\Carbon::parse($toDate)->endOfDay()
-            ]);
-
-        if ($reportType === 'category-summary') {
-            $query->select(
-                'categories.name as name', 
-                DB::raw('SUM(sale_items.quantity) as qty'),
-                DB::raw('SUM(sale_items.final_price) as amount')
-            )->groupBy('categories.name');
-        } else {
-            $query->select(
+                Carbon::parse($fromDate)->startOfDay(),
+                Carbon::parse($toDate)->endOfDay(),
+            ])
+            ->select(
                 'sale_items.product_name as name',
                 DB::raw('SUM(sale_items.quantity) as qty'),
                 DB::raw('SUM(sale_items.final_price) as amount')
-            )->groupBy('sale_items.product_name');
-        }
-
-        $items = $query->get();
+            )
+            ->groupBy('sale_items.product_name')
+            ->get();
 
         return [
-            'items' => $items,
-            'total_qty' => $items->sum('qty'),
-            'grand_total' => (float) $items->sum('amount')
+            'items'       => $items,
+            'total_qty'   => $items->sum('qty'),
+            'grand_total' => (float) $items->sum('amount'),
         ];
     }
 
-    public function getXReading($date)
+    // ─── X-Reading ────────────────────────────────────────────────────────────
+
+    public function getXReading(string $date, ?string $toDate = null, ?int $branchId = null): array
     {
-        $formattedDate = \Carbon\Carbon::parse($date)->format('Y-m-d');
+        $from = Carbon::parse($date)->startOfDay();
+        $to   = $toDate ? Carbon::parse($toDate)->endOfDay() : Carbon::parse($date)->endOfDay();
 
-        $sales = DB::table('sales')
-            ->whereDate('created_at', $formattedDate)
+        $salesQuery = DB::table('sales')
+            ->whereBetween('created_at', [$from, $to])
             ->where('status', 'completed')
-            ->get();
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
 
-        $grossSales       = $sales->sum('total_amount');
+        $sales            = $salesQuery->get();
+        $grossSales       = (float) $sales->sum('total_amount');
         $transactionCount = $sales->count();
-        $cashSales        = $sales->where('payment_method', 'cash')->sum('total_amount');
-        $otherSales       = $sales->where('payment_method', '!=', 'cash')->sum('total_amount');
+        $cashSales        = (float) $sales->where('payment_method', 'cash')->sum('total_amount');
+        $otherSales       = $grossSales - $cashSales;
 
-        // ── ADD THESE ──────────────────────────────────────────────
         $begSI = DB::table('receipts')
-            ->whereDate('created_at', $formattedDate)
+            ->whereBetween('created_at', [$from, $to])
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->orderBy('id', 'asc')
             ->value('si_number') ?? '0000000000';
 
         $endSI = DB::table('receipts')
-            ->whereDate('created_at', $formattedDate)
+            ->whereBetween('created_at', [$from, $to])
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->orderBy('id', 'desc')
             ->value('si_number') ?? '0000000000';
 
-        $voidCount  = DB::table('sales')
-            ->whereDate('created_at', $formattedDate)
+        $voidCount = DB::table('sales')
+            ->whereBetween('created_at', [$from, $to])
             ->where('status', 'cancelled')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->count();
 
-        $voidAmount = DB::table('sales')
-            ->whereDate('created_at', $formattedDate)
+        $voidAmount = (float) DB::table('sales')
+            ->whereBetween('created_at', [$from, $to])
             ->where('status', 'cancelled')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->sum('total_amount');
 
         $vatableSales = round($grossSales / 1.12, 2);
         $vatAmount    = round($grossSales - $vatableSales, 2);
 
-        $scDiscount = DB::table('sales')
-            ->whereDate('created_at', $formattedDate)
+        $baseDiscountQuery = DB::table('sales')
+            ->whereBetween('created_at', [$from, $to])
             ->where('status', 'completed')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
+
+        $scDiscount = (float) (clone $baseDiscountQuery)
             ->where('pax_senior', '>', 0)
             ->sum(DB::raw('(COALESCE(vatable_sales, total_amount / 1.12) / GREATEST(pax_regular + pax_senior + pax_pwd + pax_diplomat, 1)) * pax_senior * 0.20'));
 
-        $pwdDiscount = DB::table('sales')
-            ->whereDate('created_at', $formattedDate)
-            ->where('status', 'completed')
+        $pwdDiscount = (float) (clone $baseDiscountQuery)
             ->where('pax_pwd', '>', 0)
             ->sum(DB::raw('(COALESCE(vatable_sales, total_amount / 1.12) / GREATEST(pax_regular + pax_senior + pax_pwd + pax_diplomat, 1)) * pax_pwd * 0.20'));
 
-        $diplomatDiscount = DB::table('sales')
-            ->whereDate('created_at', $formattedDate)
-            ->where('status', 'completed')
+        $diplomatDiscount = (float) (clone $baseDiscountQuery)
             ->where('pax_diplomat', '>', 0)
             ->sum(DB::raw('total_amount * 0.20'));
 
         $paymentBreakdown = DB::table('sales')
-            ->whereDate('created_at', $formattedDate)
+            ->whereBetween('created_at', [$from, $to])
             ->where('status', 'completed')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->select(DB::raw('payment_method as method'), DB::raw('SUM(total_amount) as amount'))
             ->groupBy('payment_method')
             ->get();
-        // ───────────────────────────────────────────────────────────
 
         $hourly = DB::table('sales')
-            ->whereDate('created_at', $formattedDate)
+            ->whereBetween('created_at', [$from, $to])
             ->where('status', 'completed')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->select(
                 DB::raw('HOUR(created_at) as hour'),
                 DB::raw('SUM(total_amount) as total'),
@@ -171,121 +359,138 @@ class SalesDashboardService
             )
             ->groupBy('hour')
             ->get()
-            ->map(function($item) {
-                return [
-                    'time'  => \Carbon\Carbon::createFromTime($item->hour)->format('g A'),
-                    'total' => (float)$item->total,
-                    'count' => $item->count,
-                ];
-            });
+            ->map(fn($item) => [
+                'time'  => Carbon::createFromTime($item->hour)->format('g A'),
+                'total' => (float) $item->total,
+                'count' => $item->count,
+            ]);
 
-            // Total qty sold
-            $totalQtySold = DB::table('sale_items')
-                ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
-                ->whereDate('sales.created_at', $formattedDate)
-                ->where('sales.status', 'completed')
-                ->sum('sale_items.quantity');
+        $totalQtySold = (int) DB::table('sale_items')
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->whereBetween('sales.created_at', [$from, $to])
+            ->where('sales.status', 'completed')
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+            ->sum('sale_items.quantity');
 
-            $cashIn = DB::table('cash_transactions')
-                ->whereDate('created_at', $formattedDate)
-                ->where('type', 'cash_in')
-                ->sum('amount');
+        $cashIn = (float) DB::table('cash_transactions')
+            ->whereBetween('created_at', [$from, $to])
+            ->where('type', 'cash_in')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->sum('amount');
 
-            $cashDrop = DB::table('cash_transactions')
-                ->whereDate('created_at', $formattedDate)
-                ->where('type', 'cash_drop')
-                ->sum('amount');
-
-            $cashInDrawer = $cashIn + $cashSales - $cashDrop;
+        $cashDrop = (float) DB::table('cash_transactions')
+            ->whereBetween('created_at', [$from, $to])
+            ->whereIn('type', ['cash_out', 'cash_drop'])
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->sum('amount');
 
         return [
-            'date'              => $formattedDate,
-            'gross_sales'       => (float)$grossSales,
-            'net_sales'         => (float)$grossSales,
+            'date'              => $from->toDateString(),
+            'to_date'           => $to->toDateString(),
+            'gross_sales'       => $grossSales,
+            'net_sales'         => $grossSales,
             'transaction_count' => $transactionCount,
-            'cash_total'        => (float)$cashSales,
-            'non_cash_total'    => (float)$otherSales,
+            'cash_total'        => $cashSales,
+            'non_cash_total'    => $otherSales,
             'hourly_data'       => $hourly,
             'beg_si'            => $begSI,
             'end_si'            => $endSI,
-            'void_count'        => (int)$voidCount,
-            'total_void_amount' => (float)$voidAmount,
+            'void_count'        => $voidCount,
+            'total_void_amount' => $voidAmount,
             'vatable_sales'     => $vatableSales,
             'vat_amount'        => $vatAmount,
-            'sc_discount'       => round((float)$scDiscount,       2),
-            'pwd_discount'      => round((float)$pwdDiscount,      2),
-            'diplomat_discount' => round((float)$diplomatDiscount, 2),
+            'sc_discount'       => round($scDiscount,       2),
+            'pwd_discount'      => round($pwdDiscount,      2),
+            'diplomat_discount' => round($diplomatDiscount, 2),
             'payment_breakdown' => $paymentBreakdown,
-            'prepared_by'       => auth()->user()->name ?? 'System Admin',
-            'total_qty_sold' => (int)$totalQtySold,
-            'cash_in'        => (float)$cashIn,
-            'cash_in_drawer' => (float)$cashInDrawer,
-            'cash_drop'      => (float)$cashDrop,
+            'total_qty_sold'    => $totalQtySold,
+            'cash_in'           => $cashIn,
+            'cash_in_drawer'    => $cashIn + $cashSales - $cashDrop,
+            'cash_drop'         => $cashDrop,
         ];
     }
 
-    public function generateZReading($date)
-    {
-        $formattedDate = \Carbon\Carbon::parse($date)->format('Y-m-d');
+    // ─── Z-Reading ────────────────────────────────────────────────────────────
 
-        // Fetch sales - ensure it handles empty collections
+    public function generateZReading(string $from, string $to, ?int $branchId = null): array
+    {
+        $start = Carbon::parse($from)->startOfDay();
+        $end   = Carbon::parse($to)->endOfDay();
+
         $sales = DB::table('sales')
-            ->whereDate('created_at', $formattedDate)
+            ->whereBetween('created_at', [$start, $end])
             ->where('status', 'completed')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->get();
 
-        // Use null coalescing (?? 0) to ensure numbers are returned
-        $gross = (float)($sales->sum('total_amount') ?? 0);
-        $cash = (float)($sales->where('payment_method', 'cash')->sum('total_amount') ?? 0);
+        $gross = (float) $sales->sum('total_amount');
+        $cash  = (float) $sales->where('payment_method', 'cash')->sum('total_amount');
+
+        $voidAmount = (float) DB::table('sales')
+            ->whereBetween('created_at', [$start, $end])
+            ->where('status', 'cancelled')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->sum('total_amount');
+
+        $vatableSales = round($gross / 1.12, 2);
+        $vatAmount    = round($gross - $vatableSales, 2);
 
         $reportData = [
-            'reading_date'      => $formattedDate,
+            'from_date'         => $start->toDateString(),
+            'to_date'           => $end->toDateString(),
+            'branch_id'         => $branchId,
             'gross_sales'       => $gross,
             'net_sales'         => $gross,
-            'transaction_count' => $sales->count() ?? 0,
+            'transaction_count' => $sales->count(),
             'cash_total'        => $cash,
             'non_cash_total'    => $gross - $cash,
+            'total_void_amount' => $voidAmount,
+            'vatable_sales'     => $vatableSales,
+            'vat_amount'        => $vatAmount,
             'generated_at'      => now()->toDateTimeString(),
         ];
 
-        // Use updateOrCreate to avoid duplicate key errors
-        ZReading::updateOrCreate(
-            ['reading_date' => $formattedDate],
-            [
-                'total_sales' => $gross,
-                'data' => $reportData,
-            ]
-        );
+        // Only persist single-day Z-Readings (daily EOD)
+        if ($from === $to) {
+            ZReading::updateOrCreate(
+                ['reading_date' => $start->toDateString()],
+                [
+                    'total_sales' => $gross,
+                    'data'        => $reportData,
+                ]
+            );
+        }
 
         return $reportData;
     }
 
-    public function getMallReport($date, $mallName)
-    {
-        $formattedDate = \Carbon\Carbon::parse($date)->format('Y-m-d');
+    // ─── Mall accreditation report ────────────────────────────────────────────
 
-        // Fetch sales for that specific mall (if multi-branch) or just for that date
+    public function getMallReport(string $date, string $mallName, ?int $branchId = null): array
+    {
+        $from = Carbon::parse($date)->startOfDay();
+        $to   = Carbon::parse($date)->endOfDay();
+
         $sales = DB::table('sales')
-            ->whereDate('created_at', $formattedDate)
+            ->whereBetween('created_at', [$from, $to])
             ->where('status', 'completed')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->get();
 
-        $gross = (float)$sales->sum('total_amount');
-        $count = $sales->count();
-        
-        // Most malls require Tax and Discount breakdowns
-        $tax = $gross * 0.12; // Assuming 12% VAT
-        $netSales = $gross - $tax;
+        $gross    = (float) $sales->sum('total_amount');
+        $netSales = round($gross / 1.12, 2);
+        $tax      = round($gross - $netSales, 2);
 
         return [
-            'mall' => $mallName,
-            'date' => $formattedDate,
-            'gross_sales' => $gross,
-            'net_sales' => $netSales,
-            'tax_amount' => $tax,
-            'transaction_count' => $count,
-            'tenant_id' => 'LUCKYBOBA-001', // Example ID
-            'generated_at' => now()->toDateTimeString(),
+            'mall'              => $mallName,
+            'date'              => Carbon::parse($date)->toDateString(),
+            'branch_id'         => $branchId,
+            'gross_sales'       => $gross,
+            'net_sales'         => $netSales,
+            'tax_amount'        => $tax,
+            'transaction_count' => $sales->count(),
+            'tenant_id'         => 'LUCKYBOBA-001',
+            'generated_at'      => now()->toDateTimeString(),
         ];
     }
 }

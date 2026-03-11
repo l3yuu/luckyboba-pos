@@ -1,34 +1,34 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import Sidebar from "../components/Sidebar";
+import Sidebar from "../components/Cashier/Sidebar";
 import logo from '../assets/logo.png';
 import api from '../services/api'; 
 import type { DashboardData, TopSeller } from '../types/dashboard';
 import { Monitor, DollarSign, Receipt, ArrowDownToLine, ArrowUpFromLine, Ban, Trophy, Clock4, RefreshCw, TrendingUp } from 'lucide-react';
 
-import CashIn from '../components/SalesOrder/CashIn'; 
-import CashDrop from '../components/SalesOrder/CashDrop';
-import SearchReceipts from '../components/SalesOrder/SearchReceipts';
-import CashCount from '../components/SalesOrder/CashCount';
-import SalesDashboard from '../components/SalesReport/SalesDashboard';
-import ItemsReport from '../components/SalesReport/ItemsReport';
-import XReading from '../components/SalesReport/XReading';
-import ZReading from '../components/SalesReport/ZReading';
-import MenuList from '../components/MenuItems/MenuList';
-import CategoryList from '../components/MenuItems/CategoryList';
-import SubCategoryList from '../components/MenuItems/Sub-CategoryList';
-import Expense from '../components/Expense';
-import InventoryDashboard from '../components/Inventory/InventoryDashboard';
-import InventoryCategoryList from '../components/Inventory/InventoryCategoryList';
-import InventoryList from '../components/Inventory/InventoryList';
-import InventoryReport from '../components/Inventory/InventoryReport';
-import ItemChecker from '../components/Inventory/ItemChecker';
-import ItemSerials from '../components/Inventory/ItemSerials';
-import PurchaseOrder from '../components/Inventory/PurchaseOrder';
-import StockTransfer from '../components/Inventory/StockTransfer';
-import Supplier from '../components/Inventory/Supplier';
-import Settings from '../components/Settings';
+import CashIn from '../components/Cashier/SalesOrder/CashIn'; 
+import CashDrop from '../components/Cashier/SalesOrder/CashDrop';
+import SearchReceipts from '../components/Cashier/SalesOrder/SearchReceipts';
+import CashCount from '../components/Cashier/SalesOrder/CashCount';
+import SalesDashboard from '../components/Cashier/SalesReport/SalesDashboard';
+import ItemsReport from '../components/Cashier/SalesReport/ItemsReport';
+import XReading from '../components/Cashier/SalesReport/XReading';
+import ZReading from '../components/Cashier/SalesReport/ZReading';
+import MenuList from '../components/Cashier/MenuItems/MenuList';
+import CategoryList from '../components/Cashier/MenuItems/CategoryList';
+import SubCategoryList from '../components/Cashier/MenuItems/Sub-CategoryList';
+import Expense from '../components/Cashier/Expense';
+import InventoryDashboard from '../components/Cashier/Inventory/InventoryDashboard';
+import InventoryCategoryList from '../components/Cashier/Inventory/InventoryCategoryList';
+import InventoryList from '../components/Cashier/Inventory/InventoryList';
+import InventoryReport from '../components/Cashier/Inventory/InventoryReport';
+import ItemChecker from '../components/Cashier/Inventory/ItemChecker';
+import ItemSerials from '../components/Cashier/Inventory/ItemSerials';
+import PurchaseOrder from '../components/Cashier/Inventory/PurchaseOrder';
+import StockTransfer from '../components/Cashier/Inventory/StockTransfer';
+import Supplier from '../components/Cashier/Inventory/Supplier';
+import Settings from '../components/Cashier/Settings/Settings';
 
 interface DashboardStatsProps {
   stats: DashboardData | null;
@@ -45,7 +45,7 @@ const GlobalFont = () => (
     *, *::before, *::after, body, input, button, select, textarea {
       font-family: 'DM Sans', sans-serif !important;
     }
-    .stat-card { transition: transform 0.15s ease, box-shadow 0.15s ease; }
+    .stat-card { transition: transform 0.15s ease, box-shadow 0.15s ease; border-radius:10px }
     .stat-card:hover { transform: translateY(-1px); box-shadow: 0 4px 24px rgba(59,32,99,0.08); }
     .rank-bar { transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1); }
   `}</style>
@@ -69,6 +69,7 @@ const Dashboard = () => {
     return Date.now() - Number(ts) > 5 * 60 * 1000;
   });
   const isFetching = useRef(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/login', { replace: true });
@@ -76,7 +77,7 @@ const Dashboard = () => {
 
   const fetchStats = useCallback(async (force = false) => {
     if (isFetching.current) return;
-    if (!force && stats) {
+    if (!force) {
       const lastFetch = localStorage.getItem('dashboard_stats_timestamp');
       if (lastFetch && Date.now() - Number(lastFetch) < 5 * 60 * 1000) {
         setLoading(false); setIsInitialLoad(false); setIsStale(false);
@@ -96,17 +97,21 @@ const Dashboard = () => {
     } finally {
       setLoading(false); setIsInitialLoad(false); isFetching.current = false;
     }
-  }, [stats]);
+  }, []); // ← empty deps, reads localStorage directly instead of closing over stats
 
   useEffect(() => {
     if (!user || activeTab !== 'dashboard') return;
-    void (async () => { await fetchStats(); })();
-  }, [user, activeTab, fetchStats]);
+    void fetchStats(refreshKey > 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, activeTab, refreshKey]);
 
   if (authLoading || (isInitialLoad && !stats)) return <DashboardSkeleton />;
   if (!user) return null;
 
-  const refreshStats = () => { void (async () => { await fetchStats(true); })(); };
+  const refreshStats = () => {
+    localStorage.removeItem('dashboard_stats_timestamp');
+    setRefreshKey(k => k + 1);
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -338,7 +343,7 @@ const DashboardSkeleton = () => (
       * { font-family: 'DM Sans', sans-serif !important; }
     `}</style>
     <div className="flex h-screen bg-[#f4f2fb] overflow-hidden">
-      <div className="w-64 bg-white border-r border-zinc-200 hidden md:flex flex-col justify-between">
+      <div className="w-64 bg-white border-r border-radius:10 border-zinc-200 hidden md:flex flex-col justify-between">
         <div className="px-4 pt-10 flex flex-col gap-2">
           <div className="w-36 h-10 bg-zinc-100 animate-pulse mx-auto mb-8" />
           {[1,2,3,4,5].map(i => <div key={i} className="w-full h-11 bg-zinc-50 animate-pulse border-b border-zinc-100" />)}

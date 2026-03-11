@@ -23,7 +23,10 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status === 401) {
+        const isLoginRequest = error.config?.url?.includes('/login');
+        const isLogoutRequest = error.config?.url?.includes('/logout');
+
+        if (error.response?.status === 401 && !isLoginRequest && !isLogoutRequest) {
             localStorage.removeItem('lucky_boba_token');
             localStorage.removeItem('lucky_boba_authenticated');
             localStorage.removeItem('dashboard_stats');
