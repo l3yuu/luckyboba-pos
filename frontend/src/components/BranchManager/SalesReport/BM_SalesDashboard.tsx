@@ -75,7 +75,7 @@ const StatCard = ({ label, sub, value, compact, icon, iconBg, iconColor, valueCo
 );
 
 // ─── Component ────────────────────────────────────────────────────────────────
-const SalesDashboard = () => {
+const BM_SalesDashboard = () => {
   const [payload, setPayload] = useState<DashboardPayload | null>(() => {
     try { const c = localStorage.getItem(CACHE_KEY); return c ? JSON.parse(c) : null; }
     catch { return null; }
@@ -489,4 +489,4 @@ const SalesDashboard = () => {
   );
 };
 
-export default SalesDashboard;
+export default BM_SalesDashboard;
