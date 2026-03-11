@@ -266,7 +266,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
           <button
             onClick={handleLogoutClick}
             disabled={isLoggingOut}
-            className="bm-sb-item hover:!bg-red-50 hover:!text-red-600"
+            className="bm-sb-item hover:bg-red-50! hover:text-red-600!"
             style={{ color: '#be2525' }}
           >
             {isLoggingOut ? (
@@ -303,7 +303,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
       {/* ── Logout Confirmation Modal — matches cashier style exactly ── */}
       {showLogoutModal && (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm"
+          className="fixed inset-0 z-200 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm"
           style={{ fontFamily: "'DM Sans', sans-serif" }}
         >
           <div className="bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] p-8 flex flex-col items-center text-center shadow-2xl">

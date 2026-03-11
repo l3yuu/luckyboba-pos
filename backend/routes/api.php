@@ -181,8 +181,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::middleware(['role:superadmin'])->group(function () {
 
         Route::prefix('reports')->group(function () {
-            Route::post('/sales-summary',     [SuperAdminReportController::class, 'salesSummary']);
-            Route::post('/branch-comparison', [SuperAdminReportController::class, 'branchComparison']);
+            Route::get('/sales-summary',     [SuperAdminReportController::class, 'salesSummary']);
+            Route::get('/branch-comparison', [SuperAdminReportController::class, 'branchComparison']);
         });
 
         Route::prefix('system')->group(function () {
