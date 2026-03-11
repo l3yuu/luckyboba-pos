@@ -73,10 +73,18 @@ class AuditLogController extends Controller
                                 ->values(),
         ];
 
+        // Add this inside the index() method, before the return
+        $lastLogins = AuditLog::select('user_id', \DB::raw('MAX(created_at) as last_login_at'))
+            ->where('action', 'like', '%login%')
+            ->whereNotNull('user_id')
+            ->groupBy('user_id')
+            ->pluck('last_login_at', 'user_id');
+
         return response()->json([
             'success' => true,
             'stats'   => $stats,
             'data'    => $logs->items(),
+            'last_logins' => $lastLogins, 
             'meta'    => [
                 'current_page' => $logs->currentPage(),
                 'last_page'    => $logs->lastPage(),
