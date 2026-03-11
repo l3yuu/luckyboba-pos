@@ -148,6 +148,7 @@ interface ChartTipProps {
 interface AuthUser {
   id:        number;
   name:      string;
+  email:     string;  
   role:      string;
   branch_id: number | null;
   branch?:   { id: number; name: string; location?: string };
@@ -166,14 +167,23 @@ const BranchManagerDashboard = () => {
   const [isLogoutModalOpen, setLogoutModalOpen] = useState(false);
   const [isLoggingOut,     setIsLoggingOut]   = useState(false);
 
-  useEffect(() => {
-    api.get<AuthUser>('/user')
-      .then(res => setAuthUser(res.data))
-      .catch(err => console.error('Failed to load user', err));
-  }, []);
+useEffect(() => {
+  api.get<AuthUser>('/user')
+    .then(res => {
+      const u = res.data;
+      setAuthUser({
+        id:        u.id,
+        name:      u.name,
+        email:     u.email,
+        role:      u.role,
+        branch_id: u.branch_id,
+        branch:    u.branch ?? undefined,
+      });
+    })
+    .catch(err => console.error('Failed to load user', err));
+}, []);
 
-  const branchLabel = authUser?.branch?.name
-    ?? (authUser?.branch_id ? `Branch #${authUser.branch_id}` : null);
+const branchLabel = authUser?.name ?? null; // 'Main Branch' comes from here
 
   const handleLogoutClick = () => setLogoutModalOpen(true);
 
@@ -609,7 +619,7 @@ const DashboardPanel = ({ branchId }: { branchId: number | null }) => {
               })}
             </div>
           </div>
-          <div style={{ height:220, width:'100%', minHeight: 220 }}>
+          <div style={{ height: 220, width: '100%', minHeight: 220, minWidth: 0 }}>
             {chartData.length === 0 ? (
               <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                 <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#f4f4f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>

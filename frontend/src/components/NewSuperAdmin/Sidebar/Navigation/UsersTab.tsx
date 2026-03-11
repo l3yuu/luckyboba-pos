@@ -38,6 +38,21 @@ interface ViewUserModalProps   { onClose: () => void; user: User; }
 interface DeleteUserProps      { onClose: () => void; onDeleted: (id: number) => void; user: User; }
 interface ToggleUserProps      { onClose: () => void; onToggled: (u: User) => void; user: User; }
 
+interface RawUser {
+  id:          number;
+  name:        string;
+  email:       string;
+  role:        string;
+  branch?:     string;
+  branch_id?:  number | null;
+  status:      string;
+}
+
+interface RawBranch {
+  id:   number;
+  name: string;
+}
+
 // ── API helpers ───────────────────────────────────────────────────────────────
 const getToken = () =>
   localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
@@ -569,22 +584,40 @@ const UsersTab: React.FC = () => {
   const fetchUsers = async () => {
     setLoading(true); setFetchError("");
     try {
-      const [usersRes, branchesRes] = await Promise.all([
-        fetch("/api/users", { headers: authHeaders() }),
-        fetch("/api/branches", { headers: authHeaders() }),
+      const [usersRes, branchesRes, auditRes] = await Promise.all([
+        fetch("/api/users",                    { headers: authHeaders() }),
+        fetch("/api/branches",                 { headers: authHeaders() }),
+        fetch("/api/audit-logs?per_page=1",    { headers: authHeaders() }),
       ]);
       const usersData    = await usersRes.json();
       const branchesData = await branchesRes.json();
+      const auditData    = await auditRes.json();
 
-      if (!usersRes.ok || !usersData.success) { setFetchError(usersData.message ?? "Failed to load users."); return; }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setUsers((usersData.data as any[]).map(mapUser));
-      if (branchesData.success) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setBranches((branchesData.data as any[]).map((b: any) => b.name));
+      if (!usersRes.ok || !usersData.success) {
+        setFetchError(usersData.message ?? "Failed to load users.");
+        return;
       }
-    } catch { setFetchError("Network error. Could not reach the server."); }
-    finally { setLoading(false); }
+
+      const lastLoginMap: Record<number, string> = auditData.last_logins ?? {};
+
+      setUsers((usersData.data as RawUser[]).map(u => ({
+        ...mapUser(u),
+        lastLogin: lastLoginMap[u.id]
+          ? new Date(lastLoginMap[u.id]).toLocaleString('en-PH', {
+              month: 'short', day: 'numeric', year: 'numeric',
+              hour: '2-digit', minute: '2-digit',
+            })
+          : undefined,
+      })));
+
+      if (branchesData.success) {
+        setBranches((branchesData.data as RawBranch[]).map(b => b.name));
+      }
+    } catch {
+      setFetchError("Network error. Could not reach the server.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchUsers(); }, []);

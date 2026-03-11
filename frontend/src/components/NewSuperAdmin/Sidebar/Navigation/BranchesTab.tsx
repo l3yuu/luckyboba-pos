@@ -36,6 +36,19 @@ interface EditBranchModalProps { onClose: () => void; onUpdated: (b: Branch) => 
 interface ViewBranchModalProps { onClose: () => void; branch: Branch; }
 interface DeleteConfirmProps   { onClose: () => void; onDeleted: (id: number) => void; branch: Branch; }
 
+interface RawBranch {
+  id:           number;
+  name:         string;
+  location:     string;
+  status:       string;
+  today_sales?:  number | string;
+  total_sales?:  number | string;
+  staff_count?:  number;
+  manager_name?: string;
+  manager?:      { id: number; name: string };
+  users?:        { id: number; name: string; role: string }[];
+}
+
 // ── API helpers ───────────────────────────────────────────────────────────────
 const getToken = () =>
   localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
@@ -44,16 +57,17 @@ const authHeaders = (): Record<string, string> => ({
   "Accept":       "application/json",
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const mapBranch = (b: any): Branch => ({
+const mapBranch = (b: RawBranch): Branch => ({
   id:       b.id,
   name:     b.name,
   location: b.location,
   status:   b.status,
-  today:    parseFloat(b.today_sales  ?? 0),
-  total:    parseFloat(b.total_sales  ?? 0),
-  staff:    b.staff_count  ?? 0,
-  manager:  b.manager_name ?? "—",
+  today:    parseFloat(String(b.today_sales  ?? 0)),
+  total:    parseFloat(String(b.total_sales  ?? 0)),
+  staff:    b.staff_count ?? b.users?.length ?? 0,
+  manager:  b.manager_name ?? b.manager?.name
+            ?? b.users?.find(u => u.role === "branch_manager")?.name
+            ?? "—",
 });
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
@@ -626,11 +640,10 @@ const BranchesTab: React.FC = () => {
     setLoading(true);
     setFetchError("");
     try {
-      const res  = await fetch("/api/branches", { headers: authHeaders() });
+      const res  = await fetch("/api/branches?include=manager,staff", { headers: authHeaders() });
       const data = await res.json();
       if (!res.ok || !data.success) { setFetchError(data.message ?? "Failed to load branches."); return; }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setBranches((data.data as any[]).map(mapBranch));
+      setBranches((data.data as RawBranch[]).map(mapBranch));
     } catch {
       setFetchError("Network error. Could not reach the server.");
     } finally {
