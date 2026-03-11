@@ -5,12 +5,12 @@ import SuperAdminTopBar  from "../components/NewSuperAdmin/SuperAdminTopBar";
 import type { TabId }    from "../components/NewSuperAdmin/SuperAdminSidebar";
 
 // ── Existing tabs ──────────────────────────────────────────────────────────────
-import OverviewTab   from "../components/NewSuperAdmin/Tabs/OverviewTab";
-import BranchesTab   from "../components/NewSuperAdmin/Tabs/BranchesTab";
-import UsersTab      from "../components/NewSuperAdmin/Tabs/UsersTab";
-import AuditLogsTab  from "../components/NewSuperAdmin/Tabs/AuditLogsTab";
-import PromotionsTab from "../components/NewSuperAdmin/Tabs/PromotionsTab";
-import SettingsTab   from "../components/NewSuperAdmin/Tabs/SettingsTab";
+import OverviewTab   from "../components/NewSuperAdmin/Sidebar/Navigation/OverviewTab";
+import BranchesTab   from "../components/NewSuperAdmin/Sidebar/Navigation/BranchesTab";
+import UsersTab      from "../components/NewSuperAdmin/Sidebar/Navigation/UsersTab";
+import AuditLogsTab  from "../components/NewSuperAdmin/Sidebar/System/AuditLogsTab";
+import PromotionsTab from "../components/NewSuperAdmin/Sidebar/System/PromotionsTab";
+import SettingsTab   from "../components/NewSuperAdmin/Sidebar/SettingsTab";
 
 
 

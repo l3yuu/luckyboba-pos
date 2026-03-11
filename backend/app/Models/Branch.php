@@ -23,7 +23,7 @@ class Branch extends Model
     ];
 
     /**
-     * Get the users assigned to this branch
+     * Get all users assigned to this branch.
      */
     public function users()
     {
@@ -31,23 +31,31 @@ class Branch extends Model
     }
 
     /**
-     * Get active users only
+     * Get the branch manager (single user with branch_manager role).
      */
-    public function activeUsers()
+    public function manager()
     {
-        return $this->users()->where('status', 'active');
+        return $this->hasOne(User::class)->where('role', 'branch_manager');
     }
 
     /**
-     * Get managers of this branch
+     * Get all branch managers (in case multiple are assigned).
      */
     public function managers()
     {
-        return $this->users()->where('role', 'manager');
+        return $this->users()->where('role', 'branch_manager');
     }
 
     /**
-     * Get cashiers of this branch
+     * Get active users only.
+     */
+    public function activeUsers()
+    {
+        return $this->users()->where('status', 'ACTIVE');
+    }
+
+    /**
+     * Get cashiers of this branch.
      */
     public function cashiers()
     {
@@ -55,7 +63,7 @@ class Branch extends Model
     }
 
     /**
-     * Get all sales for this branch
+     * Get all sales for this branch.
      */
     public function sales()
     {
