@@ -20,20 +20,22 @@ import ItemsReport           from '../components/BranchManager/SalesReport/BM_It
 import XReading              from '../components/BranchManager/SalesReport/BM_X-Reading';
 import ZReading              from '../components/BranchManager/SalesReport/BM_Z-Reading';
 
-// ── BranchManager-specific Menu Items (replaces Cashier versions) ─────────────
+// ── BranchManager-specific Menu Items ─────────────
 import BM_MenuList           from '../components/BranchManager/MenuItems/BM_MenuList';
 import BM_Categories         from '../components/BranchManager/MenuItems/BM_Categories';
 import BM_SubCategories      from '../components/BranchManager/MenuItems/BM_Sub-Categories';
 
-import InventoryDashboard    from '../components/Cashier/Inventory/InventoryDashboard';
-import InventoryCategoryList from '../components/Cashier/Inventory/InventoryCategoryList';
-import InventoryList         from '../components/Cashier/Inventory/InventoryList';
-import InventoryReport       from '../components/Cashier/Inventory/InventoryReport';
-import ItemChecker           from '../components/Cashier/Inventory/ItemChecker';
-import ItemSerials           from '../components/Cashier/Inventory/ItemSerials';
-import PurchaseOrder         from '../components/Cashier/Inventory/PurchaseOrder';
-import StockTransfer         from '../components/Cashier/Inventory/StockTransfer';
-import Supplier              from '../components/Cashier/Inventory/Supplier';
+// ── BranchManager-specific Inventory Items ─────────────
+import BM_InventoryDashboard     from '../components/BranchManager/Inventory/BM_InventoryDashboard';
+import BM_InventoryCategories    from '../components/BranchManager/Inventory/BM_InventoryCategories';
+import BM_InventoryList          from '../components/BranchManager/Inventory/BM_InventoryList';
+import BM_InventoryReports       from '../components/BranchManager/Inventory/BM_InventoryReports';
+import BM_InventoryItemChecker   from '../components/BranchManager/Inventory/BM_InventoryItemChecker';
+import BM_InventoryItemSerials   from '../components/BranchManager/Inventory/BM_InventoryItemSerials';
+import BM_InventoryPurchaseOrder from '../components/BranchManager/Inventory/BM_InventoryPurchaseOrder';
+import BM_InventoryStockTransfer from '../components/BranchManager/Inventory/BM_InventoryStockTransfer';
+import BM_InventorySuppliers     from '../components/BranchManager/Inventory/BM_InventorySuppliers';
+
 import Settings              from '../components/Cashier/Settings/Settings';
 
 // ─── Font tokens ──────────────────────────────────────────────────────────────
@@ -193,21 +195,22 @@ const BranchManagerDashboard = () => {
       case 'x-reading':           return <XReading />;
       case 'z-reading':           return <ZReading />;
 
-      // ── Menu Items — now using BranchManager-specific components ──────────
-      case 'menu-list':           return <BM_MenuList />;
-      case 'category-list':       return <BM_Categories />;
-      case 'sub-category-list':   return <BM_SubCategories />;
+      // ── Menu Items ──
+      case 'menu-list':          return <BM_MenuList />;
+      case 'category-list':      return <BM_Categories />;
+      case 'sub-category-list':  return <BM_SubCategories />;
 
-      // ── Inventory — still using Cashier components ─────────────────────
-      case 'inventory-dashboard': return <InventoryDashboard />;
-      case 'inventory-list':      return <InventoryList />;
-      case 'inventory-category':  return <InventoryCategoryList />;
-      case 'supplier':            return <Supplier />;
-      case 'item-checker':        return <ItemChecker />;
-      case 'item-serials':        return <ItemSerials />;
-      case 'purchase-order':      return <PurchaseOrder />;
-      case 'stock-transfer':      return <StockTransfer />;
-      case 'inventory-report':    return <InventoryReport />;
+      // ── Inventory ──
+      case 'inventory-dashboard': return <BM_InventoryDashboard />;
+      case 'inventory-list':      return <BM_InventoryList />;
+      case 'inventory-category':  return <BM_InventoryCategories />;
+      case 'supplier':            return <BM_InventorySuppliers />;
+      case 'item-checker':        return <BM_InventoryItemChecker />;
+      case 'item-serials':        return <BM_InventoryItemSerials />;
+      case 'purchase-order':      return <BM_InventoryPurchaseOrder />;
+      case 'stock-transfer':      return <BM_InventoryStockTransfer />;
+      case 'inventory-report':    return <BM_InventoryReports />;
+      
       case 'settings':            return <Settings />;
       default:                    return <DashboardPanel branchId={authUser?.branch_id ?? null} />;
     }
@@ -525,9 +528,9 @@ const DashboardPanel = ({ branchId }: { branchId: number | null }) => {
   ];
 
   const quickStats = [
-    { label:'Total Orders',    value: Number(sd?.total_orders_today ?? 0),                                                                                       icon:<ShoppingBag size={12}/>, color:'#3b82f6' },
-    { label:'Avg Order Value', value: fmt(Number(sd?.total_sales_today ?? 0) / Math.max(Number(sd?.total_orders_today ?? 1), 1)),                                 icon:<Activity    size={12}/>, color:'#8b5cf6' },
-    { label:'Net Cash Flow',   value: fmt(Number(sd?.cash_in_today ?? 0) - Number(sd?.cash_out_today ?? 0)),                                                      icon:<ArrowUpRight size={12}/>, color:'#10b981' },
+    { label:'Total Orders',    value: Number(sd?.total_orders_today ?? 0),                                                                         icon:<ShoppingBag size={12}/>, color:'#3b82f6' },
+    { label:'Avg Order Value', value: fmt(Number(sd?.total_sales_today ?? 0) / Math.max(Number(sd?.total_orders_today ?? 1), 1)),                                icon:<Activity    size={12}/>, color:'#8b5cf6' },
+    { label:'Net Cash Flow',   value: fmt(Number(sd?.cash_in_today ?? 0) - Number(sd?.cash_out_today ?? 0)),                                                     icon:<ArrowUpRight size={12}/>, color:'#10b981' },
     { label:'Void Rate',       value: `${((Number(sd?.voided_sales_today ?? 0) / Math.max(Number(sd?.total_sales_today ?? 1), 1)) * 100).toFixed(1)}%`,          icon:<AlertCircle size={12}/>, color:'#f59e0b' },
   ];
 
