@@ -116,6 +116,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::prefix('discounts')->group(function () {
             Route::get   ('/',                    [DiscountController::class, 'index']);
             Route::post  ('/',                    [DiscountController::class, 'store']);
+            Route::put   ('/{discount}',          [DiscountController::class, 'update']);          // ← NEW
             Route::put   ('/{discount}/toggle',   [DiscountController::class, 'toggleStatus']);
             Route::put   ('/{discount}/branches', [DiscountController::class, 'updateBranches']);
             Route::post  ('/{discount}/use',      [DiscountController::class, 'recordUsage']);
