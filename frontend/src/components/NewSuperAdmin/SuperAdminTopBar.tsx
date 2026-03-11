@@ -10,13 +10,42 @@ export interface SuperAdminTopBarProps {
 
 // ── Page meta ─────────────────────────────────────────────────────────────────
 const PAGE_TITLES: Record<TabId, { label: string; desc: string }> = {
-  overview:   { label: "Dashboard Overview",     desc: "Real-time summary"        },
-  branches:   { label: "Branch Management",      desc: "All registered branches"  },
-  users:      { label: "User Management",        desc: "Staff accounts & roles"   },
-  reports:    { label: "Cross-Branch Reports",   desc: "Consolidated analytics"   },
-  audit:      { label: "Audit Logs",             desc: "Complete activity trail"  },
-  promotions: { label: "Promotions & Discounts", desc: "Active campaigns"         },
-  settings:   { label: "System Settings",        desc: "Global configuration"     },
+  // Navigation
+  overview:  { label: "Dashboard Overview",     desc: "Real-time summary across all branches"    },
+  branches:  { label: "Branch Management",      desc: "Full control over all branches"           },
+  users:     { label: "User Management",        desc: "Staff accounts, roles & permissions"      },
+
+  // Reports
+  sales_report:         { label: "Sales Report",         desc: "Daily & periodic sales breakdown"         },
+  analytics:            { label: "Analytics & Sales",    desc: "Revenue trends & performance data"        },
+  items_report:         { label: "Items Report",         desc: "Per-item sales and movement data"         },
+  cross_branch_reports: { label: "Cross-Branch Reports", desc: "Consolidated analytics across branches"   },
+  x_reading:            { label: "X Reading",            desc: "Mid-day POS shift summary"                },
+  z_reading:            { label: "Z Reading",            desc: "End-of-day POS closing report"            },
+
+  // Menu Management
+  menu_items:    { label: "Menu List",       desc: "All products & pricing"                    },
+  categories:    { label: "Categories",      desc: "Top-level menu groupings"                  },
+  subcategories: { label: "Sub-Categories",  desc: "Nested category structure"                 },
+
+  // Inventory
+  inv_overview:   { label: "Inventory Overview",  desc: "Stock summary across all branches"       },
+  raw_materials:  { label: "Raw Materials",        desc: "Ingredients & packaging stock"           },
+  usage_report:   { label: "Usage Report",         desc: "Material consumption & variance"         },
+  recipes:        { label: "Recipes",              desc: "Ingredient composition per menu item"    },
+  supplier:       { label: "Supplier",             desc: "Vendor records & contacts"               },
+  item_checker:   { label: "Item Checker",         desc: "Verify item availability & details"      },
+  item_serials:   { label: "Item Serials",         desc: "Serialized item tracking"                },
+  purchase_order: { label: "Purchase Order",       desc: "Incoming stock orders"                   },
+  stock_transfer: { label: "Stock Transfer",       desc: "Move stock between branches"             },
+
+  // Expenses
+  expenses: { label: "Expenses", desc: "Operational costs & expense tracking" },
+
+  // System
+  promotions: { label: "Promotions & Discounts", desc: "Active campaigns & vouchers"      },
+  audit:      { label: "Audit Logs",             desc: "Complete system activity trail"   },
+  settings:   { label: "System Settings",        desc: "Global configuration & preferences" },
 };
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -47,7 +76,7 @@ const SuperAdminTopBar: React.FC<SuperAdminTopBarProps> = ({ active, onMenuClick
         </div>
       </div>
 
-      {/* Right — clock · bell · live badge · avatar */}
+      {/* Right — clock · bell · live badge */}
       <div className="flex items-center gap-3">
 
         {/* Live clock */}
