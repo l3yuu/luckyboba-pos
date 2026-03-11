@@ -93,7 +93,7 @@ const getLocalToday = () => {
 // COMPONENT
 // ============================================================
 
-const ItemsReport = () => {
+const BM_ItemsReport = () => {
   const today = getLocalToday();
   const phCurrency = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
   const fmtCompact = (v: number) => {
@@ -556,5 +556,5 @@ const ItemsReport = () => {
   );
 };
 
-export default ItemsReport;
+export default BM_ItemsReport;
 

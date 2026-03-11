@@ -78,7 +78,7 @@ const MENU_CARDS = [
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
-const ZReading = () => {
+const BM_ZReading = () => {
   const today = new Date().toISOString().split('T')[0];
   const [selectedDate,  setSelectedDate]  = useState(today);
   const [fromDate,      setFromDate]      = useState(today);
@@ -559,4 +559,4 @@ const ZReading = () => {
   );
 };
 
-export default ZReading;
+export default BM_ZReading;

@@ -80,7 +80,7 @@ const MENU_CARDS = [
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
-const XReading = () => {
+const BM_XReading = () => {
   const today = new Date().toISOString().split('T')[0];
   const [selectedDate,    setSelectedDate]    = useState(today);
   const [isMenuOpen,      setIsMenuOpen]      = useState(false);
@@ -643,4 +643,4 @@ const XReading = () => {
   );
 };
 
-export default XReading;
+export default BM_XReading;

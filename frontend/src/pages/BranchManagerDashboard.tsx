@@ -15,10 +15,10 @@ import {
   BarChart, Bar, Cell
 } from 'recharts';
 
-import SalesDashboard        from '../components/BranchManager/SalesReport/SalesDashboard';
-import ItemsReport           from '../components/BranchManager/SalesReport/ItemsReport';
-import XReading              from '../components/BranchManager/SalesReport/X-Reading';
-import ZReading              from '../components/BranchManager/SalesReport/Z-Reading';
+import SalesDashboard        from '../components/BranchManager/SalesReport/BM_SalesDashboard';
+import ItemsReport           from '../components/BranchManager/SalesReport/BM_ItemsReport';
+import XReading              from '../components/BranchManager/SalesReport/BM_X-Reading';
+import ZReading              from '../components/BranchManager/SalesReport/BM_Z-Reading';
 
 // ── BranchManager-specific Menu Items ─────────────
 import BM_MenuList           from '../components/BranchManager/MenuItems/BM_MenuList';
@@ -77,7 +77,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
 }) => {
   if (!show) return null;
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
+    <div className="fixed inset-0 z-200 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
       <div
         style={{ fontFamily: "'DM Sans', sans-serif" }}
         className="bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] p-8 flex flex-col items-center text-center shadow-2xl"

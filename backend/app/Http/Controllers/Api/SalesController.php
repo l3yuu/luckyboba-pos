@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\AuditHelper;
 use App\Http\Controllers\Controller;
 use App\Models\MenuItem;
 use App\Models\Receipt;
@@ -227,5 +228,7 @@ class SalesController extends Controller
             Log::error('Sale cancellation failed: ' . $e->getMessage());
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
+
+        AuditHelper::log('void', "Voided transaction #{$sale->id}", "Amount: {$sale->total_amount}");
     }
 }

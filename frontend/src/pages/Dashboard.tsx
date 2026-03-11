@@ -12,7 +12,7 @@ import CashDrop from '../components/Cashier/SalesOrder/CashDrop';
 import SearchReceipts from '../components/Cashier/SalesOrder/SearchReceipts';
 import CashCount from '../components/Cashier/SalesOrder/CashCount';
 import SalesDashboard from '../components/Cashier/SalesReport/SalesDashboard';
-import ItemsReport from '../components/BranchManager/SalesReport/ItemsReport';
+import ItemsReport from '../components/Cashier/SalesReport/ItemsReport';
 import XReading from '../components/Cashier/SalesReport/XReading';
 import ZReading from '../components/Cashier/SalesReport/ZReading';
 import MenuList from '../components/Cashier/MenuItems/MenuList';
