@@ -5,8 +5,13 @@ import TopNavbar from '../../Cashier/TopNavbar';
 import api from '../../../services/api';
 import { isAxiosError } from 'axios';
 import { useToast } from '../../../hooks/useToast';
+import { ScanLine, AlertCircle } from 'lucide-react';
 
-const dashboardFont = { fontFamily: "'Inter', sans-serif" };
+const STYLES = `
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
+  .bm-root, .bm-root * { font-family: 'DM Sans', sans-serif !important; box-sizing: border-box; }
+  .bm-label { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #3f3f46; }
+`;
 
 interface ItemDetails {
   name: string;
@@ -15,11 +20,10 @@ interface ItemDetails {
   barcode: string;
 }
 
-// FIX: Changed 'ItemChecker' to 'BM_InventoryItemChecker' to match the export
 const BM_InventoryItemChecker = () => {
   const { showToast } = useToast();
-  const [barcode, setBarcode] = useState("");
-  const [item, setItem] = useState<ItemDetails | null>(null);
+  const [barcode, setBarcode] = useState('');
+  const [item, setItem]       = useState<ItemDetails | null>(null);
   const [loading, setLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -32,13 +36,13 @@ const BM_InventoryItemChecker = () => {
     try {
       const response = await api.get(`/inventory/check/${barcode}`);
       setItem(response.data);
-      setBarcode(""); // Clear for next scan
+      setBarcode('');
       inputRef.current?.focus();
     } catch (err) {
       if (isAxiosError(err) && err.response?.status === 404) {
-        showToast("Item not registered", 'error');
+        showToast('Item not registered', 'error');
       } else {
-        showToast("Search failed", 'error');
+        showToast('Search failed', 'error');
       }
     } finally {
       setLoading(false);
@@ -47,66 +51,102 @@ const BM_InventoryItemChecker = () => {
 
   return (
     <>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');`}</style>
-      <div className="flex-1 bg-[#f3f0ff] h-full flex flex-col overflow-hidden font-sans" style={dashboardFont}>
+      <style>{STYLES}</style>
+      <div className="bm-root flex-1 bg-[#f5f4f8] h-full flex flex-col overflow-hidden">
         <TopNavbar />
-        
-        <div className="flex-1 p-5 md:p-7 flex flex-col items-center justify-center gap-4">
-          {/* Header */}
-          <div className="text-center">
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Inventory</p>
-            <h1 className="text-lg font-extrabold text-[#1c1c1e] mt-0.5">Item Checker</h1>
+
+        <div className="flex-1 overflow-y-auto px-5 md:px-8 py-5 flex flex-col items-center gap-5">
+
+          {/* ── Header ── */}
+          <div className="w-full max-w-md">
+            <p className="bm-label" style={{ color: '#a1a1aa' }}>Inventory</p>
+            <h1 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.03em', margin: 0, marginTop: 2 }}>
+              Item Checker
+            </h1>
           </div>
 
-          {/* SCANNER INPUT */}
-          <div className="bg-white p-8 rounded-[0.625rem] shadow-sm border border-zinc-200 w-full max-w-md text-center">
-            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block mb-4">
-              Scan or Enter Barcode
-            </label>
-            <form onSubmit={handleCheck}>
-              <input 
+          {/* ── Scanner card ── */}
+          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm w-full max-w-md p-8">
+            <div className="flex items-center justify-center gap-2 mb-6">
+              <div className="w-8 h-8 rounded-xl bg-[#ede9fe] flex items-center justify-center">
+                <ScanLine size={15} strokeWidth={2.5} className="text-[#3b2063]" />
+              </div>
+              <p className="bm-label" style={{ color: '#a1a1aa' }}>Scan or Enter Barcode</p>
+            </div>
+
+            <form onSubmit={handleCheck} className="flex flex-col gap-3">
+              <input
                 ref={inputRef}
                 autoFocus
-                type="text" 
+                type="text"
                 value={barcode}
-                onChange={(e) => setBarcode(e.target.value)}
-                className="w-full px-4 py-4 rounded-[0.625rem] border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white text-center mb-4" 
-                placeholder="00000000" 
+                onChange={e => setBarcode(e.target.value)}
+                className="w-full px-4 py-4 rounded-xl border border-gray-100 outline-none focus:border-[#ddd6f7] transition-all bg-white text-center"
+                style={{ fontSize: '1rem', fontWeight: 700, color: '#1a0f2e', letterSpacing: '0.08em' }}
+                placeholder="00000000"
               />
-              <button 
+              <button
                 type="submit"
                 disabled={loading}
-                className="w-full h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] disabled:opacity-50"
+                className="w-full h-11 bg-[#3b2063] hover:bg-[#2a1647] text-white transition-all rounded-xl disabled:opacity-50 active:scale-[0.98] flex items-center justify-center gap-2"
+                style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase' }}
               >
-                {loading ? "Searching..." : "Check Item"}
+                {loading
+                  ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Searching…</>
+                  : 'Check Item'}
               </button>
             </form>
           </div>
 
-          {/* RESULT CARD */}
+          {/* ── Result card ── */}
           {item && (
-            <div className="w-full max-w-md bg-white rounded-[0.625rem] shadow-xl border-4 border-emerald-500 overflow-hidden animate-in zoom-in duration-300">
-              <div className="bg-emerald-500 p-4 text-center">
-                <span className="text-[10px] font-bold text-white uppercase tracking-widest">Product Found</span>
+            <div className="w-full max-w-md bg-white rounded-2xl shadow-lg overflow-hidden animate-in zoom-in-95 duration-200"
+              style={{ border: '2px solid #bbf7d0' }}>
+
+              {/* Green header */}
+              <div className="px-6 py-4 flex items-center justify-center gap-2"
+                style={{ background: '#f0fdf4', borderBottom: '1px solid #bbf7d0' }}>
+                <span className="w-2 h-2 rounded-full bg-emerald-500"
+                  style={{ boxShadow: '0 0 6px rgba(34,197,94,0.6)' }} />
+                <span className="bm-label" style={{ color: '#16a34a' }}>Product Found</span>
               </div>
-              <div className="p-8 text-center space-y-4">
-                <h3 className="text-2xl font-extrabold text-[#3b2063] uppercase leading-tight">{item.name}</h3>
-                <div className="flex justify-center gap-8 py-4">
-                  <div>
-                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Price</p>
-                    <p className="text-2xl font-extrabold text-emerald-600">₱{Number(item.price).toFixed(2)}</p>
-                  </div>
-                  <div className="border-l border-zinc-100 pl-8">
-                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Stock</p>
-                    <p className={`text-2xl font-extrabold ${item.quantity <= 10 ? 'text-red-500' : 'text-[#1c1c1e]'}`}>
-                      {item.quantity}
+
+              <div className="p-8 text-center space-y-5">
+                <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.025em', lineHeight: 1.2 }}>
+                  {item.name}
+                </h3>
+
+                {/* Stats row */}
+                <div className="flex justify-center gap-8 py-2">
+                  <div className="text-center">
+                    <p className="bm-label" style={{ color: '#a1a1aa' }}>Price</p>
+                    <p style={{ fontSize: '1.6rem', fontWeight: 800, color: '#16a34a', letterSpacing: '-0.03em', lineHeight: 1.1, marginTop: 4 }}>
+                      ₱{Number(item.price).toFixed(2)}
                     </p>
                   </div>
+                  <div style={{ borderLeft: '1px solid #f4f4f5' }} className="pl-8 text-center">
+                    <p className="bm-label" style={{ color: '#a1a1aa' }}>Stock</p>
+                    <div className="flex items-center gap-1.5 justify-center mt-1">
+                      <p style={{
+                        fontSize: '1.6rem', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.1,
+                        color: item.quantity <= 10 ? '#dc2626' : '#1a0f2e',
+                      }}>
+                        {item.quantity}
+                      </p>
+                      {item.quantity <= 10 && (
+                        <AlertCircle size={14} strokeWidth={2.5} className="text-red-500 mt-0.5" />
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <p className="text-[10px] font-mono text-zinc-300">SKU: {item.barcode}</p>
+
+                <p style={{ fontSize: '0.65rem', fontWeight: 600, color: '#d4d4d8', fontFamily: 'monospace', letterSpacing: '0.1em' }}>
+                  SKU: {item.barcode}
+                </p>
               </div>
             </div>
           )}
+
         </div>
       </div>
     </>
