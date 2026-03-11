@@ -161,7 +161,7 @@ const Login: React.FC = () => {
           position: relative;
           z-index: 1;
           width: 100%;
-          margin-top: -100px;
+          margin-top: -50px;
         }
 
         /* Logo block */
@@ -170,15 +170,52 @@ const Login: React.FC = () => {
           flex-direction: column;
           align-items: center;
           gap: 0.5rem;
-          margin-top: -5rem;
-          margin-bottom: -8.5rem;
+          margin-top: -2rem;
+          margin-bottom: -4rem;
         }
         .lb-logo-hero img {
-          width: 580px;
-          height: 580px;
+          width: 420px;
+          height: 420px;
           object-fit: contain;
           filter: drop-shadow(0 8px 24px rgba(0,0,0,0.35));
         }
+
+        /* Responsive logo for 1366x768 screens */
+        @media (min-width: 1300px) and (max-width: 1400px) and (max-height: 800px) {
+          .lb-logo-hero {
+            margin-top: 0;
+            margin-bottom: -2rem;
+          }
+          .lb-logo-hero img {
+            width: 260px;
+            height: 260px;
+          }
+          .lb-left-center {
+            margin-top: -20px;
+          }
+          .lb-form-title {
+            font-size: 2.1rem;
+          }
+          .lb-form-sub {
+            font-size: 0.92rem;
+            margin-bottom: 1.8rem;
+          }
+          .lb-label {
+            font-size: 0.72rem;
+          }
+          .lb-input {
+            padding: 14px 18px;
+            font-size: 1rem;
+          }
+          .lb-btn {
+            padding: 15px 20px;
+            font-size: 0.8rem;
+          }
+          .lb-form-wrap {
+            max-width: 460px;
+          }
+        }
+
         .lb-logo-tagline {
           font-size: 0.55rem;
           font-weight: 800;

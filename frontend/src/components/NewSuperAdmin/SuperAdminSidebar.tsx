@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   LayoutGrid, GitBranch, Users, BarChart2, Settings,
-  LogOut, HelpCircle, ShieldCheck, Tag, ChevronDown,
+  LogOut, HelpCircle, ShieldCheck, Tag, 
   ChevronRight, UtensilsCrossed, Layers, List, Package,
   TrendingUp, FileText, ClipboardList, Receipt, Repeat2,
   Truck, ScanLine, Hash, ShoppingCart, ArrowLeftRight,
@@ -234,16 +234,28 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
           ${open ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        {/* Brand */}
+        {/* User Profile */}
         <div className="shrink-0 px-4 pt-6 pb-4 border-b border-zinc-100">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-[0.4rem] bg-[#3b2063] flex items-center justify-center shrink-0">
-              <span className="text-[0.55rem] font-black text-white tracking-wide">SA</span>
+              <span className="text-[0.55rem] font-black text-white tracking-wide">{initials}</span>
             </div>
-            <div>
-              <p className="text-[0.85rem] font-bold text-[#1a0f2e] leading-tight">Lucky Boba</p>
-              <p className="text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">Super Admin</p>
-            </div>
+            {authUser ? (
+              <div>
+                <p className="text-[0.85rem] font-bold text-[#1a0f2e] leading-tight truncate max-w-35">
+                  {authUser.name}
+                </p>
+                <p className="text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">
+                  {ROLE_LABELS[authUser.role] ?? authUser.role}
+                </p>
+              </div>
+            ) : (
+              // Skeleton while loading
+              <div className="flex flex-col gap-1.5">
+                <div className="h-3 w-24 bg-zinc-200 rounded animate-pulse" />
+                <div className="h-2 w-16 bg-zinc-100 rounded animate-pulse" />
+              </div>
+            )}
           </div>
         </div>
 
@@ -331,37 +343,6 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
           <div className="pb-4" />
         </div>
 
-        {/* User card */}
-        <div className="shrink-0 px-3 py-3 mx-3 mb-2 bg-[#f9f8ff] border border-violet-100 rounded-xl">
-          {authUser ? (
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-[#3b2063] flex items-center justify-center shrink-0">
-                <span className="text-[0.6rem] font-bold text-white">{initials}</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[0.75rem] font-bold text-[#1a0f2e] truncate leading-tight">{authUser.name}</p>
-                <p className="text-[0.6rem] font-semibold text-violet-500 truncate">
-                  {ROLE_LABELS[authUser.role] ?? authUser.role}
-                </p>
-              </div>
-              <ChevronDown size={12} className="text-zinc-300 shrink-0" />
-            </div>
-          ) : (
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full bg-zinc-200 animate-pulse shrink-0" />
-              <div className="flex-1 flex flex-col gap-1.5">
-                <div className="h-2.5 bg-zinc-200 rounded animate-pulse w-3/4" />
-                <div className="h-2 bg-zinc-100 rounded animate-pulse w-1/2" />
-              </div>
-            </div>
-          )}
-          {authUser && (
-            <p className="mt-1.5 text-[0.58rem] text-zinc-400 font-medium truncate pl-10.5">
-              {authUser.email}
-            </p>
-          )}
-        </div>
-
         {/* Bottom actions */}
         <div className="shrink-0 px-3 pb-4 pt-2 border-t border-zinc-100">
           <button
@@ -443,7 +424,7 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-[#1a0f2e] truncate">{authUser.name}</p>
-                  <p className="text-[10px] text-zinc-400 truncate">{authUser.email}</p>
+                  <p className="text-[10px] text-zinc-800 truncate">{authUser.email}</p>
                 </div>
               </div>
             )}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Users, BarChart2, ShoppingBag,
   Package, Settings as SettingsIcon, LogOut, HelpCircle, ChevronDown,
@@ -76,10 +76,21 @@ interface BranchManagerSidebarProps {
   isLoggingOut?:  boolean;
 }
 
+interface AuthUser {
+  id:     number;
+  name:   string;
+  email:  string;
+  role:   string;
+}
+
+const getToken = () =>
+  localStorage.getItem("auth_token") ||
+  localStorage.getItem("lucky_boba_token") || "";
+
 type GroupId = 'sales' | 'menu' | 'inventory';
 
 const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
-  isSidebarOpen, setSidebarOpen, logo, currentTab, setCurrentTab,
+  isSidebarOpen, setSidebarOpen, currentTab, setCurrentTab,
   onLogout, isLoggingOut: externalLoggingOut,
 }) => {
   const [openGroups, setOpenGroups] = useState<Set<GroupId>>(new Set(['sales']));
@@ -150,6 +161,32 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
   const menuOpen      = openGroups.has('menu');
   const inventoryOpen = openGroups.has('inventory');
 
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    const fetchMe = async () => {
+      try {
+        const token = getToken();
+        const res = await fetch("/api/user", {
+          headers: {
+            "Accept":       "application/json",
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const u = data.data ?? data;
+        setAuthUser({ id: u.id, name: u.name, email: u.email, role: u.role });
+      } catch { /* silently fail */ }
+    };
+    fetchMe();
+  }, []);
+
+  const initials = authUser
+    ? authUser.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()
+    : "BM";
+
   return (
     <>
       <style>{SB_STYLES}</style>
@@ -169,12 +206,26 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
               background: '#3b2063', flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <span style={{ fontSize: '0.6rem', fontWeight: 800, color: '#fff', letterSpacing: '0.02em' }}>BM</span>
+              <span style={{ fontSize: '0.6rem', fontWeight: 800, color: '#fff', letterSpacing: '0.02em' }}>
+                {initials}
+              </span>
             </div>
-            <div className="text-left">
-              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1a0f2e', lineHeight: 1.2 }}>Lucky Boba</div>
-              <div style={{ fontSize: '0.6rem', fontWeight: 600, color: '#a1a1aa', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Branch Manager</div>
-            </div>
+            {authUser ? (
+              <div className="text-left">
+                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1a0f2e', lineHeight: 1.2 }}
+                  className="truncate max-w-35">
+                  {authUser.name}
+                </div>
+                <div style={{ fontSize: '0.6rem', fontWeight: 600, color: '#a1a1aa', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                  Branch Manager
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1.5">
+                <div className="h-3 w-24 bg-zinc-200 rounded animate-pulse" />
+                <div className="h-2 w-16 bg-zinc-100 rounded animate-pulse" />
+              </div>
+            )}
           </div>
         </div>
 
@@ -243,11 +294,6 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
             Settings
           </button>
 
-        </div>
-
-        {/* ── Logo ── */}
-        <div className="shrink-0 flex justify-center px-4 pb-4">
-          <img src={logo} alt="Lucky Boba" className="h-20 w-auto object-contain" />
         </div>
 
         {/* ── Bottom-pinned ── */}
