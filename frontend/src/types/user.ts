@@ -18,8 +18,8 @@ export interface User {
   role: UserRole;
   status: UserStatus;
   branch?: string;
-  branch_name?: string;
-  branch_id?: number;
+  branch_name?: string | null; 
+  branch_id?: number | null; 
   email_verified_at?: string | null;
 }
 

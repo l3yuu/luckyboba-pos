@@ -1,26 +1,26 @@
-import MenuList from '../components/MenuItems/MenuList';
-import CategoryList from '../components/MenuItems/CategoryList';
-import SubCategoryList from '../components/MenuItems/Sub-CategoryList';
+import MenuList from '../components/Cashier/MenuItems/MenuList';
+import CategoryList from '../components/Cashier/MenuItems/CategoryList';
+import SubCategoryList from '../components/Cashier/MenuItems/Sub-CategoryList';
 
 // --- Import Inventory Components ---
-import InventoryDashboard from '../components/Inventory/InventoryDashboard';
-import InventoryCategoryList from '../components/Inventory/InventoryCategoryList';
-import InventoryList from '../components/Inventory/InventoryList';
-import InventoryReport from '../components/Inventory/InventoryReport';
-import ItemChecker from '../components/Inventory/ItemChecker';
-import ItemSerials from '../components/Inventory/ItemSerials';
-import PurchaseOrder from '../components/Inventory/PurchaseOrder';
-import StockTransfer from '../components/Inventory/StockTransfer';
-import Supplier from '../components/Inventory/Supplier';
+import InventoryDashboard from '../components/Cashier/Inventory/InventoryDashboard';
+import InventoryCategoryList from '../components/Cashier/Inventory/InventoryCategoryList';
+import InventoryList from '../components/Cashier/Inventory/InventoryList';
+import InventoryReport from '../components/Cashier/Inventory/InventoryReport';
+import ItemChecker from '../components/Cashier/Inventory/ItemChecker';
+import ItemSerials from '../components/Cashier/Inventory/ItemSerials';
+import PurchaseOrder from '../components/Cashier/Inventory/PurchaseOrder';
+import StockTransfer from '../components/Cashier/Inventory/StockTransfer';
+import Supplier from '../components/Cashier/Inventory/Supplier';
 
 // --- Import Settings Component ---
-import Settings from '../components/Settings';
+import Settings from '../components/Cashier/Settings/Settings';
 
 // --- Import Sales Report Components ---
-import SalesDashboard from '../components/SalesReport/SalesDashboard';
-import ItemsReport from '../components/SalesReport/ItemsReport';
-import XReading from '../components/SalesReport/XReading';
-import ZReading from '../components/SalesReport/ZReading';
+import SalesDashboard from '../components/Cashier/SalesReport/SalesDashboard';
+import ItemsReport from '../components/Cashier/SalesReport/ItemsReport';
+import XReading from '../components/Cashier/SalesReport/XReading';
+import ZReading from '../components/Cashier/SalesReport/ZReading';
 
 export const getComponentForTab = (activeTab: string) => {
   switch (activeTab) {

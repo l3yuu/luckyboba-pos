@@ -7,6 +7,7 @@ use App\Models\MenuItem;
 use App\Models\Receipt;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Observers\SaleObserver;
 use App\Services\DashboardService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -27,39 +28,38 @@ class SalesController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'si_number' => 'required|string', 
-            'items' => 'required|array|min:1',
-            'items.*.menu_item_id' => 'required|exists:menu_items,id',
-            'items.*.name' => 'required|string',
-            'items.*.quantity' => 'required|integer|min:1',
-            'items.*.unit_price' => 'required|numeric|min:0',
-            'items.*.total_price' => 'required|numeric|min:0',
-            'items.*.size' => 'nullable|string',
-            'items.*.sugar_level' => 'nullable|string',
-            'items.*.options' => 'nullable|array',
-            'items.*.add_ons' => 'nullable|array',
-            'items.*.remarks' => 'nullable|string',
-            'items.*.charges' => 'nullable|array',
-            'subtotal' => 'required|numeric|min:0',
-            'total' => 'required|numeric|min:0',
-            'cashier_name' => 'nullable|string',
-            'payment_method' => 'nullable|string',
-            'reference_number' => 'nullable|string',
-            
-            // --- NEW FIELDS VALIDATION ---
-            'pax_regular' => 'required|integer|min:0',
-            'pax_senior' => 'required|integer|min:0',
-            'pax_pwd' => 'required|integer|min:0',
-            'pax_diplomat' => 'required|integer|min:0',
-            'senior_id' => 'nullable|string',
-            'pwd_id' => 'nullable|string',
-            'diplomat_id' => 'nullable|string',
-            'discount_remarks' => 'nullable|string',
-            'vatable_sales' => 'required|numeric',
-            'vat_amount' => 'required|numeric',
+            'si_number'                => 'required|string',
+            'items'                    => 'required|array|min:1',
+            'items.*.menu_item_id'     => 'required|exists:menu_items,id',
+            'items.*.name'             => 'required|string',
+            'items.*.quantity'         => 'required|integer|min:1',
+            'items.*.unit_price'       => 'required|numeric|min:0',
+            'items.*.total_price'      => 'required|numeric|min:0',
+            'items.*.size'             => 'nullable|string',
+            'items.*.cup_size_label'   => 'nullable|string',
+            'items.*.sugar_level'      => 'nullable|string',
+            'items.*.options'          => 'nullable|array',
+            'items.*.add_ons'          => 'nullable|array',
+            'items.*.remarks'          => 'nullable|string',
+            'items.*.charges'          => 'nullable|array',
+            'subtotal'                 => 'required|numeric|min:0',
+            'total'                    => 'required|numeric|min:0',
+            'cashier_name'             => 'nullable|string',
+            'payment_method'           => 'nullable|string',
+            'reference_number'         => 'nullable|string',
+            'pax_regular'              => 'required|integer|min:0',
+            'pax_senior'               => 'required|integer|min:0',
+            'pax_pwd'                  => 'required|integer|min:0',
+            'pax_diplomat'             => 'required|integer|min:0',
+            'senior_id'                => 'nullable|string',
+            'pwd_id'                   => 'nullable|string',
+            'diplomat_id'              => 'nullable|string',
+            'discount_remarks'         => 'nullable|string',
+            'vatable_sales'            => 'required|numeric',
+            'vat_amount'               => 'required|numeric',
         ]);
 
-        $user = auth('sanctum')->user();
+        $user        = auth('sanctum')->user();
         $cashierName = $request->input('cashier_name') ?? ($user ? $user->name : 'System Admin');
         $userId = $user ? $user->id : null;
         $branchId = $user ? $user->branch_id : null;
@@ -71,17 +71,17 @@ class SalesController extends Controller
             DB::beginTransaction();
 
             $chargeType = null;
-            $totalQty = 0; 
-            
+            $totalQty   = 0;
+
             foreach ($validated['items'] as $item) {
                 $totalQty += $item['quantity'];
                 if (isset($item['charges'])) {
-                    if ($item['charges']['grab'] ?? false) $chargeType = 'grab';
+                    if ($item['charges']['grab']  ?? false) $chargeType = 'grab';
                     if ($item['charges']['panda'] ?? false) $chargeType = 'panda';
                 }
             }
 
-            // 1. Create Sale
+            // ── 1. Create Sale ─────────────────────────────────────────────────────
             $sale = Sale::create([
                 'user_id' => $userId,
                 'branch_id'      => $branchId,
@@ -109,19 +109,20 @@ class SalesController extends Controller
                 'is_synced' => false,
             ]);
 
-            // 2. Create Sale Items
+            // ── 2. Create Sale Items ───────────────────────────────────────────────
             foreach ($validated['items'] as $item) {
                 SaleItem::create([
-                    'sale_id' => $sale->id, 
+                    'sale_id'      => $sale->id,
                     'menu_item_id' => $item['menu_item_id'],
                     'product_name' => $item['name'],
-                    'quantity' => $item['quantity'],
-                    'price' => (float)$item['unit_price'] + (($item['size'] ?? null) === 'L' ? 20 : 0), 
-                    'final_price' => $item['total_price'],
-                    'size' => $item['size'] ?? null,
-                    'sugar_level' => $item['sugar_level'] ?? null,
-                    'options' => $item['options'] ?? null,
-                    'add_ons' => $item['add_ons'] ?? null,
+                    'quantity'     => $item['quantity'],
+                    'price'        => (float) $item['unit_price'] + (($item['size'] ?? null) === 'L' ? 20 : 0),
+                    'final_price'  => $item['total_price'],
+                    'size'         => $item['size']        ?? null,
+                    'cup_size_label'  => $item['cup_size_label'] ?? null,
+                    'sugar_level'  => $item['sugar_level'] ?? null,
+                    'options'      => $item['options']     ?? null,
+                    'add_ons'      => $item['add_ons']     ?? null,
                 ]);
 
                 $menuItem = MenuItem::find($item['menu_item_id']);
@@ -130,9 +131,9 @@ class SalesController extends Controller
                 }
             }
 
-            // 3. Create Receipt
+            // ── 3. Create Receipt ──────────────────────────────────────────────────
             Receipt::create([
-                'si_number'    => $officialOR, // Save OR here
+                'si_number'    => $officialOR,
                 'terminal'     => '01',
                 'items_count'  => $totalQty,
                 'cashier_name' => $cashierName,
@@ -141,13 +142,18 @@ class SalesController extends Controller
                 'branch_id'    => $branchId,
             ]);
 
+            // ── 4. Deduct Raw Materials ────────────────────────────────────────────
+            // Called here (after SaleItems exist) so the observer has rows to query.
+            // Runs inside the same DB transaction — rolls back automatically on error.
+            app(SaleObserver::class)->deductStock($sale);
+
             DB::commit();
-            $this->dashboardService->clearTodayCache();
+            $this->dashboardService->clearTodayCache($sale->branch_id);
 
             return response()->json([
-                'status'  => 'success',
+                'status'    => 'success',
                 'si_number' => $officialOR,
-                'sale'    => $sale->load('items'),
+                'sale'      => $sale->load('items'),
             ], 201);
 
         } catch (\Exception $e) {
@@ -175,11 +181,12 @@ class SalesController extends Controller
 
     /**
      * Void/Cancel a sale.
+     * Restores both MenuItem quantity AND raw material stock.
      */
     public function cancel(Request $request, $id)
     {
         $request->validate([
-            'reason' => 'required|string|max:255'
+            'reason' => 'required|string|max:255',
         ]);
 
         try {
@@ -191,29 +198,33 @@ class SalesController extends Controller
                 return response()->json(['message' => 'Sale already cancelled'], 400);
             }
 
-            // Restore inventory for all items in the sale
+            // ── Restore MenuItem quantities ────────────────────────────────────────
             foreach ($sale->items as $item) {
                 $menuItem = MenuItem::find($item->menu_item_id);
                 if ($menuItem) {
                     $menuItem->increment('quantity', $item->quantity);
                 } else {
-                    Log::warning("Inventory restore failed for sale #{$sale->invoice_number}: Item ID {$item->menu_item_id} not found.");
+                    Log::warning("Inventory restore failed for sale #{$sale->invoice_number}: MenuItem ID {$item->menu_item_id} not found.");
                 }
             }
 
-            // Update Sale Status
+            // ── Update Sale Status ─────────────────────────────────────────────────
+            // The SaleObserver@updated will detect status → 'cancelled'
+            // and automatically reverse all raw material deductions.
             $sale->update([
-                'status' => 'cancelled',
-                'cancellation_reason' => $request->reason,
-                'cancelled_at' => now(),
+                'status'               => 'cancelled',
+                'cancellation_reason'  => $request->reason,
+                'cancelled_at'         => now(),
             ]);
 
             DB::commit();
-            $this->dashboardService->clearTodayCache();
+            $this->dashboardService->clearTodayCache($sale->branch_id);
 
             return response()->json(['status' => 'success', 'message' => 'Voided successfully']);
+
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Sale cancellation failed: ' . $e->getMessage());
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
         }
     }

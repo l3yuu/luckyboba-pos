@@ -6,10 +6,10 @@ import axios from 'axios';
 
 const AUTH_KEYS = [
   'lucky_boba_token',
-  'lucky_boba_authenticated',
   'lucky_boba_user_name',
   'lucky_boba_user_role',
   'lucky_boba_user_branch',
+  'lucky_boba_user_branch_id',
   'dashboard_stats',
   'dashboard_stats_timestamp',
 ];
@@ -28,13 +28,10 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  // ✅ FIX 1: Always start loading if a token exists — never trust localStorage user directly
   const [isLoading, setIsLoading] = useState<boolean>(
     () => !!localStorage.getItem('lucky_boba_token')
   );
   const [error, setError] = useState<string | null>(null);
-
-  // ✅ FIX 2: Always start as null — wait for server to confirm before setting user
   const [user, setUser] = useState<User | null>(null);
 
   const clearSession = useCallback(() => {
@@ -53,15 +50,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
     try {
-      // ✅ FIX 3: Only set user AFTER server confirms the token is valid
       const response = await api.get('/user');
       const userData = response.data;
       localStorage.setItem('lucky_boba_user_name', userData.name);
       localStorage.setItem('lucky_boba_user_role', userData.role || 'cashier');
       localStorage.setItem('lucky_boba_user_branch', userData.branch_name ?? '');
+      localStorage.setItem('lucky_boba_user_branch_id', String(userData.branch_id ?? ''));
       setUser(userData);
     } catch {
-      // Token is invalid/expired — clear everything and send to login
       clearSession();
     } finally {
       setIsLoading(false);
@@ -69,23 +65,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [clearSession]);
 
   useEffect(() => {
-    const interceptor = api.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        if (error.response?.status === 401) clearSession();
-        return Promise.reject(error);
-      }
-    );
-
+    // api.ts already handles 401 globally — no duplicate interceptor needed here
     checkAuth();
-
-    return () => api.interceptors.response.eject(interceptor);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const login = useCallback(async (credentials: LoginCredentials): Promise<User | null> => {
     setError(null);
 
+    // Check lockout
     const lockoutEnd = localStorage.getItem('login_lockout_end');
     if (lockoutEnd) {
       const remaining = parseInt(lockoutEnd) - Date.now();
@@ -103,23 +91,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     try {
       const response = await api.post('/login', credentials);
-      if (response.data.success === false)
+
+      // Some backends return 200 with success: false
+      if (response.data.success === false) {
         throw new Error(response.data.message || 'Invalid credentials.');
+      }
 
       const { token, user: userData } = response.data;
       localStorage.setItem('lucky_boba_token', token);
-      localStorage.setItem('lucky_boba_authenticated', 'true');
       localStorage.setItem('lucky_boba_user_name', userData.name);
       localStorage.setItem('lucky_boba_user_role', userData.role || 'cashier');
       localStorage.setItem('lucky_boba_user_branch', userData.branch_name ?? '');
+      localStorage.setItem('lucky_boba_user_branch_id', String(userData.branch_id ?? ''));
       localStorage.removeItem('login_attempts');
       localStorage.removeItem('login_lockout_end');
 
       setUser(userData);
       return userData;
+
     } catch (err: unknown) {
-      const attempts =
-        parseInt(localStorage.getItem('login_attempts') || '0') + 1;
+      // Track failed attempts
+      const attempts = parseInt(localStorage.getItem('login_attempts') || '0') + 1;
       localStorage.setItem('login_attempts', attempts.toString());
 
       if (attempts >= MAX_LOGIN_ATTEMPTS) {
@@ -131,21 +123,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return null;
       }
 
-      clearSession();
+      // ✅ KEY FIX: Do NOT call clearSession() here — it wipes state and can
+      // interfere with error display. Only set the error message.
+      let message = 'Invalid email or password.';
 
       if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.message || 'Invalid credentials.');
+        // Laravel returns { message: '...' } on 401/422
+        message = err.response?.data?.message || message;
       } else if (err instanceof Error) {
-        setError(err.message);
-      } else {
-        setError('An unexpected error occurred');
+        message = err.message;
       }
 
-      return null;
+      setError(message);
+      throw new Error(message); // ← let caller catch directly, no state timing issues
+
     } finally {
       setIsLoading(false);
     }
-  }, [clearSession]);
+  }, []);
 
   const logout = useCallback(async (): Promise<void> => {
     try {

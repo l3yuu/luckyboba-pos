@@ -56,7 +56,7 @@ class DashboardService
             $query = DB::table('sale_items')
                 ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
                 ->where('sales.status', 'completed')
-                ->whereBetween('sale_items.created_at', [$start, $end]);
+                ->whereBetween('sales.created_at', [$start, $end]);  // ← more reliable
 
             if ($branchId) {
                 $query->where('sales.branch_id', $branchId);
@@ -97,9 +97,20 @@ class DashboardService
         });
     }
 
-    public function clearTodayCache()
+    public function clearTodayCache(?int $branchId = null)
     {
         Cache::forget('top_seller_all_time');
+        if ($branchId) {
+            Cache::forget("top_seller_all_time_branch_{$branchId}");
+        }
+    }
+    
+    public function clearAllTimeCache(?int $branchId = null)
+    {
+        Cache::forget('top_seller_all_time'); // global
+        if ($branchId) {
+            Cache::forget("top_seller_all_time_branch_{$branchId}");
+        }
     }
 
     public function getTodayTotals()

@@ -48,8 +48,12 @@ public function destroy(Request $request)
         $user->currentAccessToken()->delete();
     }
 
-    return response()->json([
-        'message' => 'Logged out successfully'
-    ]);
-}
+        if ($user && $user->currentAccessToken()) {
+            $user->currentAccessToken()->delete();
+        }
+
+        return response()->json([
+            'message' => 'Logged out successfully'
+        ]);
+    }
 }

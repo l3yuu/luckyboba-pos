@@ -20,65 +20,71 @@ class ReceiptController extends Controller
 
     public function getNextSequence()
     {
-        // Find the latest si_number that starts with 'OR-'
-        $latest = Receipt::where('si_number', 'LIKE', 'OR-%')
-            // This sorts by the number after 'OR-' numerically
-            ->orderByRaw('CAST(SUBSTRING(si_number, 4) AS UNSIGNED) DESC')
+        $latest = \App\Models\Sale::where('invoice_number', 'LIKE', 'SI-%')
+            ->whereRaw("invoice_number REGEXP '^SI-[0-9]+$'") // skip corrupted NaN records
+            ->orderByRaw('CAST(SUBSTRING(invoice_number, 4) AS UNSIGNED) DESC')
             ->first();
 
         if (!$latest) {
             return response()->json(['next_sequence' => 1]);
         }
 
-        // 'OR-' is 3 characters. substr(..., 3) starts at the 4th character.
-        // Example: "OR-0000000001" -> "0000000001" -> 1
-        $lastNumber = (int) substr($latest->si_number, 3);
+        $lastNumber = (int) substr($latest->invoice_number, 3);
 
         return response()->json(['next_sequence' => $lastNumber + 1]);
     }
 
     public function search(Request $request)
-{
-    $query = $request->input('query');
-    $date  = $request->input('date');
-    $user  = auth()->user(); // ✅ get the logged-in user
+    {
+        $query = $request->input('query');
+        $date  = $request->input('date');
+        $user  = auth()->user();
 
         $dbQuery = Receipt::query()
             ->leftJoin('sales', 'receipts.sale_id', '=', 'sales.id')
             ->select([
-                'receipts.sale_id',        
+                'receipts.sale_id',
                 'receipts.si_number',
                 'receipts.total_amount',
                 'receipts.cashier_name',
                 'receipts.terminal',
-                'receipts.items_count',  
+                'receipts.items_count',
                 'receipts.created_at',
                 'sales.status',
                 'sales.cancellation_reason',
             ]);
 
-    // ✅ Filter by branch — superadmin sees all, others see only their branch
-    if ($user->role !== 'superadmin' && $user->branch_id) {
-        $dbQuery->where('receipts.branch_id', $user->branch_id);
+        if ($user->role !== 'superadmin' && $user->branch_id) {
+            $dbQuery->where('receipts.branch_id', $user->branch_id);
+        }
+
+        if (!empty($date)) {
+            $dbQuery->whereDate('receipts.created_at', $date);
+        }
+
+        if (!empty($query)) {
+            $lowQuery = strtolower($query);
+            $dbQuery->where(function ($q) use ($lowQuery) {
+                $q->whereRaw('LOWER(receipts.si_number) LIKE ?',      ["%{$lowQuery}%"])
+                ->orWhereRaw('LOWER(receipts.cashier_name) LIKE ?', ["%{$lowQuery}%"])
+                ->orWhereRaw('LOWER(receipts.terminal) LIKE ?',     ["%{$lowQuery}%"]);
+            });
+        }
+
+        $results = $dbQuery->latest('receipts.created_at')->limit(50)->get();
+
+        // Calculate stats from the result set
+        $gross  = $results->sum('total_amount');
+        $voided = $results->where('status', 'cancelled')->sum('total_amount');
+        $net    = $gross - $voided;
+
+        return response()->json([
+            'results' => $results->values(),
+            'stats'   => [
+                'gross'  => round($gross, 2),
+                'voided' => round($voided, 2),
+                'net'    => round($net, 2),
+            ],
+        ]);
     }
-
-    // Filter by date if provided
-    if (!empty($date)) {
-        $dbQuery->whereDate('receipts.created_at', $date);
-    }
-
-    // Filter by invoice number, cashier name, or terminal
-    if (!empty($query)) {
-        $lowQuery = strtolower($query);
-        $dbQuery->where(function ($q) use ($lowQuery) {
-            $q->whereRaw('LOWER(receipts.si_number) LIKE ?',      ["%{$lowQuery}%"])
-              ->orWhereRaw('LOWER(receipts.cashier_name) LIKE ?', ["%{$lowQuery}%"])
-              ->orWhereRaw('LOWER(receipts.terminal) LIKE ?',     ["%{$lowQuery}%"]);
-        });
-    }
-
-    $results = $dbQuery->latest('receipts.created_at')->limit(50)->get();
-
-    return response()->json($results->values());
-}
 }

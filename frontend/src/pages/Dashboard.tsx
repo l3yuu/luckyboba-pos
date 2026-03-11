@@ -1,35 +1,34 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import Sidebar from "../components/Sidebar";
+import Sidebar from "../components/Cashier/Sidebar";
 import logo from '../assets/logo.png';
 import api from '../services/api'; 
 import type { DashboardData, TopSeller } from '../types/dashboard';
 import { Monitor, DollarSign, Receipt, ArrowDownToLine, ArrowUpFromLine, Ban, Trophy, Clock4, RefreshCw, TrendingUp } from 'lucide-react';
 
-import CashIn from '../components/SalesOrder/CashIn'; 
-import CashDrop from '../components/SalesOrder/CashDrop';
-import SearchReceipts from '../components/SalesOrder/SearchReceipts';
-import CashCount from '../components/SalesOrder/CashCount';
-import SalesDashboard from '../components/SalesReport/SalesDashboard';
-import ItemsReport from '../components/SalesReport/ItemsReport';
-import XReading from '../components/SalesReport/XReading';
-import ZReading from '../components/SalesReport/ZReading';
-import MenuList from '../components/MenuItems/MenuList';
-import CategoryList from '../components/MenuItems/CategoryList';
-import SubCategoryList from '../components/MenuItems/Sub-CategoryList';
-import Expense from '../components/Expense';
-import InventoryDashboard from '../components/Inventory/InventoryDashboard';
-import InventoryCategoryList from '../components/Inventory/InventoryCategoryList';
-import InventoryList from '../components/Inventory/InventoryList';
-import InventoryReport from '../components/Inventory/InventoryReport';
-import ItemChecker from '../components/Inventory/ItemChecker';
-import ItemSerials from '../components/Inventory/ItemSerials';
-import PurchaseOrder from '../components/Inventory/PurchaseOrder';
-import StockTransfer from '../components/Inventory/StockTransfer';
-import Supplier from '../components/Inventory/Supplier';
-import Settings from '../components/Settings';
-import RawMaterialList from '../components/Inventory/RawMaterialList';
+import CashIn from '../components/Cashier/SalesOrder/CashIn'; 
+import CashDrop from '../components/Cashier/SalesOrder/CashDrop';
+import SearchReceipts from '../components/Cashier/SalesOrder/SearchReceipts';
+import CashCount from '../components/Cashier/SalesOrder/CashCount';
+import SalesDashboard from '../components/Cashier/SalesReport/SalesDashboard';
+import ItemsReport from '../components/Cashier/SalesReport/ItemsReport';
+import XReading from '../components/Cashier/SalesReport/XReading';
+import ZReading from '../components/Cashier/SalesReport/ZReading';
+import MenuList from '../components/Cashier/MenuItems/MenuList';
+import CategoryList from '../components/Cashier/MenuItems/CategoryList';
+import SubCategoryList from '../components/Cashier/MenuItems/Sub-CategoryList';
+import Expense from '../components/Cashier/Expense';
+import InventoryDashboard from '../components/Cashier/Inventory/InventoryDashboard';
+import InventoryCategoryList from '../components/Cashier/Inventory/InventoryCategoryList';
+import InventoryList from '../components/Cashier/Inventory/InventoryList';
+import InventoryReport from '../components/Cashier/Inventory/InventoryReport';
+import ItemChecker from '../components/Cashier/Inventory/ItemChecker';
+import ItemSerials from '../components/Cashier/Inventory/ItemSerials';
+import PurchaseOrder from '../components/Cashier/Inventory/PurchaseOrder';
+import StockTransfer from '../components/Cashier/Inventory/StockTransfer';
+import Supplier from '../components/Cashier/Inventory/Supplier';
+import Settings from '../components/Cashier/Settings/Settings';
 
 interface DashboardStatsProps {
   stats: DashboardData | null;
@@ -70,6 +69,7 @@ const Dashboard = () => {
     return Date.now() - Number(ts) > 5 * 60 * 1000;
   });
   const isFetching = useRef(false);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (!authLoading && !user) navigate('/login', { replace: true });
@@ -77,7 +77,7 @@ const Dashboard = () => {
 
   const fetchStats = useCallback(async (force = false) => {
     if (isFetching.current) return;
-    if (!force && stats) {
+    if (!force) {
       const lastFetch = localStorage.getItem('dashboard_stats_timestamp');
       if (lastFetch && Date.now() - Number(lastFetch) < 5 * 60 * 1000) {
         setLoading(false); setIsInitialLoad(false); setIsStale(false);
@@ -97,17 +97,21 @@ const Dashboard = () => {
     } finally {
       setLoading(false); setIsInitialLoad(false); isFetching.current = false;
     }
-  }, [stats]);
+  }, []); // ← empty deps, reads localStorage directly instead of closing over stats
 
   useEffect(() => {
     if (!user || activeTab !== 'dashboard') return;
-    void (async () => { await fetchStats(); })();
-  }, [user, activeTab, fetchStats]);
+    void fetchStats(refreshKey > 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, activeTab, refreshKey]);
 
   if (authLoading || (isInitialLoad && !stats)) return <DashboardSkeleton />;
   if (!user) return null;
 
-  const refreshStats = () => { void (async () => { await fetchStats(true); })(); };
+  const refreshStats = () => {
+    localStorage.removeItem('dashboard_stats_timestamp');
+    setRefreshKey(k => k + 1);
+  };
 
   const renderContent = () => {
     switch (activeTab) {
@@ -126,7 +130,6 @@ const Dashboard = () => {
       case 'inventory-dashboard': return <InventoryDashboard />;
       case 'inventory-list':      return <InventoryList />;
       case 'inventory-category':  return <InventoryCategoryList />;
-      case 'raw-materials':       return <RawMaterialList />;
       case 'supplier':            return <Supplier />;
       case 'item-checker':        return <ItemChecker />;
       case 'item-serials':        return <ItemSerials />;
@@ -172,7 +175,7 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, onRefr
       <div className="grid grid-cols-12 gap-4">
 
         {/* Terminal Status */}
-        <div className="col-span-12 lg:col-span-5 bg-[#1e0f3c] rounded-none p-7 flex flex-col justify-between min-h-44 relative overflow-hidden">
+        <div className="col-span-12 lg:col-span-5 bg-[#1e0f3c] rounded-[0.625rem] p-7 flex flex-col justify-between min-h-44 relative overflow-hidden">
           <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
           <div className="relative z-10">
             <div className="flex items-center justify-between">
@@ -196,7 +199,7 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, onRefr
         </div>
 
         {/* Net Revenue */}
-        <div className="col-span-12 md:col-span-6 lg:col-span-4 bg-white border border-zinc-200 rounded-none p-7 flex flex-col justify-between min-h-44 stat-card">
+        <div className="col-span-12 md:col-span-6 lg:col-span-4 bg-white border border-zinc-200 rounded-[0.625rem] p-7 flex flex-col justify-between min-h-44 stat-card">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-violet-50 border border-violet-200 flex items-center justify-center">
@@ -219,7 +222,7 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, onRefr
         </div>
 
         {/* Transactions */}
-        <div className="col-span-12 md:col-span-6 lg:col-span-3 bg-white border border-zinc-200 rounded-none p-7 flex flex-col justify-between min-h-44 stat-card">
+        <div className="col-span-12 md:col-span-6 lg:col-span-3 bg-white border border-zinc-200 rounded-[0.625rem] p-7 flex flex-col justify-between min-h-44 stat-card">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-violet-50 border border-violet-200 flex items-center justify-center">
               <Receipt size={18} className="text-violet-600" strokeWidth={2} />
@@ -261,7 +264,7 @@ interface MetricCardProps {
 const accentMap = { emerald: 'text-emerald-700', zinc: 'text-zinc-800', red: 'text-red-600' };
 
 const MetricCard = ({ icon, label, value, isLoading, accent }: MetricCardProps) => (
-  <div className="bg-white border border-zinc-200 rounded-none px-6 py-5 flex items-center justify-between stat-card">
+  <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center justify-between stat-card">
     <div className="flex items-center gap-3">
       <div className="w-10 h-10 bg-zinc-50 border border-zinc-200 flex items-center justify-center">{icon}</div>
       <p className="text-sm font-bold uppercase tracking-widest text-zinc-700">{label}</p>
@@ -287,7 +290,7 @@ const LeaderboardCard = ({ title, icon, sellers, loading }: LeaderboardCardProps
   const slots = Array.from({ length: 5 }, (_, i) => list[i] || null);
 
   return (
-    <div className="col-span-12 lg:col-span-6 bg-white border border-zinc-200 rounded-none flex flex-col" style={{ minHeight: '380px' }}>
+    <div className="col-span-12 lg:col-span-6 bg-white border border-zinc-200 rounded-[0.625rem] flex flex-col" style={{ minHeight: '380px' }}>
       <div className="flex items-center gap-3 px-7 py-5 border-b border-zinc-200">
         <div className="w-9 h-9 bg-violet-50 border border-violet-200 flex items-center justify-center">{icon}</div>
         <p className="text-sm font-bold uppercase tracking-widest text-zinc-700">{title}</p>
@@ -349,16 +352,16 @@ const DashboardSkeleton = () => (
       </div>
       <div className="flex-1 p-7 flex flex-col gap-5">
         <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-5 h-44 bg-zinc-200/70 animate-pulse" />
-          <div className="col-span-4 h-44 bg-white animate-pulse border border-zinc-200" />
-          <div className="col-span-3 h-44 bg-white animate-pulse border border-zinc-200" />
+          <div className="col-span-5 h-44 bg-zinc-200/70 animate-pulse rounded-[0.625rem]" />
+          <div className="col-span-4 h-44 bg-white animate-pulse border border-zinc-200 rounded-[0.625rem]" />
+          <div className="col-span-3 h-44 bg-white animate-pulse border border-zinc-200 rounded-[0.625rem]" />
         </div>
         <div className="grid grid-cols-3 gap-4">
-          {[1,2,3].map(i => <div key={i} className="h-20 bg-white border border-zinc-200 animate-pulse" />)}
+          {[1,2,3].map(i => <div key={i} className="h-20 bg-white border border-zinc-200 animate-pulse rounded-[0.625rem]" />)}
         </div>
         <div className="grid grid-cols-12 gap-4 flex-1">
-          <div className="col-span-6 bg-white border border-zinc-200 animate-pulse" />
-          <div className="col-span-6 bg-white border border-zinc-200 animate-pulse" />
+          <div className="col-span-6 bg-white border border-zinc-200 animate-pulse rounded-[0.625rem]" />
+          <div className="col-span-6 bg-white border border-zinc-200 animate-pulse rounded-[0.625rem]" />
         </div>
       </div>
     </div>

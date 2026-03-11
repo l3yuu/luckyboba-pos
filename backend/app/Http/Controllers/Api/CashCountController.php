@@ -14,82 +14,87 @@ class CashCountController extends Controller
 {
     /**
      * Store the End of Day (EOD) Cash Count
-     * This version automatically calculates the expected cash drop.
+     * Automatically calculates the expected cash on hand.
      */
     public function store(Request $request): JsonResponse
     {
-        // Validate actual cash counted and the breakdown (denominations)
         $validated = $request->validate([
-            'total' => 'required|numeric|min:0',
+            'total'     => 'required|numeric|min:0',
             'breakdown' => 'required|array',
-            'remarks' => 'nullable|string',
+            'remarks'   => 'nullable|string',
         ]);
 
         try {
-            $userId = Auth::id();
-            $today = now()->toDateString();
+            $userId   = Auth::id();
+            $branchId = Auth::user()->branch_id;
+            $today    = now()->toDateString();
 
-            // 1. Get Initial Cash (First cash_in of the day)
+            // 1. Get total cash_in for the day (all cash_in transactions)
+            $totalCashIn = CashTransaction::where('user_id', $userId)
+                ->where('type', 'cash_in')
+                ->whereDate('created_at', $today)
+                ->sum('amount');
+
+            // 2. Get just the first cash_in (opening float / initial cash)
             $initialCash = CashTransaction::where('user_id', $userId)
                 ->where('type', 'cash_in')
                 ->whereDate('created_at', $today)
-                ->sum('amount');
+                ->orderBy('created_at')
+                ->value('amount') ?? 0;
 
-            // 2. Get Total Sales for today
-            $totalSales = Sale::whereDate('created_at', $today)
+            // 3. Any cash_in entries after the first one (mid-shift additions)
+            $otherCashIn = $totalCashIn - $initialCash;
+
+            // 4. Total sales collected during the shift
+            $totalSales = Sale::where('branch_id', $branchId)
+                ->whereDate('created_at', $today)
                 ->where('status', 'completed')
                 ->sum('total_amount');
 
-            // 3. Get other cash movements (if any)
-            // Skip the first cash_in (initial) and sum any subsequent ones
-            $otherCashIn = CashTransaction::where('user_id', $userId)
-                ->where('type', 'cash_in')
-                ->whereDate('created_at', $today)
-                ->offset(1)
-                ->limit(PHP_INT_MAX)
-                ->sum('amount');
-
+            // 5. All cash removed from the drawer (cash_out + cash_drop)
             $cashOut = CashTransaction::where('user_id', $userId)
-                ->where('type', 'cash_out')
+                ->whereIn('type', ['cash_out', 'cash_drop'])
                 ->whereDate('created_at', $today)
                 ->sum('amount');
 
-            // 4. AUTOMATIC CALCULATION (Expected Cash Drop)
+            // 6. Expected cash on hand = opening float + sales + mid-shift additions - removals
             $expectedCashDrop = ($initialCash + $totalSales + $otherCashIn) - $cashOut;
 
-            // 5. Calculate Shortage or Overage based on what the cashier actually counted
+            // 7. Shortage (negative) or overage (positive)
             $actualCashCounted = $validated['total'];
-            $shortOver = $actualCashCounted - $expectedCashDrop;
+            $shortOver         = $actualCashCounted - $expectedCashDrop;
 
-            // 6. Save the record
+            // 8. Save the record
             $cashCount = CashCount::create([
-                'user_id' => $userId,
-                'terminal_id' => '01',
-                'expected_amount' => $expectedCashDrop, // System calculated
-                'actual_amount' => $actualCashCounted,  // Cashier input
-                'short_over' => $shortOver,
-                'breakdown' => $validated['breakdown'], // Store denominations JSON
-                'remarks' => $validated['remarks'],
-                'date' => $today,
+                'user_id'         => $userId,
+                'branch_id'       => $branchId,
+                'terminal_id'     => '01',
+                'expected_amount' => $expectedCashDrop,
+                'actual_amount'   => $actualCashCounted,
+                'short_over'      => $shortOver,
+                'breakdown'       => $validated['breakdown'],
+                'remarks'         => $validated['remarks'],
+                'date'            => $today,
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'End of Day count recorded successfully',
-                'data' => $cashCount
+                'data'    => $cashCount,
             ], 201);
 
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to record EOD',
-                'error' => $e->getMessage()
+                'error'   => $e->getMessage(),
             ], 500);
         }
     }
 
     /**
-     * Check if EOD is already done for today
+     * Check if EOD is already done for today (used by Sidebar lock check)
+     * Checks per-user so each cashier must do their own EOD.
      */
     public function checkEodStatus(Request $request): JsonResponse
     {
@@ -105,12 +110,18 @@ class CashCountController extends Controller
     }
 
     /**
-     * Check if the cashier has started their shift (Cash In)
+     * Check if the branch has had an opening Cash In today.
+     * Any cashier on the same branch performing Cash In unlocks the terminal
+     * for all cashiers on that branch — no need for each cashier to cash in separately.
      */
     public function checkInitialCash(Request $request): JsonResponse
     {
         try {
-            $hasCashedIn = CashTransaction::where('user_id', $request->user()->id)
+            $user     = $request->user();
+            $branchId = $user->branch_id;
+
+            // ✅ Check by branch_id, not user_id — shared cash-in unlocks the whole branch
+            $hasCashedIn = CashTransaction::where('branch_id', $branchId)
                 ->where('type', 'cash_in')
                 ->whereDate('created_at', now()->toDateString())
                 ->exists();

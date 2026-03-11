@@ -9,13 +9,14 @@ class CashCount extends Model
 {
     protected $fillable = [
         'user_id',
+        'branch_id',     
         'terminal_id',
-        'expected_amount', // Added: The "Cash Drop" value
-        'actual_amount',   // Renamed/Added: What the cashier counted
-        'short_over',      // Added: The difference
-        'breakdown', 
-        'remarks', 
-        'date'             // Added: For easy filtering by day
+        'expected_amount',
+        'actual_amount',
+        'short_over',
+        'breakdown',
+        'remarks',
+        'date',
     ];
 
     protected $casts = [

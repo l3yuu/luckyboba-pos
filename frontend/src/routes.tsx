@@ -53,7 +53,17 @@ export const router = createBrowserRouter([
     element: <ProtectedRoute allowedRoles={['cashier']} />,
     errorElement: <ErrorFallback />,
     children: [
-      { path: '/cashier', element: <SalesOrder /> },
+      { path: '/cashier',     element: <Dashboard /> },
+      { path: '/cashier/pos', element: <SalesOrder /> },
+    ],
+  },
+
+  // ── POS — accessible to cashier, branch_manager, superadmin ──────────────
+  {
+    element: <ProtectedRoute allowedRoles={['cashier', 'branch_manager', 'superadmin']} />,
+    errorElement: <ErrorFallback />,
+    children: [
+      { path: '/pos', element: <SalesOrder /> },
     ],
   },
 

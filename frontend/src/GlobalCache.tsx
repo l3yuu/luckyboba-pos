@@ -7,6 +7,8 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import type { ReactNode } from "react";
 import { CacheContext } from "./CacheContext";
 
+// ─── Types ─────────────────────────────────────────────────────────────────────
+
 export interface Branch          { id: number; name: string; [k: string]: unknown }
 export interface Category        { id: number; name: string; [k: string]: unknown }
 export interface SubCategory     { id: number; name: string; category_id: number; [k: string]: unknown }
@@ -81,9 +83,10 @@ export interface CacheCtx {
   reloadAll:   () => Promise<void>;
 }
 
-// ─── Config ───────────────────────────────────────────────────────────────────
+// ─── Config ────────────────────────────────────────────────────────────────────
 
-const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api";
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api";
+const AUTH_TOKEN_KEY = "lucky_boba_token";
 
 const TABLE_ROUTES: Record<TableName, string> = {
   branches:           "branches",
@@ -107,13 +110,32 @@ const TABLE_ROUTES: Record<TableName, string> = {
   audit_logs:         "system/audit",
 };
 
-const TABLES = Object.keys(TABLE_ROUTES) as TableName[];
-const EMPTY  = Object.fromEntries(TABLES.map(t => [t, []])) as unknown as CacheStore;
+const EMPTY_STORE: CacheStore = {
+  branches:           [],
+  categories:         [],
+  sub_categories:     [],
+  menu_items:         [],
+  discounts:          [],
+  vouchers:           [],
+  sales:              [],
+  sale_items:         [],
+  receipts:           [],
+  cash_transactions:  [],
+  cash_counts:        [],
+  purchase_orders:    [],
+  stock_transactions: [],
+  item_serials:       [],
+  expenses:           [],
+  users:              [],
+  settings:           [],
+  z_readings:         [],
+  audit_logs:         [],
+};
 
-// ─── Fetch Helper ─────────────────────────────────────────────────────────────
+// ─── Fetch Helper ──────────────────────────────────────────────────────────────
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const token = localStorage.getItem("lucky_boba_token"); // ← was "auth_token"
+  const token = localStorage.getItem(AUTH_TOKEN_KEY);
   const res = await fetch(`${API_BASE}${path}`, {
     headers: {
       "Content-Type": "application/json",
@@ -126,48 +148,59 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-// ─── Provider ─────────────────────────────────────────────────────────────────
+function getAuthToken(): string | null {
+  return localStorage.getItem(AUTH_TOKEN_KEY);
+}
+
+// ─── Provider ──────────────────────────────────────────────────────────────────
 
 export function CacheProvider({ children }: { children: ReactNode }) {
-  const [store, setStore]     = useState<CacheStore>(EMPTY);
+  const [store, setStore]     = useState<CacheStore>(EMPTY_STORE);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
   const [ready, setReady]     = useState(false);
-  const ref = useRef<CacheStore>(EMPTY);
 
-  const sync = (s: CacheStore) => { ref.current = s; setStore(s); };
+  /**
+   * ref mirrors state so callbacks always read the latest store
+   * without re-creating themselves on every render (avoids stale closures).
+   */
+  const ref = useRef<CacheStore>(EMPTY_STORE);
 
-const loadAll = useCallback(async () => {
-  const token = localStorage.getItem("lucky_boba_token"); // ← add this check
-  if (!token) {
-    setLoading(false);
-    return;
-  }
-  setLoading(true);
-  setError(null);
-  try {
-    const data = await apiFetch<CacheStore>("/cache/all");
-    sync(data);
-    setReady(true);
-  } catch (err) {
-    setError(err instanceof Error ? err.message : "Cache failed to load");
-  } finally {
-    setLoading(false);
-  }
-}, []);
+  const sync = useCallback((s: CacheStore) => {
+    ref.current = s;
+    setStore(s);
+  }, []);
+
+  // ── Data Loading ─────────────────────────────────────────────────────────────
+
+  const loadAll = useCallback(async () => {
+    if (!getAuthToken()) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await apiFetch<CacheStore>("/cache/all");
+      sync(data);
+      setReady(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Cache failed to load");
+    } finally {
+      setLoading(false);
+    }
+  }, [sync]);
 
   const reloadTable = useCallback(async (table: TableName) => {
     const result = await apiFetch<{ rows: Row[]; message: string }>(
       `/cache/reload/${table}`, { method: "POST" }
     );
     sync({ ...ref.current, [table]: result.rows ?? [] });
-  }, []);
-
-  const reloadAll = useCallback(() => loadAll(), [loadAll]);
+  }, [sync]);
 
   useEffect(() => { loadAll(); }, [loadAll]);
 
-  // ── Reads ──────────────────────────────────────────────────────────────────
+  // ── Reads ─────────────────────────────────────────────────────────────────────
 
   const all = useCallback(
     <T,>(t: TableName): T[] => (ref.current[t] as unknown[]) as T[], []);
@@ -184,7 +217,7 @@ const loadAll = useCallback(async () => {
     <T,>(t: TableName, fn: (r: T) => boolean): T | undefined =>
       ((ref.current[t] as unknown[]) as T[]).find(fn), []);
 
-  // ── Domain Shortcuts ───────────────────────────────────────────────────────
+  // ── Domain Shortcuts ──────────────────────────────────────────────────────────
 
   const menuItemsByCategory    = useCallback((id: number) =>
     find<MenuItem>("menu_items", r => r.category_id === id), [find]);
@@ -203,7 +236,7 @@ const loadAll = useCallback(async () => {
   const setting                = useCallback((key: string) =>
     findOne<Setting>("settings", r => r.key === key)?.value ?? null, [findOne]);
 
-  // ── Writes ─────────────────────────────────────────────────────────────────
+  // ── Writes ────────────────────────────────────────────────────────────────────
 
   const insert = useCallback(async <T extends Row>(
     table: TableName, data: Partial<T>
@@ -211,10 +244,9 @@ const loadAll = useCallback(async () => {
     const created = await apiFetch<T>(`/${TABLE_ROUTES[table]}`, {
       method: "POST", body: JSON.stringify(data),
     });
-    const next: Row[] = [...(ref.current[table] as Row[]), created as Row];
-    sync({ ...ref.current, [table]: next });
+    sync({ ...ref.current, [table]: [...(ref.current[table] as Row[]), created as Row] });
     return created;
-  }, []);
+  }, [sync]);
 
   const update = useCallback(async <T extends Row>(
     table: TableName, id: number, data: Partial<T>
@@ -228,7 +260,7 @@ const loadAll = useCallback(async () => {
         r.id === id ? { ...r, ...(data as Row) } : r
       ),
     });
-  }, []);
+  }, [sync]);
 
   const remove = useCallback(async (table: TableName, id: number): Promise<void> => {
     await apiFetch(`/${TABLE_ROUTES[table]}/${id}`, { method: "DELETE" });
@@ -236,7 +268,7 @@ const loadAll = useCallback(async () => {
       ...ref.current,
       [table]: (ref.current[table] as Row[]).filter(r => r.id !== id),
     });
-  }, []);
+  }, [sync]);
 
   return (
     <CacheContext.Provider value={{
@@ -245,7 +277,7 @@ const loadAll = useCallback(async () => {
       menuItemsByCategory, menuItemsBySubCategory, subCategoriesByCategory,
       saleItems, salesByBranch, activeDiscounts, activeVouchers, setting,
       insert, update, remove,
-      reloadTable, reloadAll,
+      reloadTable, reloadAll: loadAll,
     }}>
       {children}
     </CacheContext.Provider>

@@ -46,7 +46,7 @@ export const ErrorFallback = ({ onRetry, errorMessage }: ErrorFallbackProps) => 
         {errorMessage && (
           <div className="text-left bg-zinc-50 rounded-2xl p-4 border border-zinc-200">
             <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1">Dev Error</p>
-            <p className="text-xs font-mono text-red-500 break-words">{errorMessage}</p>
+            <p className="text-xs font-mono text-red-500 wrap-break-word">{errorMessage}</p>
           </div>
         )}
 

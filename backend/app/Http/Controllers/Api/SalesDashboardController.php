@@ -13,9 +13,6 @@ class SalesDashboardController extends Controller
 {
     protected $salesService;
 
-    /**
-     * Inject the specialized SalesDashboardService
-     */
     public function __construct(SalesDashboardService $salesService)
     {
         $this->salesService = $salesService;
@@ -23,36 +20,41 @@ class SalesDashboardController extends Controller
 
     /**
      * GET /api/sales-analytics
-     * Fetch line graph (weekly) and bar graph (hourly) data
+     * Returns analytics scoped to the authenticated user's branch.
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         try {
-            // Fetch aggregated chart data from the service
-            $analytics = $this->salesService->getAnalyticsData();
-            
-            return response()->json($analytics);
+            $user     = auth('sanctum')->user() ?? $request->user();
+            $branchId = $user?->branch_id; // null for superadmin → all branches
+
+            return response()->json(
+                $this->salesService->getAnalyticsData($branchId)
+            );
         } catch (\Exception $e) {
-            // Log the error for OJT debugging
-            Log::error("Sales Analytics Error: " . $e->getMessage());
-            
+            Log::error('Sales Analytics Error: ' . $e->getMessage());
             return response()->json([
                 'message' => 'Failed to load sales analytics.',
-                'error' => $e->getMessage()
+                'error'   => $e->getMessage(),
             ], 500);
         }
     }
 
-public function itemsReport(Request $request)
+    /**
+     * GET /api/reports/items-report?from=&to=
+     */
+    public function itemsReport(Request $request): JsonResponse
     {
-        $from = $request->query('from');
-        $to = $request->query('to');
-        $type = $request->query('type');
+        $from     = $request->query('from');
+        $to       = $request->query('to');
+        $user     = auth('sanctum')->user() ?? $request->user();
+        $branchId = $user?->branch_id;
 
-        // Example query for 'item-list'
         $items = DB::table('sale_items')
             ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
             ->whereBetween('sales.created_at', [$from . ' 00:00:00', $to . ' 23:59:59'])
+            ->where('sales.status', '!=', 'cancelled')
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
             ->select(
                 'sale_items.product_name as name',
                 DB::raw('SUM(sale_items.quantity) as qty'),
@@ -61,147 +63,164 @@ public function itemsReport(Request $request)
             ->groupBy('sale_items.product_name')
             ->get();
 
-        // SAFELY EXTRACT LOGGED-IN USER FROM SANCTUM
-        $user = auth('sanctum')->user() ?? $request->user();
-        $cashierName = $user ? $user->name : 'System Admin';
-
         return response()->json([
-            'items' => $items,
-            'total_qty' => $items->sum('qty'),
-            'grand_total' => $items->sum('amount'),
-            'cashier_name' => $cashierName // <-- Pass the name securely from the server
+            'items'        => $items,
+            'total_qty'    => $items->sum('qty'),
+            'grand_total'  => $items->sum('amount'),
+            'cashier_name' => $user?->name ?? 'System Admin',
         ]);
     }
 
-    public function xReading(Request $request)
+    /**
+     * GET /api/reports/x-reading?date=
+     */
+    public function xReading(Request $request): JsonResponse
     {
         $request->validate(['date' => 'required|date']);
 
         try {
-            $report = $this->salesService->getXReading($request->date);
-            
-            // SAFELY EXTRACT LOGGED-IN USER FROM SANCTUM
-            $user = auth('sanctum')->user() ?? $request->user();
-            $report['prepared_by'] = $user ? $user->name : 'System Admin';
+            $user     = auth('sanctum')->user() ?? $request->user();
+            $branchId = $user?->branch_id;
+
+            $report                = $this->salesService->getXReading($request->date, null, $branchId);
+            $report['prepared_by'] = $user?->name ?? 'System Admin';
 
             return response()->json($report);
         } catch (\Exception $e) {
-            \Log::error("X-Reading Error: " . $e->getMessage());
+            Log::error('X-Reading Error: ' . $e->getMessage());
             return response()->json(['message' => 'Error generating X-Reading'], 500);
         }
     }
 
-    public function zReading(Request $request)
+    /**
+     * GET /api/reports/z-reading?from=&to=   (or ?date= for single-day)
+     */
+    public function zReading(Request $request): JsonResponse
     {
-        // Support both single date and date range
         $from = $request->input('from', $request->input('date'));
         $to   = $request->input('to',   $request->input('date'));
 
         $request->merge(['from' => $from, 'to' => $to]);
-        $request->validate(['from' => 'required|date', 'to' => 'required|date|after_or_equal:from']);
+        $request->validate([
+            'from' => 'required|date',
+            'to'   => 'required|date|after_or_equal:from',
+        ]);
 
         try {
-            $report = $this->salesService->getXReading($from, $to); // pass range to service
-            $user = auth('sanctum')->user() ?? $request->user();
-            $report['prepared_by'] = $user ? $user->name : 'System Admin';
+            $user     = auth('sanctum')->user() ?? $request->user();
+            $branchId = $user?->branch_id;
+
+            $report                = $this->salesService->generateZReading($from, $to, $branchId);
+            $report['prepared_by'] = $user?->name ?? 'System Admin';
+
             return response()->json($report);
         } catch (\Exception $e) {
-            Log::error("Z-Reading Error: " . $e->getMessage());
+            Log::error('Z-Reading Error: ' . $e->getMessage());
             return response()->json(['message' => 'Error generating Z-Reading'], 500);
         }
     }
 
-    public function mallReport(Request $request) 
+    /**
+     * GET /api/reports/mall-accreditation?date=&mall=
+     */
+    public function mallReport(Request $request): JsonResponse
     {
         $request->validate(['date' => 'required|date', 'mall' => 'required|string']);
-        $report = $this->salesService->getMallReport($request->date, $request->mall);
-        
+
+        $user     = auth('sanctum')->user() ?? $request->user();
+        $branchId = $user?->branch_id;
+
+        $report = $this->salesService->getMallReport($request->date, $request->mall, $branchId);
+
         return response()->json($report);
     }
 
-public function dashboardData(): \Illuminate\Http\JsonResponse
-{
-    try {
-        $today = now()->toDateString();
-        $weekStart = now()->startOfWeek()->toDateString();
-        $weekEnd = now()->endOfWeek()->toDateString();
+    /**
+     * GET /api/reports/dashboard-data
+     */
+    public function dashboardData(Request $request): JsonResponse
+    {
+        try {
+            $user     = auth('sanctum')->user() ?? $request->user();
+            $branchId = $user?->branch_id;
 
-        // Weekly sales - group by day
-        $weeklySales = \App\Models\Sale::selectRaw('DATE(created_at) as date, SUM(total_amount) as value')
-            ->whereBetween('created_at', [$weekStart, $weekEnd])
-            ->where('status', '!=', 'cancelled')
-            ->groupByRaw('DATE(created_at)')
-            ->orderBy('date')
-            ->get()
-            ->map(fn($row) => [
-                'day'       => \Carbon\Carbon::parse($row->date)->format('D'),
-                'date'      => \Carbon\Carbon::parse($row->date)->format('M d'),
-                'value'     => (float) $row->value,
-                'full_date' => $row->date,
-            ]);
+            $today     = now()->toDateString();
+            $weekStart = now()->startOfWeek()->toDateString();
+            $weekEnd   = now()->endOfWeek()->toDateString();
 
-        // Today's sales - group by hour
-        $todaySales = \App\Models\Sale::selectRaw('HOUR(created_at) as hour, SUM(total_amount) as value')
-            ->whereDate('created_at', $today)
-            ->where('status', '!=', 'cancelled')
-            ->groupByRaw('HOUR(created_at)')
-            ->orderBy('hour')
-            ->get()
-            ->map(fn($row) => [
-                'time'  => \Carbon\Carbon::createFromTime($row->hour)->format('g A'),
-                'value' => (float) $row->value,
-            ]);
+            $weeklySales = \App\Models\Sale::selectRaw('DATE(created_at) as date, SUM(total_amount) as value')
+                ->whereBetween('created_at', [$weekStart . ' 00:00:00', $weekEnd . ' 23:59:59'])
+                ->where('status', '!=', 'cancelled')
+                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                ->groupByRaw('DATE(created_at)')
+                ->orderBy('date')
+                ->get()
+                ->map(fn($row) => [
+                    'day'       => \Carbon\Carbon::parse($row->date)->format('D'),
+                    'date'      => \Carbon\Carbon::parse($row->date)->format('M d'),
+                    'value'     => (float) $row->value,
+                    'full_date' => $row->date,
+                ]);
 
-        // Statistics
-        $beginning = \App\Models\Sale::whereDate('created_at', $today)->where('status', '!=', 'cancelled')->orderBy('id')->first();
-        $ending    = \App\Models\Sale::whereDate('created_at', $today)->where('status', '!=', 'cancelled')->orderBy('id', 'desc')->first();
+            $todaySales = \App\Models\Sale::selectRaw('HOUR(created_at) as hour, SUM(total_amount) as value')
+                ->whereDate('created_at', $today)
+                ->where('status', '!=', 'cancelled')
+                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                ->groupByRaw('HOUR(created_at)')
+                ->orderBy('hour')
+                ->get()
+                ->map(fn($row) => [
+                    'time'  => \Carbon\Carbon::createFromTime($row->hour)->format('g A'),
+                    'value' => (float) $row->value,
+                ]);
 
-        $statistics = [
-            'beginning_sales'  => \App\Models\Sale::whereDate('created_at', $today)->where('status', '!=', 'cancelled')->min('total_amount') ?? 0,
-            'today_sales'      => \App\Models\Sale::whereDate('created_at', $today)->where('status', '!=', 'cancelled')->sum('total_amount'),
-            'ending_sales'     => \App\Models\Sale::whereDate('created_at', $today)->where('status', '!=', 'cancelled')->max('total_amount') ?? 0,
-            'cancelled_sales'  => \App\Models\Sale::whereDate('created_at', $today)->where('status', 'cancelled')->sum('total_amount'),
-            'beginning_or'     => $beginning?->or_number ?? '00000',
-            'ending_or'        => $ending?->or_number ?? '00000',
-        ];
+            $beginning = \App\Models\Sale::whereDate('created_at', $today)
+                ->where('status', '!=', 'cancelled')
+                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                ->orderBy('id')->first();
 
-        return response()->json([
-            'success' => true,
-            'data'    => [
-                'weekly_sales' => [
-                    'data'               => $weeklySales,
-                    'total_revenue'      => $weeklySales->sum('value'),
-                    'start_date'         => \Carbon\Carbon::parse($weekStart)->format('M d, Y'),
-                    'end_date'           => \Carbon\Carbon::parse($weekEnd)->format('M d, Y'),
-                    'current_week_start' => $weekStart,
+            $ending = \App\Models\Sale::whereDate('created_at', $today)
+                ->where('status', '!=', 'cancelled')
+                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                ->orderBy('id', 'desc')->first();
+
+            $todayTotal     = (float) \App\Models\Sale::whereDate('created_at', $today)
+                ->where('status', '!=', 'cancelled')
+                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                ->sum('total_amount');
+
+            $cancelledTotal = (float) \App\Models\Sale::whereDate('created_at', $today)
+                ->where('status', 'cancelled')
+                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                ->sum('total_amount');
+
+            return response()->json([
+                'success' => true,
+                'data'    => [
+                    'weekly_sales' => [
+                        'data'               => $weeklySales,
+                        'total_revenue'      => $weeklySales->sum('value'),
+                        'start_date'         => \Carbon\Carbon::parse($weekStart)->format('M d, Y'),
+                        'end_date'           => \Carbon\Carbon::parse($weekEnd)->format('M d, Y'),
+                        'current_week_start' => $weekStart,
+                    ],
+                    'today_sales' => [
+                        'data' => $todaySales,
+                        'date' => $today,
+                    ],
+                    'statistics' => [
+                        'beginning_sales' => 0,
+                        'today_sales'     => $todayTotal,
+                        'ending_sales'    => $todayTotal,
+                        'cancelled_sales' => $cancelledTotal,
+                        'beginning_or'    => $beginning?->invoice_number ?? '00000',
+                        'ending_or'       => $ending?->invoice_number    ?? '00000',
+                    ],
                 ],
-                'today_sales' => [
-                    'data' => $todaySales,
-                    'date' => $today,
-                ],
-                'statistics' => $statistics,
-            ],
-        ]);
-
-    } catch (\Exception $e) {
-        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Dashboard Data Error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
-}
-
-public function weeklySales(): JsonResponse
-{
-    try {
-        $startOfWeek = \Carbon\Carbon::now()->startOfWeek();
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'current_week_start' => $startOfWeek->format('Y-m-d'),
-            ]
-        ]);
-    } catch (\Exception $e) {
-        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
-    }
-}
-
-
 }
