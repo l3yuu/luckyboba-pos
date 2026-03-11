@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class AuditLogController extends Controller
 {
@@ -48,7 +49,7 @@ class AuditLogController extends Controller
         $perPage = $request->per_page ?? 20;
         $logs    = $query->paginate($perPage);
 
-        // ── Stats ────────────────────────────────────────────────────────────
+        // ── Stats ─────────────────────────────────────────────────────────────
         $todayStart = now()->startOfDay();
 
         $stats = [
@@ -73,19 +74,24 @@ class AuditLogController extends Controller
                                 ->values(),
         ];
 
-        // Add this inside the index() method, before the return
-        $lastLogins = AuditLog::select('user_id', \DB::raw('MAX(created_at) as last_login_at'))
-            ->where('action', 'like', '%login%')
+        // ── Last logins per user ───────────────────────────────────────────────
+        // Covers: "User logged in: ...", "logged in", "login" — all variations
+        $lastLogins = AuditLog::select('user_id', DB::raw('MAX(created_at) as last_login_at'))
+            ->where(function ($q) {
+                $q->where('action', 'like', '%logged in%')
+                  ->orWhere('action', 'like', '%User logged%')
+                  ->orWhere('action', 'like', '%login%');
+            })
             ->whereNotNull('user_id')
             ->groupBy('user_id')
             ->pluck('last_login_at', 'user_id');
 
         return response()->json([
-            'success' => true,
-            'stats'   => $stats,
-            'data'    => $logs->items(),
-            'last_logins' => $lastLogins, 
-            'meta'    => [
+            'success'     => true,
+            'stats'       => $stats,
+            'data'        => $logs->items(),
+            'last_logins' => $lastLogins,
+            'meta'        => [
                 'current_page' => $logs->currentPage(),
                 'last_page'    => $logs->lastPage(),
                 'per_page'     => $logs->perPage(),
@@ -106,7 +112,8 @@ class AuditLogController extends Controller
                 'voids_today'  => AuditLog::where('created_at', '>=', $todayStart)
                                     ->where(function ($q) {
                                         $q->where('module', 'void')
-                                          ->orWhere('action', 'like', '%void%');
+                                          ->orWhere('action', 'like', '%void%')
+                                          ->orWhere('action', 'like', '%Void%');
                                     })->count(),
                 'unique_users' => AuditLog::where('created_at', '>=', $todayStart)
                                     ->whereNotNull('user_id')
