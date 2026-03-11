@@ -43,7 +43,7 @@ use Illuminate\Support\Facades\DB;
 
 // --- NEW: CARD PURCHASE ROUTE ---
 Route::post('/purchase-card', [CardPurchaseController::class, 'purchase']);
-Route::post('/check-card-status/{userId}', [CardPurchaseController::class, 'checkStatus']);
+Route::get('/check-card-status/{userId}', [CardPurchaseController::class, 'checkStatus']);
 
 Route::get('/public-menu', function () {
     $items = DB::table('menu_items')
