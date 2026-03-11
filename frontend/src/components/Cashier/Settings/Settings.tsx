@@ -138,14 +138,14 @@ const Settings = () => {
     : 'Quezon City • System Configuration';
 
   const settingActions = [
-    { label: "Sales Settings", Icon: SettingsIcon, color: "#1e40af", iconColor: "#1e40af", action: () => setIsSalesSettingsOpen(true) },
-    { label: "Add Customers", Icon: UserPlus,      color: "#1e40af", iconColor: "#1e40af", action: () => setActiveSubView('add-customers') },
-    { label: "Discount",      Icon: Percent,       color: "#1e40af", iconColor: "#1e40af", action: () => setActiveSubView('discount') },
-    { label: "Export Data",   Icon: FileUp,        color: "#1e40af", iconColor: "#1e40af", action: () => setActiveSubView('export-data') },
-    { label: "Upload Data",   Icon: Upload,        color: "#1e40af", iconColor: "#1e40af", action: () => setActiveSubView('upload-data') },
-    { label: "Add Vouchers",  Icon: Ticket,        color: "#1e40af", iconColor: "#1e40af", action: () => setActiveSubView('add-vouchers') },
-    { label: "Import Data",   Icon: FileDown,      color: "#1e40af", iconColor: "#1e40af", action: () => setActiveSubView('import-data') },
-    { label: "Backup System", Icon: Database,      color: "#1e40af", iconColor: "#1e40af", action: () => setActiveSubView('backup-system') },
+    { label: "Sales Settings", Icon: SettingsIcon, color: "#3b2063", iconColor: "#3b2063", action: () => setIsSalesSettingsOpen(true) },
+    { label: "Add Customers", Icon: UserPlus,      color: "#3b2063", iconColor: "#3b2063", action: () => setActiveSubView('add-customers') },
+    { label: "Discount",      Icon: Percent,       color: "#3b2063", iconColor: "#3b2063", action: () => setActiveSubView('discount') },
+    { label: "Export Data",   Icon: FileUp,        color: "#3b2063", iconColor: "#3b2063", action: () => setActiveSubView('export-data') },
+    { label: "Upload Data",   Icon: Upload,        color: "#3b2063", iconColor: "#3b2063", action: () => setActiveSubView('upload-data') },
+    { label: "Add Vouchers",  Icon: Ticket,        color: "#3b2063", iconColor: "#3b2063", action: () => setActiveSubView('add-vouchers') },
+    { label: "Import Data",   Icon: FileDown,      color: "#3b2063", iconColor: "#3b2063", action: () => setActiveSubView('import-data') },
+    { label: "Backup System", Icon: Database,      color: "#3b2063", iconColor: "#3b2063", action: () => setActiveSubView('backup-system') },
   ];
 
   const renderContent = () => {
