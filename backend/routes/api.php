@@ -113,6 +113,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::get('/export-sales',    [ReportController::class, 'exportSales']);
             Route::get('/export-items',    [ReportController::class, 'exportItems']);
         });
+        Route::prefix('discounts')->group(function () {
+            Route::get   ('/',                    [DiscountController::class, 'index']);
+            Route::post  ('/',                    [DiscountController::class, 'store']);
+            Route::put   ('/{discount}/toggle',   [DiscountController::class, 'toggleStatus']);
+            Route::put   ('/{discount}/branches', [DiscountController::class, 'updateBranches']);
+            Route::post  ('/{discount}/use',      [DiscountController::class, 'recordUsage']);
+            Route::delete('/{discount}',          [DiscountController::class, 'destroy']);
+        });
     });
 
     // BRANCH MANAGER + SUPERADMIN

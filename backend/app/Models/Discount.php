@@ -2,18 +2,40 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Discount extends Model
 {
-    use HasFactory;
-
-    // These must match your MariaDB columns exactly
     protected $fillable = [
         'name',
         'amount',
+        'type',
         'status',
-        'type'
+        'used_count',
     ];
+
+    protected $casts = [
+        'amount'     => 'float',
+        'used_count' => 'integer',
+    ];
+
+    // ── Relationships ──────────────────────────────────────────────────────────
+
+    public function branches(): BelongsToMany
+    {
+        return $this->belongsToMany(Branch::class, 'discount_branches')
+                    ->withTimestamps();
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+
+    /**
+     * Increment the used count when a discount is redeemed.
+     * Call this from your Order/Sale controller when applying a discount.
+     */
+    public function recordUsage(): void
+    {
+        $this->increment('used_count');
+    }
 }
