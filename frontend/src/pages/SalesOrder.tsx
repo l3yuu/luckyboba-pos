@@ -8,7 +8,7 @@ import { useToast } from '../hooks/useToast';
 import api from '../services/api';
 import { useAuth } from '../hooks/useAuth';
 
-// ── Types ──────────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface Discount {
   id: number;
@@ -18,9 +18,9 @@ interface Discount {
   status: 'ON' | 'OFF';
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-const generateORNumber = (count = 1) => `SI-${String(count).padStart(10, '0')}`;
+const generateORNumber    = (count = 1) => `SI-${String(count).padStart(10, '0')}`;
 const generateQueueNumber = (count = 1) => String(count).padStart(3, '0');
 
 const DrinkIcon = ({ className }: { className?: string }) => (
@@ -29,7 +29,7 @@ const DrinkIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-// ── Icons ──────────────────────────────────────────────────────────────────────
+// ── Icons ─────────────────────────────────────────────────────────────────────
 
 const ChevronRight = () => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 opacity-40">
@@ -64,27 +64,32 @@ const ArrowRightIcon = () => (
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const PAYMENT_METHODS = [
-  { id: 'cash',    label: 'Cash' },
-  { id: 'gcash',  label: 'GCash' },
-  { id: 'paymaya',label: 'Maya' },
-  { id: 'credit', label: 'Credit' },
-  { id: 'debit',  label: 'Debit' },
+  { id: 'cash',     label: 'Cash'   },
+  { id: 'gcash',   label: 'GCash'  },
+  { id: 'paymaya', label: 'Maya'   },
+  { id: 'credit',  label: 'Credit' },
+  { id: 'debit',   label: 'Debit'  },
 ] as const;
 
 const TYPE_BADGE = {
   food:  { pill: 'bg-orange-500 text-white', card: 'hover:bg-orange-500 hover:border-orange-500 hover:text-white' },
   wings: { pill: 'bg-orange-500 text-white', card: 'hover:bg-orange-500 hover:border-orange-500 hover:text-white' },
-  drink: { pill: 'bg-[#3b2063] text-white',  card: 'hover:bg-[#3b2063] hover:border-[#3b2063] hover:text-white' },
+  drink: { pill: 'bg-[#3b2063] text-white',  card: 'hover:bg-[#3b2063] hover:border-[#3b2063] hover:text-white'  },
   promo: { pill: 'bg-emerald-600 text-white', card: 'hover:bg-emerald-600 hover:border-emerald-600 hover:text-white' },
 };
 
 const BASE_CARD = 'bg-white font-black text-sm uppercase p-4 rounded-[0.625rem] h-24 shadow-sm border-2 border-zinc-200 transition-all hover:shadow-lg hover:scale-[1.03] active:scale-100 text-[#3b2063] flex items-center justify-center text-center';
 
-// ── Sub-components ─────────────────────────────────────────────────────────────
+// ── Sub-components ────────────────────────────────────────────────────────────
 
 const QtyControl = ({
   value, onDecrement, onIncrement, className = '',
-}: { value: number; onDecrement: () => void; onIncrement: () => void; className?: string }) => (
+}: {
+  value: number;
+  onDecrement: () => void;
+  onIncrement: () => void;
+  className?: string;
+}) => (
   <div className={`flex items-center justify-between bg-zinc-50 rounded-[0.625rem] p-2 border-2 border-zinc-200 ${className}`}>
     <button onClick={onDecrement} className="w-11 h-11 bg-white rounded-lg border border-zinc-200 text-zinc-500 hover:text-red-500 hover:border-red-200 transition-colors flex items-center justify-center shadow-sm">
       <MinusIcon />
@@ -98,14 +103,21 @@ const QtyControl = ({
 
 const AddOnGrid = ({
   addOns, selected, onToggle,
-}: { addOns: { id: number; name: string; price: number }[]; selected: string[]; onToggle: (name: string) => void }) => (
+}: {
+  addOns: { id: number; name: string; price: number }[];
+  selected: string[];
+  onToggle: (name: string) => void;
+}) => (
   <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
     {addOns.map(addon => (
       <button
         key={addon.id}
         onClick={() => onToggle(addon.name)}
         className={`p-3 rounded-[0.625rem] text-left border-2 transition-all h-24 flex flex-col justify-between
-          ${selected.includes(addon.name) ? 'bg-[#3b2063] border-[#3b2063] text-white' : 'bg-white border-zinc-300 text-zinc-600 hover:border-[#3b2063]/40 hover:bg-[#f0ebff]'}`}
+          ${selected.includes(addon.name)
+            ? 'bg-[#3b2063] border-[#3b2063] text-white'
+            : 'bg-white border-zinc-300 text-zinc-600 hover:border-[#3b2063]/40 hover:bg-[#f0ebff]'
+          }`}
       >
         <span className="text-[10px] font-black uppercase leading-tight">{addon.name}</span>
         <span className="text-xs font-bold">₱{Number(addon.price).toFixed(2)}</span>
@@ -114,7 +126,7 @@ const AddOnGrid = ({
   </div>
 );
 
-// ── Main Component ─────────────────────────────────────────────────────────────
+// ── Main Component ────────────────────────────────────────────────────────────
 
 const SalesOrder = () => {
   const navigate = useNavigate();
@@ -126,22 +138,21 @@ const SalesOrder = () => {
 
   const handleNavClick = (label: string) => {
     if (label !== 'Home') return;
-    if (user?.role === 'cashier') navigate('/cashier');
+    if (user?.role === 'cashier')         navigate('/cashier');
     else if (user?.role === 'branch_manager') navigate('/branch-manager');
-    else navigate('/dashboard');
+    else                                  navigate('/dashboard');
   };
 
-  // ── State ────────────────────────────────────────────────────────────────────
+  // ── State ─────────────────────────────────────────────────────────────────
 
   const [cashierName, setCashierName] = useState<string>(() =>
     localStorage.getItem('lucky_boba_user_name') ?? 'Admin'
   );
   const [currentDate, setCurrentDate] = useState(new Date());
 
-  // Cash-in gate
-  const [menuAvailable, setMenuAvailable]       = useState(false);
-  const [checkingCashIn, setCheckingCashIn]     = useState(true);
-  // cash-in is handled by CashIn.tsx — no modal state needed here
+  // Cash-in gate — modal is handled by CashIn.tsx
+  const [menuAvailable, setMenuAvailable] = useState(false);
+  const [checkingCashIn, setCheckingCashIn] = useState(true);
 
   // Menu / category
   const [categories] = useState<Category[]>(() => {
@@ -150,42 +161,45 @@ const SalesOrder = () => {
   });
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
   const [categorySize, setCategorySize]         = useState<string | null>(null);
-  const [loading]                   = useState(!localStorage.getItem('pos_menu_cache'));
+  const [loading]                               = useState(!localStorage.getItem('pos_menu_cache'));
   const [searchQuery, setSearchQuery]           = useState('');
 
   // Item selection modal
-  const [selectedItem, setSelectedItem]         = useState<MenuItem | null>(null);
-  const [qty, setQty]                           = useState(1);
-  const [remarks, setRemarks]                   = useState('');
-  const [sugarLevel, setSugarLevel]             = useState('100%');
-  const [size, setSize]                         = useState<'M' | 'L' | 'none'>('M');
-  const [selectedOptions, setSelectedOptions]   = useState<string[]>([]);
-  const [selectedAddOns, setSelectedAddOns]     = useState<string[]>([]);
-  const [orderCharge, setOrderCharge]           = useState<'grab' | 'panda' | null>(null);
+  const [selectedItem, setSelectedItem]       = useState<MenuItem | null>(null);
+  const [qty, setQty]                         = useState(1);
+  const [remarks, setRemarks]                 = useState('');
+  const [sugarLevel, setSugarLevel]           = useState('100%');
+  const [size, setSize]                       = useState<'M' | 'L' | 'none'>('M');
+  const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+  const [selectedAddOns, setSelectedAddOns]   = useState<string[]>([]);
+  const [orderCharge, setOrderCharge]         = useState<'grab' | 'panda' | null>(null);
   const [isAddOnModalOpen, setIsAddOnModalOpen] = useState(false);
 
   // Add-ons data
-  const [addOnsData]             = useState<{ id: number; name: string; price: number }[]>(() => {
-    try { const c = localStorage.getItem('pos_addons_cache'); return c ? JSON.parse(c) : []; } catch { return []; }
+  const [addOnsData] = useState<{ id: number; name: string; price: number }[]>(() => {
+    try {
+      const c = localStorage.getItem('pos_addons_cache');
+      return c ? JSON.parse(c) : [];
+    } catch { return []; }
   });
 
   // Cart
-  const [cart, setCart]                         = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>([]);
 
-  // Cart item edit
-  const [editingCartIndex, setEditingCartIndex]   = useState<number | null>(null);
-  const [editingCartItem, setEditingCartItem]     = useState<CartItem | null>(null);
-  const [itemDiscountType, setItemDiscountType]   = useState<'none' | 'percent' | 'fixed'>('none');
-  const [itemDiscountValue, setItemDiscountValue] = useState<number | ''>('');
+  // Cart item editing
+  const [editingCartIndex, setEditingCartIndex]         = useState<number | null>(null);
+  const [editingCartItem, setEditingCartItem]           = useState<CartItem | null>(null);
+  const [itemDiscountType, setItemDiscountType]         = useState<'none' | 'percent' | 'fixed'>('none');
+  const [itemDiscountValue, setItemDiscountValue]       = useState<number | ''>('');
   const [editingItemDiscountId, setEditingItemDiscountId] = useState<number | null>(null);
 
-  // Combo
-  const [isCombodrinkModalOpen, setIsCombodrinkModalOpen] = useState(false);
-  const [comboDrinkSugar, setComboDrinkSugar]             = useState('100%');
-  const [comboDrinkOptions, setComboDrinkOptions]         = useState<string[]>([]);
-  const [comboDrinkAddOns, setComboDrinkAddOns]           = useState<string[]>([]);
+  // Combo drink
+  const [isCombodrinkModalOpen, setIsCombodrinkModalOpen]     = useState(false);
+  const [comboDrinkSugar, setComboDrinkSugar]                 = useState('100%');
+  const [comboDrinkOptions, setComboDrinkOptions]             = useState<string[]>([]);
+  const [comboDrinkAddOns, setComboDrinkAddOns]               = useState<string[]>([]);
   const [comboDrinkAddOnModalOpen, setComboDrinkAddOnModalOpen] = useState(false);
-  const [pendingComboCart, setPendingComboCart]           = useState<CartItem | null>(null);
+  const [pendingComboCart, setPendingComboCart]               = useState<CartItem | null>(null);
 
   // Confirm / payment
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
@@ -196,10 +210,10 @@ const SalesOrder = () => {
   const [referenceNumber, setReferenceNumber]       = useState('');
 
   // Pax / discounts
-  const [pax, setPax]                           = useState({ regular: 1, senior: 0, pwd: 0, diplomat: 0 });
-  const [discountIDs, setDiscountIDs]           = useState({ senior: '', pwd: '', diplomat: '' });
-  const [discountRemarks, setDiscountRemarks]   = useState('');
-  const [discounts]               = useState<Discount[]>(() => {
+  const [pax, setPax]                         = useState({ regular: 1, senior: 0, pwd: 0, diplomat: 0 });
+  const [discountIDs, setDiscountIDs]         = useState({ senior: '', pwd: '', diplomat: '' });
+  const [discountRemarks, setDiscountRemarks] = useState('');
+  const [discounts] = useState<Discount[]>(() => {
     try {
       const c = localStorage.getItem('pos_discounts_cache');
       const all = c ? JSON.parse(c) : [];
@@ -209,17 +223,17 @@ const SalesOrder = () => {
   const [selectedDiscount, setSelectedDiscount] = useState<Discount | null>(null);
 
   // OR / Queue
-  const [orNumber, setOrNumber]     = useState(generateORNumber(1));
+  const [orNumber, setOrNumber]       = useState(generateORNumber(1));
   const [queueNumber, setQueueNumber] = useState(generateQueueNumber(1));
 
   // Success / print
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
-  const [printTarget, setPrintTarget]   = useState<'receipt' | 'stickers' | 'kitchen' | null>(null);
-  const [printedReceipt, setPrintedReceipt]   = useState(false);
-  const [printedKitchen, setPrintedKitchen]   = useState(false);
-  const [printedStickers, setPrintedStickers] = useState(false);
+  const [printTarget, setPrintTarget]               = useState<'receipt' | 'stickers' | 'kitchen' | null>(null);
+  const [printedReceipt, setPrintedReceipt]         = useState(false);
+  const [printedKitchen, setPrintedKitchen]         = useState(false);
+  const [printedStickers, setPrintedStickers]       = useState(false);
 
-  // ── Derived ──────────────────────────────────────────────────────────────────
+  // ── Derived values ────────────────────────────────────────────────────────
 
   const isDrink = selectedCategory?.type === 'drink';
   const isWings = selectedCategory?.name === 'CHICKEN WINGS';
@@ -227,15 +241,16 @@ const SalesOrder = () => {
   const isCombo = selectedCategory?.name?.toUpperCase() === 'COMBO MEALS';
   const categoryHasOnlyOneSize = (selectedCategory?.sub_categories?.length ?? 0) <= 1;
 
-const subtotal = cart.reduce((acc, item) => {
-  const surcharge = (item.charges?.grab || item.charges?.panda) ? 30 * item.qty : 0;
-  return acc + item.finalPrice + surcharge;
-}, 0);
+  const subtotal = cart.reduce((acc, item) => {
+    const surcharge = (item.charges?.grab || item.charges?.panda) ? 30 * item.qty : 0;
+    return acc + item.finalPrice + surcharge;
+  }, 0);
+
   const totalCount = cart.reduce((acc, item) => acc + item.qty, 0);
   const hasStickers = cart.some(item => item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L');
 
-  const totalPax         = pax.regular + pax.senior + pax.pwd + pax.diplomat;
-  const sharePerPax      = subtotal / (totalPax || 1);
+  const totalPax          = pax.regular + pax.senior + pax.pwd + pax.diplomat;
+  const sharePerPax       = subtotal / (totalPax || 1);
   const seniorPwdDiscount = (pax.senior + pax.pwd) * (sharePerPax * 0.20);
   const diplomatDiscount  = pax.diplomat * (sharePerPax * 0.20);
   const promoDiscount     = selectedDiscount
@@ -243,19 +258,20 @@ const subtotal = cart.reduce((acc, item) => {
       ? subtotal * (Number(selectedDiscount.amount) / 100)
       : Number(selectedDiscount.amount)
     : 0;
-  const discountAmount   = seniorPwdDiscount + diplomatDiscount + promoDiscount;
+  const discountAmount    = seniorPwdDiscount + diplomatDiscount + promoDiscount;
   const itemDiscountTotal = cart.reduce((acc, item) => acc + Math.max(0, Number(item.price) * item.qty - item.finalPrice), 0);
-  const amtDue           = Math.max(0, subtotal - discountAmount - itemDiscountTotal);
-  const vatableSales     = amtDue / 1.12;
-  const vatAmount        = amtDue - vatableSales;
-  const change           = typeof cashTendered === 'number' ? Math.max(0, cashTendered - amtDue) : 0;
+  const amtDue            = Math.max(0, subtotal - discountAmount - itemDiscountTotal);
+  const vatableSales      = amtDue / 1.12;
+  const vatAmount         = amtDue - vatableSales;
+  const change            = typeof cashTendered === 'number' ? Math.max(0, cashTendered - amtDue) : 0;
+  const totalDiscountDisplay = discountAmount + itemDiscountTotal;
 
   const formattedDate = currentDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
   const formattedTime = currentDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
-  // ── Effects ──────────────────────────────────────────────────────────────────
+  // ── Effects ───────────────────────────────────────────────────────────────
 
-  // ── Boot: check cash-in status ──────────────────────────────────────────────
+  // Boot: check cash-in status
   useEffect(() => {
     const boot = async () => {
       try {
@@ -270,23 +286,19 @@ const subtotal = cart.reduce((acc, item) => {
     boot();
 
     // CashIn.tsx dispatches this after a successful cash-in POST
-    const onCashIn = () => {
-      setMenuAvailable(true);
-      setCheckingCashIn(false);
-    };
+    const onCashIn = () => { setMenuAvailable(true); setCheckingCashIn(false); };
     window.addEventListener('cash-in-completed', onCashIn);
     return () => window.removeEventListener('cash-in-completed', onCashIn);
   }, []);
 
+  // Keep regular pax in sync with cart count
   useEffect(() => {
-    const count       = cart.reduce((acc, item) => acc + item.qty, 0);
-    const specialPax  = pax.senior + pax.pwd + pax.diplomat;
+    const count      = cart.reduce((acc, item) => acc + item.qty, 0);
+    const specialPax = pax.senior + pax.pwd + pax.diplomat;
     setPax(prev => ({ ...prev, regular: Math.max(0, count - specialPax) }));
   }, [cart]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // discounts init from localStorage cache (set by CashIn.tsx on submit)
-
-  // ── Init: sync OR sequence, cashier name, clock ────────────────────────────
+  // Init: sync OR sequence, cashier name, clock
   useEffect(() => {
     const syncSequence = async () => {
       try {
@@ -320,7 +332,7 @@ const subtotal = cart.reduce((acc, item) => {
     return () => clearInterval(timer);
   }, []);
 
-  // ── Sequence helpers ─────────────────────────────────────────────────────────
+  // ── Sequence helpers ──────────────────────────────────────────────────────
 
   const syncNextSequence = async () => {
     try {
@@ -338,9 +350,7 @@ const subtotal = cart.reduce((acc, item) => {
     }
   };
 
-
-
-  // ── Pax handlers ──────────────────────────────────────────────────────────────
+  // ── Pax handlers ──────────────────────────────────────────────────────────
 
   const handleAddPax = (type: keyof typeof pax) => {
     const currentTotal = pax.regular + pax.senior + pax.pwd + pax.diplomat;
@@ -363,22 +373,21 @@ const subtotal = cart.reduce((acc, item) => {
     }
   };
 
-  // ── Category / item navigation ────────────────────────────────────────────────
+  // ── Category / item navigation ────────────────────────────────────────────
 
   const handleCategoryClick = (cat: Category) => {
     setSelectedCategory(cat);
     setCategorySize(null);
 
-    const isDrinkCat  = cat.type === 'drink';
-    const isWingsCat  = cat.name === 'CHICKEN WINGS';
-    const subCats     = cat.sub_categories ?? [];
+    const isDrinkCat = cat.type === 'drink';
+    const isWingsCat = cat.name === 'CHICKEN WINGS';
+    const subCats    = cat.sub_categories ?? [];
 
     if (!isDrinkCat && !isWingsCat) { setCategorySize('all'); return; }
     if (isWingsCat) return;
     if (subCats.length === 1) { setCategorySize(subCats[0].name); return; }
-    if (subCats.length === 0) {
-      const noSizeL = cat.cup?.size_l == null;
-      if (noSizeL) setCategorySize(cat.cup?.size_m || 'M');
+    if (subCats.length === 0 && cat.cup?.size_l == null) {
+      setCategorySize(cat.cup?.size_m || 'M');
     }
   };
 
@@ -408,8 +417,8 @@ const subtotal = cart.reduce((acc, item) => {
     if (selectedSub) {
       return items.filter(item => {
         if (item.sub_category_id != null) return item.sub_category_id === selectedSub.id;
-        if (categorySize === cupSizeM) return item.size === 'M' || item.size === 'none';
-        if (categorySize === cupSizeL) return item.size === 'L' || item.size === 'none';
+        if (categorySize === cupSizeM)    return item.size === 'M' || item.size === 'none';
+        if (categorySize === cupSizeL)    return item.size === 'L' || item.size === 'none';
         return true;
       });
     }
@@ -438,19 +447,19 @@ const subtotal = cart.reduce((acc, item) => {
 
   const closeModal = () => { setSelectedItem(null); setIsAddOnModalOpen(false); };
 
-  // ── Order charge toggle ───────────────────────────────────────────────────────
+  // ── Order charge toggle ───────────────────────────────────────────────────
 
-const toggleOrderCharge = (type: 'grab' | 'panda') => {
+  const toggleOrderCharge = (type: 'grab' | 'panda') => {
     const next = orderCharge === type ? null : type;
     setOrderCharge(next);
-    // ── Just update the charge flag — backend calculates price ──────
+    // Update charge flag on existing cart items — backend recalculates price
     setCart(prev => prev.map(item => ({
-        ...item,
-        charges: { grab: next === 'grab', panda: next === 'panda' },
+      ...item,
+      charges: { grab: next === 'grab', panda: next === 'panda' },
     })));
-};
+  };
 
-  // ── Options / add-ons toggles ─────────────────────────────────────────────────
+  // ── Options / add-ons toggles ─────────────────────────────────────────────
 
   const makeToggleOption = (setter: React.Dispatch<React.SetStateAction<string[]>>) => (opt: string) => {
     setter(prev => {
@@ -468,12 +477,12 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
     });
   };
 
-  const toggleOption      = makeToggleOption(setSelectedOptions);
+  const toggleOption           = makeToggleOption(setSelectedOptions);
   const toggleComboDrinkOption = makeToggleOption(setComboDrinkOptions);
   const toggleAddOn = (name: string) =>
     setSelectedAddOns(prev => prev.includes(name) ? prev.filter(a => a !== name) : [...prev, name]);
 
-  // ── Cart deduplication ────────────────────────────────────────────────────────
+  // ── Cart deduplication ────────────────────────────────────────────────────
 
   const isSameCartItem = (a: CartItem, b: CartItem): boolean =>
     a.id === b.id &&
@@ -482,8 +491,8 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
     a.sugarLevel === b.sugarLevel &&
     a.remarks === b.remarks &&
     JSON.stringify(a.options ?? []) === JSON.stringify(b.options ?? []) &&
-    JSON.stringify(a.addOns ?? []) === JSON.stringify(b.addOns ?? []) &&
-    a.charges.grab === b.charges.grab &&
+    JSON.stringify(a.addOns  ?? []) === JSON.stringify(b.addOns  ?? []) &&
+    a.charges.grab  === b.charges.grab &&
     a.charges.panda === b.charges.panda;
 
   const mergeIntoCart = (newItem: CartItem) => {
@@ -492,29 +501,31 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
       const idx = prev.findIndex(item => isSameCartItem(item, newItem));
       if (idx !== -1) {
         return prev.map((item, i) =>
-          i === idx ? { ...item, qty: item.qty + newItem.qty, finalPrice: item.finalPrice + unitPrice * newItem.qty } : item
+          i === idx
+            ? { ...item, qty: item.qty + newItem.qty, finalPrice: item.finalPrice + unitPrice * newItem.qty }
+            : item
         );
       }
       return [...prev, newItem];
     });
   };
 
-  // ── Add to order ──────────────────────────────────────────────────────────────
+  // ── Add to order ──────────────────────────────────────────────────────────
 
   const addToOrder = () => {
     if (!selectedItem || !selectedCategory) return;
 
-     let extraCost = 0;
+    let extraCost = 0;
     if (isDrink) {
-        selectedAddOns.forEach(name => {
-            const addon = addOnsData.find(a => a.name === name);
-            if (addon) extraCost += Number(addon.price);
-        });
+      selectedAddOns.forEach(name => {
+        const addon = addOnsData.find(a => a.name === name);
+        if (addon) extraCost += Number(addon.price);
+      });
     }
 
     const cartSize: 'M' | 'L' | 'none' = isDrink ? size : 'none';
     const cupSizeLabel = (isDrink || isOz) && categorySize ? categorySize : undefined;
-    const unitPrice = Number(selectedItem.price) + extraCost;
+    const unitPrice    = Number(selectedItem.price) + extraCost;
 
     const newCartItem: CartItem = {
       ...selectedItem,
@@ -526,7 +537,7 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
       size:       cartSize,
       cupSizeLabel,
       options:    isDrink ? selectedOptions : undefined,
-      addOns:     isDrink ? selectedAddOns : undefined,
+      addOns:     isDrink ? selectedAddOns  : undefined,
       finalPrice: unitPrice * qty,
     };
 
@@ -545,7 +556,7 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
     showToast(`${selectedItem.name} added to order`, 'success');
   };
 
-  // ── Combo drink confirm ───────────────────────────────────────────────────────
+  // ── Combo drink confirm ───────────────────────────────────────────────────
 
   const confirmComboDrink = () => {
     if (!pendingComboCart) return;
@@ -575,7 +586,7 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
     showToast(`${finalItem.name} + Classic Pearl added!`, 'success');
   };
 
-  // ── Cart item editing ─────────────────────────────────────────────────────────
+  // ── Cart item editing ─────────────────────────────────────────────────────
 
   const openCartItemEdit = (index: number) => {
     setEditingCartIndex(index);
@@ -602,6 +613,7 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
 
   const saveCartItemEdit = () => {
     if (editingCartIndex === null || !editingCartItem) return;
+
     const unitPrice = editingCartItem.finalPrice / editingCartItem.qty;
     let discountedUnit = unitPrice;
     let discountLabel: string | undefined;
@@ -634,7 +646,7 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
     closeCartItemEdit();
   };
 
-  // ── Confirm order ─────────────────────────────────────────────────────────────
+  // ── Confirm order ─────────────────────────────────────────────────────────
 
   const handleConfirmOrder = async () => {
     if (cart.length === 0) return;
@@ -644,18 +656,18 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
         si_number:        orNumber,
         branch_id:        branchId,
         items: cart.map(item => ({
-          menu_item_id:  item.id,
-          name:          item.name,
-          quantity:      item.qty,
-          unit_price:    Number(item.price),
-          total_price:   item.finalPrice,
-          size:          item.size !== 'none' ? item.size : null,
+          menu_item_id:   item.id,
+          name:           item.name,
+          quantity:       item.qty,
+          unit_price:     Number(item.price),
+          total_price:    item.finalPrice,
+          size:           item.size !== 'none' ? item.size : null,
           cup_size_label: item.cupSizeLabel ?? null,
-          sugar_level:   item.sugarLevel || null,
-          options:       item.options || [],
-          add_ons:       item.addOns || [],
-          remarks:       item.remarks || null,
-          charges:       { grab: item.charges.grab, panda: item.charges.panda },
+          sugar_level:    item.sugarLevel || null,
+          options:        item.options || [],
+          add_ons:        item.addOns  || [],
+          remarks:        item.remarks || null,
+          charges:        { grab: item.charges.grab, panda: item.charges.panda },
         })),
         subtotal,
         discount_amount:  discountAmount,
@@ -668,8 +680,8 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
         pax_senior:       pax.senior,
         pax_pwd:          pax.pwd,
         pax_diplomat:     pax.diplomat,
-        senior_id:        discountIDs.senior || null,
-        pwd_id:           discountIDs.pwd || null,
+        senior_id:        discountIDs.senior   || null,
+        pwd_id:           discountIDs.pwd      || null,
         diplomat_id:      discountIDs.diplomat || null,
         discount_remarks: discountRemarks || null,
         vatable_sales:    vatableSales,
@@ -710,13 +722,13 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
     }
   };
 
-  // ── Print handlers ────────────────────────────────────────────────────────────
+  // ── Print handlers ────────────────────────────────────────────────────────
 
   const handlePrintReceipt  = () => { setPrintTarget('receipt');  setPrintedReceipt(true);  setTimeout(() => window.print(), 100); };
   const handlePrintKitchen  = () => { setPrintTarget('kitchen');  setPrintedKitchen(true);  setTimeout(() => window.print(), 100); };
   const handlePrintStickers = () => { setPrintTarget('stickers'); setPrintedStickers(true); setTimeout(() => window.print(), 100); };
 
-  // ── New order ─────────────────────────────────────────────────────────────────
+  // ── New order ─────────────────────────────────────────────────────────────
 
   const handleNewOrder = async () => {
     setCart([]);
@@ -738,7 +750,7 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
     await syncNextSequence();
   };
 
-  // ── Filtered categories ───────────────────────────────────────────────────────
+  // ── Filtered categories ───────────────────────────────────────────────────
 
   const filteredCategories = categories
     .map(cat => ({
@@ -751,7 +763,7 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
       cat.name.toLowerCase().includes(searchQuery.toLowerCase()) || cat.menu_items.length > 0
     );
 
-  // ── Sticker renderer ──────────────────────────────────────────────────────────
+  // ── Sticker renderer ──────────────────────────────────────────────────────
 
   const renderStickers = () => {
     const stickers: React.ReactNode[] = [];
@@ -765,17 +777,17 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
       const isSticker = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
       if (!isSticker) return;
 
-      const extraCount     = (item.options?.length || 0) + (item.addOns?.length || 0) + (item.remarks ? 1 : 0);
-      const isCrowded      = extraCount >= 3;
-      const isVeryCrowded  = extraCount >= 5;
+      const extraCount    = (item.options?.length || 0) + (item.addOns?.length || 0) + (item.remarks ? 1 : 0);
+      const isCrowded     = extraCount >= 3;
+      const isVeryCrowded = extraCount >= 5;
 
-      const paddingClass  = isVeryCrowded ? 'p-0.5' : 'p-1';
-      const titleSize     = isVeryCrowded ? 'text-[10px]' : isCrowded ? 'text-[11px]' : 'text-[12px]';
-      const nameSize      = isVeryCrowded ? 'text-[8.5px]' : isCrowded ? 'text-[10px]' : 'text-xs';
-      const addOnSize     = isVeryCrowded ? 'text-[6px]' : isCrowded ? 'text-[7px]' : 'text-[9px]';
-      const gapClass      = isVeryCrowded ? 'space-y-0 leading-none' : 'space-y-0.5 leading-tight';
-      const marginClass   = isVeryCrowded ? 'mb-0' : 'mb-1';
-      const sizeLabel     = item.cupSizeLabel ? `(${item.cupSizeLabel})` : '';
+      const paddingClass = isVeryCrowded ? 'p-0.5' : 'p-1';
+      const titleSize    = isVeryCrowded ? 'text-[10px]' : isCrowded ? 'text-[11px]' : 'text-[12px]';
+      const nameSize     = isVeryCrowded ? 'text-[8.5px]' : isCrowded ? 'text-[10px]' : 'text-xs';
+      const addOnSize    = isVeryCrowded ? 'text-[6px]'   : isCrowded ? 'text-[7px]'  : 'text-[9px]';
+      const gapClass     = isVeryCrowded ? 'space-y-0 leading-none' : 'space-y-0.5 leading-tight';
+      const marginClass  = isVeryCrowded ? 'mb-0' : 'mb-1';
+      const sizeLabel    = item.cupSizeLabel ? `(${item.cupSizeLabel})` : '';
 
       for (let i = 0; i < item.qty; i++) {
         stickers.push(
@@ -814,18 +826,7 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
     return stickers;
   };
 
-  // ── Loading ───────────────────────────────────────────────────────────────────
-
-  if (checkingCashIn || loading) return (
-    <div className="h-screen flex items-center justify-center font-black text-[#3b2063] bg-[#f8f6ff]">
-      <div className="text-center">
-        <DrinkIcon className="w-16 h-16 mx-auto mb-4 text-[#3b2063] opacity-30 animate-pulse" />
-        <div className="text-sm tracking-widest uppercase opacity-50">Loading...</div>
-      </div>
-    </div>
-  );
-
-  // ── Shared discount preview helper ────────────────────────────────────────────
+  // ── Discount preview helper ───────────────────────────────────────────────
 
   const computeDiscountedTotal = () => {
     if (!editingCartItem) return 0;
@@ -838,11 +839,18 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
     return discounted * editingCartItem.qty;
   };
 
-  const totalDiscountDisplay = discountAmount + itemDiscountTotal;
+  // ── Loading screen ────────────────────────────────────────────────────────
 
-  // ─────────────────────────────────────────────────────────────────────────────
-  // RENDER
-  // ─────────────────────────────────────────────────────────────────────────────
+  if (checkingCashIn || loading) return (
+    <div className="h-screen flex items-center justify-center font-black text-[#3b2063] bg-[#f8f6ff]">
+      <div className="text-center">
+        <DrinkIcon className="w-16 h-16 mx-auto mb-4 text-[#3b2063] opacity-30 animate-pulse" />
+        <div className="text-sm tracking-widest uppercase opacity-50">Loading...</div>
+      </div>
+    </div>
+  );
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <>
@@ -861,8 +869,7 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
 
       <div className="flex flex-col h-screen w-screen bg-[#f0edf8] relative overflow-hidden font-sans print:hidden">
 
-
-                {/* ── MODAL: CART ITEM EDIT ────────────────────────────────────────── */}
+        {/* ── MODAL: CART ITEM EDIT ──────────────────────────────────────── */}
         {editingCartItem && editingCartIndex !== null && (
           <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <div className="bg-white w-full max-w-md rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -870,7 +877,9 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
                 <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/40 mb-1">Edit Item</p>
                 <h2 className="text-base font-black uppercase tracking-wide leading-tight pr-8">
                   {editingCartItem.name}
-                  {editingCartItem.cupSizeLabel && <span className="ml-2 text-white/40 font-semibold text-sm">({editingCartItem.cupSizeLabel})</span>}
+                  {editingCartItem.cupSizeLabel && (
+                    <span className="ml-2 text-white/40 font-semibold text-sm">({editingCartItem.cupSizeLabel})</span>
+                  )}
                 </h2>
                 <button onClick={closeCartItemEdit} className="absolute top-5 right-5 w-7 h-7 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-colors">
                   <CloseIcon size={4} />
@@ -879,16 +888,27 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
 
               <div className="overflow-y-auto flex-1 px-6 py-5 space-y-5 bg-white">
                 {/* Detail badges */}
-                {(editingCartItem.sugarLevel != null || (editingCartItem.options?.length ?? 0) > 0 ||
-                  (editingCartItem.addOns?.length ?? 0) > 0 || editingCartItem.charges?.grab ||
-                  editingCartItem.charges?.panda || editingCartItem.remarks) && (
+                {(editingCartItem.sugarLevel != null ||
+                  (editingCartItem.options?.length ?? 0) > 0 ||
+                  (editingCartItem.addOns?.length  ?? 0) > 0 ||
+                  editingCartItem.charges?.grab ||
+                  editingCartItem.charges?.panda ||
+                  editingCartItem.remarks) && (
                   <div className="flex flex-wrap gap-1.5 pb-1">
-                    {editingCartItem.sugarLevel != null && <span className="inline-flex items-center gap-1 bg-violet-50 text-violet-700 border border-violet-200 text-[10px] px-2 py-1 rounded-md font-semibold">🍬 {editingCartItem.sugarLevel}</span>}
-                    {editingCartItem.options?.map(opt => <span key={opt} className="inline-flex items-center bg-sky-50 text-sky-700 border border-sky-200 text-[10px] px-2 py-1 rounded-md font-semibold">{opt}</span>)}
-                    {editingCartItem.addOns?.map(a => <span key={a} className="inline-flex items-center bg-amber-50 text-amber-700 border border-amber-200 text-[10px] px-2 py-1 rounded-md font-semibold">+{a}</span>)}
-                    {editingCartItem.charges?.grab && <span className="inline-flex items-center bg-green-50 text-green-700 border border-green-200 text-[10px] px-2 py-1 rounded-md font-semibold">🛵 Grab</span>}
-                    {editingCartItem.charges?.panda && <span className="inline-flex items-center bg-pink-50 text-pink-700 border border-pink-200 text-[10px] px-2 py-1 rounded-md font-semibold">🐼 Panda</span>}
-                    {editingCartItem.remarks && <span className="inline-flex items-center bg-zinc-100 text-zinc-500 border border-zinc-200 text-[10px] px-2 py-1 rounded-md font-semibold italic">📝 {editingCartItem.remarks}</span>}
+                    {editingCartItem.sugarLevel != null && (
+                      <span className="inline-flex items-center gap-1 bg-violet-50 text-violet-700 border border-violet-200 text-[10px] px-2 py-1 rounded-md font-semibold">🍬 {editingCartItem.sugarLevel}</span>
+                    )}
+                    {editingCartItem.options?.map(opt => (
+                      <span key={opt} className="inline-flex items-center bg-sky-50 text-sky-700 border border-sky-200 text-[10px] px-2 py-1 rounded-md font-semibold">{opt}</span>
+                    ))}
+                    {editingCartItem.addOns?.map(a => (
+                      <span key={a} className="inline-flex items-center bg-amber-50 text-amber-700 border border-amber-200 text-[10px] px-2 py-1 rounded-md font-semibold">+{a}</span>
+                    ))}
+                    {editingCartItem.charges?.grab  && <span className="inline-flex items-center bg-green-50 text-green-700 border border-green-200 text-[10px] px-2 py-1 rounded-md font-semibold">🛵 Grab</span>}
+                    {editingCartItem.charges?.panda && <span className="inline-flex items-center bg-pink-50  text-pink-700  border border-pink-200  text-[10px] px-2 py-1 rounded-md font-semibold">🐼 Panda</span>}
+                    {editingCartItem.remarks && (
+                      <span className="inline-flex items-center bg-zinc-100 text-zinc-500 border border-zinc-200 text-[10px] px-2 py-1 rounded-md font-semibold italic">📝 {editingCartItem.remarks}</span>
+                    )}
                   </div>
                 )}
 
@@ -902,26 +922,33 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
                 <div>
                   <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-2">Item Discount</label>
                   <div className="border-2 border-zinc-200 rounded-[0.625rem] overflow-hidden divide-y divide-zinc-100">
-                    {/* No Discount */}
                     {[
-                      { id: null,  label: 'No Discount', type: 'none' as const, value: 0, badge: null },
-                      { id: -1,   label: 'Senior / PWD', type: 'percent' as const, value: 20, badge: '20% OFF' },
+                      { id: null, label: 'No Discount', type: 'none' as const,    value: 0,  badge: null },
+                      { id: -1,  label: 'Senior / PWD', type: 'percent' as const, value: 20, badge: '20% OFF' },
                       ...discounts.map(d => ({
-                        id: d.id, label: d.name,
-                        type: d.type.includes('Percent') ? 'percent' as const : 'fixed' as const,
+                        id:    d.id,
+                        label: d.name,
+                        type:  d.type.includes('Percent') ? 'percent' as const : 'fixed' as const,
                         value: Number(d.amount),
                         badge: d.type.includes('Percent') ? `${d.amount}% OFF` : `₱${d.amount} OFF`,
                       })),
                     ].map(option => {
                       const isSelected = editingItemDiscountId === option.id;
-                      const isNone = option.id === null;
+                      const isNone     = option.id === null;
                       return (
-                        <button key={String(option.id)} onClick={() => {
-                          setEditingItemDiscountId(option.id);
-                          setItemDiscountType(option.type);
-                          setItemDiscountValue(option.value || '');
-                        }}
-                          className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors ${isSelected ? (isNone ? 'bg-red-500 text-white' : 'bg-[#3b2063] text-white') : 'bg-white text-zinc-600 hover:bg-zinc-50'}`}>
+                        <button
+                          key={String(option.id)}
+                          onClick={() => {
+                            setEditingItemDiscountId(option.id);
+                            setItemDiscountType(option.type);
+                            setItemDiscountValue(option.value || '');
+                          }}
+                          className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors
+                            ${isSelected
+                              ? isNone ? 'bg-red-500 text-white' : 'bg-[#3b2063] text-white'
+                              : 'bg-white text-zinc-600 hover:bg-zinc-50'
+                            }`}
+                        >
                           <div className="flex items-center gap-3">
                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'border-white bg-white' : 'border-zinc-300'}`}>
                               {isSelected && <div className={`w-2 h-2 rounded-full ${isNone ? 'bg-red-500' : 'bg-[#3b2063]'}`} />}
@@ -929,7 +956,8 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
                             <span className="text-xs font-black uppercase tracking-wider">{option.label}</span>
                           </div>
                           {option.badge && (
-                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full tabular-nums shrink-0 ml-2 ${isSelected ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
+                            <span className={`text-[10px] font-black px-2 py-0.5 rounded-full tabular-nums shrink-0 ml-2
+                              ${isSelected ? 'bg-white/20 text-white' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}`}>
                               {option.badge}
                             </span>
                           )}
@@ -952,8 +980,7 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
               </div>
 
               <div className="px-6 py-4 bg-zinc-50 border-t border-zinc-200 flex gap-3 shrink-0">
-                <button onClick={removeEditingItem}
-                  className="flex-1 py-3 rounded-[0.625rem] border-2 border-red-100 bg-white text-red-500 font-black text-xs uppercase tracking-widest hover:bg-red-500 hover:text-white hover:border-red-500 transition-all flex items-center justify-center gap-2">
+                <button onClick={removeEditingItem} className="flex-1 py-3 rounded-[0.625rem] border-2 border-red-100 bg-white text-red-500 font-black text-xs uppercase tracking-widest hover:bg-red-500 hover:text-white hover:border-red-500 transition-all flex items-center justify-center gap-2">
                   <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
                     <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
@@ -968,17 +995,20 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
           </div>
         )}
 
-        {/* ── MODAL: ITEM SELECTION ────────────────────────────────────────── */}
+        {/* ── MODAL: ITEM SELECTION ──────────────────────────────────────── */}
         {selectedItem && !isAddOnModalOpen && !isConfirmModalOpen && !isSuccessModalOpen && (
           <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
               <div className="bg-[#3b2063] p-5 text-white text-center relative shrink-0">
                 <h2 className="text-lg font-black uppercase tracking-wider">{selectedItem.name}</h2>
-                {isCombo && <div className="mt-1 inline-block bg-white/20 text-white text-[10px] font-black uppercase px-3 py-1 rounded-[0.625rem] tracking-widest">🧋 Includes Classic Pearl</div>}
+                {isCombo && (
+                  <div className="mt-1 inline-block bg-white/20 text-white text-[10px] font-black uppercase px-3 py-1 rounded-[0.625rem] tracking-widest">🧋 Includes Classic Pearl</div>
+                )}
                 <button onClick={closeModal} className="absolute top-5 right-6 text-white/50 hover:text-white transition-colors">
                   <CloseIcon size={6} />
                 </button>
               </div>
+
               <div className="p-6 space-y-5 overflow-y-auto bg-white">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-white p-3 rounded-[0.625rem] border-2 border-zinc-200">
@@ -1004,7 +1034,8 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
                       <div className="flex gap-2">
                         {SUGAR_LEVELS.map(level => (
                           <button key={level} onClick={() => setSugarLevel(level)}
-                            className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${sugarLevel === level ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
+                            className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all
+                              ${sugarLevel === level ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
                             {level}
                           </button>
                         ))}
@@ -1015,7 +1046,9 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
                       <button onClick={() => setIsAddOnModalOpen(true)}
                         className="w-full py-4 rounded-[0.625rem] border-2 border-dashed border-[#3b2063]/40 bg-[#f0ebff] hover:bg-[#e4dbff] text-[#3b2063] font-black uppercase tracking-wider text-sm flex items-center justify-center transition-all group">
                         <span className="mr-2">{selectedAddOns.length > 0 ? `${selectedAddOns.length} Add-on(s) Selected` : 'Select Add-ons'}</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4 group-hover:translate-x-1 transition-transform"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4 group-hover:translate-x-1 transition-transform">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                        </svg>
                       </button>
                     </div>
                     <div>
@@ -1023,7 +1056,8 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
                       <div className="flex flex-wrap gap-2">
                         {EXTRA_OPTIONS.map(opt => (
                           <button key={opt} onClick={() => toggleOption(opt)}
-                            className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${selectedOptions.includes(opt) ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
+                            className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all
+                              ${selectedOptions.includes(opt) ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
                             {opt}
                           </button>
                         ))}
@@ -1033,17 +1067,20 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
                 )}
 
                 <div>
-                  <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Charges (+10.00)</label>
+                  <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Charges (+₱30.00)</label>
                   <div className="grid grid-cols-2 gap-3">
                     {(['grab', 'panda'] as const).map(type => {
-                      const isActive  = orderCharge === type;
+                      const isActive   = orderCharge === type;
                       const isDisabled = orderCharge !== null && orderCharge !== type;
                       return (
                         <button key={type} type="button" onClick={() => !isDisabled && toggleOrderCharge(type)} disabled={isDisabled}
                           className={`p-3 rounded-[0.625rem] border-2 transition-all flex items-center justify-center gap-2
-                            ${isDisabled ? 'border-zinc-200 bg-white text-zinc-300 opacity-40'
-                              : isActive  ? (type === 'grab' ? 'border-green-500 bg-green-50 text-green-700' : 'border-pink-500 bg-pink-50 text-pink-700')
-                              : (type === 'grab' ? 'border-zinc-300 bg-white text-zinc-500 hover:border-green-300 hover:bg-green-50' : 'border-zinc-300 bg-white text-zinc-500 hover:border-pink-300 hover:bg-pink-50')}`}>
+                            ${isDisabled
+                              ? 'border-zinc-200 bg-white text-zinc-300 opacity-40'
+                              : isActive
+                                ? type === 'grab' ? 'border-green-500 bg-green-50 text-green-700' : 'border-pink-500 bg-pink-50 text-pink-700'
+                                : type === 'grab' ? 'border-zinc-300 bg-white text-zinc-500 hover:border-green-300 hover:bg-green-50' : 'border-zinc-300 bg-white text-zinc-500 hover:border-pink-300 hover:bg-pink-50'
+                            }`}>
                           <span className="font-bold text-xs uppercase">{type === 'grab' ? 'Grab Food' : 'Food Panda'}</span>
                         </button>
                       );
@@ -1061,7 +1098,8 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
                   const canAdd = isCombo || !isDrink || selectedOptions.some(o => ['NO PRL', 'W/ PRL'].includes(o));
                   return (
                     <button onClick={addToOrder} disabled={!canAdd} title={!canAdd ? 'Please select NO PRL or W/ PRL' : ''}
-                      className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${canAdd ? 'bg-[#3b2063] text-white hover:bg-[#2a1647]' : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'}`}>
+                      className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors
+                        ${canAdd ? 'bg-[#3b2063] text-white hover:bg-[#2a1647]' : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'}`}>
                       {isCombo ? 'Next: Customize Drink →' : canAdd ? 'Add Order' : 'Select Pearl Option'}
                     </button>
                   );
@@ -1071,7 +1109,7 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
           </div>
         )}
 
-        {/* ── MODAL: ADD-ONS ───────────────────────────────────────────────── */}
+        {/* ── MODAL: ADD-ONS ─────────────────────────────────────────────── */}
         {isAddOnModalOpen && (
           <div className="fixed inset-0 z-110 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl flex flex-col h-[80vh]">
@@ -1091,7 +1129,7 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
           </div>
         )}
 
-        {/* ── MODAL: COMBO DRINK ───────────────────────────────────────────── */}
+        {/* ── MODAL: COMBO DRINK ─────────────────────────────────────────── */}
         {isCombodrinkModalOpen && pendingComboCart && (
           <div className="fixed inset-0 z-110 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -1109,7 +1147,8 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
                   <div className="flex gap-2">
                     {SUGAR_LEVELS.map(level => (
                       <button key={level} onClick={() => setComboDrinkSugar(level)}
-                        className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${comboDrinkSugar === level ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
+                        className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all
+                          ${comboDrinkSugar === level ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
                         {level}
                       </button>
                     ))}
@@ -1120,7 +1159,9 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
                   <button onClick={() => setComboDrinkAddOnModalOpen(true)}
                     className="w-full py-4 rounded-[0.625rem] border-2 border-dashed border-[#3b2063]/40 bg-[#f0ebff] hover:bg-[#e4dbff] text-[#3b2063] font-black uppercase tracking-wider text-sm flex items-center justify-center transition-all group">
                     <span className="mr-2">{comboDrinkAddOns.length > 0 ? `${comboDrinkAddOns.length} Add-on(s) Selected` : 'Select Add-ons'}</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4 group-hover:translate-x-1 transition-transform"><path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4 group-hover:translate-x-1 transition-transform">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                    </svg>
                   </button>
                 </div>
                 <div>
@@ -1128,7 +1169,8 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
                   <div className="flex flex-wrap gap-2">
                     {EXTRA_OPTIONS.map(opt => (
                       <button key={opt} onClick={() => toggleComboDrinkOption(opt)}
-                        className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${comboDrinkOptions.includes(opt) ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
+                        className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all
+                          ${comboDrinkOptions.includes(opt) ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
                         {opt}
                       </button>
                     ))}
@@ -1138,7 +1180,8 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
                   const hasPearl = comboDrinkOptions.some(o => ['NO PRL', 'W/ PRL'].includes(o));
                   return (
                     <button onClick={confirmComboDrink} disabled={!hasPearl}
-                      className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${hasPearl ? 'bg-[#3b2063] text-white hover:bg-[#2a1647]' : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'}`}>
+                      className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors
+                        ${hasPearl ? 'bg-[#3b2063] text-white hover:bg-[#2a1647]' : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'}`}>
                       {hasPearl ? '🧋 Confirm & Add to Order' : 'Select Pearl Option First'}
                     </button>
                   );
@@ -1148,7 +1191,7 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
           </div>
         )}
 
-        {/* ── MODAL: COMBO DRINK ADD-ONS ───────────────────────────────────── */}
+        {/* ── MODAL: COMBO DRINK ADD-ONS ─────────────────────────────────── */}
         {comboDrinkAddOnModalOpen && (
           <div className="fixed inset-0 z-120 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl flex flex-col h-[80vh]">
@@ -1160,7 +1203,9 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
                 <AddOnGrid
                   addOns={addOnsData}
                   selected={comboDrinkAddOns}
-                  onToggle={name => setComboDrinkAddOns(prev => prev.includes(name) ? prev.filter(a => a !== name) : [...prev, name])}
+                  onToggle={name => setComboDrinkAddOns(prev =>
+                    prev.includes(name) ? prev.filter(a => a !== name) : [...prev, name]
+                  )}
                 />
               </div>
               <div className="p-4 border-t border-zinc-200 bg-white">
@@ -1172,7 +1217,7 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
           </div>
         )}
 
-        {/* ── MODAL: CONFIRM ORDER ─────────────────────────────────────────── */}
+        {/* ── MODAL: CONFIRM ORDER ───────────────────────────────────────── */}
         {isConfirmModalOpen && (
           <div className="fixed inset-0 z-120 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <div className="bg-white w-full max-w-6xl rounded-[0.625rem] shadow-2xl flex flex-col overflow-hidden max-h-[95vh]">
@@ -1194,29 +1239,29 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
                 <div className="flex-1 flex flex-col bg-white border-r border-zinc-200 overflow-hidden">
                   <div className="flex-1 p-6 overflow-y-auto">
                     <h3 className="font-black text-sm text-[#3b2063] uppercase mb-4 tracking-wider">Cart Items</h3>
-                    {cart.length === 0
-                      ? <p className="text-center text-zinc-400 font-bold text-sm py-8">Cart is empty.</p>
-                      : (
-                        <div className="space-y-4">
-                          {cart.map((item, i) => (
-                            <div key={i} onClick={() => openCartItemEdit(i)} className="flex justify-between items-start pb-3 border-b border-zinc-100 last:border-0 mb-2 cursor-pointer hover:bg-[#f9f7ff] rounded-lg px-2 -mx-2 transition-colors">
-                              <div>
-                                <p className="font-bold text-sm text-[#3b2063]">
-                                  {item.qty}x {item.name}
-                                  {item.cupSizeLabel && <span className="ml-1 opacity-60">({item.cupSizeLabel})</span>}
-                                </p>
-                                <div className="text-[10px] text-zinc-500 mt-1 ml-2">
-                                  {item.sugarLevel != null && <p>• Sugar {item.sugarLevel}</p>}
-                                  {item.options?.map(o => <p key={o}>• {o}</p>)}
-                                  {item.addOns?.map(a => <p key={a}>• + {a}</p>)}
-                                  {item.remarks && <p className="italic">• {item.remarks}</p>}
-                                </div>
+                    {cart.length === 0 ? (
+                      <p className="text-center text-zinc-400 font-bold text-sm py-8">Cart is empty.</p>
+                    ) : (
+                      <div className="space-y-4">
+                        {cart.map((item, i) => (
+                          <div key={i} onClick={() => openCartItemEdit(i)} className="flex justify-between items-start pb-3 border-b border-zinc-100 last:border-0 mb-2 cursor-pointer hover:bg-[#f9f7ff] rounded-lg px-2 -mx-2 transition-colors">
+                            <div>
+                              <p className="font-bold text-sm text-[#3b2063]">
+                                {item.qty}x {item.name}
+                                {item.cupSizeLabel && <span className="ml-1 opacity-60">({item.cupSizeLabel})</span>}
+                              </p>
+                              <div className="text-[10px] text-zinc-500 mt-1 ml-2">
+                                {item.sugarLevel != null && <p>• Sugar {item.sugarLevel}</p>}
+                                {item.options?.map(o => <p key={o}>• {o}</p>)}
+                                {item.addOns?.map(a => <p key={a}>• + {a}</p>)}
+                                {item.remarks && <p className="italic">• {item.remarks}</p>}
                               </div>
-                              <p className="font-black text-sm text-[#3b2063]">₱ {item.finalPrice.toFixed(2)}</p>
                             </div>
-                          ))}
-                        </div>
-                      )}
+                            <p className="font-black text-sm text-[#3b2063]">₱ {item.finalPrice.toFixed(2)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   <div className="p-6 bg-zinc-50 shrink-0 border-t border-zinc-200">
                     <div className="space-y-1.5 text-[11px] font-bold text-zinc-600">
@@ -1311,12 +1356,14 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
                           <h3 className="font-black text-sm text-[#3b2063] uppercase tracking-wider">Select Promo</h3>
                           <div className="grid grid-cols-2 gap-2">
                             <button onClick={() => setSelectedDiscount(null)}
-                              className={`p-3 rounded-[0.625rem] text-sm font-black uppercase transition-all border-2 flex items-center justify-center text-center ${!selectedDiscount ? 'bg-red-500 text-white border-red-500 shadow-md' : 'bg-zinc-50 text-red-500 border-red-100 hover:border-red-300'}`}>
+                              className={`p-3 rounded-[0.625rem] text-sm font-black uppercase transition-all border-2 flex items-center justify-center text-center
+                                ${!selectedDiscount ? 'bg-red-500 text-white border-red-500 shadow-md' : 'bg-zinc-50 text-red-500 border-red-100 hover:border-red-300'}`}>
                               Remove Promo
                             </button>
                             {discounts.map(d => (
                               <button key={d.id} onClick={() => setSelectedDiscount(d)}
-                                className={`p-3 rounded-[0.625rem] text-sm font-black uppercase transition-all border-2 flex items-center justify-center text-center ${selectedDiscount?.id === d.id ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-emerald-300'}`}>
+                                className={`p-3 rounded-[0.625rem] text-sm font-black uppercase transition-all border-2 flex items-center justify-center text-center
+                                  ${selectedDiscount?.id === d.id ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-emerald-300'}`}>
                                 {d.name} ({d.amount}{d.type.includes('Percent') ? '%' : ' OFF'})
                               </button>
                             ))}
@@ -1362,17 +1409,19 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
                   </div>
 
                   <div className="p-6 bg-white border-t border-zinc-200 shrink-0">
-                    <button onClick={handleConfirmOrder}
+                    <button
+                      onClick={handleConfirmOrder}
                       disabled={
                         submitting ||
                         (paymentMethod === 'cash' && (cashTendered === '' || cashTendered < amtDue)) ||
                         (paymentMethod !== 'cash' && !referenceNumber) ||
                         (pax.regular + pax.senior + pax.pwd + pax.diplomat !== totalCount)
                       }
-                      className="w-full bg-[#3b2063] hover:bg-[#2a1647] transition-colors text-white py-4 rounded-[0.625rem] font-black uppercase tracking-widest shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed">
+                      className="w-full bg-[#3b2063] hover:bg-[#2a1647] transition-colors text-white py-4 rounded-[0.625rem] font-black uppercase tracking-widest shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed"
+                    >
                       {submitting
                         ? 'Processing...'
-                        : (pax.regular + pax.senior + pax.pwd + pax.diplomat !== totalCount)
+                        : pax.regular + pax.senior + pax.pwd + pax.diplomat !== totalCount
                           ? `PAX MUST EQUAL ${totalCount}`
                           : 'Complete Transaction'}
                     </button>
@@ -1383,18 +1432,25 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
           </div>
         )}
 
-        {/* ── MODAL: SUCCESS / PRINT ───────────────────────────────────────── */}
+        {/* ── MODAL: SUCCESS / PRINT ─────────────────────────────────────── */}
         {isSuccessModalOpen && (() => {
           const printItems = [
-            { label: 'Customer Receipt', done: printedReceipt, onPrint: handlePrintReceipt,
-              icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0v3.398c0 .796.604 1.48 1.389 1.554a41.349 41.349 0 0 1 7.722 0c.785.074 1.389-.758 1.389-1.554V7.034Z" /></svg> },
-            { label: 'Order Ticket', done: printedKitchen, onPrint: handlePrintKitchen,
-              icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.866 8.21 8.21 0 0 0 3 2.48Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 18a3.75 3.75 0 0 0 .495-7.468 5.99 5.99 0 0 0-1.925 3.547 5.975 5.975 0 0 1-2.133-1.001A3.75 3.75 0 0 0 12 18Z" /></svg> },
-            ...(hasStickers ? [{ label: 'Drink Stickers', done: printedStickers, onPrint: handlePrintStickers,
-              icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" /></svg> }] : []),
+            {
+              label: 'Customer Receipt', done: printedReceipt, onPrint: handlePrintReceipt,
+              icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M6.72 13.829c-.24.03-.48.062-.72.096m.72-.096a42.415 42.415 0 0 1 10.56 0m-10.56 0L6.34 18m10.94-4.171c.24.03.48.062.72.096m-.72-.096L17.66 18m0 0 .229 2.523a1.125 1.125 0 0 1-1.12 1.227H7.231c-.662 0-1.18-.568-1.12-1.227L6.34 18m11.318 0h1.091A2.25 2.25 0 0 0 21 15.75V9.456c0-1.081-.768-2.015-1.837-2.175a48.055 48.055 0 0 0-1.913-.247M6.34 18H5.25A2.25 2.25 0 0 1 3 15.75V9.456c0-1.081.768-2.015 1.837-2.175a48.041 48.041 0 0 1 1.913-.247m10.5 0a48.536 48.536 0 0 0-10.5 0v3.398c0 .796.604 1.48 1.389 1.554a41.349 41.349 0 0 1 7.722 0c.785.074 1.389-.758 1.389-1.554V7.034Z" /></svg>,
+            },
+            {
+              label: 'Order Ticket', done: printedKitchen, onPrint: handlePrintKitchen,
+              icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.866 8.21 8.21 0 0 0 3 2.48Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 18a3.75 3.75 0 0 0 .495-7.468 5.99 5.99 0 0 0-1.925 3.547 5.975 5.975 0 0 1-2.133-1.001A3.75 3.75 0 0 0 12 18Z" /></svg>,
+            },
+            ...(hasStickers ? [{
+              label: 'Drink Stickers', done: printedStickers, onPrint: handlePrintStickers,
+              icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" /></svg>,
+            }] : []),
           ];
-          const pending   = printItems.filter(p => !p.done);
-          const allDone   = pending.length === 0;
+
+          const pending    = printItems.filter(p => !p.done);
+          const allDone    = pending.length === 0;
           const allPrinted = printedReceipt && printedKitchen && (!hasStickers || printedStickers);
 
           return (
@@ -1405,7 +1461,9 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
                   <div className="absolute -bottom-4 -left-4 w-16 h-16 border border-white/10 rounded-[0.625rem] -rotate-6" />
                   <div className="relative flex items-center gap-5">
                     <div className="w-14 h-14 bg-emerald-400 rounded-[0.625rem] flex items-center justify-center shrink-0">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="white" className="w-7 h-7"><path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="white" className="w-7 h-7">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                      </svg>
                     </div>
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/50 leading-none mb-1.5">Transaction Complete</p>
@@ -1419,7 +1477,8 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
                   <p className="text-[9px] font-black uppercase tracking-[0.25em] text-zinc-400 mb-4">Required Prints</p>
                   {printItems.map(({ label, done, onPrint, icon }) => (
                     <button key={label} onClick={onPrint}
-                      className={`w-full h-14 flex items-center justify-between px-5 border-2 transition-all font-bold text-xs uppercase tracking-widest rounded-[0.625rem] ${done ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-white border-zinc-200 text-zinc-600 hover:border-[#3b2063] hover:text-[#3b2063] hover:bg-[#f9f7ff]'}`}>
+                      className={`w-full h-14 flex items-center justify-between px-5 border-2 transition-all font-bold text-xs uppercase tracking-widest rounded-[0.625rem]
+                        ${done ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-white border-zinc-200 text-zinc-600 hover:border-[#3b2063] hover:text-[#3b2063] hover:bg-[#f9f7ff]'}`}>
                       <div className="flex items-center gap-3">{icon}<span>{label}</span></div>
                       {done ? <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Printed ✓</span> : <ChevronRight />}
                     </button>
@@ -1432,15 +1491,20 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
                       <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">
                         {allDone ? 'All done' : `${printItems.length - pending.length} / ${printItems.length} printed`}
                       </span>
-                      {!allDone && <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Pending: {pending.map(p => p.label).join(', ')}</span>}
+                      {!allDone && (
+                        <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Pending: {pending.map(p => p.label).join(', ')}</span>
+                      )}
                     </div>
                     <div className="w-full h-1 bg-zinc-100 rounded-full overflow-hidden">
-                      <div className={`h-full transition-all duration-500 rounded-full ${allDone ? 'bg-emerald-400' : 'bg-[#3b2063]'}`}
-                        style={{ width: `${((printItems.length - pending.length) / printItems.length) * 100}%` }} />
+                      <div
+                        className={`h-full transition-all duration-500 rounded-full ${allDone ? 'bg-emerald-400' : 'bg-[#3b2063]'}`}
+                        style={{ width: `${((printItems.length - pending.length) / printItems.length) * 100}%` }}
+                      />
                     </div>
                   </div>
                   <button onClick={handleNewOrder} disabled={!allPrinted}
-                    className={`w-full h-14 font-black uppercase tracking-widest text-sm transition-all rounded-[0.625rem] flex items-center justify-center gap-2 ${allPrinted ? 'bg-[#3b2063] text-white hover:bg-[#2a1647] cursor-pointer' : 'bg-zinc-100 text-zinc-400 cursor-not-allowed'}`}>
+                    className={`w-full h-14 font-black uppercase tracking-widest text-sm transition-all rounded-[0.625rem] flex items-center justify-center gap-2
+                      ${allPrinted ? 'bg-[#3b2063] text-white hover:bg-[#2a1647] cursor-pointer' : 'bg-zinc-100 text-zinc-400 cursor-not-allowed'}`}>
                     {allPrinted
                       ? <><span>New Order</span><ArrowRightIcon /></>
                       : `Print ${pending.length} remaining to continue`}
@@ -1451,7 +1515,7 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
           );
         })()}
 
-        {/* ── HEADER ──────────────────────────────────────────────────────── */}
+        {/* ── HEADER ────────────────────────────────────────────────────── */}
         <div className="flex gap-3 px-4 py-3 bg-white border-b border-zinc-200 items-center h-20 shrink-0 shadow-sm z-20">
           <button onClick={() => handleNavClick('Home')}
             className="bg-[#3b2063] text-white h-full px-5 rounded-[0.625rem] font-black text-[11px] uppercase tracking-widest shadow-md hover:bg-[#2a1647] transition-all flex items-center gap-2">
@@ -1483,7 +1547,7 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
           </div>
         </div>
 
-        {/* ── BODY ────────────────────────────────────────────────────────── */}
+        {/* ── BODY ──────────────────────────────────────────────────────── */}
         <div className="flex flex-1 overflow-hidden relative z-10">
 
           {/* Menu area */}
@@ -1503,7 +1567,9 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
               <div className="flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-300">
                 <div className="flex items-center gap-3 mb-5 sticky top-0 z-10 bg-[#f0edf8] py-2">
                   <button onClick={handleBack} className="bg-white p-3 rounded-[0.625rem] shadow-sm border-2 border-zinc-200 text-[#3b2063] hover:border-[#3b2063] hover:bg-[#f0ebff] transition-all">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                    </svg>
                   </button>
                   <div>
                     <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-none mb-0.5">Category</div>
@@ -1516,7 +1582,11 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
 
                 {categorySize ? (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 pb-20">
-                    {getFilteredItems(selectedCategory.menu_items.filter(item => item.name.toLowerCase().includes(searchQuery.toLowerCase()))).map(item => (
+                    {getFilteredItems(
+                      selectedCategory.menu_items.filter(item =>
+                        item.name.toLowerCase().includes(searchQuery.toLowerCase())
+                      )
+                    ).map(item => (
                       <button key={item.id} onClick={() => handleItemClick(item)} className={`${BASE_CARD} hover:bg-[#3b2063] hover:border-[#3b2063] hover:text-white`}>
                         {item.name}
                       </button>
@@ -1550,7 +1620,7 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
                             <span className="text-3xl font-black tracking-widest">{sub.name}</span>
                             <span className="mt-2 bg-[#3b2063]/10 text-[#3b2063] text-sm font-black px-3 py-1 rounded-full tracking-widest">
                               {sub.name === 'SM' || sub.name === 'UM' || sub.name === 'PCM' ? 'Medium' :
-                               sub.name === 'SL' || sub.name === 'UL' || sub.name === 'PCL' ? 'Large' :
+                               sub.name === 'SL' || sub.name === 'UL' || sub.name === 'PCL' ? 'Large'  :
                                sub.name === 'JR' ? 'Junior' : sub.name}
                             </span>
                           </button>
@@ -1625,7 +1695,7 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
             )}
           </div>
 
-          {/* ── SIDEBAR CART ──────────────────────────────────────────────── */}
+          {/* ── SIDEBAR CART ────────────────────────────────────────────── */}
           <div className="w-96 bg-white border-l-2 border-zinc-200 flex flex-col shrink-0 shadow-2xl z-30">
             <div className="bg-[#3b2063] p-4 text-white flex items-center justify-between shrink-0">
               <div>
@@ -1660,11 +1730,11 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
                           {item.cupSizeLabel && <span className="ml-1 opacity-50 font-bold">({item.cupSizeLabel})</span>}
                         </p>
                         <div className="flex flex-wrap gap-1 mt-1.5">
-                          {item.sugarLevel != null && <span className="bg-[#3b2063]/10 text-[#3b2063] text-[9px] px-1.5 py-0.5 rounded-lg font-bold">🍬 {item.sugarLevel}</span>}
-                          {item.options?.map(opt => <span key={opt} className="bg-blue-100 text-blue-700 text-[9px] px-1.5 py-0.5 rounded-lg font-bold">{opt}</span>)}
-                          {item.addOns?.map(addon => <span key={addon} className="bg-amber-100 text-amber-700 text-[9px] px-1.5 py-0.5 rounded-lg font-bold">+{addon}</span>)}
-                          {item.charges?.grab && <span className="bg-green-100 text-green-700 text-[9px] px-1.5 py-0.5 rounded-lg font-bold">🛵 Grab</span>}
-                          {item.charges?.panda && <span className="bg-pink-100 text-pink-700 text-[9px] px-1.5 py-0.5 rounded-lg font-bold">🐼 Panda</span>}
+                          {item.sugarLevel != null  && <span className="bg-[#3b2063]/10 text-[#3b2063] text-[9px] px-1.5 py-0.5 rounded-lg font-bold">🍬 {item.sugarLevel}</span>}
+                          {item.options?.map(opt    => <span key={opt}   className="bg-blue-100  text-blue-700  text-[9px] px-1.5 py-0.5 rounded-lg font-bold">{opt}</span>)}
+                          {item.addOns?.map(addon   => <span key={addon} className="bg-amber-100 text-amber-700 text-[9px] px-1.5 py-0.5 rounded-lg font-bold">+{addon}</span>)}
+                          {item.charges?.grab  && <span className="bg-green-100 text-green-700 text-[9px] px-1.5 py-0.5 rounded-lg font-bold">🛵 Grab</span>}
+                          {item.charges?.panda && <span className="bg-pink-100  text-pink-700  text-[9px] px-1.5 py-0.5 rounded-lg font-bold">🐼 Panda</span>}
                           {item.remarks && <span className="bg-zinc-200 text-zinc-600 text-[9px] px-1.5 py-0.5 rounded-lg font-bold italic">📝 {item.remarks}</span>}
                         </div>
                       </div>
@@ -1675,8 +1745,8 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
                           </svg>
                         </div>
                         <p className="font-black text-sm text-[#3b2063]">
-  ₱{(item.finalPrice + ((item.charges?.grab || item.charges?.panda) ? 30 * item.qty : 0)).toFixed(2)}
-</p>
+                          ₱{(item.finalPrice + ((item.charges?.grab || item.charges?.panda) ? 30 * item.qty : 0)).toFixed(2)}
+                        </p>
                       </div>
                     </div>
                   ))}
@@ -1725,15 +1795,15 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
                 <div key={i} className="mb-2">
                   <div className="uppercase">{item.name} {item.cupSizeLabel ? `(${item.cupSizeLabel})` : ''}</div>
                   <div className="flex justify-between w-full mt-0.5">
-  <span>{item.qty} X {(item.finalPrice / item.qty).toFixed(2)}</span>
-  <span>{item.finalPrice.toFixed(2)}</span>
-</div>
-{(item.charges?.grab || item.charges?.panda) && (
-  <div className="flex justify-between w-full text-[10px]">
-    <span>  • {item.charges.grab ? 'Grab' : 'FoodPanda'} Surcharge</span>
-    <span>+{(30 * item.qty).toFixed(2)}</span>
-  </div>
-)}
+                    <span>{item.qty} X {(item.finalPrice / item.qty).toFixed(2)}</span>
+                    <span>{item.finalPrice.toFixed(2)}</span>
+                  </div>
+                  {(item.charges?.grab || item.charges?.panda) && (
+                    <div className="flex justify-between w-full text-[10px]">
+                      <span>  • {item.charges.grab ? 'Grab' : 'FoodPanda'} Surcharge</span>
+                      <span>+{(30 * item.qty).toFixed(2)}</span>
+                    </div>
+                  )}
                   {item.discountLabel && (
                     <div className="flex justify-between w-full text-[10px] italic">
                       <span>  • Discount: {item.discountLabel}</span>
@@ -1744,13 +1814,13 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
                       <div className="pl-2 text-[10px]">• Classic Pearl</div>
                       <div className="pl-4 text-[10px]">• Sugar {item.sugarLevel}</div>
                       {item.options?.map(o => <div key={o} className="pl-4 text-[10px]">• {o}</div>)}
-                      {item.addOns?.map(a => <div key={a} className="pl-4 text-[10px]">• + {a}</div>)}
+                      {item.addOns?.map(a  => <div key={a} className="pl-4 text-[10px]">• + {a}</div>)}
                     </>
                   ) : (
                     <>
                       {item.sugarLevel != null && <div className="pl-2 text-[10px]">• Sugar {item.sugarLevel}</div>}
                       {item.options?.map(o => <div key={o} className="pl-2 text-[10px]">• {o}</div>)}
-                      {item.addOns?.map(a => <div key={a} className="pl-2 text-[10px]">• + {a}</div>)}
+                      {item.addOns?.map(a  => <div key={a} className="pl-2 text-[10px]">• + {a}</div>)}
                       {item.remarks && <div className="pl-2 text-[10px] italic">• {item.remarks}</div>}
                     </>
                   )}
@@ -1763,10 +1833,18 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
               <div className="flex justify-between"><span>Sub Total</span><span>{subtotal.toFixed(2)}</span></div>
               {totalDiscountDisplay > 0 && (
                 <>
-                  {itemDiscountTotal > 0 && <div className="flex justify-between"><span>Item Discounts</span><span>- {itemDiscountTotal.toFixed(2)}</span></div>}
-                  {(pax.senior > 0 || pax.pwd > 0) && <div className="flex justify-between"><span>Senior/PWD ({pax.senior + pax.pwd} pax)</span><span>- {seniorPwdDiscount.toFixed(2)}</span></div>}
-                  {selectedDiscount && <div className="flex justify-between w-full font-bold"><span>Promo: {selectedDiscount.name}</span><span>- {promoDiscount.toFixed(2)}</span></div>}
-                  <div className="flex justify-between font-bold border-t border-dashed border-black pt-1 mt-1"><span>Total Discount</span><span>- {totalDiscountDisplay.toFixed(2)}</span></div>
+                  {itemDiscountTotal > 0 && (
+                    <div className="flex justify-between"><span>Item Discounts</span><span>- {itemDiscountTotal.toFixed(2)}</span></div>
+                  )}
+                  {(pax.senior > 0 || pax.pwd > 0) && (
+                    <div className="flex justify-between"><span>Senior/PWD ({pax.senior + pax.pwd} pax)</span><span>- {seniorPwdDiscount.toFixed(2)}</span></div>
+                  )}
+                  {selectedDiscount && (
+                    <div className="flex justify-between w-full font-bold"><span>Promo: {selectedDiscount.name}</span><span>- {promoDiscount.toFixed(2)}</span></div>
+                  )}
+                  <div className="flex justify-between font-bold border-t border-dashed border-black pt-1 mt-1">
+                    <span>Total Discount</span><span>- {totalDiscountDisplay.toFixed(2)}</span>
+                  </div>
                 </>
               )}
               <div className="flex justify-between text-base font-bold mt-1"><span>TOTAL DUE</span><span>{amtDue.toFixed(2)}</span></div>
@@ -1780,7 +1858,9 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
                   <div className="flex justify-between"><span>Change</span><span>{change.toFixed(2)}</span></div>
                 </>
               )}
-              {referenceNumber && <div className="flex justify-between"><span>Ref/Approval #</span><span className="font-bold">{referenceNumber}</span></div>}
+              {referenceNumber && (
+                <div className="flex justify-between"><span>Ref/Approval #</span><span className="font-bold">{referenceNumber}</span></div>
+              )}
             </div>
 
             <div className="text-[11px] mt-3 space-y-1">
@@ -1837,13 +1917,13 @@ const toggleOrderCharge = (type: 'grab' | 'panda') => {
                           <div className="text-sm font-bold mt-1">• Classic Pearl</div>
                           <div className="text-sm pl-3">Sugar: {item.sugarLevel}</div>
                           {item.options && item.options.length > 0 && <div className="text-sm pl-3">Options: {item.options.join(', ')}</div>}
-                          {item.addOns && item.addOns.length > 0 && <div className="text-sm pl-3">Add: {item.addOns.join(', ')}</div>}
+                          {item.addOns  && item.addOns.length  > 0 && <div className="text-sm pl-3">Add: {item.addOns.join(', ')}</div>}
                         </>
                       ) : (
                         <>
                           {item.sugarLevel != null && <div className="text-sm mt-1">Sugar: {item.sugarLevel}</div>}
                           {item.options && item.options.length > 0 && <div className="text-sm">Options: {item.options.join(', ')}</div>}
-                          {item.addOns && item.addOns.length > 0 && <div className="text-sm">Add: {item.addOns.join(', ')}</div>}
+                          {item.addOns  && item.addOns.length  > 0 && <div className="text-sm">Add: {item.addOns.join(', ')}</div>}
                           {item.remarks && <div className="text-sm italic mt-2 border-t border-gray-200 pt-1">{item.remarks}</div>}
                         </>
                       )}
