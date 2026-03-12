@@ -77,6 +77,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::post('/menu/clear-cache', [MenuController::class, 'clearCache']);
         Route::apiResource('menu-list',  MenuListController::class)->only(['index', 'store']);
         Route::get('/add-ons',           [AddOnController::class, 'index']);
+        Route::get('/bundles',           fn () => \App\Models\Bundle::with('items')->where('is_active', true)->get());
         Route::get('/discounts',         [DiscountController::class, 'index']); // ← ALL roles can read discounts
         Route::apiResource('categories', CategoryController::class);
         Route::apiResource('sub-categories', SubCategoryController::class);

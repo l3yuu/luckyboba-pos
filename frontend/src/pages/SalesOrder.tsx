@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo.png';
-import { type MenuItem, type Category, type CartItem, SUGAR_LEVELS, EXTRA_OPTIONS, WINGS_QUANTITIES } from '../types/index';
+import { type MenuItem, type Category, type CartItem, type Bundle, type BundleComponentCustomization, SUGAR_LEVELS, EXTRA_OPTIONS, WINGS_QUANTITIES, BUNDLE_CATEGORIES } from '../types/index';
 import { useToast } from '../hooks/useToast';
 import api from '../services/api';
 import { useAuth } from '../hooks/useAuth';
@@ -185,11 +185,32 @@ const SalesOrder = () => {
   });
 
   useEffect(() => {
-    api.get('/add-ons').then(({ data }) => {
-      localStorage.setItem('pos_addons_cache', JSON.stringify(data));
-      setAddOnsData(data);
-    }).catch(() => {});
-  }, []);
+      api.get('/add-ons').then(({ data }) => {
+        localStorage.setItem('pos_addons_cache', JSON.stringify(data));
+        setAddOnsData(data);
+      }).catch(() => {});
+
+      api.get('/bundles').then(({ data }) => {
+        localStorage.setItem('pos_bundles_cache', JSON.stringify(data));
+        setBundlesData(data);
+      }).catch(() => {});
+    }, []);
+
+  // ── Bundle state ──────────────────────────────────────────────────────────
+  const [bundlesData, setBundlesData] = useState<Bundle[]>(() => {
+    try {
+      const c = localStorage.getItem('pos_bundles_cache');
+      return c ? JSON.parse(c) : [];
+    } catch { return []; }
+  });
+  const [isBundleModalOpen, setIsBundleModalOpen]                 = useState(false);
+  const [activeBundleItem, setActiveBundleItem]                   = useState<Bundle | null>(null);
+  const [bundleComponentIndex, setBundleComponentIndex]           = useState(0);
+  const [bundleComponentCustomizations, setBundleComponentCustomizations] = useState<BundleComponentCustomization[]>([]);
+  const [bundleComponentSugar, setBundleComponentSugar]           = useState('100%');
+  const [bundleComponentOptions, setBundleComponentOptions]       = useState<string[]>([]);
+  const [bundleComponentAddOns, setBundleComponentAddOns]         = useState<string[]>([]);
+  const [bundleComponentAddOnModalOpen, setBundleComponentAddOnModalOpen] = useState(false);
 
   const isWaffleCategory = selectedCategory?.name?.toLowerCase().includes('waffle');
   const filteredAddOns = addOnsData.filter(a =>
@@ -249,6 +270,7 @@ const SalesOrder = () => {
   // ── Derived values ────────────────────────────────────────────────────────
 
   const isDrink = selectedCategory?.type === 'drink';
+  const isBundle = BUNDLE_CATEGORIES.includes(selectedCategory?.name as typeof BUNDLE_CATEGORIES[number]);
   const isWings = selectedCategory?.name === 'CHICKEN WINGS';
   const isOz    = selectedCategory?.name === 'HOT DRINKS' || selectedCategory?.name === 'HOT COFFEE';
   const isCombo = selectedCategory?.name?.toUpperCase() === 'COMBO MEALS';
@@ -264,7 +286,8 @@ const SalesOrder = () => {
     item.sugarLevel !== undefined ||
     item.size === 'M' ||
     item.size === 'L' ||
-    (item.addOns?.some(a => a.toLowerCase().includes('waffle combo')) ?? false)
+    (item.addOns?.some(a => a.toLowerCase().includes('waffle combo')) ?? false) ||
+    (item.isBundle && (item.bundleComponents?.length ?? 0) > 0)
   );
 
   const totalPax          = pax.regular + pax.senior + pax.pwd + pax.diplomat;
@@ -447,6 +470,21 @@ const SalesOrder = () => {
   };
 
   const handleItemClick = (item: MenuItem) => {
+    // Intercept bundle categories
+    if (isBundle) {
+      const bundle = bundlesData.find(b => b.barcode === item.barcode);
+      if (bundle) {
+        setActiveBundleItem(bundle);
+        setBundleComponentIndex(0);
+        setBundleComponentCustomizations([]);
+        setBundleComponentSugar('100%');
+        setBundleComponentOptions([]);
+        setBundleComponentAddOns([]);
+        setIsBundleModalOpen(true);
+        return;
+      }
+    }
+
     setSelectedItem(item);
     setQty(1);
     setRemarks('');
@@ -573,6 +611,70 @@ const SalesOrder = () => {
     mergeIntoCart(newCartItem);
     closeModal();
     showToast(`${selectedItem.name} added to order`, 'success');
+  };
+
+  // ── Bundle component confirm ──────────────────────────────────────────────
+
+  const confirmBundleComponent = () => {
+    if (!activeBundleItem) return;
+
+    const component   = activeBundleItem.items[bundleComponentIndex];
+    const displayName = component.display_name ?? component.custom_name ?? '';
+    const isMilkTea   = displayName.toLowerCase().includes('milk tea') ||
+                        displayName.toLowerCase().includes('m.tea');
+    const pearlOpts   = ['NO PRL', 'W/ PRL'];
+
+    if (isMilkTea && !bundleComponentOptions.some(o => pearlOpts.includes(o))) {
+      showToast('Please select NO PRL or W/ PRL', 'warning');
+      return;
+    }
+
+    const customization: BundleComponentCustomization = {
+      name:       displayName,
+      quantity:   component.quantity,
+      sugarLevel: bundleComponentSugar,
+      options:    bundleComponentOptions,
+      addOns:     bundleComponentAddOns,
+    };
+
+    const newCustomizations = [...bundleComponentCustomizations, customization];
+
+    if (bundleComponentIndex < activeBundleItem.items.length - 1) {
+      setBundleComponentCustomizations(newCustomizations);
+      setBundleComponentIndex(i => i + 1);
+      setBundleComponentSugar('100%');
+      setBundleComponentOptions([]);
+      setBundleComponentAddOns([]);
+      return;
+    }
+
+    // All components done — build cart item
+    const remarksLines = newCustomizations.map((c, i) =>
+      `[${i + 1}] ${c.quantity > 1 ? `${c.quantity}x ` : ''}${c.name}: Sugar ${c.sugarLevel}` +
+      `${c.options.length ? ' | ' + c.options.join(', ') : ''}` +
+      `${c.addOns.length  ? ' | +' + c.addOns.join(', ')  : ''}`
+    ).join(' || ');
+
+    const cartItem: CartItem = {
+      id:         activeBundleItem.id,
+      category_id: 0,
+      name:       activeBundleItem.display_name ?? activeBundleItem.name,
+      price:      activeBundleItem.price,
+      barcode:    activeBundleItem.barcode,
+      qty:        1,
+      size:       'L',
+      remarks:    remarksLines,
+      charges:    { grab: orderCharge === 'grab', panda: orderCharge === 'panda' },
+      finalPrice: activeBundleItem.price,
+      isBundle:   true,
+      bundleId:   activeBundleItem.id,
+      bundleComponents: newCustomizations,
+    };
+
+    mergeIntoCart(cartItem);
+    setIsBundleModalOpen(false);
+    setActiveBundleItem(null);
+    showToast(`${activeBundleItem.name} added!`, 'success');
   };
 
   // ── Combo drink confirm ───────────────────────────────────────────────────
@@ -1203,6 +1305,112 @@ const SalesOrder = () => {
               <div className="p-4 border-t border-zinc-200 bg-white">
                 <button onClick={() => setIsAddOnModalOpen(false)} className="w-full bg-[#3b2063] text-white py-4 rounded-[0.625rem] font-black uppercase tracking-widest shadow-lg">
                   Confirm Selection ({selectedAddOns.length})
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── MODAL: BUNDLE COMPONENT CUSTOMIZATION ──────────────────────── */}
+        {isBundleModalOpen && activeBundleItem && (() => {
+          const component   = activeBundleItem.items[bundleComponentIndex];
+          const totalSteps  = activeBundleItem.items.length;
+          const isLastStep  = bundleComponentIndex === totalSteps - 1;
+          const displayName = component.display_name ?? component.custom_name ?? '';
+          const isMilkTea   = displayName.toLowerCase().includes('milk tea') || displayName.toLowerCase().includes('m.tea');
+          const pearlOpts   = ['NO PRL', 'W/ PRL'];
+          const hasPearl    = bundleComponentOptions.some(o => pearlOpts.includes(o));
+          const canNext     = !isMilkTea || hasPearl;
+
+          return (
+            <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+              <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                <div className="bg-[#3b2063] p-5 text-white relative shrink-0">
+                  <div className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/40 mb-1">
+                    Bundle — {activeBundleItem.display_name ?? activeBundleItem.name}
+                  </div>
+                  <h2 className="text-base font-black uppercase tracking-wide leading-tight pr-8">
+                    Drink {bundleComponentIndex + 1} of {totalSteps}: {displayName}
+                    {component.quantity > 1 && <span className="ml-2 text-white/50 font-bold text-sm">×{component.quantity}</span>}
+                  </h2>
+                  <div className="mt-3 w-full bg-white/20 rounded-full h-1.5">
+                    <div className="bg-white h-1.5 rounded-full transition-all" style={{ width: `${((bundleComponentIndex + 1) / totalSteps) * 100}%` }} />
+                  </div>
+                  <button onClick={() => { setIsBundleModalOpen(false); setActiveBundleItem(null); }}
+                    className="absolute top-5 right-5 w-7 h-7 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-colors">
+                    <CloseIcon size={4} />
+                  </button>
+                </div>
+
+                <div className="p-6 space-y-5 overflow-y-auto bg-white">
+                  <div>
+                    <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
+                    <div className="flex gap-2">
+                      {SUGAR_LEVELS.map(level => (
+                        <button key={level} onClick={() => setBundleComponentSugar(level)}
+                          className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all
+                            ${bundleComponentSugar === level ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
+                          {level}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Options (Free)</label>
+                    <div className="flex flex-wrap gap-2">
+                      {EXTRA_OPTIONS.map(opt => (
+                        <button key={opt} onClick={() => makeToggleOption(setBundleComponentOptions)(opt)}
+                          className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all
+                            ${bundleComponentOptions.includes(opt) ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Extra Add-ons</label>
+                    <button onClick={() => setBundleComponentAddOnModalOpen(true)}
+                      className="w-full py-4 rounded-[0.625rem] border-2 border-dashed border-[#3b2063]/40 bg-[#f0ebff] hover:bg-[#e4dbff] text-[#3b2063] font-black uppercase tracking-wider text-sm flex items-center justify-center transition-all group">
+                      <span className="mr-2">{bundleComponentAddOns.length > 0 ? `${bundleComponentAddOns.length} Add-on(s) Selected` : 'Select Add-ons'}</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4 group-hover:translate-x-1 transition-transform">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                      </svg>
+                    </button>
+                  </div>
+
+                  <button onClick={confirmBundleComponent} disabled={!canNext}
+                    className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors
+                      ${canNext ? 'bg-[#3b2063] text-white hover:bg-[#2a1647]' : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'}`}>
+                    {!canNext ? 'Select Pearl Option First' : isLastStep ? '✓ Add Bundle to Order' : `Next: Drink ${bundleComponentIndex + 2} of ${totalSteps} →`}
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── MODAL: BUNDLE COMPONENT ADD-ONS ────────────────────────────── */}
+        {bundleComponentAddOnModalOpen && (
+          <div className="fixed inset-0 z-110 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+            <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl flex flex-col h-[80vh]">
+              <div className="bg-[#3b2063] p-6 text-white text-center relative shrink-0">
+                <h2 className="text-lg font-black uppercase tracking-wider">Bundle Drink Add-ons</h2>
+                <button onClick={() => setBundleComponentAddOnModalOpen(false)} className="absolute top-6 right-6 text-white font-bold text-xs bg-white/20 px-3 py-1.5 rounded-lg">Done</button>
+              </div>
+              <div className="p-6 overflow-y-auto flex-1 bg-white">
+                <AddOnGrid
+                  addOns={filteredAddOns}
+                  selected={bundleComponentAddOns}
+                  onToggle={name => setBundleComponentAddOns(prev =>
+                    prev.includes(name) ? prev.filter(a => a !== name) : [...prev, name]
+                  )}
+                />
+              </div>
+              <div className="p-4 border-t border-zinc-200 bg-white">
+                <button onClick={() => setBundleComponentAddOnModalOpen(false)} className="w-full bg-[#3b2063] text-white py-4 rounded-[0.625rem] font-black uppercase tracking-widest shadow-lg">
+                  Confirm ({bundleComponentAddOns.length})
                 </button>
               </div>
             </div>

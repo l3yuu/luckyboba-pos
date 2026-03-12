@@ -238,8 +238,8 @@ class MenuSeeder extends Seeder
             ],
 
             'FP COFFEE BUNDLES' => [
-                ['name' => "TOF.CARAMEL ICED COFFEE + DK ROAST COFFEE", 'price' => 154.00, 'barcode' => "COF1", 'size' => 'L'],
-                ['name' => "VANILLA ICED COFFEE + J.CHIP COFEE FRP",       'price' => 250.00, 'barcode' => "COF2", 'size' => 'L'],
+                ['name' => "TOFFEE CARAMEL ICED COFFEE + DARK ROAST COFFEE", 'price' => 154.00, 'barcode' => "COF1", 'size' => 'L'],
+                ['name' => "VANILLA ICED COFFEE + JAVA CHIP COFEE FRP",       'price' => 250.00, 'barcode' => "COF2", 'size' => 'L'],
             ],
 
             'FRAPPE SERIES' => [
