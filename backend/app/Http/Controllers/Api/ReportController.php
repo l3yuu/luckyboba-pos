@@ -173,15 +173,19 @@ class ReportController extends Controller
 
         $rawItems = DB::table('sale_items')
             ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
-            ->join('menu_items', 'sale_items.menu_item_id', '=', 'menu_items.id')
-            ->join('categories', 'menu_items.category_id', '=', 'categories.id')
+            // Use LEFT JOINs so bundle items (menu_item_id = null) are not dropped
+            ->leftJoin('menu_items', 'sale_items.menu_item_id', '=', 'menu_items.id')
+            ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
+            ->leftJoin('bundles', 'sale_items.bundle_id', '=', 'bundles.id')
             ->whereDate('sales.created_at', $date)
             ->where('sales.status', 'completed')
             ->select(
-                'categories.name as category_name',
-                'categories.type as category_type',
+                // If it's a bundle, use the bundle's category; otherwise use the menu item's category
+                DB::raw("COALESCE(bundles.category, categories.name, 'UNCATEGORIZED') as category_name"),
+                DB::raw("COALESCE(categories.type, 'drink') as category_type"),
                 'sale_items.*',
-                // Attach the cup size_m / size_l labels from the cups table via category
+                // Use bundle name as product_name if it's a bundle sale item
+                DB::raw("CASE WHEN sale_items.bundle_id IS NOT NULL THEN COALESCE(bundles.display_name, bundles.name, sale_items.product_name) ELSE sale_items.product_name END as resolved_product_name"),
                 DB::raw("COALESCE(cups.size_m, 'M') as cup_size_m"),
                 DB::raw("COALESCE(cups.size_l, 'L') as cup_size_l")
             )
@@ -194,8 +198,9 @@ class ReportController extends Controller
 
             // Group by product_name + size together
             $productSummary = $items->groupBy(function ($item) {
-                $size = $item->size ?? null; // 'M', 'L', or null
-                return $item->product_name . '||' . ($size ?? 'none');
+                $size = $item->size ?? null;
+                $name = $item->resolved_product_name ?? $item->product_name;
+                return $name . '||' . ($size ?? 'none');
             })->map(function ($pGroup) use (&$globalAddonSummary) {
 
                 $firstItem = $pGroup->first();
@@ -223,7 +228,7 @@ class ReportController extends Controller
                 }
 
                 return [
-                    'product_name' => $firstItem->product_name,
+                    'product_name' => $firstItem->resolved_product_name ?? $firstItem->product_name,
                     'size'         => $sizeLabel,   // e.g. "SM", "SL", "JR", null
                     'total_qty'    => (int) $pGroup->sum('quantity'),
                     'total_sales'  => (float) $pGroup->sum('final_price'),

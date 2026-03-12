@@ -23,6 +23,8 @@ class SaleItem extends Model
         'cup_size_label',
         'options',
         'add_ons',
+        'bundle_id',
+        'bundle_components',
     ];
 
     protected $casts = [

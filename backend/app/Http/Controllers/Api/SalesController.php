@@ -31,7 +31,8 @@ class SalesController extends Controller
         $validated = $request->validate([
             'si_number'              => 'required|string',
             'items'                  => 'required|array|min:1',
-            'items.*.menu_item_id'   => 'required|exists:menu_items,id',
+            'items.*.menu_item_id'   => 'nullable|exists:menu_items,id',
+            'items.*.bundle_id'      => 'nullable|exists:bundles,id',
             'items.*.name'           => 'required|string',
             'items.*.quantity'       => 'required|integer|min:1',
             'items.*.unit_price'     => 'required|numeric|min:0',
@@ -115,26 +116,33 @@ class SalesController extends Controller
                 $totalQty += $item['quantity'];
 
                 SaleItem::create([
-                    'sale_id'        => $sale->id,
-                    'menu_item_id'   => $item['menu_item_id'],
-                    'product_name'   => $item['name'],
-                    'quantity'       => $item['quantity'],
-                    'price'          => $basePrice,
-                    'final_price'    => $finalPrice,
-                    'size'           => $item['size']           ?? null,
-                    'cup_size_label' => $item['cup_size_label'] ?? null,
-                    'sugar_level'    => $item['sugar_level']    ?? null,
-                    'options'        => $item['options']        ?? null,
-                    'add_ons'        => $item['add_ons']        ?? null,
-                    'charge_type'    => $hasCharge
-                                        ? ($item['charges']['grab'] ? 'grab' : 'panda')
-                                        : null,
-                    'surcharge'      => $surcharge,
+                    'sale_id'           => $sale->id,
+                    'menu_item_id'      => $item['menu_item_id']      ?? null,
+                    'bundle_id'         => $item['bundle_id']         ?? null,
+                    'product_name'      => $item['name'],
+                    'quantity'          => $item['quantity'],
+                    'price'             => $basePrice,
+                    'final_price'       => $finalPrice,
+                    'size'              => $item['size']               ?? null,
+                    'cup_size_label'    => $item['cup_size_label']     ?? null,
+                    'sugar_level'       => $item['sugar_level']        ?? null,
+                    'options'           => $item['options']            ?? null,
+                    'add_ons'           => $item['add_ons']            ?? null,
+                    'bundle_components' => isset($item['bundle_components'])
+                                            ? json_encode($item['bundle_components'])
+                                            : null,
+                    'charge_type'       => $hasCharge
+                                            ? ($item['charges']['grab'] ? 'grab' : 'panda')
+                                            : null,
+                    'surcharge'         => $surcharge,
                 ]);
 
-                $menuItem = MenuItem::find($item['menu_item_id']);
-                if ($menuItem) {
-                    $menuItem->decrement('quantity', $item['quantity']);
+                // Only decrement stock for regular menu items, not bundles
+                if (!empty($item['menu_item_id'])) {
+                    $menuItem = MenuItem::find($item['menu_item_id']);
+                    if ($menuItem) {
+                        $menuItem->decrement('quantity', $item['quantity']);
+                    }
                 }
             }
 
