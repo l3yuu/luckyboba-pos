@@ -306,12 +306,24 @@ class ReportController extends Controller
                 $breakdown = json_decode($breakdown, true) ?? [];
             }
 
-            // breakdown is stored as {denomination: quantity} e.g. {1000: "7", 500: "1"}
-            $denominations = collect($breakdown)->map(fn($qty, $denom) => [
-                'label' => number_format((float)$denom, 0),
-                'qty'   => (int) $qty,
-                'total' => (float)$denom * (int)$qty,
-            ])->sortKeysDesc()->values()->toArray();
+            // All denominations to always show, in descending order
+            $allDenoms = [1000, 500, 200, 100, 50, 20, 10, 5, 1, 0.25];
+
+            $denominations = collect($allDenoms)->map(function ($denom) use ($breakdown) {
+                // Match stored key (could be "1000", "0.25", etc.)
+                $qty = 0;
+                foreach ($breakdown as $key => $val) {
+                    if ((float)$key === (float)$denom) {
+                        $qty = (int)$val;
+                        break;
+                    }
+                }
+                return [
+                    'label' => $denom == 0.25 ? '0.25' : number_format((float)$denom, 0),
+                    'qty'   => $qty,
+                    'total' => (float)$denom * $qty,
+                ];
+            })->values()->toArray();
 
             $actualAmount   = (float) ($cashCount->actual_amount  ?? $cashCount->total_amount  ?? 0);
             $expectedAmount = (float) ($cashCount->expected_amount ?? $cashCount->expected_cash ?? 0);

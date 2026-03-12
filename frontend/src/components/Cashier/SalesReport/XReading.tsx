@@ -427,7 +427,7 @@ const XReading = () => {
             </div>
             {denominations.map((d, i) => (
               <div key={i} className="flex text-[11px] leading-snug border-b border-dotted border-zinc-300">
-                <span className="w-[45%] uppercase">{d.label}</span>
+                <span className="w-[45%] uppercase">₱{d.label}</span>
                 <span className="w-[20%] text-center">x{d.qty}</span>
                 <span className="w-[35%] text-right">{phCurrency.format(d.total)}</span>
               </div>
