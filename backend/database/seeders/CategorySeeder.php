@@ -31,7 +31,7 @@ class CategorySeeder extends Seeder
 
             // ── DRINKS SM/SL ──────────────────────────────────────
             'CHEESECAKE MILK TEA' => ['type' => 'drink', 'cup_id' => $smsl, 'sub_category_id' => $sub('SM')],
-            'CREAM CHEESE M. TEA' => ['type' => 'drink', 'cup_id' => $smsl, 'sub_category_id' => $sub('SM')],
+            'CREAM CHEESE MILK TEA' => ['type' => 'drink', 'cup_id' => $smsl, 'sub_category_id' => $sub('SM')],
             'FLAVORED MILK TEA'   => ['type' => 'drink', 'cup_id' => $smsl, 'sub_category_id' => $sub('SM')],
             'GREEN TEA SERIES'    => ['type' => 'drink', 'cup_id' => $smsl, 'sub_category_id' => $sub('SM')],
             'ICED COFFEE'         => ['type' => 'drink', 'cup_id' => $smsl, 'sub_category_id' => $sub('SM')],
@@ -47,8 +47,8 @@ class CategorySeeder extends Seeder
             'NOVA SERIES'         => ['type' => 'drink', 'cup_id' => $smsl, 'sub_category_id' => $sub('SL')],
             'PUMPKIN SPICE'       => ['type' => 'drink', 'cup_id' => $smsl, 'sub_category_id' => $sub('SL')],
 
-            // ── DRINKS JR ─────────────────────────────────────────
-            'CLASSIC MILKTEA'     => ['type' => 'drink', 'cup_id' => $jr,   'sub_category_id' => $sub('JR')],
+            // ── DRINKS SM/SL ──────────────────────────────────────
+            'CLASSIC MILKTEA'     => ['type' => 'drink', 'cup_id' => $smsl, 'sub_category_id' => $sub('SM')],
 
             // ── DRINKS UM/UL ──────────────────────────────────────
             'COFFEE FRAPPE'       => ['type' => 'drink', 'cup_id' => $umul, 'sub_category_id' => $sub('UM')],

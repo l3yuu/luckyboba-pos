@@ -13,6 +13,66 @@ use Illuminate\Support\Facades\Auth;
 class CashCountController extends Controller
 {
     /**
+     * Store a Cash In transaction and immediately signal menu availability.
+     * Once saved, the menu is unlocked for all cashiers on the same branch.
+     */
+    public function storeCashIn(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'amount'  => 'required|numeric|min:0',
+            'remarks' => 'nullable|string',
+        ]);
+
+        try {
+            $user     = $request->user();
+            $branchId = $user->branch_id;
+            $today    = now()->toDateString();
+
+            // Prevent duplicate opening cash-in for the same branch on the same day
+            $alreadyCashedIn = CashTransaction::where('branch_id', $branchId)
+                ->where('type', 'cash_in')
+                ->whereDate('created_at', $today)
+                ->exists();
+
+            if ($alreadyCashedIn) {
+                return response()->json([
+                    'success'       => true,
+                    'message'       => 'Branch has already cashed in today',
+                    'menuAvailable' => true,
+                    'duplicate'     => true,
+                ]);
+            }
+
+            // Save the cash-in transaction
+            $cashTransaction = CashTransaction::create([
+                'user_id'   => $user->id,
+                'branch_id' => $branchId,
+                'type'      => 'cash_in',
+                'amount'    => $validated['amount'],
+                'remarks'   => $validated['remarks'] ?? 'Opening float',
+            ]);
+
+            // Confirm it was persisted before signalling the frontend
+            $menuAvailable = $cashTransaction->exists;
+
+            return response()->json([
+                'success'       => true,
+                'message'       => 'Cash in recorded. Menu is now available.',
+                'menuAvailable' => $menuAvailable,
+                'data'          => $cashTransaction,
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success'       => false,
+                'message'       => 'Failed to record cash in',
+                'menuAvailable' => false,
+                'error'         => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
      * Store the End of Day (EOD) Cash Count
      * Automatically calculates the expected cash on hand.
      */
