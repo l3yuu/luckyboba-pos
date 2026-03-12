@@ -108,10 +108,6 @@ class SalesDashboardService
         $voidedYesterday   = (float) ($baseYest)()->where('status', 'cancelled')->sum('total_amount');
 
         // ── Cash in / out today ───────────────────────────────────────────────
-        // Both come from the cash_transactions table.
-        // Types stored by CashTransactionController: 'cash_in' | 'cash_out' | 'cash_drop'
-        // cash_in_today  = opening float / shift cash-in
-        // cash_out_today = cash_out + cash_drop (any money removed from drawer)
         $baseCash = fn() => DB::table('cash_transactions')
             ->whereDate('created_at', $today)
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
@@ -166,9 +162,7 @@ class SalesDashboardService
             ->limit(10)
             ->get();
 
-        // ── 7-day sparkline series (real data, gaps filled with 0) ────────────
-        // Build a fixed 7-slot window: [6 days ago … today].
-        // Any day with no records gets 0 — this is what the frontend renders.
+        // ── 7-day sparkline series ────────────────────────────────────────────
         $last7Dates = collect(range(6, 0))->map(
             fn($d) => Carbon::now()->subDays($d)->toDateString()
         );
@@ -199,7 +193,6 @@ class SalesDashboardService
             ->select(DB::raw('DATE(created_at) as date'), DB::raw('SUM(amount) as total'))
             ->groupBy('date')->pluck('total', 'date');
 
-        // Map to ordered 7-element arrays; missing dates become 0
         $sparkSales   = $last7Dates->map(fn($d) => (float) ($salesByDay[$d]   ?? 0))->values()->all();
         $sparkVoided  = $last7Dates->map(fn($d) => (float) ($voidedByDay[$d]  ?? 0))->values()->all();
         $sparkCashIn  = $last7Dates->map(fn($d) => (float) ($cashInByDay[$d]  ?? 0))->values()->all();
@@ -218,27 +211,19 @@ class SalesDashboardService
                 'total_sales_today'   => $totalSalesToday,
                 'total_orders_today'  => $totalOrdersToday,
                 'voided_sales_today'  => $voidedSalesToday,
-
-                // Overall cash in drawer: cash_in + sales_cash - cash_out/drop
                 'overall_cash_today'  => $cashInToday + $totalSalesToday - $cashOutToday,
                 'top_seller_today'    => $topSellerToday,
                 'top_seller_all_time' => $topSellerAllTime,
-
-                // Real 7-day sparkline arrays [oldest … today]
                 'spark_cash_in'  => $sparkCashIn,
                 'spark_cash_out' => $sparkCashOut,
                 'spark_sales'    => $sparkSales,
                 'spark_voided'   => $sparkVoided,
                 'spark_overall'  => $sparkOverall,
-
-                // Yesterday values — used by frontend to compute real "vs yesterday" trend
                 'cash_in_yesterday'      => $cashInYesterday,
                 'cash_out_yesterday'     => $cashOutYesterday,
                 'sales_yesterday'        => $salesYesterday,
                 'voided_yesterday'       => $voidedYesterday,
                 'overall_cash_yesterday' => $cashInYesterday + $salesYesterday - $cashOutYesterday,
-
-                // Legacy keys kept so older consumers don't break
                 'total_revenue'   => (float) $weekly->sum('value'),
                 'today_sales'     => $totalSalesToday,
                 'cancelled_sales' => $voidedSalesToday,
@@ -293,8 +278,16 @@ class SalesDashboardService
         $sales            = $salesQuery->get();
         $grossSales       = (float) $sales->sum('total_amount');
         $transactionCount = $sales->count();
-        $cashSales        = (float) $sales->where('payment_method', 'cash')->sum('total_amount');
-        $otherSales       = $grossSales - $cashSales;
+
+        // ── FIX: True cash = rows where charge_type is null or empty ──────────
+        $cashSales = (float) DB::table('sales')
+            ->whereBetween('created_at', [$from, $to])
+            ->where('status', 'completed')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->where(fn($q) => $q->whereNull('charge_type')->orWhere('charge_type', ''))
+            ->sum('total_amount');
+
+        $otherSales = $grossSales - $cashSales;
 
         $begSI = DB::table('receipts')
             ->whereBetween('created_at', [$from, $to])
@@ -340,13 +333,35 @@ class SalesDashboardService
             ->where('pax_diplomat', '>', 0)
             ->sum(DB::raw('total_amount * 0.20'));
 
-        $paymentBreakdown = DB::table('sales')
-            ->whereBetween('created_at', [$from, $to])
-            ->where('status', 'completed')
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->select(DB::raw('payment_method as method'), DB::raw('SUM(total_amount) as amount'))
-            ->groupBy('payment_method')
-            ->get();
+        // ── FIX: Use charge_type when set, fallback to payment_method ─────────
+        $branchCondition = $branchId ? "AND branch_id = {$branchId}" : "";
+
+        $paymentBreakdown = collect(DB::select("
+            SELECT method, SUM(total_amount) as amount
+            FROM (
+                SELECT 
+                    CASE
+                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('panda','foodpanda','food_panda','food panda') THEN 'food panda'
+                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('grab','grabfood','grab food')                THEN 'grab'
+                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('master','master card','mastercard')          THEN 'mastercard'
+                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('visa','visa card')                           THEN 'visa'
+                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('gcash','e-wallet','ewallet')                 THEN 'gcash'
+                        WHEN charge_type IS NOT NULL AND charge_type != ''                                                                                THEN LOWER(TRIM(charge_type))
+                        WHEN LOWER(TRIM(payment_method)) IN ('panda','foodpanda','food_panda','food panda') THEN 'food panda'
+                        WHEN LOWER(TRIM(payment_method)) IN ('grab','grabfood','grab food')                THEN 'grab'
+                        WHEN LOWER(TRIM(payment_method)) IN ('master','master card','mastercard')          THEN 'mastercard'
+                        WHEN LOWER(TRIM(payment_method)) IN ('visa','visa card')                           THEN 'visa'
+                        WHEN LOWER(TRIM(payment_method)) IN ('gcash','e-wallet','ewallet')                 THEN 'gcash'
+                        ELSE LOWER(TRIM(payment_method))
+                    END as method,
+                    total_amount
+                FROM sales
+                WHERE created_at BETWEEN ? AND ?
+                AND status = 'completed'
+                {$branchCondition}
+            ) as t
+            GROUP BY method
+        ", [$from, $to]));
 
         $hourly = DB::table('sales')
             ->whereBetween('created_at', [$from, $to])
@@ -413,139 +428,167 @@ class SalesDashboardService
     // ─── Z-Reading ────────────────────────────────────────────────────────────
 
     public function generateZReading(string $from, string $to, ?int $branchId = null): array
-{
-    $start = Carbon::parse($from)->startOfDay();
-    $end   = Carbon::parse($to)->endOfDay();
+    {
+        $start = Carbon::parse($from)->startOfDay();
+        $end   = Carbon::parse($to)->endOfDay();
 
-    $sales = DB::table('sales')
-        ->whereBetween('created_at', [$start, $end])
-        ->where('status', 'completed')
-        ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-        ->get();
+        $sales = DB::table('sales')
+            ->whereBetween('created_at', [$start, $end])
+            ->where('status', 'completed')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->get();
 
-    $gross = (float) $sales->sum('total_amount');
-    $cash  = (float) $sales->where('payment_method', 'cash')->sum('total_amount');
+        $gross = (float) $sales->sum('total_amount');
 
-    $voidAmount = (float) DB::table('sales')
-        ->whereBetween('created_at', [$start, $end])
-        ->where('status', 'cancelled')
-        ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-        ->sum('total_amount');
+        // ── FIX: True cash = rows where charge_type is null or empty ──────────
+        $cash = (float) DB::table('sales')
+            ->whereBetween('created_at', [$start, $end])
+            ->where('status', 'completed')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->where(fn($q) => $q->whereNull('charge_type')->orWhere('charge_type', ''))
+            ->sum('total_amount');
 
-    $vatableSales = round($gross / 1.12, 2);
-    $vatAmount    = round($gross - $vatableSales, 2);
+        $voidAmount = (float) DB::table('sales')
+            ->whereBetween('created_at', [$start, $end])
+            ->where('status', 'cancelled')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->sum('total_amount');
 
-    // ── SI# from receipts table ──────────────────────────────────────────
-    $begSI = DB::table('receipts')
-        ->whereBetween('created_at', [$start, $end])
-        ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-        ->orderBy('id', 'asc')
-        ->value('si_number') ?? '0000000000';
+        $vatableSales = round($gross / 1.12, 2);
+        $vatAmount    = round($gross - $vatableSales, 2);
 
-    $endSI = DB::table('receipts')
-        ->whereBetween('created_at', [$start, $end])
-        ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-        ->orderBy('id', 'desc')
-        ->value('si_number') ?? '0000000000';
+        // ── SI# from receipts table ──────────────────────────────────────────
+        $begSI = DB::table('receipts')
+            ->whereBetween('created_at', [$start, $end])
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->orderBy('id', 'asc')
+            ->value('si_number') ?? '0000000000';
 
-    // ── Payment breakdown ────────────────────────────────────────────────
-    $paymentBreakdown = DB::table('sales')
-        ->whereBetween('created_at', [$start, $end])
-        ->where('status', 'completed')
-        ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-        ->select(DB::raw('payment_method as method'), DB::raw('SUM(total_amount) as amount'))
-        ->groupBy('payment_method')
-        ->get();
+        $endSI = DB::table('receipts')
+            ->whereBetween('created_at', [$start, $end])
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->orderBy('id', 'desc')
+            ->value('si_number') ?? '0000000000';
 
-    // ── Discount breakdown ───────────────────────────────────────────────
-    $baseDiscount = fn() => DB::table('sales')
-        ->whereBetween('created_at', [$start, $end])
-        ->where('status', 'completed')
-        ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
+        // ── FIX: Use charge_type when set, fallback to payment_method ─────────
+        $branchCondition = $branchId ? "AND branch_id = {$branchId}" : "";
 
-    $scDiscount = (float) ($baseDiscount)()
-        ->where('pax_senior', '>', 0)
-        ->sum(DB::raw('(COALESCE(vatable_sales, total_amount / 1.12) / GREATEST(pax_regular + pax_senior + pax_pwd + pax_diplomat, 1)) * pax_senior * 0.20'));
+        $paymentBreakdown = collect(DB::select("
+            SELECT method, SUM(total_amount) as amount
+            FROM (
+                SELECT 
+                    CASE
+                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('panda','foodpanda','food_panda','food panda') THEN 'food panda'
+                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('grab','grabfood','grab food')                THEN 'grab'
+                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('master','master card','mastercard')          THEN 'mastercard'
+                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('visa','visa card')                           THEN 'visa'
+                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('gcash','e-wallet','ewallet')                 THEN 'gcash'
+                        WHEN charge_type IS NOT NULL AND charge_type != ''                                                                                THEN LOWER(TRIM(charge_type))
+                        WHEN LOWER(TRIM(payment_method)) IN ('panda','foodpanda','food_panda','food panda') THEN 'food panda'
+                        WHEN LOWER(TRIM(payment_method)) IN ('grab','grabfood','grab food')                THEN 'grab'
+                        WHEN LOWER(TRIM(payment_method)) IN ('master','master card','mastercard')          THEN 'mastercard'
+                        WHEN LOWER(TRIM(payment_method)) IN ('visa','visa card')                           THEN 'visa'
+                        WHEN LOWER(TRIM(payment_method)) IN ('gcash','e-wallet','ewallet')                 THEN 'gcash'
+                        ELSE LOWER(TRIM(payment_method))
+                    END as method,
+                    total_amount
+                FROM sales
+                WHERE created_at BETWEEN ? AND ?
+                AND status = 'completed'
+                {$branchCondition}
+            ) as t
+            GROUP BY method
+        ", [$from, $to]));
 
-    $pwdDiscount = (float) ($baseDiscount)()
-        ->where('pax_pwd', '>', 0)
-        ->sum(DB::raw('(COALESCE(vatable_sales, total_amount / 1.12) / GREATEST(pax_regular + pax_senior + pax_pwd + pax_diplomat, 1)) * pax_pwd * 0.20'));
+        // ── Discount breakdown ───────────────────────────────────────────────
+        $baseDiscount = fn() => DB::table('sales')
+            ->whereBetween('created_at', [$start, $end])
+            ->where('status', 'completed')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
 
-    $diplomatDiscount = (float) ($baseDiscount)()
-        ->where('pax_diplomat', '>', 0)
-        ->sum(DB::raw('total_amount * 0.20'));
+        $scDiscount = (float) ($baseDiscount)()
+            ->where('pax_senior', '>', 0)
+            ->sum(DB::raw('(COALESCE(vatable_sales, total_amount / 1.12) / GREATEST(pax_regular + pax_senior + pax_pwd + pax_diplomat, 1)) * pax_senior * 0.20'));
 
-    // ── Total qty sold ───────────────────────────────────────────────────
-    $totalQtySold = (int) DB::table('sale_items')
-        ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
-        ->whereBetween('sales.created_at', [$start, $end])
-        ->where('sales.status', 'completed')
-        ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
-        ->sum('sale_items.quantity');
+        $pwdDiscount = (float) ($baseDiscount)()
+            ->where('pax_pwd', '>', 0)
+            ->sum(DB::raw('(COALESCE(vatable_sales, total_amount / 1.12) / GREATEST(pax_regular + pax_senior + pax_pwd + pax_diplomat, 1)) * pax_pwd * 0.20'));
 
-    // ── Cash in / drop ───────────────────────────────────────────────────
-    $cashIn = (float) DB::table('cash_transactions')
-        ->whereBetween('created_at', [$start, $end])
-        ->where('type', 'cash_in')
-        ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-        ->sum('amount');
+        $diplomatDiscount = (float) ($baseDiscount)()
+            ->where('pax_diplomat', '>', 0)
+            ->sum(DB::raw('total_amount * 0.20'));
 
-    $cashDrop = (float) DB::table('cash_transactions')
-        ->whereBetween('created_at', [$start, $end])
-        ->whereIn('type', ['cash_out', 'cash_drop'])
-        ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-        ->sum('amount');
+        // ── Total qty sold ───────────────────────────────────────────────────
+        $totalQtySold = (int) DB::table('sale_items')
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->whereBetween('sales.created_at', [$start, $end])
+            ->where('sales.status', 'completed')
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+            ->sum('sale_items.quantity');
 
-    // ── Category breakdown (grouped by product_name, no category/discount cols) ──
-$categoryBreakdown = DB::table('sale_items')
-    ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
-    ->whereBetween('sales.created_at', [$start, $end])
-    ->where('sales.status', 'completed')
-    ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
-    ->select(
-        DB::raw('COALESCE(sale_items.cup_size_label, "NO SIZE") as category_name'),
-        DB::raw('SUM(sale_items.quantity) as total_qty'),
-        DB::raw('0 as total_disc'),
-        DB::raw('SUM(sale_items.final_price) as total_sold')
-    )
-    ->groupBy('sale_items.cup_size_label')
-    ->get();
+        // ── Cash in / drop ───────────────────────────────────────────────────
+        $cashIn = (float) DB::table('cash_transactions')
+            ->whereBetween('created_at', [$start, $end])
+            ->where('type', 'cash_in')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->sum('amount');
 
-    $reportData = [
-        'from_date'          => $start->toDateString(),
-        'to_date'            => $end->toDateString(),
-        'branch_id'          => $branchId,
-        'gross_sales'        => $gross,
-        'net_sales'          => $gross,
-        'transaction_count'  => $sales->count(),
-        'cash_total'         => $cash,
-        'non_cash_total'     => $gross - $cash,
-        'total_void_amount'  => $voidAmount,
-        'vatable_sales'      => $vatableSales,
-        'vat_amount'         => $vatAmount,
-        'beg_si'             => $begSI,   // ← now populated
-        'end_si'             => $endSI,   // ← now populated
-        'payment_breakdown'  => $paymentBreakdown,
-        'sc_discount'        => round($scDiscount, 2),
-        'pwd_discount'       => round($pwdDiscount, 2),
-        'diplomat_discount'  => round($diplomatDiscount, 2),
-        'total_qty_sold'     => $totalQtySold,
-        'cash_in'            => $cashIn,
-        'cash_drop'          => $cashDrop,
-        'cash_in_drawer'     => $cashIn + $cash - $cashDrop,
-        'category_breakdown' => $categoryBreakdown,
-        'generated_at'       => now()->toDateTimeString(),
-    ];
+        $cashDrop = (float) DB::table('cash_transactions')
+            ->whereBetween('created_at', [$start, $end])
+            ->whereIn('type', ['cash_out', 'cash_drop'])
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->sum('amount');
 
-    if ($from === $to) {
-        ZReading::updateOrCreate(
-            ['reading_date' => $start->toDateString()],
-            ['total_sales' => $gross, 'data' => $reportData]
-        );
+        // ── Category breakdown ───────────────────────────────────────────────
+        $categoryBreakdown = DB::table('sale_items')
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->whereBetween('sales.created_at', [$start, $end])
+            ->where('sales.status', 'completed')
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+            ->select(
+                DB::raw('COALESCE(sale_items.cup_size_label, "NO SIZE") as category_name'),
+                DB::raw('SUM(sale_items.quantity) as total_qty'),
+                DB::raw('0 as total_disc'),
+                DB::raw('SUM(sale_items.final_price) as total_sold')
+            )
+            ->groupBy('sale_items.cup_size_label')
+            ->get();
+
+        $reportData = [
+            'from_date'          => $start->toDateString(),
+            'to_date'            => $end->toDateString(),
+            'branch_id'          => $branchId,
+            'gross_sales'        => $gross,
+            'net_sales'          => $gross,
+            'transaction_count'  => $sales->count(),
+            'cash_total'         => $cash,
+            'non_cash_total'     => $gross - $cash,
+            'total_void_amount'  => $voidAmount,
+            'vatable_sales'      => $vatableSales,
+            'vat_amount'         => $vatAmount,
+            'beg_si'             => $begSI,
+            'end_si'             => $endSI,
+            'payment_breakdown'  => $paymentBreakdown,
+            'sc_discount'        => round($scDiscount, 2),
+            'pwd_discount'       => round($pwdDiscount, 2),
+            'diplomat_discount'  => round($diplomatDiscount, 2),
+            'total_qty_sold'     => $totalQtySold,
+            'cash_in'            => $cashIn,
+            'cash_drop'          => $cashDrop,
+            'cash_in_drawer'     => $cashIn + $cash - $cashDrop,
+            'category_breakdown' => $categoryBreakdown,
+            'generated_at'       => now()->toDateTimeString(),
+        ];
+
+        if ($from === $to) {
+            ZReading::updateOrCreate(
+                ['reading_date' => $start->toDateString()],
+                ['total_sales' => $gross, 'data' => $reportData]
+            );
+        }
+
+        return $reportData;
     }
-
-    return $reportData;
-}
 
     // ─── Mall accreditation report ────────────────────────────────────────────
 

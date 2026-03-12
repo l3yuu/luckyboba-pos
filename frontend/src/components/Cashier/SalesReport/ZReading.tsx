@@ -835,11 +835,26 @@ const ZReading = () => {
     const salesForDay        = reportData?.sales_for_the_day    ?? gross;
 
     // Payment map
-    const PAYMENT_METHODS = ['food panda', 'grab', 'gcash', 'visa', 'mastercard', 'cash'];
-    const paymentMap = new Map<string, number>();
-    reportData?.payment_breakdown?.forEach(p => {
-      paymentMap.set(p.method.toLowerCase(), Number(p.amount));
-    });
+  const PAYMENT_METHODS = ['food panda', 'grab', 'gcash', 'visa', 'mastercard', 'cash'];
+
+  const METHOD_ALIASES: Record<string, string> = {
+    'panda':       'food panda',
+    'foodpanda':   'food panda',
+    'food_panda':  'food panda',
+    'grabfood':    'grab',
+    'grab food':   'grab',
+    'master card': 'mastercard',
+    'master':      'mastercard',
+    'visa card':   'visa',
+    'e-wallet':    'gcash',
+  };
+
+  const paymentMap = new Map<string, number>();
+  reportData?.payment_breakdown?.forEach(p => {
+    const raw = p.method.toLowerCase().trim();
+    const key = METHOD_ALIASES[raw] ?? raw;
+    paymentMap.set(key, (paymentMap.get(key) ?? 0) + Number(p.amount));
+  });
     const creditMethods = ['visa', 'mastercard'];
     const debitMethods  = ['gcash'];
     const totalCredit   = creditMethods.reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
@@ -920,9 +935,19 @@ const ZReading = () => {
         {PAYMENT_METHODS.map((method, i) => (
           <Row key={i} label={method.toUpperCase()} value={phCurrency.format(paymentMap.get(method) || 0)} />
         ))}
-        {reportData?.payment_breakdown?.filter(p => !PAYMENT_METHODS.includes(p.method.toLowerCase())).map((p, i) => (
-          <Row key={`extra-${i}`} label={p.method.toUpperCase()} value={phCurrency.format(p.amount)} />
-        ))}
+        {reportData?.payment_breakdown
+          ?.filter(p => {
+            const raw = p.method.toLowerCase().trim();
+            const normalized = METHOD_ALIASES[raw] ?? raw;
+            return !PAYMENT_METHODS.includes(normalized);
+          })
+          .map((p, i) => {
+            const raw = p.method.toLowerCase().trim();
+            const normalized = METHOD_ALIASES[raw] ?? raw;
+            return (
+              <Row key={`extra-${i}`} label={normalized.toUpperCase()} value={phCurrency.format(p.amount)} />
+            );
+          })}
         <Divider />
         <Row label="TOTAL CREDIT"   value={phCurrency.format(totalCredit)} />
         <Row label="TOTAL DEBIT"    value={phCurrency.format(totalDebit)} />
