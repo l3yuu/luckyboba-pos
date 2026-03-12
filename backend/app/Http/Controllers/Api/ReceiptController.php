@@ -4,24 +4,16 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Receipt;
+use App\Models\VoidRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class ReceiptController extends Controller
 {
-    /**
-     * GET /api/receipts/search?query=INV-001&date=2026-02-21
-     *
-     * Returns a flat JSON array so the frontend normalizer can remap:
-     *   si_number    → Invoice
-     *   total_amount → Amount
-     *   status       → Status
-     *   created_at   → Date_Time
-     */
-
     public function getNextSequence()
     {
         $latest = \App\Models\Sale::where('invoice_number', 'LIKE', 'SI-%')
-            ->whereRaw("invoice_number REGEXP '^SI-[0-9]+$'") // skip corrupted NaN records
+            ->whereRaw("invoice_number REGEXP '^SI-[0-9]+$'")
             ->orderByRaw('CAST(SUBSTRING(invoice_number, 4) AS UNSIGNED) DESC')
             ->first();
 
@@ -66,14 +58,13 @@ class ReceiptController extends Controller
             $lowQuery = strtolower($query);
             $dbQuery->where(function ($q) use ($lowQuery) {
                 $q->whereRaw('LOWER(receipts.si_number) LIKE ?',      ["%{$lowQuery}%"])
-                ->orWhereRaw('LOWER(receipts.cashier_name) LIKE ?', ["%{$lowQuery}%"])
-                ->orWhereRaw('LOWER(receipts.terminal) LIKE ?',     ["%{$lowQuery}%"]);
+                  ->orWhereRaw('LOWER(receipts.cashier_name) LIKE ?', ["%{$lowQuery}%"])
+                  ->orWhereRaw('LOWER(receipts.terminal) LIKE ?',     ["%{$lowQuery}%"]);
             });
         }
 
         $results = $dbQuery->latest('receipts.created_at')->limit(50)->get();
 
-        // Calculate stats from the result set
         $gross  = $results->sum('total_amount');
         $voided = $results->where('status', 'cancelled')->sum('total_amount');
         $net    = $gross - $voided;
@@ -88,7 +79,9 @@ class ReceiptController extends Controller
         ]);
     }
 
-    public function void(Request $request, $id)
+    // ─── Step 1: Cashier submits void request ───────────────────────────────
+
+    public function voidRequest(Request $request, $id)
     {
         $request->validate([
             'reason' => 'required|string|max:500',
@@ -100,9 +93,58 @@ class ReceiptController extends Controller
             return response()->json(['message' => 'Already voided.'], 422);
         }
 
+        $cashier = auth()->user();
+
+        $voidRequest = VoidRequest::create([
+            'sale_id'    => $sale->id,
+            'cashier_id' => $cashier->id,
+            'branch_id'  => $cashier->branch_id,
+            'reason'     => $request->reason,
+            'status'     => 'pending',
+        ]);
+
+        return response()->json([
+            'message'         => 'Void request created.',
+            'void_request_id' => $voidRequest->id,
+        ]);
+    }
+
+    // ─── Step 2: Manager enters PIN to approve ──────────────────────────────
+
+    public function approveVoid(Request $request, $voidRequestId)
+    {
+        $request->validate([
+            'manager_pin' => 'required|string',
+        ]);
+
+        $voidRequest = VoidRequest::findOrFail($voidRequestId);
+
+        if ($voidRequest->status !== 'pending') {
+            return response()->json(['message' => 'Already processed.'], 422);
+        }
+
+        $manager = \App\Models\User::where('role', 'branch_manager')
+            ->where('branch_id', $voidRequest->branch_id)
+            ->first();
+
+        if (!$manager || !$manager->manager_pin) {
+            return response()->json(['message' => 'No manager PIN configured for this branch.'], 422);
+        }
+
+        if (!Hash::check($request->manager_pin, $manager->manager_pin)) {
+            return response()->json(['message' => 'Incorrect PIN. Please try again.'], 403);
+        }
+
+        $voidRequest->update([
+            'manager_id'  => $manager->id,
+            'status'      => 'approved',
+            'approved_at' => now(),
+        ]);
+
+        $sale = \App\Models\Sale::findOrFail($voidRequest->sale_id);
         $sale->update([
             'status'              => 'cancelled',
-            'cancellation_reason' => $request->input('reason'),
+            'cancellation_reason' => $voidRequest->reason,
         ]);
 
         return response()->json(['message' => 'Transaction voided successfully.']);
