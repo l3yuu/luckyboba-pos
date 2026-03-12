@@ -147,6 +147,8 @@ class ReceiptController extends Controller
             'cancellation_reason' => $voidRequest->reason,
         ]);
 
+        app(\App\Services\DashboardService::class)->clearAllTimeCache($sale->branch_id);
+
         return response()->json(['message' => 'Transaction voided successfully.']);
     }
 }

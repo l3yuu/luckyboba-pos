@@ -3,11 +3,11 @@ import { RouterProvider } from 'react-router-dom';
 import { router } from './routes';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastProvider } from './context/ToastProvider';
-import { prefetchAll } from './utils/prefetch'; // import///
-import { useAuth } from './hooks/useAuth';////
+import { prefetchAll } from './utils/prefetch';
+import { useAuth } from './hooks/useAuth';
 
 function App() {
-  const { user, isLoading } = useAuth(); // ✅ now reads from shared context, no extra checkAuth
+  const { user, isLoading } = useAuth();
 
   useEffect(() => {
     if (user && !isLoading) {

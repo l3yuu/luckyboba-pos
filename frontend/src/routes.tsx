@@ -8,6 +8,7 @@ import Calendar from './pages/Calendar';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { PublicRoute } from './components/PublicRoute';
 import { ErrorFallback } from './components/ErrorFallback';
+import IdleWrapper from './components/IdleWrapper';
 
 export const router = createBrowserRouter([
   // ── Public ──────────────────────────────────────────────────────────────
@@ -24,7 +25,12 @@ export const router = createBrowserRouter([
     element: <ProtectedRoute allowedRoles={['super_admin', 'superadmin']} />,
     errorElement: <ErrorFallback />,
     children: [
-      { path: '/super-admin', element: <SuperAdminDashboard /> },
+      {
+        element: <IdleWrapper />,
+        children: [
+          { path: '/super-admin', element: <SuperAdminDashboard /> },
+        ],
+      },
     ],
   },
 
@@ -33,8 +39,13 @@ export const router = createBrowserRouter([
     element: <ProtectedRoute allowedRoles={['admin', 'system_admin']} />,
     errorElement: <ErrorFallback />,
     children: [
-      { path: '/dashboard', element: <Dashboard /> },
-      { path: '/calendar',  element: <Calendar /> },
+      {
+        element: <IdleWrapper />,
+        children: [
+          { path: '/dashboard', element: <Dashboard /> },
+          { path: '/calendar',  element: <Calendar /> },
+        ],
+      },
     ],
   },
 
@@ -43,8 +54,13 @@ export const router = createBrowserRouter([
     element: <ProtectedRoute allowedRoles={['manager', 'branch_manager']} />,
     errorElement: <ErrorFallback />,
     children: [
-      { path: '/branch-manager', element: <BranchManagerDashboard /> },
-      { path: '/calendar',       element: <Calendar /> },
+      {
+        element: <IdleWrapper />,
+        children: [
+          { path: '/branch-manager', element: <BranchManagerDashboard /> },
+          { path: '/calendar',       element: <Calendar /> },
+        ],
+      },
     ],
   },
 
@@ -53,8 +69,13 @@ export const router = createBrowserRouter([
     element: <ProtectedRoute allowedRoles={['cashier']} />,
     errorElement: <ErrorFallback />,
     children: [
-      { path: '/cashier',     element: <Dashboard /> },
-      { path: '/cashier/pos', element: <SalesOrder /> },
+      {
+        element: <IdleWrapper />,
+        children: [
+          { path: '/cashier',     element: <Dashboard /> },
+          { path: '/cashier/pos', element: <SalesOrder /> },
+        ],
+      },
     ],
   },
 
@@ -63,7 +84,12 @@ export const router = createBrowserRouter([
     element: <ProtectedRoute allowedRoles={['cashier', 'branch_manager', 'superadmin']} />,
     errorElement: <ErrorFallback />,
     children: [
-      { path: '/pos', element: <SalesOrder /> },
+      {
+        element: <IdleWrapper />,
+        children: [
+          { path: '/pos', element: <SalesOrder /> },
+        ],
+      },
     ],
   },
 
