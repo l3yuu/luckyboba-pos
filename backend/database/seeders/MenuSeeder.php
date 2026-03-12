@@ -323,10 +323,10 @@ class MenuSeeder extends Seeder
                 ['name' => "ICED CARAMEL MACCHIATO", 'price' => 105.00, 'barcode' => "ICL6", 'size' => 'L'],
             ],
             'LUCKY CLASSIC' => [
-                ['name' => "LUCKY CLASSIC OREO",        'price' => 0.00, 'barcode' => "LCO1",  'size' => 'none'],
-                ['name' => "LUCKY CLASSIC BLACK PEARL", 'price' => 0.00, 'barcode' => "LCBP1", 'size' => 'none'],
-                ['name' => "LUCKY CLASSIC WHITE PEARL", 'price' => 0.00, 'barcode' => "LCWP1", 'size' => 'none'],
-                ['name' => "LUCKY CLASSIC PUDDING",     'price' => 0.00, 'barcode' => "LCPD1", 'size' => 'none'],
+                ['name' => "LUCKY CLASSIC OREO",        'price' => 55.00, 'barcode' => "LCO1",  'size' => 'none'],
+                ['name' => "LUCKY CLASSIC BLACK PEARL", 'price' => 55.00, 'barcode' => "LCBP1", 'size' => 'none'],
+                ['name' => "LUCKY CLASSIC WHITE PEARL", 'price' => 55.00, 'barcode' => "LCWP1", 'size' => 'none'],
+                ['name' => "LUCKY CLASSIC PUDDING",     'price' => 55.00, 'barcode' => "LCPD1", 'size' => 'none'],
             ],
             'CARD' => [
                 ['name' => "LUCKY CARD",                   'price' => 150.00, 'barcode' => "LC-001", 'size' => 'none'],
