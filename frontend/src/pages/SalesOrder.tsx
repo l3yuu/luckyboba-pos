@@ -279,7 +279,11 @@ const SalesOrder = () => {
   const categoryHasOnlyOneSize = (selectedCategory?.sub_categories?.length ?? 0) <= 1;
 
   const subtotal = cart.reduce((acc, item) => {
-    const surcharge = (item.charges?.grab || item.charges?.panda) ? 30 * item.qty : 0;
+    const surcharge = item.charges?.grab
+  ? Number(item.grab_price ?? 0) * item.qty
+  : item.charges?.panda
+    ? Number(item.panda_price ?? 0) * item.qty
+    : 0;
     return acc + item.finalPrice + surcharge;
   }, 0);
 
@@ -785,7 +789,11 @@ const SalesOrder = () => {
           name:              item.name,
           quantity:          item.qty,
           unit_price:        Number(item.price),
-          total_price:       item.finalPrice + ((item.charges?.grab || item.charges?.panda) ? 30 * item.qty : 0),
+          total_price: item.finalPrice + (item.charges?.grab
+  ? Number(item.grab_price ?? 0) * item.qty
+  : item.charges?.panda
+    ? Number(item.panda_price ?? 0) * item.qty
+    : 0),
           size:              item.size !== 'none' ? item.size : null,
           cup_size_label:    item.cupSizeLabel ?? null,
           sugar_level:       item.sugarLevel || null,
@@ -1321,7 +1329,16 @@ const SalesOrder = () => {
                 )}
 
                 <div>
-                  <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Charges (+₱30.00)</label>
+                  <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">
+  Charges
+  {orderCharge === 'grab' && Number(selectedItem?.grab_price ?? 0) > 0
+    ? ` (+₱${Number(selectedItem?.grab_price ?? 0).toFixed(2)})`
+    : orderCharge === 'panda' && Number(selectedItem?.panda_price ?? 0) > 0
+      ? ` (+₱${Number(selectedItem?.panda_price ?? 0).toFixed(2)})`
+      : orderCharge
+        ? ' (No Surcharge)'
+        : ''}
+</label>
                   <div className="grid grid-cols-2 gap-3">
                     {(['grab', 'panda'] as const).map(type => {
                       const isActive   = orderCharge === type;
@@ -1632,7 +1649,11 @@ const SalesOrder = () => {
                               </div>
                             </div>
                             <p className="font-black text-sm text-[#3b2063]">
-                              ₱ {(item.finalPrice + ((item.charges?.grab || item.charges?.panda) ? 30 * item.qty : 0)).toFixed(2)}
+                              ₱ {(item.finalPrice + (item.charges?.grab
+  ? Number(item.grab_price ?? 0) * item.qty
+  : item.charges?.panda
+    ? Number(item.panda_price ?? 0) * item.qty
+    : 0)).toFixed(2)}
                             </p>
                           </div>
                         ))}
@@ -1646,7 +1667,11 @@ const SalesOrder = () => {
                       {cart.some(i => i.charges?.grab || i.charges?.panda) && (
                         <div className="flex justify-between text-zinc-500">
                           <span>{orderCharge === 'grab' ? 'Grab' : 'FoodPanda'} Surcharge</span>
-                          <span>₱ {cart.reduce((acc, i) => acc + ((i.charges?.grab || i.charges?.panda) ? 30 * i.qty : 0), 0).toFixed(2)}</span>
+                          <span>₱ {cart.reduce((acc, i) => acc + (i.charges?.grab
+  ? Number(i.grab_price ?? 0) * i.qty
+  : i.charges?.panda
+    ? Number(i.panda_price ?? 0) * i.qty
+    : 0), 0).toFixed(2)}</span>
                         </div>
                       )}
                       <div className="flex justify-between"><span>VATable Sales</span><span>₱ {vatableSales.toFixed(2)}</span></div>
@@ -2181,7 +2206,11 @@ const SalesOrder = () => {
                           </svg>
                         </div>
                         <p className="font-black text-sm text-[#3b2063]">
-                          ₱{(item.finalPrice + ((item.charges?.grab || item.charges?.panda) ? 30 * item.qty : 0)).toFixed(2)}
+                          ₱{(item.finalPrice + (item.charges?.grab
+  ? Number(item.grab_price ?? 0) * item.qty
+  : item.charges?.panda
+    ? Number(item.panda_price ?? 0) * item.qty
+    : 0)).toFixed(2)}
                         </p>
                       </div>
                     </div>
@@ -2237,7 +2266,9 @@ const SalesOrder = () => {
                   {(item.charges?.grab || item.charges?.panda) && (
                     <div className="flex justify-between w-full text-[10px]">
                       <span>  • {item.charges.grab ? 'Grab' : 'FoodPanda'} Surcharge</span>
-                      <span>+{(30 * item.qty).toFixed(2)}</span>
+                      <span>+{((item.charges?.grab
+  ? Number(item.grab_price ?? 0)
+  : Number(item.panda_price ?? 0)) * item.qty).toFixed(2)}</span>
                     </div>
                   )}
                   {item.discountLabel && (
