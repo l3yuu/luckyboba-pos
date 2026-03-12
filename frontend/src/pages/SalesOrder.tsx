@@ -175,13 +175,26 @@ const SalesOrder = () => {
   const [orderCharge, setOrderCharge]         = useState<'grab' | 'panda' | null>(null);
   const [isAddOnModalOpen, setIsAddOnModalOpen] = useState(false);
 
-  // Add-ons data
-  const [addOnsData] = useState<{ id: number; name: string; price: number }[]>(() => {
+
+// Add-ons data
+  const [addOnsData, setAddOnsData] = useState<{ id: number; name: string; price: number; category?: string }[]>(() => {
     try {
       const c = localStorage.getItem('pos_addons_cache');
       return c ? JSON.parse(c) : [];
     } catch { return []; }
   });
+
+  useEffect(() => {
+    api.get('/add-ons').then(({ data }) => {
+      localStorage.setItem('pos_addons_cache', JSON.stringify(data));
+      setAddOnsData(data);
+    }).catch(() => {});
+  }, []);
+
+  const isWaffleCategory = selectedCategory?.name?.toLowerCase().includes('waffle');
+  const filteredAddOns = addOnsData.filter(a =>
+    isWaffleCategory ? a.category === 'waffle' : a.category !== 'waffle'
+  );
 
   // Cart
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -515,13 +528,14 @@ const SalesOrder = () => {
   const addToOrder = () => {
     if (!selectedItem || !selectedCategory) return;
 
-    let extraCost = 0;
-    if (isDrink) {
-      selectedAddOns.forEach(name => {
-        const addon = addOnsData.find(a => a.name === name);
-        if (addon) extraCost += Number(addon.price);
-      });
-    }
+  const isWaffle = selectedCategory?.name?.toLowerCase().includes('waffle');
+  let extraCost = 0;
+  if (isDrink || isWaffle) {
+    selectedAddOns.forEach(name => {
+      const addon = addOnsData.find(a => a.name === name);
+      if (addon) extraCost += Number(addon.price);
+    });
+  }
 
     const cartSize: 'M' | 'L' | 'none' = isDrink ? size : 'none';
     const cupSizeLabel = (isDrink || isOz) && categorySize ? categorySize : undefined;
@@ -537,7 +551,7 @@ const SalesOrder = () => {
       size:       cartSize,
       cupSizeLabel,
       options:    isDrink ? selectedOptions : undefined,
-      addOns:     isDrink ? selectedAddOns  : undefined,
+      addOns: (isDrink || isWaffle) ? selectedAddOns : undefined,
       finalPrice: unitPrice * qty,
     };
 
@@ -871,7 +885,7 @@ const SalesOrder = () => {
 
         {/* ── MODAL: CART ITEM EDIT ──────────────────────────────────────── */}
         {editingCartItem && editingCartIndex !== null && (
-          <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="fixed inset-0 z-150 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <div className="bg-white w-full max-w-md rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
               <div className="bg-[#3b2063] px-6 pt-5 pb-5 text-white relative shrink-0">
                 <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/40 mb-1">Edit Item</p>
@@ -987,7 +1001,7 @@ const SalesOrder = () => {
                   </svg>
                   Remove
                 </button>
-                <button onClick={saveCartItemEdit} className="flex-[2] py-3 rounded-[0.625rem] bg-[#3b2063] hover:bg-[#2a1647] text-white font-black text-xs uppercase tracking-widest transition-all shadow-sm">
+                <button onClick={saveCartItemEdit} className="flex-2 py-3 rounded-[0.625rem] bg-[#3b2063] hover:bg-[#2a1647] text-white font-black text-xs uppercase tracking-widest transition-all shadow-sm">
                   Save Changes
                 </button>
               </div>
@@ -1088,6 +1102,20 @@ const SalesOrder = () => {
                   </div>
                 </div>
 
+                {/* Waffle add-ons */}
+                {selectedCategory?.name?.toLowerCase().includes('waffle') && (
+                  <div>
+                    <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Combo Add-ons</label>
+                    <button onClick={() => setIsAddOnModalOpen(true)}
+                      className="w-full py-4 rounded-[0.625rem] border-2 border-dashed border-[#3b2063]/40 bg-[#f0ebff] hover:bg-[#e4dbff] text-[#3b2063] font-black uppercase tracking-wider text-sm flex items-center justify-center transition-all group">
+                      <span className="mr-2">{selectedAddOns.length > 0 ? `${selectedAddOns.length} Add-on(s) Selected` : 'Select Add-ons'}</span>
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4 group-hover:translate-x-1 transition-transform">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+
                 <div>
                   <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Remarks</label>
                   <textarea value={remarks} onChange={e => setRemarks(e.target.value)} placeholder="Additional notes..."
@@ -1118,7 +1146,7 @@ const SalesOrder = () => {
                 <button onClick={() => setIsAddOnModalOpen(false)} className="absolute top-6 right-6 text-white font-bold text-xs bg-white/20 px-3 py-1.5 rounded-lg">Done</button>
               </div>
               <div className="p-6 overflow-y-auto flex-1 bg-white">
-                <AddOnGrid addOns={addOnsData} selected={selectedAddOns} onToggle={toggleAddOn} />
+                <AddOnGrid addOns={filteredAddOns} selected={selectedAddOns} onToggle={toggleAddOn} />
               </div>
               <div className="p-4 border-t border-zinc-200 bg-white">
                 <button onClick={() => setIsAddOnModalOpen(false)} className="w-full bg-[#3b2063] text-white py-4 rounded-[0.625rem] font-black uppercase tracking-widest shadow-lg">
@@ -1201,7 +1229,7 @@ const SalesOrder = () => {
               </div>
               <div className="p-6 overflow-y-auto flex-1 bg-white">
                 <AddOnGrid
-                  addOns={addOnsData}
+                  addOns={filteredAddOns}
                   selected={comboDrinkAddOns}
                   onToggle={name => setComboDrinkAddOns(prev =>
                     prev.includes(name) ? prev.filter(a => a !== name) : [...prev, name]
@@ -1404,7 +1432,7 @@ const SalesOrder = () => {
                           <div className="space-y-2">
                             {(['senior', 'pwd', 'diplomat'] as const).map(type => (
                               <div key={type} className="relative">
-                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black uppercase tracking-widest text-zinc-400 w-16 capitalize">{type}</span>
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black tracking-widest text-zinc-400 w-16 capitalize">{type}</span>
                                 <input type="text" placeholder="ID Number..." value={discountIDs[type]}
                                   onChange={e => setDiscountIDs({ ...discountIDs, [type]: e.target.value })}
                                   className="w-full text-xs font-bold pl-20 p-3 bg-zinc-50 border-2 rounded-[0.625rem] border-zinc-200 outline-none focus:bg-white focus:border-[#3b2063] transition-colors" />

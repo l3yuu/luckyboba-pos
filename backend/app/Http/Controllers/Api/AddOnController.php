@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AddOn;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Request;
+use Illuminate\Http\Request; 
 
 class AddOnController extends Controller
 {
