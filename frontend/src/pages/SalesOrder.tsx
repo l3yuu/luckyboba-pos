@@ -260,7 +260,12 @@ const SalesOrder = () => {
   }, 0);
 
   const totalCount = cart.reduce((acc, item) => acc + item.qty, 0);
-  const hasStickers = cart.some(item => item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L');
+  const hasStickers = cart.some(item =>
+    item.sugarLevel !== undefined ||
+    item.size === 'M' ||
+    item.size === 'L' ||
+    (item.addOns?.some(a => a.toLowerCase().includes('waffle combo')) ?? false)
+  );
 
   const totalPax          = pax.regular + pax.senior + pax.pwd + pax.diplomat;
   const sharePerPax       = subtotal / (totalPax || 1);
@@ -784,12 +789,59 @@ const SalesOrder = () => {
     let drinkIndex = 1;
     const totalDrinks = cart.reduce((acc, item) => {
       const isSticker = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
-      return acc + (isSticker ? item.qty : 0);
+      const waffleCount = (item.addOns?.filter(a => a.toLowerCase().includes('waffle combo')).length ?? 0) * item.qty;
+      return acc + (isSticker ? item.qty : 0) + (!isSticker ? waffleCount : 0);
     }, 0);
 
-    cart.forEach((item, cartIndex) => {
-      const isSticker = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
-      if (!isSticker) return;
+  cart.forEach((item, cartIndex) => {
+    const isSticker = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
+    
+    // Waffle combo drink add-ons also need stickers
+    const waffleComboAddOns = item.addOns?.filter(a =>
+      a.toLowerCase().includes('waffle combo')
+    ) ?? [];
+
+    if (!isSticker && waffleComboAddOns.length === 0) return;
+
+    if (!isSticker && waffleComboAddOns.length > 0) {
+      // Print one sticker per waffle combo add-on per qty
+      for (let i = 0; i < item.qty; i++) {
+        waffleComboAddOns.forEach(addonName => {
+          stickers.push(
+            <div key={`sticker-waffle-${cartIndex}-${i}-${addonName}`}
+              className="sticker-area page-break bg-white text-black flex flex-col justify-between items-center h-full w-full p-1"
+              style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
+              <div className="w-full text-center flex flex-col items-center">
+                <div className="font-black uppercase leading-none text-[12px]">LUCKY BOBA</div>
+                <div className="font-bold uppercase leading-none tracking-widest text-[6.5px] mt-1">{branchName.toUpperCase()}</div>
+                <div className="w-full flex justify-between items-center font-bold border-b-[1.5px] border-black px-1 text-[10px] pb-0.5 mb-1 mt-1">
+                  <span>Q: {queueNumber} | SI: {orNumber.slice(-6)}</span>
+                  <span>{drinkIndex}/{totalDrinks}</span>
+                </div>
+              </div>
+              <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
+                <div className="w-full font-black uppercase leading-tight text-xs mb-1">
+                  {addonName}
+                </div>
+                <div className="w-full text-center font-bold text-[9px]">
+                  <div>Waffle Combo</div>
+                </div>
+              </div>
+              <div className="w-full text-center mt-auto mb-0.5">
+                <p className="font-black uppercase whitespace-nowrap tracking-tighter text-[7px]">
+                  Best consume within 30 minutes
+                </p>
+              </div>
+              <div className="w-full font-bold text-center border-t border-zinc-800 text-[8.5px] pt-1 mt-1">
+                {formattedDate} {formattedTime}
+              </div>
+            </div>
+          );
+          drinkIndex++;
+        });
+      }
+      return;
+    }
 
       const extraCount    = (item.options?.length || 0) + (item.addOns?.length || 0) + (item.remarks ? 1 : 0);
       const isCrowded     = extraCount >= 3;
