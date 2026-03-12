@@ -150,7 +150,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::patch('/{id}/status', [ItemSerialController::class, 'updateStatus']);
         });
 
-        Route::apiResource('expenses',  ExpenseController::class)->only(['index', 'store']);
+        Route::apiResource('expenses',  ExpenseController::class)->only(['store']);
         Route::apiResource('discounts', DiscountController::class)->except(['show', 'update', 'index']); // ← 'index' removed, handled above
         Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
         Route::apiResource('vouchers', VoucherController::class)->only(['index', 'store']);
@@ -187,7 +187,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
         Route::get('/recipes/by-menu-item/{menuItemId}', [RecipeController::class, 'byMenuItem']);
         Route::patch('/recipes/{recipe}/toggle',         [RecipeController::class, 'toggle']);
-        Route::apiResource('recipes', RecipeController::class);
+        Route::apiResource('recipes', RecipeController::class)->except(['index', 'show']);
     });
 
     // SUPERADMIN ONLY
