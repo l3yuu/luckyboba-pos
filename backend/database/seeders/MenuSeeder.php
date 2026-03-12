@@ -47,8 +47,8 @@ class MenuSeeder extends Seeder
             'YAKULT SERIES'       => $smsl,
             'YOGURT SERIES'       => $smsl,
 
-            // JR drinks
-            'CLASSIC MILKTEA'     => $jr,
+            // SM/SL drinks
+            'CLASSIC MILKTEA'     => $smsl,
 
             // UM/UL drinks
             'COFFEE FRAPPE'       => $umul,

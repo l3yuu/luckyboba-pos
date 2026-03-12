@@ -72,6 +72,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::get('/summary', [ReportController::class, 'getCashCountSummary']);
         });
 
+        Route::get('/cache/all',         [CacheController::class, 'all']);
         Route::get('/menu',              [MenuController::class, 'index']);
         Route::post('/menu/clear-cache', [MenuController::class, 'clearCache']);
         Route::apiResource('menu-list',  MenuListController::class)->only(['index', 'store']);
@@ -178,9 +179,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::get('/{id}/analytics',     [BranchController::class, 'analytics']);
             Route::get('/{id}',               [BranchController::class, 'show']);
         });
-
-        Route::get('/cache/all',             [CacheController::class, 'all']);
-        Route::post('/cache/reload/{table}', [CacheController::class, 'reload']);
 
         Route::post('/raw-materials/{rawMaterial}/adjust', [RawMaterialController::class, 'adjust']);
         Route::apiResource('raw-materials', RawMaterialController::class)->except(['index', 'show']);

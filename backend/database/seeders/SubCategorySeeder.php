@@ -60,7 +60,7 @@ public function run(): void
         'GF DUO BUNDLES'       => ['SL'],
         'NOVA SERIES'          => ['SL'],
         'PUMPKIN SPICE'        => ['SL'],
-        'CLASSIC MILKTEA'      => ['JR'],
+        'CLASSIC MILKTEA'      => ['SM', 'SL'],
         'COFFEE FRAPPE'        => ['UM', 'UL'],
         'FRAPPE SERIES'        => ['UM', 'UL'],
         'FP COFFEE BUNDLES'    => ['UL'],
