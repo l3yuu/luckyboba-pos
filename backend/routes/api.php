@@ -57,13 +57,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
         });
 
         Route::prefix('cash-transactions')->group(function () {
-            Route::get('/',       [CashTransactionController::class, 'index']);
-            Route::post('/',      [CashTransactionController::class, 'store']);
-            Route::get('/status', [CashCountController::class, 'checkInitialCash']);
+            Route::get('/',         [CashTransactionController::class, 'index']);
+            Route::post('/',        [CashTransactionController::class, 'store']);
+            Route::get('/status',   [CashCountController::class, 'checkInitialCash']);
+            Route::post('/cash-in', [CashCountController::class, 'storeCashIn']);
         });
 
         Route::get('/receipts/search',        [ReceiptController::class, 'search']);
         Route::get('/receipts/next-sequence', [ReceiptController::class, 'getNextSequence']);
+        Route::post('/receipts/{id}/void',    [ReceiptController::class, 'void']);
 
         Route::prefix('cash-counts')->group(function () {
             Route::post('/',       [CashCountController::class, 'store']);
@@ -71,10 +73,13 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::get('/summary', [ReportController::class, 'getCashCountSummary']);
         });
 
+        Route::get('/cache/all',         [CacheController::class, 'all']);
         Route::get('/menu',              [MenuController::class, 'index']);
         Route::post('/menu/clear-cache', [MenuController::class, 'clearCache']);
         Route::apiResource('menu-list',  MenuListController::class)->only(['index', 'store']);
         Route::get('/add-ons',           [AddOnController::class, 'index']);
+        Route::get('/bundles',           fn () => \App\Models\Bundle::with('items')->where('is_active', true)->get());
+        Route::get('/discounts',         [DiscountController::class, 'index']); // ← ALL roles can read discounts
         Route::apiResource('categories', CategoryController::class);
         Route::apiResource('sub-categories', SubCategoryController::class);
         Route::get('/sub-categories/filter/{categoryId}', [SubCategoryController::class, 'getByCategory']);
@@ -94,8 +99,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/purchase-orders', [PurchaseOrderController::class, 'index']);
         Route::get('/item-serials',    [ItemSerialController::class, 'index']);
 
-        Route::get('/recipes',    [RecipeController::class, 'index']);
-        Route::get('/expenses',   [ExpenseController::class, 'index']);
+        // Additional read-only for cashier
+        Route::get('/recipes',  [RecipeController::class, 'index']);
+        Route::get('/expenses', [ExpenseController::class, 'index']);
 
         Route::prefix('reports')->group(function () {
             Route::get('/inventory',       [InventoryReportController::class, 'index']);
@@ -144,8 +150,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::patch('/{id}/status', [ItemSerialController::class, 'updateStatus']);
         });
 
-        Route::apiResource('expenses',  ExpenseController::class)->only(['index', 'store']);
-        Route::apiResource('discounts', DiscountController::class)->except(['show', 'update']);
+        Route::apiResource('expenses',  ExpenseController::class)->only(['store']);
+        Route::apiResource('discounts', DiscountController::class)->except(['show', 'update', 'index']); // ← 'index' removed, handled above
         Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
         Route::apiResource('vouchers', VoucherController::class)->only(['index', 'store']);
 
@@ -176,15 +182,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::get('/{id}',               [BranchController::class, 'show']);
         });
 
-        Route::get('/cache/all',             [CacheController::class, 'all']);
-        Route::post('/cache/reload/{table}', [CacheController::class, 'reload']);
-
         Route::post('/raw-materials/{rawMaterial}/adjust', [RawMaterialController::class, 'adjust']);
         Route::apiResource('raw-materials', RawMaterialController::class)->except(['index', 'show']);
 
         Route::get('/recipes/by-menu-item/{menuItemId}', [RecipeController::class, 'byMenuItem']);
         Route::patch('/recipes/{recipe}/toggle',         [RecipeController::class, 'toggle']);
-        Route::apiResource('recipes', RecipeController::class);
+        Route::apiResource('recipes', RecipeController::class)->except(['index', 'show']);
     });
 
     // SUPERADMIN ONLY
@@ -194,8 +197,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/audit-logs/stats', [AuditLogController::class, 'stats']);
 
         Route::prefix('reports')->group(function () {
-            Route::get('/sales-summary',     [SuperAdminReportController::class, 'salesSummary']);
-            Route::get('/branch-comparison', [SuperAdminReportController::class, 'branchComparison']);
+            Route::get('/admin-sales-summary', [SuperAdminReportController::class, 'salesSummary']);
+            Route::get('/branch-comparison',   [SuperAdminReportController::class, 'branchComparison']);
         });
 
         Route::prefix('system')->group(function () {

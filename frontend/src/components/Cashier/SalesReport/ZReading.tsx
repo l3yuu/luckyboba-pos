@@ -180,28 +180,45 @@ const ZReading = () => {
           ? { from: fromDate, to: toDate }
           : { date: selectedDate };
 
-        const [zRes, cashRes] = await Promise.all([
-          api.get('/reports/z-reading',     { params: zParams }),
-          api.get('/cash-counts/summary',   { params: { date: dateMode === 'range' ? toDate : selectedDate } }),
-        ]);
+const [zRes, cashRes, qtyRes, voidRes] = await Promise.all([
+  api.get('/reports/z-reading',       { params: zParams }),
+  api.get('/cash-counts/summary',     { params: { date: dateMode === 'range' ? toDate : selectedDate } }),
+  api.get('/reports/item-quantities', { params: { date: dateMode === 'range' ? toDate : selectedDate } }),
+  api.get('/reports/void-logs',       { params: { date: dateMode === 'range' ? toDate : selectedDate } }),
+]);
 
         const zData   = zRes.data   as Record<string, unknown>;
         const ccData  = cashRes.data as Record<string, unknown>;
 
         // Pull denominations from cash count response
         const ccNested = ccData.cash_count as { denominations: { label: string; qty: number; total: number }[]; grand_total: number } | undefined;
-        const cashDenominations = ccNested?.denominations ?? [];
+        const ALL_DENOMS = [1000, 500, 200, 100, 50, 20, 10, 5, 1, 0.25];
+const storedDenoms = ccNested?.denominations ?? [];
+const storedMap = new Map(storedDenoms.map(d => [parseFloat(d.label.replace(/,/g, '')), d.qty]));
+
+const cashDenominations = ALL_DENOMS.map(denom => {
+  const qty = storedMap.get(denom) ?? 0;
+  return {
+    label: denom === 0.25 ? '0.25' : String(denom),
+    qty,
+    total: denom * qty,
+  };
+});
         const totalCashCount    = ccNested?.grand_total   ?? (ccData.actual_amount as number) ?? 0;
         const expectedAmount    = (ccData.expected_amount as number) ?? 0;
         const shortOver         = (ccData.short_over      as number) ?? 0;
 
-        const merged = {
-          ...zData,
-          cash_denominations: cashDenominations,
-          total_cash_count:   totalCashCount,
-          expected_amount:    expectedAmount,
-          over_short:         shortOver,
-        };
+const merged = {
+  ...zData,
+  cash_denominations: cashDenominations,
+  total_cash_count:   totalCashCount,
+  expected_amount:    expectedAmount,
+  over_short:         shortOver,
+  categories:         (qtyRes.data as Record<string, unknown>).categories ?? [],
+  all_addons_summary: (qtyRes.data as Record<string, unknown>).all_addons_summary ?? [],
+  logs:               (voidRes.data as Record<string, unknown>).logs
+                      ?? (Array.isArray(voidRes.data) ? voidRes.data : []),
+};
 
         setRawApiResponse(merged as Record<string, unknown>);
         setReportData({ ...merged as unknown as ZReadingReport, report_type: type });
@@ -233,12 +250,25 @@ const ZReading = () => {
   const normalizeResponse = (type: string, data: Record<string, unknown>): ZReadingReport => {
     switch (type) {
       case 'cash_count': {
-        const nested = data.cash_count as { denominations: unknown[]; grand_total: number } | undefined;
-        const flatDenominations = data.denominations as { label: string; qty: number; total: number }[] | undefined;
-        const flatGrandTotal = data.grand_total as number | undefined;
-        if (nested?.denominations) return data as unknown as ZReadingReport;
-        if (flatDenominations) return { ...data, cash_count: { denominations: flatDenominations, grand_total: flatGrandTotal ?? 0 } } as unknown as ZReadingReport;
-        return data as unknown as ZReadingReport;
+        const ALL_DENOMS = [1000, 500, 200, 100, 50, 20, 10, 5, 1, 0.25];
+        const nested = data.cash_count as { denominations: { label: string; qty: number; total: number }[]; grand_total: number } | undefined;
+        const flatDenominations = (nested?.denominations ?? data.denominations) as { label: string; qty: number; total: number }[] | undefined;
+        const flatGrandTotal = (nested?.grand_total ?? data.grand_total) as number | undefined;
+
+        const storedMap = new Map((flatDenominations ?? []).map(d => [parseFloat(d.label.replace(/,/g, '')), d.qty]));
+        const fullDenominations = ALL_DENOMS.map(denom => ({
+          label: denom === 0.25 ? '0.25' : String(denom),
+          qty: storedMap.get(denom) ?? 0,
+          total: denom * (storedMap.get(denom) ?? 0),
+        }));
+
+        return {
+          ...data,
+          cash_count: {
+            denominations: fullDenominations,
+            grand_total: flatGrandTotal ?? 0,
+          },
+        } as unknown as ZReadingReport;
       }
       case 'summary': {
         const summaryData = (data.summary_data ?? data.data ?? (Array.isArray(data) ? data : null)) as { Sales_Date: string; Total_Orders: number; Daily_Revenue: number }[] | null;
@@ -835,11 +865,26 @@ const ZReading = () => {
     const salesForDay        = reportData?.sales_for_the_day    ?? gross;
 
     // Payment map
-    const PAYMENT_METHODS = ['food panda', 'grab', 'gcash', 'visa', 'mastercard', 'cash'];
-    const paymentMap = new Map<string, number>();
-    reportData?.payment_breakdown?.forEach(p => {
-      paymentMap.set(p.method.toLowerCase(), Number(p.amount));
-    });
+  const PAYMENT_METHODS = ['food panda', 'grab', 'gcash', 'visa', 'mastercard', 'cash'];
+
+  const METHOD_ALIASES: Record<string, string> = {
+    'panda':       'food panda',
+    'foodpanda':   'food panda',
+    'food_panda':  'food panda',
+    'grabfood':    'grab',
+    'grab food':   'grab',
+    'master card': 'mastercard',
+    'master':      'mastercard',
+    'visa card':   'visa',
+    'e-wallet':    'gcash',
+  };
+
+  const paymentMap = new Map<string, number>();
+  reportData?.payment_breakdown?.forEach(p => {
+    const raw = p.method.toLowerCase().trim();
+    const key = METHOD_ALIASES[raw] ?? raw;
+    paymentMap.set(key, (paymentMap.get(key) ?? 0) + Number(p.amount));
+  });
     const creditMethods = ['visa', 'mastercard'];
     const debitMethods  = ['gcash'];
     const totalCredit   = creditMethods.reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
@@ -853,9 +898,6 @@ const ZReading = () => {
     const overShort = (reportData?.over_short !== undefined && reportData?.over_short !== null)
       ? reportData.over_short
       : (totalCashCount - expectedEOD);
-
-    // Category breakdown table
-    const categoryBreakdown = reportData?.category_breakdown ?? [];
 
     // Net total = gross - total discounts
     const netTotal = reportData?.net_total ?? (gross - totalDisc);
@@ -920,9 +962,19 @@ const ZReading = () => {
         {PAYMENT_METHODS.map((method, i) => (
           <Row key={i} label={method.toUpperCase()} value={phCurrency.format(paymentMap.get(method) || 0)} />
         ))}
-        {reportData?.payment_breakdown?.filter(p => !PAYMENT_METHODS.includes(p.method.toLowerCase())).map((p, i) => (
-          <Row key={`extra-${i}`} label={p.method.toUpperCase()} value={phCurrency.format(p.amount)} />
-        ))}
+        {reportData?.payment_breakdown
+          ?.filter(p => {
+            const raw = p.method.toLowerCase().trim();
+            const normalized = METHOD_ALIASES[raw] ?? raw;
+            return !PAYMENT_METHODS.includes(normalized);
+          })
+          .map((p, i) => {
+            const raw = p.method.toLowerCase().trim();
+            const normalized = METHOD_ALIASES[raw] ?? raw;
+            return (
+              <Row key={`extra-${i}`} label={normalized.toUpperCase()} value={phCurrency.format(p.amount)} />
+            );
+          })}
         <Divider />
         <Row label="TOTAL CREDIT"   value={phCurrency.format(totalCredit)} />
         <Row label="TOTAL DEBIT"    value={phCurrency.format(totalDebit)} />
@@ -970,35 +1022,41 @@ const ZReading = () => {
           </>
         )}
 
-        {/* ── Category Breakdown Table ── */}
-        {categoryBreakdown.length > 0 && (
-          <>
-            <Divider />
-            <div className="flex text-[9px] font-bold border-b border-black pb-0.5 mb-0.5 uppercase">
-              <span className="w-[40%]">Category</span>
-              <span className="w-[20%] text-center">Qty Sold</span>
-              <span className="w-[20%] text-right">Disc</span>
-              <span className="w-[20%] text-right">Total Sold</span>
-            </div>
-            {categoryBreakdown.map((cat, i) => (
-              <div key={i} className="flex text-[9px] leading-snug border-b border-dotted border-zinc-300">
-                <span className="w-[40%] uppercase leading-tight">{cat.category_name}</span>
-                <span className="w-[20%] text-center">{cat.total_qty}</span>
-                <span className="w-[20%] text-right">{phCurrency.format(cat.total_disc)}</span>
-                <span className="w-[20%] text-right">{phCurrency.format(cat.total_sold)}</span>
-              </div>
-            ))}
-            <Divider />
-            <div className="flex text-[10px] font-bold justify-between">
-              <span className="uppercase">TOTAL</span>
-              <span>{phCurrency.format(gross)}</span>
-            </div>
-            <div className="flex text-[10px] font-bold justify-between">
-              <span className="uppercase">NET TOTAL</span>
-              <span>{phCurrency.format(netTotal)}</span>
-            </div>
-          </>
-        )}
+{/* ── Item Breakdown Table ── */}
+{reportData?.categories && reportData.categories.length > 0 && (
+  <>
+    <Divider />
+    <p className="text-[11px] uppercase text-center font-bold mb-0.5">ITEM BREAKDOWN</p>
+    <div className="flex text-[9px] font-bold border-b border-black pb-0.5 mb-0.5 uppercase">
+      <span className="w-[50%]">Item</span>
+      <span className="w-[15%] text-center">Size</span>
+      <span className="w-[15%] text-center">Qty</span>
+      <span className="w-[20%] text-right">Total</span>
+    </div>
+    {reportData.categories.map((cat, catIdx) => (
+      <React.Fragment key={catIdx}>
+        <p className="text-[9px] font-bold uppercase mt-0.5">{cat.category_name}</p>
+        {cat.products.map((item, i) => (
+          <div key={i} className="flex text-[9px] leading-snug border-b border-dotted border-zinc-200">
+            <span className="w-[50%] uppercase leading-tight pl-1">{item.product_name}</span>
+            <span className="w-[15%] text-center">{item.size ?? '—'}</span>
+            <span className="w-[15%] text-center">{item.total_qty}</span>
+            <span className="w-[20%] text-right">{phCurrency.format(item.total_sales)}</span>
+          </div>
+        ))}
+      </React.Fragment>
+    ))}
+    <Divider />
+    <div className="flex text-[10px] font-bold justify-between">
+      <span className="uppercase">GROSS TOTAL</span>
+      <span>{phCurrency.format(gross)}</span>
+    </div>
+    <div className="flex text-[10px] font-bold justify-between">
+      <span className="uppercase">NET TOTAL</span>
+      <span>{phCurrency.format(netTotal)}</span>
+    </div>
+  </>
+)}
       </div>
     );
   };

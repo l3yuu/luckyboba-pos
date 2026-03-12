@@ -87,4 +87,24 @@ class ReceiptController extends Controller
             ],
         ]);
     }
+
+    public function void(Request $request, $id)
+    {
+        $request->validate([
+            'reason' => 'required|string|max:500',
+        ]);
+
+        $sale = \App\Models\Sale::findOrFail($id);
+
+        if ($sale->status === 'cancelled') {
+            return response()->json(['message' => 'Already voided.'], 422);
+        }
+
+        $sale->update([
+            'status'              => 'cancelled',
+            'cancellation_reason' => $request->input('reason'),
+        ]);
+
+        return response()->json(['message' => 'Transaction voided successfully.']);
+    }
 }
