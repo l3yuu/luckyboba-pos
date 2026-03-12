@@ -31,7 +31,7 @@ class CategorySeeder extends Seeder
 
             // ── DRINKS SM/SL ──────────────────────────────────────
             'CHEESECAKE MILK TEA' => ['type' => 'drink', 'cup_id' => $smsl, 'sub_category_id' => $sub('SM')],
-            'CREAM CHEESE M. TEA' => ['type' => 'drink', 'cup_id' => $smsl, 'sub_category_id' => $sub('SM')],
+            'CREAM CHEESE MILK TEA' => ['type' => 'drink', 'cup_id' => $smsl, 'sub_category_id' => $sub('SM')],
             'FLAVORED MILK TEA'   => ['type' => 'drink', 'cup_id' => $smsl, 'sub_category_id' => $sub('SM')],
             'GREEN TEA SERIES'    => ['type' => 'drink', 'cup_id' => $smsl, 'sub_category_id' => $sub('SM')],
             'ICED COFFEE'         => ['type' => 'drink', 'cup_id' => $smsl, 'sub_category_id' => $sub('SM')],

@@ -47,7 +47,7 @@ public function run(): void
     // ── Step 2: Normal mapping ─────────────────────────────────────────────
     $mapping = [
         'CHEESECAKE MILK TEA'  => ['SM', 'SL'],
-        'CREAM CHEESE M. TEA'  => ['SM', 'SL'],
+        'CREAM CHEESE MILK TEA'  => ['SM', 'SL'],
         'FLAVORED MILK TEA'    => ['SM', 'SL'],
         'GREEN TEA SERIES'     => ['SM', 'SL'],
         'ICED COFFEE'          => ['SM', 'SL'],

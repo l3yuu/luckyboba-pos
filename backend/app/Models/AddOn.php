@@ -11,6 +11,7 @@ class AddOn extends Model
         'price',
         'barcode',
         'is_available',
+        'category',
     ];
 
     protected $casts = [
