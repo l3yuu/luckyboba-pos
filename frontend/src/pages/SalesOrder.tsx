@@ -115,10 +115,16 @@ const SalesOrder = () => {
     useEffect(() => {
         const fetchDiscounts = async () => {
             try {
+                // Use cache if available
+                const cached = localStorage.getItem('pos_discounts_cache');
+                if (cached) {
+                    setDiscounts(JSON.parse(cached));
+                    return;
+                }
                 const response = await api.get('/discounts');
-                setDiscounts(response.data.filter((d: Discount) => d.status === 'ON'));
+                setDiscounts(response.data);
             } catch (error) {
-                console.error("Error fetching discounts:", error);
+                console.error('Error fetching discounts:', error);
             }
         };
         fetchDiscounts();
@@ -355,11 +361,21 @@ const SalesOrder = () => {
         setOrderCharge(next);
         setCart(prevCart => prevCart.map(item => {
             const hadCharge = item.charges.grab || item.charges.panda;
-            const baseFinalPrice = hadCharge ? item.finalPrice - (10 * item.qty) : item.finalPrice;
+            const oldCharge = item.charges.grab
+                ? Number(item.grab_price ?? 0)
+                : item.charges.panda
+                    ? Number(item.panda_price ?? 0)
+                    : 0;
+            const baseFinalPrice = hadCharge
+                ? item.finalPrice - (oldCharge * item.qty)
+                : item.finalPrice;
+            const newCharge = next ? (next === 'grab'
+                ? Number(item.grab_price ?? 0)
+                : Number(item.panda_price ?? 0)) : 0;
             return {
                 ...item,
                 charges: { grab: next === 'grab', panda: next === 'panda' },
-                finalPrice: next ? baseFinalPrice + (10 * item.qty) : baseFinalPrice,
+                finalPrice: baseFinalPrice + (newCharge * item.qty),
             };
         }));
     };
@@ -433,7 +449,8 @@ const SalesOrder = () => {
         if (!selectedItem || !selectedCategory) return;
         const basePrice = Number(selectedItem.price);
         let extraCost = 0;
-        if (orderCharge) extraCost += 10;
+        if (orderCharge === 'grab') extraCost += Number(selectedItem.grab_price ?? 0);
+        if (orderCharge === 'panda') extraCost += Number(selectedItem.panda_price ?? 0);
         if (isDrink) {
             selectedAddOns.forEach(name => {
                 const addon = addOnsData.find(a => a.name === name);
@@ -763,7 +780,13 @@ const SalesOrder = () => {
                                 </>
                             )}
                             <div>
-                                <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Charges (+10.00)</label>
+                                <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">
+                                    Charges {orderCharge === 'grab'
+                                        ? `(+${Number(selectedItem?.grab_price ?? 0).toFixed(2)})`
+                                        : orderCharge === 'panda'
+                                            ? `(+${Number(selectedItem?.panda_price ?? 0).toFixed(2)})`
+                                            : '(+0.00)'}
+                                </label>
                                 <div className="grid grid-cols-2 gap-3">
                                     <button type="button" onClick={() => orderCharge !== 'panda' && toggleOrderCharge('grab')} disabled={orderCharge === 'panda'}
                                         className={`p-3 rounded-[0.625rem] border-2 transition-all flex items-center justify-center gap-2 ${orderCharge === 'panda' ? 'border-zinc-200 bg-white text-zinc-300 opacity-40' : orderCharge === 'grab' ? 'border-green-500 bg-green-50 text-green-700' : 'border-zinc-300 bg-white text-zinc-500 hover:border-green-300 hover:bg-green-50'}`}>

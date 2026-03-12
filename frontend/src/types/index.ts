@@ -36,6 +36,8 @@ export interface MenuItem {
     sub_category_id?: number | null;
     created_at?: string;
     updated_at?: string;
+    grab_price?: number;
+    panda_price?: number;
 }
 
 export interface Category {

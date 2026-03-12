@@ -62,23 +62,23 @@ class MenuSeeder extends Seeder
 
         $menuData = [
             'AFFORDA-BOWLS' => [
-                ['name' => "AFFORD-SIOMAI + RICE",         'price' => 59.00,  'barcode' => 'AB-1',  'size' => 'none'],
-                ['name' => "AFFORD-HOTDOG + RICE",         'price' => 59.00,  'barcode' => 'AB-2',  'size' => 'none'],
-                ['name' => "AFFORD-CHIC WINGS + RICE",     'price' => 69.00,  'barcode' => 'AB-3',  'size' => 'none'],
-                ['name' => "AFFORD-CHIC POPPERS + RICE",   'price' => 69.00,  'barcode' => 'AB-4',  'size' => 'none'],
-                ['name' => "AFFORD-SHANGHAI + RICE",       'price' => 69.00,  'barcode' => 'AB-5',  'size' => 'none'],
-                ['name' => "AFFORD-CHICK TONKATSU + RICE", 'price' => 79.00,  'barcode' => 'AB-6',  'size' => 'none'],
-                ['name' => "AFFORD-LONGGA RICE + EGG",     'price' => 79.00,  'barcode' => 'AB-7',  'size' => 'none'],
+                ['name' => "AFFORD-SIOMAI + RICE",         'price' => 59.00,  'barcode' => 'AB-1',  'size' => 'none', 'grab_price' => 30.00, 'panda_price' => 30.00],
+                ['name' => "AFFORD-HOTDOG + RICE",         'price' => 59.00,  'barcode' => 'AB-2',  'size' => 'none', 'grab_price' => 30.00, 'panda_price' => 30.00],
+                ['name' => "AFFORD-CHIC WINGS + RICE",     'price' => 69.00,  'barcode' => 'AB-3',  'size' => 'none', 'grab_price' => 45.00, 'panda_price' => 45.00],
+                ['name' => "AFFORD-CHIC POPPERS + RICE",   'price' => 69.00,  'barcode' => 'AB-4',  'size' => 'none', 'grab_price' => 45.00, 'panda_price' => 45.00],
+                ['name' => "AFFORD-SHANGHAI + RICE",       'price' => 69.00,  'barcode' => 'AB-5',  'size' => 'none', 'grab_price' => 45.00, 'panda_price' => 45.00],
+                ['name' => "AFFORD-CHICK TONKATSU + RICE", 'price' => 79.00,  'barcode' => 'AB-6',  'size' => 'none', 'grab_price' => 45.00, 'panda_price' => 45.00],
+                ['name' => "AFFORD-LONGGA RICE + EGG",     'price' => 79.00,  'barcode' => 'AB-7',  'size' => 'none', 'grab_price' => 60.00, 'panda_price' => 60.00],
             ],
 
             'ALA CARTE SNACKS' => [
-                ['name' => "Chicken Twister Wrap",  'price' => 85.00,  'barcode' => 'ACS-1', 'size' => 'none'],
-                ['name' => "Chicken Poppers Snack", 'price' => 99.00,  'barcode' => 'ACS-2', 'size' => 'none'],
-                ['name' => "Spaghetti",             'price' => 75.00,  'barcode' => 'ACS-3', 'size' => 'none'],
-                ['name' => "Thick Coated Fries",    'price' => 99.00,  'barcode' => 'ACS-4', 'size' => 'none'],
-                ['name' => "Cheesy Nachos",         'price' => 180.00, 'barcode' => 'ACS-5', 'size' => 'none'],
-                ['name' => "Bottled Mineral Water", 'price' => 25.00,  'barcode' => 'ACS-6', 'size' => 'none'],
-                ['name' => "Rice",                  'price' => 20.00,  'barcode' => 'ACS-7', 'size' => 'none'],
+                ['name' => "Chicken Twister Wrap",  'price' => 85.00,  'barcode' => 'ACS-1', 'size' => 'none', 'grab_price' => 50.00, 'panda_price' => 50.00],
+                ['name' => "Chicken Poppers Snack", 'price' => 99.00,  'barcode' => 'ACS-2', 'size' => 'none', 'grab_price' => 50.00, 'panda_price' => 50.00],
+                ['name' => "Spaghetti",             'price' => 75.00,  'barcode' => 'ACS-3', 'size' => 'none', 'grab_price' => 25.00, 'panda_price' => 25.00],
+                ['name' => "Thick Coated Fries",    'price' => 99.00,  'barcode' => 'ACS-4', 'size' => 'none', 'grab_price' => 35.00, 'panda_price' => 35.00],
+                ['name' => "Cheesy Nachos",         'price' => 180.00, 'barcode' => 'ACS-5', 'size' => 'none', 'grab_price' => 85.00, 'panda_price' => 85.00],
+                ['name' => "Bottled Mineral Water", 'price' => 25.00,  'barcode' => 'ACS-6', 'size' => 'none', 'grab_price' => 0.00,  'panda_price' => 0.00],
+                ['name' => "Rice",                  'price' => 20.00,  'barcode' => 'ACS-7', 'size' => 'none', 'grab_price' => 5.00,  'panda_price' => 5.00],
             ],
 
             'ALL DAY MEALS' => [
@@ -512,6 +512,8 @@ foreach ($menuData as $categoryName => $items) {
                 [
                     'name'            => $item['name'],
                     'price'           => $item['price'],
+                    'grab_price'      => $item['grab_price'] ?? 0,   // <-- add this
+                    'panda_price'     => $item['panda_price'] ?? 0,  // <-- add this
                     'cup_id'          => $cupId,
                     'size'            => $size,
                     'sub_category_id' => $subCatId,

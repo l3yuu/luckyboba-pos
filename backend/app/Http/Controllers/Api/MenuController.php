@@ -31,6 +31,8 @@ class MenuController extends Controller
                                 'id'              => $item->id,
                                 'name'            => $item->name,
                                 'price'           => $item->price,
+                                'grab_price'      => $item->grab_price,   // ← ADD THIS
+                                'panda_price'     => $item->panda_price,  // ← ADD THIS
                                 'barcode'         => $item->barcode,
                                 'size'            => $item->size,
                                 'sub_category_id' => $item->sub_category_id,  // ← include this
