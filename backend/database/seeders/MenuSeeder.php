@@ -50,6 +50,7 @@ class MenuSeeder extends Seeder
             'FRAPPE SERIES'       => $umul,
             'HOT COFFEE'          => $pcmpcl,
             'HOT DRINKS'          => $pcmpcl,
+            'LUCKY CLASSIC'       => $jr,
         ];
 
         $cupSizeMap = [
@@ -320,6 +321,12 @@ class MenuSeeder extends Seeder
                 ['name' => "ICED TOFFEE CARAMEL",    'price' => 105.00, 'barcode' => "ICL4", 'size' => 'L'],
                 ['name' => "ICED CARAMEL MACCHIATO", 'price' => 85.00,  'barcode' => "ICM6", 'size' => 'M'],
                 ['name' => "ICED CARAMEL MACCHIATO", 'price' => 105.00, 'barcode' => "ICL6", 'size' => 'L'],
+            ],
+            'LUCKY CLASSIC' => [
+                ['name' => "LUCKY CLASSIC OREO",        'price' => 0.00, 'barcode' => "LCO1",  'size' => 'none'],
+                ['name' => "LUCKY CLASSIC BLACK PEARL", 'price' => 0.00, 'barcode' => "LCBP1", 'size' => 'none'],
+                ['name' => "LUCKY CLASSIC WHITE PEARL", 'price' => 0.00, 'barcode' => "LCWP1", 'size' => 'none'],
+                ['name' => "LUCKY CLASSIC PUDDING",     'price' => 0.00, 'barcode' => "LCPD1", 'size' => 'none'],
             ],
             'CARD' => [
                 ['name' => "LUCKY CARD",                   'price' => 150.00, 'barcode' => "LC-001", 'size' => 'none'],
