@@ -427,7 +427,7 @@ const XReading = () => {
             </div>
             {denominations.map((d, i) => (
               <div key={i} className="flex text-[11px] leading-snug border-b border-dotted border-zinc-300">
-                <span className="w-[45%] uppercase">{d.label}</span>
+                <span className="w-[45%] uppercase">₱{d.label}</span>
                 <span className="w-[20%] text-center">x{d.qty}</span>
                 <span className="w-[35%] text-right">{phCurrency.format(d.total)}</span>
               </div>
@@ -770,10 +770,27 @@ const XReading = () => {
     const vatAmount    = reportData?.vat_amount        || 0;
     const voids        = reportData?.total_void_amount || 0;
 
+    // AFTER — normalize aliases before building the map
     const PAYMENT_METHODS = ['food panda', 'grab', 'gcash', 'visa', 'mastercard', 'cash'];
+
+    // Aliases: whatever is stored in DB → canonical display key
+    const METHOD_ALIASES: Record<string, string> = {
+      'panda':       'food panda',
+      'foodpanda':   'food panda',
+      'food_panda':  'food panda',
+      'grabfood':    'grab',
+      'grab food':   'grab',
+      'master card': 'mastercard',
+      'master':      'mastercard',
+      'visa card':   'visa',
+      'e-wallet':    'gcash',
+    };
+
     const paymentMap = new Map<string, number>();
     reportData?.payment_breakdown?.forEach(p => {
-      paymentMap.set(p.method.toLowerCase(), Number(p.amount));
+      const raw = p.method.toLowerCase().trim();
+      const key = METHOD_ALIASES[raw] ?? raw;   // normalize, fallback to original
+      paymentMap.set(key, (paymentMap.get(key) ?? 0) + Number(p.amount));
     });
 
     const creditMethods = ['visa', 'mastercard'];
@@ -822,9 +839,19 @@ const XReading = () => {
         {PAYMENT_METHODS.map((method, i) => (
           <Row key={i} label={method.toUpperCase()} value={phCurrency.format(paymentMap.get(method) || 0)} />
         ))}
-        {reportData?.payment_breakdown?.filter(p => !PAYMENT_METHODS.includes(p.method.toLowerCase())).map((p, i) => (
-          <Row key={`extra-${i}`} label={p.method.toUpperCase()} value={phCurrency.format(p.amount)} />
-        ))}
+{reportData?.payment_breakdown
+  ?.filter(p => {
+    const raw = p.method.toLowerCase().trim();
+    const normalized = METHOD_ALIASES[raw] ?? raw;
+    return !PAYMENT_METHODS.includes(normalized);
+  })
+  .map((p, i) => {
+    const raw = p.method.toLowerCase().trim();
+    const normalized = METHOD_ALIASES[raw] ?? raw;
+    return (
+      <Row key={`extra-${i}`} label={normalized.toUpperCase()} value={phCurrency.format(p.amount)} />
+    );
+  })}
         <Divider />
         <Row label="TOTAL CREDIT"   value={phCurrency.format(totalCredit)} />
         <Row label="TOTAL DEBIT"    value={phCurrency.format(totalDebit)} />

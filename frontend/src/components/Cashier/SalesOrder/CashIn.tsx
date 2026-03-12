@@ -14,7 +14,10 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
 
   const [amount, setAmount] = useState('');
   const [isFlipped, setIsFlipped] = useState(false);
-  const [isLoading, setIsLoading] = useState(false); 
+  const [isLoading, setIsLoading] = useState(false);
+  const [isPreparing, setIsPreparing] = useState(false);
+  const [prepProgress, setPrepProgress] = useState(0);
+  const [prepLabel, setPrepLabel] = useState('');
   const [isEodLocked, setIsEodLocked] = useState(false);
   const [receiptData, setReceiptData] = useState<ReceiptData>({ date: '', time: '' });
 
@@ -43,7 +46,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
   };
 
   const handleSubmit = async () => {
-    if (!amount || parseFloat(amount) <= 0 || isEodLocked) return; 
+    if (!amount || parseFloat(amount) <= 0 || isEodLocked) return;
     setIsLoading(true);
     try {
       const response = await api.post('/cash-transactions', {
@@ -51,22 +54,68 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
         amount: parseFloat(amount),
         note: 'Initial drawer cash-in'
       });
+
       if (response.data.success) {
         localStorage.setItem('cashier_menu_unlocked', 'true');
         localStorage.setItem('cashier_lock_date', new Date().toDateString());
         localStorage.removeItem('dashboard_stats_timestamp');
         showToast(response.data.message || "Cash In recorded successfully!", "success");
         setReceiptData(getCurrentDateTime());
+
+        // ── Prefetch phase ────────────────────────────────────────────────────
+        // Show a progress bar while we load menu data in parallel.
+        // By the time the cashier clicks "Menu", everything is already cached.
+        setIsLoading(false);
+        setIsPreparing(true);
+        setPrepProgress(0);
+
+        const tick = setInterval(() =>
+          setPrepProgress(p => Math.min(p + 5, 90)), 80
+        );
+
+        setPrepLabel('Loading menu items...');
+        await Promise.allSettled([
+          api.get('/menu').then(r => {
+            if (Array.isArray(r.data))
+              localStorage.setItem('pos_menu_cache', JSON.stringify(r.data));
+          }),
+          api.get('/add-ons').then(r => {
+            if (Array.isArray(r.data))
+              localStorage.setItem('pos_addons_cache', JSON.stringify(r.data));
+          }),
+          api.get('/discounts').then(r => {
+            if (Array.isArray(r.data))
+              localStorage.setItem('pos_discounts_cache', JSON.stringify(r.data));
+          }),
+          api.get('/receipts/next-sequence').then(r => {
+            const seq = parseInt(r.data?.next_sequence, 10);
+            if (!isNaN(seq)) localStorage.setItem('last_or_sequence', String(seq));
+          }),
+        ]);
+
+        clearInterval(tick);
+        setPrepProgress(100);
+        setPrepLabel('Menu ready!');
+
+        // Notify sidebar to unlock immediately
+        window.dispatchEvent(new Event('cash-in-completed'));
+
+        // Brief pause so the user sees 100% before flipping
+        await new Promise(res => setTimeout(res, 450));
+
+        setIsPreparing(false);
         setIsFlipped(true);
         if (onSuccess) onSuccess();
+
       } else {
         showToast(response.data.message || "Cash In already recorded.", "warning");
+        setIsLoading(false);
       }
     } catch (error: unknown) {
       const err = error as AxiosError<{ message?: string }>;
       showToast(err.response?.data?.message || "Failed to record Cash In.", "error");
-    } finally {
       setIsLoading(false);
+      setIsPreparing(false);
     }
   };
 
@@ -213,22 +262,43 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
                   </div>
                 </div>
 
-                <button
-                  onClick={handleSubmit}
-                  disabled={!amount || isLoading || isEodLocked}
-                  className={`w-full py-4 font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all mt-6 rounded-[0.625rem] ${
-                    isEodLocked
-                      ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
-                      : 'bg-[#3b2063] hover:bg-[#2a1647] text-white active:scale-[0.99] disabled:opacity-50'
-                  }`}
-                >
-                  {isLoading
-                    ? <><RefreshCw size={16} className="animate-spin" /> Validating...</>
-                    : isEodLocked
-                    ? <><AlertTriangle size={16} /> Terminal Closed</>
-                    : <><CheckCircle2 size={16} /> Submit & Start Shift</>
-                  }
-                </button>
+                {/* ── Preparing overlay ── */}
+                {isPreparing ? (
+                  <div className="mt-6 rounded-[0.625rem] bg-[#f5f3ff] border-2 border-[#3b2063]/20 p-5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#3b2063]">
+                        {prepLabel}
+                      </p>
+                      <span className="text-[11px] font-black text-[#3b2063] tabular-nums">{prepProgress}%</span>
+                    </div>
+                    <div className="w-full bg-zinc-200 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="h-2 rounded-full bg-[#3b2063] transition-all duration-150 ease-out"
+                        style={{ width: `${prepProgress}%` }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-widest">
+                      Loading items · add-ons · discounts
+                    </p>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleSubmit}
+                    disabled={!amount || isLoading || isEodLocked}
+                    className={`w-full py-4 font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all mt-6 rounded-[0.625rem] ${
+                      isEodLocked
+                        ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
+                        : 'bg-[#3b2063] hover:bg-[#2a1647] text-white active:scale-[0.99] disabled:opacity-50'
+                    }`}
+                  >
+                    {isLoading
+                      ? <><RefreshCw size={16} className="animate-spin" /> Validating...</>
+                      : isEodLocked
+                      ? <><AlertTriangle size={16} /> Terminal Closed</>
+                      : <><CheckCircle2 size={16} /> Submit & Start Shift</>
+                    }
+                  </button>
+                )}
               </div>
 
               {/* Back: Receipt Preview */}

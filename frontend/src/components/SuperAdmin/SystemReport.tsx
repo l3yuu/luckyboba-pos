@@ -9,7 +9,7 @@ import {
   type Period,
   type SalesSummaryResponse,
   type BranchComparisonResponse,
-} from '../services/reportService';
+} from '../../services/reportService';
 
 /* ── Design tokens (Lucky Boba POS palette) ─────────────────────── */
 const T = {
