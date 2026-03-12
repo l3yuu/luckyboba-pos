@@ -18,19 +18,21 @@ class UserController extends Controller
     /**
      * Transform user to return branch as a plain string (not object)
      */
-    private function transformUser(User $user): array
+    private function transformUser(User $user, ?string $lastLoginAt = null, int $loginCount = 0): array
     {
         return [
-            'id'                 => $user->id,
-            'name'               => $user->name,
-            'email'              => $user->email,
-            'role'               => $user->role,
-            'status'             => $user->status,
-            'branch'             => $user->branch_name ?? null,
-            'branch_id'          => $user->branch_id,
-            'email_verified_at'  => $user->email_verified_at,
-            'created_at'         => $user->created_at,
-            'updated_at'         => $user->updated_at,
+            'id'                => $user->id,
+            'name'              => $user->name,
+            'email'             => $user->email,
+            'role'              => $user->role,
+            'status'            => $user->status,
+            'branch'            => $user->branch_name ?? null,
+            'branch_id'         => $user->branch_id,
+            'email_verified_at' => $user->email_verified_at,
+            'created_at'        => $user->created_at,
+            'updated_at'        => $user->updated_at,
+            'last_login_at'     => $lastLoginAt,   // ← new
+            'login_count'       => $loginCount,    // ← new
         ];
     }
 
@@ -43,34 +45,51 @@ class UserController extends Controller
             $authUser = $request->user();
             $query = User::orderBy('created_at', 'desc');
 
-            // Branch managers can only see cashiers in their own branch
             if ($authUser->role === 'branch_manager') {
                 $query->where('role', 'cashier')
-                      ->where('branch_name', $authUser->branch_name);
+                    ->where('branch_name', $authUser->branch_name);
             }
 
-            if ($request->query('status')) {
-                $query->where('status', $request->query('status'));
-            }
-            if ($request->query('role')) {
-                $query->where('role', $request->query('role'));
-            }
-            if ($request->query('branch')) {
-                $query->where('branch_name', $request->query('branch'));
-            }
+            if ($request->query('status')) $query->where('status', $request->query('status'));
+            if ($request->query('role'))   $query->where('role',   $request->query('role'));
+            if ($request->query('branch')) $query->where('branch_name', $request->query('branch'));
             if ($request->query('search')) {
                 $search = $request->query('search');
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
-                      ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%");
                 });
             }
 
-            $users = $query->get()->map(fn($u) => $this->transformUser($u));
+            $users = $query->get();
+
+            // ── Pull login audit data for all fetched users in one query ──
+            $userIds = $users->pluck('id');
+
+            $loginStats = DB::table('audit_logs')
+                ->selectRaw('user_id, MAX(created_at) as last_login_at, COUNT(*) as login_count')
+                ->whereIn('user_id', $userIds)
+                ->where(function ($q) {
+                    $q->where('action', 'like', '%logged in%')
+                    ->orWhere('action', 'like', '%User logged%')
+                    ->orWhere('action', 'like', '%login%');
+                })
+                ->groupBy('user_id')
+                ->get()
+                ->keyBy('user_id'); // keyed by user_id for O(1) lookup
+
+            $transformed = $users->map(function ($u) use ($loginStats) {
+                $stat = $loginStats->get($u->id);
+                return $this->transformUser(
+                    $u,
+                    $stat?->last_login_at ?? null,
+                    (int) ($stat?->login_count ?? 0)
+                );
+            });
 
             return response()->json([
                 'success' => true,
-                'data'    => $users,
+                'data'    => $transformed,
                 'message' => 'Users retrieved successfully'
             ], 200);
 
