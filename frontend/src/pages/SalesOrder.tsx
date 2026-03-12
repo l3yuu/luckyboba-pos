@@ -174,6 +174,8 @@ const SalesOrder = () => {
   const [selectedAddOns, setSelectedAddOns]   = useState<string[]>([]);
   const [orderCharge, setOrderCharge]         = useState<'grab' | 'panda' | null>(null);
   const [isAddOnModalOpen, setIsAddOnModalOpen] = useState(false);
+  const [customerName, setCustomerName] = useState('');
+  const [isCustomerNameModalOpen, setIsCustomerNameModalOpen] = useState(false);
 
 
 // Add-ons data
@@ -809,6 +811,7 @@ const SalesOrder = () => {
         discount_remarks: discountRemarks || null,
         vatable_sales:    vatableSales,
         vat_amount:       vatAmount,
+        customer_name: customerName || null,
       };
 
       await api.post('/sales', orderData);
@@ -833,7 +836,8 @@ const SalesOrder = () => {
       ]).catch(e => console.error('Failed to fetch fresh data', e));
 
       setIsConfirmModalOpen(false);
-      setIsSuccessModalOpen(true);
+      setCustomerName('');
+      setIsCustomerNameModalOpen(true);
       setPrintedReceipt(false);
       setPrintedKitchen(false);
       setPrintedStickers(false);
@@ -870,6 +874,7 @@ const SalesOrder = () => {
     setPax({ regular: 1, senior: 0, pwd: 0, diplomat: 0 });
     setDiscountIDs({ senior: '', pwd: '', diplomat: '' });
     setDiscountRemarks('');
+    setCustomerName('');
     await syncNextSequence();
   };
 
@@ -925,10 +930,15 @@ const SalesOrder = () => {
                 <div className="w-full text-center flex flex-col items-center">
                   <div className={`font-black uppercase leading-none ${titleSize}`}>LUCKY BOBA</div>
                   <div className={`font-bold uppercase leading-none tracking-widest ${isVeryCrowded ? 'text-[5px] mt-0.5' : 'text-[6.5px] mt-1'}`}>{branchName.toUpperCase()}</div>
-                  <div className={`w-full flex justify-between items-center font-bold border-b-[1.5px] border-black px-1 ${isVeryCrowded ? 'text-[10px] pb-0 mb-0.5 mt-0.5' : 'text-[10px] pb-0.5 mb-1 mt-1'}`}>
-                    <span>Q: {queueNumber} | SI: {orNumber.slice(-6)}</span>
-                    <span>{drinkIndex}/{totalDrinks}</span>
-                  </div>
+<div className={`w-full flex justify-between items-center font-bold border-b-[1.5px] border-black px-1 ${isVeryCrowded ? 'text-[10px] pb-0 mb-0 mt-0.5' : 'text-[10px] pb-0.5 mb-0 mt-1'}`}>
+  <span>Q: {queueNumber} | SI: {orNumber.slice(-6)}</span>
+  <span>{drinkIndex}/{totalDrinks}</span>
+</div>
+{customerName && (
+  <div className={`w-full text-center font-black uppercase px-1 ${isVeryCrowded ? 'text-[9px] pb-0 mb-0.5 mt-0' : 'text-[10px] pb-0.5 mb-1 mt-0'}`}>
+    {customerName}
+  </div>
+)}
                 </div>
                 <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
                   {/* Small bundle label above drink name */}
@@ -982,10 +992,15 @@ const SalesOrder = () => {
               <div className="w-full text-center flex flex-col items-center">
                 <div className="font-black uppercase leading-none text-[12px]">LUCKY BOBA</div>
                 <div className="font-bold uppercase leading-none tracking-widest text-[6.5px] mt-1">{branchName.toUpperCase()}</div>
-                <div className="w-full flex justify-between items-center font-bold border-b-[1.5px] border-black px-1 text-[10px] pb-0.5 mb-1 mt-1">
-                  <span>Q: {queueNumber} | SI: {orNumber.slice(-6)}</span>
-                  <span>{drinkIndex}/{totalDrinks}</span>
-                </div>
+<div className={`w-full flex justify-between items-center font-bold border-b-[1.5px] border-black px-1 ${isVeryCrowded ? 'text-[10px] pb-0 mb-0 mt-0.5' : 'text-[10px] pb-0.5 mb-0 mt-1'}`}>
+  <span>Q: {queueNumber} | SI: {orNumber.slice(-6)}</span>
+  <span>{drinkIndex}/{totalDrinks}</span>
+</div>
+{customerName && (
+  <div className={`w-full text-center font-black uppercase px-1 ${isVeryCrowded ? 'text-[9px] pb-0 mb-0.5 mt-0' : 'text-[10px] pb-0.5 mb-1 mt-0'}`}>
+    {customerName}
+  </div>
+)}
               </div>
               <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
                 <div className="w-full font-black uppercase leading-tight text-xs mb-1">
@@ -1029,15 +1044,20 @@ const SalesOrder = () => {
             <div className="w-full text-center flex flex-col items-center">
               <div className={`font-black uppercase leading-none ${titleSize}`}>LUCKY BOBA</div>
               <div className={`font-bold uppercase leading-none opacity-120 tracking-widest ${isVeryCrowded ? 'text-[5px] mt-0.5' : 'text-[6.5px] mt-1'}`}>{branchName.toUpperCase()}</div>
-              <div className={`w-full flex justify-between items-center font-bold border-b-[1.5px] border-black px-1 ${isVeryCrowded ? 'text-[10px] pb-0 mb-0.5 mt-0.5' : 'text-[10px] pb-0.5 mb-1 mt-1'}`}>
-                <span>Q: {queueNumber} | SI: {orNumber.slice(-6)}</span>
-                <span>{drinkIndex}/{totalDrinks}</span>
-              </div>
+<div className={`w-full flex justify-between items-center font-bold border-b-[1.5px] border-black px-1 ${isVeryCrowded ? 'text-[10px] pb-0 mb-0 mt-0.5' : 'text-[10px] pb-0.5 mb-0 mt-1'}`}>
+  <span>Q: {queueNumber} | SI: {orNumber.slice(-6)}</span>
+  <span>{drinkIndex}/{totalDrinks}</span>
+</div>
+{customerName && (
+  <div className={`w-full text-center font-black uppercase px-1 ${isVeryCrowded ? 'text-[9px] pb-0 mb-0.5 mt-0' : 'text-[10px] pb-0.5 mb-1 mt-0'}`}>
+    {customerName}
+  </div>
+)}
             </div>
-            <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
-              <div className={`w-full font-black uppercase leading-tight ${nameSize} ${marginClass}`}>
-                {item.size === 'none' && item.sugarLevel != null ? 'CLASSIC PEARL' : `${item.name} ${sizeLabel}`}
-              </div>
+          <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
+            <div className={`w-full font-black uppercase leading-tight ${nameSize} ${marginClass}`}>
+              {item.size === 'none' && item.sugarLevel != null ? 'CLASSIC PEARL' : `${item.name} ${sizeLabel}`}
+            </div>
               <div className={`w-full text-center font-bold ${addOnSize} ${gapClass}`}>
                 {item.sugarLevel != null && <div>Sugar: {item.sugarLevel}</div>}
                 {item.options?.map(opt => <div key={opt}>{opt}</div>)}
@@ -1793,6 +1813,60 @@ const SalesOrder = () => {
             </div>
           </div>
         )}
+
+        {/* ── MODAL: CUSTOMER NAME ─────────────────────────────────────────── */}
+{isCustomerNameModalOpen && (
+  <div className="fixed inset-0 z-140 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <div className="bg-white w-full max-w-sm rounded-[0.625rem] shadow-2xl overflow-hidden">
+      <div className="bg-[#3b2063] px-6 pt-6 pb-5 text-white text-center">
+        <div className="w-12 h-12 bg-emerald-400 rounded-[0.625rem] flex items-center justify-center mx-auto mb-3">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="white" className="w-6 h-6">
+            <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+          </svg>
+        </div>
+        <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-white/50 mb-1">Order Confirmed</p>
+        <h2 className="text-lg font-black uppercase tracking-widest">Customer Name</h2>
+        <p className="text-white/50 text-[10px] mt-1 uppercase tracking-wider">For sticker label</p>
+      </div>
+      <div className="p-6 bg-white space-y-4">
+        <input
+          type="text"
+          value={customerName}
+          onChange={e => setCustomerName(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter') {
+              setIsCustomerNameModalOpen(false);
+              setIsSuccessModalOpen(true);
+            }
+          }}
+          placeholder="e.g. Juan"
+          autoFocus
+          className="w-full bg-zinc-50 border-2 border-zinc-200 rounded-[0.625rem] py-4 px-5 text-xl font-black text-[#3b2063] outline-none focus:border-[#3b2063] focus:bg-white transition-colors uppercase placeholder:normal-case placeholder:text-zinc-300"
+        />
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={() => {
+              setIsCustomerNameModalOpen(true);
+              setIsSuccessModalOpen(true);
+            }}
+            className="py-3 rounded-[0.625rem] border-2 border-zinc-200 text-zinc-500 font-black text-xs uppercase tracking-widest hover:bg-zinc-50 transition-colors"
+          >
+            Skip
+          </button>
+          <button
+            onClick={() => {
+              setIsCustomerNameModalOpen(false);
+              setIsSuccessModalOpen(true);
+            }}
+            className="py-3 rounded-[0.625rem] bg-[#3b2063] text-white font-black text-xs uppercase tracking-widest hover:bg-[#2a1647] transition-colors shadow-md"
+          >
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
         {/* ── MODAL: SUCCESS / PRINT ─────────────────────────────────────── */}
         {isSuccessModalOpen && (() => {

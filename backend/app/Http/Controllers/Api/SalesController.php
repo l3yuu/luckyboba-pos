@@ -61,6 +61,7 @@ class SalesController extends Controller
             'discount_remarks'       => 'nullable|string',
             'vatable_sales'          => 'required|numeric',
             'vat_amount'             => 'required|numeric',
+            'customer_name' => 'nullable|string',
         ]);
 
         $user        = auth('sanctum')->user();
@@ -99,6 +100,7 @@ class SalesController extends Controller
                 'discount_remarks' => $validated['discount_remarks'] ?? null,
                 'vatable_sales'    => $validated['vatable_sales'],
                 'vat_amount'       => $validated['vat_amount'],
+                'customer_name'    => $validated['customer_name']    ?? null,
                 'pax'              => $validated['pax_regular'] + $validated['pax_senior']
                                     + $validated['pax_pwd']     + $validated['pax_diplomat'],
                 'is_synced'        => false,
