@@ -659,13 +659,13 @@ const SalesOrder = () => {
       id:         activeBundleItem.id,
       category_id: 0,
       name:       activeBundleItem.display_name ?? activeBundleItem.name,
-      price:      activeBundleItem.price,
+      price:      Number(activeBundleItem.price),
       barcode:    activeBundleItem.barcode,
       qty:        1,
       size:       'L',
       remarks:    remarksLines,
       charges:    { grab: orderCharge === 'grab', panda: orderCharge === 'panda' },
-      finalPrice: activeBundleItem.price,
+      finalPrice: Number(activeBundleItem.price),
       isBundle:   true,
       bundleId:   activeBundleItem.id,
       bundleComponents: newCustomizations,
@@ -890,12 +890,76 @@ const SalesOrder = () => {
     const stickers: React.ReactNode[] = [];
     let drinkIndex = 1;
     const totalDrinks = cart.reduce((acc, item) => {
+      if (item.isBundle) {
+        return acc + (item.bundleComponents?.reduce((s, c) => s + c.quantity, 0) ?? 0) * item.qty;
+      }
       const isSticker = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
       const waffleCount = (item.addOns?.filter(a => a.toLowerCase().includes('waffle combo')).length ?? 0) * item.qty;
       return acc + (isSticker ? item.qty : 0) + (!isSticker ? waffleCount : 0);
     }, 0);
 
   cart.forEach((item, cartIndex) => {
+
+    // ── BUNDLE: one sticker per component per qty ─────────────────────────
+    if (item.isBundle && item.bundleComponents && item.bundleComponents.length > 0) {
+      for (let q = 0; q < item.qty; q++) {
+        item.bundleComponents.forEach((component, compIdx) => {
+          // If a component has quantity > 1 (e.g. "2x Classic Pearl"), print that many stickers
+          for (let cq = 0; cq < component.quantity; cq++) {
+            const extraCount    = component.options.length + component.addOns.length;
+            const isCrowded     = extraCount >= 3;
+            const isVeryCrowded = extraCount >= 5;
+            const paddingClass  = isVeryCrowded ? 'p-0.5' : 'p-1';
+            const titleSize     = isVeryCrowded ? 'text-[10px]' : isCrowded ? 'text-[11px]' : 'text-[12px]';
+            const nameSize      = isVeryCrowded ? 'text-[8.5px]' : isCrowded ? 'text-[10px]' : 'text-xs';
+            const addOnSize     = isVeryCrowded ? 'text-[6px]'   : isCrowded ? 'text-[7px]'  : 'text-[9px]';
+            const gapClass      = isVeryCrowded ? 'space-y-0 leading-none' : 'space-y-0.5 leading-tight';
+            const marginClass   = isVeryCrowded ? 'mb-0' : 'mb-1';
+
+            stickers.push(
+              <div key={`bundle-sticker-${cartIndex}-${q}-${compIdx}-${cq}`}
+                className={`sticker-area page-break bg-white text-black flex flex-col justify-between items-center h-full w-full ${paddingClass}`}
+                style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
+                <div className="w-full text-center flex flex-col items-center">
+                  <div className={`font-black uppercase leading-none ${titleSize}`}>LUCKY BOBA</div>
+                  <div className={`font-bold uppercase leading-none tracking-widest ${isVeryCrowded ? 'text-[5px] mt-0.5' : 'text-[6.5px] mt-1'}`}>{branchName.toUpperCase()}</div>
+                  <div className={`w-full flex justify-between items-center font-bold border-b-[1.5px] border-black px-1 ${isVeryCrowded ? 'text-[10px] pb-0 mb-0.5 mt-0.5' : 'text-[10px] pb-0.5 mb-1 mt-1'}`}>
+                    <span>Q: {queueNumber} | SI: {orNumber.slice(-6)}</span>
+                    <span>{drinkIndex}/{totalDrinks}</span>
+                  </div>
+                </div>
+                <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
+                  {/* Small bundle label above drink name */}
+                  <div className="text-[7px] font-bold uppercase text-zinc-400 leading-none mb-0.5 tracking-wider">
+                    {item.name}
+                  </div>
+                  <div className={`w-full font-black uppercase leading-tight ${nameSize} ${marginClass}`}>
+                    {component.name}
+                  </div>
+                  <div className={`w-full text-center font-bold ${addOnSize} ${gapClass}`}>
+                    <div>Sugar: {component.sugarLevel}</div>
+                    {component.options.map(opt => <div key={opt}>{opt}</div>)}
+                    {component.addOns.map(a => <div key={a}>+ {a}</div>)}
+                  </div>
+                </div>
+                <div className="w-full text-center mt-auto mb-0.5">
+                  <p className={`font-black uppercase whitespace-nowrap tracking-tighter ${isVeryCrowded ? 'text-[5.5px]' : 'text-[7px]'}`}>
+                    Best consume within 30 minutes
+                  </p>
+                </div>
+                <div className={`w-full font-bold text-center border-t border-zinc-800 ${isVeryCrowded ? 'text-[8.5px] pt-0.5 mt-0.5' : 'text-[8.5px] pt-1 mt-1'}`}>
+                  {formattedDate} {formattedTime}
+                </div>
+              </div>
+            );
+            drinkIndex++;
+          }
+        });
+      }
+      return; // skip normal sticker logic for bundles
+    }
+
+    // ── NORMAL items (existing logic unchanged) ───────────────────────────
     const isSticker = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
     
     // Waffle combo drink add-ons also need stickers
