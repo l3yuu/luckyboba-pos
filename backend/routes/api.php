@@ -197,8 +197,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/audit-logs/stats', [AuditLogController::class, 'stats']);
 
         Route::prefix('reports')->group(function () {
-            Route::get('/sales-summary',     [SuperAdminReportController::class, 'salesSummary']);
-            Route::get('/branch-comparison', [SuperAdminReportController::class, 'branchComparison']);
+            Route::get('/admin-sales-summary', [SuperAdminReportController::class, 'salesSummary']);
+            Route::get('/branch-comparison',   [SuperAdminReportController::class, 'branchComparison']);
         });
 
         Route::prefix('system')->group(function () {
