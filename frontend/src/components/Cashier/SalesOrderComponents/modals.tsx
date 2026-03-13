@@ -961,7 +961,7 @@ export const SuccessModal = ({
   ];
 
   const pending    = printItems.filter(p => !p.done);
-  const allPrinted = printedReceipt && printedKitchen && (!hasStickers || printedStickers);
+  const allPrinted = true;
 
   return (
     <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
