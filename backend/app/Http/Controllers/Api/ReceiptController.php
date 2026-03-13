@@ -44,7 +44,16 @@ class ReceiptController extends Controller
                 'receipts.created_at',
                 'sales.status',
                 'sales.cancellation_reason',
-            ]);
+            ])
+            ->selectRaw('
+                EXISTS(
+                    SELECT 1 FROM sale_items si
+                    JOIN menu_items mi ON si.menu_item_id = mi.id
+                    JOIN categories c ON mi.category_id = c.id
+                    WHERE si.sale_id = sales.id
+                    AND c.type = "drink"
+                ) as has_stickers
+            ');   // ← add this block, keep everything else the same
 
         if ($user->role !== 'superadmin' && $user->branch_id) {
             $dbQuery->where('receipts.branch_id', $user->branch_id);
@@ -151,4 +160,21 @@ class ReceiptController extends Controller
 
         return response()->json(['message' => 'Transaction voided successfully.']);
     }
+public function reprint(Request $request, int $id)
+{
+    $type = $request->query('type', 'receipt');
+
+    $sale = \App\Models\Sale::with([
+        'items.menuItem.category',  // ← 'items', not 'saleItems'
+        'branch',
+    ])->findOrFail($id);
+
+    $receipt = \App\Models\Receipt::where('sale_id', $id)->first();
+
+    return response()->json([
+        'type'    => $type,
+        'sale'    => $sale,
+        'receipt' => $receipt,
+    ]);
+}
 }

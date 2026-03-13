@@ -154,8 +154,8 @@ export const ReceiptPrint = ({
 
         {/* VAT breakdown */}
         <div className="text-[11px] mt-3 space-y-1">
-          <div className="flex justify-between"><span>VATable Sales(V)</span><span>{vatableSales.toFixed(2)}</span></div>
-          <div className="flex justify-between"><span>VAT Amount</span><span>{vatAmount.toFixed(2)}</span></div>
+          <div className="flex justify-between"><span>VATable Sales(V)</span><span>{Number(vatableSales || 0).toFixed(2)}</span></div>
+          <div className="flex justify-between"><span>VAT Amount</span><span>{Number(vatAmount || 0).toFixed(2)}</span></div>
           <div className="flex justify-between"><span>VAT Exempt Sales(E)</span><span>0.00</span></div>
           <div className="flex justify-between"><span>Zero-Rated Sales(Z)</span><span>0.00</span></div>
         </div>
