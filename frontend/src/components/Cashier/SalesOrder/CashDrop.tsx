@@ -117,8 +117,10 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
         <div className="printable-receipt">
           <div className="receipt-area">
             <div style={{ textAlign: 'center', marginBottom: 8 }}>
-              <div style={{ fontWeight: 900, fontSize: 16, textTransform: 'uppercase' }}>Lucky Boba Milktea Food and Beverage Trading</div>
-              <div style={{ fontWeight: 700, fontSize: 13, textTransform: 'uppercase', marginTop: 3 }}>Main Branch - QC</div>
+              <div style={{ fontWeight: 900, fontSize: 16, textTransform: 'uppercase' }}>Lucky Boba Food and Beverage Trading</div>
+              <div style={{ fontWeight: 700, fontSize: 13, textTransform: 'uppercase', marginTop: 3 }}>
+                {localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'}
+              </div>
             </div>
             <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
             <div style={{ textAlign: 'center', fontWeight: 900, fontSize: 15, textTransform: 'uppercase', marginBottom: 6 }}>Cash Drop Receipt</div>

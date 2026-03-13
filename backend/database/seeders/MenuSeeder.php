@@ -50,7 +50,7 @@ class MenuSeeder extends Seeder
             'FRAPPE SERIES'       => $umul,
             'HOT COFFEE'          => $pcmpcl,
             'HOT DRINKS'          => $pcmpcl,
-            'LUCKY CLASSIC'       => $jr,
+            'LUCKY CLASSIC JR'       => $jr,
         ];
 
         $cupSizeMap = [

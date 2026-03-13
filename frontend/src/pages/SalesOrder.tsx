@@ -2243,8 +2243,8 @@ const SalesOrder = () => {
             <div className="text-center mb-4 border-b border-black pb-3">
               <img src={logo} alt="Lucky Boba Logo" className="w-48 h-auto mx-auto mb-2 grayscale" style={{ filter: 'grayscale(100%) contrast(1.2)' }} />
               <h1 className="uppercase leading-tight font-bold text-xl">LUCKY BOBA MILKTEA</h1>
-              <p className="text-base mt-1">Quezon City</p>
-              <h2 className="text-lg mt-2">SI # {orNumber}</h2>
+              <p className="text-base mt-1">{branchName}</p>
+              <h2 className="text-sm mt-2">{orNumber}</h2>
               <p className="text-sm mt-1">{formattedDate} {formattedTime}</p>
             </div>
 
@@ -2346,7 +2346,7 @@ const SalesOrder = () => {
             </div>
 
             <div className="mt-6 mb-4 text-center text-xs uppercase">
-              FOR FRANCHISE<br />EMAIL OR CONTACT US ON<br />luckybobafranchising@gmail.com<br />09260029894
+              FOR FRANCHISE<br />EMAIL OR CONTACT US ON<br />luckyboba.franchise@gmail.com<br />0917199894
             </div>
 
             <div className="mt-6 py-4 text-center">
@@ -2364,12 +2364,12 @@ const SalesOrder = () => {
           <div className="receipt-area bg-white text-black">
             <div className="text-center mb-4 border-b-4 border-black pb-3">
               <h1 className="uppercase leading-tight font-black text-3xl mb-1">ORDER TICKET</h1>
-              <h2 className="font-bold text-lg mt-1 uppercase tracking-widest">Main Branch - QC</h2>
+              <h2 className="font-bold text-lg uppercase tracking-widest">{branchName}</h2>
               <div className="py-3 my-3">
-                <p className="text-sm tracking-widest uppercase mb-1">Queue</p>
-                <h2 className="font-black text-5xl tracking-widest">#{queueNumber}</h2>
+                <p className="text-sm tracking-widest uppercase">Queue</p>
+                <h2 className="font-black text-4xl tracking-widest">#{queueNumber}</h2>
               </div>
-              <h2 className="text-m mt-1">SI # {orNumber}</h2>
+              <h2 className="text-m">SI # {orNumber}</h2>
               <p className="text-sm mt-1">{formattedDate} {formattedTime}</p>
             </div>
             <div className="mt-2">
