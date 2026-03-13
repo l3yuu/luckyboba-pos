@@ -46,6 +46,13 @@ class MenuItemOptionSeeder extends Seeder
             // ROCK SALT & CHEESE
             'RCM6','RCL6','RCM5','RCL5','RCM1','RCL1',
             'RCM2','RCL2','RCM3','RCL3',
+            // OKINAWA BROWN SUGAR
+            'OKM1','OKL1','OKM2','OKL2','OKM3','OKL3',
+            // YAKULT SERIES
+            'YSM1','YSL1','YSM3','YSL3','YSM2','YSL2','YSM6','YSL6',
+            'YSM4','YSL4','YSM5','YSL5','YSM7','YSL7',
+            // FP/GF FET2 CLASSIC
+            '2M','1M','GC3','GC2',
         ];
 
         // ── ICE ONLY ─────────────────────────────────────────────────────
@@ -58,22 +65,19 @@ class MenuItemOptionSeeder extends Seeder
             // GREEN TEA SERIES
             'FTSM4','FTSL4','FTSM3','FTSL3','FTSM1','FTSL1',
             'FTSM5','FTSL5','FTSM2','FTSL2','FTSM6','FTSL6',
-            // OKINAWA BROWN SUGAR
-            'OKM1','OKL1','OKM2','OKL2','OKM3','OKL3',
-            // FP/GF FET2 CLASSIC
-            '2M','1M','GC3','GC2',
-            // YAKULT SERIES
-            'YSM1','YSL1','YSM3','YSL3','YSM2','YSL2','YSM6','YSL6',
-            'YSM4','YSL4','YSM5','YSL5','YSM7','YSL7',
+            // LUCKY CLASSIC JR
+            'LCO1','LCBP1','LCWP1','LCPD1',
             // YOGURT SERIES
             'YGOP','YOGST','YOGBRY','YOGSTRY',
-            // PUMPKIN SPICE coffee/frappe variants
+            // PUMPKIN SPICE iced coffee & frappe variants
             'PO4','PO5',
         ];
 
+        // ── NO OPTIONS (HOT DRINKS & HOT COFFEE — no ice, no pearl) ──────
+        // These are intentionally excluded from both arrays above.
+
         $now = now();
 
-        // Fetch all relevant item IDs keyed by barcode
         $allBarcodes = array_merge($pearlAndIce, $iceOnly);
         $itemMap = DB::table('menu_items')
             ->whereIn('barcode', $allBarcodes)
@@ -81,7 +85,6 @@ class MenuItemOptionSeeder extends Seeder
 
         $rows = [];
 
-        // Pearl + Ice entries
         foreach ($pearlAndIce as $barcode) {
             $id = $itemMap[$barcode] ?? null;
             if (!$id) continue;
@@ -89,14 +92,12 @@ class MenuItemOptionSeeder extends Seeder
             $rows[] = ['menu_item_id' => $id, 'option_type' => 'ice',   'created_at' => $now, 'updated_at' => $now];
         }
 
-        // Ice only entries
         foreach ($iceOnly as $barcode) {
             $id = $itemMap[$barcode] ?? null;
             if (!$id) continue;
             $rows[] = ['menu_item_id' => $id, 'option_type' => 'ice', 'created_at' => $now, 'updated_at' => $now];
         }
 
-        // Insert in chunks to avoid query size limits
         foreach (array_chunk($rows, 100) as $chunk) {
             DB::table('menu_item_options')->insertOrIgnore($chunk);
         }

@@ -1,6 +1,6 @@
 import TopNavbar from '../TopNavbar';
 import * as XLSX from 'xlsx';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import api from '../../../services/api';
 import { 
   Calendar, 
@@ -56,20 +56,23 @@ const ItemsReport = () => {
   const today = getLocalToday();
   const phCurrency = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
 
+  // ── Pull branch name from localStorage (same as CashIn.tsx) ──
+  const branchName = useMemo(() =>
+    localStorage.getItem('lucky_boba_user_branch') || 'Main Branch'
+  , []);
+
   const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate] = useState(today);
   const [reportType, setReportType] = useState<'item-list' | 'category-summary'>('item-list');
   const [loading, setLoading] = useState(false);
   const [_error, _setError] = useState<string | null>(null);
 
-  // ✅ FIX: buildCacheKey is a plain function defined above — no TDZ
   const [data, setData] = useState<ReportResponse | null>(() => {
     const key = buildCacheKey(today, today, 'item-list');
     const saved = localStorage.getItem(key);
     return saved ? JSON.parse(saved) : null;
   });
 
-  // Memoised wrapper (stable ref for useEffect deps)
   const getCacheKey = useCallback(
     (from: string, to: string, type: string) => buildCacheKey(from, to, type),
     []
@@ -92,11 +95,17 @@ const ItemsReport = () => {
   }, [fromDate, toDate, reportType, getCacheKey]);
 
   useEffect(() => {
+    setData(null);
+    fetchReport();
+  }, [reportType]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    setData(null);
     const key = getCacheKey(fromDate, toDate, reportType);
     const saved = localStorage.getItem(key);
     if (saved) setData(JSON.parse(saved));
     else fetchReport();
-  }, [fromDate, toDate, reportType, getCacheKey, fetchReport]);
+  }, [fromDate, toDate, getCacheKey, fetchReport]); // reportType excluded — handled above
 
   const generateExcel = useCallback(() => {
     if (!data || data.items.length === 0) {
@@ -104,21 +113,30 @@ const ItemsReport = () => {
       return;
     }
 
-    const rows = data.items.map((item, index) => ({
-      '#': index + 1,
-      [reportType === 'category-summary' ? 'Category' : 'Item Name']: item.name,
-      Category: item.category,
-      'Qty Sold': item.qty,
-      'Total Sales': item.amount,
-    }));
+    const isCategorySummary = reportType === 'category-summary';
 
-    rows.push({
-      '#': '',
-      [reportType === 'category-summary' ? 'Category' : 'Item Name']: 'GRAND TOTAL',
-      Category: '',
-      'Qty Sold': data.total_qty,
-      'Total Sales': data.grand_total,
-    } as never);
+    const rows = data.items.map((item, index) =>
+      isCategorySummary
+        ? {
+            '#': index + 1,
+            'Category': item.name,
+            'Qty Sold': item.qty,
+            'Total Sales': item.amount,
+          }
+        : {
+            '#': index + 1,
+            'Item Name': item.name,
+            'Category': item.category,
+            'Qty Sold': item.qty,
+            'Total Sales': item.amount,
+          }
+    );
+
+    rows.push(
+      isCategorySummary
+        ? ({ '#': '', 'Category': 'GRAND TOTAL', 'Qty Sold': data.total_qty, 'Total Sales': data.grand_total } as never)
+        : ({ '#': '', 'Item Name': 'GRAND TOTAL', 'Category': '', 'Qty Sold': data.total_qty, 'Total Sales': data.grand_total } as never)
+    );
 
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
@@ -161,13 +179,13 @@ const ItemsReport = () => {
       {/* PRINTABLE RECEIPT */}
       <div className="printable-receipt text-slate-800">
         <div className="text-center space-y-1">
-          <h1 className="font-black text-[14px] uppercase leading-tight">Lucky Boba Milktea</h1>
-          <p className="text-[10px] uppercase font-bold">Main Branch - QC</p>
+          <h1 className="font-black text-[20px] uppercase leading-tight">Lucky Boba Milktea</h1>
+          <p className="text-[15px] uppercase font-bold">{branchName}</p>
           <div className="receipt-divider" />
-          <h2 className="font-black text-[11px] uppercase tracking-widest">
+          <h2 className="font-black text-[16px] uppercase tracking-widest">
             {reportType === 'category-summary' ? 'Category Summary' : 'Item Sales'} Report
           </h2>
-          <div className="text-left text-[10px] space-y-0.5 mt-2 uppercase">
+          <div className="text-left text-[14px] space-y-0.5 mt-2 uppercase">
             <div className="flex-between"><span>From Date</span><span>{fromDate}</span></div>
             <div className="flex-between"><span>To Date</span><span>{toDate}</span></div>
             <div className="flex-between"><span>Print Time</span><span>{new Date().toLocaleTimeString()}</span></div>
@@ -176,7 +194,7 @@ const ItemsReport = () => {
         </div>
         <div className="my-4 pt-2">
           <div className="receipt-divider" />
-          <table className="w-full text-[10px]">
+          <table className="w-full text-[13px]">
             <thead>
               <tr className="font-black border-b border-black text-left">
                 <th className="pb-1 uppercase tracking-tighter w-1/2">
@@ -189,7 +207,7 @@ const ItemsReport = () => {
             <tbody>
               {data?.items.map((item, idx) => (
                 <tr key={idx}>
-                  <td className="py-1 uppercase text-[9px] font-bold">{item.name}</td>
+                  <td className="py-1 uppercase text-[13px] font-bold">{item.name}</td>
                   <td className="py-1 text-center font-bold">x{item.qty}</td>
                   <td className="py-1 text-right">{phCurrency.format(item.amount)}</td>
                 </tr>
@@ -198,17 +216,17 @@ const ItemsReport = () => {
           </table>
           <div className="receipt-divider" />
           <div className="space-y-1 mt-2">
-            <div className="flex-between text-[10px]"><span>TOTAL ITEMS SOLD</span><span className="font-bold">{data?.total_qty || 0}</span></div>
-            <div className="flex-between font-black text-[12px] pt-1 border-t border-black"><span>TOTAL REVENUE</span><span>{phCurrency.format(data?.grand_total || 0)}</span></div>
+            <div className="flex-between text-[14px]"><span>TOTAL ITEMS SOLD</span><span className="font-bold">{data?.total_qty || 0}</span></div>
+            <div className="flex-between font-black text-[16px] pt-1 border-t border-black"><span>TOTAL REVENUE</span><span>{phCurrency.format(data?.grand_total || 0)}</span></div>
           </div>
         </div>
 
         <div className="mt-8 text-center space-y-4">
           <div className="receipt-divider" />
           <div className="pt-2">
-            <p className="text-[10px] font-bold uppercase">{data?.cashier_name || 'System Admin'}</p>
-            <p className="text-[10px] leading-none">____________________</p>
-            <p className="text-[8px] uppercase mt-1">Prepared By</p>
+            <p className="text-[14px] font-bold uppercase">{data?.cashier_name || 'System Admin'}</p>
+            <p className="text-[14px] leading-none">____________________</p>
+            <p className="text-[12px] uppercase mt-1">Prepared By</p>
           </div>
         </div>
       </div>
@@ -303,7 +321,7 @@ const ItemsReport = () => {
                     {reportType === 'category-summary' ? 'Category Summary' : 'Item Performance Ledger'}
                   </h3>
                   <p className="text-[11px] font-medium text-zinc-400 mt-0.5">
-                    Terminal Audit · POS-01
+                    {branchName}
                     {data?.cashier_name && ` · ${data.cashier_name}`}
                   </p>
                 </div>

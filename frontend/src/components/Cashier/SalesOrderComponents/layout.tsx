@@ -238,9 +238,9 @@ export const MenuArea = ({
         // ── Category grid ─────────────────────────────────────────────────
         <div className="pb-20 animate-in fade-in zoom-in duration-300 space-y-7">
           {[
-            { label: 'Food',   types: ['food', 'wings'], colorKey: 'food'  },
             { label: 'Drinks', types: ['drink'],         colorKey: 'drink' },
             { label: 'Promo',  types: ['promo'],         colorKey: 'promo' },
+            { label: 'Food',   types: ['food', 'wings'], colorKey: 'food'  },
           ].map(({ label, types, colorKey }) => {
             const groupCats = filteredCategories.filter(cat => types.includes(cat.type));
             if (groupCats.length === 0) return null;

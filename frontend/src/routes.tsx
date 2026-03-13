@@ -8,8 +8,6 @@ import Calendar from './pages/Calendar';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { PublicRoute } from './components/PublicRoute';
 import { ErrorFallback } from './components/ErrorFallback';
-import IdleWrapper from './components/IdleWrapper';
-
 export const router = createBrowserRouter([
   // ── Public ──────────────────────────────────────────────────────────────
   {
@@ -26,7 +24,6 @@ export const router = createBrowserRouter([
     errorElement: <ErrorFallback />,
     children: [
       {
-        element: <IdleWrapper />,
         children: [
           { path: '/super-admin', element: <SuperAdminDashboard /> },
         ],
@@ -40,7 +37,6 @@ export const router = createBrowserRouter([
     errorElement: <ErrorFallback />,
     children: [
       {
-        element: <IdleWrapper />,
         children: [
           { path: '/dashboard', element: <Dashboard /> },
           { path: '/calendar',  element: <Calendar /> },
@@ -55,7 +51,6 @@ export const router = createBrowserRouter([
     errorElement: <ErrorFallback />,
     children: [
       {
-        element: <IdleWrapper />,
         children: [
           { path: '/branch-manager', element: <BranchManagerDashboard /> },
           { path: '/calendar',       element: <Calendar /> },
@@ -70,7 +65,6 @@ export const router = createBrowserRouter([
     errorElement: <ErrorFallback />,
     children: [
       {
-        element: <IdleWrapper />,
         children: [
           { path: '/cashier',     element: <Dashboard /> },
           { path: '/cashier/pos', element: <SalesOrder /> },
@@ -85,7 +79,6 @@ export const router = createBrowserRouter([
     errorElement: <ErrorFallback />,
     children: [
       {
-        element: <IdleWrapper />,
         children: [
           { path: '/pos', element: <SalesOrder /> },
         ],
