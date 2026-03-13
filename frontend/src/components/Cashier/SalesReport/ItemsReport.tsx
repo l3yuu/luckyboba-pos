@@ -94,18 +94,13 @@ const ItemsReport = () => {
     }
   }, [fromDate, toDate, reportType, getCacheKey]);
 
-  useEffect(() => {
-    setData(null);
-    fetchReport();
-  }, [reportType]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    setData(null);
-    const key = getCacheKey(fromDate, toDate, reportType);
-    const saved = localStorage.getItem(key);
-    if (saved) setData(JSON.parse(saved));
-    else fetchReport();
-  }, [fromDate, toDate, getCacheKey, fetchReport]); // reportType excluded — handled above
+useEffect(() => {
+  setData(null);
+  const key = getCacheKey(fromDate, toDate, reportType);
+  const saved = localStorage.getItem(key);
+  if (saved) setData(JSON.parse(saved));
+  else fetchReport();
+}, [fromDate, toDate, reportType, getCacheKey, fetchReport]);
 
   const generateExcel = useCallback(() => {
     if (!data || data.items.length === 0) {

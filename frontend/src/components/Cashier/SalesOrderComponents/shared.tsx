@@ -1,6 +1,7 @@
 // ── shared.tsx ────────────────────────────────────────────────────────────────
 // Icons, reusable sub-components, and constants shared across SalesOrder files.
 
+/* eslint-disable react-refresh/only-export-components */
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

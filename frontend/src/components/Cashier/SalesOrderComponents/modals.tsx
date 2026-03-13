@@ -237,8 +237,8 @@ export const ItemSelectionModal = ({
   onAddToOrder,
   onClose,
 }: ItemSelectionModalProps) => {
-  const itemOpts = (selectedItem as any)?.options ?? [];
-  const visibleOpts = EXTRA_OPTIONS.filter((opt: string) => {
+const itemOpts = (selectedItem as { options?: string[] })?.options ?? [];
+const visibleOpts = EXTRA_OPTIONS.filter((opt: string) => {
     const pearlOpts = ['NO PRL', 'W/ PRL'];
     const iceOpts   = ['NO ICE', '-ICE', '+ICE'];
     if (pearlOpts.includes(opt)) return itemOpts.includes('pearl');
@@ -247,7 +247,7 @@ export const ItemSelectionModal = ({
     return true;
   });
 
-  const hasPearlOption = (selectedItem as any)?.options?.includes('pearl') ?? false;
+const hasPearlOption = (selectedItem as { options?: string[] })?.options?.includes('pearl') ?? false;
   const canAdd = isCombo || !isDrink || !hasPearlOption || selectedOptions.some((o: string) => ['NO PRL', 'W/ PRL'].includes(o));
 
   return (
@@ -256,7 +256,7 @@ export const ItemSelectionModal = ({
 
         {/* Header */}
         <div className="bg-[#3b2063] p-5 text-white text-center relative shrink-0">
-          <h2 className="text-lg font-black uppercase tracking-wider">{(selectedItem as any).name}</h2>
+          <h2 className="text-lg font-black uppercase tracking-wider">{selectedItem.name}</h2>
           {isCombo && (
             <div className="mt-1 inline-block bg-white/20 text-white text-[10px] font-black uppercase px-3 py-1 rounded-[0.625rem] tracking-widest">🧋 Includes Classic Pearl</div>
           )}
@@ -271,11 +271,11 @@ export const ItemSelectionModal = ({
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-white p-3 rounded-[0.625rem] border-2 border-zinc-200">
               <span className="text-sm font-bold text-zinc-900 uppercase tracking-widest block mb-1">Barcode</span>
-              <span className="text-sm font-black text-[#3b2063]">{(selectedItem as any).barcode}</span>
+              <span className="text-sm font-black text-[#3b2063]">{selectedItem.barcode}</span>
             </div>
             <div className="bg-white p-3 rounded-[0.625rem] border-2 border-zinc-200">
               <span className="text-sm font-bold text-zinc-900 uppercase tracking-widest block mb-1">Unit Price</span>
-              <span className="text-sm font-black text-[#3b2063]">₱ {Number((selectedItem as any).price).toFixed(2)}</span>
+              <span className="text-sm font-black text-[#3b2063]">₱ {Number(selectedItem.price).toFixed(2)}</span>
             </div>
           </div>
 
@@ -336,9 +336,9 @@ export const ItemSelectionModal = ({
           <div>
             <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">
               Charges
-              {orderCharge === 'grab'  && Number((selectedItem as any)?.grab_price  ?? 0) > 0 ? ` (+₱${Number((selectedItem as any)?.grab_price).toFixed(2)})` : ''}
-              {orderCharge === 'panda' && Number((selectedItem as any)?.panda_price ?? 0) > 0 ? ` (+₱${Number((selectedItem as any)?.panda_price).toFixed(2)})` : ''}
-              {orderCharge && Number((selectedItem as any)?.[orderCharge === 'grab' ? 'grab_price' : 'panda_price'] ?? 0) === 0 ? ' (No Surcharge)' : ''}
+{orderCharge === 'grab'  && Number((selectedItem as { grab_price?: number })?.grab_price  ?? 0) > 0 ? ` (+₱${Number((selectedItem as { grab_price?: number })?.grab_price).toFixed(2)})` : ''}
+{orderCharge === 'panda' && Number((selectedItem as { panda_price?: number })?.panda_price ?? 0) > 0 ? ` (+₱${Number((selectedItem as { panda_price?: number })?.panda_price).toFixed(2)})` : ''}
+{orderCharge && Number((selectedItem as { grab_price?: number; panda_price?: number })?.[orderCharge === 'grab' ? 'grab_price' : 'panda_price'] ?? 0) === 0 ? ' (No Surcharge)' : ''}
             </label>
             <div className="grid grid-cols-2 gap-3">
               {(['grab', 'panda'] as const).map(type => {

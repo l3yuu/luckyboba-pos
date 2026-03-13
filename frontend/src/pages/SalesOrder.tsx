@@ -247,7 +247,7 @@ const SalesOrder = () => {
     const count      = cart.reduce((acc, item) => acc + item.qty, 0);
     const specialPax = pax.senior + pax.pwd + pax.diplomat;
     setPax(prev => ({ ...prev, regular: Math.max(0, count - specialPax) }));
-  }, [cart]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cart]); 
 
   // Init: sync OR sequence, cashier name, clock
   useEffect(() => {
@@ -260,7 +260,7 @@ const SalesOrder = () => {
 
     const timer = setInterval(() => setCurrentDate(new Date()), 1000);
     return () => clearInterval(timer);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Sequence helpers ────────────────────────────────────────────────────────
 
@@ -858,7 +858,7 @@ const SalesOrder = () => {
 
         {selectedItem && !isAddOnModalOpen && !isConfirmModalOpen && !isSuccessModalOpen && (
           <ItemSelectionModal
-            selectedItem={selectedItem as any}
+            selectedItem={selectedItem as unknown as CartItem}
             qty={qty}
             remarks={remarks}
             sugarLevel={sugarLevel}
