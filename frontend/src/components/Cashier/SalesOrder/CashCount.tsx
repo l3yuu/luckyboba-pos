@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { Transaction } from '../../../types/cash-count';
 import api from '../../../services/api';
 import TopNavbar from '../../Cashier/TopNavbar';
@@ -21,6 +21,10 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
   const [printData, setPrintData] = useState<Transaction | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isEodLocked, setIsEodLocked] = useState(false);
+  const branchName = useMemo(() => {
+    return localStorage.getItem('lucky_boba_user_branch') || 'MAIN BRANCH – QC';
+  }, []);
+
 
   useEffect(() => { checkEodStatus(); }, []);
 
@@ -35,7 +39,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
   const getGrandTotal = (c: { [key: number]: string }) =>
     denominations.reduce((total, denom) => total + denom * (parseFloat(c[denom] || '0') || 0), 0);
 
-  const handleSubmit = async () => {
+const handleSubmit = async () => {
     const total = getGrandTotal(counts);
     if (total <= 0 || isEodLocked) {
       showToast(isEodLocked ? "Terminal is already locked." : "Please enter a valid cash count.", "warning");
@@ -59,7 +63,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
           total, remarks: finalRemarks, breakdown: { ...counts }
         };
         setLatestTx(newTx);
-        if (onSuccess) onSuccess();
+        // ── DO NOT call onSuccess here — wait for user to dismiss ──
         showToast("EOD Submitted. Terminal is now LOCKED.", "success");
       }
     } catch (error) {
@@ -87,7 +91,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
     <>
       {/* Loading Overlay */}
       {isLoading && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/90 backdrop-blur-sm">
+        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-white/90 backdrop-blur-sm">
           <div className="bg-white px-12 py-10 border border-zinc-200 flex flex-col items-center gap-5 shadow-2xl rounded-[0.625rem]">
             <RefreshCw className="w-10 h-10 text-[#3b2063] animate-spin" strokeWidth={1.5} />
             <div className="text-center">
@@ -97,46 +101,103 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
           </div>
         </div>
       )}
-
-      <style>{`
+<style>{`
+        .printable-receipt { display: none; }
         @media print {
-          @page { size: 60mm auto; margin: 0; }
+          @page { size: 80mm auto; margin: 0; }
           body * { visibility: hidden; }
           .printable-receipt, .printable-receipt * { visibility: visible; }
-          .printable-receipt { position: fixed; left: 0; top: 0; width: 56mm !important; margin: 0; padding: 4mm 2mm; background: white; color: black; font-family: 'Courier New', monospace; font-size: 10px; line-height: 1.2; }
-          .receipt-header { text-align: center; margin-bottom: 8px; border-bottom: 1px dashed black; padding-bottom: 8px; }
-          .receipt-header h2 { font-size: 14px; margin: 0; font-weight: bold; }
-          .breakdown-row { display: flex; justify-content: space-between; margin-bottom: 1px; }
-          .total-row { border-top: 1px solid black; border-bottom: 1px solid black; padding: 4px 0; margin: 8px 0; font-weight: bold; font-size: 11px; }
+          .printable-receipt {
+            display: block !important;
+            position: fixed; left: 0; top: 0;
+            width: 76mm !important;
+            padding: 3mm 4mm;
+            background: white; color: black;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11px; line-height: 1.6;
+          }
+          .pr-center { text-align: center; }
+          .pr-divider { border: none; border-top: 1px dashed black; margin: 5px 0; display: block; }
+          .pr-title { font-size: 14px; font-weight: bold; text-transform: uppercase; text-align: center; }
+          .pr-store { font-size: 13px; font-weight: bold; text-align: center; text-transform: uppercase; line-height: 1.6; margin: 0; }
+          .pr-meta { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 2px; }
+          .pr-meta td { padding: 2px 0; vertical-align: top; }
+          .pr-meta td:last-child { text-align: right; text-transform: uppercase; }
+          .pr-denom-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+          .pr-denom-table th { text-align: left; border-bottom: 1px solid black; padding: 3px 0; text-transform: uppercase; font-weight: bold; font-size: 11px; }
+          .pr-denom-table th:nth-child(2) { text-align: center; }
+          .pr-denom-table th:nth-child(3) { text-align: right; }
+          .pr-denom-table td { padding: 3px 0; border-bottom: 1px dotted #aaa; vertical-align: middle; font-size: 11px; }
+          .pr-denom-table td:nth-child(2) { text-align: center; }
+          .pr-denom-table td:nth-child(3) { text-align: right; }
+          .pr-total-table { width: 100%; border-collapse: collapse; font-size: 13px; font-weight: bold; }
+          .pr-total-table td { padding: 5px 0; border-top: 1px solid black; border-bottom: 1px solid black; }
+          .pr-total-table td:last-child { text-align: right; }
+          .pr-sig { text-align: center; font-size: 11px; margin-top: 20px; }
         }
       `}</style>
 
-      {/* Printable Receipt */}
       {printData && (
         <div className="printable-receipt">
-          <div className="receipt-header">
-            <h2>LUCKY BOBA</h2>
-            <p>EOD CASH COUNT</p>
-            <p>Main Branch - QC</p>
-            <p>{printData.date} | {printData.time}</p>
-          </div>
-          <div style={{ marginTop: '5px' }}>
-            <p style={{ fontWeight: 'bold', marginBottom: '4px' }}>DENOMINATION COUNT:</p>
-            {denominations.map(denom => {
-              const qtyString = printData.breakdown[denom] || '0';
-              const qty = parseFloat(qtyString);
-              if (qty === 0) return null;
-              return (
-                <div key={denom} className="breakdown-row">
-                  <span>{denom < 1 ? denom.toString().replace('0.', '.') : denom.toLocaleString()} x {qtyString}</span>
-                  <span>₱{(qty * denom).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                </div>
-              );
-            })}
-          </div>
-          <div className="total-row breakdown-row">
-            <span>TOTAL COUNT:</span>
-            <span>₱ {printData.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+          <p className="pr-store">LUCKY BOBA MILKTEA<br />FOOD AND BEVERAGE TRADING</p>
+          <p className="pr-center" style={{ fontSize: '11px', margin: '2px 0' }}>{branchName.toUpperCase()}</p>
+          <hr className="pr-divider" />
+          <p className="pr-title">EOD CASH COUNT</p>
+          <hr className="pr-divider" />
+
+          <table className="pr-meta">
+            <tbody>
+              <tr><td>Date</td><td>{printData.date}</td></tr>
+              <tr><td>Time</td><td>{printData.time}</td></tr>
+              <tr><td>Cashier</td><td>{localStorage.getItem('lucky_boba_user_name') || 'Staff'}</td></tr>
+              {printData.remarks && <tr><td>Remarks</td><td>{printData.remarks}</td></tr>}
+            </tbody>
+          </table>
+
+          <hr className="pr-divider" />
+          <p style={{ fontWeight: 'bold', fontSize: '12px', textTransform: 'uppercase', margin: '3px 0' }}>Denomination Breakdown</p>
+
+          <table className="pr-denom-table">
+            <thead>
+              <tr>
+                <th style={{ width: '45%' }}>Denom</th>
+                <th style={{ width: '20%' }}>Qty</th>
+                <th style={{ width: '35%' }}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {denominations.map(denom => {
+                const qtyString = printData.breakdown[denom] || '0';
+                const qty = parseFloat(qtyString);
+                const label = denom === 0.25 ? '₱0.25' : `₱${denom.toLocaleString()}`;
+                return (
+                  <tr key={denom}>
+                    <td>{label}</td>
+                    <td>x{qty || 0}</td>
+                    <td>₱{(qty * denom).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          <table className="pr-total-table" style={{ marginTop: '4px' }}>
+            <tbody>
+              <tr>
+                <td>TOTAL COUNT</td>
+                <td>₱{printData.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div className="pr-sig">
+            <p style={{ textTransform: 'uppercase', margin: '3px 0' }}>
+              {localStorage.getItem('lucky_boba_user_name') || 'Staff'}
+            </p>
+            <p style={{ marginTop: '20px' }}>____________________</p>
+            <p style={{ textTransform: 'uppercase', fontSize: '10px', margin: '2px 0' }}>Prepared By</p>
+            <p style={{ marginTop: '20px' }}>____________________</p>
+            <p style={{ textTransform: 'uppercase', fontSize: '10px', margin: '2px 0' }}>Signed By</p>
           </div>
         </div>
       )}
@@ -326,6 +387,16 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
                 <Printer size={16} />
                 Print EOD Journal
               </button>
+
+              {/* Dismiss — only shown after submission */}
+              {latestTx && (
+                <button
+                  onClick={() => { if (onSuccess) onSuccess(); }}
+                  className="w-full py-3 font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all rounded-[0.625rem] bg-white border border-zinc-200 text-zinc-500 hover:bg-zinc-50 active:scale-95"
+                >
+                  Done · Back to Dashboard
+                </button>
+              )}
             </div>
           </div>
         </div>

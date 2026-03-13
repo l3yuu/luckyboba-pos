@@ -117,13 +117,13 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
         <div className="printable-receipt">
           <div className="receipt-area">
             <div style={{ textAlign: 'center', marginBottom: 8 }}>
-              <div style={{ fontWeight: 900, fontSize: 16, textTransform: 'uppercase' }}>Lucky Boba Milktea Food and Beverage Trading</div>
+              <div style={{ fontWeight: 900, fontSize: 16, textTransform: 'uppercase' }}>Lucky Boba Food and Beverage Trading</div>
               <div style={{ fontWeight: 700, fontSize: 13, textTransform: 'uppercase', marginTop: 3 }}>Main Branch - QC</div>
             </div>
             <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
             <div style={{ textAlign: 'center', fontWeight: 900, fontSize: 15, textTransform: 'uppercase', marginBottom: 6 }}>Cash Drop Receipt</div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 13 }}><span>Date</span><span>{printData.date}</span></div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}><span>Time</span><span>{printData.time}</span></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 14 }}><span>Date</span><span>{printData.date}</span></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}><span>Time</span><span>{printData.time}</span></div>
             <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
             <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
               <tbody>

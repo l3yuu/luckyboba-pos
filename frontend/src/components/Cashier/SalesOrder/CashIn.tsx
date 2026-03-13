@@ -175,11 +175,11 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
       {isFlipped && (
         <div className="printable-receipt text-slate-800">
           <div className="text-center space-y-1">
-            <h1 className="font-black text-[14px] uppercase leading-tight">Lucky Boba Milktea Food and Beverage Trading</h1>
-            <p className="text-[10px] uppercase font-bold">Main Branch - QC</p>
+            <h1 className="font-black text-[24px] uppercase leading-tight">Lucky Boba Food and Beverage Trading</h1>
+            <p className="text-[16px] uppercase font-bold">Main Branch - QC</p>
             <div className="receipt-divider" />
-            <h2 className="font-black text-[11px] uppercase tracking-widest">Cash In Receipt</h2>
-            <div className="text-left text-[10px] space-y-0.5 mt-2 uppercase">
+            <h2 className="font-black text-[14px] uppercase tracking-widest">Cash In Receipt</h2>
+            <div className="text-left text-[14px] space-y-0.5 mt-2 uppercase">
               <div className="flex-between"><span>Date</span><span>{receiptData.date}</span></div>
               <div className="flex-between"><span>Time</span><span>{receiptData.time}</span></div>
               <div className="flex-between"><span>Terminal</span><span>POS-01</span></div>
@@ -189,15 +189,15 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
           <div className="my-6 pt-4">
             <div className="receipt-divider" />
             <div className="flex-between py-2">
-              <span className="text-[10px] font-black uppercase tracking-widest">Total Amount</span>
-              <span className="text-xl font-black">{phCurrency.format(parseFloat(amount || '0'))}</span>
+              <span className="text-[13px] font-black uppercase tracking-widest">Total Amount</span>
+              <span className="text-2xl font-black">{phCurrency.format(parseFloat(amount || '0'))}</span>
             </div>
             <div className="receipt-divider" />
-            <div className="mt-4 px-2 italic text-[9px] text-center">Note: Initial drawer cash-in for work shift.</div>
+            <div className="mt-4 px-2 italic text-[13px] text-center">Note: Initial drawer cash-in for work shift.</div>
           </div>
           <div className="mt-10 text-center">
-            <p className="text-[9px] font-bold uppercase underline underline-offset-4">{cashierName}</p>
-            <p className="text-[8px] uppercase tracking-widest mt-1">Cashier Signature</p>
+            <p className="text-[12px] font-bold uppercase underline underline-offset-4">{cashierName}</p>
+            <p className="text-[11px] uppercase tracking-widest mt-1">Cashier Signature</p>
           </div>
         </div>
       )}
