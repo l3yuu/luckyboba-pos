@@ -36,11 +36,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [isEodLocked, setIsEodLocked] = useState(false);
   const [isMenuLocked, setIsMenuLocked] = useState(true);
 
-  // Refs so click handlers always read the latest value without stale closures
   const isMenuLockedRef = useRef(true);
   const isEodLockedRef = useRef(false);
 
-  // ── EOD status check ──
   useEffect(() => {
     const checkEod = async () => {
       try {
@@ -52,15 +50,11 @@ const Sidebar: React.FC<SidebarProps> = ({
     checkEod();
   }, [currentTab]);
 
-  // ── Clock ──
   useEffect(() => {
     const t = setInterval(() => setCurrentDate(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
 
-  // ── Boot prefetch ── runs once on mount, parallel fire-and-forget
-  // Everything the POS needs is fetched immediately so by the time
-  // the cashier submits cash-in, menu/add-ons/sequence are already cached.
   useEffect(() => {
     api.get('/menu').then(r => {
       if (Array.isArray(r.data)) localStorage.setItem('pos_menu_cache', JSON.stringify(r.data));
@@ -77,7 +71,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     }).catch(() => {});
   }, []);
 
-  // ── Cash-in status check ──
   useEffect(() => {
     const checkStatus = async () => {
       try {
@@ -100,7 +93,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     return () => clearInterval(interval);
   }, [currentTab]);
 
-  // ── EOD completed event listener ──
   useEffect(() => {
     const fn = () => {
       setIsEodLocked(true);
@@ -112,8 +104,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     return () => window.removeEventListener('eod-completed', fn);
   }, []);
 
-  // ── Cash-in completed event listener ──
-  // Unlock sidebar instantly. Data is already cached from boot prefetch.
   useEffect(() => {
     const fn = () => {
       setIsMenuLocked(false);
@@ -187,7 +177,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'inventory',  state: isInvOpen,   label: 'Inventory',     items: inventoryItems,      icon: <Package size={17} /> },
   ];
 
-  // ── Modal ──
   const Modal = ({ show, icon, title, desc, action, btnText, cancel, danger }: {
     show: boolean; icon: React.ReactNode; title: string; desc: string;
     action: () => void; btnText: string; cancel?: () => void; danger?: boolean;
@@ -199,7 +188,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           style={{ fontFamily: "'DM Sans', sans-serif" }}
           className="bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] p-8 flex flex-col items-center text-center shadow-2xl"
         >
-          <div className={`w-11 h-11 rounded-[0.625rem] flex items-center justify-center mb-5 ${danger ? 'bg-red-50' : 'bg-[#f5f3ff]'}`}>
+          <div className={`w-11 h-11 rounded-[0.625rem] flex items-center justify-center mb-5 ${danger ? 'bg-red-50' : 'bg-[#f5f0ff]'}`}>
             {icon}
           </div>
           <h3 className="text-[#1a0f2e] font-bold text-base mb-2 tracking-tight">{title}</h3>
@@ -207,7 +196,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex flex-col w-full gap-2">
             <button
               onClick={action}
-              className={`w-full py-3 text-[10px] font-bold tracking-[0.18em] uppercase text-white transition-all rounded-[0.625rem] active:scale-[0.98] ${danger ? 'bg-[#be2525] hover:bg-[#a11f1f]' : 'bg-[#3b2063] hover:bg-[#2a1647]'}`}
+              className={`w-full py-3 text-[10px] font-bold tracking-[0.18em] uppercase text-white transition-all rounded-[0.625rem] active:scale-[0.98] ${danger ? 'bg-[#be2525] hover:bg-[#a11f1f]' : 'bg-[#7c14d4] hover:bg-[#6b11b8]'}`}
             >
               {btnText}
             </button>
@@ -225,7 +214,6 @@ const Sidebar: React.FC<SidebarProps> = ({
     );
   };
 
-  // ── Skeleton ──
   if (isLoading) {
     return (
       <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-zinc-200 flex flex-col">
@@ -263,11 +251,11 @@ const Sidebar: React.FC<SidebarProps> = ({
           background: transparent; cursor: pointer; text-align: left;
           position: relative; transition: background 0.13s;
         }
-        .sb-btn:hover { background: #f5f3ff; }
-        .sb-btn.active { background: #ede8ff; }
+        .sb-btn:hover { background: #f5f0ff; }
+        .sb-btn.active { background: #ede9fe; }
         .sb-btn.active::before {
           content: ''; position: absolute; left: 0; top: 20%; bottom: 20%;
-          width: 3px; background: #3b2063; border-radius: 0 2px 2px 0;
+          width: 3px; background: #7c14d4; border-radius: 0 2px 2px 0;
         }
 
         .sb-dh {
@@ -276,11 +264,11 @@ const Sidebar: React.FC<SidebarProps> = ({
           background: transparent; cursor: pointer;
           position: relative; transition: background 0.13s;
         }
-        .sb-dh:hover { background: #f5f3ff; }
-        .sb-dh.active { background: #ede8ff; }
+        .sb-dh:hover { background: #f5f0ff; }
+        .sb-dh.active { background: #ede9fe; }
         .sb-dh.active::before {
           content: ''; position: absolute; left: 0; top: 20%; bottom: 20%;
-          width: 3px; background: #3b2063; border-radius: 0 2px 2px 0;
+          width: 3px; background: #7c14d4; border-radius: 0 2px 2px 0;
         }
 
         .sb-sub {
@@ -291,8 +279,8 @@ const Sidebar: React.FC<SidebarProps> = ({
           border-radius: 0.5rem;
           transition: background 0.12s, color 0.12s, padding-left 0.12s;
         }
-        .sb-sub:hover { background: #f0ebff; color: #3b2063; padding-left: 14px; }
-        .sb-sub.active { background: #ede8ff; color: #3b2063; font-weight: 700; padding-left: 14px; }
+        .sb-sub:hover { background: #f0e8ff; color: #7c14d4; padding-left: 14px; }
+        .sb-sub.active { background: #ede9fe; color: #7c14d4; font-weight: 700; padding-left: 14px; }
 
         .sb-chevron { transition: transform 0.25s cubic-bezier(0.4,0,0.2,1); color: #a1a1aa; }
         .sb-chevron.open { transform: rotate(180deg); }
@@ -302,7 +290,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       `}</style>
 
       {/* Modals */}
-      <Modal show={showCashInRequired} icon={<Lock size={19} className="text-[#3b2063]" />}
+      <Modal show={showCashInRequired} icon={<Lock size={19} className="text-[#7c14d4]" />}
         title="Menu Locked" desc="Shift not started. Please input Cash In first to unlock the terminal."
         action={() => { setShowCashInRequired(false); setPosOpen(true); setCurrentTab('cash-in'); }}
         btnText="Go to Cash In" cancel={() => setShowCashInRequired(false)} />
@@ -328,8 +316,9 @@ const Sidebar: React.FC<SidebarProps> = ({
           {/* Logo */}
           <div className="px-5 pt-7 pb-6 flex flex-col items-center border-b border-zinc-100">
             <img src={logo} alt="Lucky Boba" className="w-40 h-auto object-contain mb-3 hidden md:block" />
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#3b2063] rounded-md">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 opacity-90" />
+            {/* POINT OF SALE pill — violet to match login */}
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#7c14d4] rounded-md">
+              <span className="w-1.5 h-1.5 rounded-full bg-white opacity-90" />
               <span className="text-[9px] font-black uppercase tracking-[0.22em] text-white">Point of Sale</span>
             </span>
           </div>
@@ -350,7 +339,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 <div key={dd.id}>
                   <button onClick={() => toggle(dd.id)} className={`sb-dh ${groupActive ? 'active' : ''}`}>
                     <div className="flex items-center gap-2.5">
-                      <span className={groupActive || dd.state ? 'text-[#3b2063]' : 'text-zinc-400'}>{dd.icon}</span>
+                      <span className={groupActive || dd.state ? 'text-[#7c14d4]' : 'text-zinc-400'}>{dd.icon}</span>
                       <span className={`text-[13px] font-bold uppercase tracking-[0.14em] ${groupActive || dd.state ? 'text-[#1a0f2e]' : 'text-zinc-600'}`}>
                         {dd.label}
                       </span>
@@ -406,15 +395,15 @@ const Sidebar: React.FC<SidebarProps> = ({
         {/* Footer */}
         <div className="shrink-0 px-4 py-4 bg-white border-t border-zinc-100">
           {user && (
-            <div className="flex items-center gap-2.5 px-3 py-2.5 mb-3 bg-zinc-50 border border-zinc-200 rounded-[0.625rem]">
-              <div className="w-7 h-7 rounded-full bg-[#3b2063] flex items-center justify-center shrink-0">
+            <div className="flex items-center gap-2.5 px-3 py-2.5 mb-3 bg-[#f5f0ff] border border-[#e9d5ff] rounded-[0.625rem]">
+              <div className="w-7 h-7 rounded-full bg-[#7c14d4] flex items-center justify-center shrink-0">
                 <span className="text-[10px] font-black text-white uppercase">
                   {user.name?.charAt(0) ?? '?'}
                 </span>
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="text-[11px] font-bold text-[#1a0f2e] truncate leading-tight">{user.name}</span>
-                <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-zinc-400 leading-tight">{user.role}</span>
+                <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#7c14d4] leading-tight">{user.role}</span>
               </div>
             </div>
           )}
@@ -453,7 +442,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
 const NavBtn = ({ active, icon, label, onClick }: NavBtnProps) => (
   <button onClick={onClick} className={`sb-btn ${active ? 'active' : ''}`}>
-    <span className={active ? 'text-[#3b2063]' : 'text-zinc-400'}>{icon}</span>
+    <span className={active ? 'text-[#7c14d4]' : 'text-zinc-400'}>{icon}</span>
     <span className={`text-[13px] font-bold uppercase tracking-[0.14em] ${active ? 'text-[#1a0f2e]' : 'text-zinc-600'}`}>
       {label}
     </span>
