@@ -39,6 +39,7 @@ interface ReprintPayload {
     customer_name?:   string;
     payment_method?:  string;
     reference_number?: string;
+    queue_number?: string | number;
     subtotal?:        number;
     total?:           number;
     vatable_sales?:   number;
@@ -65,6 +66,8 @@ interface RawSaleItem {
   id:            number;
   menu_item_id?: number;
   bundle_id?:    number;
+  item_name?: string;
+  menu_item?: { name?: string }; 
   name:          string;
   quantity:      number;
   unit_price:    number;
@@ -94,24 +97,30 @@ function mapToCartItem(raw: RawSaleItem): CartItem {
     try { return JSON.parse(v); } catch { return []; }
   };
 
-  return {
-    id:           raw.menu_item_id ?? raw.id,
-    category_id:  0,
-    name:         raw.name,
-    price:        raw.unit_price,
-    barcode:      '',
-    qty:          raw.quantity,
-    size:         (raw.size as 'M' | 'L' | 'none') ?? 'none',
-    cupSizeLabel: raw.cup_size_label ?? undefined,
-    sugarLevel:   raw.sugar_level   ?? undefined,
-    options:      parseArr(raw.options),
-    addOns:       parseArr(raw.add_ons),
-    remarks:      raw.remarks ?? '',
-    charges:      { grab: raw.charges?.grab ?? false, panda: raw.charges?.panda ?? false },
-    finalPrice:   raw.total_price,
-    isBundle:     raw.is_bundle ?? !!raw.bundle_id,
-    bundleId:     raw.bundle_id ?? undefined,
-  };
+  // Laravel may nest the name under menu_item relation
+  const resolvedName = raw.name
+    || (raw as any).menu_item?.name
+    || (raw as any).item_name
+    || 'Unknown Item';
+
+return {
+  id:           raw.menu_item_id ?? raw.id,
+  category_id:  0,
+  name:         resolvedName,
+  price:        Number(raw.unit_price  ?? 0),   // ← Number() guards undefined
+  barcode:      '',
+  qty:          Number(raw.quantity    ?? 1),
+  size:         (raw.size as 'M' | 'L' | 'none') ?? 'none',
+  cupSizeLabel: raw.cup_size_label ?? undefined,
+  sugarLevel:   raw.sugar_level   ?? undefined,
+  options:      parseArr(raw.options),
+  addOns:       parseArr(raw.add_ons),
+  remarks:      raw.remarks ?? '',
+  charges:      { grab: raw.charges?.grab ?? false, panda: raw.charges?.panda ?? false },
+  finalPrice:   Number(raw.total_price ?? 0),   // ← this is likely the culprit
+  isBundle:     raw.is_bundle ?? !!raw.bundle_id,
+  bundleId:     raw.bundle_id ?? undefined,
+};
 }
 
 // ============================================================
@@ -295,7 +304,7 @@ const SearchReceipts = () => {
       cart,
       branchName,
       orNumber,
-      queueNumber:          orNumber,
+      queueNumber: String(sale.queue_number ?? ''),
       cashierName,
       formattedDate:        dt.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
       formattedTime:        dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),

@@ -165,15 +165,25 @@ public function reprint(Request $request, int $id)
     $type = $request->query('type', 'receipt');
 
     $sale = \App\Models\Sale::with([
-        'items.menuItem.category',  // ← 'items', not 'saleItems'
+        'items.menuItem.category',
         'branch',
     ])->findOrFail($id);
 
     $receipt = \App\Models\Receipt::where('sale_id', $id)->first();
 
+    $saleArray = $sale->toArray();
+
+    // Normalize: frontend expects `sale_items`, Laravel returns `items`
+    if (!isset($saleArray['sale_items']) && isset($saleArray['items'])) {
+        $saleArray['sale_items'] = $saleArray['items'];
+    }
+
+    $queueNumber = ltrim(str_replace('SI-', '', $sale->invoice_number), '0') ?: '0';
+    $saleArray['queue_number'] = $queueNumber;
+
     return response()->json([
         'type'    => $type,
-        'sale'    => $sale,
+        'sale'    => $saleArray,
         'receipt' => $receipt,
     ]);
 }
