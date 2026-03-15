@@ -97,7 +97,7 @@ const SalesOrder = () => {
   const [selectedItem,     setSelectedItem]     = useState<MenuItem | null>(null);
   const [qty,              setQty]              = useState(1);
   const [remarks,          setRemarks]          = useState('');
-  const [sugarLevel,       setSugarLevel]       = useState('100%');
+  const [sugarLevel,       setSugarLevel]       = useState('');
   const [size,             setSize]             = useState<'M' | 'L' | 'none'>('M');
   const [selectedOptions,  setSelectedOptions]  = useState<string[]>([]);
   const [selectedAddOns,   setSelectedAddOns]   = useState<string[]>([]);
@@ -121,7 +121,7 @@ const SalesOrder = () => {
   const [activeBundleItem,               setActiveBundleItem]               = useState<Bundle | null>(null);
   const [bundleComponentIndex,           setBundleComponentIndex]           = useState(0);
   const [bundleComponentCustomizations,  setBundleComponentCustomizations]  = useState<BundleComponentCustomization[]>([]);
-  const [bundleComponentSugar,           setBundleComponentSugar]           = useState('100%');
+  const [bundleComponentSugar,           setBundleComponentSugar]           = useState('');
   const [bundleComponentOptions,         setBundleComponentOptions]         = useState<string[]>([]);
   const [bundleComponentAddOns,          setBundleComponentAddOns]          = useState<string[]>([]);
   const [bundleComponentAddOnModalOpen,  setBundleComponentAddOnModalOpen]  = useState(false);
@@ -138,7 +138,7 @@ const SalesOrder = () => {
 
   // Combo drink
   const [isCombodrinkModalOpen,    setIsCombodrinkModalOpen]    = useState(false);
-  const [comboDrinkSugar,          setComboDrinkSugar]          = useState('100%');
+  const [comboDrinkSugar,          setComboDrinkSugar]          = useState('');
   const [comboDrinkOptions,        setComboDrinkOptions]        = useState<string[]>([]);
   const [comboDrinkAddOns,         setComboDrinkAddOns]         = useState<string[]>([]);
   const [comboDrinkAddOnModalOpen, setComboDrinkAddOnModalOpen] = useState(false);
@@ -390,7 +390,7 @@ const SalesOrder = () => {
     setSelectedItem(item);
     setQty(1);
     setRemarks('');
-    setSugarLevel('100%');
+    setSugarLevel('');
     setSelectedOptions([]);
     setSelectedAddOns([]);
     setIsAddOnModalOpen(false);
@@ -500,7 +500,7 @@ const SalesOrder = () => {
 
     if (isCombo) {
       setPendingComboCart(newCartItem);
-      setComboDrinkSugar('100%');
+      setComboDrinkSugar('');
       setComboDrinkOptions([]);
       setComboDrinkAddOns([]);
       setSelectedItem(null);
@@ -543,7 +543,7 @@ const SalesOrder = () => {
     if (bundleComponentIndex < activeBundleItem.items.length - 1) {
       setBundleComponentCustomizations(newCustomizations);
       setBundleComponentIndex(i => i + 1);
-      setBundleComponentSugar('100%');
+      setBundleComponentSugar('');
       setBundleComponentOptions([]);
       setBundleComponentAddOns([]);
       return;

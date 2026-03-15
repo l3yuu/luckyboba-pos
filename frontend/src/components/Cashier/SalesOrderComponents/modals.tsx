@@ -60,7 +60,7 @@ export const CartItemEditModal = ({
   ];
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-150 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white w-full max-w-md rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
 
         {/* Header */}
@@ -182,7 +182,7 @@ export const CartItemEditModal = ({
           </button>
           <button
             onClick={onSave}
-            className="flex-[2] py-3 rounded-[0.625rem] bg-[#3b2063] hover:bg-[#2a1647] text-white font-black text-xs uppercase tracking-widest transition-all shadow-sm"
+            className="flex-2 py-3 rounded-[0.625rem] bg-[#3b2063] hover:bg-[#2a1647] text-white font-black text-xs uppercase tracking-widest transition-all shadow-sm"
           >
             Save Changes
           </button>
@@ -251,7 +251,7 @@ const hasPearlOption = (selectedItem as { options?: string[] })?.options?.includ
   const canAdd = isCombo || !isDrink || !hasPearlOption || selectedOptions.some((o: string) => ['NO PRL', 'W/ PRL'].includes(o));
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
 
         {/* Header */}
@@ -298,11 +298,14 @@ const hasPearlOption = (selectedItem as { options?: string[] })?.options?.includ
                 <div className="flex gap-2">
                   {SUGAR_LEVELS.map((level: string) => (
                     <button key={level} onClick={() => onSugarChange(level)}
-                      className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${sugarLevel === level ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
+                      className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${sugarLevel === level && sugarLevel !== '' ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
                       {level}
                     </button>
                   ))}
                 </div>
+                {sugarLevel === '' && (
+                  <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1.5 ml-1">⚠ Please select sugar level</p>
+                )}
               </div>
               <div>
                 <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Extra</label>
@@ -433,7 +436,7 @@ export const BundleModal = ({
 
   return (
     <>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
         <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
 
           {/* Header */}
@@ -455,17 +458,20 @@ export const BundleModal = ({
 
           {/* Body */}
           <div className="p-6 space-y-5 overflow-y-auto bg-white">
-            <div>
-              <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
-              <div className="flex gap-2">
-                {SUGAR_LEVELS.map((level: string) => (
-                  <button key={level} onClick={() => onSugarChange(level)}
-                    className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${bundleComponentSugar === level ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
-                    {level}
-                  </button>
-                ))}
-              </div>
+          <div>
+            <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
+            <div className="flex gap-2">
+              {SUGAR_LEVELS.map((level: string) => (
+                <button key={level} onClick={() => onSugarChange(level)}
+                  className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${bundleComponentSugar === level && bundleComponentSugar !== '' ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
+                  {level}
+                </button>
+              ))}
             </div>
+            {bundleComponentSugar === '' && (
+              <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1.5 ml-1">⚠ Please select sugar level</p>
+            )}
+          </div>
             <div>
               <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Options (Free)</label>
               <div className="flex flex-wrap gap-2">
@@ -543,7 +549,7 @@ export const ComboDrinkModal = ({
 
   return (
     <>
-      <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="fixed inset-0 z-110 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
         <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
           <div className="bg-[#3b2063] p-5 text-white text-center relative shrink-0">
             <div className="text-[10px] font-bold uppercase opacity-60 tracking-widest leading-none mb-1">Step 2 of 2 — Combo Drink for</div>
@@ -554,17 +560,20 @@ export const ComboDrinkModal = ({
             </button>
           </div>
           <div className="p-6 space-y-5 overflow-y-auto bg-white">
-            <div>
-              <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
-              <div className="flex gap-2">
-                {SUGAR_LEVELS.map((level: string) => (
-                  <button key={level} onClick={() => onSugarChange(level)}
-                    className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${comboDrinkSugar === level ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
-                    {level}
-                  </button>
-                ))}
-              </div>
+          <div>
+            <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
+            <div className="flex gap-2">
+              {SUGAR_LEVELS.map((level: string) => (
+                <button key={level} onClick={() => onSugarChange(level)}
+                  className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${comboDrinkSugar === level && comboDrinkSugar !== '' ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
+                  {level}
+                </button>
+              ))}
             </div>
+            {comboDrinkSugar === '' && (
+              <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1.5 ml-1">⚠ Please select sugar level</p>
+            )}
+          </div>
             <div>
               <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Extra</label>
               <AddOnTriggerButton count={comboDrinkAddOns.length} onClick={onOpenAddOns} />
@@ -656,7 +665,7 @@ export const ConfirmOrderModal = ({
   const paxMismatch = paxTotal !== totalCount;
 
   return (
-    <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-120 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white w-full max-w-6xl rounded-[0.625rem] shadow-2xl flex flex-col overflow-hidden max-h-[95vh]">
 
         {/* Header */}
@@ -889,7 +898,7 @@ interface CustomerNameModalProps {
 }
 
 export const CustomerNameModal = ({ customerName, onChange, onSkip, onConfirm }: CustomerNameModalProps) => (
-  <div className="fixed inset-0 z-[140] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+  <div className="fixed inset-0 z-140 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
     <div className="bg-white w-full max-w-sm rounded-[0.625rem] shadow-2xl overflow-hidden">
       <div className="bg-[#3b2063] px-6 pt-6 pb-5 text-white text-center">
         <div className="w-12 h-12 bg-emerald-400 rounded-[0.625rem] flex items-center justify-center mx-auto mb-3">
@@ -964,7 +973,7 @@ export const SuccessModal = ({
   const allPrinted = true;
 
   return (
-    <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-130 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
       <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl flex flex-col overflow-hidden border border-zinc-200">
         <div className="bg-[#3b2063] px-9 pt-10 pb-9 text-white relative overflow-hidden">
           <div className="absolute -top-6 -right-6 w-28 h-28 border-2 border-white/10 rounded-[0.625rem] rotate-12" />
