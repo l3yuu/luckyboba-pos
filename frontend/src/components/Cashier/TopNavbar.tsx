@@ -44,8 +44,8 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked }) => {
       <div className="flex items-center gap-2.5">
 
         {/* Branch */}
-        <div className="flex items-center gap-2.5 bg-[#f5f0ff] border border-[#e9d5ff] px-4 py-2.5">
-          <div className="w-7 h-7 bg-[#7c14d4] flex items-center justify-center shrink-0">
+        <div className="flex items-center gap-2.5 bg-[#f5f0ff] border border-[#e9d5ff] px-4 py-2.5 rounded-[0.625rem]">
+          <div className="w-7 h-7 bg-[#7c14d4] flex items-center justify-center shrink-0 rounded-[0.625rem]">
             <Store size={13} className="text-white" strokeWidth={2.5} />
           </div>
           <div>
@@ -55,19 +55,19 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked }) => {
         </div>
 
         {/* Cashier */}
-        <div className="flex items-center gap-2.5 bg-zinc-50 border border-zinc-200 px-4 py-2.5">
-          <div className="w-7 h-7 bg-zinc-200 flex items-center justify-center shrink-0">
-            <User size={13} className="text-zinc-500" strokeWidth={2.5} />
+        <div className="flex items-center gap-2.5 bg-[#fff7ed] border border-[#fed7aa] px-4 py-2.5 rounded-[0.625rem]">
+          <div className="w-7 h-7 bg-[#f97316] flex items-center justify-center shrink-0 rounded-[0.625rem]">
+            <User size={13} className="text-white" strokeWidth={2.5} />
           </div>
           <div>
-            <div className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest leading-none">Cashier</div>
-            <div className="text-[11px] font-black text-zinc-700 uppercase leading-tight mt-0.5">{cashierInfo.name}</div>
+            <div className="text-[9px] font-bold text-[#f97316]/50 uppercase tracking-widest leading-none">Cashier</div>
+            <div className="text-[11px] font-black text-[#c2410c] uppercase leading-tight mt-0.5">{cashierInfo.name}</div>
           </div>
         </div>
 
         {/* EOD Locked Badge */}
         {isEodLocked && (
-          <div className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200">
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-200 rounded-[0.625rem]">
             <span className="relative flex h-2 w-2 shrink-0">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
@@ -84,7 +84,7 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked }) => {
       <div className="relative" ref={notifRef}>
         <button
           onClick={() => setNotifOpen(prev => !prev)}
-          className={`relative w-10 h-10 flex items-center justify-center border transition-all ${
+          className={`relative w-10 h-10 flex items-center justify-center border transition-all rounded-[0.625rem] ${
             isNotifOpen
               ? 'bg-[#7c14d4] border-[#7c14d4] text-white'
               : 'bg-zinc-50 border-zinc-200 text-zinc-400 hover:border-[#7c14d4] hover:text-[#7c14d4] hover:bg-[#f5f0ff]'
@@ -96,12 +96,12 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked }) => {
 
         {/* Dropdown */}
         {isNotifOpen && (
-          <div className="absolute right-0 mt-2 w-80 bg-white border border-zinc-200 shadow-xl z-50 overflow-hidden">
+          <div className="absolute right-0 mt-2 w-80 bg-white border border-zinc-200 shadow-xl z-50 overflow-hidden rounded-[0.625rem]">
 
             {/* Header */}
             <div className="bg-[#7c14d4] px-5 py-4 flex items-center justify-between">
               <p className="text-white text-sm font-bold uppercase tracking-widest">Notifications</p>
-              <span className="bg-white/20 text-white text-[10px] font-bold px-2.5 py-1 uppercase tracking-widest">
+              <span className="bg-white/20 text-white text-[10px] font-bold px-2.5 py-1 uppercase tracking-widest rounded-[0.625rem]">
                 {notifCount} new
               </span>
             </div>
@@ -111,7 +111,7 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked }) => {
 
               {/* Low stock */}
               <div className="flex gap-3 p-4 hover:bg-[#f5f0ff] transition-colors cursor-pointer">
-                <div className="w-8 h-8 bg-amber-50 border border-amber-200 flex items-center justify-center shrink-0 mt-0.5">
+                <div className="w-8 h-8 bg-amber-50 border border-amber-200 flex items-center justify-center shrink-0 mt-0.5 rounded-[0.625rem]">
                   <AlertTriangle size={14} className="text-amber-600" strokeWidth={2.5} />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -125,7 +125,7 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked }) => {
               {/* EOD locked */}
               {isEodLocked && (
                 <div className="flex gap-3 p-4 bg-red-50 cursor-pointer">
-                  <div className="w-8 h-8 bg-red-100 border border-red-200 flex items-center justify-center shrink-0 mt-0.5">
+                  <div className="w-8 h-8 bg-red-100 border border-red-200 flex items-center justify-center shrink-0 mt-0.5 rounded-[0.625rem]">
                     <Lock size={14} className="text-red-600" strokeWidth={2.5} />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -140,7 +140,7 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked }) => {
 
             {/* Footer */}
             <div className="p-3 bg-zinc-50 border-t border-zinc-100">
-              <button className="w-full py-2.5 bg-white border border-zinc-200 text-[11px] font-bold text-zinc-500 uppercase tracking-widest hover:border-[#7c14d4] hover:text-[#7c14d4] hover:bg-[#f5f0ff] transition-all">
+              <button className="w-full py-2.5 bg-white border border-zinc-200 text-[11px] font-bold text-zinc-500 uppercase tracking-widest hover:border-[#7c14d4] hover:text-[#7c14d4] hover:bg-[#f5f0ff] transition-all rounded-[0.625rem]">
                 View All Notifications
               </button>
             </div>
