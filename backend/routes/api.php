@@ -80,6 +80,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/menu',              [MenuController::class, 'index']);
         Route::post('/menu/clear-cache', [MenuController::class, 'clearCache']);
         Route::get('/notifications/summary', [NotificationController::class, 'summary']);
+        Route::post('/audit-logs',           [AuditLogController::class, 'store']);
         Route::apiResource('menu-list',  MenuListController::class)->only(['index', 'store']);
         Route::get('/add-ons',           [AddOnController::class, 'index']);
         Route::get('/bundles',           fn () => \App\Models\Bundle::with('items')->where('is_active', true)->get());

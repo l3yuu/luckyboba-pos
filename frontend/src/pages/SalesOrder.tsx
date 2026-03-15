@@ -222,6 +222,14 @@ const SalesOrder = () => {
   const formattedDate = currentDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
   const formattedTime = currentDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
+  const logCartAction = (action: string, qty: number) => {
+    api.post('/audit-logs', {
+      action:  `${action} x${qty}`,
+      module:  'sales_order',
+      details: `Cashier: ${cashierName} | Branch: ${branchName} | ${new Date().toLocaleString('en-PH', { timeZone: 'Asia/Manila', hour12: true })}`,
+    }).catch(() => {});
+  };
+
   // ── Effects ─────────────────────────────────────────────────────────────────
 
   // Boot: check cash-in, fetch add-ons + bundles
@@ -512,6 +520,7 @@ const SalesOrder = () => {
     mergeIntoCart(newCartItem);
     setSelectedItem(null);
     setIsAddOnModalOpen(false);
+    logCartAction(newCartItem.name, newCartItem.qty);
     showToast(`${selectedItem.name} added to order`, 'success');
   };
 
@@ -573,6 +582,7 @@ const SalesOrder = () => {
     };
 
     mergeIntoCart(cartItem);
+    logCartAction(cartItem.name, 1); 
     setIsBundleModalOpen(false);
     setActiveBundleItem(null);
     showToast(`${activeBundleItem.name} added!`, 'success');
@@ -602,6 +612,7 @@ const SalesOrder = () => {
     };
 
     mergeIntoCart(finalItem);
+    logCartAction(finalItem.name, finalItem.qty);
     setIsCombodrinkModalOpen(false);
     setPendingComboCart(null);
     showToast(`${finalItem.name} + Classic Pearl added!`, 'success');
@@ -666,7 +677,9 @@ const SalesOrder = () => {
   const removeEditingItem = () => {
     if (editingCartIndex === null) return;
     const name = cart[editingCartIndex].name;
+    const qty  = cart[editingCartIndex].qty; 
     setCart(prev => prev.filter((_, i) => i !== editingCartIndex));
+    logCartAction(`REMOVED: ${name}`, qty); 
     showToast(`${name} removed`, 'warning');
     closeCartItemEdit();
   };

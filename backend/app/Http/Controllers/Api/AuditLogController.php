@@ -122,4 +122,22 @@ class AuditLogController extends Controller
             ],
         ]);
     }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'action'  => 'required|string|max:500',
+            'module'  => 'required|string|max:100',
+            'details' => 'nullable|string|max:1000',
+        ]);
+
+        AuditLog::create([
+            'user_id' => auth()->id(),
+            'action'  => $request->action,
+            'module'  => $request->module,
+            'details' => $request->details ?? null,
+        ]);
+
+        return response()->json(['success' => true]);
+    }
 }
