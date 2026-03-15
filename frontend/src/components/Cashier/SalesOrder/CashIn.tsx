@@ -25,6 +25,10 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
     return localStorage.getItem('lucky_boba_user_name') || 'Staff';
   }, []);
 
+  const branchName = useMemo(() => {
+    return localStorage.getItem('lucky_boba_user_branch') || 'Main Branch';
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     const fetchEodStatus = async () => {
@@ -175,11 +179,11 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
       {isFlipped && (
         <div className="printable-receipt text-slate-800">
           <div className="text-center space-y-1">
-            <h1 className="font-black text-[24px] uppercase leading-tight">Lucky Boba Food and Beverage Trading</h1>
-            <p className="text-[16px] uppercase font-bold">Main Branch - QC</p>
+            <h1 className="font-black text-[17px] uppercase leading-tight">Lucky Boba Food and Beverage Trading</h1>
+            <p className="text-[13px] uppercase font-bold">{branchName}</p>
             <div className="receipt-divider" />
             <h2 className="font-black text-[14px] uppercase tracking-widest">Cash In Receipt</h2>
-            <div className="text-left text-[14px] space-y-0.5 mt-2 uppercase">
+            <div className="text-left text-[13px] space-y-0.5 mt-2 uppercase">
               <div className="flex-between"><span>Date</span><span>{receiptData.date}</span></div>
               <div className="flex-between"><span>Time</span><span>{receiptData.time}</span></div>
               <div className="flex-between"><span>Terminal</span><span>POS-01</span></div>
@@ -193,7 +197,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
               <span className="text-2xl font-black">{phCurrency.format(parseFloat(amount || '0'))}</span>
             </div>
             <div className="receipt-divider" />
-            <div className="mt-4 px-2 italic text-[13px] text-center">Note: Initial drawer cash-in for work shift.</div>
+            <div className="mt-4 px-2 italic text-[11px] text-center">Note: Initial drawer cash-in for work shift.</div>
           </div>
           <div className="mt-10 text-center">
             <p className="text-[12px] font-bold uppercase underline underline-offset-4">{cashierName}</p>

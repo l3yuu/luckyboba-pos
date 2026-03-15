@@ -12,10 +12,10 @@ class UserSeeder extends Seeder
     {
         // 1. Create or update Admin
         User::updateOrCreate(
-            ['email' => 'admin@luckyboba.com'], // Find by email
+            ['email' => 'leumar@luckyboba.com'], // Find by email
             [
-                'name' => 'Bina Admin',
-                'password' => Hash::make('password123'),
+                'name' => 'Leumar Admin',
+                'password' => Hash::make('leumar123'),
                 'role' => 'superadmin',
                 'status' => 'ACTIVE',
                 'branch_name' => 'Main Branch',
@@ -37,10 +37,10 @@ class UserSeeder extends Seeder
             ]
         );
         User::updateOrCreate(
-        ['email' => 'Superadmin@luckyboba.com'],
+        ['email' => 'superadmin@luckyboba.com'],
         [
             'name' => 'Super Admin',
-            'password' => Hash::make('Super123'),
+            'password' => Hash::make('super123'),
             'role' => 'superadmin',
             'branch_id' => '1',
             'status' => 'ACTIVE',
@@ -49,10 +49,10 @@ class UserSeeder extends Seeder
         ]
     );
     User::updateOrCreate(
-        ['email' => 'MainBranch@luckyboba.com'],
+        ['email' => 'mainbranch@luckyboba.com'],
         [
             'name' => 'Main Branch',
-            'password' => Hash::make('Main Branch'),
+            'password' => Hash::make('mainbranch123'),
             'role' => 'branch_manager',
             'branch_id' => '1',
             'status' => 'ACTIVE',

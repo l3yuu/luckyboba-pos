@@ -67,6 +67,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/receipts/next-sequence', [ReceiptController::class, 'getNextSequence']);
         Route::post('/receipts/{id}/void-request',  [ReceiptController::class, 'voidRequest']);
         Route::post('/void-requests/{id}/approve',  [ReceiptController::class, 'approveVoid']);
+        Route::get('/receipts/{id}/reprint', [ReceiptController::class, 'reprint']);
 
         Route::prefix('cash-counts')->group(function () {
             Route::post('/',       [CashCountController::class, 'store']);

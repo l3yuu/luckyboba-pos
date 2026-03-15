@@ -41,7 +41,7 @@ class CategorySeeder extends Seeder
             'YOGURT SERIES'       => ['type' => 'drink', 'cup_id' => $smsl, 'sub_category_id' => $sub('SM')],
 
             // ── DRINKS JR ─────────────────────────────────────────
-            'LUCKY CLASSIC'       => ['type' => 'drink', 'cup_id' => $jr, 'sub_category_id' => $sub('JR')],
+            'LUCKY CLASSIC JR'       => ['type' => 'drink', 'cup_id' => $jr, 'sub_category_id' => $sub('JR')],
 
             // ── DRINKS SL only ────────────────────────────────────
             'FRUIT SODA SERIES'   => ['type' => 'drink', 'cup_id' => $smsl, 'sub_category_id' => $sub('SL')],

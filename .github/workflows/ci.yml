@@ -22,10 +22,13 @@ jobs:
         run: cd backend && composer install --prefer-dist --no-progress
 
       - name: Prepare Laravel Environment
+        working-directory: ./backend
         run: |
-          cd backend
+          # Copy example to .env
           cp .env.example .env
+          # Generate the application key required for encryption/sessions
           php artisan key:generate
+          # Ensure the database directory exists for the sqlite file (if not using :memory:)
           mkdir -p database
           touch database/database.sqlite
 
