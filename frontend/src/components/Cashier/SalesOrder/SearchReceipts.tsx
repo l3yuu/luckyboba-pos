@@ -99,8 +99,8 @@ function mapToCartItem(raw: RawSaleItem): CartItem {
 
   // Laravel may nest the name under menu_item relation
   const resolvedName = raw.name
-    || (raw as any).menu_item?.name
-    || (raw as any).item_name
+    || raw.menu_item?.name
+    || raw.item_name
     || 'Unknown Item';
 
 return {

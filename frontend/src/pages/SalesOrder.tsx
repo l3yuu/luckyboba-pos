@@ -247,7 +247,7 @@ const SalesOrder = () => {
     const count      = cart.reduce((acc, item) => acc + item.qty, 0);
     const specialPax = pax.senior + pax.pwd + pax.diplomat;
     setPax(prev => ({ ...prev, regular: Math.max(0, count - specialPax) }));
-  }, [cart]); 
+  }, [cart, pax.senior, pax.pwd, pax.diplomat]);
 
   // Init: sync OR sequence, cashier name, clock
   useEffect(() => {
