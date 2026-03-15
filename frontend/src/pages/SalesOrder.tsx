@@ -1,11 +1,9 @@
 "use client"
 
-// ── pages/SalesOrder.tsx ──────────────────────────────────────────────────────
-// Root orchestrator. All UI lives in components/Cashier/SalesOrderComponents/.
-// This file owns: state, derived values, effects, and business logic handlers.
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useOfflineQueue } from '../hooks/useOfflineQueue';
+import OfflineQueueBanner  from '../components/Cashier/SalesOrderComponents/OfflineQueueBanner';
 
 import {
   type MenuItem, type Category, type CartItem,
@@ -50,6 +48,19 @@ const SalesOrder = () => {
   const navigate      = useNavigate();
   const { showToast } = useToast();
   const { user }      = useAuth();
+  const { enqueue, queueCount, isSyncing, queue, syncNow, remove } = useOfflineQueue();
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const goOnline  = () => setIsOnline(true);
+    const goOffline = () => setIsOnline(false);
+    window.addEventListener('online',  goOnline);
+    window.addEventListener('offline', goOffline);
+    return () => {
+      window.removeEventListener('online',  goOnline);
+      window.removeEventListener('offline', goOffline);
+    };
+  }, []);
 
   const branchId   = user?.branch_id   ?? null;
   const branchName = user?.branch_name ?? localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch';
@@ -676,79 +687,102 @@ const SalesOrder = () => {
   const handleConfirmOrder = async () => {
     if (cart.length === 0) return;
     setSubmitting(true);
-    try {
-      const orderData = {
-        si_number:        orNumber,
-        branch_id:        branchId,
-        items: cart.map(item => ({
-          menu_item_id:      item.isBundle ? null : item.id,
-          bundle_id:         item.isBundle ? Number(item.bundleId) : null,
-          bundle_components: item.isBundle ? (item.bundleComponents ?? []) : null,
-          name:              item.name,
-          quantity:          item.qty,
-          unit_price:        Number(item.price),
-          total_price:       item.finalPrice + getItemSurcharge(item),
-          size:              item.size !== 'none' ? item.size : null,
-          cup_size_label:    item.cupSizeLabel ?? null,
-          sugar_level:       item.sugarLevel || null,
-          options:           item.options || [],
-          add_ons:           item.addOns  || [],
-          remarks:           item.remarks || null,
-          charges:           { grab: item.charges.grab, panda: item.charges.panda },
-        })),
-        subtotal,
-        discount_amount:  discountAmount,
-        discount_id:      selectedDiscount?.id || null,
-        total:            amtDue,
-        cashier_name:     cashierName ?? 'Admin',
-        payment_method:   paymentMethod,
-        reference_number: referenceNumber || null,
-        pax_regular:      pax.regular,
-        pax_senior:       pax.senior,
-        pax_pwd:          pax.pwd,
-        pax_diplomat:     pax.diplomat,
-        senior_id:        discountIDs.senior   || null,
-        pwd_id:           discountIDs.pwd      || null,
-        diplomat_id:      discountIDs.diplomat || null,
-        discount_remarks: discountRemarks || null,
-        vatable_sales:    vatableSales,
-        vat_amount:       vatAmount,
-        customer_name:    customerName || null,
-      };
 
-      await api.post('/sales', orderData);
+    const orderData = {
+      si_number:        orNumber,
+      branch_id:        branchId,
+      items: cart.map(item => ({
+        menu_item_id:      item.isBundle ? null : item.id,
+        bundle_id:         item.isBundle ? Number(item.bundleId) : null,
+        bundle_components: item.isBundle ? (item.bundleComponents ?? []) : null,
+        name:              item.name,
+        quantity:          item.qty,
+        unit_price:        Number(item.price),
+        total_price:       item.finalPrice + getItemSurcharge(item),
+        size:              item.size !== 'none' ? item.size : null,
+        cup_size_label:    item.cupSizeLabel ?? null,
+        sugar_level:       item.sugarLevel || null,
+        options:           item.options || [],
+        add_ons:           item.addOns  || [],
+        remarks:           item.remarks || null,
+        charges:           { grab: item.charges.grab, panda: item.charges.panda },
+      })),
+      subtotal,
+      discount_amount:  discountAmount,
+      discount_id:      selectedDiscount?.id || null,
+      total:            amtDue,
+      cashier_name:     cashierName ?? 'Admin',
+      payment_method:   paymentMethod,
+      reference_number: referenceNumber || null,
+      pax_regular:      pax.regular,
+      pax_senior:       pax.senior,
+      pax_pwd:          pax.pwd,
+      pax_diplomat:     pax.diplomat,
+      senior_id:        discountIDs.senior   || null,
+      pwd_id:           discountIDs.pwd      || null,
+      diplomat_id:      discountIDs.diplomat || null,
+      discount_remarks: discountRemarks || null,
+      vatable_sales:    vatableSales,
+      vat_amount:       vatAmount,
+      customer_name:    customerName || null,
+    };
 
+    if (navigator.onLine) {
+      try {
+        await api.post('/sales', orderData);
+
+        const currentSeq = parseInt(orNumber.replace('SI-', ''), 10);
+        if (!isNaN(currentSeq)) localStorage.setItem('last_or_sequence', String(currentSeq));
+        localStorage.setItem('dashboard_stats_timestamp', '0');
+
+        const today = new Date().toISOString().split('T')[0];
+        Promise.all([
+          api.get('/dashboard/stats').then(res => {
+            localStorage.setItem('dashboard_stats', JSON.stringify(res.data));
+            localStorage.setItem('dashboard_stats_timestamp', Date.now().toString());
+          }),
+          api.get('/inventory'),
+          api.get('/receipts/search', { params: { query: '', date: today } }).then(res => {
+            const data = Array.isArray(res.data) ? res.data : (res.data.data || []);
+            sessionStorage.setItem('lucky_boba_receipt_cache_results', JSON.stringify(data));
+            sessionStorage.setItem('lucky_boba_receipt_cache_query',   '');
+            sessionStorage.setItem('lucky_boba_receipt_cache_date',    today);
+          }),
+        ]).catch(e => console.error('Failed to fetch fresh data', e));
+
+        setIsConfirmModalOpen(false);
+        setCustomerName('');
+        setIsCustomerNameModalOpen(true);
+        setPrintedReceipt(false);
+        setPrintedKitchen(false);
+        setPrintedStickers(false);
+        showToast('Order saved successfully!', 'success');
+
+      } catch {
+        enqueue(orderData);
+        setIsConfirmModalOpen(false);
+        setCustomerName('');
+        setIsCustomerNameModalOpen(true);
+        setPrintedReceipt(false);
+        setPrintedKitchen(false);
+        setPrintedStickers(false);
+        showToast('Order saved locally — will sync when server is available.', 'warning');
+      }
+
+    } else {
+      enqueue(orderData);
       const currentSeq = parseInt(orNumber.replace('SI-', ''), 10);
       if (!isNaN(currentSeq)) localStorage.setItem('last_or_sequence', String(currentSeq));
-      localStorage.setItem('dashboard_stats_timestamp', '0');
-
-      const today = new Date().toISOString().split('T')[0];
-      Promise.all([
-        api.get('/dashboard/stats').then(res => {
-          localStorage.setItem('dashboard_stats', JSON.stringify(res.data));
-          localStorage.setItem('dashboard_stats_timestamp', Date.now().toString());
-        }),
-        api.get('/inventory'),
-        api.get('/receipts/search', { params: { query: '', date: today } }).then(res => {
-          const data = Array.isArray(res.data) ? res.data : (res.data.data || []);
-          sessionStorage.setItem('lucky_boba_receipt_cache_results', JSON.stringify(data));
-          sessionStorage.setItem('lucky_boba_receipt_cache_query',   '');
-          sessionStorage.setItem('lucky_boba_receipt_cache_date',    today);
-        }),
-      ]).catch(e => console.error('Failed to fetch fresh data', e));
-
       setIsConfirmModalOpen(false);
       setCustomerName('');
       setIsCustomerNameModalOpen(true);
       setPrintedReceipt(false);
       setPrintedKitchen(false);
       setPrintedStickers(false);
-      showToast('Order saved successfully!', 'success');
-    } catch (error) {
-      showToast(error instanceof Error ? error.message : 'Failed to create order. Please try again.', 'error');
-    } finally {
-      setSubmitting(false);
+      showToast('Offline — order queued and will sync when connected.', 'warning');
     }
+
+    setSubmitting(false);
   };
 
   // ── Print handlers ──────────────────────────────────────────────────────────
@@ -1001,6 +1035,15 @@ const SalesOrder = () => {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onHomeClick={() => handleNavClick('Home')}
+        />
+
+        <OfflineQueueBanner
+          isOnline={isOnline}
+          queue={queue}
+          queueCount={queueCount}
+          isSyncing={isSyncing}
+          syncNow={syncNow}
+          remove={remove}
         />
 
         {/* Body */}

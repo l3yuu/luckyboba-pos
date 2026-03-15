@@ -35,6 +35,7 @@ interface DashboardStatsProps {
   isInitialLoad: boolean;
   isStale?: boolean;
   loading: boolean;
+  isOnline?: boolean;
   onRefresh: () => void;
 }
 
@@ -69,33 +70,53 @@ const Dashboard = () => {
   const isFetching = useRef(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  useEffect(() => {
-    if (!authLoading && !user) navigate('/login', { replace: true });
-  }, [user, authLoading, navigate]);
+const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-  const fetchStats = useCallback(async (force = false) => {
-    if (isFetching.current) return;
-    if (!force) {
-      const lastFetch = localStorage.getItem('dashboard_stats_timestamp');
-      if (lastFetch && Date.now() - Number(lastFetch) < 5 * 60 * 1000) {
-        setLoading(false); setIsInitialLoad(false); setIsStale(false);
-        return;
-      }
+useEffect(() => {
+  if (!authLoading && !user) navigate('/login', { replace: true });
+}, [user, authLoading, navigate]);
+
+const fetchStats = useCallback(async (force = false) => {
+  if (isFetching.current) return;
+  if (!force) {
+    const lastFetch = localStorage.getItem('dashboard_stats_timestamp');
+    if (lastFetch && Date.now() - Number(lastFetch) < 5 * 60 * 1000) {
+      setLoading(false); setIsInitialLoad(false); setIsStale(false);
+      return;
     }
-    isFetching.current = true;
-    setLoading(true);
-    try {
-      const response = await api.get('/dashboard/stats');
-      setStats(response.data);
-      localStorage.setItem('dashboard_stats', JSON.stringify(response.data));
-      localStorage.setItem('dashboard_stats_timestamp', Date.now().toString());
-      setIsStale(false);
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-    } finally {
-      setLoading(false); setIsInitialLoad(false); isFetching.current = false;
-    }
-  }, []);
+  }
+  isFetching.current = true;
+  setLoading(true);
+  try {
+    const response = await api.get('/dashboard/stats');
+    setStats(response.data);
+    localStorage.setItem('dashboard_stats', JSON.stringify(response.data));
+    localStorage.setItem('dashboard_stats_timestamp', Date.now().toString());
+    setIsStale(false);
+  } catch {
+    const cached = localStorage.getItem('dashboard_stats');
+    if (cached) setStats(JSON.parse(cached));
+  } finally {
+    setLoading(false); setIsInitialLoad(false); isFetching.current = false;
+  }
+}, []);
+
+useEffect(() => {
+  const goOnline  = () => { setIsOnline(true); fetchStats(true); };
+  const goOffline = () => setIsOnline(false);
+  window.addEventListener('online',  goOnline);
+  window.addEventListener('offline', goOffline);
+  return () => {
+    window.removeEventListener('online',  goOnline);
+    window.removeEventListener('offline', goOffline);
+  };
+}, [fetchStats]);
+
+useEffect(() => {
+  if (!user || activeTab !== 'dashboard') return;
+  void fetchStats(refreshKey > 0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [user, activeTab, refreshKey]);
 
   useEffect(() => {
     if (!user || activeTab !== 'dashboard') return;
@@ -113,7 +134,7 @@ const Dashboard = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard':           return <DashboardStats stats={stats} isInitialLoad={isInitialLoad} isStale={isStale} loading={loading} onRefresh={() => fetchStats(true)} />;
+      case 'dashboard': return <DashboardStats stats={stats} isInitialLoad={isInitialLoad} isStale={isStale} loading={loading} isOnline={isOnline} onRefresh={() => fetchStats(true)} />;
       case 'cash-in':             return <CashIn onSuccess={refreshStats} />;
       case 'cash-drop':           return <CashDrop onSuccess={refreshStats} />;
       case 'search-receipts':     return <SearchReceipts />;
@@ -136,7 +157,7 @@ const Dashboard = () => {
       case 'inventory-report':    return <InventoryReport />;
       case 'expense':             return <Expense />;
       case 'settings':            return <Settings />;
-      default:                    return <DashboardStats stats={stats} isInitialLoad={isInitialLoad} isStale={isStale} loading={loading} onRefresh={() => fetchStats(true)} />;
+      default:                    return <DashboardStats stats={stats} isInitialLoad={isInitialLoad} isStale={isStale} loading={loading} isOnline={isOnline} onRefresh={() => fetchStats(true)} />;
     }
   };
 
@@ -153,7 +174,7 @@ const Dashboard = () => {
   );
 };
 
-const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, onRefresh }: DashboardStatsProps) => {
+const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, isOnline, onRefresh }: DashboardStatsProps) => {
   const [time, setTime] = useState(new Date());
   useEffect(() => {
     const t = setInterval(() => setTime(new Date()), 1000);
@@ -190,10 +211,17 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, onRefr
           </div>
           <div className="relative z-10 flex items-end justify-between">
             <p className="text-white text-[3.2rem] font-bold tracking-tight tabular-nums leading-none">{timeStr}</p>
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/20 border border-emerald-400/40 mb-1 rounded-sm">
-              <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-              <span className="text-xs font-bold uppercase tracking-widest text-emerald-300">Online</span>
-            </div>
+            {isOnline !== false ? (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/20 border border-emerald-400/40 mb-1 rounded-sm">
+                <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                <span className="text-xs font-bold uppercase tracking-widest text-emerald-300">Online</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-zinc-500/20 border border-zinc-400/40 mb-1 rounded-sm">
+                <span className="w-2 h-2 bg-zinc-400 rounded-full" />
+                <span className="text-xs font-bold uppercase tracking-widest text-zinc-300">Offline</span>
+              </div>
+            )}
           </div>
         </div>
 
