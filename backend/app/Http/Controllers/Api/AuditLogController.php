@@ -140,4 +140,77 @@ class AuditLogController extends Controller
 
         return response()->json(['success' => true]);
     }
+
+    public function branchIndex(Request $request)
+    {
+        $request->validate([
+            'search'   => 'nullable|string|max:255',
+            'module'   => 'nullable|string',
+            'per_page' => 'nullable|integer|min:1|max:100',
+            'date_from'=> 'nullable|date',
+            'date_to'  => 'nullable|date',
+        ]);
+
+        $branchId = $request->user()->branch_id;
+
+        $branchUserIds = DB::table('users')
+            ->where('branch_id', $branchId)
+            ->whereIn('role', ['cashier', 'branch_manager'])
+            ->pluck('id');
+
+        $query = AuditLog::with('user:id,name')
+            ->whereIn('user_id', $branchUserIds)
+            ->orderByDesc('created_at');
+
+        if ($request->search) {
+            $s = $request->search;
+            $query->where(function ($q) use ($s) {
+                $q->where('action',   'like', "%{$s}%")
+                ->orWhere('module',  'like', "%{$s}%")
+                ->orWhere('details', 'like', "%{$s}%")
+                ->orWhereHas('user', fn($u) => $u->where('name', 'like', "%{$s}%"));
+            });
+        }
+
+        if ($request->module && $request->module !== 'all') {
+            $query->where('module', $request->module);
+        }
+
+        if ($request->date_from) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->date_to) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        $perPage = $request->per_page ?? 20;
+        $logs    = $query->paginate($perPage);
+        $todayStart = now()->startOfDay();
+        $base = AuditLog::whereIn('user_id', $branchUserIds);
+
+        $stats = [
+            'total_events' => (clone $base)->count(),
+            'today_count'  => (clone $base)->where('created_at', '>=', $todayStart)->count(),
+            'voids_today'  => (clone $base)->where('created_at', '>=', $todayStart)
+                                ->where(fn($q) => $q->where('module', 'void')
+                                    ->orWhere('action', 'like', '%void%')
+                                    ->orWhere('action', 'like', '%Void%'))->count(),
+            'unique_users' => (clone $base)->where('created_at', '>=', $todayStart)
+                                ->whereNotNull('user_id')->distinct('user_id')->count('user_id'),
+            'modules'      => (clone $base)->distinct('module')->orderBy('module')
+                                ->pluck('module')->filter()->values(),
+        ];
+
+        return response()->json([
+            'success' => true,
+            'stats'   => $stats,
+            'data'    => $logs->items(),
+            'meta'    => [
+                'current_page' => $logs->currentPage(),
+                'last_page'    => $logs->lastPage(),
+                'per_page'     => $logs->perPage(),
+                'total'        => $logs->total(),
+            ],
+        ]);
+    }
 }

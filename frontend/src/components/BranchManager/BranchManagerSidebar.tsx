@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Users, BarChart2, ShoppingBag,
-  Package, Settings as SettingsIcon, LogOut, HelpCircle, ChevronDown,
+  Package, Settings as SettingsIcon, LogOut, HelpCircle, ChevronDown, Activity,
 } from 'lucide-react';
 
 // ── Sidebar styles ────────────────────────────────────────────────────────────
@@ -289,6 +289,10 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
           ))}
 
           <div className="bm-sb-sec">System</div>
+          <button onClick={() => goTo('audit-logs')} className={`bm-sb-item ${isActive('audit-logs') ? 'active' : ''}`}>
+            <span className="bm-sb-icon" style={{ color: iconColor('audit-logs') }}><Activity size={14} /></span>
+            Audit Logs
+          </button>
           <button onClick={() => goTo('settings')} className={`bm-sb-item ${isActive('settings') ? 'active' : ''}`}>
             <span className="bm-sb-icon" style={{ color: iconColor('settings') }}><SettingsIcon size={14} /></span>
             Settings

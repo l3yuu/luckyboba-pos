@@ -156,6 +156,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         });
 
         Route::apiResource('expenses',  ExpenseController::class)->only(['store']);
+        Route::get('/branch/audit-logs', [AuditLogController::class, 'branchIndex']); 
         Route::apiResource('discounts', DiscountController::class)->except(['show', 'update', 'index']); // ← 'index' removed, handled above
         Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
         Route::apiResource('vouchers', VoucherController::class)->only(['index', 'store']);

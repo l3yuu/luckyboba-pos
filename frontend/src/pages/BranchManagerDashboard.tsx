@@ -5,6 +5,7 @@ import BranchManagerSidebar from '../components/BranchManager/BranchManagerSideb
 import logo from '../assets/logo.png';
 import UserManagement from '../components/BranchManager/UserManagement';
 import api from '../services/api';
+import BranchManagerAuditLogsTab from '../components/BranchManager/BranchManagerAuditLogsTab';
 import {
   TrendingUp, TrendingDown, DollarSign, AlertCircle, Menu,
   ShoppingBag, Activity, Clock, ArrowUpRight, ArrowDownRight,
@@ -228,6 +229,8 @@ const branchLabel = authUser?.name ?? null; // 'Main Branch' comes from here
       case 'purchase-order':      return <BM_InventoryPurchaseOrder />;
       case 'stock-transfer':      return <BM_InventoryStockTransfer />;
       case 'inventory-report':    return <BM_InventoryReports />;
+
+      case 'audit-logs': return <BranchManagerAuditLogsTab />;
       
       // ── Settings ──
       case 'settings':            return <BM_Settings />;
