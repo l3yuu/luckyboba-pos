@@ -11,19 +11,19 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked }) => {
   const [isNotifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
 
-const [cashierInfo] = useState(() => {
-  if (typeof window !== 'undefined') {
-    const name = localStorage.getItem('lucky_boba_user_name');
-    const role = localStorage.getItem('lucky_boba_user_role');
-    const branch = localStorage.getItem('lucky_boba_user_branch');
-    return {
-      name: name ? name.toUpperCase() : 'SYSTEM ADMIN',
-      role: role ? role.toUpperCase() : '',
-      branch: branch ? branch.toUpperCase() : 'MAIN BRANCH',
-    };
-  }
-  return { name: 'SYSTEM ADMIN', role: '', branch: 'MAIN BRANCH' };
-});
+  const [cashierInfo] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const name = localStorage.getItem('lucky_boba_user_name');
+      const role = localStorage.getItem('lucky_boba_user_role');
+      const branch = localStorage.getItem('lucky_boba_user_branch');
+      return {
+        name: name ? name.toUpperCase() : 'SYSTEM ADMIN',
+        role: role ? role.toUpperCase() : '',
+        branch: branch ? branch.toUpperCase() : 'MAIN BRANCH',
+      };
+    }
+    return { name: 'SYSTEM ADMIN', role: '', branch: 'MAIN BRANCH' };
+  });
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -44,13 +44,13 @@ const [cashierInfo] = useState(() => {
       <div className="flex items-center gap-2.5">
 
         {/* Branch */}
-        <div className="flex items-center gap-2.5 bg-[#f4f2fb] border border-violet-200 px-4 py-2.5">
-          <div className="w-7 h-7 bg-[#3b2063] flex items-center justify-center shrink-0">
+        <div className="flex items-center gap-2.5 bg-[#f5f0ff] border border-[#e9d5ff] px-4 py-2.5">
+          <div className="w-7 h-7 bg-[#7c14d4] flex items-center justify-center shrink-0">
             <Store size={13} className="text-white" strokeWidth={2.5} />
           </div>
           <div>
-            <div className="text-[9px] font-bold text-[#3b2063]/50 uppercase tracking-widest leading-none">Branch</div>
-            <div className="text-[11px] font-black text-[#3b2063] uppercase leading-tight mt-0.5">{cashierInfo.branch}</div>
+            <div className="text-[9px] font-bold text-[#7c14d4]/50 uppercase tracking-widest leading-none">Branch</div>
+            <div className="text-[11px] font-black text-[#7c14d4] uppercase leading-tight mt-0.5">{cashierInfo.branch}</div>
           </div>
         </div>
 
@@ -86,8 +86,8 @@ const [cashierInfo] = useState(() => {
           onClick={() => setNotifOpen(prev => !prev)}
           className={`relative w-10 h-10 flex items-center justify-center border transition-all ${
             isNotifOpen
-              ? 'bg-[#3b2063] border-[#3b2063] text-white'
-              : 'bg-zinc-50 border-zinc-200 text-zinc-400 hover:border-[#3b2063] hover:text-[#3b2063] hover:bg-[#f4f2fb]'
+              ? 'bg-[#7c14d4] border-[#7c14d4] text-white'
+              : 'bg-zinc-50 border-zinc-200 text-zinc-400 hover:border-[#7c14d4] hover:text-[#7c14d4] hover:bg-[#f5f0ff]'
           }`}
         >
           <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 border-2 border-white rounded-full" />
@@ -99,7 +99,7 @@ const [cashierInfo] = useState(() => {
           <div className="absolute right-0 mt-2 w-80 bg-white border border-zinc-200 shadow-xl z-50 overflow-hidden">
 
             {/* Header */}
-            <div className="bg-[#3b2063] px-5 py-4 flex items-center justify-between">
+            <div className="bg-[#7c14d4] px-5 py-4 flex items-center justify-between">
               <p className="text-white text-sm font-bold uppercase tracking-widest">Notifications</p>
               <span className="bg-white/20 text-white text-[10px] font-bold px-2.5 py-1 uppercase tracking-widest">
                 {notifCount} new
@@ -110,7 +110,7 @@ const [cashierInfo] = useState(() => {
             <div className="max-h-72 overflow-y-auto divide-y divide-zinc-100 bg-white">
 
               {/* Low stock */}
-              <div className="flex gap-3 p-4 hover:bg-[#f4f2fb] transition-colors cursor-pointer">
+              <div className="flex gap-3 p-4 hover:bg-[#f5f0ff] transition-colors cursor-pointer">
                 <div className="w-8 h-8 bg-amber-50 border border-amber-200 flex items-center justify-center shrink-0 mt-0.5">
                   <AlertTriangle size={14} className="text-amber-600" strokeWidth={2.5} />
                 </div>
@@ -140,7 +140,7 @@ const [cashierInfo] = useState(() => {
 
             {/* Footer */}
             <div className="p-3 bg-zinc-50 border-t border-zinc-100">
-              <button className="w-full py-2.5 bg-white border border-zinc-200 text-[11px] font-bold text-zinc-500 uppercase tracking-widest hover:border-[#3b2063] hover:text-[#3b2063] hover:bg-[#f4f2fb] transition-all">
+              <button className="w-full py-2.5 bg-white border border-zinc-200 text-[11px] font-bold text-zinc-500 uppercase tracking-widest hover:border-[#7c14d4] hover:text-[#7c14d4] hover:bg-[#f5f0ff] transition-all">
                 View All Notifications
               </button>
             </div>
