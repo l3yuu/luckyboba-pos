@@ -461,4 +461,24 @@ class UserController extends Controller
             ], 500);
         }
     }
+public function updatePin(Request $request, $id)
+{
+    $user = User::findOrFail($id);
+
+    \Log::info('updatePin called', [
+        'user_id' => $user->id,
+        'pin'     => $request->pin,
+    ]);
+
+    $request->validate([
+        'pin'              => ['required', 'digits_between:4,8', 'confirmed'],
+        'pin_confirmation' => ['required'],
+    ]);
+
+    \DB::table('users')
+        ->where('id', $user->id)
+        ->update(['manager_pin' => bcrypt($request->pin)]);
+
+    return response()->json(['message' => 'PIN updated successfully.']);
+}
 }

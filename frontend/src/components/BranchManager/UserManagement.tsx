@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Search, Plus, Eye, Edit2, Trash2, Lock, UserCheck, XCircle,
   Users, ArrowUpRight, ArrowDownRight, X, AlertCircle,
-  RefreshCw, Mail, MapPin, ShieldCheck, Trash,
+  RefreshCw, Mail, MapPin, ShieldCheck, Trash, CheckCircle,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import api from '../../services/api';
@@ -486,6 +486,105 @@ const DeleteUserModal: React.FC<{
   );
 };
 
+const ResetPinModal: React.FC<{
+  onClose: () => void;
+  user:    User;
+}> = ({ onClose, user }) => {
+  const [pin,       setPin]       = useState('');
+  const [pinConfirm, setPinConfirm] = useState('');
+  const [saving,    setSaving]    = useState(false);
+  const [apiError,  setApiError]  = useState('');
+  const [success,   setSuccess]   = useState(false);
+  const [errors,    setErrors]    = useState<{ pin?: string; pinConfirm?: string }>({});
+
+  const validate = () => {
+    const e: { pin?: string; pinConfirm?: string } = {};
+    if (!pin.trim())               e.pin        = 'PIN is required.';
+    else if (!/^\d{4,8}$/.test(pin)) e.pin      = 'PIN must be 4–8 digits.';
+    if (pin !== pinConfirm)        e.pinConfirm = 'PINs do not match.';
+    return e;
+  };
+
+  const handleSubmit = async () => {
+    const e = validate();
+    if (Object.keys(e).length) { setErrors(e); return; }
+    setSaving(true); setApiError('');
+    try {
+      await api.patch(`/users/${user.id}/pin`, { pin, pin_confirmation: pinConfirm });
+      setSuccess(true);
+      setTimeout(onClose, 1500);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setApiError(msg ?? 'Failed to update PIN.');
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <ModalShell
+      onClose={onClose}
+      icon={<Lock size={15} className="text-violet-600" />}
+      title="Change Manager PIN"
+      sub={`Update PIN for ${user.name}`}
+      footer={
+        success ? null : (
+          <>
+            <Btn variant="secondary" onClick={onClose} disabled={saving}>Cancel</Btn>
+            <Btn onClick={handleSubmit} disabled={saving}>
+              {saving
+                ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</span>
+                : <><ShieldCheck size={13} /> Update PIN</>}
+            </Btn>
+          </>
+        )
+      }>
+      {success ? (
+        <div className="flex flex-col items-center py-4 gap-3">
+          <div className="w-12 h-12 bg-emerald-50 border border-emerald-200 rounded-full flex items-center justify-center">
+            <CheckCircle size={24} className="text-emerald-500" />
+          </div>
+          <p className="text-sm font-bold text-[#1a0f2e]">PIN updated successfully</p>
+        </div>
+      ) : (
+        <>
+          {apiError && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <AlertCircle size={14} className="text-red-500 shrink-0" />
+              <p className="text-xs text-red-600 font-medium">{apiError}</p>
+            </div>
+          )}
+          <div className="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl">
+            <Avatar name={user.name} size="w-8 h-8 text-xs" />
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-[#1a0f2e] truncate">{user.name}</p>
+              <p className="text-[10px] text-zinc-400">{ROLE_LABELS[user.role] ?? user.role}</p>
+            </div>
+          </div>
+          <Field label="New PIN" required error={errors.pin}>
+            <input
+              type="password"
+              value={pin}
+              onChange={e => { setPin(e.target.value); setErrors(p => ({ ...p, pin: undefined })); }}
+              placeholder="Enter 4–8 digit PIN"
+              className={inputCls(errors.pin)}
+              maxLength={8}
+            />
+          </Field>
+          <Field label="Confirm PIN" required error={errors.pinConfirm}>
+            <input
+              type="password"
+              value={pinConfirm}
+              onChange={e => { setPinConfirm(e.target.value); setErrors(p => ({ ...p, pinConfirm: undefined })); }}
+              placeholder="Re-enter PIN"
+              className={inputCls(errors.pinConfirm)}
+              maxLength={8}
+            />
+          </Field>
+        </>
+      )}
+    </ModalShell>
+  );
+};
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 const UserManagement: React.FC = () => {
@@ -500,6 +599,7 @@ const UserManagement: React.FC = () => {
   const [editTarget,   setEditTarget]   = useState<User | null>(null);
   const [toggleTarget, setToggleTarget] = useState<User | null>(null);
   const [delTarget,    setDelTarget]    = useState<User | null>(null);
+  const [pinTarget, setPinTarget] = useState<User | null>(null);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true); setFetchError('');
@@ -678,6 +778,13 @@ const UserManagement: React.FC = () => {
                         className="p-1.5 hover:bg-red-50 rounded-[0.4rem] text-zinc-400 hover:text-red-500 transition-colors" title="Delete">
                         <Trash2 size={13} />
                       </button>
+
+                      {u.role === 'branch_manager' && (
+  <button onClick={() => setPinTarget(u)}
+    className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors" title="Change PIN">
+    <ShieldCheck size={13} />
+  </button>
+)}
                     </div>
                   </td>
                 </tr>
@@ -719,6 +826,12 @@ const UserManagement: React.FC = () => {
           user={delTarget}
         />
       )}
+      {pinTarget && (
+  <ResetPinModal
+    onClose={() => setPinTarget(null)}
+    user={pinTarget}
+  />
+)}
 
     </div>
   );

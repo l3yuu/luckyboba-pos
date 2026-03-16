@@ -136,10 +136,10 @@ return {
 // SUB-COMPONENTS
 // ============================================================
 
-const StatBox: React.FC<{ label: string; value: number; icon: React.ReactNode; isBrand?: boolean; isDanger?: boolean }> = ({ label, value }) => (
-  <div className="bg-white border border-zinc-200 rounded-lg p-4 text-center shadow-sm">
-    <div className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">{label}</div>
-    <div className="text-xl font-bold text-[#1a0f2e]">₱{value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+const StatBox: React.FC<{ label: string; value: number; icon: React.ReactNode; isBrand?: boolean; isDanger?: boolean }> = ({ label, value, isDanger }) => (
+  <div className={`bg-white border rounded-lg p-4 text-center shadow-sm ${isDanger ? 'border-red-200' : 'border-zinc-200'}`}>
+    <div className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${isDanger ? 'text-red-400' : 'text-zinc-400'}`}>{label}</div>
+    <div className={`text-xl font-bold ${isDanger ? 'text-red-500' : 'text-[#1a0f2e]'}`}>₱{value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
   </div>
 );
 
@@ -466,10 +466,16 @@ const SearchReceipts = () => {
                       </td>
                       <td className="px-7 py-4">
                         <div className="flex gap-2">
-                          <button onClick={() => openVoidModal(item.sale_id)}
-                            className="w-9 h-9 inline-flex items-center justify-center bg-white border border-red-200 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all rounded-[0.625rem]">
-                            <X size={14} strokeWidth={2.5} />
-                          </button>
+<button
+  onClick={() => openVoidModal(item.sale_id)}
+  disabled={item.status === 'cancelled'}
+  className={`w-9 h-9 inline-flex items-center justify-center bg-white border transition-all rounded-[0.625rem]
+    ${item.status === 'cancelled'
+      ? 'border-zinc-100 text-zinc-200 cursor-not-allowed'
+      : 'border-red-200 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-500'
+    }`}>
+  <X size={14} strokeWidth={2.5} />
+</button>
                           <button onClick={() => openReprintModal(item)}
                             className="w-9 h-9 inline-flex items-center justify-center bg-white border border-[#e9d5ff] text-zinc-400 hover:bg-[#7c14d4] hover:text-white hover:border-[#7c14d4] transition-all rounded-[0.625rem]">
                             <Printer size={14} />

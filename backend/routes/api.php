@@ -178,6 +178,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::put('/{id}',                 [UserController::class, 'update']);
             Route::delete('/{id}',              [UserController::class, 'destroy']);
             Route::patch('/{id}/toggle-status', [UserController::class, 'toggleStatus']);
+            Route::patch('/{id}/pin',           [UserController::class, 'updatePin']);
         });
 
         Route::prefix('branches')->group(function () {
