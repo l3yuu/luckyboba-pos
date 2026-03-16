@@ -193,38 +193,44 @@ const SalesOrder = () => {
 // 1. Basic counts
 const totalCount = cart.reduce((acc, item) => acc + item.qty, 0);
 
-// 2. Gross Calculation (The original price before any discounts)
+// 2. Gross Calculation (Total original price of everything)
 const grossSubtotal = cart.reduce((acc, item) => 
   acc + (Number(item.price) * item.qty) + getItemSurcharge(item), 0
 );
 
-// 3. Item-Level Discounts (Discounts applied inside the Edit Item modal)
+// 3. Item-Level Discounts (The manual deductions from the Edit Modal)
 const itemDiscountTotal = cart.reduce((acc, item) =>
   acc + Math.max(0, (Number(item.price) * item.qty) - item.finalPrice), 0
 );
 
-// 4. Current Subtotal (The actual value of the cart items after item-level discounts)
-// We use this as the base for Pax and Promo calculations
-const currentSubtotal = grossSubtotal - itemDiscountTotal;
+// 4. ELIGIBLE SUBTOTAL (Items that DO NOT have a manual discount applied)
+// These are the only items that can receive a Senior, PWD, or Promo discount.
+const eligibleSubtotal = cart
+  .filter(item => !item.discountId || item.discountId === null)
+  .reduce((acc, item) => acc + (Number(item.price) * item.qty) + getItemSurcharge(item), 0);
 
-// 5. Order-Level Discounts (Applied in the Payment/Confirm modal)
+// 5. Order-Level Calculations (Senior / PWD / Promo)
 const totalPax = pax.regular + pax.senior + pax.pwd + pax.diplomat;
-const sharePerPax = currentSubtotal / (totalPax || 1);
+
+// We calculate the "share" based only on undiscounted items to prevent stacking
+const sharePerPax = eligibleSubtotal / (totalPax || 1);
 
 const seniorPwdDiscount = (pax.senior + pax.pwd) * (sharePerPax * 0.20);
 const diplomatDiscount = pax.diplomat * (sharePerPax * 0.20);
 
 const promoDiscount = selectedDiscount
   ? selectedDiscount.type.includes('Percent')
-    ? currentSubtotal * (Number(selectedDiscount.amount) / 100)
+    ? eligibleSubtotal * (Number(selectedDiscount.amount) / 100)
     : Number(selectedDiscount.amount)
   : 0;
 
+// The combined order-level discount
 const orderLevelDiscount = seniorPwdDiscount + diplomatDiscount + promoDiscount;
 const discountAmount = orderLevelDiscount;
+
 // 6. Final Totals
-// We subtract both types of discounts from the Gross price
-const amtDue = Math.max(0, grossSubtotal - itemDiscountTotal - discountAmount);
+// Subtract both manual item discounts and order-level discounts from the GROSS
+const amtDue = Math.max(0, grossSubtotal - itemDiscountTotal - orderLevelDiscount);
 
 // 7. Taxes and UI mapping
 const vatableSales = amtDue / 1.12;
@@ -232,8 +238,8 @@ const vatAmount = amtDue - vatableSales;
 const totalDiscountDisplay = itemDiscountTotal + orderLevelDiscount;
 const change = typeof cashTendered === 'number' ? Math.max(0, cashTendered - amtDue) : 0;
 
-// Re-map 'subtotal' so the rest of your UI (sidebar/modals) doesn't break
-const subtotal = currentSubtotal;
+// Re-map 'subtotal' for the Sidebar UI (shows value after item discounts)
+const subtotal = grossSubtotal - itemDiscountTotal;
 
 // 8. Sticker Logic (Unchanged)
 const hasStickers = cart.some(item =>
