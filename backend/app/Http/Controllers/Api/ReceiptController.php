@@ -7,6 +7,7 @@ use App\Models\Receipt;
 use App\Models\VoidRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use App\Models\User;
 
 class ReceiptController extends Controller
 {
@@ -90,76 +91,70 @@ class ReceiptController extends Controller
 
     // ─── Step 1: Cashier submits void request ───────────────────────────────
 
-    public function voidRequest(Request $request, $id)
-    {
-        $request->validate([
-            'reason' => 'required|string|max:500',
-        ]);
+public function voidRequest(Request $request, $id)
+{
+    // REMOVE: $request->validate(['reason' => 'required|string|max:500']);
 
-        $sale = \App\Models\Sale::findOrFail($id);
+    $sale = \App\Models\Sale::findOrFail($id);
 
-        if ($sale->status === 'cancelled') {
-            return response()->json(['message' => 'Already voided.'], 422);
-        }
-
-        $cashier = auth()->user();
-
-        $voidRequest = VoidRequest::create([
-            'sale_id'    => $sale->id,
-            'cashier_id' => $cashier->id,
-            'branch_id'  => $cashier->branch_id,
-            'reason'     => $request->reason,
-            'status'     => 'pending',
-        ]);
-
-        return response()->json([
-            'message'         => 'Void request created.',
-            'void_request_id' => $voidRequest->id,
-        ]);
+    if (strtolower($sale->status) === 'cancelled') {
+        return response()->json(['message' => 'Already voided.'], 422);
     }
+
+    $cashier = auth()->user();
+
+    $voidRequest = VoidRequest::create([
+        'sale_id'    => $sale->id,
+        'cashier_id' => $cashier->id,
+        'branch_id'  => $cashier->branch_id,
+        'reason'     => $request->reason ?? 'Voided by manager',
+        'status'     => 'pending',
+    ]);
+
+    return response()->json([
+        'message'         => 'Void request created.',
+        'void_request_id' => $voidRequest->id,
+    ]);
+}
 
     // ─── Step 2: Manager enters PIN to approve ──────────────────────────────
+public function approveVoid(Request $request, $id)
+{
+    $request->validate([
+        'manager_pin' => 'required',
+    ]);
 
-    public function approveVoid(Request $request, $voidRequestId)
-    {
-        $request->validate([
-            'manager_pin' => 'required|string',
-        ]);
+    $voidRequest = VoidRequest::with('sale')->findOrFail($id);
 
-        $voidRequest = VoidRequest::findOrFail($voidRequestId);
-
-        if ($voidRequest->status !== 'pending') {
-            return response()->json(['message' => 'Already processed.'], 422);
-        }
-
-        $manager = \App\Models\User::where('role', 'branch_manager')
-            ->where('branch_id', $voidRequest->branch_id)
-            ->first();
-
-        if (!$manager || !$manager->manager_pin) {
-            return response()->json(['message' => 'No manager PIN configured for this branch.'], 422);
-        }
-
-        if (!Hash::check($request->manager_pin, $manager->manager_pin)) {
-            return response()->json(['message' => 'Incorrect PIN. Please try again.'], 403);
-        }
-
-        $voidRequest->update([
-            'manager_id'  => $manager->id,
-            'status'      => 'approved',
-            'approved_at' => now(),
-        ]);
-
-        $sale = \App\Models\Sale::findOrFail($voidRequest->sale_id);
-        $sale->update([
-            'status'              => 'cancelled',
-            'cancellation_reason' => $voidRequest->reason,
-        ]);
-
-        app(\App\Services\DashboardService::class)->clearAllTimeCache($sale->branch_id);
-
-        return response()->json(['message' => 'Transaction voided successfully.']);
+    if (!$voidRequest->sale) {
+        return response()->json(['message' => 'Sale not found.'], 422);
     }
+
+    if (strtolower($voidRequest->sale->status) === 'cancelled') {
+        return response()->json(['message' => 'This transaction is already voided.'], 422);
+    }
+
+    $manager = User::where('role', 'branch_manager')
+        ->where('branch_id', $voidRequest->sale->branch_id)
+        ->first();
+
+    if (!$manager) {
+        return response()->json(['message' => 'No branch manager found.'], 422);
+    }
+
+    if (!$manager->manager_pin) {
+        return response()->json(['message' => 'Branch manager has no PIN configured.'], 422);
+    }
+
+    if (!Hash::check($request->manager_pin, $manager->manager_pin)) {
+        return response()->json(['message' => 'Incorrect PIN. Please try again.'], 422);
+    }
+
+    $voidRequest->update(['status' => 'approved']);
+    $voidRequest->sale->update(['status' => 'cancelled']);
+
+    return response()->json(['message' => 'Void approved successfully.']);
+}
 public function reprint(Request $request, int $id)
 {
     $type = $request->query('type', 'receipt');
