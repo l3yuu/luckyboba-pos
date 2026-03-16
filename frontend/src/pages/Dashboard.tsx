@@ -101,28 +101,27 @@ const fetchStats = useCallback(async (force = false) => {
   }
 }, []);
 
-useEffect(() => {
-  const goOnline  = () => { setIsOnline(true); fetchStats(true); };
-  const goOffline = () => setIsOnline(false);
-  window.addEventListener('online',  goOnline);
-  window.addEventListener('offline', goOffline);
-  return () => {
-    window.removeEventListener('online',  goOnline);
-    window.removeEventListener('offline', goOffline);
-  };
-}, [fetchStats]);
-
-useEffect(() => {
-  if (!user || activeTab !== 'dashboard') return;
-  void fetchStats(refreshKey > 0);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [user, activeTab, refreshKey]);
+  useEffect(() => {
+    const goOnline = () => {
+      setIsOnline(true);
+      if (activeTab === 'dashboard') {
+        localStorage.removeItem('dashboard_stats_timestamp');
+        void fetchStats(true);
+      }
+    };
+    const goOffline = () => setIsOnline(false);
+    window.addEventListener('online', goOnline);
+    window.addEventListener('offline', goOffline);
+    return () => {
+      window.removeEventListener('online', goOnline);
+      window.removeEventListener('offline', goOffline);
+    };
+  }, [fetchStats, activeTab]);
 
   useEffect(() => {
     if (!user || activeTab !== 'dashboard') return;
     void fetchStats(refreshKey > 0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, activeTab, refreshKey]);
+  }, [user, activeTab, refreshKey, fetchStats]);
 
   if (authLoading || (isInitialLoad && !stats)) return <DashboardSkeleton />;
   if (!user) return null;

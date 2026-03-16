@@ -843,9 +843,9 @@ const SalesOrder = () => {
   // ── Loading screen ──────────────────────────────────────────────────────────
 
   if (checkingCashIn || loading) return (
-    <div className="h-screen flex items-center justify-center font-black text-[#3b2063] bg-[#f8f6ff]">
+    <div className="h-screen flex items-center justify-center font-black text-[#7c14d4] bg-[#f4f2fb]">
       <div className="text-center">
-        <DrinkIcon className="w-16 h-16 mx-auto mb-4 text-[#3b2063] opacity-30 animate-pulse" />
+        <DrinkIcon className="w-16 h-16 mx-auto mb-4 text-[#7c14d4]/30 animate-pulse" />
         <div className="text-sm tracking-widest uppercase opacity-50">Loading...</div>
       </div>
     </div>
@@ -882,7 +882,7 @@ const SalesOrder = () => {
       `}</style>
 
       {/* ── MAIN LAYOUT ─────────────────────────────────────────────────────── */}
-      <div className="flex flex-col h-screen w-screen bg-[#f0edf8] relative overflow-hidden font-sans print:hidden">
+      <div className="flex flex-col h-screen w-screen bg-[#f4f2fb] relative overflow-hidden font-sans print:hidden">
 
         {/* Modals */}
         {editingCartItem && editingCartIndex !== null && (

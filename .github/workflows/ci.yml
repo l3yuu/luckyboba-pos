@@ -24,11 +24,14 @@ jobs:
       - name: Prepare Laravel Environment
         working-directory: ./backend
         run: |
-          # Copy example to .env
-          cp .env.example .env
-          # Generate the application key required for encryption/sessions
+          # Copy example to .env (create minimal one if example missing)
+          if [ -f .env.example ]; then
+            cp .env.example .env
+          else
+            echo "APP_KEY=" > .env
+            echo "APP_ENV=testing" >> .env
+          fi
           php artisan key:generate
-          # Ensure the database directory exists for the sqlite file (if not using :memory:)
           mkdir -p database
           touch database/database.sqlite
 
@@ -116,7 +119,7 @@ jobs:
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
-            php artisan schedule:run >> /dev/null 2>&1  # ✅ Run scheduled tasks (token pruning etc.)
+            php artisan schedule:run >> /dev/null 2>&1
             cd ..
 
             # Restore root index.html with corrected asset paths
@@ -126,6 +129,9 @@ jobs:
             sed -i 's|href="/assets/|href="/backend/public/assets/|g' index.html
             sed -i 's|href="/lucky.jpg"|href="/backend/public/lucky.jpg"|g' index.html
             sed -i '/<meta http-equiv="Content-Security-Policy"/,/blob:;">/d' index.html
+
+            # ✅ Fix sw.js internal workbox reference path
+            sed -i 's|importScripts("/workbox-|importScripts("/backend/public/workbox-|g' backend/public/sw.js
 
             # Restore Production .htaccess
             cat > .htaccess << 'HTACCESS'
@@ -149,6 +155,9 @@ jobs:
                 RewriteRule ^assets/(.*)$ backend/public/assets/$1 [L]
                 RewriteRule ^lucky\.jpg$ backend/public/lucky.jpg [L]
                 RewriteRule ^favicon\.ico$ backend/public/favicon.ico [L]
+                RewriteRule ^sw\.js$ backend/public/sw.js [L]
+                RewriteRule ^workbox-(.*)\.js$ backend/public/workbox-$1.js [L]
+                RewriteRule ^manifest\.webmanifest$ backend/public/manifest.webmanifest [L]
                 RewriteRule ^$ index.html [L]
                 RewriteRule ^(.*)$ index.html [L]
             </IfModule>
@@ -216,16 +225,19 @@ jobs:
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
-            php artisan schedule:run >> /dev/null 2>&1  # ✅ Run scheduled tasks (token pruning etc.)
+            php artisan schedule:run >> /dev/null 2>&1
             cd ..
 
-            # Restore root index.html with corrected asset paths (same as prod)
+            # Restore root index.html with corrected asset paths
             rm -f index.html
             cp backend/public/index.html index.html
             sed -i 's|src="/assets/|src="/backend/public/assets/|g' index.html
             sed -i 's|href="/assets/|href="/backend/public/assets/|g' index.html
             sed -i 's|href="/lucky.jpg"|href="/backend/public/lucky.jpg"|g' index.html
             sed -i '/<meta http-equiv="Content-Security-Policy"/,/blob:;">/d' index.html
+
+            # ✅ Fix sw.js internal workbox reference path
+            sed -i 's|importScripts("/workbox-|importScripts("/backend/public/workbox-|g' backend/public/sw.js
 
             # Restore Staging .htaccess
             cat > .htaccess << 'HTACCESS'
@@ -249,6 +261,9 @@ jobs:
                 RewriteRule ^assets/(.*)$ backend/public/assets/$1 [L]
                 RewriteRule ^lucky\.jpg$ backend/public/lucky.jpg [L]
                 RewriteRule ^favicon\.ico$ backend/public/favicon.ico [L]
+                RewriteRule ^sw\.js$ backend/public/sw.js [L]
+                RewriteRule ^workbox-(.*)\.js$ backend/public/workbox-$1.js [L]
+                RewriteRule ^manifest\.webmanifest$ backend/public/manifest.webmanifest [L]
                 RewriteRule ^$ index.html [L]
                 RewriteRule ^(.*)$ index.html [L]
             </IfModule>

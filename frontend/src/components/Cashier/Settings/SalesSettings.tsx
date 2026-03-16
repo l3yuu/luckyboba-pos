@@ -8,7 +8,7 @@ import { useToast } from '../../../hooks/useToast';
 import { getCache, setCache } from '../../../utils/cache';
 
 const CACHE_KEY = 'sales-settings';
-const CACHE_TTL = 10 * 60 * 1000; // 10 min — settings rarely change
+const CACHE_TTL = 10 * 60 * 1000;
 
 interface SalesSettingsProps {
   isOpen: boolean;
@@ -117,7 +117,7 @@ const SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
     setLoading(true);
     try {
       await api.post('/settings', formData);
-      setCache<FormData>(CACHE_KEY, formData, CACHE_TTL); // refresh TTL after save
+      setCache<FormData>(CACHE_KEY, formData, CACHE_TTL);
       showToast("Configuration saved!", "success");
       setIsEditing(false);
     } catch {
@@ -133,33 +133,51 @@ const SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
     <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-4xl rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col md:flex-row h-[90vh] md:h-auto animate-in zoom-in-95 duration-200 relative">
 
-        <div className="flex-1 bg-zinc-50/50 p-8 border-r border-zinc-200 flex flex-col relative overflow-hidden rounded-[0.625rem]">
+        <div className="flex-1 bg-[#f5f0ff] p-8 border-r border-[#e9d5ff] flex flex-col relative overflow-hidden rounded-[0.625rem]">
 
           {isEditing ? (
             <div className="flex-1 flex flex-col animate-in slide-in-from-right-8 duration-300">
-              <h2 className="text-[#1e40af] font-black text-xs uppercase tracking-[0.15em] mb-6">Edit Configuration</h2>
+              <h2 className="text-[#7c14d4] font-black text-xs uppercase tracking-[0.15em] mb-6">Edit Configuration</h2>
 
               <div className="flex-1 overflow-y-auto pr-2 space-y-4">
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">BCODE</label>
-                  <input type="text" value={formData.bcode} onChange={(e) => setFormData({...formData, bcode: e.target.value})} className="w-full px-3 py-2 bg-white border border-zinc-300 rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200" />
+                  <input
+                    type="text"
+                    value={formData.bcode}
+                    onChange={(e) => setFormData({...formData, bcode: e.target.value})}
+                    className="w-full px-3 py-2 bg-white border border-[#e9d5ff] rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-[#7c14d4] focus:ring-2 focus:ring-[#7c14d4]/10 transition-all duration-200"
+                  />
                 </div>
 
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">POS Type</label>
-                  <input type="text" value="RESTO" disabled className="w-full px-3 py-2 bg-zinc-100 border border-zinc-200 rounded-[0.625rem] text-xs font-black text-slate-400 cursor-not-allowed" />
+                  <input
+                    type="text"
+                    value="RESTO"
+                    disabled
+                    className="w-full px-3 py-2 bg-zinc-100 border border-zinc-200 rounded-[0.625rem] text-xs font-black text-slate-400 cursor-not-allowed"
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-1">
                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Service Charge</label>
-                    <select className="w-full px-3 py-2 bg-white border border-zinc-300 rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200" value={formData.serviceCharge} onChange={(e) => setFormData({...formData, serviceCharge: e.target.value})}>
+                    <select
+                      className="w-full px-3 py-2 bg-white border border-[#e9d5ff] rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-[#7c14d4] focus:ring-2 focus:ring-[#7c14d4]/10 transition-all duration-200"
+                      value={formData.serviceCharge}
+                      onChange={(e) => setFormData({...formData, serviceCharge: e.target.value})}
+                    >
                       {['0%', '3%', '5%', '8%', '10%', '15%', '20%'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                   </div>
                   <div className="flex flex-col gap-1">
                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Voucher Surge</label>
-                    <select className="w-full px-3 py-2 bg-white border border-zinc-300 rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200" value={formData.voucherSurge} onChange={(e) => setFormData({...formData, voucherSurge: e.target.value})}>
+                    <select
+                      className="w-full px-3 py-2 bg-white border border-[#e9d5ff] rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-[#7c14d4] focus:ring-2 focus:ring-[#7c14d4]/10 transition-all duration-200"
+                      value={formData.voucherSurge}
+                      onChange={(e) => setFormData({...formData, voucherSurge: e.target.value})}
+                    >
                       {['0%', '5%', '10%', '15%', '20%', '25%', '30%'].map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                   </div>
@@ -167,15 +185,25 @@ const SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
 
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">S.C / PWD Discount Charges</label>
-                  <input type="text" value={formData.scPwdDiscount} onChange={(e) => setFormData({...formData, scPwdDiscount: e.target.value})} className="w-full px-3 py-2 bg-white border border-zinc-300 rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200" />
+                  <input
+                    type="text"
+                    value={formData.scPwdDiscount}
+                    onChange={(e) => setFormData({...formData, scPwdDiscount: e.target.value})}
+                    className="w-full px-3 py-2 bg-white border border-[#e9d5ff] rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-[#7c14d4] focus:ring-2 focus:ring-[#7c14d4]/10 transition-all duration-200"
+                  />
                 </div>
 
                 <div className="flex flex-col gap-1">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Customer Points</label>
-                  <input type="number" value={formData.customerPoints} onChange={(e) => setFormData({...formData, customerPoints: parseInt(e.target.value) || 0})} className="w-full px-3 py-2 bg-white border border-zinc-300 rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all duration-200" />
+                  <input
+                    type="number"
+                    value={formData.customerPoints}
+                    onChange={(e) => setFormData({...formData, customerPoints: parseInt(e.target.value) || 0})}
+                    className="w-full px-3 py-2 bg-white border border-[#e9d5ff] rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-[#7c14d4] focus:ring-2 focus:ring-[#7c14d4]/10 transition-all duration-200"
+                  />
                 </div>
 
-                <div className="bg-white p-3 rounded-[0.625rem] border border-zinc-200 space-y-3">
+                <div className="bg-white p-3 rounded-[0.625rem] border border-[#e9d5ff] space-y-3">
                   {([
                     { key: 'transDateDay',   label: 'Trans. by Date/Day (24H Cutoff)' },
                     { key: 'transPerLine',   label: 'Transaction Per Line' },
@@ -188,20 +216,27 @@ const SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
                         type="checkbox"
                         checked={formData[key] as boolean}
                         onChange={(e) => setFormData({...formData, [key]: e.target.checked})}
-                        className="w-4 h-4 rounded border-zinc-300 text-blue-600 focus:ring-blue-500"
+                        className="w-4 h-4 rounded border-zinc-300 text-[#7c14d4] focus:ring-[#7c14d4]"
                       />
-                      <span className="text-[10px] font-bold text-slate-600 uppercase group-hover:text-blue-600 transition-colors">{label}</span>
+                      <span className="text-[10px] font-bold text-slate-600 uppercase group-hover:text-[#7c14d4] transition-colors">{label}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
-              <div className="flex gap-3 mt-6 pt-4 border-t border-zinc-200">
-                <button onClick={handleSave} disabled={loading} className="flex-1 px-4 py-3 bg-[#3b2063] text-white rounded-[0.625rem] font-black uppercase text-[10px] tracking-widest hover:bg-[#2a1647] flex items-center justify-center gap-2 shadow-md transition-all disabled:opacity-50">
+              <div className="flex gap-3 mt-6 pt-4 border-t border-[#e9d5ff]">
+                <button
+                  onClick={handleSave}
+                  disabled={loading}
+                  className="flex-1 px-4 py-3 bg-[#7c14d4] text-white rounded-[0.625rem] font-black uppercase text-[10px] tracking-widest hover:bg-[#6a12b8] flex items-center justify-center gap-2 shadow-md transition-all disabled:opacity-50"
+                >
                   {loading ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} strokeWidth={2.5} />}
                   Save
                 </button>
-                <button onClick={() => setIsEditing(false)} className="flex-1 px-4 py-3 bg-zinc-200 text-zinc-500 rounded-[0.625rem] font-black uppercase text-[10px] tracking-widest hover:bg-zinc-300 flex items-center justify-center gap-2 shadow-sm transition-all">
+                <button
+                  onClick={() => setIsEditing(false)}
+                  className="flex-1 px-4 py-3 bg-zinc-200 text-zinc-500 rounded-[0.625rem] font-black uppercase text-[10px] tracking-widest hover:bg-zinc-300 flex items-center justify-center gap-2 shadow-sm transition-all"
+                >
                   <ArrowLeft size={14} strokeWidth={2.5} />
                   Back
                 </button>
@@ -209,7 +244,7 @@ const SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
             </div>
           ) : (
             <div className="flex-1 flex flex-col animate-in slide-in-from-left-8 duration-300">
-              <h2 className="text-[#1e40af] font-black text-xs uppercase tracking-[0.15em] mb-8">Sales Configuration</h2>
+              <h2 className="text-[#7c14d4] font-black text-xs uppercase tracking-[0.15em] mb-8">Sales Configuration</h2>
 
               <div className={`flex-1 space-y-4 text-xs font-bold text-slate-600 overflow-y-auto relative ${isSyncing ? 'select-none' : ''}`}>
                 <div className={`space-y-4 transition-all duration-300 ${isSyncing ? 'blur-[3px] opacity-40 pointer-events-none' : 'blur-0 opacity-100'}`}>
@@ -237,10 +272,17 @@ const SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
               </div>
 
               <div className="flex gap-3 mt-8">
-                <button onClick={() => setIsEditing(true)} disabled={isSyncing} className="flex-1 px-4 py-3 bg-[#3b2063] text-white rounded-[0.625rem] font-black uppercase text-[10px] tracking-widest hover:bg-[#2a1647] flex items-center justify-center gap-2 shadow-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+                <button
+                  onClick={() => setIsEditing(true)}
+                  disabled={isSyncing}
+                  className="flex-1 px-4 py-3 bg-[#7c14d4] text-white rounded-[0.625rem] font-black uppercase text-[10px] tracking-widest hover:bg-[#6a12b8] flex items-center justify-center gap-2 shadow-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                >
                   <Pencil size={14} strokeWidth={2.5} />Edit
                 </button>
-                <button onClick={onClose} className="flex-1 px-4 py-3 bg-zinc-500 text-white rounded-[0.625rem] font-black uppercase text-[10px] tracking-widest hover:bg-zinc-600 flex items-center justify-center gap-2 shadow-lg transition-all">
+                <button
+                  onClick={onClose}
+                  className="flex-1 px-4 py-3 bg-zinc-500 text-white rounded-[0.625rem] font-black uppercase text-[10px] tracking-widest hover:bg-zinc-600 flex items-center justify-center gap-2 shadow-lg transition-all"
+                >
                   <ArrowLeft size={14} strokeWidth={2.5} />Back
                 </button>
               </div>
@@ -249,7 +291,7 @@ const SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
         </div>
 
         <div className="flex-1 p-8 bg-white flex flex-col items-center text-center">
-          <h2 className="w-full text-left text-[#1e40af] font-black text-xs uppercase tracking-[0.15em] mb-8">Receipt Details</h2>
+          <h2 className="w-full text-left text-[#7c14d4] font-black text-xs uppercase tracking-[0.15em] mb-8">Receipt Details</h2>
           <div className="flex-1 flex flex-col items-center justify-center gap-6 max-w-sm">
             <img src={logo} alt="Lucky Boba" className="w-24 h-auto object-contain mb-2" />
             <div className="space-y-1">

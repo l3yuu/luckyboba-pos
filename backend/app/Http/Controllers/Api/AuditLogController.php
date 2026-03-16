@@ -12,11 +12,12 @@ class AuditLogController extends Controller
     public function index(Request $request)
     {
         $request->validate([
-            'search'   => 'nullable|string|max:255',
-            'module'   => 'nullable|string',
-            'per_page' => 'nullable|integer|min:1|max:100',
-            'date_from'=> 'nullable|date',
-            'date_to'  => 'nullable|date',
+            'search'    => 'nullable|string|max:255',
+            'module'    => 'nullable|string',
+            'per_page'  => 'nullable|integer|min:1|max:100',
+            'date_from' => 'nullable|date',
+            'date_to'   => 'nullable|date',
+            'branch_id' => 'nullable|integer|exists:branches,id',
         ]);
 
         $query = AuditLog::with('user:id,name')
@@ -27,9 +28,9 @@ class AuditLogController extends Controller
             $s = $request->search;
             $query->where(function ($q) use ($s) {
                 $q->where('action',   'like', "%{$s}%")
-                  ->orWhere('module',  'like', "%{$s}%")
-                  ->orWhere('details', 'like', "%{$s}%")
-                  ->orWhereHas('user', fn($u) => $u->where('name', 'like', "%{$s}%"));
+                ->orWhere('module',  'like', "%{$s}%")
+                ->orWhere('details', 'like', "%{$s}%")
+                ->orWhereHas('user', fn($u) => $u->where('name', 'like', "%{$s}%"));
             });
         }
 
@@ -46,6 +47,15 @@ class AuditLogController extends Controller
             $query->whereDate('created_at', '<=', $request->date_to);
         }
 
+        // Branch filter
+        if ($request->filled('branch_id')) {
+            $branchUserIds = DB::table('users')
+                ->where('branch_id', $request->branch_id)
+                ->whereNotIn('role', ['superadmin', 'system_admin'])
+                ->pluck('id');
+            $query->whereIn('user_id', $branchUserIds);
+        }
+
         $perPage = $request->per_page ?? 20;
         $logs    = $query->paginate($perPage);
 
@@ -58,14 +68,13 @@ class AuditLogController extends Controller
             'voids_today'  => AuditLog::where('created_at', '>=', $todayStart)
                                 ->where(function ($q) {
                                     $q->where('module', 'void')
-                                      ->orWhere('action', 'like', '%void%')
-                                      ->orWhere('action', 'like', '%Void%');
+                                    ->orWhere('action', 'like', '%void%')
+                                    ->orWhere('action', 'like', '%Void%');
                                 })->count(),
             'unique_users' => AuditLog::where('created_at', '>=', $todayStart)
                                 ->whereNotNull('user_id')
                                 ->distinct('user_id')
                                 ->count('user_id'),
-            // All distinct modules for the filter dropdown
             'modules'      => AuditLog::query()
                                 ->distinct('module')
                                 ->orderBy('module')
@@ -75,12 +84,11 @@ class AuditLogController extends Controller
         ];
 
         // ── Last logins per user ───────────────────────────────────────────────
-        // Covers: "User logged in: ...", "logged in", "login" — all variations
         $lastLogins = AuditLog::select('user_id', DB::raw('MAX(created_at) as last_login_at'))
             ->where(function ($q) {
                 $q->where('action', 'like', '%logged in%')
-                  ->orWhere('action', 'like', '%User logged%')
-                  ->orWhere('action', 'like', '%login%');
+                ->orWhere('action', 'like', '%User logged%')
+                ->orWhere('action', 'like', '%login%');
             })
             ->whereNotNull('user_id')
             ->groupBy('user_id')

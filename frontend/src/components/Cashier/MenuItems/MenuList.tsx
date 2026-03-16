@@ -12,8 +12,8 @@ interface MenuItem {
   barcode: string | null;
   category: string | null;
   unitCost: number;
-  sellingPrice: number;  // ← this maps to 'price' from API
-  price: number;         // ← add this
+  sellingPrice: number;
+  price: number;
   totalCost: number;
   status?: 'ACTIVE' | 'INACTIVE';
   type?: 'FOOD' | 'DRINK';
@@ -24,10 +24,6 @@ interface Toast {
   message: string;
   type: 'success' | 'error';
 }
-
-
-
-
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
 function ToastNotification({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: number) => void }) {
@@ -55,7 +51,6 @@ function MenuList() {
   const [filterName, setFilterName] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [toasts, setToasts] = useState<Toast[]>([]);
-
 
   const removeToast = (id: number) => setToasts(prev => prev.filter(t => t.id !== id));
 
@@ -95,7 +90,7 @@ function MenuList() {
       <div className="flex-1 bg-[#f4f2fb] h-full flex flex-col overflow-hidden">
         <TopNavbar />
         <div className="flex-1 flex items-center justify-center gap-3">
-          <RefreshCw size={22} className="animate-spin text-[#3b2063]" />
+          <RefreshCw size={22} className="animate-spin text-[#7c14d4]" />
           <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">Loading menu...</p>
         </div>
       </div>
@@ -117,17 +112,25 @@ function MenuList() {
               <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
                 <Search size={10} /> Search
               </label>
-              <input type="text" value={filterName} onChange={(e) => setFilterName(e.target.value)}
-                className="w-full px-4 py-3 border border-zinc-200 bg-[#f4f2fb] text-[#1a0f2e] font-semibold text-sm outline-none focus:border-[#3b2063] focus:bg-white transition-all placeholder:text-zinc-300"
-                placeholder="Name or barcode..." />
+              <input
+                type="text"
+                value={filterName}
+                onChange={(e) => setFilterName(e.target.value)}
+                className="w-full px-4 py-3 border border-[#e9d5ff] bg-[#f5f0ff] text-[#1a0f2e] font-semibold text-sm outline-none focus:border-[#7c14d4] focus:bg-white transition-all placeholder:text-zinc-300 rounded-[0.625rem]"
+                placeholder="Name or barcode..."
+              />
             </div>
             <div className="flex-1 w-full space-y-1.5">
               <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest flex items-center gap-1.5">
                 <Layers size={10} /> Category
               </label>
-              <input type="text" value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}
-                className="w-full px-4 py-3 border border-zinc-200 bg-[#f4f2fb] text-[#1a0f2e] font-semibold text-sm outline-none focus:border-[#3b2063] focus:bg-white transition-all placeholder:text-zinc-300 rounded-[0.625rem]"
-                placeholder="Filter by category..." />
+              <input
+                type="text"
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                className="w-full px-4 py-3 border border-[#e9d5ff] bg-[#f5f0ff] text-[#1a0f2e] font-semibold text-sm outline-none focus:border-[#7c14d4] focus:bg-white transition-all placeholder:text-zinc-300 rounded-[0.625rem]"
+                placeholder="Filter by category..."
+              />
             </div>
             <div className="flex gap-2 w-full xl:w-auto">
             </div>
@@ -136,15 +139,21 @@ function MenuList() {
 
         {/* ── Action Ribbon ── */}
         <div className="flex gap-2 items-center">
-          <button onClick={() => window.print()} className="h-9 px-4 bg-white border border-zinc-200 text-zinc-600 font-bold text-[11px] uppercase tracking-widest hover:border-[#3b2063] hover:text-[#3b2063] transition-colors flex items-center gap-2 rounded-[0.625rem]">
+          <button
+            onClick={() => window.print()}
+            className="h-9 px-4 bg-white border border-[#e9d5ff] text-zinc-600 font-bold text-[11px] uppercase tracking-widest hover:border-[#7c14d4] hover:text-[#7c14d4] transition-colors flex items-center gap-2 rounded-[0.625rem]"
+          >
             <Printer size={13} strokeWidth={2} /> Print
           </button>
-          <button onClick={generateExcel} className="h-9 px-4 bg-white border border-zinc-200 text-zinc-600 font-bold text-[11px] uppercase tracking-widest hover:border-[#3b2063] hover:text-[#3b2063] transition-colors flex items-center gap-2 rounded-[0.625rem]">
+          <button
+            onClick={generateExcel}
+            className="h-9 px-4 bg-white border border-[#e9d5ff] text-zinc-600 font-bold text-[11px] uppercase tracking-widest hover:border-[#7c14d4] hover:text-[#7c14d4] transition-colors flex items-center gap-2 rounded-[0.625rem]"
+          >
             <FileDown size={13} strokeWidth={2} /> Export XLS
           </button>
           <div className="flex-1" />
-          <div className="h-9 px-4 bg-white border border-zinc-200 flex items-center gap-2">
-            <Database size={12} className="text-violet-500" />
+          <div className="h-9 px-4 bg-[#f5f0ff] border border-[#e9d5ff] flex items-center gap-2 rounded-[0.625rem]">
+            <Database size={12} className="text-[#7c14d4]" />
             <span className="text-[11px] font-bold text-zinc-600 uppercase tracking-widest">
               {filteredData.length} <span className="text-zinc-400 font-medium">Records</span>
             </span>
@@ -155,8 +164,8 @@ function MenuList() {
         <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-[0.625rem]">
           <div className="flex-1 overflow-auto">
             <table className="w-full text-left">
-              <thead className="sticky top-0 bg-white z-10 border-b border-zinc-100">
-                <tr>
+              <thead className="sticky top-0 bg-white z-10 border-b border-[#e9d5ff]">
+                <tr className="bg-[#f5f0ff]">
                   <th className="px-7 py-3.5 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Item Name</th>
                   <th className="px-5 py-3.5 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">SKU / Barcode</th>
                   <th className="px-5 py-3.5 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Category</th>
@@ -167,7 +176,7 @@ function MenuList() {
               </thead>
               <tbody className="divide-y divide-zinc-100">
                 {filteredData.length > 0 ? filteredData.map(item => (
-                  <tr key={item.id} className="hover:bg-[#f4f2fb] transition-colors">
+                  <tr key={item.id} className="hover:bg-[#f5f0ff] transition-colors">
                     <td className="px-7 py-3.5">
                       <span className="text-sm font-bold text-[#1a0f2e]">{item.name}</span>
                     </td>
@@ -175,7 +184,7 @@ function MenuList() {
                       <span className="text-sm font-medium text-zinc-400 tabular-nums">{item.barcode || '—'}</span>
                     </td>
                     <td className="px-5 py-3.5">
-                      <span className="px-2.5 py-1 bg-zinc-50 border border-zinc-200 text-[10px] font-bold text-zinc-600 uppercase tracking-wide">
+                      <span className="px-2.5 py-1 bg-[#f5f0ff] border border-[#e9d5ff] text-[10px] font-bold text-[#7c14d4] uppercase tracking-wide rounded-sm">
                         {item.category || 'General'}
                       </span>
                     </td>
@@ -204,7 +213,7 @@ function MenuList() {
           </div>
 
           {/* Table Footer */}
-          <div className="px-7 py-3.5 bg-white border-t border-zinc-100 flex items-center justify-between">
+          <div className="px-7 py-3.5 bg-white border-t border-[#e9d5ff] flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Terminal size={11} className="text-zinc-300" />
               <span className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">POS Terminal 01</span>
