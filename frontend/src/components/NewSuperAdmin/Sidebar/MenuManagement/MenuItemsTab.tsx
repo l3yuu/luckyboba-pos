@@ -356,9 +356,8 @@ const MenuItemsTab: React.FC = () => {
       setItems((Array.isArray(itemsData) ? itemsData : (itemsData.data ?? [])).map(mapItem));
       setCategories(Array.isArray(catsData) ? catsData : (catsData.data ?? []));
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const rawSubs = Array.isArray(subsData) ? subsData : (subsData.data ?? []);
-      setSubcategories(rawSubs.map((s: any) => ({
+      setSubcategories(rawSubs.map((s: SubCategory) => ({
         id:          s.id,
         name:        s.name,
         category_id: s.category_id,
