@@ -56,7 +56,6 @@ const ItemsReport = () => {
   const today = getLocalToday();
   const phCurrency = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
 
-  // ── Pull branch name from localStorage (same as CashIn.tsx) ──
   const branchName = useMemo(() =>
     localStorage.getItem('lucky_boba_user_branch') || 'Main Branch'
   , []);
@@ -94,13 +93,13 @@ const ItemsReport = () => {
     }
   }, [fromDate, toDate, reportType, getCacheKey]);
 
-useEffect(() => {
-  setData(null);
-  const key = getCacheKey(fromDate, toDate, reportType);
-  const saved = localStorage.getItem(key);
-  if (saved) setData(JSON.parse(saved));
-  else fetchReport();
-}, [fromDate, toDate, reportType, getCacheKey, fetchReport]);
+  useEffect(() => {
+    setData(null);
+    const key = getCacheKey(fromDate, toDate, reportType);
+    const saved = localStorage.getItem(key);
+    if (saved) setData(JSON.parse(saved));
+    else fetchReport();
+  }, [fromDate, toDate, reportType, getCacheKey, fetchReport]);
 
   const generateExcel = useCallback(() => {
     if (!data || data.items.length === 0) {
@@ -112,19 +111,8 @@ useEffect(() => {
 
     const rows = data.items.map((item, index) =>
       isCategorySummary
-        ? {
-            '#': index + 1,
-            'Category': item.name,
-            'Qty Sold': item.qty,
-            'Total Sales': item.amount,
-          }
-        : {
-            '#': index + 1,
-            'Item Name': item.name,
-            'Category': item.category,
-            'Qty Sold': item.qty,
-            'Total Sales': item.amount,
-          }
+        ? { '#': index + 1, 'Category': item.name, 'Qty Sold': item.qty, 'Total Sales': item.amount }
+        : { '#': index + 1, 'Item Name': item.name, 'Category': item.category, 'Qty Sold': item.qty, 'Total Sales': item.amount }
     );
 
     rows.push(
@@ -215,7 +203,6 @@ useEffect(() => {
             <div className="flex-between font-black text-[16px] pt-1 border-t border-black"><span>TOTAL REVENUE</span><span>{phCurrency.format(data?.grand_total || 0)}</span></div>
           </div>
         </div>
-
         <div className="mt-8 text-center space-y-4">
           <div className="receipt-divider" />
           <div className="pt-2">
@@ -244,7 +231,7 @@ useEffect(() => {
                 <input
                   type="date" value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
-                  className="w-full px-4 py-3 border border-zinc-200 bg-[#f4f2fb] font-semibold text-sm text-[#1a0f2e] outline-none focus:border-[#3b2063] transition-colors"
+                  className="w-full px-4 py-3 border border-zinc-200 bg-[#f4f2fb] font-semibold text-sm text-[#1a0f2e] outline-none focus:border-[#7c14d4] transition-colors"
                 />
               </div>
 
@@ -256,7 +243,7 @@ useEffect(() => {
                 <input
                   type="date" value={toDate}
                   onChange={(e) => setToDate(e.target.value)}
-                  className="w-full px-4 py-3 border border-zinc-200 bg-[#f4f2fb] font-semibold text-sm text-[#1a0f2e] outline-none focus:border-[#3b2063] transition-colors"
+                  className="w-full px-4 py-3 border border-zinc-200 bg-[#f4f2fb] font-semibold text-sm text-[#1a0f2e] outline-none focus:border-[#7c14d4] transition-colors"
                 />
               </div>
 
@@ -266,7 +253,11 @@ useEffect(() => {
                   <LayoutGrid size={12} /> Report Mode
                 </label>
                 <div className="relative group">
-                  <select value={reportType} onChange={(e) => setReportType(e.target.value as 'item-list' | 'category-summary')} className="w-full p-3.5 pr-10 rounded-none border border-zinc-200 bg-[#f8f6ff] font-black text-[#3b2063] text-xs uppercase tracking-widest outline-none cursor-pointer appearance-none">
+                  <select
+                    value={reportType}
+                    onChange={(e) => setReportType(e.target.value as 'item-list' | 'category-summary')}
+                    className="w-full p-3.5 pr-10 rounded-none border border-zinc-200 bg-[#f8f6ff] font-black text-[#7c14d4] text-xs uppercase tracking-widest outline-none cursor-pointer appearance-none focus:border-[#7c14d4]"
+                  >
                     <option value="item-list">Detailed Item List</option>
                     <option value="category-summary">Category Summary</option>
                   </select>
@@ -278,19 +269,19 @@ useEffect(() => {
               <div className="flex gap-2 w-full lg:w-auto">
                 <button
                   onClick={fetchReport} disabled={loading}
-                  className="flex-1 lg:w-32 h-11.5 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-sm uppercase tracking-widest transition-all disabled:opacity-50 rounded-[0.625rem]"
+                  className="flex-1 lg:w-32 h-11 bg-[#7c14d4] hover:bg-[#6a12b8] text-white font-bold text-sm uppercase tracking-widest transition-all disabled:opacity-50 rounded-[0.625rem]"
                 >
                   {loading ? 'Loading...' : 'Query'}
                 </button>
                 <button
                   onClick={generateExcel} disabled={!hasData}
-                  className="w-12 h-11.5 bg-white border border-zinc-200 text-zinc-500 hover:text-[#3b2063] hover:border-[#3b2063] flex items-center justify-center transition-all disabled:opacity-30 rounded-[0.625rem]"
+                  className="w-11 h-11 bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#7c14d4] hover:border-[#7c14d4] flex items-center justify-center transition-all disabled:opacity-30 rounded-[0.625rem]"
                 >
                   <FileDown size={17} />
                 </button>
                 <button
                   onClick={handlePrint} disabled={!hasData}
-                  className="w-12 h-11.5 bg-white border border-zinc-200 text-zinc-500 hover:text-[#3b2063] hover:border-[#3b2063] flex items-center justify-center transition-all disabled:opacity-30 rounded-[0.625rem]"
+                  className="w-11 h-11 bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#7c14d4] hover:border-[#7c14d4] flex items-center justify-center transition-all disabled:opacity-30 rounded-[0.625rem]"
                 >
                   <Printer size={17} />
                 </button>
@@ -308,7 +299,7 @@ useEffect(() => {
             {/* Table Header */}
             <div className="px-7 py-5 border-b border-zinc-100 flex justify-between items-center">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-[#3b2063] flex items-center justify-center">
+                <div className="w-9 h-9 bg-[#7c14d4] flex items-center justify-center rounded-sm">
                   <FileText size={16} className="text-white" />
                 </div>
                 <div>
@@ -324,11 +315,11 @@ useEffect(() => {
               <div className="flex items-center gap-6">
                 <div className="text-right hidden md:block">
                   <p className="text-[8px] font-black text-zinc-300 uppercase tracking-widest">Operator</p>
-                  <p className="text-[10px] font-black text-[#3b2063] uppercase">{data?.cashier_name || 'Terminal Root'}</p>
+                  <p className="text-[10px] font-black text-[#7c14d4] uppercase">{data?.cashier_name || 'Terminal Root'}</p>
                 </div>
-                <div className="bg-white border border-zinc-200 px-4 py-2 flex items-center gap-2">
+                <div className="bg-white border border-[#e9d5ff] px-4 py-2 flex items-center gap-2 rounded-sm">
                   <Activity size={12} className="text-emerald-500" />
-                  <span className="text-[9px] font-black text-[#3b2063] uppercase tracking-widest">{data?.items.length || 0} Records</span>
+                  <span className="text-[9px] font-black text-[#7c14d4] uppercase tracking-widest">{data?.items.length || 0} Records</span>
                 </div>
               </div>
             </div>
@@ -336,18 +327,18 @@ useEffect(() => {
             {/* Table Body */}
             <div className="flex-1 overflow-auto">
               <table className="w-full text-left">
-                <thead className="sticky top-0 bg-white z-10 border-b border-zinc-100">
+                <thead className="sticky top-0 bg-white z-10 border-b border-[#e9d5ff] bg-[#f5f0ff]">
                   <tr>
-                    <th className="px-8 py-5 text-[9px] font-black text-zinc-400 uppercase tracking-[0.3em]">
+                    <th className="px-8 py-4 text-[9px] font-black text-zinc-400 uppercase tracking-[0.3em]">
                       {reportType === 'category-summary' ? 'Category Classification' : 'Item Description'}
                     </th>
-                    <th className="px-8 py-5 text-[9px] font-black text-zinc-400 uppercase tracking-[0.3em] text-right">Units Sold</th>
-                    <th className="px-8 py-5 text-[9px] font-black text-zinc-400 uppercase tracking-[0.3em] text-right">Revenue Accumulation</th>
+                    <th className="px-8 py-4 text-[9px] font-black text-zinc-400 uppercase tracking-[0.3em] text-right">Units Sold</th>
+                    <th className="px-8 py-4 text-[9px] font-black text-zinc-400 uppercase tracking-[0.3em] text-right">Revenue Accumulation</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
                   {data?.items.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-[#f4f2fb] transition-colors">
+                    <tr key={idx} className="hover:bg-[#f5f0ff] transition-colors">
                       <td className="px-7 py-3.5 text-sm font-semibold text-[#1a0f2e]">{item.name}</td>
                       <td className="px-7 py-3.5 text-sm font-bold text-zinc-500 text-right tabular-nums">{item.qty}</td>
                       <td className="px-7 py-3.5 text-sm font-bold text-[#1a0f2e] text-right tabular-nums">{phCurrency.format(item.amount)}</td>
@@ -366,7 +357,7 @@ useEffect(() => {
             </div>
 
             {/* GRAND TOTAL BAR */}
-            <div className="bg-[#3b2063] text-white flex justify-between items-center px-8 py-6">
+            <div className="bg-[#7c14d4] text-white flex justify-between items-center px-8 py-6">
               <div className="flex items-center gap-3">
                 <Terminal size={16} className="text-purple-300/50" />
                 <span className="text-[11px] font-black uppercase tracking-[0.3em] text-purple-300">Shift Total Settlement</span>
@@ -385,7 +376,7 @@ useEffect(() => {
 
             {loading && data && (
               <div className="absolute top-0 left-0 right-0 h-1 bg-purple-200">
-                <div className="h-full bg-[#3b2063] animate-pulse" />
+                <div className="h-full bg-[#7c14d4] animate-pulse" />
               </div>
             )}
           </div>

@@ -12,6 +12,17 @@ import AuditLogsTab  from "../components/NewSuperAdmin/Sidebar/System/AuditLogsT
 import PromotionsTab from "../components/NewSuperAdmin/Sidebar/System/PromotionsTab";
 import SettingsTab   from "../components/NewSuperAdmin/Sidebar/SettingsTab";
 
+import SalesReportTab from "../components/NewSuperAdmin/Sidebar/Reports/SalesReportTab";
+import CrossBranchTab from "../components/NewSuperAdmin/Sidebar/Reports/CrossBranchTab";
+import AnalyticsTab   from "../components/NewSuperAdmin/Sidebar/Reports/AnalyticsTab";
+import ItemsReportTab from "../components/NewSuperAdmin/Sidebar/Reports/ItemsReportTab";
+import XReadingTab from "../components/NewSuperAdmin/Sidebar/Reports/XReadingTab";
+import ZReadingTab from "../components/NewSuperAdmin/Sidebar/Reports/ZReadingTab";
+
+import MenuItemsTab    from "../components/NewSuperAdmin/Sidebar/MenuManagement/MenuItemsTab";
+import CategoriesTab   from "../components/NewSuperAdmin/Sidebar/MenuManagement/CategoriesTab";
+import SubCategoriesTab from "../components/NewSuperAdmin/Sidebar/MenuManagement/SubCategoriesTab";
+
 
 
 // ── Placeholders — replace with real components as you build them ──────────────
@@ -70,17 +81,17 @@ const SuperAdminDashboard: React.FC = () => {
       case "users":     return <UsersTab    />;
 
       // ── Reports ───────────────────────────────────────────────────────────
-      case "sales_report":         return <Placeholder label="Sales Report"          />;
-      case "analytics":            return <Placeholder label="Analytics & Sales"     />;
-      case "items_report":         return <Placeholder label="Items Report"          />;
-      case "cross_branch_reports": return <Placeholder label="Cross-Branch Reports"  />;
-      case "x_reading":            return <Placeholder label="X Reading"             />;
-      case "z_reading":            return <Placeholder label="Z Reading"             />;
+      case "sales_report":         return <SalesReportTab />;
+      case "analytics":    return <AnalyticsTab   />;
+      case "items_report": return <ItemsReportTab />;
+      case "cross_branch_reports": return <CrossBranchTab />;
+      case "x_reading": return <XReadingTab />;
+      case "z_reading": return <ZReadingTab />;
 
       // ── Menu Management ───────────────────────────────────────────────────
-      case "menu_items":    return <Placeholder label="Menu List"       />;
-      case "categories":    return <Placeholder label="Categories"      />;
-      case "subcategories": return <Placeholder label="Sub-Categories"  />;
+      case "menu_items":    return <MenuItemsTab    />;
+      case "categories":    return <CategoriesTab   />;
+      case "subcategories": return <SubCategoriesTab />;
 
       // ── Inventory ─────────────────────────────────────────────────────────
       case "inv_overview":   return <Placeholder label="Inventory Overview" />;

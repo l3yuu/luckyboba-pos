@@ -64,7 +64,7 @@ export const CartItemEditModal = ({
       <div className="bg-white w-full max-w-md rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
 
         {/* Header */}
-        <div className="bg-[#3b2063] px-6 pt-5 pb-5 text-white relative shrink-0">
+        <div className="bg-[#7c14d4] px-6 pt-5 pb-5 text-white relative shrink-0">
           <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/40 mb-1">Edit Item</p>
           <h2 className="text-base font-black uppercase tracking-wide leading-tight pr-8">
             {editingCartItem.name}
@@ -91,7 +91,7 @@ export const CartItemEditModal = ({
             editingCartItem.remarks) && (
             <div className="flex flex-wrap gap-1.5 pb-1">
               {editingCartItem.sugarLevel != null && (
-                <span className="inline-flex items-center gap-1 bg-violet-50 text-violet-700 border border-violet-200 text-[10px] px-2 py-1 rounded-md font-semibold">🍬 {editingCartItem.sugarLevel}</span>
+                <span className="inline-flex items-center bg-[#7c14d4]/10 text-black border border-[#7c14d4]/20 text-[10px] px-2 py-1 rounded-md font-semibold">🍬 {editingCartItem.sugarLevel}</span>
               )}
               {editingCartItem.options?.map(opt => (
                 <span key={opt} className="inline-flex items-center bg-sky-50 text-sky-700 border border-sky-200 text-[10px] px-2 py-1 rounded-md font-semibold">{opt}</span>
@@ -134,13 +134,13 @@ export const CartItemEditModal = ({
                     }}
                     className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors
                       ${isSelected
-                        ? isNone ? 'bg-red-500 text-white' : 'bg-[#3b2063] text-white'
+                        ? isNone ? 'bg-red-500 text-white' : 'bg-[#7c14d4] text-white'
                         : 'bg-white text-zinc-600 hover:bg-zinc-50'
                       }`}
                   >
                     <div className="flex items-center gap-3">
                       <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'border-white bg-white' : 'border-zinc-300'}`}>
-                        {isSelected && <div className={`w-2 h-2 rounded-full ${isNone ? 'bg-red-500' : 'bg-[#3b2063]'}`} />}
+                        {isSelected && <div className={`w-2 h-2 rounded-full ${isNone ? 'bg-red-500' : 'bg-[#7c14d4]'}`} />}
                       </div>
                       <span className="text-xs font-black uppercase tracking-wider">{option.label}</span>
                     </div>
@@ -164,12 +164,12 @@ export const CartItemEditModal = ({
                 <p className="text-xs text-zinc-400 line-through font-semibold">₱ {editingCartItem.finalPrice.toFixed(2)}</p>
               )}
             </div>
-            <span className="font-black text-xl text-[#3b2063] tabular-nums">₱ {computeDiscountedTotal().toFixed(2)}</span>
+            <span className="font-black text-xl text-black tabular-nums">₱ {computeDiscountedTotal().toFixed(2)}</span>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-zinc-50 border-t border-zinc-200 flex gap-3 shrink-0">
+        <div className="px-6 py-4 bg-[#f5f0ff] border-t border-[#e9d5ff] flex gap-3 shrink-0">
           <button
             onClick={onRemove}
             className="flex-1 py-3 rounded-[0.625rem] border-2 border-red-100 bg-white text-red-500 font-black text-xs uppercase tracking-widest hover:bg-red-500 hover:text-white hover:border-red-500 transition-all flex items-center justify-center gap-2"
@@ -182,7 +182,7 @@ export const CartItemEditModal = ({
           </button>
           <button
             onClick={onSave}
-            className="flex-2 py-3 rounded-[0.625rem] bg-[#3b2063] hover:bg-[#2a1647] text-white font-black text-xs uppercase tracking-widest transition-all shadow-sm"
+            className="flex-2 py-3 rounded-[0.625rem] bg-[#7c14d4] hover:bg-[#6a12b8] text-white font-black text-xs uppercase tracking-widest transition-all shadow-sm"
           >
             Save Changes
           </button>
@@ -255,7 +255,7 @@ const hasPearlOption = (selectedItem as { options?: string[] })?.options?.includ
       <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
 
         {/* Header */}
-        <div className="bg-[#3b2063] p-5 text-white text-center relative shrink-0">
+        <div className="bg-[#7c14d4] p-5 text-white text-center relative shrink-0">
           <h2 className="text-lg font-black uppercase tracking-wider">{selectedItem.name}</h2>
           {isCombo && (
             <div className="mt-1 inline-block bg-white/20 text-white text-[10px] font-black uppercase px-3 py-1 rounded-[0.625rem] tracking-widest">🧋 Includes Classic Pearl</div>
@@ -271,21 +271,21 @@ const hasPearlOption = (selectedItem as { options?: string[] })?.options?.includ
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-white p-3 rounded-[0.625rem] border-2 border-zinc-200">
               <span className="text-sm font-bold text-zinc-900 uppercase tracking-widest block mb-1">Barcode</span>
-              <span className="text-sm font-black text-[#3b2063]">{selectedItem.barcode}</span>
+              <span className="text-sm font-black text-[#7c14d4]">{selectedItem.barcode}</span>
             </div>
             <div className="bg-white p-3 rounded-[0.625rem] border-2 border-zinc-200">
               <span className="text-sm font-bold text-zinc-900 uppercase tracking-widest block mb-1">Unit Price</span>
-              <span className="text-sm font-black text-[#3b2063]">₱ {Number(selectedItem.price).toFixed(2)}</span>
+              <span className="text-sm font-black text-black">₱ {Number(selectedItem.price).toFixed(2)}</span>
             </div>
           </div>
 
           {/* Qty */}
           <div className="flex items-center justify-between bg-white rounded-[0.625rem] p-2 border-2 border-zinc-200">
-            <button onClick={() => onQtyChange(Math.max(1, qty - 1))} className="w-12 h-12 bg-zinc-100 rounded-[0.625rem] border border-zinc-300 text-[#3b2063] hover:text-red-500 transition-colors flex items-center justify-center">
+            <button onClick={() => onQtyChange(Math.max(1, qty - 1))} className="w-12 h-12 bg-[#f5f0ff] rounded-[0.625rem] border border-[#e9d5ff] text-black hover:text-red-500 transition-colors flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 12h-15" /></svg>
             </button>
-            <input type="text" value={qty} readOnly className="bg-transparent text-center font-black text-2xl text-[#3b2063] w-20 outline-none" />
-            <button onClick={() => onQtyChange(qty + 1)} className="w-12 h-12 bg-[#3b2063] rounded-[0.625rem] shadow-lg text-white transition-colors flex items-center justify-center">
+            <input type="text" value={qty} readOnly className="bg-transparent text-center font-black text-2xl text-black w-20 outline-none" />
+            <button onClick={() => onQtyChange(qty + 1)} className="w-12 h-12 bg-[#7c14d4] rounded-[0.625rem] shadow-lg text-white transition-colors flex items-center justify-center">
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
             </button>
           </div>
@@ -298,7 +298,7 @@ const hasPearlOption = (selectedItem as { options?: string[] })?.options?.includ
                 <div className="flex gap-2">
                   {SUGAR_LEVELS.map((level: string) => (
                     <button key={level} onClick={() => onSugarChange(level)}
-                      className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${sugarLevel === level && sugarLevel !== '' ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
+                      className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${sugarLevel === level && sugarLevel !== '' ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
                       {level}
                     </button>
                   ))}
@@ -317,7 +317,7 @@ const hasPearlOption = (selectedItem as { options?: string[] })?.options?.includ
                   <div className="flex flex-wrap gap-2">
                     {visibleOpts.map((opt: string) => (
                       <button key={opt} onClick={() => onToggleOption(opt)}
-                        className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${selectedOptions.includes(opt) ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
+                        className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${selectedOptions.includes(opt) ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
                         {opt}
                       </button>
                     ))}
@@ -369,7 +369,7 @@ const hasPearlOption = (selectedItem as { options?: string[] })?.options?.includ
               value={remarks}
               onChange={e => onRemarksChange(e.target.value)}
               placeholder="Additional notes..."
-              className="w-full p-4 bg-white rounded-[0.625rem] border-2 border-zinc-200 text-sm font-bold text-[#3b2063] resize-none h-16 outline-none focus:border-[#3b2063] transition-all"
+              className="w-full bg-[#f5f0ff] border border-[#e9d5ff] text-sm font-bold p-4 resize-none h-16 outline-none focus:border-[#7c14d4] focus:bg-white transition-all"
             />
           </div>
 
@@ -379,7 +379,7 @@ const hasPearlOption = (selectedItem as { options?: string[] })?.options?.includ
             disabled={!canAdd}
             title={!canAdd ? 'Please select NO PRL or W/ PRL' : ''}
             className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors
-              ${canAdd ? 'bg-[#3b2063] text-white hover:bg-[#2a1647]' : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'}`}
+              ${canAdd ? 'bg-[#7c14d4] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-black cursor-not-allowed'}`}
           >
             {isCombo ? 'Next: Customize Drink →' : canAdd ? 'Add Order' : 'Select Pearl Option First'}
           </button>
@@ -440,7 +440,7 @@ export const BundleModal = ({
         <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
 
           {/* Header */}
-          <div className="bg-[#3b2063] p-5 text-white relative shrink-0">
+          <div className="bg-[#7c14d4] p-5 text-white relative shrink-0">
             <div className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/40 mb-1">
               Bundle — {activeBundleItem.display_name ?? activeBundleItem.name}
             </div>
@@ -463,7 +463,7 @@ export const BundleModal = ({
             <div className="flex gap-2">
               {SUGAR_LEVELS.map((level: string) => (
                 <button key={level} onClick={() => onSugarChange(level)}
-                  className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${bundleComponentSugar === level && bundleComponentSugar !== '' ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
+                  className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${bundleComponentSugar === level && bundleComponentSugar !== '' ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
                   {level}
                 </button>
               ))}
@@ -477,7 +477,7 @@ export const BundleModal = ({
               <div className="flex flex-wrap gap-2">
                 {EXTRA_OPTIONS.map((opt: string) => (
                   <button key={opt} onClick={() => onToggleOption(opt)}
-                    className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${bundleComponentOptions.includes(opt) ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
+                    className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${bundleComponentOptions.includes(opt) ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
                     {opt}
                   </button>
                 ))}
@@ -488,7 +488,7 @@ export const BundleModal = ({
               <AddOnTriggerButton count={bundleComponentAddOns.length} onClick={onOpenAddOns} />
             </div>
             <button onClick={onConfirm} disabled={!canNext}
-              className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${canNext ? 'bg-[#3b2063] text-white hover:bg-[#2a1647]' : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'}`}>
+              className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${canNext ? 'bg-[#7c14d4] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-black cursor-not-allowed'}`}>
               {!canNext ? 'Select Pearl Option First' : isLastStep ? '✓ Add Bundle to Order' : `Next: Drink ${bundleComponentIndex + 2} of ${totalSteps} →`}
             </button>
           </div>
@@ -551,7 +551,7 @@ export const ComboDrinkModal = ({
     <>
       <div className="fixed inset-0 z-110 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
         <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-          <div className="bg-[#3b2063] p-5 text-white text-center relative shrink-0">
+          <div className="bg-[#7c14d4] p-5 text-white text-center relative shrink-0">
             <div className="text-[10px] font-bold uppercase opacity-60 tracking-widest leading-none mb-1">Step 2 of 2 — Combo Drink for</div>
             <h2 className="text-base font-black uppercase tracking-wider leading-tight">{pendingComboCart.name}</h2>
             <div className="mt-2 inline-block bg-white/20 text-white text-[10px] font-black uppercase px-3 py-1 rounded-[0.625rem] tracking-widest">🧋 Classic Pearl Milk Tea</div>
@@ -565,7 +565,7 @@ export const ComboDrinkModal = ({
             <div className="flex gap-2">
               {SUGAR_LEVELS.map((level: string) => (
                 <button key={level} onClick={() => onSugarChange(level)}
-                  className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${comboDrinkSugar === level && comboDrinkSugar !== '' ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
+                  className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${comboDrinkSugar === level && comboDrinkSugar !== '' ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
                   {level}
                 </button>
               ))}
@@ -583,14 +583,14 @@ export const ComboDrinkModal = ({
               <div className="flex flex-wrap gap-2">
                 {EXTRA_OPTIONS.map((opt: string) => (
                   <button key={opt} onClick={() => onToggleOption(opt)}
-                    className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${comboDrinkOptions.includes(opt) ? 'bg-[#3b2063] text-white shadow-md' : 'bg-white text-zinc-900 border-2 border-zinc-300 hover:bg-zinc-100'}`}>
+                    className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${comboDrinkOptions.includes(opt) ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
                     {opt}
                   </button>
                 ))}
               </div>
             </div>
             <button onClick={onConfirm} disabled={!hasPearl}
-              className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${hasPearl ? 'bg-[#3b2063] text-white hover:bg-[#2a1647]' : 'bg-zinc-200 text-zinc-400 cursor-not-allowed'}`}>
+              className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${hasPearl ? 'bg-[#7c14d4] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-black cursor-not-allowed'}`}>
               {hasPearl ? '🧋 Confirm & Add to Order' : 'Select Pearl Option First'}
             </button>
           </div>
@@ -669,7 +669,7 @@ export const ConfirmOrderModal = ({
       <div className="bg-white w-full max-w-6xl rounded-[0.625rem] shadow-2xl flex flex-col overflow-hidden max-h-[95vh]">
 
         {/* Header */}
-        <div className="bg-[#3b2063] p-5 text-white text-center shrink-0 shadow-sm z-10 flex justify-between items-center">
+        <div className="bg-[#7c14d4] p-5 text-white text-center shrink-0 shadow-sm z-10 flex justify-between items-center">
           <div className="w-1/3" />
           <div className="w-1/3">
             <h2 className="text-xl font-black uppercase tracking-widest">Payment Details</h2>
@@ -685,13 +685,13 @@ export const ConfirmOrderModal = ({
           {/* Left: Cart summary */}
           <div className="flex-1 flex flex-col bg-white border-r border-zinc-200 overflow-hidden">
             <div className="flex-1 p-6 overflow-y-auto">
-              <h3 className="font-black text-sm text-[#3b2063] uppercase mb-4 tracking-wider">Cart Items</h3>
+              <h3 className="font-black text-sm text-black uppercase mb-4 tracking-wider">Cart Items</h3>
               <div className="space-y-4">
                 {cart.map((item, i) => (
                   <div key={i} onClick={() => onEditCartItem(i)}
-                    className="flex justify-between items-start pb-3 border-b border-zinc-100 last:border-0 mb-2 cursor-pointer hover:bg-[#f9f7ff] rounded-lg px-2 -mx-2 transition-colors">
+                    className="flex justify-between items-start pb-3 border-b border-[#e9d5ff] last:border-0 mb-2 cursor-pointer hover:bg-[#f5f0ff] rounded-lg px-2 -mx-2 transition-colors">
                     <div>
-                      <p className="font-bold text-sm text-[#3b2063]">
+                      <p className="font-bold text-sm text-black">
                         {item.qty}x {item.name}
                         {item.cupSizeLabel && <span className="ml-1 opacity-60">({item.cupSizeLabel})</span>}
                       </p>
@@ -702,7 +702,7 @@ export const ConfirmOrderModal = ({
                         {item.remarks && <p className="italic">• {item.remarks}</p>}
                       </div>
                     </div>
-                    <p className="font-black text-sm text-[#3b2063]">
+                    <p className="font-black text-sm text-black">
                       ₱ {(item.finalPrice + getItemSurcharge(item)).toFixed(2)}
                     </p>
                   </div>
@@ -711,7 +711,7 @@ export const ConfirmOrderModal = ({
             </div>
 
             {/* Totals */}
-            <div className="p-6 bg-zinc-50 shrink-0 border-t border-zinc-200">
+            <div className="p-6 bg-[#f5f0ff] shrink-0 border-t border-[#e9d5ff]">
               <div className="space-y-1.5 text-[11px] font-bold text-zinc-600">
                 <div className="flex justify-between"><span>Quantity (Items)</span><span>{totalCount}</span></div>
                 <div className="flex justify-between"><span>Sub Total</span><span>₱ {subtotal.toFixed(2)}</span></div>
@@ -729,7 +729,7 @@ export const ConfirmOrderModal = ({
                   <span>- ₱ {totalDiscountDisplay.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between"><span>Service Charge</span><span>₱ 0.00</span></div>
-                <div className="flex justify-between items-center text-[#3b2063] border-t-2 border-zinc-200 pt-3 mt-2">
+                <div className="flex justify-between items-center text-black border-t-2 border-[#e9d5ff] pt-3 mt-2">
                   <span className="font-black uppercase text-sm">Amt Due</span>
                   <span className="text-2xl font-black">₱ {amtDue.toFixed(2)}</span>
                 </div>
@@ -739,7 +739,7 @@ export const ConfirmOrderModal = ({
 
           {/* Right: Tabs */}
           <div className="flex-1 flex flex-col bg-white overflow-hidden">
-            <div className="flex border-b border-zinc-200 shrink-0 bg-zinc-50 p-2 gap-2">
+            <div className="flex border-b border-[#e9d5ff] shrink-0 bg-[#f5f0ff] p-2 gap-2">
               {([
                 { id: 'payment',  label: 'Payment',  dot: false },
                 { id: 'discount', label: 'Promo',    dot: !!selectedDiscount },
@@ -747,7 +747,7 @@ export const ConfirmOrderModal = ({
               ] as const).map(tab => (
                 <button key={tab.id} onClick={() => onTabChange(tab.id)}
                   className={`flex-1 py-3 text-sm font-black uppercase tracking-widest rounded-[0.625rem] transition-all border-2 relative
-                    ${activeTab === tab.id ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-md' : 'bg-white text-zinc-500 border-zinc-200 hover:border-zinc-300 hover:bg-zinc-100'}`}>
+                    ${activeTab === tab.id ? 'bg-[#7c14d4] text-white border-[#7c14d4] shadow-md' : 'bg-white text-black border-[#e9d5ff] hover:border-[#7c14d4]/40 hover:bg-[#f5f0ff]'}`}>
                   {tab.label}
                   {tab.dot && <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white" />}
                 </button>
@@ -759,12 +759,12 @@ export const ConfirmOrderModal = ({
               {activeTab === 'payment' && (
                 <div className="space-y-6">
                   <div>
-                    <h3 className="font-black text-sm text-[#3b2063] uppercase mb-3 tracking-wider">Payment Method</h3>
+                    <h3 className="font-black text-sm text-black uppercase mb-3 tracking-wider">Payment Method</h3>
                     <div className="grid grid-cols-3 gap-2 mb-5">
                       {PAYMENT_METHODS.map(({ id, label }) => (
                         <button key={id} onClick={() => { onPaymentMethodChange(id); onReferenceNumberChange(''); onCashTenderedChange(''); }}
                           className={`py-3 rounded-[0.625rem] font-black text-sm uppercase transition-all border-2 flex flex-col items-center gap-1
-                            ${paymentMethod === id ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-md' : 'bg-zinc-50 text-[#3b2063] border-zinc-200 hover:border-[#3b2063]/40'}`}>
+                            ${paymentMethod === id ? 'bg-[#7c14d4] text-white border-[#7c14d4] shadow-md' : 'bg-[#f5f0ff] text-black border-[#e9d5ff] hover:border-[#7c14d4]/40'}`}>
                           {label}
                         </button>
                       ))}
@@ -773,22 +773,22 @@ export const ConfirmOrderModal = ({
                       <>
                         <h3 className="font-black text-[10px] text-zinc-400 tracking-widest uppercase mb-2">Cash Tendered</h3>
                         <div className="relative mb-3">
-                          <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-2xl text-zinc-400">₱</span>
+                          <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-2xl text-[#7c14d4]/30">₱</span>
                           <input type="number" value={cashTendered} onChange={e => onCashTenderedChange(e.target.value ? Number(e.target.value) : '')}
-                            className="w-full bg-zinc-50 border-2 border-zinc-300 rounded-[0.625rem] py-4 pl-12 pr-4 text-3xl font-black text-[#3b2063] outline-none focus:border-[#3b2063] focus:bg-white transition-colors" placeholder="0.00" />
+                            className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-4 pl-12 pr-4 text-3xl font-black text-black outline-none focus:border-[#7c14d4] focus:bg-white transition-colors" placeholder="0.00" />
                         </div>
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4">
-                          <button onClick={() => onCashTenderedChange(amtDue)} className="col-span-2 lg:col-span-4 bg-green-100 hover:bg-green-500 hover:text-white text-green-700 py-2.5 rounded-[0.625rem] font-black text-sm uppercase tracking-widest transition-all shadow-sm border-2 border-green-200">
+                          <button onClick={() => onCashTenderedChange(amtDue)} className="col-span-2 lg:col-span-4 bg-[#7c14d4] hover:bg-[#6a12b8] hover:text-white text-white py-2.5 rounded-[0.625rem] font-black text-sm uppercase tracking-widest transition-all shadow-md border-2 border-[#7c14d4]">
                             Exact Amount (₱ {amtDue.toFixed(2)})
                           </button>
                           {[100, 200, 500, 1000].map(amount => (
                             <button key={amount} onClick={() => onCashTenderedChange(amount)}
-                              className="bg-zinc-50 hover:bg-[#3b2063] hover:text-white text-[#3b2063] py-3 rounded-[0.625rem] font-black text-base transition-all border-2 border-zinc-200 hover:border-[#3b2063]">
+                              className="bg-[#f5f0ff] hover:bg-[#7c14d4] hover:text-white text-black py-3 rounded-[0.625rem] font-black text-base transition-all border-2 border-[#e9d5ff] hover:border-[#7c14d4]">
                               ₱ {amount}
                             </button>
                           ))}
                         </div>
-                        <div className="flex justify-between items-center mt-4 bg-zinc-50 border border-zinc-200 p-4 rounded-[0.625rem]">
+                        <div className="flex justify-between items-center mt-4 bg-[#f5f0ff] border border-[#e9d5ff] p-4 rounded-[0.625rem]">
                           <span className="font-black text-zinc-400 uppercase text-xs tracking-widest">Change</span>
                           <span className="text-2xl font-black text-green-600">₱ {change.toFixed(2)}</span>
                         </div>
@@ -900,7 +900,7 @@ interface CustomerNameModalProps {
 export const CustomerNameModal = ({ customerName, onChange, onSkip, onConfirm }: CustomerNameModalProps) => (
   <div className="fixed inset-0 z-140 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
     <div className="bg-white w-full max-w-sm rounded-[0.625rem] shadow-2xl overflow-hidden">
-      <div className="bg-[#3b2063] px-6 pt-6 pb-5 text-white text-center">
+      <div className="bg-[#7c14d4] px-6 pt-6 pb-5 text-white text-center">
         <div className="w-12 h-12 bg-emerald-400 rounded-[0.625rem] flex items-center justify-center mx-auto mb-3">
           <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="white" className="w-6 h-6">
             <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
@@ -918,13 +918,13 @@ export const CustomerNameModal = ({ customerName, onChange, onSkip, onConfirm }:
           onKeyDown={e => { if (e.key === 'Enter') onConfirm(); }}
           placeholder="e.g. Juan"
           autoFocus
-          className="w-full bg-zinc-50 border-2 border-zinc-200 rounded-[0.625rem] py-4 px-5 text-xl font-black text-[#3b2063] outline-none focus:border-[#3b2063] focus:bg-white transition-colors uppercase placeholder:normal-case placeholder:text-zinc-300"
+          className="w-full bg-[#f5f0ff] border border-[#e9d5ff] text-sm font-bold p-4 resize-none h-16 outline-none focus:border-[#7c14d4] focus:bg-white transition-colors uppercase placeholder:normal-case placeholder:text-[#7c14d4]/30"
         />
         <div className="grid grid-cols-2 gap-3">
           <button onClick={onSkip} className="py-3 rounded-[0.625rem] border-2 border-zinc-200 text-zinc-500 font-black text-xs uppercase tracking-widest hover:bg-zinc-50 transition-colors">
             Skip
           </button>
-          <button onClick={onConfirm} className="py-3 rounded-[0.625rem] bg-[#3b2063] text-white font-black text-xs uppercase tracking-widest hover:bg-[#2a1647] transition-colors shadow-md">
+          <button onClick={onConfirm} className="py-3 rounded-[0.625rem] bg-[#7c14d4] text-white font-black text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-colors shadow-md">
             Confirm
           </button>
         </div>
@@ -975,7 +975,7 @@ export const SuccessModal = ({
   return (
     <div className="fixed inset-0 z-130 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
       <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl flex flex-col overflow-hidden border border-zinc-200">
-        <div className="bg-[#3b2063] px-9 pt-10 pb-9 text-white relative overflow-hidden">
+        <div className="bg-[#7c14d4] px-9 pt-10 pb-9 text-white relative overflow-hidden">
           <div className="absolute -top-6 -right-6 w-28 h-28 border-2 border-white/10 rounded-[0.625rem] rotate-12" />
           <div className="absolute -bottom-4 -left-4 w-16 h-16 border border-white/10 rounded-[0.625rem] -rotate-6" />
           <div className="relative flex items-center gap-5">
@@ -997,7 +997,7 @@ export const SuccessModal = ({
           {printItems.map(({ label, done, onPrint, icon }) => (
             <button key={label} onClick={onPrint}
               className={`w-full h-14 flex items-center justify-between px-5 border-2 transition-all font-bold text-xs uppercase tracking-widest rounded-[0.625rem]
-                ${done ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-white border-zinc-200 text-zinc-600 hover:border-[#3b2063] hover:text-[#3b2063] hover:bg-[#f9f7ff]'}`}>
+                ${done ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'bg-white border-[#e9d5ff] text-black hover:border-[#7c14d4] hover:text-[#7c14d4] hover:bg-[#f5f0ff]'}`}>
               <div className="flex items-center gap-3">{icon}<span>{label}</span></div>
               {done ? <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Printed ✓</span> : <ChevronRight />}
             </button>
@@ -1039,7 +1039,7 @@ export const SuccessModal = ({
 export const AddOnTriggerButton = ({ count, onClick }: { count: number; onClick: () => void }) => (
   <button
     onClick={onClick}
-    className="w-full py-4 rounded-[0.625rem] border-2 border-dashed border-[#3b2063]/40 bg-[#f0ebff] hover:bg-[#e4dbff] text-[#3b2063] font-black uppercase tracking-wider text-sm flex items-center justify-center transition-all group"
+    className="w-full py-4 rounded-[0.625rem] border-2 border-dashed border-[#7c14d4]/40 bg-[#f5f0ff] hover:bg-[#e4dbff] text-black font-black uppercase tracking-wider text-sm flex items-center justify-center transition-all group"
   >
     <span className="mr-2">{count > 0 ? `${count} Add-on(s) Selected` : 'Select Add-ons'}</span>
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4 group-hover:translate-x-1 transition-transform">

@@ -25,12 +25,7 @@ class SuperAdminReportController extends Controller
         $branchId = $request->branch_id;
 
         // Use provided date, or fall back to the most recent date that has sales data
-        if ($request->date) {
-            $anchor = Carbon::parse($request->date);
-        } else {
-            $latestSale = DB::table('sales')->where('status', 'completed')->max('created_at');
-            $anchor = $latestSale ? Carbon::parse($latestSale) : Carbon::today();
-        }
+        $anchor = $request->date ? Carbon::parse($request->date) : Carbon::today();
 
         [$startDate, $endDate] = $this->resolveDateRange($period, $anchor);
 
@@ -124,12 +119,7 @@ class SuperAdminReportController extends Controller
         $period = $request->period;
 
         // Use provided date, or fall back to the most recent date that has sales data
-        if ($request->date) {
-            $anchor = Carbon::parse($request->date);
-        } else {
-            $latestSale = DB::table('sales')->where('status', 'completed')->max('created_at');
-            $anchor = $latestSale ? Carbon::parse($latestSale) : Carbon::today();
-        }
+        $anchor = $request->date ? Carbon::parse($request->date) : Carbon::today();
 
         [$startDate, $endDate] = $this->resolveDateRange($period, $anchor);
 
