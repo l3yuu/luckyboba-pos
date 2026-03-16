@@ -24,11 +24,14 @@ jobs:
       - name: Prepare Laravel Environment
         working-directory: ./backend
         run: |
-          # Copy example to .env
-          cp .env.example .env
-          # Generate the application key required for encryption/sessions
+          # Copy example to .env (create minimal one if example missing)
+          if [ -f .env.example ]; then
+            cp .env.example .env
+          else
+            echo "APP_KEY=" > .env
+            echo "APP_ENV=testing" >> .env
+          fi
           php artisan key:generate
-          # Ensure the database directory exists for the sqlite file (if not using :memory:)
           mkdir -p database
           touch database/database.sqlite
 
