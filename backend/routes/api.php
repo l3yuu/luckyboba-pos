@@ -224,8 +224,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::prefix('reports')->group(function () {
             Route::get('/admin-sales-summary', [SuperAdminReportController::class, 'salesSummary']);
             Route::get('/branch-comparison',   [SuperAdminReportController::class, 'branchComparison']);
-            Route::get('/x-reading',           [SalesDashboardController::class, 'xReading']);
-            Route::get('/z-reading',           [SalesDashboardController::class, 'zReading']);
             Route::get('/z-reading/history',   [SalesDashboardController::class, 'zReadingHistory']); // ← ADD
         });
 

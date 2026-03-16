@@ -190,34 +190,58 @@ const SalesOrder = () => {
     isWaffleCategory ? a.category === 'waffle' : a.category !== 'waffle'
   );
 
-  const subtotal = cart.reduce((acc, item) => acc + item.finalPrice + getItemSurcharge(item), 0);
-  const totalCount = cart.reduce((acc, item) => acc + item.qty, 0);
+// 1. Basic counts
+const totalCount = cart.reduce((acc, item) => acc + item.qty, 0);
 
-  const hasStickers = cart.some(item =>
-    item.sugarLevel !== undefined ||
-    item.size === 'M' || item.size === 'L' ||
-    (item.addOns?.some(a => a.toLowerCase().includes('waffle combo')) ?? false) ||
-    (item.isBundle && (item.bundleComponents?.length ?? 0) > 0)
-  );
+// 2. Gross Calculation (The original price before any discounts)
+const grossSubtotal = cart.reduce((acc, item) => 
+  acc + (Number(item.price) * item.qty) + getItemSurcharge(item), 0
+);
 
-  const totalPax          = pax.regular + pax.senior + pax.pwd + pax.diplomat;
-  const sharePerPax       = subtotal / (totalPax || 1);
-  const seniorPwdDiscount = (pax.senior + pax.pwd) * (sharePerPax * 0.20);
-  const diplomatDiscount  = pax.diplomat * (sharePerPax * 0.20);
-  const promoDiscount     = selectedDiscount
-    ? selectedDiscount.type.includes('Percent')
-      ? subtotal * (Number(selectedDiscount.amount) / 100)
-      : Number(selectedDiscount.amount)
-    : 0;
-  const discountAmount    = seniorPwdDiscount + diplomatDiscount + promoDiscount;
-  const itemDiscountTotal = cart.reduce((acc, item) =>
-    acc + Math.max(0, Number(item.price) * item.qty - item.finalPrice), 0
-  );
-  const amtDue            = Math.max(0, subtotal - discountAmount - itemDiscountTotal);
-  const vatableSales      = amtDue / 1.12;
-  const vatAmount         = amtDue - vatableSales;
-  const change            = typeof cashTendered === 'number' ? Math.max(0, cashTendered - amtDue) : 0;
-  const totalDiscountDisplay = discountAmount + itemDiscountTotal;
+// 3. Item-Level Discounts (Discounts applied inside the Edit Item modal)
+const itemDiscountTotal = cart.reduce((acc, item) =>
+  acc + Math.max(0, (Number(item.price) * item.qty) - item.finalPrice), 0
+);
+
+// 4. Current Subtotal (The actual value of the cart items after item-level discounts)
+// We use this as the base for Pax and Promo calculations
+const currentSubtotal = grossSubtotal - itemDiscountTotal;
+
+// 5. Order-Level Discounts (Applied in the Payment/Confirm modal)
+const totalPax = pax.regular + pax.senior + pax.pwd + pax.diplomat;
+const sharePerPax = currentSubtotal / (totalPax || 1);
+
+const seniorPwdDiscount = (pax.senior + pax.pwd) * (sharePerPax * 0.20);
+const diplomatDiscount = pax.diplomat * (sharePerPax * 0.20);
+
+const promoDiscount = selectedDiscount
+  ? selectedDiscount.type.includes('Percent')
+    ? currentSubtotal * (Number(selectedDiscount.amount) / 100)
+    : Number(selectedDiscount.amount)
+  : 0;
+
+const orderLevelDiscount = seniorPwdDiscount + diplomatDiscount + promoDiscount;
+const discountAmount = orderLevelDiscount;
+// 6. Final Totals
+// We subtract both types of discounts from the Gross price
+const amtDue = Math.max(0, grossSubtotal - itemDiscountTotal - discountAmount);
+
+// 7. Taxes and UI mapping
+const vatableSales = amtDue / 1.12;
+const vatAmount = amtDue - vatableSales;
+const totalDiscountDisplay = itemDiscountTotal + orderLevelDiscount;
+const change = typeof cashTendered === 'number' ? Math.max(0, cashTendered - amtDue) : 0;
+
+// Re-map 'subtotal' so the rest of your UI (sidebar/modals) doesn't break
+const subtotal = currentSubtotal;
+
+// 8. Sticker Logic (Unchanged)
+const hasStickers = cart.some(item =>
+  item.sugarLevel !== undefined ||
+  item.size === 'M' || item.size === 'L' ||
+  (item.addOns?.some(a => a.toLowerCase().includes('waffle combo')) ?? false) ||
+  (item.isBundle && (item.bundleComponents?.length ?? 0) > 0)
+);
 
   const formattedDate = currentDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
   const formattedTime = currentDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -673,19 +697,31 @@ const saveCartItemEdit = () => {
     const d = discounts.find(d => d.id === editingItemDiscountId);
     if (d) discountLabel = `${d.name} (-₱${d.amount})`;
   }
+if (editingItemDiscountId === -1) { // -1 is your Senior/PWD ID
+    setPax(prev => {
+      // If there are no seniors yet, convert 1 regular pax to 1 senior
+      if (prev.senior === 0) {
+        return { 
+          ...prev, 
+          senior: 1, 
+          regular: Math.max(0, prev.regular - 1) 
+        };
+      }
+      return prev;
+    });
+  }
 
   const updated: CartItem = {
     ...editingCartItem,
     finalPrice: discountedUnit * editingCartItem.qty,
     discountLabel,
-    // Store metadata so the modal knows what was selected next time it opens
     discountId: editingItemDiscountId,
     discountType: itemDiscountType,
     discountValue: itemDiscountValue,
   };
 
   setCart(prev => prev.map((item, i) => i === editingCartIndex ? updated : item));
-  showToast('Item updated', 'success');
+  showToast('Item updated & Pax adjusted', 'success');
   closeCartItemEdit();
 };
 
@@ -736,7 +772,7 @@ const saveCartItemEdit = () => {
         charges:           { grab: item.charges.grab, panda: item.charges.panda },
       })),
       subtotal,
-      discount_amount:  discountAmount,
+      discount_amount:  orderLevelDiscount,
       discount_id:      selectedDiscount?.id || null,
       total:            amtDue,
       cashier_name:     cashierName ?? 'Admin',
@@ -1104,7 +1140,7 @@ const saveCartItemEdit = () => {
       </div>
 
       {/* Print templates (off-screen, revealed by window.print()) */}
-      {printTarget === 'receipt'  && <ReceiptPrint  {...printProps} orderCharge={orderCharge} pax={pax} totalCount={totalCount} subtotal={subtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} seniorPwdDiscount={seniorPwdDiscount} promoDiscount={promoDiscount} />}
+      {printTarget === 'receipt'  && <ReceiptPrint  {...printProps} orderCharge={orderCharge} pax={pax} totalCount={totalCount} subtotal={subtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} seniorPwdDiscount={seniorPwdDiscount} promoDiscount={promoDiscount} discountAmount={discountAmount}/>}
       {printTarget === 'kitchen'  && <KitchenPrint  {...printProps} />}
       {printTarget === 'stickers' && <StickerPrint  {...printProps} customerName={customerName} />}
     </>

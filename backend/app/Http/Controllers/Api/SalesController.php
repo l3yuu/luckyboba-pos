@@ -153,7 +153,11 @@ class SalesController extends Controller
                 ->where('sale_id', $sale->id)
                 ->sum('final_price');
 
-            $sale->update(['total_amount' => $recalculatedTotal]);
+            // Subtract the discount_amount sent from the frontend
+            $discountApplied = (float) $request->input('discount_amount', 0);
+            $finalTotal = max(0, $recalculatedTotal - $discountApplied);
+
+            $sale->update(['total_amount' => $finalTotal]);
 
             // ── 4. Create Receipt ─────────────────────────────────────────────────
             Receipt::create([

@@ -44,6 +44,7 @@ interface ReceiptPrintProps {
   itemDiscountTotal: number;
   seniorPwdDiscount: number;
   promoDiscount: number;
+  discountAmount: number;
 }
 
 export const ReceiptPrint = ({
