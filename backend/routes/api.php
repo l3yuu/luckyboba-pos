@@ -181,6 +181,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::prefix('branches')->group(function () {
             Route::get('/performance',        [BranchController::class, 'performance']);
             Route::get('/today-sales',        [BranchController::class, 'todaySales']);
+            Route::get('/ownership-summary',   [BranchController::class, 'ownershipSummary']);
             Route::get('/',                   [BranchController::class, 'index']);
             Route::get('/{id}/daily-sales',   [BranchController::class, 'dailySales']);
             Route::get('/{id}/sales-summary', [BranchController::class, 'salesSummary']);
