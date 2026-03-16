@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Plus, Edit2, Trash2, RefreshCw, AlertCircle,
-  X, Tag, ToggleLeft, ToggleRight, Check,
+  X, Tag, ToggleLeft, ToggleRight, Check, ChevronDown,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 
@@ -17,9 +17,13 @@ const authHeaders = (): Record<string, string> => ({
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
 
+const CATEGORY_TYPES = ["food", "drink", "promo"] as const;
+type CategoryType = typeof CATEGORY_TYPES[number];
+
 interface Category {
   id:               number;
   name:             string;
+  type:             CategoryType;
   sort_order:       number;
   is_active:        boolean;
   menu_items_count: number;
@@ -52,6 +56,12 @@ const SkeletonBar: React.FC<{ h?: string }> = ({ h = "h-4" }) => (
 const inputCls = (err?: string) =>
   `w-full text-sm font-medium text-zinc-700 bg-zinc-50 border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all ${err ? "border-red-300 bg-red-50" : "border-zinc-200"}`;
 
+const typeBadgeColor: Record<CategoryType | string, string> = {
+  food:     "bg-amber-50 text-amber-700 border-amber-200",
+  drink:    "bg-blue-50 text-blue-700 border-blue-200",
+  promo:    "bg-emerald-50 text-emerald-700 border-emerald-200",
+};
+
 // ── Category Form Modal ───────────────────────────────────────────────────────
 const CategoryModal: React.FC<{
   category?: Category;
@@ -60,6 +70,7 @@ const CategoryModal: React.FC<{
 }> = ({ category, onClose, onSaved }) => {
   const isEdit = !!category;
   const [name,      setName]      = useState(category?.name      ?? "");
+  const [type, setType] = useState<CategoryType>(category?.type ?? "food");
   const [sortOrder, setSortOrder] = useState(String(category?.sort_order ?? 0));
   const [isActive,  setIsActive]  = useState(category?.is_active ?? true);
   const [errors,    setErrors]    = useState<Record<string, string>>({});
@@ -72,7 +83,7 @@ const CategoryModal: React.FC<{
     if (Object.keys(e).length) { setErrors(e); return; }
     setLoading(true); setApiError("");
     try {
-      const payload = { name, sort_order: Number(sortOrder), is_active: isActive };
+      const payload = { name, type, sort_order: Number(sortOrder), is_active: isActive };
       const url     = isEdit ? `/api/categories/${category!.id}` : "/api/categories";
       const method  = isEdit ? "PUT" : "POST";
       const res     = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(payload) });
@@ -110,6 +121,7 @@ const CategoryModal: React.FC<{
             </div>
           )}
 
+          {/* Name */}
           <div>
             <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
               Category Name <span className="text-red-400">*</span>
@@ -119,12 +131,30 @@ const CategoryModal: React.FC<{
             {errors.name && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.name}</p>}
           </div>
 
+          {/* Type */}
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
+              Type
+            </label>
+            <div className="relative">
+              <select value={type} onChange={e => setType(e.target.value as CategoryType)}
+                className={inputCls() + " appearance-none pr-8 capitalize"}>
+                {CATEGORY_TYPES.map(t => (
+                  <option key={t} value={t} className="capitalize">{t.charAt(0).toUpperCase() + t.slice(1)}</option>
+                ))}
+              </select>
+              <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+            </div>
+          </div>
+
+          {/* Sort Order */}
           <div>
             <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">Sort Order</label>
             <input type="number" min="0" value={sortOrder} onChange={e => setSortOrder(e.target.value)}
               className={inputCls()} placeholder="0" />
           </div>
 
+          {/* Active toggle */}
           <div className="flex items-center justify-between p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
             <div>
               <p className="text-xs font-bold text-zinc-700">Show on POS</p>
@@ -249,7 +279,7 @@ const CategoriesTab: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100">
-                {["Name", "Items", "Sort Order", "Active", "Actions"].map(h => (
+                {["Name", "Type", "Items", "Sort Order", "Active", "Actions"].map(h => (
                   <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
                 ))}
               </tr>
@@ -257,13 +287,13 @@ const CategoriesTab: React.FC = () => {
             <tbody>
               {loading && [...Array(5)].map((_, i) => (
                 <tr key={i} className="border-b border-zinc-50">
-                  {[...Array(5)].map((_, j) => (
+                  {[...Array(6)].map((_, j) => (
                     <td key={j} className="px-5 py-4"><SkeletonBar h="h-3" /></td>
                   ))}
                 </tr>
               ))}
               {!loading && categories.length === 0 && (
-                <tr><td colSpan={5} className="px-5 py-12 text-center text-zinc-400 text-xs">No categories found.</td></tr>
+                <tr><td colSpan={6} className="px-5 py-12 text-center text-zinc-400 text-xs">No categories found.</td></tr>
               )}
               {!loading && categories.map(cat => (
                 <tr key={cat.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
@@ -288,6 +318,12 @@ const CategoriesTab: React.FC = () => {
                         {cat.name}
                       </span>
                     )}
+                  </td>
+                  {/* Type badge */}
+                  <td className="px-5 py-3.5">
+                    <span className={`... ${typeBadgeColor[cat.type] ?? "bg-zinc-100 text-zinc-600 border-zinc-200"}`}>
+                      {cat.type ?? "standard"}
+                    </span>
                   </td>
                   {/* Item count badge */}
                   <td className="px-5 py-3.5">

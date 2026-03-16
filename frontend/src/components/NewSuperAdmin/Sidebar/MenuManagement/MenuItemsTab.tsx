@@ -10,7 +10,6 @@ import { createPortal } from "react-dom";
 type VariantKey = "primary" | "secondary" | "danger" | "ghost";
 type SizeKey    = "sm" | "md" | "lg";
 
-// ── API ───────────────────────────────────────────────────────────────────────
 const getToken = () =>
   localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
 const authHeaders = (): Record<string, string> => ({
@@ -19,7 +18,6 @@ const authHeaders = (): Record<string, string> => ({
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
 
-// ── Types ─────────────────────────────────────────────────────────────────────
 interface MenuItem {
   id:             number;
   name:           string;
@@ -32,11 +30,9 @@ interface MenuItem {
   image_path:     string | null;
   is_available:   boolean;
 }
-interface SizeVariant { size: string; price: number; }
-interface Category    { id: number; name: string; color?: string; }
+interface Category    { id: number; name: string; }
 interface SubCategory { id: number; name: string; category_id: number; }
 
-// ── Shared UI ─────────────────────────────────────────────────────────────────
 interface BtnProps {
   children: React.ReactNode; variant?: VariantKey; size?: SizeKey;
   onClick?: () => void; className?: string; disabled?: boolean; type?: "button" | "submit" | "reset";
@@ -74,7 +70,6 @@ const Field: React.FC<{ label: string; required?: boolean; error?: string; child
   </div>
 );
 
-// ── Modal Shell ───────────────────────────────────────────────────────────────
 const ModalShell: React.FC<{
   onClose: () => void; icon: React.ReactNode; title: string; sub: string;
   children: React.ReactNode; footer: React.ReactNode; maxWidth?: string;
@@ -120,18 +115,21 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, categories, subcatego
     barcode:        item?.barcode        ?? "",
     is_available:   item?.is_available   ?? true,
   });
-  const [variants, setVariants] = useState<SizeVariant[]>([]);
   const [errors,   setErrors]   = useState<Record<string, string>>({});
   const [loading,  setLoading]  = useState(false);
   const [apiError, setApiError] = useState("");
 
-  const filteredSubs = subcategories.filter(s => !form.category_id || s.category_id === Number(form.category_id));
+  // Filter subs based on selected category
+  const filteredSubs = subcategories.filter(
+    s => !form.category_id || s.category_id === Number(form.category_id)
+  );
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.name.trim())   e.name  = "Name is required.";
-    if (!form.category_id)   e.category_id = "Category is required.";
-    if (!form.price || isNaN(Number(form.price)) || Number(form.price) < 0) e.price = "Valid price is required.";
+    if (!form.name.trim()) e.name = "Name is required.";
+    if (!form.category_id) e.category_id = "Category is required.";
+    if (!form.price || isNaN(Number(form.price)) || Number(form.price) < 0)
+      e.price = "Valid price is required.";
     return e;
   };
 
@@ -147,7 +145,6 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, categories, subcatego
         price:          Number(form.price),
         barcode:        form.barcode || null,
         is_available:   form.is_available,
-        size_variants:  variants,
       };
       const url    = isEdit ? `/api/menu-items/${item!.id}` : "/api/menu-items";
       const method = isEdit ? "PUT" : "POST";
@@ -175,11 +172,6 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, categories, subcatego
     },
   });
 
-  const addVariant    = () => setVariants(v => [...v, { size: "", price: 0 }]);
-  const removeVariant = (i: number) => setVariants(v => v.filter((_, idx) => idx !== i));
-  const updateVariant = (i: number, key: "size" | "price", val: string) =>
-    setVariants(v => v.map((row, idx) => idx === i ? { ...row, [key]: key === "price" ? Number(val) : val } : row));
-
   return (
     <ModalShell onClose={onClose}
       icon={<Package size={15} className="text-violet-600" />}
@@ -189,11 +181,13 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, categories, subcatego
         <>
           <Btn variant="secondary" onClick={onClose} disabled={loading}>Cancel</Btn>
           <Btn onClick={handleSubmit} disabled={loading}>
-            {loading ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</span>
+            {loading
+              ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</span>
               : isEdit ? "Save Changes" : <><Plus size={13} /> Add Item</>}
           </Btn>
         </>
       }>
+
       {apiError && (
         <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
           <AlertCircle size={14} className="text-red-500 shrink-0" />
@@ -201,38 +195,55 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, categories, subcatego
         </div>
       )}
 
+      {/* Name */}
       <Field label="Item Name" required error={errors.name}>
         <input {...f("name")} placeholder="e.g. Brown Sugar Milk Tea" className={inputCls(errors.name)} />
       </Field>
 
+      {/* Category + Sub-Category */}
       <div className="grid grid-cols-2 gap-3">
         <Field label="Category" required error={errors.category_id}>
           <div className="relative">
-            <select {...f("category_id")} className={inputCls(errors.category_id) + " appearance-none pr-8"} onChange={e => {
-              setForm(p => ({ ...p, category_id: e.target.value, subcategory_id: "" }));
-              setErrors(ev => { const n = { ...ev }; delete n.category_id; return n; });
-            }}>
+            <select
+              value={form.category_id}
+              onChange={e => {
+                setForm(p => ({ ...p, category_id: e.target.value, subcategory_id: "" }));
+                setErrors(ev => { const n = { ...ev }; delete n.category_id; return n; });
+              }}
+              className={inputCls(errors.category_id) + " appearance-none pr-8"}>
               <option value="">Select Category</option>
               {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
             <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           </div>
         </Field>
+
         <Field label="Sub-Category">
           <div className="relative">
-            <select value={form.subcategory_id} onChange={e => setForm(p => ({ ...p, subcategory_id: e.target.value }))}
-              className={inputCls() + " appearance-none pr-8"} disabled={!form.category_id}>
+            <select
+              value={form.subcategory_id}
+              onChange={e => setForm(p => ({ ...p, subcategory_id: e.target.value }))}
+              className={inputCls() + " appearance-none pr-8"}
+              disabled={!form.category_id}>
               <option value="">None</option>
               {filteredSubs.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
             <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           </div>
+          {form.category_id && filteredSubs.length === 0 && (
+            <p className="text-[10px] text-zinc-400 mt-1">No sub-categories for this category.</p>
+          )}
         </Field>
       </div>
 
+      {/* Price + Barcode */}
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Base Price (₱)" required error={errors.price}>
-          <input {...f("price")} type="number" min="0" step="0.01" placeholder="0.00" className={inputCls(errors.price)} />
+        <Field label="Price (₱)" required error={errors.price}>
+          <div className="relative">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm font-medium">₱</span>
+            <input {...f("price")} type="number" min="0" step="0.01" placeholder="0.00"
+              className={inputCls(errors.price) + " pl-7"} />
+          </div>
         </Field>
         <Field label="Barcode">
           <div className="relative">
@@ -254,39 +265,6 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, categories, subcatego
             ? <ToggleRight size={28} className="text-[#3b2063]" />
             : <ToggleLeft  size={28} className="text-zinc-300"  />}
         </button>
-      </div>
-
-      {/* Size variants */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Size Variants (optional)</p>
-          <button type="button" onClick={addVariant}
-            className="text-[10px] font-bold text-violet-600 hover:text-violet-800 flex items-center gap-1 transition-colors">
-            <Plus size={11} /> Add Size
-          </button>
-        </div>
-        {variants.length === 0 ? (
-          <p className="text-[10px] text-zinc-400 italic">No size variants — uses base price only.</p>
-        ) : (
-          <div className="flex flex-col gap-2">
-            {variants.map((v, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <input value={v.size} onChange={e => updateVariant(i, "size", e.target.value)}
-                  placeholder="e.g. M / L / XL"
-                  className="flex-1 text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
-                <div className="relative w-32">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm font-medium">₱</span>
-                  <input type="number" min="0" step="0.01" value={v.price} onChange={e => updateVariant(i, "price", e.target.value)}
-                    className="w-full text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-7 pr-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
-                </div>
-                <button type="button" onClick={() => removeVariant(i)}
-                  className="p-1.5 hover:bg-red-50 rounded-lg text-zinc-300 hover:text-red-500 transition-colors">
-                  <X size={14} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </ModalShell>
   );
@@ -324,7 +302,8 @@ const DeleteModal: React.FC<{ item: MenuItem; onClose: () => void; onDeleted: (i
         <div className="flex gap-2 px-6 pb-6">
           <Btn variant="secondary" className="flex-1 justify-center" onClick={onClose} disabled={loading}>Cancel</Btn>
           <Btn variant="danger"    className="flex-1 justify-center" onClick={handleDelete} disabled={loading}>
-            {loading ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Deleting...</span>
+            {loading
+              ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Deleting...</span>
               : <><Trash2 size={13} /> Delete</>}
           </Btn>
         </div>
@@ -334,52 +313,56 @@ const DeleteModal: React.FC<{ item: MenuItem; onClose: () => void; onDeleted: (i
   );
 };
 
-// ── Main Component ─────────────────────────────────────────────────────────────
+// ── Main Component ────────────────────────────────────────────────────────────
 const MenuItemsTab: React.FC = () => {
-  const [items,        setItems]        = useState<MenuItem[]>([]);
-  const [categories,   setCategories]   = useState<Category[]>([]);
-  const [subcategories,setSubcategories]= useState<SubCategory[]>([]);
-  const [loading,      setLoading]      = useState(true);
-  const [error,        setError]        = useState("");
-  const [search,       setSearch]       = useState("");
-  const [filterCat,    setFilterCat]    = useState("");
-  const [filterAvail,  setFilterAvail]  = useState("");
-  const [addOpen,      setAddOpen]      = useState(false);
-  const [editTarget,   setEditTarget]   = useState<MenuItem | null>(null);
-  const [delTarget,    setDelTarget]    = useState<MenuItem | null>(null);
+  const [items,         setItems]         = useState<MenuItem[]>([]);
+  const [categories,    setCategories]    = useState<Category[]>([]);
+  const [subcategories, setSubcategories] = useState<SubCategory[]>([]);
+  const [loading,       setLoading]       = useState(true);
+  const [error,         setError]         = useState("");
+  const [search,        setSearch]        = useState("");
+  const [filterCat,     setFilterCat]     = useState("");
+  const [filterAvail,   setFilterAvail]   = useState("");
+  const [addOpen,       setAddOpen]       = useState(false);
+  const [editTarget,    setEditTarget]    = useState<MenuItem | null>(null);
+  const [delTarget,     setDelTarget]     = useState<MenuItem | null>(null);
 
   const fetchAll = useCallback(async () => {
     setLoading(true); setError("");
     try {
       const [itemsRes, catsRes, subsRes] = await Promise.all([
-        fetch("/api/menu-items", { headers: authHeaders() }),
-        fetch("/api/categories", { headers: authHeaders() }),
+        fetch("/api/menu-items",     { headers: authHeaders() }),
+        fetch("/api/categories",     { headers: authHeaders() }),
         fetch("/api/sub-categories", { headers: authHeaders() }),
       ]);
-      const [itemsData, catsData, subsData] = await Promise.all([itemsRes.json(), catsRes.json(), subsRes.json()]);
+      const [itemsData, catsData, subsData] = await Promise.all([
+        itemsRes.json(), catsRes.json(), subsRes.json(),
+      ]);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const mapItem = (i: any): MenuItem => ({
         id:             i.id,
         name:           i.name,
-        category_id:    i.category_id   ?? null,
-        category:       i.category?.name ?? i.category ?? "—",
+        category_id:    i.category_id    ?? null,
+        category:       i.category?.name ?? i.category  ?? "—",
         subcategory_id: i.subcategory_id ?? null,
         subcategory:    i.subcategory?.name ?? i.subcategory ?? "—",
         price:          Number(i.price ?? 0),
-        barcode:        i.barcode ?? null,
+        barcode:        i.barcode    ?? null,
         image_path:     null,
         is_available:   Boolean(i.is_available ?? true),
       });
 
-      const rawItems = Array.isArray(itemsData) ? itemsData : (itemsData.data ?? []);
-      setItems(rawItems.map(mapItem));
+      setItems((Array.isArray(itemsData) ? itemsData : (itemsData.data ?? [])).map(mapItem));
+      setCategories(Array.isArray(catsData) ? catsData : (catsData.data ?? []));
 
-      const rawCats = Array.isArray(catsData) ? catsData : (catsData.data ?? []);
-      setCategories(rawCats);
-
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const rawSubs = Array.isArray(subsData) ? subsData : (subsData.data ?? []);
-      setSubcategories(rawSubs);
+      setSubcategories(rawSubs.map((s: any) => ({
+        id:          s.id,
+        name:        s.name,
+        category_id: s.category_id,
+      })));
     } catch { setError("Failed to load menu items."); }
     finally { setLoading(false); }
   }, []);
@@ -393,17 +376,16 @@ const MenuItemsTab: React.FC = () => {
         body: JSON.stringify({ is_available: !item.is_available }),
       });
       const data = await res.json();
-      if (res.ok && data.success) {
+      if (res.ok && data.success)
         setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_available: !i.is_available } : i));
-      }
     } catch { /* silent */ }
   };
 
   const filtered = items.filter(i => {
     const matchSearch = i.name.toLowerCase().includes(search.toLowerCase()) ||
                         (i.barcode ?? "").toLowerCase().includes(search.toLowerCase());
-    const matchCat    = !filterCat   || String(i.category_id) === filterCat;
-    const matchAvail  = !filterAvail || String(i.is_available) === filterAvail;
+    const matchCat   = !filterCat   || String(i.category_id) === filterCat;
+    const matchAvail = !filterAvail || String(i.is_available) === filterAvail;
     return matchSearch && matchCat && matchAvail;
   });
 
@@ -429,13 +411,13 @@ const MenuItemsTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Stat summary */}
+      {/* Stat cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         {[
-          { label: "Total Items",  value: items.length,                                  color: "bg-violet-50 border-violet-200 text-violet-600"   },
-          { label: "Available",    value: items.filter(i => i.is_available).length,       color: "bg-emerald-50 border-emerald-200 text-emerald-600" },
-          { label: "Unavailable",  value: items.filter(i => !i.is_available).length,      color: "bg-red-50 border-red-200 text-red-500"            },
-          { label: "Categories",   value: categories.length,                              color: "bg-amber-50 border-amber-200 text-amber-600"      },
+          { label: "Total Items",  value: items.length,                             color: "bg-violet-50 border-violet-200 text-violet-600"   },
+          { label: "Available",    value: items.filter(i => i.is_available).length, color: "bg-emerald-50 border-emerald-200 text-emerald-600" },
+          { label: "Unavailable",  value: items.filter(i => !i.is_available).length,color: "bg-red-50 border-red-200 text-red-500"            },
+          { label: "Categories",   value: categories.length,                        color: "bg-amber-50 border-amber-200 text-amber-600"      },
         ].map((s, i) => (
           <div key={i} className={`border rounded-[0.625rem] px-4 py-3 ${s.color.split(" ").slice(0, 2).join(" ")}`}>
             <p className={`text-xl font-black tabular-nums ${s.color.split(" ")[2]}`}>{loading ? "—" : s.value}</p>
@@ -454,7 +436,7 @@ const MenuItemsTab: React.FC = () => {
 
       {/* Table */}
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
-        {/* Filter bar */}
+        {/* Filters */}
         <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-100 flex-wrap">
           <div className="flex-1 min-w-48 flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
             <Search size={13} className="text-zinc-400" />
@@ -501,7 +483,7 @@ const MenuItemsTab: React.FC = () => {
               {loading && [...Array(6)].map((_, i) => (
                 <tr key={i} className="border-b border-zinc-50">
                   {[...Array(7)].map((_, j) => (
-                    <td key={j} className="px-5 py-4"><SkeletonBar h="h-3" w={`w-${["32", "20", "20", "16", "24", "12", "16"][j]}`} /></td>
+                    <td key={j} className="px-5 py-4"><SkeletonBar h="h-3" /></td>
                   ))}
                 </tr>
               ))}
@@ -525,11 +507,18 @@ const MenuItemsTab: React.FC = () => {
                       {item.category}
                     </span>
                   </td>
-                  <td className="px-5 py-3.5 text-zinc-500 text-xs">{item.subcategory !== "—" ? item.subcategory : "—"}</td>
+                  <td className="px-5 py-3.5">
+                    {item.subcategory !== "—" ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-zinc-100 text-zinc-600 border border-zinc-200">
+                        {item.subcategory}
+                      </span>
+                    ) : <span className="text-zinc-300 text-xs">—</span>}
+                  </td>
                   <td className="px-5 py-3.5 font-bold text-[#3b2063] text-xs">{fmt(item.price)}</td>
                   <td className="px-5 py-3.5 text-zinc-400 text-xs font-mono">{item.barcode ?? "—"}</td>
                   <td className="px-5 py-3.5">
-                    <button onClick={() => toggleAvailable(item)} className="transition-colors" title={item.is_available ? "Click to hide" : "Click to show"}>
+                    <button onClick={() => toggleAvailable(item)} className="transition-colors"
+                      title={item.is_available ? "Click to hide" : "Click to show"}>
                       {item.is_available
                         ? <ToggleRight size={22} className="text-[#3b2063]" />
                         : <ToggleLeft  size={22} className="text-zinc-300"  />}

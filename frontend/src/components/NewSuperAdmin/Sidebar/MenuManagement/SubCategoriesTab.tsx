@@ -23,10 +23,15 @@ interface SubCategory {
   name:        string;
   category_id: number;
   category:    string;
+  item_count:  number;
   sort_order:  number;
   is_active:   boolean;
 }
 interface Category { id: number; name: string; color?: string; }
+interface Cup      { id: number; name: string; size_m: string | null; size_l: string | null; code: string; }
+
+// Derive sub-category name options from a cup
+const cupToSizes = (cup: Cup): string[] => cup.code.split("/").map(s => s.trim()).filter(Boolean);
 
 interface BtnProps {
   children: React.ReactNode; variant?: VariantKey; size?: SizeKey;
@@ -59,17 +64,34 @@ const inputCls = (err?: string) =>
 const SubCategoryModal: React.FC<{
   sub?: SubCategory;
   categories: Category[];
+  cups: Cup[];
   onClose: () => void;
   onSaved: (s: SubCategory) => void;
-}> = ({ sub, categories, onClose, onSaved }) => {
+}> = ({ sub, categories, cups, onClose, onSaved }) => {
   const isEdit = !!sub;
   const [name,       setName]       = useState(sub?.name        ?? "");
   const [categoryId, setCategoryId] = useState(sub?.category_id ? String(sub.category_id) : "");
   const [sortOrder,  setSortOrder]  = useState(String(sub?.sort_order ?? 0));
   const [isActive,   setIsActive]   = useState(sub?.is_active   ?? true);
+  const [selectedCup, setSelectedCup] = useState<Cup | null>(null);
   const [errors,     setErrors]     = useState<Record<string, string>>({});
   const [loading,    setLoading]    = useState(false);
   const [apiError,   setApiError]   = useState("");
+
+  // When a cup is selected, auto-fill the name from the first size option
+  const handleCupChange = (cupId: string) => {
+    const cup = cups.find(c => String(c.id) === cupId) ?? null;
+    setSelectedCup(cup);
+    if (cup) {
+      const sizes = cupToSizes(cup);
+      setName(sizes[0] ?? "");
+    } else {
+      setName("");
+    }
+    setErrors({});
+  };
+
+  const sizeOptions = selectedCup ? cupToSizes(selectedCup) : [];
 
   const handleSubmit = async () => {
     const e: Record<string, string> = {};
@@ -84,9 +106,9 @@ const SubCategoryModal: React.FC<{
       const res     = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(payload) });
       const data    = await res.json();
       if (!res.ok) { setApiError(data.message ?? "Something went wrong."); return; }
-      const raw = data.data ?? data;
+      const raw        = data.data ?? data;
       const parentName = categories.find(c => c.id === Number(categoryId))?.name ?? "—";
-      onSaved({ ...raw, category: parentName });
+      onSaved({ ...raw, category: parentName, item_count: raw.itemCount ?? sub?.item_count ?? 0 });
       onClose();
     } catch { setApiError("Network error."); }
     finally { setLoading(false); }
@@ -118,15 +140,7 @@ const SubCategoryModal: React.FC<{
             </div>
           )}
 
-          <div>
-            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
-              Sub-Category Name <span className="text-red-400">*</span>
-            </label>
-            <input value={name} onChange={e => { setName(e.target.value); setErrors({}); }}
-              placeholder="e.g. Classic Series" className={inputCls(errors.name)} />
-            {errors.name && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.name}</p>}
-          </div>
-
+          {/* Parent Category */}
           <div>
             <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
               Parent Category <span className="text-red-400">*</span>
@@ -142,12 +156,63 @@ const SubCategoryModal: React.FC<{
             {errors.category_id && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.category_id}</p>}
           </div>
 
+          {/* Cup selector — only on Add mode */}
+          {!isEdit && (
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
+                Cup Type <span className="text-zinc-300 font-normal normal-case">(auto-fills name)</span>
+              </label>
+              <div className="relative">
+                <select
+                  value={selectedCup ? String(selectedCup.id) : ""}
+                  onChange={e => handleCupChange(e.target.value)}
+                  className={inputCls() + " appearance-none pr-8"}>
+                  <option value="">Select Cup (optional)</option>
+                  {cups.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} — {c.code}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+              </div>
+              {/* Size chips when a cup is selected */}
+              {sizeOptions.length > 0 && (
+                <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                  <span className="text-[10px] text-zinc-400 font-medium">Pick size:</span>
+                  {sizeOptions.map(sz => (
+                    <button key={sz} type="button" onClick={() => setName(sz)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all ${
+                        name === sz
+                          ? "bg-[#3b2063] text-white border-[#3b2063]"
+                          : "bg-white text-zinc-600 border-zinc-200 hover:border-violet-300 hover:text-violet-600"
+                      }`}>
+                      {sz}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Sub-Category Name */}
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
+              Sub-Category Name <span className="text-red-400">*</span>
+            </label>
+            <input value={name} onChange={e => { setName(e.target.value); setErrors({}); }}
+              placeholder="e.g. SM" className={inputCls(errors.name)} />
+            {errors.name && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.name}</p>}
+          </div>
+
+          {/* Sort Order */}
           <div>
             <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">Sort Order</label>
             <input type="number" min="0" value={sortOrder} onChange={e => setSortOrder(e.target.value)}
               className={inputCls()} placeholder="0" />
           </div>
 
+          {/* Active toggle */}
           <div className="flex items-center justify-between p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
             <div>
               <p className="text-xs font-bold text-zinc-700">Show on POS</p>
@@ -178,6 +243,7 @@ const SubCategoryModal: React.FC<{
 const SubCategoriesTab: React.FC = () => {
   const [subs,       setSubs]       = useState<SubCategory[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [cups,       setCups]       = useState<Cup[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [error,      setError]      = useState("");
   const [filterCat,  setFilterCat]  = useState("");
@@ -191,14 +257,18 @@ const SubCategoriesTab: React.FC = () => {
   const fetchAll = useCallback(async () => {
     setLoading(true); setError("");
     try {
-      const [subsRes, catsRes] = await Promise.all([
+      const [subsRes, catsRes, cupsRes] = await Promise.all([
         fetch("/api/sub-categories", { headers: authHeaders() }),
         fetch("/api/categories",     { headers: authHeaders() }),
+        fetch("/api/cups",           { headers: authHeaders() }),
       ]);
-      const [subsData, catsData] = await Promise.all([subsRes.json(), catsRes.json()]);
+      const [subsData, catsData, cupsData] = await Promise.all([
+        subsRes.json(), catsRes.json(), cupsRes.json(),
+      ]);
 
       const rawCats = Array.isArray(catsData) ? catsData : (catsData.data ?? []);
       setCategories(rawCats);
+      setCups(Array.isArray(cupsData) ? cupsData : (cupsData.data ?? []));
 
       const rawSubs = Array.isArray(subsData) ? subsData : (subsData.data ?? []);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -206,7 +276,8 @@ const SubCategoriesTab: React.FC = () => {
         id:          s.id,
         name:        s.name,
         category_id: s.category_id,
-        category:    s.category?.name ?? rawCats.find((c: Category) => c.id === s.category_id)?.name ?? "—",
+        category:    s.mainCategory ?? s.category?.name ?? rawCats.find((c: Category) => c.id === s.category_id)?.name ?? "—",
+        item_count:  Number(s.itemCount ?? s.item_count ?? 0),
         sort_order:  s.sort_order ?? 0,
         is_active:   Boolean(s.is_active ?? true),
       })));
@@ -216,61 +287,48 @@ const SubCategoriesTab: React.FC = () => {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-    const toggleActive = async (sub: SubCategory) => {
+  const toggleActive = async (sub: SubCategory) => {
     try {
-        const res = await fetch(`/api/sub-categories/${sub.id}`, {
+      const res = await fetch(`/api/sub-categories/${sub.id}`, {
         method: "PUT", headers: authHeaders(),
-        body: JSON.stringify({
-            name:        sub.name,         // ← required by backend
-            category_id: sub.category_id,  // ← required by backend
-            is_active:   !sub.is_active,
-        }),
-        });
-        if (res.ok) setSubs(p => p.map(s => s.id === sub.id ? { ...s, is_active: !s.is_active } : s));
+        body: JSON.stringify({ is_active: !sub.is_active }),
+      });
+      if (res.ok) setSubs(p => p.map(s => s.id === sub.id ? { ...s, is_active: !s.is_active } : s));
     } catch { /* silent */ }
-    };
+  };
 
-    const handleDelete = async (sub: SubCategory) => {
+  const handleDelete = async (sub: SubCategory) => {
     setDelLoading(true);
     try {
-        const res  = await fetch(`/api/sub-categories/${sub.id}`, { method: "DELETE", headers: authHeaders() });
-        const data = await res.json();
-        if (res.ok) {                          // ← was: res.ok && data.success
-        setSubs(p => p.filter(s => s.id !== sub.id));
-        setDelTarget(null);
-        } else {
-        setError(data.message ?? "Failed to delete.");
-        }
+      const res  = await fetch(`/api/sub-categories/${sub.id}`, { method: "DELETE", headers: authHeaders() });
+      const data = await res.json();
+      if (res.ok) { setSubs(p => p.filter(s => s.id !== sub.id)); setDelTarget(null); }
+      else setError(data.message ?? "Failed to delete.");
     } catch { setError("Network error."); }
     finally { setDelLoading(false); }
-    };
+  };
 
-    const saveInline = async (sub: SubCategory) => {
+  const saveInline = async (sub: SubCategory) => {
     if (!inlineVal.trim()) { setInlineEdit(null); return; }
     try {
-        const res = await fetch(`/api/sub-categories/${sub.id}`, {
+      const res = await fetch(`/api/sub-categories/${sub.id}`, {
         method: "PUT", headers: authHeaders(),
-        body: JSON.stringify({
-            name:        inlineVal,        // ← updated name
-            category_id: sub.category_id,  // ← required by backend
-        }),
-        });
-        if (res.ok) setSubs(p => p.map(s => s.id === sub.id ? { ...s, name: inlineVal } : s));
+        body: JSON.stringify({ name: inlineVal, category_id: sub.category_id }),
+      });
+      if (res.ok) setSubs(p => p.map(s => s.id === sub.id ? { ...s, name: inlineVal } : s));
     } catch { /* silent */ }
     finally { setInlineEdit(null); }
-    };
+  };
 
-  // Group by parent category
-  const filtered = subs.filter(s => !filterCat || String(s.category_id) === filterCat);
-
-  const grouped = categories.reduce((acc, cat) => {
+  const filtered  = subs.filter(s => !filterCat || String(s.category_id) === filterCat);
+  const grouped   = categories.reduce((acc, cat) => {
     const children = filtered.filter(s => s.category_id === cat.id);
     if (children.length > 0) acc[cat.id] = { cat, children };
     return acc;
   }, {} as Record<number, { cat: Category; children: SubCategory[] }>);
-
-  // Also include ungrouped (if category not found)
   const ungrouped = filtered.filter(s => !categories.find(c => c.id === s.category_id));
+
+  const tableHeaders = ["Name", "Parent Category", "Items", "Sort Order", "Active", "Actions"];
 
   return (
     <div className="p-6 md:p-8 fade-in">
@@ -329,7 +387,7 @@ const SubCategoriesTab: React.FC = () => {
               <div className="px-5 py-3 border-b border-zinc-100"><SkeletonBar h="h-4" /></div>
               {[...Array(3)].map((_, j) => (
                 <div key={j} className="px-5 py-4 border-b border-zinc-50 flex gap-4">
-                  {[...Array(5)].map((_, k) => <SkeletonBar key={k} h="h-3" />)}
+                  {[...Array(6)].map((_, k) => <SkeletonBar key={k} h="h-3" />)}
                 </div>
               ))}
             </div>
@@ -342,18 +400,15 @@ const SubCategoriesTab: React.FC = () => {
         <div className="flex flex-col gap-4">
           {Object.values(grouped).map(({ cat, children }) => (
             <div key={cat.id} className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
-              {/* Category header */}
-              <div className="flex items-center gap-3 px-5 py-3.5 border-b border-zinc-100"
-                style={{ borderLeftWidth: 3, borderLeftColor: cat.color ?? "#3b2063" }}>
-                <div className="w-5 h-5 rounded-md shrink-0" style={{ background: cat.color ?? "#3b2063" }} />
+              <div className="flex items-center gap-3 px-5 py-3.5 border-b border-zinc-100 bg-zinc-50/50">
+                <div className="w-2 h-6 rounded-full bg-[#3b2063] shrink-0" />
                 <p className="text-xs font-black text-[#1a0f2e] uppercase tracking-widest">{cat.name}</p>
                 <span className="text-[10px] font-bold text-zinc-400 ml-auto">{children.length} sub-categories</span>
               </div>
-              {/* Sub-category rows */}
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-zinc-50">
-                    {["Name", "Sort Order", "Active", "Actions"].map(h => (
+                    {tableHeaders.map(h => (
                       <th key={h} className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
                     ))}
                   </tr>
@@ -367,12 +422,8 @@ const SubCategoriesTab: React.FC = () => {
                             <input autoFocus value={inlineVal} onChange={e => setInlineVal(e.target.value)}
                               onKeyDown={e => { if (e.key === "Enter") saveInline(sub); if (e.key === "Escape") setInlineEdit(null); }}
                               className="text-sm font-medium text-zinc-700 bg-white border border-violet-300 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-violet-400 w-40" />
-                            <button onClick={() => saveInline(sub)} className="p-1 bg-emerald-50 hover:bg-emerald-100 rounded text-emerald-600 transition-colors">
-                              <Check size={12} />
-                            </button>
-                            <button onClick={() => setInlineEdit(null)} className="p-1 hover:bg-zinc-100 rounded text-zinc-400 transition-colors">
-                              <X size={12} />
-                            </button>
+                            <button onClick={() => saveInline(sub)} className="p-1 bg-emerald-50 hover:bg-emerald-100 rounded text-emerald-600 transition-colors"><Check size={12} /></button>
+                            <button onClick={() => setInlineEdit(null)} className="p-1 hover:bg-zinc-100 rounded text-zinc-400 transition-colors"><X size={12} /></button>
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
@@ -385,24 +436,30 @@ const SubCategoriesTab: React.FC = () => {
                           </div>
                         )}
                       </td>
+                      <td className="px-5 py-3.5">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-zinc-100 text-zinc-600 border border-zinc-200">
+                          {sub.category}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        {sub.item_count > 0 ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-50 text-violet-700 border border-violet-200">
+                            {sub.item_count} items
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-medium text-zinc-300">—</span>
+                        )}
+                      </td>
                       <td className="px-5 py-3.5 text-zinc-500 text-xs">{sub.sort_order}</td>
                       <td className="px-5 py-3.5">
                         <button onClick={() => toggleActive(sub)} className="transition-colors">
-                          {sub.is_active
-                            ? <ToggleRight size={22} className="text-[#3b2063]" />
-                            : <ToggleLeft  size={22} className="text-zinc-300"  />}
+                          {sub.is_active ? <ToggleRight size={22} className="text-[#3b2063]" /> : <ToggleLeft size={22} className="text-zinc-300" />}
                         </button>
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-1">
-                          <button onClick={() => setEditTarget(sub)}
-                            className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors" title="Edit">
-                            <Edit2 size={13} />
-                          </button>
-                          <button onClick={() => setDelTarget(sub)}
-                            className="p-1.5 hover:bg-red-50 rounded-[0.4rem] text-zinc-400 hover:text-red-500 transition-colors" title="Delete">
-                            <Trash2 size={13} />
-                          </button>
+                          <button onClick={() => setEditTarget(sub)} className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors" title="Edit"><Edit2 size={13} /></button>
+                          <button onClick={() => setDelTarget(sub)} className="p-1.5 hover:bg-red-50 rounded-[0.4rem] text-zinc-400 hover:text-red-500 transition-colors" title="Delete"><Trash2 size={13} /></button>
                         </div>
                       </td>
                     </tr>
@@ -415,14 +472,27 @@ const SubCategoriesTab: React.FC = () => {
           {/* Ungrouped */}
           {ungrouped.length > 0 && (
             <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
-              <div className="flex items-center gap-3 px-5 py-3.5 border-b border-zinc-100">
+              <div className="flex items-center gap-3 px-5 py-3.5 border-b border-zinc-100 bg-zinc-50/50">
                 <p className="text-xs font-black text-zinc-400 uppercase tracking-widest">Uncategorized</p>
               </div>
               <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-zinc-50">
+                    {tableHeaders.map(h => (
+                      <th key={h} className="px-5 py-2.5 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
                 <tbody>
                   {ungrouped.map(sub => (
                     <tr key={sub.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
                       <td className="px-5 py-3.5 font-semibold text-[#1a0f2e] text-xs">{sub.name}</td>
+                      <td className="px-5 py-3.5"><span className="text-[10px] font-medium text-zinc-300">—</span></td>
+                      <td className="px-5 py-3.5">
+                        {sub.item_count > 0 ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-50 text-violet-700 border border-violet-200">{sub.item_count} items</span>
+                        ) : <span className="text-[10px] font-medium text-zinc-300">—</span>}
+                      </td>
                       <td className="px-5 py-3.5 text-zinc-500 text-xs">{sub.sort_order}</td>
                       <td className="px-5 py-3.5">
                         <button onClick={() => toggleActive(sub)}>
@@ -478,9 +548,9 @@ const SubCategoriesTab: React.FC = () => {
       )}
 
       {/* Add / Edit Modal */}
-      {addOpen    && <SubCategoryModal categories={categories} onClose={() => setAddOpen(false)}
+      {addOpen    && <SubCategoryModal categories={categories} cups={cups} onClose={() => setAddOpen(false)}
         onSaved={s => { setSubs(p => [s, ...p]); setAddOpen(false); }} />}
-      {editTarget && <SubCategoryModal sub={editTarget} categories={categories} onClose={() => setEditTarget(null)}
+      {editTarget && <SubCategoryModal sub={editTarget} categories={categories} cups={cups} onClose={() => setEditTarget(null)}
         onSaved={s => { setSubs(p => p.map(x => x.id === s.id ? s : x)); setEditTarget(null); }} />}
     </div>
   );
