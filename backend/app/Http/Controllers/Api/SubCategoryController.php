@@ -64,27 +64,25 @@ class SubCategoryController extends Controller
 
     public function update(Request $request, $id)
     {
-        // 1. Validation - Ensure category_id is valid
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:sub_categories,name,' . $id,
-            'category_id' => 'required|exists:categories,id',
+            'name'        => 'sometimes|required|string|max:255|unique:sub_categories,name,' . $id,
+            'category_id' => 'sometimes|required|exists:categories,id',
+            'is_active'   => 'sometimes|boolean',   // ← add this
         ]);
 
         try {
             $subCategory = SubCategory::findOrFail($id);
-            
             $subCategory->update($validated);
-
             $subCategory->load('category');
             $subCategory->loadCount('menuItems');
 
             Cache::forget('menu_data_v3');
 
             return response()->json([
-                'id' => $subCategory->id,
-                'name' => $subCategory->name,
-                'mainCategory' => $subCategory->category->name ?? 'N/A',
-                'itemCount' => $subCategory->menu_items_count,
+                'id'          => $subCategory->id,
+                'name'        => $subCategory->name,
+                'mainCategory'=> $subCategory->category->name ?? 'N/A',
+                'itemCount'   => $subCategory->menu_items_count,
             ]);
         } catch (\Exception $e) {
             \Log::error("SubCategory Update Error: " . $e->getMessage());

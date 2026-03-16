@@ -11,7 +11,6 @@ use Illuminate\Support\Facades\Cache;
 
 class CategoryController extends Controller
 {
-    // Fetch all categories with a count of related menu items
     public function index(Request $request)
     {
         $query = DB::table('categories')
@@ -20,10 +19,16 @@ class CategoryController extends Controller
                 'categories.id',
                 'categories.name',
                 'categories.type',
+                'categories.sort_order',
+                'categories.is_active',
                 'categories.description',
                 DB::raw('COUNT(menu_items.id) as menu_items_count')
             )
-            ->groupBy('categories.id', 'categories.name', 'categories.type', 'categories.description')
+            ->groupBy(
+                'categories.id', 'categories.name', 'categories.type',
+                'categories.sort_order', 'categories.is_active', 'categories.description'
+            )
+            ->orderBy('categories.sort_order', 'asc')
             ->orderBy('categories.name', 'asc');
 
         if ($request->has('type')) {
@@ -33,13 +38,14 @@ class CategoryController extends Controller
         return response()->json($query->get());
     }
 
-    // Store a new category
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'   => 'required|string|unique:categories,name|max:255',
-            'type'   => 'required|in:food,drink,promo,standard',
-            'cup_id' => 'nullable|exists:cups,id',
+            'name'       => 'required|string|unique:categories,name|max:255',
+            'type'       => 'nullable|in:food,drink,promo,standard',
+            'cup_id'     => 'nullable|exists:cups,id',
+            'sort_order' => 'nullable|integer',
+            'is_active'  => 'nullable|boolean',
         ]);
 
         try {
@@ -47,8 +53,7 @@ class CategoryController extends Controller
 
             $category = Category::create($validated);
 
-            // Auto-create sub-categories based on cup type
-            if ($validated['type'] === 'drink' && !empty($validated['cup_id'])) {
+            if (($validated['type'] ?? '') === 'drink' && !empty($validated['cup_id'])) {
                 $cup = DB::table('cups')->where('id', $validated['cup_id'])->first();
 
                 if ($cup) {
@@ -59,7 +64,7 @@ class CategoryController extends Controller
                         'PCM/PCL' => ['PCM', 'PCL'],
                     ];
 
-                    $subNames = $subCategoryMap[$cup->code] ?? [];
+                    $subNames   = $subCategoryMap[$cup->code] ?? [];
                     $firstSubId = null;
 
                     foreach ($subNames as $subName) {
@@ -68,10 +73,7 @@ class CategoryController extends Controller
                             'category_id' => $category->id,
                             'cup_id'      => $cup->id,
                         ]);
-
-                        if ($firstSubId === null) {
-                            $firstSubId = $sub->id;
-                        }
+                        if ($firstSubId === null) $firstSubId = $sub->id;
                     }
 
                     if ($firstSubId) {
@@ -81,12 +83,10 @@ class CategoryController extends Controller
             }
 
             DB::commit();
-
             Cache::forget('menu_data_v3');
 
-            // Return with menu_items_count appended manually — NOT saved to DB
             return response()->json(
-                array_merge($category->toArray(), ['menu_items_count' => 0]),
+                array_merge($category->fresh()->toArray(), ['menu_items_count' => 0]),
                 201
             );
 
@@ -97,33 +97,40 @@ class CategoryController extends Controller
         }
     }
 
-    // Delete a category
-    public function destroy($id)
-    {
-        $category = Category::findOrFail($id);
-        $category->delete();
-        Cache::forget('menu_data_v3');
-        return response()->json(['message' => 'Category deleted successfully']);
-    }
-
     public function update(Request $request, $id)
     {
         $validated = $request->validate([
-            'name'        => 'required|string|max:255|unique:categories,name,' . $id,
-            'type'        => 'nullable|in:food,drink,promo,standard',
-            'cup_id'      => 'nullable|exists:cups,id',
+            'name'       => 'sometimes|required|string|max:255|unique:categories,name,' . $id,
+            'type'       => 'sometimes|nullable|in:food,drink,promo,standard',
+            'sort_order' => 'sometimes|integer',
+            'is_active'  => 'sometimes|boolean',
+            'description'=> 'sometimes|nullable|string',
         ]);
 
         try {
             $category = Category::findOrFail($id);
             $category->update($validated);
-            $category->loadCount('menu_items');
+
             Cache::forget('menu_data_v3');
 
-            return response()->json($category);
+            return response()->json(
+                array_merge($category->fresh()->toArray(), [
+                    'menu_items_count' => DB::table('menu_items')
+                        ->where('category_id', $id)->count(),
+                ])
+            );
+
         } catch (\Exception $e) {
             \Log::error("Category Update Error: " . $e->getMessage());
             return response()->json(['message' => 'Failed to update category.'], 500);
         }
+    }
+
+    public function destroy($id)
+    {
+        $category = Category::findOrFail($id);
+        $category->delete();
+        Cache::forget('menu_data_v3');
+        return response()->json(['success' => true, 'message' => 'Category deleted successfully']);
     }
 }
