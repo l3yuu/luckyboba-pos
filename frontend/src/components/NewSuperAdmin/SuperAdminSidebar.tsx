@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import {
   LayoutGrid, GitBranch, Users, BarChart2, Settings,
-  LogOut, HelpCircle, ShieldCheck, Tag,
+  LogOut, ShieldCheck, Tag,
   UtensilsCrossed, Layers, List, Package,
   TrendingUp, FileText, ClipboardList, Receipt, Repeat2,
   Truck, ScanLine, Hash, ShoppingCart, ArrowLeftRight,
@@ -472,11 +472,6 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
             <span className={`shrink-0 ${active === "settings" ? "text-[#3b2063]" : "text-zinc-400"}`}><Settings size={14} /></span>
             Settings
           </button>
-          <button className="sa-tab flex items-center gap-2 w-full px-2.5 py-1.5 text-[0.8rem] font-medium text-zinc-500 mb-0.5 text-left"
-            onClick={() => window.open("mailto:support@luckyboba.com")}>
-            <span className="shrink-0 text-zinc-400"><HelpCircle size={14} /></span>
-            Get Help
-          </button>
           <div className="h-px bg-zinc-100 my-2" />
           <button onClick={() => setShowLogoutModal(true)} disabled={isLoggingOut}
             className="sa-tab flex items-center gap-2 w-full px-2.5 py-1.5 text-[0.8rem] font-medium text-left"
@@ -588,10 +583,6 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
               <button onClick={() => go("settings")} className={`sa-item ${active === "settings" ? "active" : ""}`} style={{ color: active === "settings" ? "#3b2063" : "#3f3f46" }}>
                 <span className="sa-item-icon" style={{ color: active === "settings" ? "#3b2063" : "#71717a" }}><Settings size={18} /></span>
                 Settings
-              </button>
-              <button className="sa-item" style={{ color: "#71717a" }} onClick={() => window.open("mailto:support@luckyboba.com")}>
-                <span className="sa-item-icon"><HelpCircle size={18} color="#a1a1aa" /></span>
-                Get Help
               </button>
               <button onClick={() => setShowLogoutModal(true)} disabled={isLoggingOut} className="sa-logout">
                 {isLoggingOut ? (
