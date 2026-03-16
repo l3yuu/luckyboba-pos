@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\{ BackupController, CashCountController, CashTransactionController, CategoryController, DashboardController, DiscountController, ExpenseController, InventoryController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController, MenuItemController };
+use App\Http\Controllers\Api\{ BackupController, CashCountController, CashTransactionController, CategoryController, DashboardController, DiscountController, ExpenseController, InventoryController, StockTransferController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController, MenuItemController, SupplierController, ItemCheckerController };
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;          // ← added
 use App\Http\Controllers\Api\CupController;
@@ -145,6 +145,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::post('/',               [InventoryController::class, 'store']);
             Route::get('/check/{barcode}', [InventoryController::class, 'checkByBarcode']);
             Route::patch('/{id}/quantity', [InventoryController::class, 'updateQuantity']);
+            Route::get('/overview',        [InventoryController::class, 'overview']);  // ← ADD
+            Route::get('/alerts',          [InventoryController::class, 'alerts']);
+            Route::get('/usage-report',    [InventoryController::class, 'usageReport']);   // ← ADD
+            Route::get('/usage-report/export', [InventoryController::class, 'exportUsageReport']); // ← ADD
         });
 
         Route::prefix('purchase-orders')->group(function () {
@@ -162,6 +166,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::apiResource('discounts', DiscountController::class)->except(['show', 'update', 'index']); // ← 'index' removed, handled above
         Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
         Route::apiResource('vouchers', VoucherController::class)->only(['index', 'store']);
+        Route::apiResource('suppliers', SupplierController::class)->only(['index','store','update','destroy']); // ← ADD HERE
+
+        Route::prefix('stock-transfers')->group(function () {
+            Route::get ('/',                        [StockTransferController::class, 'index']);
+            Route::post('/',                        [StockTransferController::class, 'store']);
+            Route::post('/{stockTransfer}/approve', [StockTransferController::class, 'approve']);
+            Route::post('/{stockTransfer}/receive', [StockTransferController::class, 'receive']);
+            Route::post('/{stockTransfer}/cancel',  [StockTransferController::class, 'cancel']);
+        });
 
         Route::prefix('reports')->group(function () {
             Route::get('/mall-accreditation', [SalesDashboardController::class, 'mallReport']);
@@ -169,6 +182,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
         Route::get('/settings',  [SettingsController::class, 'index']);
         Route::post('/settings', [SettingsController::class, 'update']);
+        Route::get('/item-checker/search',    [ItemCheckerController::class, 'search']);
+        Route::get('/item-checker/{barcode}', [ItemCheckerController::class, 'lookup']);
 
         Route::prefix('users')->group(function () {
             Route::get('/',                     [UserController::class, 'index']);
