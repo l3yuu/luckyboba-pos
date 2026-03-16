@@ -1,9 +1,16 @@
 import React, { useState } from 'react';
 import TopNavbar from '../../Cashier/TopNavbar';
-import {
-  Calendar, Terminal, Search, X, RotateCcw, Clock,
-  Receipt as ReceiptIcon, ShieldAlert, FileCheck,
-  KeyRound, CheckCircle2, Printer, Tag,
+import { 
+  Terminal, 
+  Search, 
+  X, 
+  RotateCcw, 
+  Receipt as ReceiptIcon, 
+  ShieldAlert, 
+  FileCheck,
+  CheckCircle2, 
+  Printer, 
+  Tag,
 } from 'lucide-react';
 import api from '../../../services/api';
 import { type CartItem } from '../../../types/index';
@@ -16,15 +23,16 @@ import { ReceiptPrint, KitchenPrint, StickerPrint }
 // ============================================================
 
 interface SaleItem {
-  sale_id:      number;
-  si_number:    string;
-  status:       string;
-  terminal:     string;
-  items_count:  number;
-  total_amount: number;
-  created_at:   string;
-  has_stickers: boolean;
+  sale_id:       number;
+  si_number:     string;
+  status:        string;
+  terminal:      string;
+  items_count:   number;
+  total_amount:  number;
+  created_at:    string;
+  has_stickers:  boolean;
   cashier_name?: string;
+  customer_name?: string; // FIXED: added missing property
 }
 
 interface Stats { gross: number; voided: number; net: number; }
@@ -50,7 +58,6 @@ interface ReprintPayload {
     pax_pwd?:         number;
     pax_diplomat?:    number;
     branch?: { name?: string };
-    // sale_items as returned by Laravel with relationships
     sale_items?: RawSaleItem[];
   };
   receipt: {
@@ -89,7 +96,6 @@ type ReprintType = 'receipt' | 'kitchen' | 'sticker';
 // HELPERS
 // ============================================================
 
-/** Map a raw sale_item from the API into the CartItem shape the print components expect */
 function mapToCartItem(raw: RawSaleItem): CartItem {
   const parseArr = (v: string[] | string | null | undefined): string[] => {
     if (!v) return [];
@@ -97,67 +103,48 @@ function mapToCartItem(raw: RawSaleItem): CartItem {
     try { return JSON.parse(v); } catch { return []; }
   };
 
-  // Laravel may nest the name under menu_item relation
   const resolvedName = raw.name
     || raw.menu_item?.name
     || raw.item_name
     || 'Unknown Item';
 
-return {
-  id:           raw.menu_item_id ?? raw.id,
-  category_id:  0,
-  name:         resolvedName,
-  price:        Number(raw.unit_price  ?? 0),   // ← Number() guards undefined
-  barcode:      '',
-  qty:          Number(raw.quantity    ?? 1),
-  size:         (raw.size as 'M' | 'L' | 'none') ?? 'none',
-  cupSizeLabel: raw.cup_size_label ?? undefined,
-  sugarLevel:   raw.sugar_level   ?? undefined,
-  options:      parseArr(raw.options),
-  addOns:       parseArr(raw.add_ons),
-  remarks:      raw.remarks ?? '',
-  charges:      { grab: raw.charges?.grab ?? false, panda: raw.charges?.panda ?? false },
-  finalPrice:   Number(raw.total_price ?? 0),   // ← this is likely the culprit
-  isBundle:     raw.is_bundle ?? !!raw.bundle_id,
-  bundleId:     raw.bundle_id ?? undefined,
-};
+  return {
+    id:           raw.menu_item_id ?? raw.id,
+    category_id:  0,
+    name:         resolvedName,
+    price:        Number(raw.unit_price  ?? 0),
+    barcode:      '',
+    qty:          Number(raw.quantity    ?? 1),
+    size:         (raw.size as 'M' | 'L' | 'none') ?? 'none',
+    cupSizeLabel: raw.cup_size_label ?? undefined,
+    sugarLevel:   raw.sugar_level   ?? undefined,
+    options:      parseArr(raw.options),
+    addOns:       parseArr(raw.add_ons),
+    remarks:      raw.remarks ?? '',
+    charges:      { grab: raw.charges?.grab ?? false, panda: raw.charges?.panda ?? false },
+    finalPrice:   Number(raw.total_price ?? 0),
+    isBundle:     raw.is_bundle ?? !!raw.bundle_id,
+    bundleId:     raw.bundle_id ?? undefined,
+  };
 }
 
 // ============================================================
 // SUB-COMPONENTS
 // ============================================================
 
-const StatBox = ({ label, value, icon, isDanger, isBrand }: {
-  label: string; value: number; icon: React.ReactNode; isDanger?: boolean; isBrand?: boolean;
-}) => (
-  <div className={`px-6 py-5 border flex items-center justify-between shadow-sm rounded-[0.625rem] ${isBrand ? 'bg-[#3b2063] border-[#2a1647]' : 'bg-white border-zinc-200'}`}>
-    <div>
-      <p className={`text-[11px] font-bold uppercase tracking-widest mb-1 ${isBrand ? 'text-violet-300' : 'text-zinc-500'}`}>{label}</p>
-      <p className={`text-2xl font-bold tabular-nums ${isBrand ? 'text-white' : isDanger ? 'text-red-600' : 'text-[#1a0f2e]'}`}>
-        {isDanger && value > 0 && <span className="text-base mr-1">-</span>}
-        ₱{value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-      </p>
-    </div>
-    <div className={`w-10 h-10 flex items-center justify-center ${isBrand ? 'bg-white/10 text-violet-200' : 'bg-zinc-50 border border-zinc-200 text-zinc-400'}`}>
-      {icon}
-    </div>
-  </div>
-);
+const StatBox: React.FC<{ label: string; value: number; icon: React.ReactNode; isBrand?: boolean; isDanger?: boolean }> = ({ label, value, icon, isBrand, isDanger }) => {
+  const bgClass    = isBrand ? 'bg-[#7c14d4]' : isDanger ? 'bg-red-500' : 'bg-zinc-500';
+  const borderClass = isBrand ? 'border-[#6a12b8]' : isDanger ? 'border-red-600' : 'border-zinc-600';
+  const labelClass = isBrand ? 'text-[#e9d5ff]' : isDanger ? 'text-red-100' : 'text-zinc-300';
 
-const TableSkeleton = () => (
-  <>
-    {[...Array(5)].map((_, i) => (
-      <tr key={i} className="animate-pulse">
-        <td className="px-7 py-4"><div className="h-4 bg-zinc-100 rounded w-32" /></td>
-        <td className="px-6 py-4 text-center"><div className="h-4 bg-zinc-100 rounded w-12 mx-auto" /></td>
-        <td className="px-6 py-4 text-center"><div className="h-4 bg-zinc-100 rounded w-8 mx-auto" /></td>
-        <td className="px-7 py-4 text-right"><div className="h-4 bg-zinc-100 rounded w-20 ml-auto" /></td>
-        <td className="px-6 py-4 text-center"><div className="h-8 w-9 bg-zinc-100 rounded mx-auto" /></td>
-        <td className="px-6 py-4 text-center"><div className="h-8 w-9 bg-zinc-100 rounded mx-auto" /></td>
-      </tr>
-    ))}
-  </>
-);
+  return (
+    <div className={`${bgClass} ${borderClass} border rounded-lg p-4 text-center shadow-lg`}>
+      <div className="flex justify-center mb-2">{icon}</div>
+      <div className={`text-xs font-semibold uppercase tracking-widest ${labelClass}`}>{label}</div>
+      <div className="text-xl font-bold text-white">₱{value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+    </div>
+  );
+};
 
 // ============================================================
 // MAIN COMPONENT
@@ -186,12 +173,11 @@ const SearchReceipts = () => {
   const [voidSuccess,    setVoidSuccess]    = useState(false);
 
   // Reprint state
-  const [reprintSale,    setReprintSale]    = useState<SaleItem | null>(null);
-  const [reprinting,     setReprinting]     = useState<ReprintType | null>(null);
-  const [reprintError,   setReprintError]   = useState<string | null>(null);
-  // Active print data — drives the hidden print components
-  const [printPayload,   setPrintPayload]   = useState<ReprintPayload | null>(null);
-  const [printType,      setPrintType]      = useState<ReprintType | null>(null);
+  const [reprintSale,  setReprintSale]  = useState<SaleItem | null>(null);
+  const [reprinting,   setReprinting]   = useState<ReprintType | null>(null);
+  const [reprintError, setReprintError] = useState<string | null>(null);
+  const [printPayload, setPrintPayload] = useState<ReprintPayload | null>(null);
+  const [printType,    setPrintType]    = useState<ReprintType | null>(null);
 
   // ── Void helpers ──────────────────────────────────────────────────────────
 
@@ -221,7 +207,6 @@ const SearchReceipts = () => {
       });
       setPrintPayload(data);
       setPrintType(type);
-      // Give React one tick to mount the print component, then print
       setTimeout(() => window.print(), 300);
     } catch (err) {
       console.error('Reprint error:', err);
@@ -304,7 +289,7 @@ const SearchReceipts = () => {
       cart,
       branchName,
       orNumber,
-      queueNumber: String(sale.queue_number ?? ''),
+      queueNumber:          String(sale.queue_number ?? ''),
       cashierName,
       formattedDate:        dt.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
       formattedTime:        dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
@@ -332,18 +317,9 @@ const SearchReceipts = () => {
 
   const reprintButtons: { type: ReprintType; label: string; icon: React.ReactNode; show: boolean }[] =
     reprintSale ? [
-      {
-        type: 'receipt', label: 'Customer Receipt', show: true,
-        icon: <ReceiptIcon size={15} />,
-      },
-      {
-        type: 'kitchen', label: 'Order Ticket', show: true,
-        icon: <Printer size={15} />,
-      },
-      {
-        type: 'sticker', label: 'Drink Stickers', show: reprintSale.has_stickers,
-        icon: <Tag size={15} />,
-      },
+      { type: 'receipt', label: 'Customer Receipt', show: true,                      icon: <ReceiptIcon size={15} /> },
+      { type: 'kitchen', label: 'Order Ticket',     show: true,                      icon: <Printer size={15} /> },
+      { type: 'sticker', label: 'Drink Stickers',   show: reprintSale.has_stickers,  icon: <Tag size={15} /> },
     ] : [];
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -352,7 +328,7 @@ const SearchReceipts = () => {
     <div className="flex flex-col h-full w-full bg-[#f4f2fb] overflow-hidden relative">
       <TopNavbar />
 
-      {/* ── Hidden print target — only visible during window.print() ── */}
+      {/* ── Hidden print target ── */}
       {printPayload && printType && (() => {
         const props = buildPrintProps(printPayload);
         return (
@@ -385,7 +361,7 @@ const SearchReceipts = () => {
 
         {/* Search Bar */}
         <div className="w-full max-w-6xl flex flex-col lg:flex-row gap-3">
-          <div className="flex-1 bg-white border border-zinc-200 flex items-center shadow-sm rounded-[0.625rem]">
+          <div className="bg-white flex items-center border border-[#e9d5ff] shadow-xl rounded-[0.625rem] flex-1">
             <div className="px-4 text-zinc-400"><Search size={17} /></div>
             <input
               type="text"
@@ -398,123 +374,52 @@ const SearchReceipts = () => {
             />
             {searchQuery && (
               <button onClick={() => { setSearchQuery(''); handleSearch('', selectedDate); }} className="px-4 text-zinc-300 hover:text-red-500 transition-colors">
-                <X size={15} />
+                <X size={17} strokeWidth={2.5} />
               </button>
             )}
           </div>
-          <div className="flex gap-3">
-            <div className="bg-white border border-zinc-200 flex items-center px-5 gap-3 shadow-sm min-w-52 rounded-[0.625rem]">
-              <Calendar size={15} className="text-violet-500 shrink-0" />
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={e => { setSelectedDate(e.target.value); handleSearch(searchQuery, e.target.value); }}
-                className="outline-none text-[#1a0f2e] font-semibold bg-transparent cursor-pointer text-sm flex-1"
-              />
-            </div>
-            <button onClick={() => handleSearch()} disabled={isLoading}
-              className="bg-[#3b2063] hover:bg-[#2a1647] text-white px-8 font-bold text-sm uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 h-12 rounded-[0.625rem]">
-              {isLoading ? '...' : 'Search'}
-            </button>
-            <button onClick={handleRefresh}
-              className="bg-white border border-zinc-200 text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-4 transition-all duration-300 hover:rotate-180 shadow-sm rounded-[0.625rem]">
-              <RotateCcw size={16} />
-            </button>
-          </div>
+          <button onClick={() => handleSearch()} disabled={isLoading}
+            className="bg-[#7c14d4] hover:bg-[#6a12b8] text-white px-8 font-bold text-sm uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 h-12 rounded-[0.625rem]">
+            {isLoading ? '...' : 'Search'}
+          </button>
+          <button onClick={handleRefresh}
+            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#7c14d4] hover:border-[#7c14d4] px-4 h-12 transition-all duration-300 hover:rotate-180 shadow-sm rounded-[0.625rem]">
+            <RotateCcw size={16} />
+          </button>
         </div>
 
         {/* Stats */}
         <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatBox label="Gross Sales"  value={stats.gross}  icon={<ReceiptIcon size={16} />} />
+          <StatBox label="Gross Sales"  value={stats.gross}  icon={<ReceiptIcon size={16} />} isBrand />
           <StatBox label="Voided Sales" value={stats.voided} icon={<ShieldAlert size={16} />} isDanger />
           <StatBox label="Net Sales"    value={stats.net}    icon={<FileCheck size={16} />} isBrand />
         </div>
 
         {/* Table */}
         <div className="w-full max-w-6xl bg-white border border-zinc-200 overflow-hidden flex-1 flex flex-col shadow-sm rounded-[0.625rem]">
-          <div className="px-7 py-5 border-b border-zinc-100 flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-[#3b2063] flex items-center justify-center">
-                <Terminal size={15} className="text-white" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-[#1a0f2e] uppercase tracking-widest">Transaction Audit Journal</h3>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <Clock size={11} className="text-zinc-400" />
-                  <span className="text-[11px] font-medium text-zinc-400">
-                    {new Date(selectedDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                  </span>
-                </div>
-              </div>
+          <div className="px-6 py-4 border-b border-[#e9d5ff] bg-[#f5f0ff] flex items-center gap-3">
+            <div className="bg-[#7c14d4] p-2 text-white rounded">
+              <Terminal size={15} className="text-white" />
             </div>
-            <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-widest bg-zinc-50 border border-zinc-200 px-4 py-2">
-              {searchResults.length} entries
-            </span>
+            <div>
+              <h3 className="text-base font-black uppercase tracking-wide leading-tight">Transaction Audit Journal</h3>
+              <p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">Showing {searchResults.length} transactions</p>
+            </div>
           </div>
-
-          <div className="flex-1 overflow-auto">
-            <table className="w-full text-left">
-              <thead className="sticky top-0 bg-white z-10 border-b border-zinc-100">
-                <tr>
-                  <th className="px-7 py-3.5 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">OR / Status</th>
-                  <th className="px-6 py-3.5 text-center text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Terminal</th>
-                  <th className="px-6 py-3.5 text-center text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Items</th>
-                  <th className="px-7 py-3.5 text-right text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Total</th>
-                  <th className="px-6 py-3.5 text-center text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Void</th>
-                  <th className="px-6 py-3.5 text-center text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Reprint</th>
+          <div className="overflow-y-auto">
+            <table className="table-auto w-full text-left">
+              <thead>
+                <tr className="border-b border-zinc-100">
+                  <th className="px-7 py-4 text-[11px] font-bold uppercase tracking-widest text-zinc-400">Transaction #</th>
+                  <th className="px-7 py-4 text-[11px] font-bold uppercase tracking-widest text-zinc-400">Date</th>
+                  <th className="px-7 py-4 text-[11px] font-bold uppercase tracking-widest text-zinc-400">Customer</th>
+                  <th className="px-7 py-4 text-[11px] font-bold uppercase tracking-widest text-zinc-400">Total</th>
+                  <th className="px-7 py-4 text-[11px] font-bold uppercase tracking-widest text-zinc-400">Status</th>
+                  <th className="px-7 py-4 text-[11px] font-bold uppercase tracking-widest text-zinc-400">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {isLoading ? (
-                  <TableSkeleton />
-                ) : searchResults.length > 0 ? (
-                  searchResults.map((item, index) => (
-                    <tr key={item.sale_id ?? item.si_number ?? index} className="hover:bg-[#f4f2fb] transition-colors">
-                      <td className="px-7 py-4">
-                        <div className="flex items-center gap-2.5">
-                          <span className="font-bold text-[#1a0f2e] text-sm tabular-nums">#{item.si_number}</span>
-                          <span className={`text-[9px] font-bold px-2 py-0.5 border uppercase tracking-widest ${
-                            item.status === 'cancelled'
-                              ? 'bg-red-50 text-red-600 border-red-100'
-                              : 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                          }`}>
-                            {item.status === 'cancelled' ? 'Voided' : 'Settled'}
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-zinc-400 font-medium mt-0.5">
-                          {item.created_at
-                            ? new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
-                            : 'N/A'}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4 text-center text-sm font-semibold text-zinc-500 tabular-nums">{item.terminal}</td>
-                      <td className="px-6 py-4 text-center text-sm font-bold text-[#1a0f2e] tabular-nums">{item.items_count}</td>
-                      <td className="px-7 py-4 text-right">
-                        <span className={`text-sm font-bold tabular-nums ${item.status === 'cancelled' ? 'text-zinc-300 line-through' : 'text-[#1a0f2e]'}`}>
-                          ₱{Number(item.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </span>
-                      </td>
-
-                      {/* Void */}
-                      <td className="px-6 py-4 text-center">
-                        {item.status !== 'cancelled' ? (
-                          <button onClick={() => openVoidModal(item.sale_id)}
-                            className="w-9 h-9 inline-flex items-center justify-center bg-white border border-red-200 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all rounded-[0.625rem]">
-                            <X size={14} strokeWidth={2.5} />
-                          </button>
-                        ) : <div className="w-9 h-9" />}
-                      </td>
-
-                      {/* Reprint */}
-                      <td className="px-6 py-4 text-center">
-                        <button onClick={() => openReprintModal(item)}
-                          className="w-9 h-9 inline-flex items-center justify-center bg-white border border-violet-200 text-violet-400 hover:bg-[#3b2063] hover:text-white hover:border-[#3b2063] transition-all rounded-[0.625rem]">
-                          <Printer size={14} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
+              <tbody>
+                {searchResults.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="py-24 text-center">
                       <ReceiptIcon size={36} className="mx-auto text-zinc-200 mb-3" />
@@ -523,6 +428,61 @@ const SearchReceipts = () => {
                       </p>
                     </td>
                   </tr>
+                ) : (
+                  searchResults.map(item => (
+                    <tr key={item.sale_id} className="border-b border-zinc-50 hover:bg-[#f5f0ff] transition-colors">
+                      <td className="px-7 py-4">
+                        <div className="flex items-center gap-2.5">
+                          <span className="font-bold text-black text-sm tabular-nums">#{item.si_number}</span>
+                          <span className={`text-[9px] font-bold px-2 py-0.5 border uppercase tracking-widest ${
+                            item.status === 'cancelled'
+                              ? 'bg-red-50 text-red-600 border-red-100'
+                              : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                          }`}>
+                            {item.status}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-zinc-400 font-medium mt-0.5">
+                          {item.created_at
+                            ? new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+                            : 'N/A'}
+                        </p>
+                      </td>
+                      <td className="px-7 py-4">
+                        <p className="text-sm font-medium text-zinc-600">
+                          {item.created_at ? new Date(item.created_at).toLocaleDateString() : 'N/A'}
+                        </p>
+                      </td>
+                      <td className="px-7 py-4">
+                        {/* FIXED: customer_name now exists on SaleItem */}
+                        <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">{item.customer_name || 'Guest'}</p>
+                      </td>
+                      <td className="px-7 py-4">
+                        <p className="text-sm font-bold text-black">₱{Number(item.total_amount || 0).toLocaleString()}</p>
+                      </td>
+                      <td className="px-7 py-4">
+                        <span className={`text-[9px] font-bold px-2 py-0.5 border uppercase tracking-widest ${
+                          item.status === 'cancelled'
+                            ? 'bg-red-50 text-red-600 border-red-100'
+                            : 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                        }`}>
+                          {item.status}
+                        </span>
+                      </td>
+                      <td className="px-7 py-4">
+                        <div className="flex gap-2">
+                          <button onClick={() => openVoidModal(item.sale_id)}
+                            className="w-9 h-9 inline-flex items-center justify-center bg-white border border-red-200 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all rounded-[0.625rem]">
+                            <X size={14} strokeWidth={2.5} />
+                          </button>
+                          <button onClick={() => openReprintModal(item)}
+                            className="w-9 h-9 inline-flex items-center justify-center bg-white border border-[#e9d5ff] text-zinc-400 hover:bg-[#7c14d4] hover:text-white hover:border-[#7c14d4] transition-all rounded-[0.625rem]">
+                            <Printer size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
                 )}
               </tbody>
             </table>
@@ -530,124 +490,108 @@ const SearchReceipts = () => {
         </div>
       </div>
 
-      {/* ════════════════ VOID MODAL ════════════════ */}
+      {/* Void Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-md border border-zinc-200 shadow-2xl rounded-[0.625rem] overflow-hidden">
-            <div className="flex border-b border-zinc-100">
-              <div className={`flex-1 py-3 text-center text-[10px] font-bold uppercase tracking-widest transition-colors ${voidStep === 'reason' ? 'bg-[#3b2063] text-white' : 'bg-zinc-50 text-zinc-400'}`}>1 · Reason</div>
-              <div className={`flex-1 py-3 text-center text-[10px] font-bold uppercase tracking-widest transition-colors ${voidStep === 'manager_pin' ? 'bg-[#3b2063] text-white' : 'bg-zinc-50 text-zinc-400'}`}>2 · Manager PIN</div>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-[0.625rem] shadow-2xl w-full max-w-md mx-4">
+            <div className="bg-[#7c14d4] p-4 text-white rounded-t-[0.625rem]">
+              <h3 className="font-bold text-lg">Void Transaction</h3>
             </div>
-            <div className="p-9">
-              {voidSuccess ? (
-                <div className="flex flex-col items-center py-6 gap-4">
-                  <div className="w-14 h-14 bg-emerald-50 border border-emerald-100 flex items-center justify-center rounded-full">
-                    <CheckCircle2 size={28} className="text-emerald-500" />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm font-bold text-[#1a0f2e] uppercase tracking-widest">Transaction Voided</p>
-                    <p className="text-[11px] text-zinc-400 mt-1">Refreshing results...</p>
+            <div className="p-5">
+              {!voidSuccess && voidStep === 'reason' && (
+                <div>
+                  <label className="block text-sm font-semibold text-black mb-2">Reason for voiding</label>
+                  <textarea
+                    value={cancelReason}
+                    onChange={e => setCancelReason(e.target.value)}
+                    className="w-full p-3 border border-[#e9d5ff] rounded-[0.625rem] text-sm resize-none focus:outline-none focus:border-[#7c14d4]"
+                    rows={3}
+                    placeholder="Enter reason..."
+                  />
+                  <div className="flex gap-3 mt-4">
+                    <button onClick={handleSubmitReason} disabled={isVoiding || !cancelReason.trim()}
+                      className="flex-1 bg-[#7c14d4] hover:bg-[#6a12b8] text-white py-3 rounded-[0.625rem] font-bold text-sm uppercase tracking-widest disabled:opacity-50 transition-all">
+                      {isVoiding ? 'Processing...' : 'Submit'}
+                    </button>
+                    <button onClick={closeVoidModal}
+                      className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 py-3 rounded-[0.625rem] font-bold text-sm uppercase tracking-widest transition-all">
+                      Cancel
+                    </button>
                   </div>
                 </div>
-              ) : voidStep === 'reason' ? (
-                <>
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 bg-red-50 border border-red-100 flex items-center justify-center rounded-lg"><ShieldAlert size={18} className="text-red-600" /></div>
-                    <div>
-                      <h3 className="text-sm font-bold text-[#1a0f2e] uppercase tracking-widest">Void Transaction</h3>
-                      <p className="text-[11px] text-zinc-400 font-medium mt-0.5">Provide a reason to continue</p>
-                    </div>
-                  </div>
-                  <div className="space-y-2 mb-6">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Reason for void</label>
-                    <textarea value={cancelReason} onChange={e => setCancelReason(e.target.value)} placeholder="Enter reason..."
-                      className="w-full px-4 py-3 border border-zinc-200 text-sm font-semibold text-[#1a0f2e] outline-none focus:border-[#3b2063] transition-colors resize-none h-24 rounded-[0.625rem] placeholder:text-zinc-300" />
-                  </div>
-                  <div className="flex gap-3">
-                    <button onClick={closeVoidModal} disabled={isVoiding} className="flex-1 py-3.5 bg-white border border-zinc-200 text-zinc-600 font-bold text-sm uppercase tracking-widest hover:bg-zinc-50 transition-colors rounded-[0.625rem]">Cancel</button>
-                    <button onClick={handleSubmitReason} disabled={isVoiding || !cancelReason.trim()} className="flex-1 py-3.5 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-sm uppercase tracking-widest transition-colors disabled:opacity-50 active:scale-[0.98] rounded-[0.625rem]">
-                      {isVoiding ? 'Submitting...' : 'Next →'}
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-10 h-10 bg-violet-50 border border-violet-100 flex items-center justify-center rounded-lg"><KeyRound size={18} className="text-violet-600" /></div>
-                    <div>
-                      <h3 className="text-sm font-bold text-[#1a0f2e] uppercase tracking-widest">Manager Approval</h3>
-                      <p className="text-[11px] text-zinc-400 font-medium mt-0.5">Enter manager PIN to confirm void</p>
-                    </div>
-                  </div>
-                  <div className="space-y-2 mb-6">
-                    <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Manager PIN</label>
-                    <input type="password" value={managerPin} onChange={e => { setManagerPin(e.target.value); setPinError(''); }}
-                      onKeyDown={e => e.key === 'Enter' && handleManagerApprove()} placeholder="••••••" maxLength={6}
-                      className={`w-full px-4 py-3 border text-sm font-bold text-[#1a0f2e] outline-none transition-colors rounded-[0.625rem] tracking-[0.5em] placeholder:tracking-normal placeholder:text-zinc-300 ${pinError ? 'border-red-400 bg-red-50' : 'border-zinc-200 focus:border-[#3b2063]'}`} />
-                    {pinError && <p className="text-[11px] font-semibold text-red-500 mt-1">{pinError}</p>}
-                  </div>
-                  <div className="flex gap-3">
-                    <button onClick={() => { setVoidStep('reason'); setManagerPin(''); setPinError(''); }} disabled={isVoiding}
-                      className="flex-1 py-3.5 bg-white border border-zinc-200 text-zinc-600 font-bold text-sm uppercase tracking-widest hover:bg-zinc-50 transition-colors rounded-[0.625rem]">← Back</button>
+              )}
+              {!voidSuccess && voidStep === 'manager_pin' && (
+                <div>
+                  <label className="block text-sm font-semibold text-black mb-2">Manager PIN</label>
+                  <input
+                    type="password"
+                    value={managerPin}
+                    onChange={e => setManagerPin(e.target.value)}
+                    className="w-full p-3 border border-[#e9d5ff] rounded-[0.625rem] text-sm focus:outline-none focus:border-[#7c14d4]"
+                    placeholder="Enter manager PIN..."
+                  />
+                  {pinError && <p className="text-red-500 text-sm mt-2">{pinError}</p>}
+                  <div className="flex gap-3 mt-4">
                     <button onClick={handleManagerApprove} disabled={isVoiding || !managerPin.trim()}
-                      className="flex-1 py-3.5 bg-red-600 hover:bg-red-700 text-white font-bold text-sm uppercase tracking-widest transition-colors disabled:opacity-50 active:scale-[0.98] rounded-[0.625rem]">
-                      {isVoiding ? 'Verifying...' : 'Confirm Void'}
+                      className="flex-1 bg-[#7c14d4] hover:bg-[#6a12b8] text-white py-3 rounded-[0.625rem] font-bold text-sm uppercase tracking-widest disabled:opacity-50 transition-all">
+                      {isVoiding ? 'Processing...' : 'Approve'}
+                    </button>
+                    <button onClick={closeVoidModal}
+                      className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 py-3 rounded-[0.625rem] font-bold text-sm uppercase tracking-widest transition-all">
+                      Cancel
                     </button>
                   </div>
-                </>
+                </div>
+              )}
+              {voidSuccess && (
+                <div className="text-center py-4">
+                  <CheckCircle2 size={48} className="mx-auto text-emerald-500 mb-3" />
+                  <p className="text-black font-semibold">Transaction voided successfully</p>
+                </div>
               )}
             </div>
           </div>
         </div>
       )}
 
-      {/* ════════════════ REPRINT MODAL ════════════════ */}
+      {/* Reprint Modal */}
       {reprintSale && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-sm border border-zinc-200 shadow-2xl rounded-[0.625rem] overflow-hidden">
-
-            <div className="bg-[#3b2063] px-6 py-5 text-white flex justify-between items-start">
-              <div>
-                <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/40 mb-1">Reprint Documents</p>
-                <h3 className="text-base font-black uppercase tracking-wide leading-tight">#{reprintSale.si_number}</h3>
-                <p className="text-white/50 text-[11px] font-medium mt-0.5">
-                  {new Date(reprintSale.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false })}
-                  {' · '}₱{Number(reprintSale.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                </p>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-[0.625rem] shadow-2xl w-full max-w-md mx-4">
+            <div className="bg-[#7c14d4] p-4 text-white rounded-t-[0.625rem]">
+              <h3 className="font-bold text-lg">Reprint Receipt</h3>
+            </div>
+            <div className="p-5">
+              <div className="space-y-3">
+                {reprintButtons.map(({ type, label, icon, show }) => {
+                  if (!show) return null;
+                  const isActive = reprinting === type;
+                  return (
+                    <button key={type} onClick={() => handleReprint(type)} disabled={isActive}
+                      className={`w-full py-3 px-4 rounded-[0.625rem] font-bold text-sm uppercase tracking-widest transition-all flex items-center justify-between
+                        ${isActive
+                          ? 'bg-[#7c14d4] text-white'
+                          : 'bg-[#f5f0ff] border border-[#e9d5ff] text-black hover:bg-[#7c14d4] hover:text-white hover:border-[#7c14d4]'
+                        } disabled:opacity-50`}
+                    >
+                      <span>{label}</span>
+                      <span className="flex items-center gap-2">
+                        {icon}
+                        {isActive && <p className="text-[10px] text-[#e9d5ff] font-semibold mt-0.5">Sending to printer...</p>}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
-              <button onClick={closeReprintModal} className="text-white/40 hover:text-white transition-colors mt-0.5"><X size={18} /></button>
-            </div>
-
-            <div className="p-5 space-y-2.5">
-              {reprintButtons.filter(b => b.show).map(({ type, label, icon }) => {
-                const isActive = reprinting === type;
-                return (
-                  <button key={type} onClick={() => handleReprint(type)} disabled={reprinting !== null}
-                    className="w-full flex items-center gap-4 px-5 py-4 border-2 border-zinc-200 rounded-[0.625rem] text-left hover:border-[#3b2063] hover:bg-[#f9f7ff] transition-all disabled:opacity-60 group">
-                    <div className={`w-9 h-9 flex items-center justify-center rounded-lg border transition-all shrink-0
-                      ${isActive ? 'bg-[#3b2063] border-[#3b2063] text-white' : 'bg-zinc-50 border-zinc-200 text-zinc-400 group-hover:bg-[#3b2063] group-hover:border-[#3b2063] group-hover:text-white'}`}>
-                      {isActive
-                        ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        : icon}
-                    </div>
-                    <div>
-                      <p className={`font-black text-xs uppercase tracking-widest transition-colors ${isActive ? 'text-[#3b2063]' : 'text-zinc-600 group-hover:text-[#3b2063]'}`}>{label}</p>
-                      {isActive && <p className="text-[10px] text-violet-400 font-semibold mt-0.5">Sending to printer...</p>}
-                    </div>
-                  </button>
-                );
-              })}
-
               {reprintError && (
-                <p className="text-[11px] font-semibold text-red-500 bg-red-50 border border-red-100 px-4 py-2.5 rounded-lg">{reprintError}</p>
+                <p className="text-[11px] font-semibold text-red-500 bg-red-50 border border-red-100 px-4 py-2.5 rounded-lg mt-3">{reprintError}</p>
               )}
-            </div>
-
-            <div className="px-5 pb-5">
-              <button onClick={closeReprintModal} disabled={reprinting !== null}
-                className="w-full py-3 border-2 border-zinc-200 rounded-[0.625rem] font-bold text-xs uppercase tracking-widest text-zinc-500 hover:bg-zinc-50 transition-colors disabled:opacity-50">
-                Close
-              </button>
+              <div className="mt-4">
+                <button onClick={closeReprintModal} disabled={reprinting !== null}
+                  className="w-full py-3 border-2 border-zinc-200 rounded-[0.625rem] font-bold text-xs uppercase tracking-widest text-zinc-500 hover:bg-zinc-50 transition-colors disabled:opacity-50">
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         </div>

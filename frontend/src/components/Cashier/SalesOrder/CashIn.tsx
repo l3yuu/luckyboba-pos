@@ -358,7 +358,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
               disabled={!isFlipped}
               className={`w-full py-4 font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-3 transition-all ${
                 isFlipped
-                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                  ? 'bg-[#7c14d4] hover:bg-[#6a12b8] text-white'
                   : 'bg-white border border-[#e9d5ff] text-black hover:bg-[#f5f0ff] hover:border-[#7c14d4] cursor-not-allowed'
               }`}
             >

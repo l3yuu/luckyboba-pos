@@ -92,7 +92,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
         : 'N/A';
       return `
         <tr>
-          <td style="padding:10px 14px;font-weight:900;color:#3b2063;">${v.code}</td>
+          <td style="padding:10px 14px;font-weight:900;color:#7c14d4;">${v.code}</td>
           <td style="padding:10px 14px;font-weight:700;color:#10b981;text-align:right;">${v.value}</td>
           <td style="padding:10px 14px;text-align:center;">
             <span style="padding:3px 9px;border-radius:4px;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:0.08em;${statusStyle}">
@@ -114,23 +114,23 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
           <style>
             * { margin:0; padding:0; box-sizing:border-box; }
             body { font-family:'Segoe UI',Arial,sans-serif; background:#fff; color:#1e293b; font-size:12px; }
-            .header { background:#3b2063; color:white; padding:24px 32px; display:flex; justify-content:space-between; align-items:center; }
+            .header { background:#7c14d4; color:white; padding:24px 32px; display:flex; justify-content:space-between; align-items:center; }
             .header-title { font-size:18px; font-weight:900; text-transform:uppercase; letter-spacing:0.15em; }
             .header-sub { font-size:10px; font-weight:600; opacity:0.6; text-transform:uppercase; letter-spacing:0.1em; margin-top:4px; }
             .header-meta { text-align:right; font-size:10px; opacity:0.75; line-height:1.6; }
             .body { padding:24px 32px; }
             .summary { display:flex; gap:16px; margin-bottom:24px; }
-            .summary-card { background:#f8f6ff; border:1px solid #e4e0f0; border-radius:10px; padding:12px 20px; flex:1; text-align:center; }
+            .summary-card { background:#f5f0ff; border:1px solid #e9d5ff; border-radius:10px; padding:12px 20px; flex:1; text-align:center; }
             .summary-card .num { font-size:22px; font-weight:900; }
             .summary-card .lbl { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:#9ca3af; margin-top:2px; }
             table { width:100%; border-collapse:collapse; }
-            thead tr { background:#f1f5f9; }
-            th { padding:10px 14px; font-size:9px; font-weight:900; text-transform:uppercase; letter-spacing:0.12em; color:#475569; border-bottom:2px solid #e2e8f0; }
+            thead tr { background:#f5f0ff; }
+            th { padding:10px 14px; font-size:9px; font-weight:900; text-transform:uppercase; letter-spacing:0.12em; color:#475569; border-bottom:2px solid #e9d5ff; }
             th:nth-child(2) { text-align:right; }
             th:nth-child(3), th:nth-child(4), th:nth-child(5), th:nth-child(6) { text-align:center; }
             tbody tr { border-bottom:1px solid #f1f5f9; }
             tbody tr:last-child { border-bottom:none; }
-            .footer { margin-top:32px; padding-top:12px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; font-size:9px; color:#9ca3af; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; }
+            .footer { margin-top:32px; padding-top:12px; border-top:1px solid #e9d5ff; display:flex; justify-content:space-between; font-size:9px; color:#9ca3af; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; }
             @media print {
               @page { margin:12mm 16mm; }
               body { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
@@ -152,7 +152,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
           <div class="body">
             <div class="summary">
               <div class="summary-card">
-                <div class="num" style="color:#3b2063;">${vouchers.length}</div>
+                <div class="num" style="color:#7c14d4;">${vouchers.length}</div>
                 <div class="lbl">Total Vouchers</div>
               </div>
               <div class="summary-card">
@@ -232,27 +232,27 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
   };
 
   return (
-    <div className="flex-1 bg-[#f8f6ff] h-full flex flex-col font-sans overflow-hidden">
+    <div className="flex-1 bg-[#f4f2fb] h-full flex flex-col font-sans overflow-hidden">
       <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
 
         {/* HEADER SECTION */}
         <div className="flex flex-col md:flex-row justify-between items-end gap-4">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-white rounded-[0.625rem] shadow-sm">
-              <Ticket size={24} className="text-[#3b2063]" />
+            <div className="p-2 bg-white rounded-[0.625rem] shadow-sm border border-[#e9d5ff]">
+              <Ticket size={24} className="text-[#7c14d4]" />
             </div>
           </div>
 
           <div className="flex gap-2">
             <button
               onClick={handlePrintVouchers}
-              className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-sm uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6"
+              className="h-11 bg-white border border-[#e9d5ff] text-[#7c14d4] hover:bg-[#f5f0ff] hover:border-[#7c14d4] font-bold text-sm uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6"
             >
               <Printer size={14} strokeWidth={3} /> Print Vouchers
             </button>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-sm uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6"
+              className="h-11 bg-[#7c14d4] hover:bg-[#6a12b8] text-white font-bold text-sm uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6"
             >
               <Plus size={14} strokeWidth={3} /> Add Vouchers
             </button>
@@ -263,7 +263,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
         <div className="bg-white rounded-[0.625rem] shadow-sm border border-zinc-200 overflow-hidden">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-zinc-50 border-b border-zinc-200">
+              <tr className="bg-[#f5f0ff] border-b border-[#e9d5ff]">
                 <th className="px-6 py-4 text-sm font-black text-slate-600 uppercase tracking-widest">Code</th>
                 <th className="px-6 py-4 text-sm font-black text-slate-600 uppercase tracking-widest text-right">Value</th>
                 <th className="px-6 py-4 text-sm font-black text-slate-600 uppercase tracking-widest text-center">Status</th>
@@ -277,14 +277,14 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center">
                     <div className="flex items-center justify-center">
-                      <Loader2 className="animate-spin text-[#3b2063]" size={28} />
+                      <Loader2 className="animate-spin text-[#7c14d4]" size={28} />
                     </div>
                   </td>
                 </tr>
               ) : vouchers.length > 0 ? (
                 vouchers.map((v) => (
-                  <tr key={v.id} className="hover:bg-blue-50/30 transition-colors">
-                    <td className="px-6 py-4 text-sm font-black text-[#3b2063]">{v.code}</td>
+                  <tr key={v.id} className="hover:bg-[#f5f0ff] transition-colors">
+                    <td className="px-6 py-4 text-sm font-black text-[#7c14d4]">{v.code}</td>
                     <td className="px-6 py-4 text-sm font-bold text-emerald-600 text-right">{v.value}</td>
                     <td className="px-6 py-4 text-center">
                       <span className={`px-2 py-1 rounded text-sm font-black uppercase tracking-widest ${
@@ -314,8 +314,11 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
               )}
             </tbody>
           </table>
-          <div className="p-4 bg-zinc-50 border-t border-zinc-200">
-            <button onClick={onBack} className="px-6 py-2 bg-zinc-200 text-zinc-500 rounded-[0.625rem] font-black uppercase text-sm tracking-widest hover:bg-zinc-300 flex items-center gap-2 transition-all shadow-sm">
+          <div className="p-4 bg-[#f5f0ff] border-t border-[#e9d5ff]">
+            <button
+              onClick={onBack}
+              className="px-6 py-2 bg-white border border-[#e9d5ff] text-[#7c14d4] rounded-[0.625rem] font-black uppercase text-sm tracking-widest hover:bg-[#f5f0ff] flex items-center gap-2 transition-all shadow-sm"
+            >
               <ArrowLeft size={14} strokeWidth={3} /> Back to Settings
             </button>
           </div>
@@ -328,12 +331,15 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
           <div className="bg-white w-full max-w-md rounded-[0.625rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 relative">
             {loading && (
               <div className="absolute inset-0 bg-white/40 z-50 flex items-center justify-center">
-                <Loader2 className="animate-spin text-[#3b2063]" size={32} />
+                <Loader2 className="animate-spin text-[#7c14d4]" size={32} />
               </div>
             )}
-            <div className="bg-[#3b2063] px-6 py-4 flex justify-between items-center">
+            <div className="bg-[#7c14d4] px-6 py-4 flex justify-between items-center rounded-t-[0.625rem]">
               <h2 className="text-white font-black text-sm uppercase tracking-[0.2em]">Add New Voucher</h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-white/70 hover:text-white transition-colors">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-white/70 hover:text-white transition-colors"
+              >
                 <X size={20} />
               </button>
             </div>
@@ -345,7 +351,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
                   type="text"
                   value={newVoucher.number}
                   onChange={(e) => setNewVoucher({...newVoucher, number: e.target.value})}
-                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all"
+                  className="w-full px-4 py-3 bg-[#f5f0ff] border border-[#e9d5ff] rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-[#7c14d4] focus:ring-2 focus:ring-[#7c14d4]/10 transition-all"
                   placeholder="e.g. VOUCHER-001"
                 />
               </div>
@@ -356,7 +362,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
                   type="text"
                   value={newVoucher.value}
                   onChange={(e) => setNewVoucher({...newVoucher, value: e.target.value})}
-                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-all"
+                  className="w-full px-4 py-3 bg-[#f5f0ff] border border-[#e9d5ff] rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-[#7c14d4] focus:ring-2 focus:ring-[#7c14d4]/10 transition-all"
                   placeholder="e.g. 20% or 100.00"
                 />
               </div>
@@ -366,7 +372,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
                 <select
                   value={newVoucher.type}
                   onChange={(e) => setNewVoucher({...newVoucher, type: e.target.value})}
-                  className="w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-2 focus:border-[#3b2063] focus:ring-2 focus:ring-[#3b2063]/10 transition-colors duration-200 cursor-pointer"
+                  className="w-full px-4 py-3 bg-[#f5f0ff] border border-[#e9d5ff] rounded-[0.625rem] text-xs font-bold text-slate-700 outline-none focus:border-[#7c14d4] focus:ring-2 focus:ring-[#7c14d4]/10 transition-colors duration-200 cursor-pointer"
                 >
                   <option value="Percentage">Percentage (%)</option>
                   <option value="Fixed Amount">Fixed Amount (₱)</option>
@@ -378,7 +384,7 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
                 <button
                   onClick={handleAddVoucher}
                   disabled={loading}
-                  className="w-full h-11 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full h-11 bg-[#7c14d4] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <Save size={14} /> Add New
                 </button>
@@ -386,13 +392,13 @@ const AddVouchers = ({ onBack }: { onBack: () => void }) => {
                 <div className="flex gap-3">
                   <button
                     onClick={() => setIsModalOpen(false)}
-                    className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6"
+                    className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-600 font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6 h-11"
                   >
                     Back
                   </button>
                   <button
                     onClick={handleImport}
-                    className="flex-1 bg-[#3b2063] hover:bg-[#2a174a] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6"
+                    className="flex-1 bg-white border border-[#e9d5ff] text-[#7c14d4] hover:bg-[#f5f0ff] hover:border-[#7c14d4] font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6 h-11"
                   >
                     <Upload size={14} /> Import
                   </button>

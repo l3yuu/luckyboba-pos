@@ -92,10 +92,10 @@ const handleSubmit = async () => {
       {/* Loading Overlay */}
       {isLoading && (
         <div className="fixed inset-0 z-9999 flex items-center justify-center bg-white/90 backdrop-blur-sm">
-          <div className="bg-white px-12 py-10 border border-zinc-200 flex flex-col items-center gap-5 shadow-2xl rounded-[0.625rem]">
-            <RefreshCw className="w-10 h-10 text-[#3b2063] animate-spin" strokeWidth={1.5} />
+          <div className="bg-white px-12 py-10 border border-[#e9d5ff] flex flex-col items-center gap-5 shadow-2xl rounded-[0.625rem]">
+            <RefreshCw className="w-10 h-10 text-[#7c14d4] animate-spin" strokeWidth={1.5} />
             <div className="text-center">
-              <p className="text-sm font-bold text-[#1a0f2e] uppercase tracking-widest">Terminal Syncing</p>
+              <p className="text-sm font-bold text-black uppercase tracking-widest">Terminal Syncing</p>
               <p className="text-[11px] font-medium text-zinc-400 mt-1">Finalizing End of Day Journal...</p>
             </div>
           </div>
@@ -213,12 +213,12 @@ const handleSubmit = async () => {
             {/* Card Header */}
             <div className="px-6 py-5 border-b border-zinc-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-[#3b2063] flex items-center justify-center">
+                <div className="w-9 h-9 bg-[#7c14d4] flex items-center justify-center">
                   <Calculator size={17} className="text-white" />
                 </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">End of Day</p>
-                  <h2 className="text-sm font-bold text-[#1a0f2e] uppercase tracking-widest">Shift Reconciliation</h2>
+                  <h2 className="text-sm font-bold text-black uppercase tracking-widest">Shift Reconciliation</h2>
                 </div>
               </div>
               {isEodLocked && (
@@ -232,11 +232,11 @@ const handleSubmit = async () => {
             {/* EOD Locked Overlay */}
             {isEodLocked && (
               <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px] z-20 flex items-center justify-center p-8">
-                <div className="bg-white px-10 py-9 border border-zinc-200 flex flex-col items-center text-center shadow-xl rounded-[0.625rem]">
+                <div className="bg-white px-10 py-9 border border-[#e9d5ff] flex flex-col items-center text-center shadow-xl rounded-[0.625rem]">
                   <div className="w-14 h-14 bg-red-50 border border-red-100 flex items-center justify-center mb-5">
                     <AlertTriangle size={24} className="text-red-500" />
                   </div>
-                  <h3 className="text-sm font-bold text-[#1a0f2e] uppercase tracking-widest mb-2">Shift Already Finalized</h3>
+                  <h3 className="text-sm font-bold text-black uppercase tracking-widest mb-2">Shift Already Finalized</h3>
                   <p className="text-[11px] font-medium text-zinc-400 leading-relaxed max-w-52">
                     End of Day records are locked for this terminal today.
                   </p>
@@ -245,10 +245,10 @@ const handleSubmit = async () => {
             )}
 
             {/* Column Headers */}
-            <div className="grid grid-cols-12 gap-2 px-6 py-3 border-b border-zinc-100 bg-zinc-50">
-              <div className="col-span-3 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Denom</div>
-              <div className="col-span-4 text-center text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Quantity</div>
-              <div className="col-span-5 text-right text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Subtotal</div>
+            <div className="grid grid-cols-12 gap-2 px-6 py-3 border-b border-[#e9d5ff] bg-[#f5f0ff]">
+              <div className="col-span-3 text-[10px] font-bold text-black uppercase tracking-widest">Denom</div>
+              <div className="col-span-4 text-center text-[10px] font-bold text-black uppercase tracking-widest">Quantity</div>
+              <div className="col-span-5 text-right text-[10px] font-bold text-black uppercase tracking-widest">Subtotal</div>
             </div>
 
             {/* Denomination Rows */}
@@ -258,10 +258,10 @@ const handleSubmit = async () => {
                 const rowTotal = denom * (parseFloat(qty) || 0);
                 const label = denom < 1 ? denom.toString().replace('0.', '.') : denom.toLocaleString();
                 return (
-                  <div key={denom} className="grid grid-cols-12 gap-3 items-center px-6 py-3 transition-colors hover:bg-zinc-50 focus-within:bg-[#f4f2fb]">
+                  <div key={denom} className="grid grid-cols-12 gap-3 items-center px-6 py-3 transition-colors hover:bg-[#f5f0ff] focus-within:bg-white">
                     <div className="col-span-3 flex items-center gap-2">
                       <Banknote size={14} className="text-zinc-400 shrink-0" />
-                      <span className="font-bold text-[#1a0f2e] text-sm tabular-nums">₱{label}</span>
+                      <span className="font-bold text-black text-sm tabular-nums">₱{label}</span>
                     </div>
                     <div className="col-span-4">
                       <input
@@ -277,11 +277,12 @@ const handleSubmit = async () => {
                         className={`w-full text-center font-bold text-sm py-2 border outline-none transition-all tabular-nums ${
                           (isEodLocked || latestTx !== null)
                             ? 'bg-zinc-50 text-zinc-300 border-transparent'
-                            : 'bg-[#f4f2fb] border-transparent focus:border-[#3b2063] focus:bg-white'
+                            : 'bg-[#f5f0ff] border-zinc-200 focus:border-[#7c14d4] focus:bg-white'
                         }`}
                       />
                     </div>
-                    <div className={`col-span-5 text-right font-bold text-sm tabular-nums ${rowTotal > 0 ? 'text-[#3b2063]' : 'text-zinc-300'}`}>
+                    {/* FIXED: removed stray > */}
+                    <div className={`col-span-5 text-right font-bold text-sm tabular-nums ${rowTotal > 0 ? 'text-black' : 'text-zinc-300'}`}>
                       {rowTotal > 0 ? `₱${rowTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'}
                     </div>
                   </div>
@@ -292,9 +293,10 @@ const handleSubmit = async () => {
             {/* Footer */}
             <div className="p-6 border-t border-zinc-100 space-y-4 bg-white">
               {/* Grand Total */}
-              <div className="flex items-center justify-between bg-[#f4f2fb] border border-violet-100 px-5 py-4">
-                <span className="text-sm font-bold uppercase tracking-widest text-zinc-600">Grand Total</span>
-                <span className={`text-2xl font-bold tabular-nums ${grandTotal > 0 ? 'text-[#3b2063]' : 'text-zinc-300'}`}>
+              <div className="flex items-center justify-between bg-[#f5f0ff] border border-[#e9d5ff] px-5 py-4">
+                <span className="text-sm font-bold uppercase tracking-widest text-black">Grand Total</span>
+                {/* FIXED: removed stray > */}
+                <span className={`text-2xl font-bold tabular-nums ${grandTotal > 0 ? 'text-black' : 'text-zinc-300'}`}>
                   ₱{grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </span>
               </div>
@@ -310,7 +312,7 @@ const handleSubmit = async () => {
                   className={`w-full pl-10 pr-4 py-3 border outline-none transition-all text-sm font-medium resize-none h-14 ${
                     (isEodLocked || latestTx !== null)
                       ? 'bg-zinc-50 border-zinc-100 text-zinc-300'
-                      : 'bg-white border-zinc-200 focus:border-[#3b2063]'
+                      : 'bg-white border-zinc-200'
                   }`}
                 />
               </div>
@@ -319,7 +321,7 @@ const handleSubmit = async () => {
               {!latestTx && !isEodLocked ? (
                 <button
                   onClick={handleSubmit} disabled={isLoading}
-                  className="w-full py-4 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-[0.99] disabled:opacity-50 rounded-[0.625rem]"
+                  className="w-full py-4 bg-[#7c14d4] hover:bg-[#6a12b8] text-white font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-[0.99] disabled:opacity-50 rounded-[0.625rem]"
                 >
                   <CheckCircle2 size={16} />
                   {isLoading ? 'Finalizing...' : 'Submit EOD Count'}
