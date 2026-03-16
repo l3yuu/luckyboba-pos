@@ -105,7 +105,7 @@ const SalesOrder = () => {
   const [isAddOnModalOpen, setIsAddOnModalOpen] = useState(false);
   const [customerName,     setCustomerName]     = useState('');
   const [isCustomerNameModalOpen, setIsCustomerNameModalOpen] = useState(false);
-
+  const [pax] = useState({ regular: 1, senior: 0, pwd: 0, diplomat: 0 });
   // Add-ons data
   const [addOnsData, setAddOnsData] = useState<{ id: number; name: string; price: number; category?: string }[]>(() => {
     try { const c = localStorage.getItem('pos_addons_cache'); return c ? JSON.parse(c) : []; }
@@ -153,8 +153,6 @@ const SalesOrder = () => {
   const [referenceNumber,    setReferenceNumber]    = useState('');
 
   // Pax / discounts
-  const [pax, setPax] = useState({ regular: 1, senior: 0, pwd: 0, diplomat: 0 });
-  const [discountIDs,      setDiscountIDs]      = useState({ senior: '', pwd: '', diplomat: '' });
   const [discountRemarks,  setDiscountRemarks]  = useState('');
   const [discounts] = useState<Discount[]>(() => {
     try {
@@ -193,52 +191,38 @@ const SalesOrder = () => {
 // 1. Basic counts
 const totalCount = cart.reduce((acc, item) => acc + item.qty, 0);
 
-// 2. Gross Calculation (Total original price of everything)
+// 2. Gross Calculation (Total original price)
 const grossSubtotal = cart.reduce((acc, item) => 
   acc + (Number(item.price) * item.qty) + getItemSurcharge(item), 0
 );
 
-// 3. Item-Level Discounts (The manual deductions from the Edit Modal)
+// 3. Item-Level Discounts (The cuts made in the Edit Modal)
 const itemDiscountTotal = cart.reduce((acc, item) =>
   acc + Math.max(0, (Number(item.price) * item.qty) - item.finalPrice), 0
 );
 
-// 4. ELIGIBLE SUBTOTAL (Items that DO NOT have a manual discount applied)
-// These are the only items that can receive a Senior, PWD, or Promo discount.
-const eligibleSubtotal = cart
-  .filter(item => !item.discountId || item.discountId === null)
+// 4. Promo Eligibility (Vouchers)
+const eligibleForPromo = cart
+  .filter(item => !item.discountId)
   .reduce((acc, item) => acc + (Number(item.price) * item.qty) + getItemSurcharge(item), 0);
-
-// 5. Order-Level Calculations (Senior / PWD / Promo)
-const totalPax = pax.regular + pax.senior + pax.pwd + pax.diplomat;
-
-// We calculate the "share" based only on undiscounted items to prevent stacking
-const sharePerPax = eligibleSubtotal / (totalPax || 1);
-
-const seniorPwdDiscount = (pax.senior + pax.pwd) * (sharePerPax * 0.20);
-const diplomatDiscount = pax.diplomat * (sharePerPax * 0.20);
 
 const promoDiscount = selectedDiscount
   ? selectedDiscount.type.includes('Percent')
-    ? eligibleSubtotal * (Number(selectedDiscount.amount) / 100)
+    ? eligibleForPromo * (Number(selectedDiscount.amount) / 100)
     : Number(selectedDiscount.amount)
   : 0;
 
-// The combined order-level discount
-const orderLevelDiscount = seniorPwdDiscount + diplomatDiscount + promoDiscount;
-const discountAmount = orderLevelDiscount;
+// Set these to 0 as they are now absorbed into itemDiscountTotal
+const seniorPwdDiscount = 0; 
+const discountAmount = promoDiscount;
+const orderLevelDiscount = promoDiscount;
 
-// 6. Final Totals
-// Subtract both manual item discounts and order-level discounts from the GROSS
-const amtDue = Math.max(0, grossSubtotal - itemDiscountTotal - orderLevelDiscount);
-
-// 7. Taxes and UI mapping
+// 5. Final Totals
+const amtDue = Math.max(0, grossSubtotal - itemDiscountTotal - promoDiscount);
 const vatableSales = amtDue / 1.12;
 const vatAmount = amtDue - vatableSales;
-const totalDiscountDisplay = itemDiscountTotal + orderLevelDiscount;
+const totalDiscountDisplay = itemDiscountTotal + promoDiscount;
 const change = typeof cashTendered === 'number' ? Math.max(0, cashTendered - amtDue) : 0;
-
-// Re-map 'subtotal' for the Sidebar UI (shows value after item discounts)
 const subtotal = grossSubtotal - itemDiscountTotal;
 
 // 8. Sticker Logic (Unchanged)
@@ -291,12 +275,6 @@ const hasStickers = cart.some(item =>
     return () => window.removeEventListener('cash-in-completed', onCashIn);
   }, []);
 
-  // Keep regular pax in sync with cart count
-  useEffect(() => {
-    const count      = cart.reduce((acc, item) => acc + item.qty, 0);
-    const specialPax = pax.senior + pax.pwd + pax.diplomat;
-    setPax(prev => ({ ...prev, regular: Math.max(0, count - specialPax) }));
-  }, [cart, pax.senior, pax.pwd, pax.diplomat]);
 
   // Init: sync OR sequence, cashier name, clock
   useEffect(() => {
@@ -333,27 +311,6 @@ const hasStickers = cart.some(item =>
   };
 
   // ── Pax handlers ────────────────────────────────────────────────────────────
-
-  const handleAddPax = (type: keyof typeof pax) => {
-    const currentTotal = pax.regular + pax.senior + pax.pwd + pax.diplomat;
-    if (currentTotal < totalCount) {
-      setPax(prev => ({ ...prev, [type]: prev[type] + 1 }));
-    } else if (type !== 'regular' && pax.regular > 0) {
-      setPax(prev => ({ ...prev, regular: prev.regular - 1, [type]: prev[type] + 1 }));
-    } else {
-      showToast(`Total Pax cannot exceed total items (${totalCount}).`, 'warning');
-    }
-  };
-
-  const handleSubPax = (type: keyof typeof pax) => {
-    if (pax[type] > 0) {
-      if (type !== 'regular') {
-        setPax(prev => ({ ...prev, regular: prev.regular + 1, [type]: prev[type] - 1 }));
-      } else {
-        showToast(`Total Pax must equal ${totalCount}`, 'warning');
-      }
-    }
-  };
 
   // ── Category / item navigation ──────────────────────────────────────────────
 
@@ -703,19 +660,7 @@ const saveCartItemEdit = () => {
     const d = discounts.find(d => d.id === editingItemDiscountId);
     if (d) discountLabel = `${d.name} (-₱${d.amount})`;
   }
-if (editingItemDiscountId === -1) { // -1 is your Senior/PWD ID
-    setPax(prev => {
-      // If there are no seniors yet, convert 1 regular pax to 1 senior
-      if (prev.senior === 0) {
-        return { 
-          ...prev, 
-          senior: 1, 
-          regular: Math.max(0, prev.regular - 1) 
-        };
-      }
-      return prev;
-    });
-  }
+
 
   const updated: CartItem = {
     ...editingCartItem,
@@ -758,44 +703,44 @@ if (editingItemDiscountId === -1) { // -1 is your Senior/PWD ID
     if (cart.length === 0) return;
     setSubmitting(true);
 
-    const orderData = {
-      si_number:        orNumber,
-      branch_id:        branchId,
-      items: cart.map(item => ({
-        menu_item_id:      item.isBundle ? null : item.id,
-        bundle_id:         item.isBundle ? Number(item.bundleId) : null,
-        bundle_components: item.isBundle ? (item.bundleComponents ?? []) : null,
-        name:              item.name,
-        quantity:          item.qty,
-        unit_price:        Number(item.price),
-        total_price:       item.finalPrice + getItemSurcharge(item),
-        size:              item.size !== 'none' ? item.size : null,
-        cup_size_label:    item.cupSizeLabel ?? null,
-        sugar_level:       item.sugarLevel || null,
-        options:           item.options || [],
-        add_ons:           item.addOns  || [],
-        remarks:           item.remarks || null,
-        charges:           { grab: item.charges.grab, panda: item.charges.panda },
-      })),
-      subtotal,
-      discount_amount:  orderLevelDiscount,
-      discount_id:      selectedDiscount?.id || null,
-      total:            amtDue,
-      cashier_name:     cashierName ?? 'Admin',
-      payment_method:   paymentMethod,
-      reference_number: referenceNumber || null,
-      pax_regular:      pax.regular,
-      pax_senior:       pax.senior,
-      pax_pwd:          pax.pwd,
-      pax_diplomat:     pax.diplomat,
-      senior_id:        discountIDs.senior   || null,
-      pwd_id:           discountIDs.pwd      || null,
-      diplomat_id:      discountIDs.diplomat || null,
-      discount_remarks: discountRemarks || null,
-      vatable_sales:    vatableSales,
-      vat_amount:       vatAmount,
-      customer_name:    customerName || null,
-    };
+const orderData = {
+  si_number:        orNumber,
+  branch_id:        branchId,
+  items: cart.map(item => ({
+    menu_item_id:      item.isBundle ? null : item.id,
+    bundle_id:         item.isBundle ? Number(item.bundleId) : null,
+    bundle_components: item.isBundle ? (item.bundleComponents ?? []) : null,
+    name:              item.name,
+    quantity:          item.qty,
+    unit_price:        Number(item.price),
+    total_price:       item.finalPrice + getItemSurcharge(item),
+    size:              item.size !== 'none' ? item.size : null,
+    cup_size_label:    item.cupSizeLabel ?? null,
+    sugar_level:       item.sugarLevel || null,
+    options:           item.options || [],
+    add_ons:           item.addOns  || [],
+    remarks:           item.remarks || null,
+    charges:           { grab: item.charges.grab, panda: item.charges.panda },
+  })),
+  subtotal,
+  discount_amount:  orderLevelDiscount,
+  discount_id:      selectedDiscount?.id || null,
+  total:            amtDue,
+  cashier_name:     cashierName ?? 'Admin',
+  payment_method:   paymentMethod,
+  reference_number: referenceNumber || null,
+  senior_id:        null,
+  pwd_id:           null,
+  diplomat_id:      null,
+  discount_remarks: discountRemarks || null,
+  vatable_sales:    vatableSales,
+  vat_amount:       vatAmount,
+  customer_name:    customerName || null,
+  pax_regular:      pax.regular,
+  pax_senior:       pax.senior,
+  pax_pwd:          pax.pwd,
+  pax_diplomat:     pax.diplomat,
+};
 
     if (navigator.onLine) {
       try {
@@ -828,8 +773,10 @@ if (editingItemDiscountId === -1) { // -1 is your Senior/PWD ID
         setPrintedStickers(false);
         showToast('Order saved successfully!', 'success');
 
-      } catch {
-        enqueue(orderData);
+} catch (err) {
+  const axiosErr = err as { response?: { data?: unknown } };
+  console.error('422 detail:', axiosErr?.response?.data);
+  enqueue(orderData);
         setIsConfirmModalOpen(false);
         setCustomerName('');
         setIsCustomerNameModalOpen(true);
@@ -877,8 +824,6 @@ if (editingItemDiscountId === -1) { // -1 is your Senior/PWD ID
     setPrintedStickers(false);
     setSelectedCategory(null);
     setCategorySize(null);
-    setPax({ regular: 1, senior: 0, pwd: 0, diplomat: 0 });
-    setDiscountIDs({ senior: '', pwd: '', diplomat: '' });
     setDiscountRemarks('');
     setCustomerName('');
     await syncNextSequence();
@@ -1040,33 +985,27 @@ if (editingItemDiscountId === -1) { // -1 is your Senior/PWD ID
             cart={cart}
             cashierName={cashierName}
             totalCount={totalCount}
-            subtotal={subtotal}
+            subtotal={grossSubtotal} // Pass the original price as the anchor
             amtDue={amtDue}
             vatableSales={vatableSales}
             vatAmount={vatAmount}
             change={change}
             totalDiscountDisplay={totalDiscountDisplay}
-            discountAmount={discountAmount}
             orderCharge={orderCharge}
             selectedDiscount={selectedDiscount}
             paymentMethod={paymentMethod}
             cashTendered={cashTendered}
             referenceNumber={referenceNumber}
-            pax={pax}
-            discountIDs={discountIDs}
             discountRemarks={discountRemarks}
             discounts={discounts}
-            activeTab={activeTab}
+            activeTab={activeTab as 'payment' | 'discount'} 
             submitting={submitting}
-            onTabChange={setActiveTab}
+            onTabChange={(t) => setActiveTab(t as 'payment' | 'discount')}
             onPaymentMethodChange={setPaymentMethod}
             onCashTenderedChange={setCashTendered}
             onReferenceNumberChange={setReferenceNumber}
             onDiscountChange={setSelectedDiscount}
             onDiscountRemarksChange={setDiscountRemarks}
-            onDiscountIDChange={(type, val) => setDiscountIDs(prev => ({ ...prev, [type]: val }))}
-            onAddPax={handleAddPax}
-            onSubPax={handleSubPax}
             onEditCartItem={openCartItemEdit}
             onConfirm={handleConfirmOrder}
             onClose={() => setIsConfirmModalOpen(false)}
