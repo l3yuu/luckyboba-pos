@@ -419,4 +419,53 @@ class BranchController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * GET /api/branches/ownership-summary
+     */
+    public function ownershipSummary(Request $request)
+    {
+        try {
+            $period   = $request->query('period', 'monthly');
+            $branches = Branch::all()->groupBy('ownership_type');
+
+            $getStats = function ($group) use ($period) {
+                $ids   = $group->pluck('id');
+                $query = DB::table('sales')->whereIn('branch_id', $ids);
+
+                // Apply period filter
+                if ($period === 'daily') {
+                    $query->whereDate('created_at', today());
+                } elseif ($period === 'weekly') {
+                    $query->whereBetween('created_at', [now()->startOfWeek(), now()->endOfWeek()]);
+                } elseif ($period === 'monthly') {
+                    $query->whereMonth('created_at', now()->month)
+                        ->whereYear('created_at', now()->year);
+                }
+
+                $result = (clone $query)->where('status', 'completed')
+                    ->selectRaw('COUNT(*) as total_orders, COALESCE(SUM(total_amount), 0) as total_revenue')
+                    ->first();
+
+                $voided = (clone $query)->where('status', 'cancelled')
+                    ->selectRaw('COALESCE(SUM(total_amount), 0) as voided_revenue')
+                    ->first();
+
+                return [
+                    'branch_count'   => $group->count(),
+                    'total_orders'   => (int)   ($result->total_orders  ?? 0),
+                    'total_revenue'  => (float) ($result->total_revenue ?? 0),
+                    'voided_revenue' => (float) ($voided->voided_revenue ?? 0),
+                ];
+            };
+
+            return response()->json([
+                'success'   => true,
+                'company'   => $getStats($branches->get('company',  collect())),
+                'franchise' => $getStats($branches->get('franchise', collect())),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
 }

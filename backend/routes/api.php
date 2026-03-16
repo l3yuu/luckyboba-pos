@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\{ BackupController, CashCountController, CashTransactionController, CategoryController, DashboardController, DiscountController, ExpenseController, InventoryController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController };
+use App\Http\Controllers\Api\{ BackupController, CashCountController, CashTransactionController, CategoryController, DashboardController, DiscountController, ExpenseController, InventoryController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController, MenuItemController };
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;          // ← added
 use App\Http\Controllers\Api\CupController;
@@ -82,6 +82,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/notifications/summary', [NotificationController::class, 'summary']);
         Route::post('/audit-logs',           [AuditLogController::class, 'store']);
         Route::apiResource('menu-list',  MenuListController::class)->only(['index', 'store']);
+        Route::apiResource('menu-items', MenuItemController::class);  // ← add this
         Route::get('/add-ons',           [AddOnController::class, 'index']);
         Route::get('/bundles',           fn () => \App\Models\Bundle::with('items')->where('is_active', true)->get());
         Route::get('/discounts',         [DiscountController::class, 'index']); // ← ALL roles can read discounts
@@ -111,6 +112,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::prefix('reports')->group(function () {
             Route::get('/inventory',       [InventoryReportController::class, 'index']);
             Route::get('/x-reading',       [SalesDashboardController::class, 'xReading']);
+            Route::get('/z-reading/history', [SalesDashboardController::class, 'zReadingHistory']);
             Route::get('/z-reading',       [SalesDashboardController::class, 'zReading']);
             Route::get('/items-report',    [ItemsReportController::class, 'getItemsSoldReport']);
             Route::get('/hourly-sales',    [ReportController::class, 'getHourlySales']);
@@ -181,6 +183,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::prefix('branches')->group(function () {
             Route::get('/performance',        [BranchController::class, 'performance']);
             Route::get('/today-sales',        [BranchController::class, 'todaySales']);
+            Route::get('/ownership-summary',   [BranchController::class, 'ownershipSummary']);
             Route::get('/',                   [BranchController::class, 'index']);
             Route::get('/{id}/daily-sales',   [BranchController::class, 'dailySales']);
             Route::get('/{id}/sales-summary', [BranchController::class, 'salesSummary']);
@@ -205,6 +208,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::prefix('reports')->group(function () {
             Route::get('/admin-sales-summary', [SuperAdminReportController::class, 'salesSummary']);
             Route::get('/branch-comparison',   [SuperAdminReportController::class, 'branchComparison']);
+            Route::get('/x-reading',           [SalesDashboardController::class, 'xReading']);
+            Route::get('/z-reading',           [SalesDashboardController::class, 'zReading']);
+            Route::get('/z-reading/history',   [SalesDashboardController::class, 'zReadingHistory']); // ← ADD
         });
 
         Route::prefix('system')->group(function () {

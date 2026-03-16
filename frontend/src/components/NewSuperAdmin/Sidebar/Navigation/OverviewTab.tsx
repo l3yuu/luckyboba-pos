@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import {
-  DollarSign, Store, UserCheck, AlertTriangle,
+  Store, UserCheck, AlertTriangle,
   Download, XCircle, ArrowUpRight, ArrowDownRight,
-  FileText, Package, RefreshCw,
+  FileText, Package, RefreshCw, TrendingUp,
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart as ReBarChart, Bar,
@@ -23,6 +23,11 @@ interface BtnProps {
   children: React.ReactNode; variant?: VariantKey; size?: SizeKey;
   onClick?: () => void; className?: string; disabled?: boolean;
   type?: "button" | "submit" | "reset";
+}
+
+interface OwnershipSummary {
+  company:   { branch_count: number; total_orders: number; total_revenue: number; voided_revenue: number };
+  franchise: { branch_count: number; total_orders: number; total_revenue: number; voided_revenue: number };
 }
 
 // ── API ───────────────────────────────────────────────────────────────────────
@@ -144,6 +149,7 @@ const OverviewTab: React.FC = () => {
   const [topProducts,  setTopProducts]  = useState<TopProduct[]>([]);
   const [userStats,    setUserStats]    = useState<UserStats>({ active: 0, total: 0 });
   const [branchStats,  setBranchStats]  = useState<BranchStats>({ active: 0, total: 0 });
+  const [ownership, setOwnership] = useState<OwnershipSummary | null>(null);
 
   const fmt   = (v: number) => `₱${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
   const fmtK  = (v: number) => `₱${((v ?? 0) / 1000).toFixed(0)}k`;
@@ -151,18 +157,17 @@ const OverviewTab: React.FC = () => {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [summaryRes, comparisonRes, usersRes, branchesRes] = await Promise.all([
-        fetch(`/api/reports/sales-summary?period=${period}`,     { headers: authHeaders() }),
+      const [summaryRes, comparisonRes, usersRes, branchesRes, ownershipRes] = await Promise.all([
+        fetch(`/api/reports/admin-sales-summary?period=${period}`, { headers: authHeaders() }),
         fetch(`/api/reports/branch-comparison?period=${period}`, { headers: authHeaders() }),
         fetch(`/api/users/stats`,                                { headers: authHeaders() }),
         fetch(`/api/branches`,                                   { headers: authHeaders() }),
+        fetch(`/api/branches/ownership-summary?period=${period}`,{ headers: authHeaders() }),
       ]);
 
-      const [summary, comparison, users, branches] = await Promise.all([
-        summaryRes.json(),
-        comparisonRes.json(),
-        usersRes.json(),
-        branchesRes.json(),
+      const [summary, comparison, users, branches, ownershipData] = await Promise.all([
+        summaryRes.json(), comparisonRes.json(), usersRes.json(),
+        branchesRes.json(), ownershipRes.json(),
       ]);
 
       if (summary.totals)        setTotals(summary.totals);
@@ -181,6 +186,7 @@ const OverviewTab: React.FC = () => {
           active: list.filter((b: { status: string }) => b.status === "active").length,
         });
       }
+      if (ownershipData.success) setOwnership(ownershipData);
     } catch (e) {
       console.error("OverviewTab fetch error", e);
     } finally {
@@ -233,9 +239,9 @@ const OverviewTab: React.FC = () => {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-4">
         <StatCard
-          icon={<DollarSign size={18} strokeWidth={2} />}
+          icon={<span className="font-black text-base">₱</span>}
           label="Total Revenue"
           value={loading ? "—" : fmt(totals?.grand_total ?? 0)}
           color="violet"
@@ -255,10 +261,69 @@ const OverviewTab: React.FC = () => {
         <StatCard
           icon={<AlertTriangle size={18} strokeWidth={2} />}
           label="Total Orders"
-          value={loading ? "—" : (totals?.total_orders ?? 0).toLocaleString()}
+          value={loading ? "—" : (
+            ownership
+              ? (ownership.company.total_orders + ownership.franchise.total_orders).toLocaleString()
+              : (totals?.total_orders ?? 0).toLocaleString()
+          )}
+          color="red"
+        />
+        <StatCard
+          icon={<TrendingUp size={18} strokeWidth={2} />}
+          label="Avg Order Value"
+          value={loading ? "—" : fmt(totals?.avg_order_value ?? 0)}
+          color="violet"
+        />
+        <StatCard
+          icon={<XCircle size={18} strokeWidth={2} />}
+          label="Voided Sales"
+          value={loading ? "—" : fmt(
+            ownership
+              ? ownership.company.voided_revenue + ownership.franchise.voided_revenue
+              : 0
+          )}
           color="red"
         />
       </div>
+
+      {/* Ownership Revenue Breakdown */}
+      {!loading && ownership && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {[
+            {
+              label:     'Company-Owned Branch Revenue',
+              icon:      '🏢',
+              data:      ownership.company,
+              bg:        'bg-violet-50 border-violet-200',
+              textColor: 'text-violet-700',
+              badge:     'bg-violet-100 text-violet-600',
+            },
+            {
+              label:     'Franchisee Branch Revenue',
+              icon:      '🤝',
+              data:      ownership.franchise,
+              bg:        'bg-emerald-50 border-emerald-200',
+              textColor: 'text-emerald-700',
+              badge:     'bg-emerald-100 text-emerald-600',
+            },
+          ].map(({ label, icon, data, bg, textColor }) => (
+            <div key={label} className={`border rounded-[0.625rem] px-6 py-5 flex items-center justify-between ${bg}`}>
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{icon}</span>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">{label}</p>
+                  <p className={`text-2xl font-black tabular-nums ${textColor}`}>
+                    ₱{Number(data.total_revenue).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                  </p>
+                  <p className="text-[10px] text-zinc-400 mt-0.5">
+                    {data.branch_count} {data.branch_count === 1 ? 'branch' : 'branches'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Revenue chart + Pie */}
       <div className="grid grid-cols-12 gap-4">
@@ -409,20 +474,6 @@ const OverviewTab: React.FC = () => {
             </div>
           )}
         </div>
-      </div>
-
-      {/* Summary row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          { label: "Avg Order Value",  value: loading ? "—" : fmt(totals?.avg_order_value  ?? 0) },
-          { label: "Total Customers",  value: loading ? "—" : (totals?.total_customers ?? 0).toLocaleString() },
-          { label: "Total Orders",     value: loading ? "—" : (totals?.total_orders    ?? 0).toLocaleString() },
-        ].map(({ label, value }) => (
-          <div key={label} className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-4 flex items-center justify-between">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">{label}</p>
-            <p className="text-lg font-bold text-[#1a0f2e] tabular-nums">{value}</p>
-          </div>
-        ))}
       </div>
 
     </div>

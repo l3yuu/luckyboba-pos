@@ -223,4 +223,49 @@ class SalesDashboardController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
+
+public function zReadingHistory(Request $request)
+{
+    try {
+        $branchId = $request->branch_id;
+
+        $history = DB::table('cash_counts')
+            ->join('branches', 'cash_counts.branch_id', '=', 'branches.id')
+            ->leftJoin('users', 'cash_counts.user_id', '=', 'users.id')
+            ->select(
+                'cash_counts.id',
+                'cash_counts.date',                      // ← use the dedicated date column
+                'branches.name as branch_name',
+                'cash_counts.created_at as closed_at',
+                'users.name as cashier_name',
+                'cash_counts.branch_id'
+            )
+            ->when($branchId, fn($q) => $q->where('cash_counts.branch_id', $branchId))
+            // ← removed: ->where('cash_counts.type', 'z_reading')
+            ->orderByDesc('cash_counts.date')            // ← order by date column
+            ->limit(50)
+            ->get()
+            ->map(function ($row) {
+                $date = $row->date; // already a date string
+                $sales = DB::table('sales')
+                    ->whereDate('created_at', $date)
+                    ->where('branch_id', $row->branch_id)
+                    ->where('status', '!=', 'cancelled')
+                    ->selectRaw('SUM(total_amount) as gross, COUNT(*) as total_orders')
+                    ->first();
+
+                $row->gross        = (float) ($sales->gross        ?? 0);
+                $row->net          = (float) ($sales->gross        ?? 0);
+                $row->total_orders = (int)   ($sales->total_orders ?? 0);
+                unset($row->branch_id);
+                return $row;
+            });
+
+        return response()->json(['success' => true, 'data' => $history]);
+
+    } catch (\Exception $e) {
+        Log::error('Z Reading History Error: ' . $e->getMessage());
+        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+    }
+}
 }

@@ -135,24 +135,24 @@ const AuditLogsTab: React.FC = () => {
   const [search,  setSearch]  = useState("");
   const [module,  setModule]  = useState("all");
   const [page,    setPage]    = useState(1);
+  const [branches,     setBranches]     = useState<{ id: number; name: string }[]>([]);
+  const [branchFilter, setBranchFilter] = useState("all");
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ✅ No external state deps — callers always pass s/m explicitly,
   //    so fetchLogs is stable across renders (empty dep array is correct).
-  const fetchLogs = useCallback(async (p = 1, s = "", m = "all") => {
+  const fetchLogs = useCallback(async (p = 1, s = "", m = "all", b = "all") => {
     setLoading(true);
     setError("");
     try {
       const params = new URLSearchParams({ per_page: "20", page: String(p) });
-      if (s)           params.set("search", s);
-      if (m !== "all") params.set("module", m);
+      if (s)           params.set("search",    s);
+      if (m !== "all") params.set("module",    m);
+      if (b !== "all") params.set("branch_id", b);
 
       const res  = await fetch(`/api/audit-logs?${params}`, { headers: authHeaders() });
       const data = await res.json();
-
       if (!data.success) throw new Error("Failed");
-
       setLogs(data.data);
       setStats(data.stats);
       setMeta(data.meta);
@@ -161,31 +161,43 @@ const AuditLogsTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []); // stable — authHeaders() reads localStorage at call time, no closure needed
+  }, []);
 
   // ✅ fetchLogs is now a stable reference, so this effect only runs once on mount.
-  useEffect(() => { fetchLogs(1); }, [fetchLogs]);
+  useEffect(() => {
+  fetchLogs(1);
+  // fetch branches for filter
+  fetch("/api/branches", { headers: authHeaders() })
+    .then(r => r.json())
+    .then(d => { if (d.success) setBranches(d.data); })
+    .catch(() => {});
+}, [fetchLogs]);
 
-  // Debounced search — passes current search value explicitly
-  const handleSearch = (val: string) => {
-    setSearch(val);
-    if (searchTimer.current) clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => {
-      setPage(1);
-      fetchLogs(1, val, module);
-    }, 400);
-  };
+const handleBranch = (val: string) => {
+  setBranchFilter(val);
+  setPage(1);
+  fetchLogs(1, search, module, val);
+};
 
-  const handleModule = (val: string) => {
-    setModule(val);
+const handleSearch = (val: string) => {
+  setSearch(val);
+  if (searchTimer.current) clearTimeout(searchTimer.current);
+  searchTimer.current = setTimeout(() => {
     setPage(1);
-    fetchLogs(1, search, val);
-  };
+    fetchLogs(1, val, module, branchFilter);
+  }, 400);
+};
 
-  const handlePage = (p: number) => {
-    setPage(p);
-    fetchLogs(p, search, module);
-  };
+const handleModule = (val: string) => {
+  setModule(val);
+  setPage(1);
+  fetchLogs(1, search, val, branchFilter);
+};
+
+const handlePage = (p: number) => {
+  setPage(p);
+  fetchLogs(p, search, module, branchFilter);
+};
 
   // Derived modules list from stats
   const moduleOptions = stats?.modules ?? [];
@@ -199,7 +211,7 @@ const AuditLogsTab: React.FC = () => {
           <p className="text-xs text-zinc-400 mt-0.5">Complete activity trail across all branches</p>
         </div>
         <div className="flex items-center gap-2">
-          <Btn variant="secondary" onClick={() => fetchLogs(page, search, module)} disabled={loading}>
+          <Btn variant="secondary" onClick={() => fetchLogs(page, search, module, branchFilter)} disabled={loading}>
             <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
           </Btn>
           <Btn variant="secondary"><Download size={13} /> Export</Btn>
@@ -245,6 +257,16 @@ const AuditLogsTab: React.FC = () => {
             <option value="all">All Modules</option>
             {moduleOptions.map(m => (
               <option key={m} value={m}>{m.charAt(0).toUpperCase() + m.slice(1)}</option>
+            ))}
+          </select>
+          <select
+            value={branchFilter}
+            onChange={e => handleBranch(e.target.value)}
+            className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none"
+          >
+            <option value="all">All Branches</option>
+            {branches.map(b => (
+              <option key={b.id} value={String(b.id)}>{b.name}</option>
             ))}
           </select>
         </div>

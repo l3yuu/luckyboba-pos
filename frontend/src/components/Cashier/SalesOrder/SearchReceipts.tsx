@@ -73,12 +73,15 @@ interface RawSaleItem {
   id:            number;
   menu_item_id?: number;
   bundle_id?:    number;
-  item_name?: string;
-  menu_item?: { name?: string }; 
+  product_name?: string;  
+  item_name?:    string;
+  menu_item?:    { name?: string };
   name:          string;
   quantity:      number;
-  unit_price:    number;
-  total_price:   number;
+  unit_price?:   number;
+  price?:        number;  
+  total_price?:  number;
+  final_price?:  number;  
   size?:         string | null;
   cup_size_label?: string | null;
   sugar_level?:  string | null;
@@ -103,29 +106,31 @@ function mapToCartItem(raw: RawSaleItem): CartItem {
     try { return JSON.parse(v); } catch { return []; }
   };
 
-  const resolvedName = raw.name
+  // Laravel may nest the name under menu_item relation
+  const resolvedName = (raw as unknown as { product_name?: string }).product_name
+    || raw.name
     || raw.menu_item?.name
     || raw.item_name
     || 'Unknown Item';
 
-  return {
-    id:           raw.menu_item_id ?? raw.id,
-    category_id:  0,
-    name:         resolvedName,
-    price:        Number(raw.unit_price  ?? 0),
-    barcode:      '',
-    qty:          Number(raw.quantity    ?? 1),
-    size:         (raw.size as 'M' | 'L' | 'none') ?? 'none',
-    cupSizeLabel: raw.cup_size_label ?? undefined,
-    sugarLevel:   raw.sugar_level   ?? undefined,
-    options:      parseArr(raw.options),
-    addOns:       parseArr(raw.add_ons),
-    remarks:      raw.remarks ?? '',
-    charges:      { grab: raw.charges?.grab ?? false, panda: raw.charges?.panda ?? false },
-    finalPrice:   Number(raw.total_price ?? 0),
-    isBundle:     raw.is_bundle ?? !!raw.bundle_id,
-    bundleId:     raw.bundle_id ?? undefined,
-  };
+return {
+  id:           raw.menu_item_id ?? raw.id,
+  category_id:  0,
+  name:         resolvedName,
+  price:      Number(raw.unit_price ?? raw.price ?? 0),  // ← Number() guards undefined
+  barcode:      '',
+  qty:          Number(raw.quantity    ?? 1),
+  size:         (raw.size as 'M' | 'L' | 'none') ?? 'none',
+  cupSizeLabel: raw.cup_size_label ?? undefined,
+  sugarLevel:   raw.sugar_level   ?? undefined,
+  options:      parseArr(raw.options),
+  addOns:       parseArr(raw.add_ons),
+  remarks:      raw.remarks ?? '',
+  charges:      { grab: raw.charges?.grab ?? false, panda: raw.charges?.panda ?? false },
+  finalPrice: Number(raw.final_price ?? raw.total_price ?? 0),// ← this is likely the culprit
+  isBundle:     raw.is_bundle ?? !!raw.bundle_id,
+  bundleId:     raw.bundle_id ?? undefined,
+};
 }
 
 // ============================================================
@@ -289,11 +294,11 @@ const SearchReceipts = () => {
       cart,
       branchName,
       orNumber,
-      queueNumber:          String(sale.queue_number ?? ''),
+      queueNumber: String(sale.queue_number ?? ''),
+      customerName: sale.customer_name?.trim() || '',
       cashierName,
       formattedDate:        dt.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
       formattedTime:        dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-      customerName:         sale.customer_name   ?? '',
       paymentMethod:        sale.payment_method  ?? 'cash',
       referenceNumber:      sale.reference_number ?? '',
       orderCharge:          null as 'grab' | 'panda' | null,
