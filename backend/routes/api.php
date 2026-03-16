@@ -21,7 +21,8 @@ Route::post('/login',  [AuthController::class, 'login'])->middleware('throttle:5
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 
 Route::post('/purchase-card',              [CardPurchaseController::class, 'purchase']);
-Route::post('/check-card-status/{userId}', [CardPurchaseController::class, 'checkStatus']);
+// ✅ CHANGED: Changed 'post' to 'get' so it matches Flutter's http.get request
+Route::get('/check-card-status/{userId}', [CardPurchaseController::class, 'checkStatus']);
 
 Route::get('/public-menu', function () {
     $items = DB::table('menu_items')

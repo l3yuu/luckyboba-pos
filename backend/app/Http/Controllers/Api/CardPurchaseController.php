@@ -56,6 +56,7 @@ class CardPurchaseController extends Controller
         if ($activeCard) {
             return response()->json([
                 'has_active_card' => true,
+                'card_id' => $activeCard->card_id, // ✅ ADDED THIS LINE: Tell Flutter which card to show!
                 'expires_at' => $activeCard->expires_at
             ]);
         }
