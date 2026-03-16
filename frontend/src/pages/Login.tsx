@@ -420,7 +420,7 @@ const Login: React.FC = () => {
         .lb-btn {
           width: 100%;
           padding: 13px 20px;
-          background: #3b1f6b;
+          background: #7c14d4;
           color: #fff;
           font-family: 'DM Sans', sans-serif;
           font-size: 0.68rem;
@@ -437,8 +437,8 @@ const Login: React.FC = () => {
           transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
         }
         .lb-btn:hover:not(:disabled) {
-          background: #2a1550;
-          box-shadow: 0 6px 22px rgba(59,31,107,0.35);
+          background: #6a12b8;
+          box-shadow: 0 6px 22px rgba(124,20,212,0.35);
           transform: translateY(-1px);
         }
         .lb-btn:active:not(:disabled) { transform: translateY(0); }
