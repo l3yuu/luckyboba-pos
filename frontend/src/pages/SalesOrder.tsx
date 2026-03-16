@@ -621,11 +621,20 @@ const SalesOrder = () => {
   // ── Cart item editing ───────────────────────────────────────────────────────
 
   const openCartItemEdit = (index: number) => {
+    const item = cart[index];
     setEditingCartIndex(index);
-    setEditingCartItem({ ...cart[index] });
-    setItemDiscountType('none');
-    setItemDiscountValue('');
-    setEditingItemDiscountId(null);
+    
+    // Create a clone but reset finalPrice to the base price (original unit price * qty)
+    // This ensures the discount calculation in the modal starts from the original price.
+    setEditingCartItem({ 
+      ...item, 
+      finalPrice: Number(item.price) * item.qty 
+    });
+
+    // Restore the state from the item's saved metadata
+    setEditingItemDiscountId(item.discountId ?? null);
+    setItemDiscountType(item.discountType ?? 'none');
+    setItemDiscountValue(item.discountValue ?? '');
   };
 
   const closeCartItemEdit = () => {
@@ -643,36 +652,42 @@ const SalesOrder = () => {
     setEditingCartItem({ ...editingCartItem, qty: newQty, finalPrice: unitPrice * newQty });
   };
 
-  const saveCartItemEdit = () => {
-    if (editingCartIndex === null || !editingCartItem) return;
+const saveCartItemEdit = () => {
+  if (editingCartIndex === null || !editingCartItem) return;
 
-    const unitPrice    = editingCartItem.finalPrice / editingCartItem.qty;
-    let discountedUnit = unitPrice;
-    let discountLabel: string | undefined;
+  // We use the original price for calculation (which we reset in openCartItemEdit)
+  const unitPrice = editingCartItem.finalPrice / editingCartItem.qty;
+  let discountedUnit = unitPrice;
+  let discountLabel: string | undefined;
 
-    if (itemDiscountType === 'percent' && itemDiscountValue !== '') {
-      discountedUnit = unitPrice * (1 - Number(itemDiscountValue) / 100);
-      if (editingItemDiscountId === -1) {
-        discountLabel = 'Senior/PWD (20%)';
-      } else {
-        const d = discounts.find(d => d.id === editingItemDiscountId);
-        if (d) discountLabel = `${d.name} (${d.amount}%)`;
-      }
-    } else if (itemDiscountType === 'fixed' && itemDiscountValue !== '') {
-      discountedUnit = Math.max(0, unitPrice - Number(itemDiscountValue));
+  if (itemDiscountType === 'percent' && itemDiscountValue !== '') {
+    discountedUnit = unitPrice * (1 - Number(itemDiscountValue) / 100);
+    if (editingItemDiscountId === -1) {
+      discountLabel = 'Senior/PWD (20%)';
+    } else {
       const d = discounts.find(d => d.id === editingItemDiscountId);
-      if (d) discountLabel = `${d.name} (-₱${d.amount})`;
+      if (d) discountLabel = `${d.name} (${d.amount}%)`;
     }
+  } else if (itemDiscountType === 'fixed' && itemDiscountValue !== '') {
+    discountedUnit = Math.max(0, unitPrice - Number(itemDiscountValue));
+    const d = discounts.find(d => d.id === editingItemDiscountId);
+    if (d) discountLabel = `${d.name} (-₱${d.amount})`;
+  }
 
-    const updated: CartItem = {
-      ...editingCartItem,
-      finalPrice: discountedUnit * editingCartItem.qty,
-      discountLabel,
-    };
-    setCart(prev => prev.map((item, i) => i === editingCartIndex ? updated : item));
-    showToast('Item updated', 'success');
-    closeCartItemEdit();
+  const updated: CartItem = {
+    ...editingCartItem,
+    finalPrice: discountedUnit * editingCartItem.qty,
+    discountLabel,
+    // Store metadata so the modal knows what was selected next time it opens
+    discountId: editingItemDiscountId,
+    discountType: itemDiscountType,
+    discountValue: itemDiscountValue,
   };
+
+  setCart(prev => prev.map((item, i) => i === editingCartIndex ? updated : item));
+  showToast('Item updated', 'success');
+  closeCartItemEdit();
+};
 
   const removeEditingItem = () => {
     if (editingCartIndex === null) return;
