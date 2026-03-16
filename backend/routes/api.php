@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\RawMaterialController;
 use App\Http\Controllers\Api\RecipeController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\CacheController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -65,7 +66,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
         Route::get('/receipts/search',        [ReceiptController::class, 'search']);
         Route::get('/receipts/next-sequence', [ReceiptController::class, 'getNextSequence']);
-        Route::post('/receipts/{id}/void',    [ReceiptController::class, 'void']);
+        Route::post('/receipts/{id}/void-request',  [ReceiptController::class, 'voidRequest']);
+        Route::post('/void-requests/{id}/approve',  [ReceiptController::class, 'approveVoid']);
+        Route::get('/receipts/{id}/reprint', [ReceiptController::class, 'reprint']);
 
         Route::prefix('cash-counts')->group(function () {
             Route::post('/',       [CashCountController::class, 'store']);
@@ -76,6 +79,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/cache/all',         [CacheController::class, 'all']);
         Route::get('/menu',              [MenuController::class, 'index']);
         Route::post('/menu/clear-cache', [MenuController::class, 'clearCache']);
+        Route::get('/notifications/summary', [NotificationController::class, 'summary']);
+        Route::post('/audit-logs',           [AuditLogController::class, 'store']);
         Route::apiResource('menu-list',  MenuListController::class)->only(['index', 'store']);
         Route::get('/add-ons',           [AddOnController::class, 'index']);
         Route::get('/bundles',           fn () => \App\Models\Bundle::with('items')->where('is_active', true)->get());
@@ -151,6 +156,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         });
 
         Route::apiResource('expenses',  ExpenseController::class)->only(['store']);
+        Route::get('/branch/audit-logs', [AuditLogController::class, 'branchIndex']); 
         Route::apiResource('discounts', DiscountController::class)->except(['show', 'update', 'index']); // ← 'index' removed, handled above
         Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
         Route::apiResource('vouchers', VoucherController::class)->only(['index', 'store']);

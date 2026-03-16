@@ -37,6 +37,10 @@ export interface MenuItem {
     sub_category_id?: number | null;
     created_at?: string;
     updated_at?: string;
+    grab_price?: number;
+    panda_price?: number;
+    /** Flat array from API: e.g. ["pearl", "ice"] — populated from menu_item_options table */
+    options?: string[];
 }
 
 export interface Category {
@@ -60,16 +64,16 @@ export interface BundleComponent {
     bundle_id: number;
     menu_item_id: number | null;
     custom_name: string | null;
-    quantity: number;        // e.g. 2 for "2 CL PEARL M.TEA"
+    quantity: number;
     size: string;
-    display_name: string;    // computed by Laravel accessor: menuItem.name ?? custom_name
+    display_name: string;
 }
 
 export interface Bundle {
     id: number;
-    name: string;            // short POS label e.g. "SWEETY", "2 CL PEARL M.TEA"
-    display_name: string | null; // full label e.g. "SWEETY (WINTERMELON + DARK CHOCO RSC)"
-    category: string;        // matches Category.name
+    name: string;
+    display_name: string | null;
+    category: string;
     barcode: string;
     price: number;
     size: string;
@@ -78,10 +82,9 @@ export interface Bundle {
     items: BundleComponent[];
 }
 
-/** Customization captured per component drink during bundle ordering */
 export interface BundleComponentCustomization {
-    name: string;            // display_name of the component
-    quantity: number;        // how many of this component (e.g. 2 for "2 CL PEARL")
+    name: string;
+    quantity: number;
     sugarLevel: string;
     options: string[];
     addOns: string[];
@@ -99,16 +102,14 @@ export interface CartItem extends MenuItem {
     sugarLevel?: string;
     size: 'M' | 'L' | 'none';
     cupSizeLabel?: string;
+    /** Selected options for this cart item (e.g. ["NO PRL", "NO ICE"]) */
     options?: string[];
     addOns?: string[];
     finalPrice: number;
     discountLabel?: string;
 
     // ── Bundle-specific fields ──────────────────────────────────────────────
-    /** True when this cart item represents a bundle (not a single menu item) */
     isBundle?: boolean;
-    /** The Bundle.id this cart item was built from */
     bundleId?: number;
-    /** Per-component customizations collected during the bundle modal flow */
     bundleComponents?: BundleComponentCustomization[];
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Users, BarChart2, ShoppingBag,
-  Package, Settings as SettingsIcon, LogOut, HelpCircle, ChevronDown,
+  Package, Settings as SettingsIcon, LogOut, HelpCircle, ChevronDown, Activity,
 } from 'lucide-react';
 
 // ── Sidebar styles ────────────────────────────────────────────────────────────
@@ -13,16 +13,16 @@ const SB_STYLES = `
   .bm-sb-scroll::-webkit-scrollbar { display: none; }
 
   .bm-sb-sec {
-    padding: 14px 14px 3px;
+    padding: 16px 8px 4px;
     font-size: 0.58rem; font-weight: 700; letter-spacing: 0.18em;
     text-transform: uppercase; color: #b4b4b8;
   }
 
   .bm-sb-item {
     display: flex; align-items: center; gap: 8px;
-    width: 100%; padding: 6.5px 10px; border: none;
+    width: 100%; padding: 7px 10px; border: none;
     background: transparent; cursor: pointer; text-align: left;
-    border-radius: 0.4rem; margin: 0;
+    border-radius: 0.4rem; margin: 1px 0;
     color: #52525b; font-size: 0.8rem; font-weight: 500;
     transition: background 0.12s, color 0.12s;
     position: relative;
@@ -38,9 +38,9 @@ const SB_STYLES = `
 
   .bm-sb-group-btn {
     display: flex; align-items: center; gap: 8px;
-    width: 100%; padding: 6.5px 10px; border: none;
+    width: 100%; padding: 7px 10px; border: none;
     background: transparent; cursor: pointer; text-align: left;
-    border-radius: 0.4rem;
+    border-radius: 0.4rem; margin: 1px 0;
     color: #52525b; font-size: 0.8rem; font-weight: 500;
     transition: background 0.12s, color 0.12s;
   }
@@ -48,10 +48,10 @@ const SB_STYLES = `
 
   .bm-sb-sub {
     display: flex; align-items: center; gap: 8px;
-    width: 100%; padding: 5.5px 10px 5.5px 28px; border: none;
+    width: 100%; padding: 6px 10px 6px 28px; border: none;
     background: transparent; cursor: pointer; text-align: left;
-    border-radius: 0.4rem; margin: 0;
-    color: #71717a; font-size: 0.75rem; font-weight: 500;
+    border-radius: 0.4rem; margin: 1px 0;
+    color: #71717a; font-size: 0.76rem; font-weight: 500;
     transition: background 0.12s, color 0.12s;
     position: relative;
   }
@@ -61,6 +61,13 @@ const SB_STYLES = `
     content: ''; position: absolute; left: 0; top: 18%; bottom: 18%;
     width: 2.5px; background: #3b2063; border-radius: 0 2px 2px 0;
   }
+  .bm-sb-sub::after {
+    content: ''; position: absolute; left: 18px; top: 50%;
+    width: 5px; height: 5px; border-radius: 50%;
+    background: #d4d4d8; transform: translateY(-50%);
+    transition: background 0.12s;
+  }
+  .bm-sb-sub.active::after, .bm-sb-sub:hover::after { background: #3b2063; }
 
   @keyframes bm-sb-spin { to { transform: rotate(360deg); } }
   .bm-sb-spin { animation: bm-sb-spin 0.7s linear infinite; }
@@ -94,8 +101,6 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
   onLogout, isLoggingOut: externalLoggingOut,
 }) => {
   const [openGroups, setOpenGroups] = useState<Set<GroupId>>(new Set(['sales']));
-
-  // Support both external (from BranchManagerDashboard) and internal logout
   const [internalLoggingOut,  setInternalLoggingOut]  = useState(false);
   const [showLogoutModal,     setShowLogoutModal]      = useState(false);
 
@@ -118,12 +123,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
 
   const handleLogoutConfirm = async () => {
     setShowLogoutModal(false);
-    // If parent passed onLogout, delegate to it (BranchManagerDashboard handles it)
-    if (onLogout) {
-      onLogout();
-      return;
-    }
-    // Fallback: handle internally
+    if (onLogout) { onLogout(); return; }
     setInternalLoggingOut(true);
     ['auth_token', 'lucky_boba_token', 'token', 'user_role', 'lucky_boba_authenticated']
       .forEach(k => localStorage.removeItem(k));
@@ -206,17 +206,17 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
               background: '#3b2063', flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <span style={{ fontSize: '0.6rem', fontWeight: 800, color: '#fff', letterSpacing: '0.02em' }}>
+              <span style={{ fontSize: '0.55rem', fontWeight: 800, color: '#fff', letterSpacing: '0.02em' }}>
                 {initials}
               </span>
             </div>
             {authUser ? (
               <div className="text-left">
                 <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1a0f2e', lineHeight: 1.2 }}
-                  className="truncate max-w-35">
+                  className="truncate max-w-36">
                   {authUser.name}
                 </div>
-                <div style={{ fontSize: '0.6rem', fontWeight: 600, color: '#a1a1aa', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                <div style={{ fontSize: '0.58rem', fontWeight: 600, color: '#a1a1aa', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
                   Branch Manager
                 </div>
               </div>
@@ -232,7 +232,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
         {/* ── Nav ── */}
         <div className="flex-1 bm-sb-scroll min-h-0 px-3 py-2">
 
-          <div className="bm-sb-sec mt-2">Home</div>
+          <div className="bm-sb-sec mt-1">Home</div>
           <button onClick={() => goTo('dashboard')} className={`bm-sb-item ${isActive('dashboard') ? 'active' : ''}`}>
             <span className="bm-sb-icon" style={{ color: iconColor('dashboard') }}><LayoutDashboard size={14} /></span>
             Dashboard
@@ -289,11 +289,16 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
           ))}
 
           <div className="bm-sb-sec">System</div>
+          <button onClick={() => goTo('audit-logs')} className={`bm-sb-item ${isActive('audit-logs') ? 'active' : ''}`}>
+            <span className="bm-sb-icon" style={{ color: iconColor('audit-logs') }}><Activity size={14} /></span>
+            Audit Logs
+          </button>
           <button onClick={() => goTo('settings')} className={`bm-sb-item ${isActive('settings') ? 'active' : ''}`}>
             <span className="bm-sb-icon" style={{ color: iconColor('settings') }}><SettingsIcon size={14} /></span>
             Settings
           </button>
 
+          <div className="pb-4" />
         </div>
 
         {/* ── Bottom-pinned ── */}
@@ -312,7 +317,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
           <button
             onClick={handleLogoutClick}
             disabled={isLoggingOut}
-            className="bm-sb-item hover:bg-red-50! hover:text-red-600!"
+            className="bm-sb-item"
             style={{ color: '#be2525' }}
           >
             {isLoggingOut ? (
@@ -346,7 +351,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
         />
       )}
 
-      {/* ── Logout Confirmation Modal — matches cashier style exactly ── */}
+      {/* ── Logout Confirmation Modal ── */}
       {showLogoutModal && (
         <div
           className="fixed inset-0 z-200 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm"

@@ -108,7 +108,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
           body * { visibility: hidden; }
           .printable-receipt, .printable-receipt * { visibility: visible !important; }
           .printable-receipt { display: block !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; max-width: 76mm !important; }
-          .receipt-area { width: 66mm !important; margin: 0 auto !important; padding: 3mm 0 15mm 0 !important; font-family: Arial, sans-serif !important; font-size: 11px !important; }
+          .receipt-area { width: 70mm !important; margin: 0 auto !important; padding: 4mm 0 15mm 0 !important; font-family: Arial, sans-serif !important; font-size: 14px !important; }
         }
       `}</style>
 
@@ -116,34 +116,51 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
       {printData && (
         <div className="printable-receipt">
           <div className="receipt-area">
-            <div style={{ textAlign: 'center', marginBottom: 6 }}>
-              <div style={{ fontWeight: 900, fontSize: 13, textTransform: 'uppercase' }}>Lucky Boba Milktea Food and Beverage Trading</div>
-              <div style={{ fontWeight: 700, fontSize: 10, textTransform: 'uppercase' }}>Main Branch - QC</div>
+            <div style={{ textAlign: 'center', marginBottom: 8 }}>
+              <div style={{ fontWeight: 900, fontSize: 16, textTransform: 'uppercase' }}>Lucky Boba Food and Beverage Trading</div>
+              <div style={{ fontWeight: 700, fontSize: 13, textTransform: 'uppercase', marginTop: 3 }}>
+                {localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'}
+              </div>
             </div>
-            <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
-            <div style={{ textAlign: 'center', fontWeight: 900, textTransform: 'uppercase' }}>Cash Drop Receipt</div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}><span>Date</span><span>{printData.date}</span></div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Time</span><span>{printData.time}</span></div>
-            <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }} />
-            <table>
+            <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
+            <div style={{ textAlign: 'center', fontWeight: 900, fontSize: 15, textTransform: 'uppercase', marginBottom: 6 }}>Cash Drop Receipt</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 14 }}><span>Date</span><span>{printData.date}</span></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}><span>Time</span><span>{printData.time}</span></div>
+            <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
+            <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
               <tbody>
                 {denominations.map(denom => {
-                  const qty = parseFloat(printData.breakdown[denom] || '0');
-                  if (qty <= 0) return null;
+                  const qty = parseFloat(printData.breakdown[denom] || '0') || 0;
                   return (
-                    <tr key={denom}>
-                      <td>{denom.toLocaleString()}</td>
+                    <tr key={denom} style={{ lineHeight: '1.8' }}>
+                      <td style={{ fontWeight: 600 }}>₱{denom.toLocaleString()}</td>
                       <td style={{ textAlign: 'center' }}>x{qty}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 700 }}>₱{(qty * denom).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 700 }}>
+                        ₱{(qty * denom).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
-            <div style={{ borderTop: '1px solid #000', marginTop: 4, padding: '4px 0', display: 'flex', justifyContent: 'space-between', fontWeight: 900 }}>
-              <span>GRAND TOTAL</span><span>₱{printData.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+            <div style={{ borderTop: '2px solid #000', marginTop: 6, padding: '6px 0', display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: 15 }}>
+              <span>GRAND TOTAL</span>
+              <span>₱{printData.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
             </div>
-            {printData.remarks !== '-' && <div style={{ marginTop: 8, fontSize: 10, fontStyle: 'italic' }}>Note: {printData.remarks}</div>}
+
+            {/* Prepared By */}
+            <div style={{ marginTop: 16, textAlign: 'center' }}>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>
+                {localStorage.getItem('lucky_boba_user_name')?.toUpperCase() ?? 'CASHIER'}
+              </div>
+              <div style={{ borderBottom: '1px solid #000', width: '60%', margin: '0 auto 6px auto' }} />
+              <div style={{ fontSize: 12 }}>PREPARED BY</div>
+            </div>
+
+            <div style={{ marginTop: 20, textAlign: 'center' }}>
+              <div style={{ borderBottom: '1px solid #000', width: '60%', margin: '0 auto 6px auto' }} />
+              <div style={{ fontSize: 12 }}>SIGNED BY</div>
+            </div>
           </div>
         </div>
       )}

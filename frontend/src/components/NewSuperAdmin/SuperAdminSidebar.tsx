@@ -411,7 +411,7 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
             </div>
             {authUser ? (
               <div>
-                <p className="text-[0.85rem] font-bold text-[#1a0f2e] leading-tight truncate max-w-[9rem]">{authUser.name}</p>
+                <p className="text-[0.85rem] font-bold text-[#1a0f2e] leading-tight truncate max-w-36">{authUser.name}</p>
                 <p className="text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">{ROLE_LABELS[authUser.role] ?? authUser.role}</p>
               </div>
             ) : (
@@ -621,7 +621,7 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
 
       {/* ── Logout Modal ── */}
       {showLogoutModal && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+        <div className="fixed inset-0 z-200 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm" style={{ fontFamily: "'DM Sans', sans-serif" }}>
           <div style={{ background: "#fff", width: "100%", maxWidth: 360, border: "1px solid #e4e4e7", borderRadius: "1.25rem", padding: 32, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", boxShadow: "0 24px 64px rgba(0,0,0,0.18)" }}>
             <div style={{ width: 44, height: 44, borderRadius: "0.625rem", background: "#fff0f0", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
               <LogOut size={19} color="#be2525" />

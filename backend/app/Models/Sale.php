@@ -74,4 +74,8 @@ class Sale extends Model
     {
         return $this->hasMany(StockDeduction::class);
     }
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
 }

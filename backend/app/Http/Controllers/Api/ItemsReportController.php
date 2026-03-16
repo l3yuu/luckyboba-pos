@@ -35,7 +35,7 @@ class ItemsReportController extends Controller
             $user     = auth('sanctum')->user() ?? $request->user();
             $branchId = $user?->branch_id;
 
-            $query = DB::table('sale_items')
+            $baseQuery = DB::table('sale_items')
                 ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
                 ->whereBetween('sales.created_at', [
                     $from . ' 00:00:00',
@@ -44,16 +44,33 @@ class ItemsReportController extends Controller
                 ->where('sales.status', '!=', 'cancelled')
                 ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId));
 
-            // Both modes use the same grouping — category join doesn't exist yet
-            $items = $query
-                ->select(
-                    'sale_items.product_name as name',
-                    DB::raw('SUM(sale_items.quantity) as qty'),
-                    DB::raw('SUM(sale_items.final_price) as amount')
-                )
-                ->groupBy('sale_items.product_name')
-                ->orderByDesc('amount')
-                ->get();
+            if ($type === 'category-summary') {
+                // Group by category name via menu_items → categories join
+                $items = (clone $baseQuery)
+                    ->leftJoin('menu_items', 'sale_items.menu_item_id', '=', 'menu_items.id')
+                    ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
+                    ->select(
+                        DB::raw("COALESCE(categories.name, 'Uncategorized') as name"),
+                        DB::raw("COALESCE(categories.name, 'Uncategorized') as category"),
+                        DB::raw('SUM(sale_items.quantity) as qty'),
+                        DB::raw('SUM(sale_items.final_price) as amount')
+                    )
+                    ->groupBy('categories.name')
+                    ->orderByDesc('amount')
+                    ->get();
+            } else {
+                // Detailed item list — group by product name
+                $items = (clone $baseQuery)
+                    ->select(
+                        'sale_items.product_name as name',
+                        DB::raw("'' as category"),
+                        DB::raw('SUM(sale_items.quantity) as qty'),
+                        DB::raw('SUM(sale_items.final_price) as amount')
+                    )
+                    ->groupBy('sale_items.product_name')
+                    ->orderByDesc('amount')
+                    ->get();
+            }
 
             return response()->json([
                 'items'        => $items,
