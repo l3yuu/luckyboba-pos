@@ -1,7 +1,7 @@
 // components/NewSuperAdmin/Tabs/BranchesTab.tsx
 import { useState, useEffect } from "react";
 import {
-  Search, Filter, Plus, Eye, Edit2, Trash2, Store,
+  Search, Plus, Eye, Edit2, Trash2, Store,
   CheckCircle, XCircle, DollarSign, ArrowUpRight, ArrowDownRight,
   X, AlertCircle, RefreshCw, MapPin, Trash,
 } from "lucide-react";
@@ -12,14 +12,15 @@ type VariantKey = "primary" | "secondary" | "danger" | "ghost";
 type SizeKey    = "sm" | "md" | "lg";
 
 interface Branch {
-  id:       number;
-  name:     string;
-  location: string;
-  status:   string;
-  today:    number;
-  total:    number;
-  staff:    number;
-  manager:  string;
+  id:             number;
+  name:           string;
+  location:       string;
+  status:         string;
+  today:          number;
+  total:          number;
+  staff:          number;
+  manager:        string;
+  ownership_type: 'company' | 'franchise';
 }
 interface StatCardProps {
   icon: React.ReactNode; label: string; value: string | number;
@@ -37,16 +38,17 @@ interface ViewBranchModalProps { onClose: () => void; branch: Branch; }
 interface DeleteConfirmProps   { onClose: () => void; onDeleted: (id: number) => void; branch: Branch; }
 
 interface RawBranch {
-  id:           number;
-  name:         string;
-  location:     string;
-  status:       string;
-  today_sales?:  number | string;
-  total_sales?:  number | string;
-  staff_count?:  number;
-  manager_name?: string;
-  manager?:      { id: number; name: string };
-  users?:        { id: number; name: string; role: string }[];
+  id:              number;
+  name:            string;
+  location:        string;
+  status:          string;
+  ownership_type?: string;
+  today_sales?:    number | string;
+  total_sales?:    number | string;
+  staff_count?:    number;
+  manager_name?:   string;
+  manager?:        { id: number; name: string };
+  users?:          { id: number; name: string; role: string }[];
 }
 
 // ── API helpers ───────────────────────────────────────────────────────────────
@@ -58,24 +60,25 @@ const authHeaders = (): Record<string, string> => ({
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
 const mapBranch = (b: RawBranch): Branch => ({
-  id:       b.id,
-  name:     b.name,
-  location: b.location,
-  status:   b.status,
-  today:    parseFloat(String(b.today_sales  ?? 0)),
-  total:    parseFloat(String(b.total_sales  ?? 0)),
-  staff:    b.staff_count ?? b.users?.length ?? 0,
-  manager:  b.manager_name ?? b.manager?.name
-            ?? b.users?.find(u => u.role === "branch_manager")?.name
-            ?? "—",
+  id:             b.id,
+  name:           b.name,
+  location:       b.location,
+  status:         b.status,
+  today:          parseFloat(String(b.today_sales  ?? 0)),
+  total:          parseFloat(String(b.total_sales  ?? 0)),
+  staff:          b.staff_count ?? b.users?.length ?? 0,
+  manager:        b.manager_name ?? b.manager?.name
+                  ?? b.users?.find(u => u.role === "branch_manager")?.name
+                  ?? "—",
+  ownership_type: b.ownership_type === 'franchise' ? 'franchise' : 'company',
 });
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
 const Badge: React.FC<{ status: string }> = ({ status }) => {
   const map: Record<string, string> = {
-    active: "badge-active", ACTIVE: "badge-active",
+    active:   "badge-active",   ACTIVE:   "badge-active",
     inactive: "badge-inactive", INACTIVE: "badge-inactive",
-    pending: "badge-pending", void: "badge-danger",
+    pending:  "badge-pending",  void:     "badge-danger",
   };
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${map[status] ?? "badge-inactive"}`}>
@@ -83,6 +86,16 @@ const Badge: React.FC<{ status: string }> = ({ status }) => {
     </span>
   );
 };
+
+const OwnershipBadge: React.FC<{ type: 'company' | 'franchise' }> = ({ type }) => (
+  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+    type === 'franchise'
+      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+      : 'bg-violet-50 text-violet-700 border-violet-200'
+  }`}>
+    {type === 'franchise' ? 'Franchise' : 'Company'}
+  </span>
+);
 
 const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, trend, color = "violet" }) => {
   const colors: Record<ColorKey, { bg: string; border: string; icon: string }> = {
@@ -189,6 +202,7 @@ const ViewBranchModal: React.FC<ViewBranchModalProps> = ({ onClose, branch }) =>
     ["Name",          branch.name],
     ["Location",      <span className="flex items-center gap-1"><MapPin size={11} />{branch.location}</span>],
     ["Manager",       branch.manager],
+    ["Type",          <OwnershipBadge type={branch.ownership_type} />],
     ["Status",        <Badge status={branch.status} />],
     ["Staff Count",   branch.staff || "—"],
     ["Today's Sales", <span className="font-bold text-emerald-600">{branch.status === "active" ? fmt(branch.today) : "—"}</span>],
@@ -216,7 +230,12 @@ const ViewBranchModal: React.FC<ViewBranchModalProps> = ({ onClose, branch }) =>
 
 // ── Edit Modal ────────────────────────────────────────────────────────────────
 const EditBranchModal: React.FC<EditBranchModalProps> = ({ onClose, onUpdated, branch }) => {
-  const [form,     setForm]     = useState({ name: branch.name, location: branch.location, status: branch.status });
+  const [form, setForm] = useState({
+    name:           branch.name,
+    location:       branch.location,
+    status:         branch.status,
+    ownership_type: branch.ownership_type,
+  });
   const [errors,   setErrors]   = useState<Record<string, string>>({});
   const [loading,  setLoading]  = useState(false);
   const [apiError, setApiError] = useState("");
@@ -317,6 +336,15 @@ const EditBranchModal: React.FC<EditBranchModalProps> = ({ onClose, onUpdated, b
           <option value="inactive">Inactive</option>
         </select>
       </div>
+      <div>
+        <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">Branch Type</label>
+        <select {...field("ownership_type")}
+          className="w-full text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all"
+        >
+          <option value="company">Company-Owned</option>
+          <option value="franchise">Franchise</option>
+        </select>
+      </div>
     </ModalShell>
   );
 };
@@ -354,8 +382,6 @@ const DeleteConfirmModal: React.FC<DeleteConfirmProps> = ({ onClose, onDeleted, 
     >
       <div className="absolute inset-0" onClick={onClose} />
       <div className="relative bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] shadow-2xl">
-
-        {/* Icon + heading */}
         <div className="flex flex-col items-center text-center px-6 pt-8 pb-5">
           <div className="w-14 h-14 bg-red-50 border border-red-200 rounded-full flex items-center justify-center mb-4">
             <Trash size={22} className="text-red-500" />
@@ -372,8 +398,6 @@ const DeleteConfirmModal: React.FC<DeleteConfirmProps> = ({ onClose, onDeleted, 
             </div>
           )}
         </div>
-
-        {/* Branch info pill */}
         <div className="mx-6 mb-5 flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl">
           <div className="w-8 h-8 bg-violet-50 border border-violet-200 rounded-lg flex items-center justify-center shrink-0">
             <Store size={14} className="text-violet-600" />
@@ -388,12 +412,8 @@ const DeleteConfirmModal: React.FC<DeleteConfirmProps> = ({ onClose, onDeleted, 
             <Badge status={branch.status} />
           </div>
         </div>
-
-        {/* Footer */}
         <div className="flex items-center gap-2 px-6 pb-6">
-          <Btn variant="secondary" className="flex-1 justify-center" onClick={onClose} disabled={loading}>
-            Cancel
-          </Btn>
+          <Btn variant="secondary" className="flex-1 justify-center" onClick={onClose} disabled={loading}>Cancel</Btn>
           <Btn variant="danger" className="flex-1 justify-center" onClick={handleDelete} disabled={loading}>
             {loading
               ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Deleting...</span>
@@ -408,7 +428,12 @@ const DeleteConfirmModal: React.FC<DeleteConfirmProps> = ({ onClose, onDeleted, 
 
 // ── Add Branch Modal ──────────────────────────────────────────────────────────
 const AddBranchModal: React.FC<AddBranchModalProps> = ({ onClose, onSaved }) => {
-  const [form,     setForm]     = useState({ name: "", location: "", status: "active" });
+  const [form, setForm] = useState({
+    name:           "",
+    location:       "",
+    status:         "active",
+    ownership_type: "company",
+  });
   const [errors,   setErrors]   = useState<Record<string, string>>({});
   const [loading,  setLoading]  = useState(false);
   const [apiError, setApiError] = useState("");
@@ -509,6 +534,15 @@ const AddBranchModal: React.FC<AddBranchModalProps> = ({ onClose, onSaved }) => 
           <option value="inactive">Inactive</option>
         </select>
       </div>
+      <div>
+        <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">Branch Type</label>
+        <select {...field("ownership_type")}
+          className="w-full text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all"
+        >
+          <option value="company">Company-Owned</option>
+          <option value="franchise">Franchise</option>
+        </select>
+      </div>
     </ModalShell>
   );
 };
@@ -520,7 +554,7 @@ const ToggleStatusModal: React.FC<ToggleStatusProps> = ({ onClose, onToggled, br
   const [loading,  setLoading]  = useState(false);
   const [apiError, setApiError] = useState("");
 
-  const isActive  = branch.status === "active";
+  const isActive   = branch.status === "active";
   const nextStatus = isActive ? "inactive" : "active";
 
   const handleToggle = async () => {
@@ -552,13 +586,9 @@ const ToggleStatusModal: React.FC<ToggleStatusProps> = ({ onClose, onToggled, br
     >
       <div className="absolute inset-0" onClick={onClose} />
       <div className="relative bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] shadow-2xl">
-
-        {/* Icon + heading */}
         <div className="flex flex-col items-center text-center px-6 pt-8 pb-5">
           <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 border ${isActive ? "bg-amber-50 border-amber-200" : "bg-emerald-50 border-emerald-200"}`}>
-            {isActive
-              ? <XCircle  size={24} className="text-amber-500" />
-              : <CheckCircle size={24} className="text-emerald-500" />}
+            {isActive ? <XCircle size={24} className="text-amber-500" /> : <CheckCircle size={24} className="text-emerald-500" />}
           </div>
           <p className="text-base font-bold text-[#1a0f2e]">
             {isActive ? "Deactivate Branch?" : "Activate Branch?"}
@@ -575,8 +605,6 @@ const ToggleStatusModal: React.FC<ToggleStatusProps> = ({ onClose, onToggled, br
             </div>
           )}
         </div>
-
-        {/* Branch pill */}
         <div className="mx-6 mb-5 flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl">
           <div className="w-8 h-8 bg-violet-50 border border-violet-200 rounded-lg flex items-center justify-center shrink-0">
             <Store size={14} className="text-violet-600" />
@@ -593,12 +621,8 @@ const ToggleStatusModal: React.FC<ToggleStatusProps> = ({ onClose, onToggled, br
             <Badge status={nextStatus} />
           </div>
         </div>
-
-        {/* Footer */}
         <div className="flex items-center gap-2 px-6 pb-6">
-          <Btn variant="secondary" className="flex-1 justify-center" onClick={onClose} disabled={loading}>
-            Cancel
-          </Btn>
+          <Btn variant="secondary" className="flex-1 justify-center" onClick={onClose} disabled={loading}>Cancel</Btn>
           <button
             onClick={handleToggle}
             disabled={loading}
@@ -606,8 +630,7 @@ const ToggleStatusModal: React.FC<ToggleStatusProps> = ({ onClose, onToggled, br
           >
             {loading ? (
               <span className="flex items-center gap-1.5">
-                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Updating...
+                <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Updating...
               </span>
             ) : isActive ? (
               <><XCircle size={13} /> Deactivate</>
@@ -624,11 +647,13 @@ const ToggleStatusModal: React.FC<ToggleStatusProps> = ({ onClose, onToggled, br
 
 // ── Main Tab ──────────────────────────────────────────────────────────────────
 const BranchesTab: React.FC = () => {
-  const [branches,    setBranches]    = useState<Branch[]>([]);
-  const [loading,     setLoading]     = useState(true);
-  const [fetchError,  setFetchError]  = useState("");
-  const [search,      setSearch]      = useState("");
-  const [toggleTarget, setToggleTarget] = useState<Branch | null>(null);
+  const [branches,      setBranches]      = useState<Branch[]>([]);
+  const [loading,       setLoading]       = useState(true);
+  const [fetchError,    setFetchError]    = useState("");
+  const [search,        setSearch]        = useState("");
+  const [filterStatus,  setFilterStatus]  = useState<string>("all");
+  const [filterOwnership, setFilterOwnership] = useState<string>("all");
+  const [toggleTarget,  setToggleTarget]  = useState<Branch | null>(null);
 
   // modal state
   const [addOpen,    setAddOpen]    = useState(false);
@@ -655,11 +680,14 @@ const BranchesTab: React.FC = () => {
 
   const fmt = (v: number) => `₱${Number(v).toLocaleString()}`;
 
-  const filtered = branches.filter(b =>
-    b.name.toLowerCase().includes(search.toLowerCase()) ||
-    b.location.toLowerCase().includes(search.toLowerCase()) ||
-    b.manager.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = branches.filter(b => {
+    const matchSearch    = b.name.toLowerCase().includes(search.toLowerCase()) ||
+                           b.location.toLowerCase().includes(search.toLowerCase()) ||
+                           b.manager.toLowerCase().includes(search.toLowerCase());
+    const matchStatus    = filterStatus    === "all" || b.status         === filterStatus;
+    const matchOwnership = filterOwnership === "all" || b.ownership_type === filterOwnership;
+    return matchSearch && matchStatus && matchOwnership;
+  });
 
   return (
     <div className="p-6 md:p-8 fade-in">
@@ -680,29 +708,64 @@ const BranchesTab: React.FC = () => {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-        <StatCard icon={<Store       size={16} />} label="Total Branches" value={loading ? "—" : branches.length}                                        color="violet"  />
-        <StatCard icon={<CheckCircle size={16} />} label="Active"         value={loading ? "—" : branches.filter(b => b.status === "active").length}     color="emerald" />
-        <StatCard icon={<XCircle     size={16} />} label="Inactive"       value={loading ? "—" : branches.filter(b => b.status !== "active").length}     color="red"     />
-        <StatCard icon={<DollarSign  size={16} />} label="Today Revenue"  value={loading ? "—" : fmt(branches.reduce((s, b) => s + b.today, 0))}        color="amber"   />
+        <StatCard icon={<Store       size={16} />} label="Total Branches" value={loading ? "—" : branches.length}                                     color="violet"  />
+        <StatCard icon={<CheckCircle size={16} />} label="Active"         value={loading ? "—" : branches.filter(b => b.status === "active").length}  color="emerald" />
+        <StatCard icon={<XCircle     size={16} />} label="Inactive"       value={loading ? "—" : branches.filter(b => b.status !== "active").length}  color="red"     />
+        <StatCard icon={<DollarSign  size={16} />} label="Today Revenue"  value={loading ? "—" : fmt(branches.reduce((s, b) => s + b.today, 0))}     color="amber"   />
       </div>
 
       {/* Table */}
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-100">
-          <div className="flex-1 flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
+
+        {/* Filter bar */}
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-100 flex-wrap">
+          <div className="flex-1 flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 min-w-48">
             <Search size={13} className="text-zinc-400" />
-            <input value={search} onChange={e => setSearch(e.target.value)}
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
               className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400"
-              placeholder="Search branches..." />
+              placeholder="Search branches..."
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="text-zinc-300 hover:text-zinc-500 transition-colors">
+                <X size={12} />
+              </button>
+            )}
           </div>
-          <Btn variant="secondary"><Filter size={13} /> Filter</Btn>
+          <select
+            value={filterStatus}
+            onChange={e => setFilterStatus(e.target.value)}
+            className="text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer"
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+          <select
+            value={filterOwnership}
+            onChange={e => setFilterOwnership(e.target.value)}
+            className="text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer"
+          >
+            <option value="all">All Types</option>
+            <option value="company">Company-Owned</option>
+            <option value="franchise">Franchise</option>
+          </select>
+          {(filterStatus !== "all" || filterOwnership !== "all" || search) && (
+            <button
+              onClick={() => { setSearch(""); setFilterStatus("all"); setFilterOwnership("all"); }}
+              className="text-xs font-bold text-zinc-400 hover:text-red-500 transition-colors flex items-center gap-1"
+            >
+              <X size={11} /> Clear
+            </button>
+          )}
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100">
-                {["Branch", "Location", "Manager", "Today Sales", "Total Sales", "Staff", "Status", "Actions"].map(h => (
+                {["Branch", "Location", "Manager", "Type", "Today Sales", "Total Sales", "Staff", "Status", "Actions"].map(h => (
                   <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
                 ))}
               </tr>
@@ -710,7 +773,7 @@ const BranchesTab: React.FC = () => {
             <tbody>
               {loading && [...Array(4)].map((_, i) => (
                 <tr key={i} className="border-b border-zinc-50">
-                  {[...Array(8)].map((_, j) => (
+                  {[...Array(9)].map((_, j) => (
                     <td key={j} className="px-5 py-4">
                       <div className="h-3 bg-zinc-100 rounded animate-pulse" style={{ width: `${60 + Math.random() * 40}%` }} />
                     </td>
@@ -720,7 +783,7 @@ const BranchesTab: React.FC = () => {
 
               {!loading && fetchError && (
                 <tr>
-                  <td colSpan={8} className="px-5 py-10 text-center">
+                  <td colSpan={9} className="px-5 py-10 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <AlertCircle size={20} className="text-red-400" />
                       <p className="text-sm font-semibold text-red-500">{fetchError}</p>
@@ -732,8 +795,10 @@ const BranchesTab: React.FC = () => {
 
               {!loading && !fetchError && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-5 py-10 text-center text-zinc-400 text-xs font-medium">
-                    {search ? "No branches match your search." : "No branches found."}
+                  <td colSpan={9} className="px-5 py-10 text-center text-zinc-400 text-xs font-medium">
+                    {search || filterStatus !== "all" || filterOwnership !== "all"
+                      ? "No branches match your filters."
+                      : "No branches found."}
                   </td>
                 </tr>
               )}
@@ -743,39 +808,46 @@ const BranchesTab: React.FC = () => {
                   <td className="px-5 py-3.5 font-semibold text-[#1a0f2e]">{b.name}</td>
                   <td className="px-5 py-3.5 text-zinc-500">{b.location}</td>
                   <td className="px-5 py-3.5 text-zinc-600">{b.manager}</td>
+                  <td className="px-5 py-3.5">
+                    <OwnershipBadge type={b.ownership_type} />
+                  </td>
                   <td className="px-5 py-3.5 font-bold text-emerald-600">{b.status === "active" ? fmt(b.today) : "—"}</td>
                   <td className="px-5 py-3.5 font-bold text-[#3b2063]">{fmt(b.total)}</td>
                   <td className="px-5 py-3.5 text-zinc-600">{b.staff || "—"}</td>
                   <td className="px-5 py-3.5"><Badge status={b.status} /></td>
-                <td className="px-5 py-3.5">
-                <div className="flex items-center gap-1">
-                    <button
-                    onClick={() => setViewTarget(b)}
-                    className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors"
-                    title="View"
-                    ><Eye size={13} /></button>
-                    <button
-                    onClick={() => setEditTarget(b)}
-                    className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors"
-                    title="Edit"
-                    ><Edit2 size={13} /></button>
-                    <button
-                    onClick={() => setToggleTarget(b)}
-                    className={`p-1.5 rounded-[0.4rem] transition-colors ${b.status === "active" ? "hover:bg-amber-50 text-zinc-400 hover:text-amber-500" : "hover:bg-emerald-50 text-zinc-400 hover:text-emerald-600"}`}
-                    title={b.status === "active" ? "Deactivate" : "Activate"}
-                    >{b.status === "active" ? <XCircle size={13} /> : <CheckCircle size={13} />}</button>
-                    <button
-                    onClick={() => setDelTarget(b)}
-                    className="p-1.5 hover:bg-red-50 rounded-[0.4rem] text-zinc-400 hover:text-red-500 transition-colors"
-                    title="Delete"
-                    ><Trash2 size={13} /></button>
-                </div>
-                </td>
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => setViewTarget(b)}
+                        className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors" title="View">
+                        <Eye size={13} />
+                      </button>
+                      <button onClick={() => setEditTarget(b)}
+                        className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors" title="Edit">
+                        <Edit2 size={13} />
+                      </button>
+                      <button onClick={() => setToggleTarget(b)}
+                        className={`p-1.5 rounded-[0.4rem] transition-colors ${b.status === "active" ? "hover:bg-amber-50 text-zinc-400 hover:text-amber-500" : "hover:bg-emerald-50 text-zinc-400 hover:text-emerald-600"}`}
+                        title={b.status === "active" ? "Deactivate" : "Activate"}>
+                        {b.status === "active" ? <XCircle size={13} /> : <CheckCircle size={13} />}
+                      </button>
+                      <button onClick={() => setDelTarget(b)}
+                        className="p-1.5 hover:bg-red-50 rounded-[0.4rem] text-zinc-400 hover:text-red-500 transition-colors" title="Delete">
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+
+        {/* Results count */}
+        {!loading && !fetchError && filtered.length > 0 && (
+          <div className="px-5 py-3 border-t border-zinc-50 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+            Showing {filtered.length} of {branches.length} branches
+          </div>
+        )}
       </div>
 
       {/* Modals */}
@@ -786,10 +858,7 @@ const BranchesTab: React.FC = () => {
         />
       )}
       {viewTarget && (
-        <ViewBranchModal
-          branch={viewTarget}
-          onClose={() => setViewTarget(null)}
-        />
+        <ViewBranchModal branch={viewTarget} onClose={() => setViewTarget(null)} />
       )}
       {editTarget && (
         <EditBranchModal
@@ -813,14 +882,14 @@ const BranchesTab: React.FC = () => {
       )}
       {toggleTarget && (
         <ToggleStatusModal
-            branch={toggleTarget}
-            onClose={() => setToggleTarget(null)}
-            onToggled={updated => {
+          branch={toggleTarget}
+          onClose={() => setToggleTarget(null)}
+          onToggled={updated => {
             setBranches(prev => prev.map(b => b.id === updated.id ? updated : b));
             setToggleTarget(null);
-            }}
+          }}
         />
-        )}
+      )}
     </div>
   );
 };
