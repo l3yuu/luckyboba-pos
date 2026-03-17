@@ -108,6 +108,12 @@ export interface CartItem extends MenuItem {
     finalPrice: number;
     discountLabel?: string;
 
+    // ── Discount Metadata ──────────────────────────────────────────────────
+    // Adding these will clear your VS Code property errors
+    discountId?: number | null;
+    discountType?: 'none' | 'percent' | 'fixed';
+    discountValue?: number | '';
+
     // ── Bundle-specific fields ──────────────────────────────────────────────
     isBundle?: boolean;
     bundleId?: number;

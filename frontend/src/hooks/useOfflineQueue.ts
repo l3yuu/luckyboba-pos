@@ -122,7 +122,14 @@ export function useOfflineQueue(): OfflineQueueState {
         await api.post('/sales', item.payload);
         // Success — remove from queue
         updated = updated.filter(q => q.id !== item.id);
-      } catch (err) {
+} catch (err) {
+        const status = (err as { response?: { status?: number } })?.response?.status;
+        if (status === 422) {
+          // Unrecoverable — bad payload, drop it instead of retrying
+          updated = updated.filter(q => q.id !== item.id);
+          console.warn('Dropped invalid queued order (422):', item.id);
+          continue;
+        }
         const message = err instanceof Error ? err.message : 'Unknown error';
         updated = updated.map(q =>
           q.id === item.id

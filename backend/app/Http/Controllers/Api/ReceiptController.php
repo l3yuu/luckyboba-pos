@@ -38,13 +38,14 @@ class ReceiptController extends Controller
             ->select([
                 'receipts.sale_id',
                 'receipts.si_number',
-                'receipts.total_amount',
+                'sales.total_amount',     // ← use sales table (correct discounted amount)
                 'receipts.cashier_name',
                 'receipts.terminal',
                 'receipts.items_count',
                 'receipts.created_at',
                 'sales.status',
                 'sales.cancellation_reason',
+                'sales.customer_name',    // also add this so customer name shows
             ])
             ->selectRaw('
                 EXISTS(
@@ -75,9 +76,21 @@ class ReceiptController extends Controller
 
         $results = $dbQuery->latest('receipts.created_at')->limit(50)->get();
 
-        $gross  = $results->sum('total_amount');
-        $voided = $results->where('status', 'cancelled')->sum('total_amount');
-        $net    = $gross - $voided;
+        $completed  = $results->where('status', '!=', 'cancelled');
+        $voidedRows = $results->where('status', 'cancelled');
+
+        $gross     = $completed->sum('total_amount');
+        $voidedAmt = $voidedRows->sum('total_amount');
+        $net       = $gross - $voidedAmt;
+
+        return response()->json([
+            'results' => $results->values(),
+            'stats'   => [
+                'gross'  => round($gross, 2),
+                'voided' => round($voidedAmt, 2),
+                'net'    => round($net, 2),
+            ],
+        ]);
 
         return response()->json([
             'results' => $results->values(),

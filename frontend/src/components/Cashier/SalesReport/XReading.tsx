@@ -6,6 +6,7 @@ import api from '../../../services/api';
 
 interface XReadingReport {
   date?: string;
+  other_discount?: number;
   gross_sales?: number;
   net_sales?: number;
   transaction_count?: number;
@@ -626,14 +627,15 @@ const XReading = () => {
         </div>
         <Divider />
         {(() => {
-          const gross = reportData?.gross_sales || 0;
-          const vatAmt = reportData?.vat_amount || 0;
-          const vatableSales = reportData?.vatable_sales || 0;
-          const scDiscount = reportData?.sc_discount || 0;
-          const pwdDiscount = reportData?.pwd_discount || 0;
-          const diplomat = reportData?.diplomat_discount || 0;
-          const voids = reportData?.total_void_amount || 0;
-          const netAmount = gross - scDiscount - pwdDiscount - diplomat - vatAmt;
+        const gross        = reportData?.gross_sales || 0;
+        const vatAmt       = reportData?.vat_amount || 0;
+        const vatableSales = reportData?.vatable_sales || 0;
+        const scDiscount   = reportData?.sc_discount || 0;
+        const pwdDiscount  = reportData?.pwd_discount || 0;
+        const diplomat     = reportData?.diplomat_discount || 0;
+        const otherDisc    = reportData?.other_discount || 0;
+        const voids        = reportData?.total_void_amount || 0;
+        const netAmount    = gross - scDiscount - pwdDiscount - diplomat - vatAmt;
           const auditRows = [
             { label: 'LINE DISC:', value: phCurrency.format(0) },
             { label: 'LESS POINTS REDEEMED:', value: phCurrency.format(0) },
@@ -641,6 +643,7 @@ const XReading = () => {
             { label: 'LESS PWD DISCOUNT:', value: pwdDiscount > 0 ? `-${phCurrency.format(pwdDiscount)}` : phCurrency.format(0) },
             { label: 'LESS SC DISCOUNT:', value: scDiscount > 0 ? `-${phCurrency.format(scDiscount)}` : phCurrency.format(0) },
             { label: 'LESS DIPLOMAT:', value: diplomat > 0 ? `-${phCurrency.format(diplomat)}` : phCurrency.format(0) },
+            { label: 'LESS OTHER DISC:', value: otherDisc > 0 ? `-${phCurrency.format(otherDisc)}` : phCurrency.format(0) },
             { label: 'LESS 12% VAT:', value: vatAmt > 0 ? `-${phCurrency.format(vatAmt)}` : phCurrency.format(0) },
           ];
           return (
@@ -689,8 +692,9 @@ const XReading = () => {
     const txCount = reportData?.transaction_count || 0;
     const scDiscount = reportData?.sc_discount || 0;
     const pwdDiscount = reportData?.pwd_discount || 0;
-    const diplomat = reportData?.diplomat_discount || 0;
-    const totalDisc = scDiscount + pwdDiscount + diplomat;
+    const diplomat     = reportData?.diplomat_discount || 0;
+    const otherDisc    = reportData?.other_discount    || 0;
+    const totalDisc    = scDiscount + pwdDiscount + diplomat + otherDisc;
     const vatableSales = reportData?.vatable_sales || 0;
     const vatAmount = reportData?.vat_amount || 0;
     const voids = reportData?.total_void_amount || 0;
@@ -730,7 +734,7 @@ const XReading = () => {
         <Row label="PWD DISC." value={phCurrency.format(pwdDiscount)} />
         <Row label="NAAC DISC." value={phCurrency.format(0)} />
         <Row label="SOLO PARENT DISC." value={phCurrency.format(0)} />
-        <Row label="OTHER DISC." value={phCurrency.format(diplomat)} />
+        <Row label="OTHER DISC." value={phCurrency.format(otherDisc)} />
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">SALES ADJUSTMENT</p>
         <Row label="CANCELED" value={phCurrency.format(voids)} />

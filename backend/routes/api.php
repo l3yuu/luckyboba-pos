@@ -107,7 +107,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
         // Additional read-only for cashier
         Route::get('/recipes',  [RecipeController::class, 'index']);
-        Route::get('/expenses', [ExpenseController::class, 'index']);
+        Route::get('/expenses',  [ExpenseController::class, 'index']);
+        Route::post('/expenses', [ExpenseController::class, 'store']);
 
         Route::prefix('reports')->group(function () {
             Route::get('/inventory',       [InventoryReportController::class, 'index']);
@@ -161,7 +162,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::patch('/{id}/status', [ItemSerialController::class, 'updateStatus']);
         });
 
-        Route::apiResource('expenses',  ExpenseController::class)->only(['store']);
         Route::get('/branch/audit-logs', [AuditLogController::class, 'branchIndex']); 
         Route::apiResource('discounts', DiscountController::class)->except(['show', 'update', 'index']); // ← 'index' removed, handled above
         Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
@@ -224,8 +224,6 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::prefix('reports')->group(function () {
             Route::get('/admin-sales-summary', [SuperAdminReportController::class, 'salesSummary']);
             Route::get('/branch-comparison',   [SuperAdminReportController::class, 'branchComparison']);
-            Route::get('/x-reading',           [SalesDashboardController::class, 'xReading']);
-            Route::get('/z-reading',           [SalesDashboardController::class, 'zReading']);
             Route::get('/z-reading/history',   [SalesDashboardController::class, 'zReadingHistory']); // ← ADD
         });
 
