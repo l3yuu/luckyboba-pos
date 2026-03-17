@@ -524,7 +524,8 @@ interface ComboDrinkModalProps {
   comboDrinkSugar: string;
   comboDrinkOptions: string[];
   comboDrinkAddOns: string[];
-  filteredAddOns: { id: number; name: string; price: number }[];
+  filteredAddOns: { id: number; name: string; price: number; grab_price?: number; panda_price?: number }[];
+  orderCharge?: 'grab' | 'panda' | null;
   comboDrinkAddOnModalOpen: boolean;
   onSugarChange: (s: string) => void;
   onToggleOption: (opt: string) => void;
@@ -549,6 +550,7 @@ export const ComboDrinkModal = ({
   onToggleAddOn,
   onConfirm,
   onClose,
+  orderCharge, // ← add this
 }: ComboDrinkModalProps) => {
 
   return (
@@ -622,6 +624,7 @@ export const ComboDrinkModal = ({
           onToggle={onToggleAddOn}
           onClose={onCloseAddOns}
           zIndex="z-[120]"
+          orderCharge={orderCharge}
         />
       )}
     </>

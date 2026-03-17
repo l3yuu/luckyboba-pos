@@ -201,13 +201,15 @@ const totalCount = cart.reduce((acc, item) => acc + item.qty, 0);
 
 // 2. Gross Calculation (Total original price)
 const grossSubtotal = cart.reduce((acc, item) => 
-  acc + (Number(item.price) * item.qty) + getItemSurcharge(item), 0
+  acc + item.finalPrice + getItemSurcharge(item), 0
 );
 
 // 3. Item-Level Discounts (The cuts made in the Edit Modal)
-const itemDiscountTotal = cart.reduce((acc, item) =>
-  acc + Math.max(0, (Number(item.price) * item.qty) - item.finalPrice), 0
-);
+const itemDiscountTotal = cart.reduce((acc, item) => {
+  const baseTotal = item.finalPrice; // already includes add-on cost
+  const discountedTotal = item.finalPrice;
+  return acc + Math.max(0, baseTotal - discountedTotal);
+}, 0);
 
 // 4. Promo Eligibility (Vouchers)
 const eligibleForPromo = cart
@@ -598,44 +600,55 @@ const syncNextSequence = async () => {
   // ── Combo drink confirm ─────────────────────────────────────────────────────
 
 const confirmComboDrink = () => {
-    if (!pendingComboCart) return;
+  if (!pendingComboCart) return;
 
-    const isPizzaCombo = selectedCategory?.name?.toUpperCase() === 'PIZZA PEDRICOS COMBO';
-    const isClassicPearl = pendingComboCart.name?.toUpperCase().includes('CLASSIC PEARL');
-    const pearlOpts = ['NO PRL', 'W/ PRL'];
+  const isPizzaCombo = selectedCategory?.name?.toUpperCase() === 'PIZZA PEDRICOS COMBO';
+  const isClassicPearl = pendingComboCart.name?.toUpperCase().includes('CLASSIC PEARL');
+  const pearlOpts = ['NO PRL', 'W/ PRL'];
 
-    // Require pearl selection for Pizza Pedricos combos EXCEPT Classic Pearl items
-    if (isPizzaCombo && !isClassicPearl && !comboDrinkOptions.some(o => pearlOpts.includes(o))) {
-      showToast('Please select NO PRL or W/ PRL', 'warning');
-      return;
+  if (isPizzaCombo && !isClassicPearl && !comboDrinkOptions.some(o => pearlOpts.includes(o))) {
+    showToast('Please select NO PRL or W/ PRL', 'warning');
+    return;
+  }
+
+  // Calculate add-on cost using REGULAR price only (surcharge is handled by getItemSurcharge)
+  let addOnExtraCost = 0;
+  comboDrinkAddOns.forEach(name => {
+    const addon = addOnsData.find(a => a.name === name);
+    if (addon) {
+      // Always use base price here — grab/panda surcharge on add-ons is NOT applicable
+      // for combo drinks since the combo item itself already carries the surcharge
+      addOnExtraCost += Number(addon.price);
     }
+  });
 
-    const drinkDetails = [
-      `Sugar: ${comboDrinkSugar}`,
-      ...comboDrinkOptions,
-      ...comboDrinkAddOns.map(a => `+${a}`),
-    ].join(' | ');
+  const drinkDetails = [
+    `Sugar: ${comboDrinkSugar}`,
+    ...comboDrinkOptions,
+    ...comboDrinkAddOns.map(a => `+${a}`),
+  ].join(' | ');
 
-    // Use appropriate drink label in remarks
-    const drinkLabel = isPizzaCombo && !isClassicPearl
-      ? pendingComboCart.name.replace(/^PIZZA \+ /i, '')
-      : 'Classic Pearl';
+  const drinkLabel = isPizzaCombo && !isClassicPearl
+    ? pendingComboCart.name.replace(/^PIZZA \+ /i, '')
+    : 'Classic Pearl';
 
-const finalItem: CartItem = {
-      ...pendingComboCart,
-      remarks: `${drinkLabel} [${drinkDetails}]${pendingComboCart.remarks ? ` | Note: ${pendingComboCart.remarks}` : ''}`,
-      sugarLevel: comboDrinkSugar,
-      options: comboDrinkOptions,
-      addOns: comboDrinkAddOns.length > 0 ? comboDrinkAddOns : undefined,
-    };
-
-    mergeIntoCart(finalItem);
-    logCartAction(finalItem.name, finalItem.qty);
-    setIsCombodrinkModalOpen(false);
-    setPendingComboCart(null);
-    showToast(`${finalItem.name} added!`, 'success');
+  const finalItem: CartItem = {
+    ...pendingComboCart,  // preserves original grab_price/panda_price for getItemSurcharge
+    remarks: `${drinkLabel} [${drinkDetails}]${pendingComboCart.remarks ? ` | Note: ${pendingComboCart.remarks}` : ''}`,
+    sugarLevel: comboDrinkSugar,
+    options: comboDrinkOptions,
+    addOns: comboDrinkAddOns.length > 0 ? comboDrinkAddOns : undefined,
+    // finalPrice = base item price + add-on base cost (surcharge added separately by getItemSurcharge)
+    finalPrice: pendingComboCart.finalPrice + (addOnExtraCost * pendingComboCart.qty),
+    // Do NOT override grab_price/panda_price — let getItemSurcharge use them normally
   };
 
+  mergeIntoCart(finalItem);
+  logCartAction(finalItem.name, finalItem.qty);
+  setIsCombodrinkModalOpen(false);
+  setPendingComboCart(null);
+  showToast(`${finalItem.name} added!`, 'success');
+};
   // ── Cart item editing ───────────────────────────────────────────────────────
 
   // ── Cart item editing ───────────────────────────────────────────────────────
@@ -1004,6 +1017,7 @@ const saveCartItemEdit = () => {
             )}
             onConfirm={confirmComboDrink}
             onClose={() => { setIsCombodrinkModalOpen(false); setPendingComboCart(null); }}
+            orderCharge={orderCharge}
           />
         )}
 
