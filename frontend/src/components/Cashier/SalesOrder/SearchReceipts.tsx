@@ -86,6 +86,10 @@ interface RawSaleItem {
   remarks?:      string | null;
   charges?:      { grab?: boolean; panda?: boolean } | null;
   is_bundle?:    boolean;
+  discount_amount?: number;
+  discount_label?:  string;
+  discount_type?:   string;
+  discount_value?:  number;
 }
 
 type ReprintType = 'receipt' | 'kitchen' | 'sticker';
@@ -101,31 +105,36 @@ function mapToCartItem(raw: RawSaleItem): CartItem {
     try { return JSON.parse(v); } catch { return []; }
   };
 
-  // Laravel may nest the name under menu_item relation
   const resolvedName = (raw as unknown as { product_name?: string }).product_name
     || raw.name
     || raw.menu_item?.name
     || raw.item_name
     || 'Unknown Item';
 
-return {
-  id:           raw.menu_item_id ?? raw.id,
-  category_id:  0,
-  name:         resolvedName,
-  price:      Number(raw.unit_price ?? raw.price ?? 0),  // ← Number() guards undefined
-  barcode:      '',
-  qty:          Number(raw.quantity    ?? 1),
-  size:         (raw.size as 'M' | 'L' | 'none') ?? 'none',
-  cupSizeLabel: raw.cup_size_label ?? undefined,
-  sugarLevel:   raw.sugar_level   ?? undefined,
-  options:      parseArr(raw.options),
-  addOns:       parseArr(raw.add_ons),
-  remarks:      raw.remarks ?? '',
-  charges:      { grab: raw.charges?.grab ?? false, panda: raw.charges?.panda ?? false },
-  finalPrice: Number(raw.final_price ?? raw.total_price ?? 0),// ← this is likely the culprit
-  isBundle:     raw.is_bundle ?? !!raw.bundle_id,
-  bundleId:     raw.bundle_id ?? undefined,
-};
+  // Subtract item-level discount from final price
+  const rawFinalPrice = Number(raw.final_price ?? raw.total_price ?? 0);
+  const discountAmount = Number((raw as unknown as { discount_amount?: number }).discount_amount ?? 0);
+  const actualFinalPrice = Math.max(0, rawFinalPrice - discountAmount);
+
+  return {
+    id:           raw.menu_item_id ?? raw.id,
+    category_id:  0,
+    name:         resolvedName,
+    price:        Number(raw.unit_price ?? raw.price ?? 0),
+    barcode:      '',
+    qty:          Number(raw.quantity ?? 1),
+    size:         (raw.size as 'M' | 'L' | 'none') ?? 'none',
+    cupSizeLabel: raw.cup_size_label ?? undefined,
+    sugarLevel:   raw.sugar_level   ?? undefined,
+    options:      parseArr(raw.options),
+    addOns:       parseArr(raw.add_ons),
+    remarks:      raw.remarks ?? '',
+    charges:      { grab: raw.charges?.grab ?? false, panda: raw.charges?.panda ?? false },
+    finalPrice:   actualFinalPrice,
+    discountLabel: (raw as unknown as { discount_label?: string }).discount_label ?? undefined,
+    isBundle:     raw.is_bundle ?? !!raw.bundle_id,
+    bundleId:     raw.bundle_id ?? undefined,
+  };
 }
 
 // ============================================================
@@ -258,17 +267,27 @@ const SearchReceipts = () => {
 
   // ── Derive print props from payload ──────────────────────────────────────
 
-  const buildPrintProps = (payload: ReprintPayload) => {
-    const { sale, receipt } = payload;
-    const cart: CartItem[]  = (sale.sale_items ?? []).map(mapToCartItem);
-    const dt                = new Date(sale.created_at);
-    const branchName        = receipt?.branch_name ?? sale.branch?.name ?? localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch';
-    const cashierName       = receipt?.cashier_name ?? sale.cashier_name ?? 'Admin';
-    const orNumber          = receipt?.si_number    ?? sale.invoice_number ?? '';
-    const subtotal          = cart.reduce((acc, item) => acc + item.finalPrice + getItemSurcharge(item), 0);
-    const amtDue            = sale.total    ?? subtotal;
-    const vatableSales      = sale.vatable_sales ?? amtDue / 1.12;
-    const vatAmount         = sale.vat_amount    ?? (amtDue - vatableSales);
+const buildPrintProps = (payload: ReprintPayload) => {
+  const { sale, receipt } = payload;
+  const cart: CartItem[]  = (sale.sale_items ?? []).map(mapToCartItem);
+  const dt                = new Date(sale.created_at);
+  const branchName        = receipt?.branch_name ?? sale.branch?.name ?? localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch';
+  const cashierName       = receipt?.cashier_name ?? sale.cashier_name ?? 'Admin';
+  const orNumber          = receipt?.si_number    ?? sale.invoice_number ?? '';
+
+  // Calculate item-level discount total from sale_items
+  const itemDiscountTotal = (sale.sale_items ?? []).reduce((acc, item) => {
+    return acc + Number(item.discount_amount ?? 0);
+  }, 0);
+
+  const promoDiscount     = Number(sale.discount_amount ?? 0);
+  const totalDiscountDisplay = itemDiscountTotal + promoDiscount;
+
+  const subtotal    = cart.reduce((acc, item) => acc + item.finalPrice + getItemSurcharge(item), 0);
+  const amtDue      = sale.total ?? subtotal;
+  const vatableSales = sale.vatable_sales ?? amtDue / 1.12;
+  const vatAmount    = sale.vat_amount    ?? (amtDue - vatableSales);
+
   return {
     cart,
     branchName,
@@ -289,11 +308,11 @@ const SearchReceipts = () => {
     change:               0,
     cashTendered:         '' as number | '',
     selectedDiscount:     null,
-    totalDiscountDisplay: sale.discount_amount ?? 0,
-    itemDiscountTotal:    0,
-    promoDiscount:        0,
+    totalDiscountDisplay,
+    itemDiscountTotal,
+    promoDiscount,
   };
-  };
+};
 
   // ── Reprint button list ───────────────────────────────────────────────────
 

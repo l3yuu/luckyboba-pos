@@ -256,6 +256,7 @@ const hasStickers = cart.some(item =>
       }
     };
     boot();
+    syncNextSequence();
 
     api.get('/discounts').then(({ data }) => {
       localStorage.setItem('pos_discounts_cache', JSON.stringify(data));
@@ -280,8 +281,6 @@ const hasStickers = cart.some(item =>
 
   // Init: sync OR sequence, cashier name, clock
   useEffect(() => {
-    syncNextSequence();
-
     api.get('/user').then(({ data: u }) => {
       const name = u?.name || u?.username || u?.full_name || u?.display_name;
       setCashierName(name?.trim() || 'Admin');
@@ -293,24 +292,25 @@ const hasStickers = cart.some(item =>
 
   // ── Sequence helpers ────────────────────────────────────────────────────────
 
-  const syncNextSequence = async () => {
-    try {
-      const { data }  = await api.get('/receipts/next-sequence');
-      const serverSeq = parseInt(data.next_sequence, 10);
-      const safeSeq   = Math.max(
-        isNaN(serverSeq) ? 1 : serverSeq,
-        parseInt(localStorage.getItem('last_or_sequence') || '0') + 1
-      );
-      localStorage.setItem('last_or_sequence', String(safeSeq));
-      setOrNumber(generateORNumber(safeSeq));
-      setQueueNumber(generateQueueNumber(safeSeq));
-    } catch {
-      const fallback = parseInt(localStorage.getItem('last_or_sequence') || '0') + 1;
-      localStorage.setItem('last_or_sequence', String(fallback));
-      setOrNumber(generateORNumber(fallback));
-      setQueueNumber(generateQueueNumber(fallback));
+const syncNextSequence = async () => {
+  try {
+    const { data }  = await api.get('/receipts/next-sequence');
+    const serverSeq = parseInt(data.next_sequence, 10);
+    
+    if (!isNaN(serverSeq)) {
+      // Trust the server — don't add +1 to localStorage
+      localStorage.setItem('last_or_sequence', String(serverSeq));
+      setOrNumber(generateORNumber(serverSeq));
+      setQueueNumber(generateQueueNumber(serverSeq));
     }
-  };
+  } catch {
+    // Only fallback to localStorage +1 when offline
+    const fallback = parseInt(localStorage.getItem('last_or_sequence') || '0') + 1;
+    localStorage.setItem('last_or_sequence', String(fallback));
+    setOrNumber(generateORNumber(fallback));
+    setQueueNumber(generateQueueNumber(fallback));
+  }
+};
 
   // ── Pax handlers ────────────────────────────────────────────────────────────
 
@@ -719,7 +719,7 @@ const saveCartItemEdit = () => {
         add_ons:           item.addOns  || [],
         remarks:           item.remarks || null,
         charges:           { grab: item.charges.grab, panda: item.charges.panda },
-        discount_id: selectedDiscount?.id || null,
+        discount_id: item.discountId ?? null,
         discount_label: item.discountLabel ?? null,
         discount_type:  item.discountType  ?? null,
         discount_value: item.discountValue !== '' ? item.discountValue : null,

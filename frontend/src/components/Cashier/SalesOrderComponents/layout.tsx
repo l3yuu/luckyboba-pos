@@ -53,7 +53,7 @@ export const Header = ({
           <div className="text-[11px] font-black text-[#7c14d4] uppercase leading-tight mt-0.5">{branchName}</div>
         </div>
       </div>
-      <div className="bg-[#7c14d4] rounded-[0.625rem] flex items-center justify-center px-4 min-w-[90px] shadow-md">
+      <div className="bg-[#7c14d4] rounded-[0.625rem] flex items-center justify-center px-4 min-w-22.5 shadow-md">
         <div className="text-center text-white">
           <div className="text-[9px] font-bold uppercase opacity-60 leading-none">{formattedDate}</div>
           <div className="text-[13px] font-black leading-tight mt-0.5">{formattedTime}</div>
@@ -168,7 +168,7 @@ export const MenuArea = ({
                 <div className="flex gap-5 w-full max-w-md flex-wrap justify-center">
                   {selectedCategory.sub_categories.map(sub => (
                     <button key={sub.id} onClick={() => onSizeSelect(sub.name)}
-                      className="flex-1 min-w-[140px] h-56 bg-white rounded-[0.625rem] shadow-md border-2 border-[#e9d5ff] hover:border-[#7c14d4] hover:shadow-xl hover:scale-105 transition-all flex flex-col items-center justify-center font-black text-sm text-black">
+                      className="flex-1 min-w-35 h-56 bg-white rounded-[0.625rem] shadow-md border-2 border-[#e9d5ff] hover:border-[#7c14d4] hover:shadow-xl hover:scale-105 transition-all flex flex-col items-center justify-center font-black text-sm text-black">
                       <DrinkIcon className="w-14 h-14 mb-3 opacity-70" />
                       <span className="text-3xl font-black tracking-widest">{sub.name}</span>
                       <span className="mt-2 bg-[#3b2063]/10 text-[#3b2063] text-sm font-black px-3 py-1 rounded-full tracking-widest">

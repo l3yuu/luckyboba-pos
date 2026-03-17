@@ -158,8 +158,14 @@ class SalesController extends Controller
                 ->where('sale_id', $sale->id)
                 ->sum('final_price');
 
+            // Subtract item-level discounts (Senior/PWD etc.)
+            $itemDiscountTotal = DB::table('sale_items')
+                ->where('sale_id', $sale->id)
+                ->sum('discount_amount');
+
+            // Subtract order-level promo discount
             $discountApplied = (float) $request->input('discount_amount', 0);
-            $finalTotal      = max(0, $recalculatedTotal - $discountApplied);
+            $finalTotal      = max(0, $recalculatedTotal - $itemDiscountTotal - $discountApplied);
 
             $sale->update(['total_amount' => $finalTotal]);
 
