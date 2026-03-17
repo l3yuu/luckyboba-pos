@@ -106,7 +106,14 @@ const SalesOrder = () => {
   const [customerName,     setCustomerName]     = useState('');
   const [isCustomerNameModalOpen, setIsCustomerNameModalOpen] = useState(false);
   // Add-ons data
-  const [addOnsData, setAddOnsData] = useState<{ id: number; name: string; price: number; category?: string }[]>(() => {
+  const [addOnsData, setAddOnsData] = useState<{ 
+  id: number; 
+  name: string; 
+  price: number; 
+  grab_price?: number;
+  panda_price?: number;
+  category?: string 
+}[]>(() => {
     try { const c = localStorage.getItem('pos_addons_cache'); return c ? JSON.parse(c) : []; }
     catch { return []; }
   });
@@ -475,7 +482,16 @@ const syncNextSequence = async () => {
     if (isDrink || isWaffle) {
       selectedAddOns.forEach(name => {
         const addon = addOnsData.find(a => a.name === name);
-        if (addon) extraCost += Number(addon.price);
+        if (addon) {
+          // Use grab/panda price for add-ons if order charge is active
+          if (orderCharge === 'grab' && Number(addon.grab_price ?? 0) > 0) {
+            extraCost += Number(addon.grab_price);
+          } else if (orderCharge === 'panda' && Number(addon.panda_price ?? 0) > 0) {
+            extraCost += Number(addon.panda_price);
+          } else {
+            extraCost += Number(addon.price);
+          }
+        }
       });
     }
 
@@ -946,6 +962,7 @@ const saveCartItemEdit = () => {
             onToggle={toggleAddOn}
             onClose={() => setIsAddOnModalOpen(false)}
             zIndex="z-[110]"
+            orderCharge={orderCharge}
           />
         )}
 

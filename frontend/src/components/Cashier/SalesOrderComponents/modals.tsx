@@ -398,7 +398,13 @@ interface BundleModalProps {
   bundleComponentSugar: string;
   bundleComponentOptions: string[];
   bundleComponentAddOns: string[];
-  filteredAddOns: { id: number; name: string; price: number }[];
+  filteredAddOns: { 
+  id: number; 
+  name: string; 
+  price: number; 
+  grab_price?: number;
+  panda_price?: number;
+  }[];
   bundleComponentAddOnModalOpen: boolean;
   onSugarChange: (s: string) => void;
   onToggleOption: (opt: string) => void;
