@@ -828,17 +828,17 @@ export const ConfirmOrderModal = ({
             </div>
 
             <div className="p-6 bg-white border-t border-zinc-200 shrink-0">
-              <button
-                onClick={onConfirm}
-                disabled={
-                  submitting ||
-                  (paymentMethod === 'cash' && (cashTendered === '' || cashTendered < amtDue)) ||
-                  (paymentMethod !== 'cash' && !referenceNumber)
-                }
-                className="w-full bg-[#3b2063] hover:bg-[#2a1647] transition-colors text-white py-4 rounded-[0.625rem] font-black uppercase tracking-widest shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed"
-              >
-                {submitting ? 'Processing...' : 'Complete Transaction'}
-              </button>
+            <button
+              onClick={onConfirm}
+              disabled={
+                submitting ||
+                (paymentMethod === 'cash' && (cashTendered === '' || cashTendered < amtDue)) ||
+                (paymentMethod !== 'cash' && !referenceNumber)
+              }
+              className="w-full bg-[#7c14d4] hover:bg-[#6a12b8] transition-colors text-white py-4 rounded-[0.625rem] font-black uppercase tracking-widest shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed"
+            >
+              {submitting ? 'Processing...' : 'Complete Transaction'}
+            </button>
             </div>
           </div>
         </div>
@@ -984,7 +984,7 @@ export const SuccessModal = ({
           </div>
           <button onClick={onNewOrder} disabled={!allPrinted}
             className={`w-full h-14 font-black uppercase tracking-widest text-sm transition-all rounded-[0.625rem] flex items-center justify-center gap-2
-              ${allPrinted ? 'bg-[#3b2063] text-white hover:bg-[#2a1647] cursor-pointer' : 'bg-zinc-100 text-zinc-400 cursor-not-allowed'}`}>
+              ${allPrinted ? 'bg-[#7c14d4] hover:bg-[#6a12b8] text-white cursor-pointer' : 'bg-zinc-100 text-zinc-400 cursor-not-allowed'}`}>
             {allPrinted ? <><span>New Order</span><ArrowRightIcon /></> : `Print ${pending.length} remaining to continue`}
           </button>
         </div>

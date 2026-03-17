@@ -10,9 +10,7 @@ import {
   Printer, 
   Database, 
   ChevronDown,
-  Activity,
-  Terminal
-} from 'lucide-react';
+  Activity} from 'lucide-react';
 
 // ============================================================
 // TYPE DEFINITIONS
@@ -363,7 +361,6 @@ const ItemsReport = () => {
             {/* GRAND TOTAL BAR */}
             <div className="bg-[#7c14d4] text-white flex justify-between items-center px-8 py-6">
               <div className="flex items-center gap-3">
-                <Terminal size={16} className="text-purple-300/50" />
                 <span className="text-[11px] font-black uppercase tracking-[0.3em] text-purple-300">Shift Total Settlement</span>
               </div>
               <div className="flex gap-12 text-right">
