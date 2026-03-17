@@ -64,7 +64,7 @@ class MenuSeeder extends Seeder
             'AFFORDA-BOWLS' => [
                 ['name' => "AFFORD-SIOMAI + RICE",         'price' => 59.00,  'barcode' => 'AB-1',  'size' => 'none', 'grab_price' => 30.00, 'panda_price' => 30.00],
                 ['name' => "AFFORD-HOTDOG + RICE",         'price' => 59.00,  'barcode' => 'AB-2',  'size' => 'none', 'grab_price' => 30.00, 'panda_price' => 30.00],
-                ['name' => "AFFORD-CHIC WINGS + RICE",     'price' => 69.00,  'barcode' => 'AB-3',  'size' => 'none', 'grab_price' => 45.00, 'panda_price' => 45.00],
+                ['name' => "AFFORD-CHIC WINGS + RICE",     'price' => 69.00,  'barcode' => 'AB-3',  'size' => 'none', 'grab_price' => 43.00, 'panda_price' => 43.00],
                 ['name' => "AFFORD-CHIC POPPERS + RICE",   'price' => 69.00,  'barcode' => 'AB-4',  'size' => 'none', 'grab_price' => 45.00, 'panda_price' => 45.00],
                 ['name' => "AFFORD-SHANGHAI + RICE",       'price' => 69.00,  'barcode' => 'AB-5',  'size' => 'none', 'grab_price' => 45.00, 'panda_price' => 45.00],
                 ['name' => "AFFORD-CHICK TONKATSU + RICE", 'price' => 79.00,  'barcode' => 'AB-6',  'size' => 'none', 'grab_price' => 45.00, 'panda_price' => 45.00],
@@ -78,6 +78,8 @@ class MenuSeeder extends Seeder
                 ['name' => "Cheesy Nachos",         'price' => 180.00, 'barcode' => 'ACS-5', 'size' => 'none', 'grab_price' => 85.00, 'panda_price' => 85.00],
                 ['name' => "Bottled Mineral Water", 'price' => 25.00,  'barcode' => 'ACS-6', 'size' => 'none', 'grab_price' => 0.00,  'panda_price' => 0.00],
                 ['name' => "Rice",                  'price' => 20.00,  'barcode' => 'ACS-7', 'size' => 'none', 'grab_price' => 5.00,  'panda_price' => 5.00],
+                ['name' => "Hungarian Sausage Meal",'price' => 85.00,  'barcode' => 'HSM',   'size' => 'none', 'grab_price' => 50.00,  'panda_price' => 50.00],
+
             ],
             'ALL DAY MEALS' => [
                 ['name' => "SPICY TAPA ALL DAY MEAL",       'price' => 135.00, 'barcode' => 'ADM-1', 'size' => 'none', 'grab_price' => 65.00, 'panda_price' => 65.00],
@@ -103,6 +105,8 @@ class MenuSeeder extends Seeder
                 ['name' => "CHOCO HAZELNUT + CHEESECAKE",  'price' => 135.00, 'barcode' => 'CCML2',  'size' => 'L', 'grab_price' => 50.00, 'panda_price' => 50.00],
                 ['name' => "TARO + CHEESECAKE",            'price' => 115.00, 'barcode' => 'CCMM6',  'size' => 'M', 'grab_price' => 40.00, 'panda_price' => 40.00],
                 ['name' => "TARO + CHEESECAKE",            'price' => 135.00, 'barcode' => 'CCML6',  'size' => 'L', 'grab_price' => 50.00, 'panda_price' => 50.00],
+                ['name' => "BELGIAN CHOCO M. TEA + CHEESECAKE",'price' => 115.00, 'barcode' => 'BCCKM1',  'size' => 'M', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "BELGIAN CHOCO M. TEA + CHEESECAKE",'price' => 135.00, 'barcode' => 'BCCKL1',  'size' => 'L', 'grab_price' => 50.00, 'panda_price' => 50.00],
             ],
             'CHICKEN WINGS' => [
                 ['name' => "BUFFALO",         'price' => 100.00, 'barcode' => 'CW3-1',  'size' => '3pc',  'grab_price' => 65.00, 'panda_price' => 65.00],
