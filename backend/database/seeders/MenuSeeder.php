@@ -51,6 +51,7 @@ class MenuSeeder extends Seeder
             'HOT COFFEE'          => $pcmpcl,
             'HOT DRINKS'          => $pcmpcl,
             'LUCKY CLASSIC JR'    => $jr,
+            'PIZZA PEDRICOS'      => null,
         ];
 
         $cupSizeMap = [
@@ -350,6 +351,12 @@ class MenuSeeder extends Seeder
                 ['name' => "OK BROWN SUGAR CHEESE MOUSSE",        'price' => 139.00, 'barcode' => "OKL2", 'size' => 'L', 'grab_price' => 35.00, 'panda_price' => 35.00],
                 ['name' => "OK BROWN SUGAR CHEESE MOUSSE + MILO", 'price' => 129.00, 'barcode' => "OKM3", 'size' => 'M', 'grab_price' => 35.00, 'panda_price' => 35.00],
                 ['name' => "OK BROWN SUGAR CHEESE MOUSSE + MILO", 'price' => 149.00, 'barcode' => "OKL3", 'size' => 'L', 'grab_price' => 40.00, 'panda_price' => 40.00],
+            ],
+            'PIZZA PEDRICOS' => [
+                ['name' => "Pizza Cheez and Cheez",           'price' => 69.00, 'barcode' => 'PPCC',  'size' => 'none', 'grab_price' => 0.00, 'panda_price' => 0.00],
+                ['name' => "Pizza Ham and Cheez",             'price' => 69.00, 'barcode' => 'PPHC',  'size' => 'none', 'grab_price' => 0.00, 'panda_price' => 0.00],
+                ['name' => "Pizza Chorizo and Cheez",         'price' => 69.00, 'barcode' => 'PPCHC', 'size' => 'none', 'grab_price' => 0.00, 'panda_price' => 0.00],
+                ['name' => "Pizza Ham - Pineapple and Cheez", 'price' => 69.00, 'barcode' => 'PPHPC', 'size' => 'none', 'grab_price' => 0.00, 'panda_price' => 0.00],
             ],
             'PUMPKIN SPICE' => [
                 ['name' => "PUMPKIN SPICE MILK TEA",      'price' => 145.00, 'barcode' => "PO1", 'size' => 'L', 'grab_price' => 40.00, 'panda_price' => 40.00],
