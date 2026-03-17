@@ -105,7 +105,6 @@ const SalesOrder = () => {
   const [isAddOnModalOpen, setIsAddOnModalOpen] = useState(false);
   const [customerName,     setCustomerName]     = useState('');
   const [isCustomerNameModalOpen, setIsCustomerNameModalOpen] = useState(false);
-  const [pax] = useState({ regular: 1, senior: 0, pwd: 0, diplomat: 0 });
   // Add-ons data
   const [addOnsData, setAddOnsData] = useState<{ id: number; name: string; price: number; category?: string }[]>(() => {
     try { const c = localStorage.getItem('pos_addons_cache'); return c ? JSON.parse(c) : []; }
@@ -154,7 +153,7 @@ const SalesOrder = () => {
 
   // Pax / discounts
   const [discountRemarks,  setDiscountRemarks]  = useState('');
-  const [discounts] = useState<Discount[]>(() => {
+  const [discounts, setDiscounts] = useState<Discount[]>(() => {
     try {
       const c = localStorage.getItem('pos_discounts_cache');
       const all = c ? JSON.parse(c) : [];
@@ -213,8 +212,6 @@ const promoDiscount = selectedDiscount
   : 0;
 
 // Set these to 0 as they are now absorbed into itemDiscountTotal
-const seniorPwdDiscount = 0; 
-const discountAmount = promoDiscount;
 const orderLevelDiscount = promoDiscount;
 
 // 5. Final Totals
@@ -259,6 +256,11 @@ const hasStickers = cart.some(item =>
       }
     };
     boot();
+
+    api.get('/discounts').then(({ data }) => {
+      localStorage.setItem('pos_discounts_cache', JSON.stringify(data));
+      setDiscounts(data.filter((d: Discount) => d.status === 'ON')); // ADD THIS
+    }).catch(() => {});
 
     api.get('/add-ons').then(({ data }) => {
       localStorage.setItem('pos_addons_cache', JSON.stringify(data));
@@ -649,12 +651,8 @@ const saveCartItemEdit = () => {
 
   if (itemDiscountType === 'percent' && itemDiscountValue !== '') {
     discountedUnit = unitPrice * (1 - Number(itemDiscountValue) / 100);
-    if (editingItemDiscountId === -1) {
-      discountLabel = 'Senior/PWD (20%)';
-    } else {
-      const d = discounts.find(d => d.id === editingItemDiscountId);
-      if (d) discountLabel = `${d.name} (${d.amount}%)`;
-    }
+    const d = discounts.find(d => d.id === editingItemDiscountId);
+    if (d) discountLabel = `${d.name} (${d.amount}%)`;
   } else if (itemDiscountType === 'fixed' && itemDiscountValue !== '') {
     discountedUnit = Math.max(0, unitPrice - Number(itemDiscountValue));
     const d = discounts.find(d => d.id === editingItemDiscountId);
@@ -703,44 +701,41 @@ const saveCartItemEdit = () => {
     if (cart.length === 0) return;
     setSubmitting(true);
 
-const orderData = {
-  si_number:        orNumber,
-  branch_id:        branchId,
-  items: cart.map(item => ({
-    menu_item_id:      item.isBundle ? null : item.id,
-    bundle_id:         item.isBundle ? Number(item.bundleId) : null,
-    bundle_components: item.isBundle ? (item.bundleComponents ?? []) : null,
-    name:              item.name,
-    quantity:          item.qty,
-    unit_price:        Number(item.price),
-    total_price:       item.finalPrice + getItemSurcharge(item),
-    size:              item.size !== 'none' ? item.size : null,
-    cup_size_label:    item.cupSizeLabel ?? null,
-    sugar_level:       item.sugarLevel || null,
-    options:           item.options || [],
-    add_ons:           item.addOns  || [],
-    remarks:           item.remarks || null,
-    charges:           { grab: item.charges.grab, panda: item.charges.panda },
-  })),
-  subtotal,
-  discount_amount:  orderLevelDiscount,
-  discount_id:      selectedDiscount?.id || null,
-  total:            amtDue,
-  cashier_name:     cashierName ?? 'Admin',
-  payment_method:   paymentMethod,
-  reference_number: referenceNumber || null,
-  senior_id:        null,
-  pwd_id:           null,
-  diplomat_id:      null,
-  discount_remarks: discountRemarks || null,
-  vatable_sales:    vatableSales,
-  vat_amount:       vatAmount,
-  customer_name:    customerName || null,
-  pax_regular:      pax.regular,
-  pax_senior:       pax.senior,
-  pax_pwd:          pax.pwd,
-  pax_diplomat:     pax.diplomat,
-};
+    const orderData = {
+      si_number:        orNumber,
+      branch_id:        branchId,
+      items: cart.map(item => ({
+        menu_item_id:      item.isBundle ? null : item.id,
+        bundle_id:         item.isBundle ? Number(item.bundleId) : null,
+        bundle_components: item.isBundle ? (item.bundleComponents ?? []) : null,
+        name:              item.name,
+        quantity:          item.qty,
+        unit_price:        Number(item.price),
+        total_price:       item.finalPrice + getItemSurcharge(item),
+        size:              item.size !== 'none' ? item.size : null,
+        cup_size_label:    item.cupSizeLabel ?? null,
+        sugar_level:       item.sugarLevel || null,
+        options:           item.options || [],
+        add_ons:           item.addOns  || [],
+        remarks:           item.remarks || null,
+        charges:           { grab: item.charges.grab, panda: item.charges.panda },
+        discount_id: selectedDiscount?.id || null,
+        discount_label: item.discountLabel ?? null,
+        discount_type:  item.discountType  ?? null,
+        discount_value: item.discountValue !== '' ? item.discountValue : null,
+      })),
+      subtotal,
+      discount_amount:  orderLevelDiscount,
+      discount_id:      selectedDiscount?.id || null,
+      total:            amtDue,
+      cashier_name:     cashierName ?? 'Admin',
+      payment_method:   paymentMethod,
+      reference_number: referenceNumber || null,
+      discount_remarks: discountRemarks || null,
+      vatable_sales:    vatableSales,
+      vat_amount:       vatAmount,
+      customer_name:    customerName || null,
+    };
 
     if (navigator.onLine) {
       try {
@@ -1085,7 +1080,7 @@ const orderData = {
       </div>
 
       {/* Print templates (off-screen, revealed by window.print()) */}
-      {printTarget === 'receipt'  && <ReceiptPrint  {...printProps} orderCharge={orderCharge} pax={pax} totalCount={totalCount} subtotal={subtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} seniorPwdDiscount={seniorPwdDiscount} promoDiscount={promoDiscount} discountAmount={discountAmount}/>}
+      {printTarget === 'receipt' && <ReceiptPrint {...printProps} orderCharge={orderCharge} totalCount={totalCount} subtotal={subtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount}/>}
       {printTarget === 'kitchen'  && <KitchenPrint  {...printProps} />}
       {printTarget === 'stickers' && <StickerPrint  {...printProps} customerName={customerName} />}
     </>

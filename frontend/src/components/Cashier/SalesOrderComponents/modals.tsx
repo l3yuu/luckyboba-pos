@@ -49,7 +49,6 @@ export const CartItemEditModal = ({
 }: CartItemEditModalProps) => {
   const discountOptions = [
     { id: null,  label: 'No Discount',  type: 'none'    as const, value: 0,  badge: null },
-    { id: -1,    label: 'Senior / PWD', type: 'percent' as const, value: 20, badge: '20% OFF' },
     ...discounts.map(d => ({
       id:    d.id,
       label: d.name,

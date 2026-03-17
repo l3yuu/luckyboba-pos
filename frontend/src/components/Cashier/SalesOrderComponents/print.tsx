@@ -29,7 +29,6 @@ interface ReceiptPrintProps {
   formattedDate: string;
   formattedTime: string;
   orderCharge: 'grab' | 'panda' | null;
-  pax: { regular: number; senior: number; pwd: number; diplomat: number };
   totalCount: number;
   subtotal: number;
   amtDue: number;
@@ -42,19 +41,16 @@ interface ReceiptPrintProps {
   selectedDiscount: { name: string } | null;
   totalDiscountDisplay: number;
   itemDiscountTotal: number;
-  seniorPwdDiscount: number;
   promoDiscount: number;
-  discountAmount: number;
 }
 
 export const ReceiptPrint = ({
   cart, branchName, orNumber, queueNumber, cashierName,
-  formattedDate, formattedTime, orderCharge, pax, totalCount,
+  formattedDate, formattedTime, orderCharge, totalCount,
   subtotal, amtDue, vatableSales, vatAmount, change, cashTendered,
   referenceNumber, paymentMethod, selectedDiscount,
-  totalDiscountDisplay, itemDiscountTotal, seniorPwdDiscount, promoDiscount,
+  totalDiscountDisplay, itemDiscountTotal, promoDiscount,
 }: ReceiptPrintProps) => {
-  const totalPax = pax.regular + pax.senior + pax.pwd + pax.diplomat;
 
   return (
     <div className="printable-receipt-container hidden print:block">
@@ -71,8 +67,6 @@ export const ReceiptPrint = ({
 
         {/* Guest info */}
         <div className="text-xs space-y-1 mb-3">
-          <div className="flex justify-between"><span># 1</span><span>Total Guests: {totalPax}</span></div>
-          <div className="flex justify-between"><span>Regular: {pax.regular}</span><span>Senior: {pax.senior}</span></div>
           <div className="mt-1">Cashier: {cashierName ?? 'Admin'}</div>
           {orderCharge && <div className="mt-1">Order Type: {orderCharge === 'grab' ? 'GRABFOOD' : 'FOODPANDA'}</div>}
         </div>
@@ -124,9 +118,6 @@ export const ReceiptPrint = ({
             <>
               {itemDiscountTotal > 0 && (
                 <div className="flex justify-between"><span>Item Discounts</span><span>- {itemDiscountTotal.toFixed(2)}</span></div>
-              )}
-              {(pax.senior > 0 || pax.pwd > 0) && (
-                <div className="flex justify-between"><span>Senior/PWD ({pax.senior + pax.pwd} pax)</span><span>- {seniorPwdDiscount.toFixed(2)}</span></div>
               )}
               {selectedDiscount && (
                 <div className="flex justify-between w-full font-bold"><span>Promo: {selectedDiscount.name}</span><span>- {promoDiscount.toFixed(2)}</span></div>
