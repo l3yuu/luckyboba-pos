@@ -47,6 +47,7 @@ class MenuSeeder extends Seeder
             'CLASSIC MILKTEA'     => $smsl,
             'COFFEE FRAPPE'       => $umul,
             'FP COFFEE BUNDLES'   => $umul,
+            'HOLI-YEY'   => $umul,
             'FRAPPE SERIES'       => $umul,
             'HOT COFFEE'          => $pcmpcl,
             'HOT DRINKS'          => $pcmpcl,
@@ -235,6 +236,13 @@ class MenuSeeder extends Seeder
             'FP COFFEE BUNDLES' => [
                 ['name' => "TOFFEE CARAMEL ICED COFFEE + DARK ROAST COFFEE", 'price' => 154.00, 'barcode' => "COF1", 'size' => 'L', 'grab_price' => 45.00, 'panda_price' => 45.00],
                 ['name' => "VANILLA ICED COFFEE + JAVA CHIP COFEE FRP",      'price' => 250.00, 'barcode' => "COF2", 'size' => 'L', 'grab_price' => 75.00, 'panda_price' => 75.00],
+            ],
+            'HOLI-YEY' => [
+                ['name' => "HOLI-YEY : STRAWBERRY CCAKE",              'price' => 175.00, 'barcode' => "HYSTRW", 'size' => 'L', 'grab_price' => 65.00, 'panda_price' => 65.00],
+                ['name' => "HOLI-YEY : ROCKY ROAD CCAKE",              'price' => 175.00, 'barcode' => "HYRR", 'size' => 'L', 'grab_price' => 65.00, 'panda_price' => 65.00],
+                ['name' => "HOLI-YEY : TIRAMISU CCAKE",              'price' => 185.00, 'barcode' => "HYT", 'size' => 'L', 'grab_price' => 65.00, 'panda_price' => 65.00],
+                ['name' => "HOLI-YEY : BISCOFF MTEA",              'price' => 185.00, 'barcode' => "HYB", 'size' => 'L', 'grab_price' => 65.00, 'panda_price' => 65.00],
+                ['name' => "HOLI-YEY : PISTACHIO HYPIS",              'price' => 185.00, 'barcode' => "HYPH", 'size' => 'L', 'grab_price' => 65.00, 'panda_price' => 65.00],
             ],
             'FRAPPE SERIES' => [
                 ['name' => "TARO FRAPPE",            'price' => 110.00, 'barcode' => "FSM1", 'size' => 'M', 'grab_price' => 40.00, 'panda_price' => 40.00],

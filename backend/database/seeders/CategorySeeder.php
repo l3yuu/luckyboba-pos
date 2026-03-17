@@ -61,6 +61,7 @@ class CategorySeeder extends Seeder
 
             // ── DRINKS UL only ────────────────────────────────────
             'FP COFFEE BUNDLES'   => ['type' => 'drink', 'cup_id' => $umul, 'sub_category_id' => $sub('UL')],
+            'HOLI-YEY'            => ['type' => 'drink', 'cup_id' => $umul, 'sub_category_id' => $sub('UL')],
 
             // ── DRINKS PCM/PCL ────────────────────────────────────
             'HOT COFFEE'          => ['type' => 'drink', 'cup_id' => $pcmpcl, 'sub_category_id' => $sub('PCM')],
