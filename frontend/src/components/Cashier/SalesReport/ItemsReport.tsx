@@ -78,12 +78,18 @@ const ItemsReport = () => {
   );
 
   const fetchReport = useCallback(async () => {
-    const key = getCacheKey(fromDate, toDate, reportType);
     setLoading(true);
     try {
       const response = await api.get('/reports/items-report', {
         params: { from: fromDate, to: toDate, type: reportType },
       });
+
+      // Clear ALL items report cache keys to avoid serving stale data
+      Object.keys(localStorage)
+        .filter(k => k.startsWith(CACHE_KEY_PREFIX))
+        .forEach(k => localStorage.removeItem(k));
+
+      const key = getCacheKey(fromDate, toDate, reportType);
       localStorage.setItem(key, JSON.stringify(response.data));
       setData(response.data);
     } catch (error) {
@@ -95,11 +101,9 @@ const ItemsReport = () => {
 
   useEffect(() => {
     setData(null);
-    const key = getCacheKey(fromDate, toDate, reportType);
-    const saved = localStorage.getItem(key);
-    if (saved) setData(JSON.parse(saved));
-    else fetchReport();
-  }, [fromDate, toDate, reportType, getCacheKey, fetchReport]);
+    // Always fetch fresh — don't trust cache for amounts that can change
+    fetchReport();
+  }, [fromDate, toDate, reportType]); // removed getCacheKey and fetchReport from deps to avoid loop
 
   const generateExcel = useCallback(() => {
     if (!data || data.items.length === 0) {
@@ -327,7 +331,7 @@ const ItemsReport = () => {
             {/* Table Body */}
             <div className="flex-1 overflow-auto">
               <table className="w-full text-left">
-                <thead className="sticky top-0 bg-white z-10 border-b border-[#e9d5ff] bg-[#f5f0ff]">
+                <thead className="sticky top-0 bg-white z-10 border-b border-[#e9d5ff]">
                   <tr>
                     <th className="px-8 py-4 text-[9px] font-black text-zinc-400 uppercase tracking-[0.3em]">
                       {reportType === 'category-summary' ? 'Category Classification' : 'Item Description'}
