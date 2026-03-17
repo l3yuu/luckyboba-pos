@@ -53,10 +53,6 @@ interface ReprintPayload {
     vatable_sales?:   number;
     vat_amount?:      number;
     discount_amount?: number;
-    pax_regular?:     number;
-    pax_senior?:      number;
-    pax_pwd?:         number;
-    pax_diplomat?:    number;
     branch?: { name?: string };
     sale_items?: RawSaleItem[];
   };
@@ -273,39 +269,30 @@ const SearchReceipts = () => {
     const amtDue            = sale.total    ?? subtotal;
     const vatableSales      = sale.vatable_sales ?? amtDue / 1.12;
     const vatAmount         = sale.vat_amount    ?? (amtDue - vatableSales);
-    const pax = {
-      regular:  sale.pax_regular  ?? 1,
-      senior:   sale.pax_senior   ?? 0,
-      pwd:      sale.pax_pwd      ?? 0,
-      diplomat: sale.pax_diplomat ?? 0,
-    };
-
-    return {
-      cart,
-      branchName,
-      orNumber,
-      queueNumber: String(sale.queue_number ?? ''),
-      customerName: sale.customer_name?.trim() || '',
-      cashierName,
-      formattedDate:        dt.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
-      formattedTime:        dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-      paymentMethod:        sale.payment_method  ?? 'cash',
-      referenceNumber:      sale.reference_number ?? '',
-      orderCharge:          null as 'grab' | 'panda' | null,
-      pax,
-      totalCount:           cart.reduce((a, i) => a + i.qty, 0),
-      subtotal:             sale.subtotal ?? subtotal,
-      amtDue,
-      vatableSales,
-      vatAmount,
-      change:               0,
-      cashTendered:         '' as number | '',
-      selectedDiscount:     null,
-      totalDiscountDisplay: sale.discount_amount ?? 0,
-      itemDiscountTotal:    0,
-      seniorPwdDiscount:    0,
-      promoDiscount:        0,
-    };
+  return {
+    cart,
+    branchName,
+    orNumber,
+    queueNumber:          String(sale.queue_number ?? ''),
+    customerName:         sale.customer_name?.trim() || '',
+    cashierName,
+    formattedDate:        dt.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
+    formattedTime:        dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+    paymentMethod:        sale.payment_method   ?? 'cash',
+    referenceNumber:      sale.reference_number ?? '',
+    orderCharge:          null as 'grab' | 'panda' | null,
+    totalCount:           cart.reduce((a, i) => a + i.qty, 0),
+    subtotal:             sale.subtotal ?? subtotal,
+    amtDue,
+    vatableSales,
+    vatAmount,
+    change:               0,
+    cashTendered:         '' as number | '',
+    selectedDiscount:     null,
+    totalDiscountDisplay: sale.discount_amount ?? 0,
+    itemDiscountTotal:    0,
+    promoDiscount:        0,
+  };
   };
 
   // ── Reprint button list ───────────────────────────────────────────────────
