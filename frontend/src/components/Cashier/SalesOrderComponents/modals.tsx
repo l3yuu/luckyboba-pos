@@ -544,7 +544,6 @@ export const ComboDrinkModal = ({
   onConfirm,
   onClose,
 }: ComboDrinkModalProps) => {
-  const hasPearl = true;
 
   return (
     <>
