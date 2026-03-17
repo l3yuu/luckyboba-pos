@@ -286,6 +286,23 @@ class SalesDashboardService
             ->where('sale_items.discount_label', 'LIKE', '%DIPLOMAT%')
             ->sum('sale_items.discount_amount');
 
+        $itemLevelOtherDiscount = (float) (clone $baseItemDiscount)
+            ->where('sale_items.discount_label', 'NOT LIKE', '%SENIOR%')
+            ->where('sale_items.discount_label', 'NOT LIKE', '%PWD%')
+            ->where('sale_items.discount_label', 'NOT LIKE', '%DIPLOMAT%')
+            ->whereNotNull('sale_items.discount_label')
+            ->where('sale_items.discount_label', '!=', '')
+            ->sum('sale_items.discount_amount');
+
+        $orderLevelOtherDiscount = (float) DB::table('sales')
+            ->whereBetween('created_at', [$from, $to])
+            ->where('status', 'completed')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->whereNotNull('discount_id')
+            ->sum('discount_amount');
+
+        $otherDiscount = round($itemLevelOtherDiscount + $orderLevelOtherDiscount, 2);
+
         $branchCondition = $branchId ? "AND branch_id = {$branchId}" : "";
 
         $paymentBreakdown = collect(DB::select("
@@ -369,6 +386,7 @@ class SalesDashboardService
             'sc_discount'       => round($scDiscount,       2),
             'pwd_discount'      => round($pwdDiscount,      2),
             'diplomat_discount' => round($diplomatDiscount, 2),
+            'other_discount'    => $otherDiscount,
             'payment_breakdown' => $paymentBreakdown,
             'total_qty_sold'    => $totalQtySold,
             'cash_in'           => $cashIn,
@@ -468,6 +486,23 @@ class SalesDashboardService
             ->where('sale_items.discount_label', 'LIKE', '%DIPLOMAT%')
             ->sum('sale_items.discount_amount');
 
+        $itemLevelOtherDiscount = (float) (clone $baseItemDiscount)
+            ->where('sale_items.discount_label', 'NOT LIKE', '%SENIOR%')
+            ->where('sale_items.discount_label', 'NOT LIKE', '%PWD%')
+            ->where('sale_items.discount_label', 'NOT LIKE', '%DIPLOMAT%')
+            ->whereNotNull('sale_items.discount_label')
+            ->where('sale_items.discount_label', '!=', '')
+            ->sum('sale_items.discount_amount');
+
+        $orderLevelOtherDiscount = (float) DB::table('sales')
+            ->whereBetween('created_at', [$start, $end])
+            ->where('status', 'completed')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->whereNotNull('discount_id')
+            ->sum('discount_amount');
+
+        $otherDiscount = round($itemLevelOtherDiscount + $orderLevelOtherDiscount, 2);
+
         $totalQtySold = (int) DB::table('sale_items')
             ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
             ->whereBetween('sales.created_at', [$start, $end])
@@ -519,6 +554,7 @@ class SalesDashboardService
             'sc_discount'        => round($scDiscount,        2),
             'pwd_discount'       => round($pwdDiscount,       2),
             'diplomat_discount'  => round($diplomatDiscount,  2),
+            'other_discount'     => $otherDiscount, 
             'total_qty_sold'     => $totalQtySold,
             'cash_in'            => $cashIn,
             'cash_drop'          => $cashDrop,
