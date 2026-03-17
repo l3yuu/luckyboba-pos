@@ -544,7 +544,7 @@ export const ComboDrinkModal = ({
   onConfirm,
   onClose,
 }: ComboDrinkModalProps) => {
-  const hasPearl = comboDrinkOptions.some(o => ['NO PRL', 'W/ PRL'].includes(o));
+  const hasPearl = true;
 
   return (
     <>
@@ -580,17 +580,19 @@ export const ComboDrinkModal = ({
             <div>
               <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Options (Free)</label>
               <div className="flex flex-wrap gap-2">
-                {EXTRA_OPTIONS.map((opt: string) => (
-                  <button key={opt} onClick={() => onToggleOption(opt)}
-                    className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${comboDrinkOptions.includes(opt) ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
-                    {opt}
-                  </button>
-                ))}
+                {EXTRA_OPTIONS
+                  .filter((opt: string) => !['NO PRL', 'W/ PRL'].includes(opt)) // ← ADD THIS
+                  .map((opt: string) => (
+                    <button key={opt} onClick={() => onToggleOption(opt)}
+                      className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${comboDrinkOptions.includes(opt) ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+                      {opt}
+                    </button>
+                  ))}
               </div>
             </div>
-            <button onClick={onConfirm} disabled={!hasPearl}
-              className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${hasPearl ? 'bg-[#7c14d4] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-black cursor-not-allowed'}`}>
-              {hasPearl ? '🧋 Confirm & Add to Order' : 'Select Pearl Option First'}
+            <button onClick={onConfirm}
+              className="w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors bg-[#7c14d4] text-white hover:bg-[#6a12b8]">
+              🧋 Confirm & Add to Order
             </button>
           </div>
         </div>

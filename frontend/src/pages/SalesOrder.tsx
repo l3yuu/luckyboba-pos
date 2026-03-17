@@ -581,10 +581,7 @@ const syncNextSequence = async () => {
 
   const confirmComboDrink = () => {
     if (!pendingComboCart) return;
-    if (!comboDrinkOptions.some(o => ['NO PRL', 'W/ PRL'].includes(o))) {
-      showToast('Please select NO PRL or W/ PRL for the Classic Pearl', 'warning');
-      return;
-    }
+    // ← REMOVE the pearl validation block entirely
 
     const drinkDetails = [
       `Sugar: ${comboDrinkSugar}`,
@@ -594,10 +591,10 @@ const syncNextSequence = async () => {
 
     const finalItem: CartItem = {
       ...pendingComboCart,
-      remarks:    `Classic Pearl [${drinkDetails}]${pendingComboCart.remarks ? ` | Note: ${pendingComboCart.remarks}` : ''}`,
+      remarks: `Classic Pearl [${drinkDetails}]${pendingComboCart.remarks ? ` | Note: ${pendingComboCart.remarks}` : ''}`,
       sugarLevel: comboDrinkSugar,
-      options:    comboDrinkOptions,
-      addOns:     comboDrinkAddOns.length > 0 ? comboDrinkAddOns : undefined,
+      options: comboDrinkOptions,
+      addOns: comboDrinkAddOns.length > 0 ? comboDrinkAddOns : undefined,
     };
 
     mergeIntoCart(finalItem);
