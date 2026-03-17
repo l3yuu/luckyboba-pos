@@ -29,6 +29,7 @@ class CategorySeeder extends Seeder
             'AFFORDA-BOWLS'       => ['type' => 'food', 'cup_id' => null, 'sub_category_id' => null],
             'WAFFLE'              => ['type' => 'food', 'cup_id' => null, 'sub_category_id' => null],
             'PIZZA PEDRICOS'      => ['type' => 'food', 'cup_id' => null, 'sub_category_id' => null],
+            'PIZZA PEDRICOS COMBO' => ['type' => 'food', 'cup_id' => null, 'sub_category_id' => null],
 
             // ── DRINKS SM/SL ──────────────────────────────────────
             'CHEESECAKE MILK TEA' => ['type' => 'drink', 'cup_id' => $smsl, 'sub_category_id' => $sub('SM')],

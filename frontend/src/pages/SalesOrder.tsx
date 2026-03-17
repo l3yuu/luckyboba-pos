@@ -179,7 +179,9 @@ const SalesOrder = () => {
   const isBundle             = BUNDLE_CATEGORIES.includes(selectedCategory?.name as typeof BUNDLE_CATEGORIES[number]);
   const isWings              = selectedCategory?.name === 'CHICKEN WINGS';
   const isOz                 = selectedCategory?.name === 'HOT DRINKS' || selectedCategory?.name === 'HOT COFFEE';
-  const isCombo              = selectedCategory?.name?.toUpperCase() === 'COMBO MEALS';
+  const isCombo =
+  selectedCategory?.name?.toUpperCase() === 'COMBO MEALS' ||
+  selectedCategory?.name?.toUpperCase() === 'PIZZA PEDRICOS COMBO';
   const isWaffleCategory     = selectedCategory?.name?.toLowerCase().includes('waffle') ?? false;
   const categoryHasOnlyOneSize = (selectedCategory?.sub_categories?.length ?? 0) <= 1;
 
@@ -579,9 +581,18 @@ const syncNextSequence = async () => {
 
   // ── Combo drink confirm ─────────────────────────────────────────────────────
 
-  const confirmComboDrink = () => {
+const confirmComboDrink = () => {
     if (!pendingComboCart) return;
-    // ← REMOVE the pearl validation block entirely
+
+    const isPizzaCombo = selectedCategory?.name?.toUpperCase() === 'PIZZA PEDRICOS COMBO';
+    const isClassicPearl = pendingComboCart.name?.toUpperCase().includes('CLASSIC PEARL');
+    const pearlOpts = ['NO PRL', 'W/ PRL'];
+
+    // Require pearl selection for Pizza Pedricos combos EXCEPT Classic Pearl items
+    if (isPizzaCombo && !isClassicPearl && !comboDrinkOptions.some(o => pearlOpts.includes(o))) {
+      showToast('Please select NO PRL or W/ PRL', 'warning');
+      return;
+    }
 
     const drinkDetails = [
       `Sugar: ${comboDrinkSugar}`,
@@ -589,9 +600,14 @@ const syncNextSequence = async () => {
       ...comboDrinkAddOns.map(a => `+${a}`),
     ].join(' | ');
 
-    const finalItem: CartItem = {
+    // Use appropriate drink label in remarks
+    const drinkLabel = isPizzaCombo && !isClassicPearl
+      ? pendingComboCart.name.replace(/^PIZZA \+ /i, '')
+      : 'Classic Pearl';
+
+const finalItem: CartItem = {
       ...pendingComboCart,
-      remarks: `Classic Pearl [${drinkDetails}]${pendingComboCart.remarks ? ` | Note: ${pendingComboCart.remarks}` : ''}`,
+      remarks: `${drinkLabel} [${drinkDetails}]${pendingComboCart.remarks ? ` | Note: ${pendingComboCart.remarks}` : ''}`,
       sugarLevel: comboDrinkSugar,
       options: comboDrinkOptions,
       addOns: comboDrinkAddOns.length > 0 ? comboDrinkAddOns : undefined,
@@ -601,8 +617,10 @@ const syncNextSequence = async () => {
     logCartAction(finalItem.name, finalItem.qty);
     setIsCombodrinkModalOpen(false);
     setPendingComboCart(null);
-    showToast(`${finalItem.name} + Classic Pearl added!`, 'success');
+    showToast(`${finalItem.name} added!`, 'success');
   };
+
+  // ── Cart item editing ───────────────────────────────────────────────────────
 
   // ── Cart item editing ───────────────────────────────────────────────────────
 

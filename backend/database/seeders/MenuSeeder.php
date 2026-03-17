@@ -52,6 +52,7 @@ class MenuSeeder extends Seeder
             'HOT DRINKS'          => $pcmpcl,
             'LUCKY CLASSIC JR'    => $jr,
             'PIZZA PEDRICOS'      => null,
+            'PIZZA PEDRICOS COMBO' => null,
         ];
 
         $cupSizeMap = [
@@ -357,6 +358,38 @@ class MenuSeeder extends Seeder
                 ['name' => "Pizza Ham and Cheez",             'price' => 69.00, 'barcode' => 'PPHC',  'size' => 'none', 'grab_price' => 0.00, 'panda_price' => 0.00],
                 ['name' => "Pizza Chorizo and Cheez",         'price' => 69.00, 'barcode' => 'PPCHC', 'size' => 'none', 'grab_price' => 0.00, 'panda_price' => 0.00],
                 ['name' => "Pizza Ham - Pineapple and Cheez", 'price' => 69.00, 'barcode' => 'PPHPC', 'size' => 'none', 'grab_price' => 0.00, 'panda_price' => 0.00],
+            ],
+            'PIZZA PEDRICOS COMBO' => [
+                // Pizza + Classic Pearl (add-ons only)
+                ['name' => "PIZZA + CLASSIC PEARL",                  'price' => 174.00, 'barcode' => 'PPC-CP1',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+
+                // Pizza + Iced Coffee (all flavors except vanilla)
+                ['name' => "PIZZA + ICED COFFEE CLASSIC",            'price' => 174.00, 'barcode' => 'PPC-IC1',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + ICED MOCHA COFFEE",              'price' => 174.00, 'barcode' => 'PPC-IC2',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + ICED JAVA CHIP COFFEE",          'price' => 174.00, 'barcode' => 'PPC-IC3',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + ICED TOFFEE CARAMEL",            'price' => 174.00, 'barcode' => 'PPC-IC4',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + ICED CARAMEL MACCHIATO",         'price' => 174.00, 'barcode' => 'PPC-IC5',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+
+                // Pizza + Flavored Milk Tea (Cookies & Cream, Strawberry, Mango, Avocado, Belgian)
+                ['name' => "PIZZA + COOKIES & CREAM MILK TEA",       'price' => 174.00, 'barcode' => 'PPC-FM1',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + STRAWBERRY MILK TEA",            'price' => 174.00, 'barcode' => 'PPC-FM2',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + MANGO MILK TEA",                 'price' => 174.00, 'barcode' => 'PPC-FM3',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + AVOCADO MILK TEA",               'price' => 174.00, 'barcode' => 'PPC-FM4',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + BELGIAN MILK TEA",               'price' => 174.00, 'barcode' => 'PPC-FM5',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+
+                // Pizza + Yakult (all flavors except Green Tea and Strawberry)
+                ['name' => "PIZZA + GREEN APPLE YAKULT",             'price' => 194.00, 'barcode' => 'PPC-YK1',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + LYCHEE YAKULT",                  'price' => 194.00, 'barcode' => 'PPC-YK2',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + BLUEBERRY YAKULT",               'price' => 194.00, 'barcode' => 'PPC-YK3',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + LEMON YAKULT",                   'price' => 194.00, 'barcode' => 'PPC-YK4',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + BERRIES YAKULT",                 'price' => 194.00, 'barcode' => 'PPC-YK5',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+
+                // Pizza + Nova (all flavors)
+                ['name' => "PIZZA + BERRIES NOVA",                   'price' => 194.00, 'barcode' => 'PPC-NV1',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + MANGO LEMON NOVA",               'price' => 194.00, 'barcode' => 'PPC-NV2',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + LYCHEE LEM NOVA",                'price' => 194.00, 'barcode' => 'PPC-NV3',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + STRAWBERRY NOVA",                'price' => 194.00, 'barcode' => 'PPC-NV4',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + GREEN APPLE NOVA",               'price' => 194.00, 'barcode' => 'PPC-NV5',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
             ],
             'PUMPKIN SPICE' => [
                 ['name' => "PUMPKIN SPICE MILK TEA",      'price' => 145.00, 'barcode' => "PO1", 'size' => 'L', 'grab_price' => 40.00, 'panda_price' => 40.00],

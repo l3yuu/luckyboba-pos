@@ -552,7 +552,11 @@ export const ComboDrinkModal = ({
           <div className="bg-[#7c14d4] p-5 text-white text-center relative shrink-0">
             <div className="text-[10px] font-bold uppercase opacity-60 tracking-widest leading-none mb-1">Step 2 of 2 — Combo Drink for</div>
             <h2 className="text-base font-black uppercase tracking-wider leading-tight">{pendingComboCart.name}</h2>
-            <div className="mt-2 inline-block bg-white/20 text-white text-[10px] font-black uppercase px-3 py-1 rounded-[0.625rem] tracking-widest">🧋 Classic Pearl Milk Tea</div>
+           <div className="mt-2 inline-block bg-white/20 text-white text-[10px] font-black uppercase px-3 py-1 rounded-[0.625rem] tracking-widest">
+            🧋 {pendingComboCart.name?.toUpperCase().includes('PIZZA +') && !pendingComboCart.name?.toUpperCase().includes('CLASSIC PEARL')
+              ? pendingComboCart.name.replace(/^PIZZA \+ /i, '')
+              : 'Classic Pearl Milk Tea'}
+          </div>
             <button onClick={onClose} className="absolute top-5 right-6 text-white/50 hover:text-white transition-colors">
               <CloseIcon size={6} />
             </button>
@@ -580,7 +584,14 @@ export const ComboDrinkModal = ({
               <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Options (Free)</label>
               <div className="flex flex-wrap gap-2">
                 {EXTRA_OPTIONS
-                  .filter((opt: string) => !['NO PRL', 'W/ PRL'].includes(opt)) // ← ADD THIS
+                  .filter((opt: string) => {
+                    const isPizzaCombo = pendingComboCart.name?.toUpperCase().includes('PIZZA +');
+                    const isClassicPearl = pendingComboCart.name?.toUpperCase().includes('CLASSIC PEARL');
+                    if (['NO PRL', 'W/ PRL'].includes(opt)) {
+                      return isPizzaCombo && !isClassicPearl;
+                    }
+                    return true;
+                  })
                   .map((opt: string) => (
                     <button key={opt} onClick={() => onToggleOption(opt)}
                       className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${comboDrinkOptions.includes(opt) ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
