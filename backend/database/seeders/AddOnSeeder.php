@@ -13,9 +13,9 @@ class AddOnSeeder extends Seeder
             // Drink add-ons (+10 for grab and panda)
             ['name' => 'Black Boba Pearl',              'price' => 15.00, 'barcode' => 'AO-5',   'category' => 'drink', 'grab_price' => 25.00, 'panda_price' => 25.00],
             ['name' => 'Mini White Pearl',              'price' => 15.00, 'barcode' => 'AO-6',   'category' => 'drink', 'grab_price' => 25.00, 'panda_price' => 25.00],
-            ['name' => 'Crushed Oreo',                  'price' => 10.00, 'barcode' => 'AO-7',   'category' => 'drink', 'grab_price' => 20.00, 'panda_price' => 20.00],
-            ['name' => 'Milo',                          'price' => 10.00, 'barcode' => 'AO-13',  'category' => 'drink', 'grab_price' => 20.00, 'panda_price' => 20.00],
-            ['name' => 'Coffee Shot',                   'price' => 10.00, 'barcode' => 'AO-16',  'category' => 'drink', 'grab_price' => 20.00, 'panda_price' => 20.00],
+            ['name' => 'Crushed Oreo',                  'price' => 10.00, 'barcode' => 'AO-7',   'category' => 'drink', 'grab_price' => 15.00, 'panda_price' => 15.00],
+            ['name' => 'Milo',                          'price' => 10.00, 'barcode' => 'AO-13',  'category' => 'drink', 'grab_price' => 15.00, 'panda_price' => 15.00],
+            ['name' => 'Coffee Shot',                   'price' => 10.00, 'barcode' => 'AO-16',  'category' => 'drink', 'grab_price' => 15.00, 'panda_price' => 15.00],
             ['name' => 'Coconut Jelly',                 'price' => 25.00, 'barcode' => 'AO-21',  'category' => 'drink', 'grab_price' => 35.00, 'panda_price' => 35.00],
             ['name' => 'Coffee Jelly',                  'price' => 25.00, 'barcode' => 'AO-9',   'category' => 'drink', 'grab_price' => 35.00, 'panda_price' => 35.00],
             ['name' => 'Mixed Fruit Jelly',             'price' => 25.00, 'barcode' => 'AO-10',  'category' => 'drink', 'grab_price' => 35.00, 'panda_price' => 35.00],

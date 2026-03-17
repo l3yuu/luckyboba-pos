@@ -485,14 +485,13 @@ const syncNextSequence = async () => {
       selectedAddOns.forEach(name => {
         const addon = addOnsData.find(a => a.name === name);
         if (addon) {
-          // Use grab/panda price for add-ons if order charge is active
+          const baseAddonPrice = Number(addon.price);
           if (orderCharge === 'grab' && Number(addon.grab_price ?? 0) > 0) {
-            extraCost += Number(addon.grab_price);
+            extraCost += Number(addon.grab_price) - baseAddonPrice; // delta only
           } else if (orderCharge === 'panda' && Number(addon.panda_price ?? 0) > 0) {
-            extraCost += Number(addon.panda_price);
-          } else {
-            extraCost += Number(addon.price);
+            extraCost += Number(addon.panda_price) - baseAddonPrice; // delta only
           }
+          extraCost += baseAddonPrice; // always add base
         }
       });
     }
@@ -616,9 +615,13 @@ const confirmComboDrink = () => {
   comboDrinkAddOns.forEach(name => {
     const addon = addOnsData.find(a => a.name === name);
     if (addon) {
-      // Always use base price here — grab/panda surcharge on add-ons is NOT applicable
-      // for combo drinks since the combo item itself already carries the surcharge
-      addOnExtraCost += Number(addon.price);
+      if (orderCharge === 'grab' && Number(addon.grab_price ?? 0) > 0) {
+        addOnExtraCost += Number(addon.grab_price); // ₱40 full grab price
+      } else if (orderCharge === 'panda' && Number(addon.panda_price ?? 0) > 0) {
+        addOnExtraCost += Number(addon.panda_price); // ₱40 full panda price
+      } else {
+        addOnExtraCost += Number(addon.price); // ₱30 base
+      }
     }
   });
 
