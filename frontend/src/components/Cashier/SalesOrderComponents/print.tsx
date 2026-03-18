@@ -72,9 +72,13 @@ export const ReceiptPrint = ({
     <div key={i} className="mb-2">
       <div className="uppercase">{item.name} {item.cupSizeLabel ? `(${item.cupSizeLabel})` : ''}</div>
       <div className="flex justify-between w-full mt-0.5">
-        <span>{item.qty} X {(item.finalPrice / item.qty).toFixed(2)}</span>
-        <span>{item.finalPrice.toFixed(2)}</span>
-      </div>
+  <span>
+    {item.qty} X {((item.finalPrice + (item.charges?.grab ? Number(item.grab_price ?? 0) : item.charges?.panda ? Number(item.panda_price ?? 0) : 0)) / item.qty).toFixed(2)}
+  </span>
+  <span>
+    {(item.finalPrice + (item.charges?.grab ? Number(item.grab_price ?? 0) * item.qty : item.charges?.panda ? Number(item.panda_price ?? 0) * item.qty : 0)).toFixed(2)}
+  </span>
+</div>
       {item.discountLabel && (
         <div className="flex justify-between w-full text-[10px] italic">
           <span>  • Discount: {item.discountLabel}</span>
