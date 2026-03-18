@@ -12,7 +12,6 @@ class AuthController extends Controller
 {
     public function login(Request $request)
     {
-        \Log::info('LOGIN CALLED for: ' . $request->email);
         $request->validate([
             'email'    => 'required|email',
             'password' => 'required',
@@ -20,8 +19,8 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
+        // ── Invalid credentials ───────────────────────────────────────────────
         if (! $user || ! Hash::check($request->password, $user->password)) {
-            // ── Log failed login attempt ──────────────────────────────────────
             AuditLog::create([
                 'user_id'    => null,
                 'action'     => "Failed login attempt for: {$request->email}",
@@ -31,13 +30,32 @@ class AuthController extends Controller
             ]);
 
             return response()->json([
-                'message' => 'The provided credentials are incorrect.'
+                'success' => false,
+                'message' => 'The provided credentials are incorrect.',
             ], 401);
         }
 
-        $token = $user->createToken('lucky_boba_token')->plainTextToken;
+        // ── FIX 1: Block INACTIVE accounts before issuing a token ────────────
+        // Previously a token was issued first, then CheckUserActive blocked the
+        // very next request (/api/user), making the frontend think the session
+        // had expired rather than showing a proper "account deactivated" error.
+        if ($user->status === 'INACTIVE') {
+            AuditLog::create([
+                'user_id'    => $user->id,
+                'action'     => "Blocked login for inactive account: {$user->name}",
+                'module'     => 'Auth',
+                'details'    => 'Account is INACTIVE',
+                'ip_address' => $request->ip(),
+            ]);
 
-        // ── Log successful login ──────────────────────────────────────────────
+            return response()->json([
+                'success' => false,
+                'message' => 'Your account has been deactivated. Please contact your administrator.',
+            ], 403);
+        }
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
         AuditLog::create([
             'user_id'    => $user->id,
             'action'     => "User logged in: {$user->name}",
@@ -46,9 +64,11 @@ class AuthController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
+        // ── FIX 2: Wrap in success envelope so frontend can check success flag
         return response()->json([
-            'user'  => $user,
-            'token' => $token,
+            'success' => true,
+            'user'    => $user,
+            'token'   => $token,
         ]);
     }
 
@@ -56,7 +76,6 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        // ── Log logout ────────────────────────────────────────────────────────
         AuditLog::create([
             'user_id'    => $user->id,
             'action'     => "User logged out: {$user->name}",
@@ -67,6 +86,9 @@ class AuthController extends Controller
 
         $user->currentAccessToken()->delete();
 
-        return response()->json(['message' => 'Logged out successfully']);
+        return response()->json([
+            'success' => true,
+            'message' => 'Logged out successfully',
+        ]);
     }
 }

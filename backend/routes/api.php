@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\Api\{ BackupController, CashCountController, CashTransactionController, CategoryController, DashboardController, DiscountController, ExpenseController, InventoryController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController };
 use App\Http\Controllers\Api\AuditLogController;
-use App\Http\Controllers\Api\AuthController;          // ← added
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CupController;
 use App\Http\Controllers\Api\ItemsReportController;
 use App\Http\Controllers\Api\RawMaterialController;
@@ -15,7 +15,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 
-// ✅ Use AuthController so login/logout events are audit-logged
+// ── Public routes (no auth required) ────────────────────────────────────────
+
 Route::post('/login',  [AuthController::class, 'login'])->middleware('throttle:5,2');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 
@@ -31,18 +32,30 @@ Route::get('/public-menu', function () {
 });
 
 Route::post('/register', function (Request $request) {
-    $request->validate(['name' => 'required|string|max:255', 'email' => 'required|string|email|max:255|unique:users', 'password' => 'required|string|min:8']);
-    $user = User::create(['name' => $request->name, 'email' => $request->email, 'password' => Hash::make($request->password), 'role' => 'customer']);
-    $token = $user->createToken('lucky-boba-token')->plainTextToken;
+    $request->validate([
+        'name'     => 'required|string|max:255',
+        'email'    => 'required|string|email|max:255|unique:users',
+        'password' => 'required|string|min:8',
+    ]);
+    $user  = User::create([
+        'name'     => $request->name,
+        'email'    => $request->email,
+        'password' => Hash::make($request->password),
+        'role'     => 'customer',
+    ]);
+    $token = $user->createToken('auth-token')->plainTextToken;
     return response()->json(['token' => $token, 'user' => $user], 201);
 });
 
-Route::middleware(['auth:sanctum'])->group(function () {
+// ── Authenticated routes ─────────────────────────────────────────────────────
+// FIX: Added 'active' middleware so any account set to INACTIVE in the DB is
+// immediately blocked on every request — tokens are revoked on the spot.
+
+Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     Route::get('/user', fn (Request $request) => $request->user());
-    // Note: /logout is now outside this group (defined above with auth:sanctum middleware directly)
 
-    // CASHIER + BRANCH MANAGER + SUPERADMIN
+    // ── CASHIER + BRANCH MANAGER + SUPERADMIN ────────────────────────────────
     Route::middleware(['role:superadmin,branch_manager,cashier'])->group(function () {
 
         Route::get('/dashboard/stats', [DashboardController::class, 'index']);
@@ -79,8 +92,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::apiResource('menu-list',  MenuListController::class)->only(['index', 'store']);
         Route::get('/add-ons',           [AddOnController::class, 'index']);
         Route::get('/bundles',           fn () => \App\Models\Bundle::with('items')->where('is_active', true)->get());
-        Route::get('/discounts',         [DiscountController::class, 'index']); // ← ALL roles can read discounts
-        Route::apiResource('categories', CategoryController::class);
+        Route::apiResource('categories',     CategoryController::class);
         Route::apiResource('sub-categories', SubCategoryController::class);
         Route::get('/sub-categories/filter/{categoryId}', [SubCategoryController::class, 'getByCategory']);
         Route::get('/cups', [CupController::class, 'index']);
@@ -99,9 +111,21 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/purchase-orders', [PurchaseOrderController::class, 'index']);
         Route::get('/item-serials',    [ItemSerialController::class, 'index']);
 
-        // Additional read-only for cashier
         Route::get('/recipes',  [RecipeController::class, 'index']);
         Route::get('/expenses', [ExpenseController::class, 'index']);
+
+        // FIX: Removed duplicate GET /discounts that was defined both here and
+        // in the discounts prefix block below — kept only the one in the prefix
+        // group to avoid Laravel silently ignoring one of them.
+        Route::prefix('discounts')->group(function () {
+            Route::get   ('/',                    [DiscountController::class, 'index']);
+            Route::post  ('/',                    [DiscountController::class, 'store']);
+            Route::put   ('/{discount}',          [DiscountController::class, 'update']);
+            Route::put   ('/{discount}/toggle',   [DiscountController::class, 'toggleStatus']);
+            Route::put   ('/{discount}/branches', [DiscountController::class, 'updateBranches']);
+            Route::post  ('/{discount}/use',      [DiscountController::class, 'recordUsage']);
+            Route::delete('/{discount}',          [DiscountController::class, 'destroy']);
+        });
 
         Route::prefix('reports')->group(function () {
             Route::get('/inventory',       [InventoryReportController::class, 'index']);
@@ -119,19 +143,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::get('/export-sales',    [ReportController::class, 'exportSales']);
             Route::get('/export-items',    [ReportController::class, 'exportItems']);
         });
-
-        Route::prefix('discounts')->group(function () {
-            Route::get   ('/',                    [DiscountController::class, 'index']);
-            Route::post  ('/',                    [DiscountController::class, 'store']);
-            Route::put   ('/{discount}',          [DiscountController::class, 'update']);
-            Route::put   ('/{discount}/toggle',   [DiscountController::class, 'toggleStatus']);
-            Route::put   ('/{discount}/branches', [DiscountController::class, 'updateBranches']);
-            Route::post  ('/{discount}/use',      [DiscountController::class, 'recordUsage']);
-            Route::delete('/{discount}',          [DiscountController::class, 'destroy']);
-        });
     });
 
-    // BRANCH MANAGER + SUPERADMIN
+    // ── BRANCH MANAGER + SUPERADMIN ──────────────────────────────────────────
     Route::middleware(['role:superadmin,branch_manager'])->group(function () {
 
         Route::prefix('inventory')->group(function () {
@@ -150,9 +164,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::patch('/{id}/status', [ItemSerialController::class, 'updateStatus']);
         });
 
-        Route::apiResource('expenses',  ExpenseController::class)->only(['store']);
-        Route::apiResource('discounts', DiscountController::class)->except(['show', 'update', 'index']); // ← 'index' removed, handled above
-        Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
+        Route::apiResource('expenses', ExpenseController::class)->only(['store']);
+
+        // FIX: Removed duplicate Route::patch('/discounts/{discount}/toggle') and
+        // the conflicting Route::apiResource('discounts') that was re-declaring
+        // routes already defined in the cashier group above. Discount write
+        // operations (store/update/delete/toggle) are already covered in the
+        // cashier group's prefix block which all three roles can access.
+
         Route::apiResource('vouchers', VoucherController::class)->only(['index', 'store']);
 
         Route::prefix('reports')->group(function () {
@@ -190,7 +209,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::apiResource('recipes', RecipeController::class)->except(['index', 'show']);
     });
 
-    // SUPERADMIN ONLY
+    // ── SUPERADMIN ONLY ──────────────────────────────────────────────────────
     Route::middleware(['role:superadmin'])->group(function () {
 
         Route::get('/audit-logs',       [AuditLogController::class, 'index']);
