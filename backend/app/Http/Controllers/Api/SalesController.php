@@ -189,6 +189,22 @@ class SalesController extends Controller
             app(SaleObserver::class)->deductStock($sale);
 
             DB::commit();
+            if (!empty($validated['discount_id'])) {
+                \App\Models\Discount::where('id', $validated['discount_id'])
+                    ->increment('used_count');
+            }
+
+            // Item-level discounts
+            $itemDiscountIds = collect($validated['items'])
+                ->pluck('discount_id')
+                ->filter()
+                ->unique();
+
+            foreach ($itemDiscountIds as $discountId) {
+                \App\Models\Discount::where('id', $discountId)
+                    ->increment('used_count');
+            }
+
             $this->dashboardService->clearTodayCache($sale->branch_id);
 
             return response()->json([

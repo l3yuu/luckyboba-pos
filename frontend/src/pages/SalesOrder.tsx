@@ -164,7 +164,15 @@ const SalesOrder = () => {
     try {
       const c = localStorage.getItem('pos_discounts_cache');
       const all = c ? JSON.parse(c) : [];
-      return all.filter((d: Discount) => d.status === 'ON');
+      const seen = new Set<string>();
+      return all
+        .filter((d: Discount) => d.status === 'ON')
+        .filter((d: Discount) => {
+          const key = `${d.name}-${d.amount}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
     } catch { return []; }
   });
   const [selectedDiscount, setSelectedDiscount] = useState<Discount | null>(null);
@@ -270,7 +278,16 @@ const hasStickers = cart.some(item =>
 
     api.get('/discounts').then(({ data }) => {
       localStorage.setItem('pos_discounts_cache', JSON.stringify(data));
-      setDiscounts(data.filter((d: Discount) => d.status === 'ON')); // ADD THIS
+      const seen = new Set<string>();
+      const unique = data
+        .filter((d: Discount) => d.status === 'ON')
+        .filter((d: Discount) => {
+          const key = `${d.name}-${d.amount}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+      setDiscounts(unique);
     }).catch(() => {});
 
     api.get('/add-ons').then(({ data }) => {
