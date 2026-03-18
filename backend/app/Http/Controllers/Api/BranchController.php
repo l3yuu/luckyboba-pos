@@ -126,9 +126,10 @@ class BranchController extends Controller
     public function update(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
-            'name'     => 'sometimes|required|string|max:255|unique:branches,name,' . $id,
-            'location' => 'sometimes|required|string|max:255',
-            'status'   => 'sometimes|required|in:active,inactive',
+            'name'           => 'sometimes|required|string|max:255|unique:branches,name,' . $id,
+            'location'       => 'sometimes|required|string|max:255',
+            'status'         => 'sometimes|required|in:active,inactive',
+            'ownership_type' => 'sometimes|required|in:company,franchise',
         ]);
 
         if ($validator->fails()) {
@@ -140,12 +141,20 @@ class BranchController extends Controller
         }
 
         try {
-            $branch = Branch::findOrFail($id);
-            $branch->update($request->only(['name', 'location', 'status']));
+            $branch  = Branch::findOrFail($id);
+            $oldName = $branch->name;
+
+            $branch->update($request->only(['name', 'location', 'status', 'ownership_type']));
+
+            // Sync users.branch_name whenever branch name changes
+            if ($request->has('name') && $oldName !== $branch->name) {
+                DB::table('users')
+                    ->where('branch_id', $branch->id)
+                    ->update(['branch_name' => $branch->name]);
+            }
 
             AuditHelper::log('branch', "Updated branch: {$branch->name}");
 
-            // Return fresh with manager and staff count
             $fresh = Branch::withCount('users as staff_count')
                 ->with(['manager:id,name,branch_id,role'])
                 ->findOrFail($id);
@@ -160,6 +169,7 @@ class BranchController extends Controller
                 'data'    => $data,
                 'message' => 'Branch updated successfully',
             ], 200);
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

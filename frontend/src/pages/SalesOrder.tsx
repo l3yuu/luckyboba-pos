@@ -775,105 +775,105 @@ const saveCartItemEdit = () => {
 
   // ── Confirm order ───────────────────────────────────────────────────────────
 
-  const handleConfirmOrder = async () => {
-    if (cart.length === 0) return;
-    setSubmitting(true);
+const handleConfirmOrder = () => {
+  if (cart.length === 0) return;
+  setIsConfirmModalOpen(false);
+  setCustomerName('');
+  setIsCustomerNameModalOpen(true);
+};
 
-    const orderData = {
-      si_number:        orNumber,
-      branch_id:        branchId,
-      items: cart.map(item => ({
-        menu_item_id:      item.isBundle ? null : item.id,
-        bundle_id:         item.isBundle ? Number(item.bundleId) : null,
-        bundle_components: item.isBundle ? (item.bundleComponents ?? []) : null,
-        name:              item.name,
-        quantity:          item.qty,
-        unit_price:        Number(item.price),
-        total_price:       item.finalPrice + getItemSurcharge(item),
-        size:              item.size !== 'none' ? item.size : null,
-        cup_size_label:    item.cupSizeLabel ?? null,
-        sugar_level:       item.sugarLevel || null,
-        options:           item.options || [],
-        add_ons:           item.addOns  || [],
-        remarks:           item.remarks || null,
-        charges:           { grab: item.charges.grab, panda: item.charges.panda },
-        discount_id: item.discountId ?? null,
-        discount_label: item.discountLabel ?? null,
-        discount_type:  item.discountType  ?? null,
-        discount_value: item.discountValue !== '' ? item.discountValue : null,
-      })),
-      subtotal,
-      discount_amount:  orderLevelDiscount,
-      discount_id:      selectedDiscount?.id || null,
-      total:            amtDue,
-      cashier_name:     cashierName ?? 'Admin',
-      payment_method:   paymentMethod,
-      reference_number: referenceNumber || null,
-      discount_remarks: discountRemarks || null,
-      vatable_sales:    vatableSales,
-      vat_amount:       vatAmount,
-      customer_name:    customerName || null,
-    };
+const handleSubmitOrder = async (nameOverride?: string) => {
+  setSubmitting(true);
 
-    if (navigator.onLine) {
-      try {
-        await api.post('/sales', orderData);
+  const orderData = {
+    si_number:        orNumber,
+    branch_id:        branchId,
+    items: cart.map(item => ({
+      menu_item_id:      item.isBundle ? null : item.id,
+      bundle_id:         item.isBundle ? Number(item.bundleId) : null,
+      bundle_components: item.isBundle ? (item.bundleComponents ?? []) : null,
+      name:              item.name,
+      quantity:          item.qty,
+      unit_price:        Number(item.price),
+      total_price:       item.finalPrice + getItemSurcharge(item),
+      size:              item.size !== 'none' ? item.size : null,
+      cup_size_label:    item.cupSizeLabel ?? null,
+      sugar_level:       item.sugarLevel || null,
+      options:           item.options || [],
+      add_ons:           item.addOns  || [],
+      remarks:           item.remarks || null,
+      charges:           { grab: item.charges.grab, panda: item.charges.panda },
+      discount_id:    item.discountId    ?? null,
+      discount_label: item.discountLabel ?? null,
+      discount_type:  item.discountType  ?? null,
+      discount_value: item.discountValue !== '' ? item.discountValue : null,
+    })),
+    subtotal,
+    discount_amount:  orderLevelDiscount,
+    discount_id:      selectedDiscount?.id || null,
+    total:            amtDue,
+    cashier_name:     cashierName ?? 'Admin',
+    payment_method:   paymentMethod,
+    reference_number: referenceNumber || null,
+    discount_remarks: discountRemarks || null,
+    vatable_sales:    vatableSales,
+    vat_amount:       vatAmount,
+    customer_name:    nameOverride ?? customerName ?? null, // ✅ name is now captured
+  };
 
-        const currentSeq = parseInt(orNumber.split('-').pop() ?? '0', 10);
-        if (!isNaN(currentSeq)) localStorage.setItem('last_or_sequence', String(currentSeq));
-        localStorage.setItem('dashboard_stats_timestamp', '0');
+  if (navigator.onLine) {
+    try {
+      await api.post('/sales', orderData);
 
-        const today = new Date().toISOString().split('T')[0];
-        Promise.all([
-          api.get('/dashboard/stats').then(res => {
-            localStorage.setItem('dashboard_stats', JSON.stringify(res.data));
-            localStorage.setItem('dashboard_stats_timestamp', Date.now().toString());
-          }),
-          api.get('/inventory'),
-          api.get('/receipts/search', { params: { query: '', date: today } }).then(res => {
-            const data = Array.isArray(res.data) ? res.data : (res.data.data || []);
-            sessionStorage.setItem('lucky_boba_receipt_cache_results', JSON.stringify(data));
-            sessionStorage.setItem('lucky_boba_receipt_cache_query',   '');
-            sessionStorage.setItem('lucky_boba_receipt_cache_date',    today);
-          }),
-        ]).catch(e => console.error('Failed to fetch fresh data', e));
-
-        setIsConfirmModalOpen(false);
-        setCustomerName('');
-        setIsCustomerNameModalOpen(true);
-        setPrintedReceipt(false);
-        setPrintedKitchen(false);
-        setPrintedStickers(false);
-        showToast('Order saved successfully!', 'success');
-
-} catch (err) {
-  const axiosErr = err as { response?: { data?: unknown } };
-  console.error('422 detail:', axiosErr?.response?.data);
-  enqueue(orderData);
-        setIsConfirmModalOpen(false);
-        setCustomerName('');
-        setIsCustomerNameModalOpen(true);
-        setPrintedReceipt(false);
-        setPrintedKitchen(false);
-        setPrintedStickers(false);
-        showToast('Order saved locally — will sync when server is available.', 'warning');
-      }
-
-    } else {
-      enqueue(orderData);
-      const currentSeq = parseInt(orNumber.replace('SI-', ''), 10);
+      const currentSeq = parseInt(orNumber.split('-').pop() ?? '0', 10);
       if (!isNaN(currentSeq)) localStorage.setItem('last_or_sequence', String(currentSeq));
-      setIsConfirmModalOpen(false);
-      setCustomerName('');
-      setIsCustomerNameModalOpen(true);
+      localStorage.setItem('dashboard_stats_timestamp', '0');
+
+      const today = new Date().toISOString().split('T')[0];
+      Promise.all([
+        api.get('/dashboard/stats').then(res => {
+          localStorage.setItem('dashboard_stats', JSON.stringify(res.data));
+          localStorage.setItem('dashboard_stats_timestamp', Date.now().toString());
+        }),
+        api.get('/inventory'),
+        api.get('/receipts/search', { params: { query: '', date: today } }).then(res => {
+          const data = Array.isArray(res.data) ? res.data : (res.data.data || []);
+          sessionStorage.setItem('lucky_boba_receipt_cache_results', JSON.stringify(data));
+          sessionStorage.setItem('lucky_boba_receipt_cache_query',   '');
+          sessionStorage.setItem('lucky_boba_receipt_cache_date',    today);
+        }),
+      ]).catch(e => console.error('Failed to fetch fresh data', e));
+
       setPrintedReceipt(false);
       setPrintedKitchen(false);
       setPrintedStickers(false);
-      showToast('Offline — order queued and will sync when connected.', 'warning');
+      setIsSuccessModalOpen(true);
+      showToast('Order saved successfully!', 'success');
+
+    } catch (err) {
+      const axiosErr = err as { response?: { data?: unknown } };
+      console.error('422 detail:', axiosErr?.response?.data);
+      enqueue(orderData);
+      setPrintedReceipt(false);
+      setPrintedKitchen(false);
+      setPrintedStickers(false);
+      setIsSuccessModalOpen(true);
+      showToast('Order saved locally — will sync when server is available.', 'warning');
     }
 
-    setSubmitting(false);
-  };
+  } else {
+    enqueue(orderData);
+    const currentSeq = parseInt(orNumber.replace('SI-', ''), 10);
+    if (!isNaN(currentSeq)) localStorage.setItem('last_or_sequence', String(currentSeq));
+    setPrintedReceipt(false);
+    setPrintedKitchen(false);
+    setPrintedStickers(false);
+    setIsSuccessModalOpen(true);
+    showToast('Offline — order queued and will sync when connected.', 'warning');
+  }
+
+  setSubmitting(false);
+};
 
   // ── Print handlers ──────────────────────────────────────────────────────────
 
@@ -1091,11 +1091,16 @@ const saveCartItemEdit = () => {
           <CustomerNameModal
             customerName={customerName}
             onChange={setCustomerName}
-            onSkip={() => { setIsCustomerNameModalOpen(false); setIsSuccessModalOpen(true); }}
-            onConfirm={() => { setIsCustomerNameModalOpen(false); setIsSuccessModalOpen(true); }}
+            onSkip={() => {
+              setIsCustomerNameModalOpen(false);
+              handleSubmitOrder('');           // ✅ submit with no name
+            }}
+            onConfirm={() => {
+              setIsCustomerNameModalOpen(false);
+              handleSubmitOrder(customerName); // ✅ submit with the entered name
+            }}
           />
         )}
-
         {isSuccessModalOpen && (
           <SuccessModal
             orNumber={orNumber}
