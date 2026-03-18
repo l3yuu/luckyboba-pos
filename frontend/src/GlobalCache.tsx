@@ -157,8 +157,13 @@ function getAuthToken(): string | null {
  * The cache/all endpoint is not authorized for super-admin users,
  * so we skip loading entirely to avoid the 403.
  */
-function isSuperAdminRoute(): boolean {
-  return window.location.pathname.startsWith("/super-admin");
+function shouldSkipCache(): boolean {
+  if (window.location.pathname.startsWith("/super-admin")) return true;
+  
+  const role = localStorage.getItem('lucky_boba_user_role');
+  if (role === 'cashier' || role === 'branch_manager') return true;
+
+  return false;
 }
 
 // ─── Provider ──────────────────────────────────────────────────────────────────
@@ -181,7 +186,7 @@ export function CacheProvider({ children }: { children: ReactNode }) {
   const loadAll = useCallback(async () => {
     // ✅ Skip cache loading on super-admin routes — the endpoint returns 403
     // for super-admin users. Each super-admin tab fetches its own data directly.
-    if (!getAuthToken() || isSuperAdminRoute()) {
+    if (!getAuthToken() || shouldSkipCache()) {
       setLoading(false);
       setReady(true); // mark ready so consumers don't show infinite loading
       return;
@@ -208,7 +213,7 @@ export function CacheProvider({ children }: { children: ReactNode }) {
   }, [sync]);
 
   const reloadTable = useCallback(async (table: TableName) => {
-    if (isSuperAdminRoute()) return; // no-op on super-admin
+    if (shouldSkipCache()) return;
     const result = await apiFetch<{ rows: Row[]; message: string }>(
       `/cache/reload/${table}`, { method: "POST" }
     );

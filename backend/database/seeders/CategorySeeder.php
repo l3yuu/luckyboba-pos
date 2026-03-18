@@ -28,6 +28,8 @@ class CategorySeeder extends Seeder
             'COMBO MEALS'         => ['type' => 'food', 'cup_id' => null, 'sub_category_id' => null],
             'AFFORDA-BOWLS'       => ['type' => 'food', 'cup_id' => null, 'sub_category_id' => null],
             'WAFFLE'              => ['type' => 'food', 'cup_id' => null, 'sub_category_id' => null],
+            'PIZZA PEDRICOS'      => ['type' => 'food', 'cup_id' => null, 'sub_category_id' => null],
+            'PIZZA PEDRICOS COMBO' => ['type' => 'food', 'cup_id' => null, 'sub_category_id' => null],
 
             // ── DRINKS SM/SL ──────────────────────────────────────
             'CHEESECAKE MILK TEA' => ['type' => 'drink', 'cup_id' => $smsl, 'sub_category_id' => $sub('SM')],
@@ -39,6 +41,9 @@ class CategorySeeder extends Seeder
             'ROCK SALT & CHEESE'  => ['type' => 'drink', 'cup_id' => $smsl, 'sub_category_id' => $sub('SM')],
             'YAKULT SERIES'       => ['type' => 'drink', 'cup_id' => $smsl, 'sub_category_id' => $sub('SM')],
             'YOGURT SERIES'       => ['type' => 'drink', 'cup_id' => $smsl, 'sub_category_id' => $sub('SM')],
+
+            // ── DRINKS JR ─────────────────────────────────────────
+            'LUCKY CLASSIC JR'       => ['type' => 'drink', 'cup_id' => $jr, 'sub_category_id' => $sub('JR')],
 
             // ── DRINKS SL only ────────────────────────────────────
             'FRUIT SODA SERIES'   => ['type' => 'drink', 'cup_id' => $smsl, 'sub_category_id' => $sub('SL')],
@@ -56,6 +61,7 @@ class CategorySeeder extends Seeder
 
             // ── DRINKS UL only ────────────────────────────────────
             'FP COFFEE BUNDLES'   => ['type' => 'drink', 'cup_id' => $umul, 'sub_category_id' => $sub('UL')],
+            'HOLI-YEY'            => ['type' => 'drink', 'cup_id' => $umul, 'sub_category_id' => $sub('UL')],
 
             // ── DRINKS PCM/PCL ────────────────────────────────────
             'HOT COFFEE'          => ['type' => 'drink', 'cup_id' => $pcmpcl, 'sub_category_id' => $sub('PCM')],

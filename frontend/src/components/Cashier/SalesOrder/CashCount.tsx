@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import type { Transaction } from '../../../types/cash-count';
 import api from '../../../services/api';
 import TopNavbar from '../../Cashier/TopNavbar';
@@ -21,6 +21,10 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
   const [printData, setPrintData] = useState<Transaction | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isEodLocked, setIsEodLocked] = useState(false);
+  const branchName = useMemo(() => {
+    return localStorage.getItem('lucky_boba_user_branch') || 'MAIN BRANCH – QC';
+  }, []);
+
 
   useEffect(() => { checkEodStatus(); }, []);
 
@@ -35,7 +39,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
   const getGrandTotal = (c: { [key: number]: string }) =>
     denominations.reduce((total, denom) => total + denom * (parseFloat(c[denom] || '0') || 0), 0);
 
-  const handleSubmit = async () => {
+const handleSubmit = async () => {
     const total = getGrandTotal(counts);
     if (total <= 0 || isEodLocked) {
       showToast(isEodLocked ? "Terminal is already locked." : "Please enter a valid cash count.", "warning");
@@ -59,7 +63,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
           total, remarks: finalRemarks, breakdown: { ...counts }
         };
         setLatestTx(newTx);
-        if (onSuccess) onSuccess();
+        // ── DO NOT call onSuccess here — wait for user to dismiss ──
         showToast("EOD Submitted. Terminal is now LOCKED.", "success");
       }
     } catch (error) {
@@ -87,56 +91,113 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
     <>
       {/* Loading Overlay */}
       {isLoading && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-white/90 backdrop-blur-sm">
-          <div className="bg-white px-12 py-10 border border-zinc-200 flex flex-col items-center gap-5 shadow-2xl rounded-[0.625rem]">
-            <RefreshCw className="w-10 h-10 text-[#3b2063] animate-spin" strokeWidth={1.5} />
+        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-white/90 backdrop-blur-sm">
+          <div className="bg-white px-12 py-10 border border-[#e9d5ff] flex flex-col items-center gap-5 shadow-2xl rounded-[0.625rem]">
+            <RefreshCw className="w-10 h-10 text-[#7c14d4] animate-spin" strokeWidth={1.5} />
             <div className="text-center">
-              <p className="text-sm font-bold text-[#1a0f2e] uppercase tracking-widest">Terminal Syncing</p>
+              <p className="text-sm font-bold text-black uppercase tracking-widest">Terminal Syncing</p>
               <p className="text-[11px] font-medium text-zinc-400 mt-1">Finalizing End of Day Journal...</p>
             </div>
           </div>
         </div>
       )}
-
-      <style>{`
+<style>{`
+        .printable-receipt { display: none; }
         @media print {
-          @page { size: 60mm auto; margin: 0; }
+          @page { size: 80mm auto; margin: 0; }
           body * { visibility: hidden; }
           .printable-receipt, .printable-receipt * { visibility: visible; }
-          .printable-receipt { position: fixed; left: 0; top: 0; width: 56mm !important; margin: 0; padding: 4mm 2mm; background: white; color: black; font-family: 'Courier New', monospace; font-size: 10px; line-height: 1.2; }
-          .receipt-header { text-align: center; margin-bottom: 8px; border-bottom: 1px dashed black; padding-bottom: 8px; }
-          .receipt-header h2 { font-size: 14px; margin: 0; font-weight: bold; }
-          .breakdown-row { display: flex; justify-content: space-between; margin-bottom: 1px; }
-          .total-row { border-top: 1px solid black; border-bottom: 1px solid black; padding: 4px 0; margin: 8px 0; font-weight: bold; font-size: 11px; }
+          .printable-receipt {
+            display: block !important;
+            position: fixed; left: 0; top: 0;
+            width: 76mm !important;
+            padding: 3mm 4mm;
+            background: white; color: black;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11px; line-height: 1.6;
+          }
+          .pr-center { text-align: center; }
+          .pr-divider { border: none; border-top: 1px dashed black; margin: 5px 0; display: block; }
+          .pr-title { font-size: 14px; font-weight: bold; text-transform: uppercase; text-align: center; }
+          .pr-store { font-size: 13px; font-weight: bold; text-align: center; text-transform: uppercase; line-height: 1.6; margin: 0; }
+          .pr-meta { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 2px; }
+          .pr-meta td { padding: 2px 0; vertical-align: top; }
+          .pr-meta td:last-child { text-align: right; text-transform: uppercase; }
+          .pr-denom-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+          .pr-denom-table th { text-align: left; border-bottom: 1px solid black; padding: 3px 0; text-transform: uppercase; font-weight: bold; font-size: 11px; }
+          .pr-denom-table th:nth-child(2) { text-align: center; }
+          .pr-denom-table th:nth-child(3) { text-align: right; }
+          .pr-denom-table td { padding: 3px 0; border-bottom: 1px dotted #aaa; vertical-align: middle; font-size: 11px; }
+          .pr-denom-table td:nth-child(2) { text-align: center; }
+          .pr-denom-table td:nth-child(3) { text-align: right; }
+          .pr-total-table { width: 100%; border-collapse: collapse; font-size: 13px; font-weight: bold; }
+          .pr-total-table td { padding: 5px 0; border-top: 1px solid black; border-bottom: 1px solid black; }
+          .pr-total-table td:last-child { text-align: right; }
+          .pr-sig { text-align: center; font-size: 11px; margin-top: 20px; }
         }
       `}</style>
 
-      {/* Printable Receipt */}
       {printData && (
         <div className="printable-receipt">
-          <div className="receipt-header">
-            <h2>LUCKY BOBA</h2>
-            <p>EOD CASH COUNT</p>
-            <p>Main Branch - QC</p>
-            <p>{printData.date} | {printData.time}</p>
-          </div>
-          <div style={{ marginTop: '5px' }}>
-            <p style={{ fontWeight: 'bold', marginBottom: '4px' }}>DENOMINATION COUNT:</p>
-            {denominations.map(denom => {
-              const qtyString = printData.breakdown[denom] || '0';
-              const qty = parseFloat(qtyString);
-              if (qty === 0) return null;
-              return (
-                <div key={denom} className="breakdown-row">
-                  <span>{denom < 1 ? denom.toString().replace('0.', '.') : denom.toLocaleString()} x {qtyString}</span>
-                  <span>₱{(qty * denom).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-                </div>
-              );
-            })}
-          </div>
-          <div className="total-row breakdown-row">
-            <span>TOTAL COUNT:</span>
-            <span>₱ {printData.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+          <p className="pr-store">LUCKY BOBA MILKTEA<br />FOOD AND BEVERAGE TRADING</p>
+          <p className="pr-center" style={{ fontSize: '11px', margin: '2px 0' }}>{branchName.toUpperCase()}</p>
+          <hr className="pr-divider" />
+          <p className="pr-title">EOD CASH COUNT</p>
+          <hr className="pr-divider" />
+
+          <table className="pr-meta">
+            <tbody>
+              <tr><td>Date</td><td>{printData.date}</td></tr>
+              <tr><td>Time</td><td>{printData.time}</td></tr>
+              <tr><td>Cashier</td><td>{localStorage.getItem('lucky_boba_user_name') || 'Staff'}</td></tr>
+              {printData.remarks && <tr><td>Remarks</td><td>{printData.remarks}</td></tr>}
+            </tbody>
+          </table>
+
+          <hr className="pr-divider" />
+          <p style={{ fontWeight: 'bold', fontSize: '12px', textTransform: 'uppercase', margin: '3px 0' }}>Denomination Breakdown</p>
+
+          <table className="pr-denom-table">
+            <thead>
+              <tr>
+                <th style={{ width: '45%' }}>Denom</th>
+                <th style={{ width: '20%' }}>Qty</th>
+                <th style={{ width: '35%' }}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {denominations.map(denom => {
+                const qtyString = printData.breakdown[denom] || '0';
+                const qty = parseFloat(qtyString);
+                const label = denom === 0.25 ? '₱0.25' : `₱${denom.toLocaleString()}`;
+                return (
+                  <tr key={denom}>
+                    <td>{label}</td>
+                    <td>x{qty || 0}</td>
+                    <td>₱{(qty * denom).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+
+          <table className="pr-total-table" style={{ marginTop: '4px' }}>
+            <tbody>
+              <tr>
+                <td>TOTAL COUNT</td>
+                <td>₱{printData.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div className="pr-sig">
+            <p style={{ textTransform: 'uppercase', margin: '3px 0' }}>
+              {localStorage.getItem('lucky_boba_user_name') || 'Staff'}
+            </p>
+            <p style={{ marginTop: '20px' }}>____________________</p>
+            <p style={{ textTransform: 'uppercase', fontSize: '10px', margin: '2px 0' }}>Prepared By</p>
+            <p style={{ marginTop: '20px' }}>____________________</p>
+            <p style={{ textTransform: 'uppercase', fontSize: '10px', margin: '2px 0' }}>Signed By</p>
           </div>
         </div>
       )}
@@ -152,12 +213,12 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
             {/* Card Header */}
             <div className="px-6 py-5 border-b border-zinc-100 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-[#3b2063] flex items-center justify-center">
+                <div className="w-9 h-9 bg-[#7c14d4] flex items-center justify-center">
                   <Calculator size={17} className="text-white" />
                 </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">End of Day</p>
-                  <h2 className="text-sm font-bold text-[#1a0f2e] uppercase tracking-widest">Shift Reconciliation</h2>
+                  <h2 className="text-sm font-bold text-black uppercase tracking-widest">Shift Reconciliation</h2>
                 </div>
               </div>
               {isEodLocked && (
@@ -171,11 +232,11 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
             {/* EOD Locked Overlay */}
             {isEodLocked && (
               <div className="absolute inset-0 bg-white/70 backdrop-blur-[2px] z-20 flex items-center justify-center p-8">
-                <div className="bg-white px-10 py-9 border border-zinc-200 flex flex-col items-center text-center shadow-xl rounded-[0.625rem]">
+                <div className="bg-white px-10 py-9 border border-[#e9d5ff] flex flex-col items-center text-center shadow-xl rounded-[0.625rem]">
                   <div className="w-14 h-14 bg-red-50 border border-red-100 flex items-center justify-center mb-5">
                     <AlertTriangle size={24} className="text-red-500" />
                   </div>
-                  <h3 className="text-sm font-bold text-[#1a0f2e] uppercase tracking-widest mb-2">Shift Already Finalized</h3>
+                  <h3 className="text-sm font-bold text-black uppercase tracking-widest mb-2">Shift Already Finalized</h3>
                   <p className="text-[11px] font-medium text-zinc-400 leading-relaxed max-w-52">
                     End of Day records are locked for this terminal today.
                   </p>
@@ -184,10 +245,10 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
             )}
 
             {/* Column Headers */}
-            <div className="grid grid-cols-12 gap-2 px-6 py-3 border-b border-zinc-100 bg-zinc-50">
-              <div className="col-span-3 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Denom</div>
-              <div className="col-span-4 text-center text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Quantity</div>
-              <div className="col-span-5 text-right text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Subtotal</div>
+            <div className="grid grid-cols-12 gap-2 px-6 py-3 border-b border-[#e9d5ff] bg-[#f5f0ff]">
+              <div className="col-span-3 text-[10px] font-bold text-black uppercase tracking-widest">Denom</div>
+              <div className="col-span-4 text-center text-[10px] font-bold text-black uppercase tracking-widest">Quantity</div>
+              <div className="col-span-5 text-right text-[10px] font-bold text-black uppercase tracking-widest">Subtotal</div>
             </div>
 
             {/* Denomination Rows */}
@@ -197,10 +258,10 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
                 const rowTotal = denom * (parseFloat(qty) || 0);
                 const label = denom < 1 ? denom.toString().replace('0.', '.') : denom.toLocaleString();
                 return (
-                  <div key={denom} className="grid grid-cols-12 gap-3 items-center px-6 py-3 transition-colors hover:bg-zinc-50 focus-within:bg-[#f4f2fb]">
+                  <div key={denom} className="grid grid-cols-12 gap-3 items-center px-6 py-3 transition-colors hover:bg-[#f5f0ff] focus-within:bg-white">
                     <div className="col-span-3 flex items-center gap-2">
                       <Banknote size={14} className="text-zinc-400 shrink-0" />
-                      <span className="font-bold text-[#1a0f2e] text-sm tabular-nums">₱{label}</span>
+                      <span className="font-bold text-black text-sm tabular-nums">₱{label}</span>
                     </div>
                     <div className="col-span-4">
                       <input
@@ -216,11 +277,12 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
                         className={`w-full text-center font-bold text-sm py-2 border outline-none transition-all tabular-nums ${
                           (isEodLocked || latestTx !== null)
                             ? 'bg-zinc-50 text-zinc-300 border-transparent'
-                            : 'bg-[#f4f2fb] border-transparent focus:border-[#3b2063] focus:bg-white'
+                            : 'bg-[#f5f0ff] border-zinc-200 focus:border-[#7c14d4] focus:bg-white'
                         }`}
                       />
                     </div>
-                    <div className={`col-span-5 text-right font-bold text-sm tabular-nums ${rowTotal > 0 ? 'text-[#3b2063]' : 'text-zinc-300'}`}>
+                    {/* FIXED: removed stray > */}
+                    <div className={`col-span-5 text-right font-bold text-sm tabular-nums ${rowTotal > 0 ? 'text-black' : 'text-zinc-300'}`}>
                       {rowTotal > 0 ? `₱${rowTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}` : '—'}
                     </div>
                   </div>
@@ -231,9 +293,10 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
             {/* Footer */}
             <div className="p-6 border-t border-zinc-100 space-y-4 bg-white">
               {/* Grand Total */}
-              <div className="flex items-center justify-between bg-[#f4f2fb] border border-violet-100 px-5 py-4">
-                <span className="text-sm font-bold uppercase tracking-widest text-zinc-600">Grand Total</span>
-                <span className={`text-2xl font-bold tabular-nums ${grandTotal > 0 ? 'text-[#3b2063]' : 'text-zinc-300'}`}>
+              <div className="flex items-center justify-between bg-[#f5f0ff] border border-[#e9d5ff] px-5 py-4">
+                <span className="text-sm font-bold uppercase tracking-widest text-black">Grand Total</span>
+                {/* FIXED: removed stray > */}
+                <span className={`text-2xl font-bold tabular-nums ${grandTotal > 0 ? 'text-black' : 'text-zinc-300'}`}>
                   ₱{grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                 </span>
               </div>
@@ -249,7 +312,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
                   className={`w-full pl-10 pr-4 py-3 border outline-none transition-all text-sm font-medium resize-none h-14 ${
                     (isEodLocked || latestTx !== null)
                       ? 'bg-zinc-50 border-zinc-100 text-zinc-300'
-                      : 'bg-white border-zinc-200 focus:border-[#3b2063]'
+                      : 'bg-white border-zinc-200'
                   }`}
                 />
               </div>
@@ -258,7 +321,7 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
               {!latestTx && !isEodLocked ? (
                 <button
                   onClick={handleSubmit} disabled={isLoading}
-                  className="w-full py-4 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-[0.99] disabled:opacity-50 rounded-[0.625rem]"
+                  className="w-full py-4 bg-[#7c14d4] hover:bg-[#6a12b8] text-white font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-[0.99] disabled:opacity-50 rounded-[0.625rem]"
                 >
                   <CheckCircle2 size={16} />
                   {isLoading ? 'Finalizing...' : 'Submit EOD Count'}
@@ -326,6 +389,16 @@ const CashCount: React.FC<CashCountProps> = ({ onSuccess }) => {
                 <Printer size={16} />
                 Print EOD Journal
               </button>
+
+              {/* Dismiss — only shown after submission */}
+              {latestTx && (
+                <button
+                  onClick={() => { if (onSuccess) onSuccess(); }}
+                  className="w-full py-3 font-bold text-sm uppercase tracking-widest flex items-center justify-center gap-2 transition-all rounded-[0.625rem] bg-white border border-zinc-200 text-zinc-500 hover:bg-zinc-50 active:scale-95"
+                >
+                  Done · Back to Dashboard
+                </button>
+              )}
             </div>
           </div>
         </div>

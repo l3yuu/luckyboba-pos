@@ -12,18 +12,30 @@ import AuditLogsTab  from "../components/NewSuperAdmin/Sidebar/System/AuditLogsT
 import PromotionsTab from "../components/NewSuperAdmin/Sidebar/System/PromotionsTab";
 import SettingsTab   from "../components/NewSuperAdmin/Sidebar/SettingsTab";
 
+import SalesReportTab from "../components/NewSuperAdmin/Sidebar/Reports/SalesReportTab";
+import CrossBranchTab from "../components/NewSuperAdmin/Sidebar/Reports/CrossBranchTab";
+import AnalyticsTab   from "../components/NewSuperAdmin/Sidebar/Reports/AnalyticsTab";
+import ItemsReportTab from "../components/NewSuperAdmin/Sidebar/Reports/ItemsReportTab";
+import XReadingTab from "../components/NewSuperAdmin/Sidebar/Reports/XReadingTab";
+import ZReadingTab from "../components/NewSuperAdmin/Sidebar/Reports/ZReadingTab";
+
+import MenuItemsTab    from "../components/NewSuperAdmin/Sidebar/MenuManagement/MenuItemsTab";
+import CategoriesTab   from "../components/NewSuperAdmin/Sidebar/MenuManagement/CategoriesTab";
+import SubCategoriesTab from "../components/NewSuperAdmin/Sidebar/MenuManagement/SubCategoriesTab";
+
+import InventoryOverview from "../components/NewSuperAdmin/Sidebar/Inventory/InventoryOverview";
+import RawMaterialsTab from "../components/NewSuperAdmin/Sidebar/Inventory/RawMaterialsTab";
+import UsageReportTab from "../components/NewSuperAdmin/Sidebar/Inventory/UsageReportTab";
+import RecipesTab     from "../components/NewSuperAdmin/Sidebar/Inventory/RecipesTab";
+import SupplierTab    from "../components/NewSuperAdmin/Sidebar/Inventory/SupplierTab";
+import ItemCheckerTab from "../components/NewSuperAdmin/Sidebar/Inventory/ItemCheckerTab";
+import ItemSerialsTab   from "../components/NewSuperAdmin/Sidebar/Inventory/ItemSerialsTab";
+import PurchaseOrderTab from "../components/NewSuperAdmin/Sidebar/Inventory/PurchaseOrderTab";
+import StockTransferTab from "../components/NewSuperAdmin/Sidebar/Inventory/StockTransferTab";
+
+import ExpensesTab from "../components/NewSuperAdmin/Sidebar/ExpensesTab";
 
 
-// ── Placeholders — replace with real components as you build them ──────────────
-const Placeholder = ({ label }: { label: string }) => (
-  <div className="flex flex-col items-center justify-center h-full gap-3 text-center p-12">
-    <div className="w-12 h-12 rounded-2xl bg-violet-50 border border-violet-100 flex items-center justify-center">
-      <span className="text-xl">🚧</span>
-    </div>
-    <p className="text-sm font-bold text-[#1a0f2e]">{label}</p>
-    <p className="text-xs text-zinc-400 font-medium">This module is under construction</p>
-  </div>
-);
 
 const GlobalStyles = () => (
   <style>{`
@@ -70,31 +82,31 @@ const SuperAdminDashboard: React.FC = () => {
       case "users":     return <UsersTab    />;
 
       // ── Reports ───────────────────────────────────────────────────────────
-      case "sales_report":         return <Placeholder label="Sales Report"          />;
-      case "analytics":            return <Placeholder label="Analytics & Sales"     />;
-      case "items_report":         return <Placeholder label="Items Report"          />;
-      case "cross_branch_reports": return <Placeholder label="Cross-Branch Reports"  />;
-      case "x_reading":            return <Placeholder label="X Reading"             />;
-      case "z_reading":            return <Placeholder label="Z Reading"             />;
+      case "sales_report":         return <SalesReportTab />;
+      case "analytics":    return <AnalyticsTab   />;
+      case "items_report": return <ItemsReportTab />;
+      case "cross_branch_reports": return <CrossBranchTab />;
+      case "x_reading": return <XReadingTab />;
+      case "z_reading": return <ZReadingTab />;
 
       // ── Menu Management ───────────────────────────────────────────────────
-      case "menu_items":    return <Placeholder label="Menu List"       />;
-      case "categories":    return <Placeholder label="Categories"      />;
-      case "subcategories": return <Placeholder label="Sub-Categories"  />;
+      case "menu_items":    return <MenuItemsTab    />;
+      case "categories":    return <CategoriesTab   />;
+      case "subcategories": return <SubCategoriesTab />;
 
       // ── Inventory ─────────────────────────────────────────────────────────
-      case "inv_overview":   return <Placeholder label="Inventory Overview" />;
-      case "raw_materials":  return <Placeholder label="Raw Materials"      />;
-      case "usage_report":   return <Placeholder label="Usage Report"       />;
-      case "recipes":        return <Placeholder label="Recipes"            />;
-      case "supplier":       return <Placeholder label="Supplier"        />;
-      case "item_checker":   return <Placeholder label="Item Checker"    />;
-      case "item_serials":   return <Placeholder label="Item Serials"    />;
-      case "purchase_order": return <Placeholder label="Purchase Order"  />;
-      case "stock_transfer": return <Placeholder label="Stock Transfer"  />;
+      case "inv_overview":   return <InventoryOverview />;
+      case "raw_materials": return <RawMaterialsTab />;
+      case "usage_report": return <UsageReportTab />;
+      case "recipes":      return <RecipesTab />;
+      case "supplier":     return <SupplierTab    />;
+      case "item_checker": return <ItemCheckerTab />;
+      case "item_serials":   return <ItemSerialsTab   />;
+      case "purchase_order": return <PurchaseOrderTab />;
+      case "stock_transfer": return <StockTransferTab />;
 
       // ── Expenses ──────────────────────────────────────────────────────────
-      case "expenses": return <Placeholder label="Expenses" />;
+      case "expenses": return <ExpensesTab />;
 
       // ── System ────────────────────────────────────────────────────────────
       case "promotions": return <PromotionsTab />;

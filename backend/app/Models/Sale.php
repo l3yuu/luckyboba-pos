@@ -25,23 +25,20 @@ class Sale extends Model
         'status',
         'cancellation_reason',
         'cancelled_at',
-        'pax_regular',
-        'pax_senior',
-        'pax_pwd',
-        'pax_diplomat',
-        'senior_id',
-        'pwd_id',
-        'diplomat_id',
         'discount_remarks',
         'vatable_sales',
         'vat_amount',
-        'branch_id',
         'customer_name',
+        'discount_id',      // ADD
+        'discount_amount',  // ADD
     ];
 
     protected $casts = [
-        'cancelled_at' => 'datetime',
-        'total_amount' => 'decimal:2',
+        'cancelled_at'    => 'datetime',
+        'total_amount'    => 'decimal:2',
+        'discount_amount' => 'decimal:2',  // ADD
+        'vatable_sales'   => 'decimal:2',  // ADD
+        'vat_amount'      => 'decimal:2',  // ADD
     ];
 
     protected $appends = ['or_number'];
@@ -73,5 +70,9 @@ class Sale extends Model
     public function stockDeductions(): HasMany
     {
         return $this->hasMany(StockDeduction::class);
+    }
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 }

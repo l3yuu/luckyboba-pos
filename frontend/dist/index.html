@@ -5,17 +5,22 @@
     <link rel="icon" type="image/svg+xml" href="/lucky.jpg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
-    <meta http-equiv="Content-Security-Policy" 
-          content="default-src 'self'; 
-                  script-src 'self' 'unsafe-inline' 'unsafe-eval'; 
-                  connect-src 'self' https://luckybobastores.com http://localhost:8000; 
-                  style-src 'self' 'unsafe-inline'; 
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self';
+                  script-src 'self' 'unsafe-inline' 'unsafe-eval';
+                  connect-src 'self' https://luckybobastores.com https://staging.luckybobastores.com http://localhost:8000;
+                  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+                  style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com;
+                  font-src 'self' https://fonts.gstatic.com;
                   img-src 'self' data: blob:;">
 
     <title>Lucky Boba POS</title>
-    <script type="module" crossorigin src="/assets/index--V1MHyO4.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-CtQaR8MY.css">
-  </head>
+    <script type="module" crossorigin src="/assets/index-GMssY3hT.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/react-vendor-C9gF8mAq.js">
+    <link rel="modulepreload" crossorigin href="/assets/ui-vendor-DUW1MGC7.js">
+    <link rel="modulepreload" crossorigin href="/assets/chart-vendor-VGUrigzF.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-CRqfaa6z.css">
+  <link rel="manifest" href="/manifest.webmanifest"></head>
   <body>
     <div id="root"></div>
   </body>

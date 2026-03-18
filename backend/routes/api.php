@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\{ BackupController, CashCountController, CashTransactionController, CategoryController, DashboardController, DiscountController, ExpenseController, InventoryController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController };
+use App\Http\Controllers\Api\{ BackupController, CashCountController, CashTransactionController, CategoryController, DashboardController, DiscountController, ExpenseController, InventoryController, StockTransferController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController, MenuItemController, SupplierController, ItemCheckerController };
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CupController;
@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\RawMaterialController;
 use App\Http\Controllers\Api\RecipeController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\CacheController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -78,7 +79,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
         Route::get('/receipts/search',        [ReceiptController::class, 'search']);
         Route::get('/receipts/next-sequence', [ReceiptController::class, 'getNextSequence']);
-        Route::post('/receipts/{id}/void',    [ReceiptController::class, 'void']);
+        Route::post('/receipts/{id}/void-request',  [ReceiptController::class, 'voidRequest']);
+        Route::post('/void-requests/{id}/approve',  [ReceiptController::class, 'approveVoid']);
+        Route::get('/receipts/{id}/reprint', [ReceiptController::class, 'reprint']);
 
         Route::prefix('cash-counts')->group(function () {
             Route::post('/',       [CashCountController::class, 'store']);
@@ -89,7 +92,10 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/cache/all',         [CacheController::class, 'all']);
         Route::get('/menu',              [MenuController::class, 'index']);
         Route::post('/menu/clear-cache', [MenuController::class, 'clearCache']);
+        Route::get('/notifications/summary', [NotificationController::class, 'summary']);
+        Route::post('/audit-logs',           [AuditLogController::class, 'store']);
         Route::apiResource('menu-list',  MenuListController::class)->only(['index', 'store']);
+        Route::apiResource('menu-items', MenuItemController::class);  // ← add this
         Route::get('/add-ons',           [AddOnController::class, 'index']);
         Route::get('/bundles',           fn () => \App\Models\Bundle::with('items')->where('is_active', true)->get());
         Route::apiResource('categories',     CategoryController::class);
@@ -112,7 +118,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/item-serials',    [ItemSerialController::class, 'index']);
 
         Route::get('/recipes',  [RecipeController::class, 'index']);
-        Route::get('/expenses', [ExpenseController::class, 'index']);
+        Route::get('/expenses',  [ExpenseController::class, 'index']);
+        Route::post('/expenses', [ExpenseController::class, 'store']);
 
         // FIX: Removed duplicate GET /discounts that was defined both here and
         // in the discounts prefix block below — kept only the one in the prefix
@@ -130,6 +137,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::prefix('reports')->group(function () {
             Route::get('/inventory',       [InventoryReportController::class, 'index']);
             Route::get('/x-reading',       [SalesDashboardController::class, 'xReading']);
+            Route::get('/z-reading/history', [SalesDashboardController::class, 'zReadingHistory']);
             Route::get('/z-reading',       [SalesDashboardController::class, 'zReading']);
             Route::get('/items-report',    [ItemsReportController::class, 'getItemsSoldReport']);
             Route::get('/hourly-sales',    [ReportController::class, 'getHourlySales']);
@@ -152,6 +160,10 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::post('/',               [InventoryController::class, 'store']);
             Route::get('/check/{barcode}', [InventoryController::class, 'checkByBarcode']);
             Route::patch('/{id}/quantity', [InventoryController::class, 'updateQuantity']);
+            Route::get('/overview',        [InventoryController::class, 'overview']);  // ← ADD
+            Route::get('/alerts',          [InventoryController::class, 'alerts']);
+            Route::get('/usage-report',    [InventoryController::class, 'usageReport']);   // ← ADD
+            Route::get('/usage-report/export', [InventoryController::class, 'exportUsageReport']); // ← ADD
         });
 
         Route::prefix('purchase-orders')->group(function () {
@@ -172,7 +184,19 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         // operations (store/update/delete/toggle) are already covered in the
         // cashier group's prefix block which all three roles can access.
 
+        Route::get('/branch/audit-logs', [AuditLogController::class, 'branchIndex']); 
+        Route::apiResource('discounts', DiscountController::class)->except(['show', 'update', 'index']); // ← 'index' removed, handled above
+        Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
         Route::apiResource('vouchers', VoucherController::class)->only(['index', 'store']);
+        Route::apiResource('suppliers', SupplierController::class)->only(['index','store','update','destroy']); // ← ADD HERE
+
+        Route::prefix('stock-transfers')->group(function () {
+            Route::get ('/',                        [StockTransferController::class, 'index']);
+            Route::post('/',                        [StockTransferController::class, 'store']);
+            Route::post('/{stockTransfer}/approve', [StockTransferController::class, 'approve']);
+            Route::post('/{stockTransfer}/receive', [StockTransferController::class, 'receive']);
+            Route::post('/{stockTransfer}/cancel',  [StockTransferController::class, 'cancel']);
+        });
 
         Route::prefix('reports')->group(function () {
             Route::get('/mall-accreditation', [SalesDashboardController::class, 'mallReport']);
@@ -180,6 +204,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
         Route::get('/settings',  [SettingsController::class, 'index']);
         Route::post('/settings', [SettingsController::class, 'update']);
+        Route::get('/item-checker/search',    [ItemCheckerController::class, 'search']);
+        Route::get('/item-checker/{barcode}', [ItemCheckerController::class, 'lookup']);
 
         Route::prefix('users')->group(function () {
             Route::get('/',                     [UserController::class, 'index']);
@@ -189,11 +215,13 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::put('/{id}',                 [UserController::class, 'update']);
             Route::delete('/{id}',              [UserController::class, 'destroy']);
             Route::patch('/{id}/toggle-status', [UserController::class, 'toggleStatus']);
+            Route::patch('/{id}/pin',           [UserController::class, 'updatePin']);
         });
 
         Route::prefix('branches')->group(function () {
             Route::get('/performance',        [BranchController::class, 'performance']);
             Route::get('/today-sales',        [BranchController::class, 'todaySales']);
+            Route::get('/ownership-summary',   [BranchController::class, 'ownershipSummary']);
             Route::get('/',                   [BranchController::class, 'index']);
             Route::get('/{id}/daily-sales',   [BranchController::class, 'dailySales']);
             Route::get('/{id}/sales-summary', [BranchController::class, 'salesSummary']);
@@ -218,6 +246,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::prefix('reports')->group(function () {
             Route::get('/admin-sales-summary', [SuperAdminReportController::class, 'salesSummary']);
             Route::get('/branch-comparison',   [SuperAdminReportController::class, 'branchComparison']);
+            Route::get('/z-reading/history',   [SalesDashboardController::class, 'zReadingHistory']); // ← ADD
         });
 
         Route::prefix('system')->group(function () {

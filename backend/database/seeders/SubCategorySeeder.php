@@ -67,6 +67,8 @@ public function run(): void
         'HOT COFFEE'           => ['PCM', 'PCL'],
         'HOT DRINKS'           => ['PCM', 'PCL'],
         'CHICKEN WINGS'        => ['3pc', '4pc', '6pc', '12pc'],
+        'LUCKY CLASSIC JR'        => ['JR'], 
+        'HOLI-YEY'    => ['UL'],
     ];
 
     $smslId = Cup::where('code', 'SM/SL')->first()?->id;

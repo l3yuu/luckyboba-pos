@@ -3,11 +3,14 @@ import { RouterProvider } from 'react-router-dom';
 import { router } from './routes';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastProvider } from './context/ToastProvider';
-import { prefetchAll } from './utils/prefetch'; // import///
-import { useAuth } from './hooks/useAuth';////
+import { prefetchAll } from './utils/prefetch';
+import { useAuth } from './hooks/useAuth';
+import { useServiceWorker } from './hooks/useServiceWorker';
+import PWAUpdateBanner from './components/PWAUpdateBanner';
 
 function App() {
-  const { user, isLoading } = useAuth(); // ✅ now reads from shared context, no extra checkAuth
+  const { user, isLoading } = useAuth();
+  const { needsUpdate, applyUpdate } = useServiceWorker();
 
   useEffect(() => {
     if (user && !isLoading) {
@@ -31,6 +34,7 @@ function App() {
     >
       <ToastProvider>
         <RouterProvider router={router} />
+        <PWAUpdateBanner needsUpdate={needsUpdate} onUpdate={applyUpdate} />
       </ToastProvider>
     </ErrorBoundary>
   );

@@ -18,7 +18,7 @@ class UserController extends Controller
     /**
      * Transform user to return branch as a plain string (not object)
      */
-    private function transformUser(User $user): array
+    private function transformUser(User $user, ?string $lastLoginAt = null, int $loginCount = 0): array
     {
         return [
             'id'                => $user->id,
@@ -31,6 +31,8 @@ class UserController extends Controller
             'email_verified_at' => $user->email_verified_at,
             'created_at'        => $user->created_at,
             'updated_at'        => $user->updated_at,
+            'last_login_at'     => $lastLoginAt,   // ← new
+            'login_count'       => $loginCount,    // ← new
         ];
     }
 
@@ -43,34 +45,51 @@ class UserController extends Controller
             $authUser = $request->user();
             $query    = User::orderBy('created_at', 'desc');
 
-            // Branch managers can only see cashiers in their own branch
             if ($authUser->role === 'branch_manager') {
                 $query->where('role', 'cashier')
-                      ->where('branch_name', $authUser->branch_name);
+                    ->where('branch_name', $authUser->branch_name);
             }
 
-            if ($request->query('status')) {
-                $query->where('status', $request->query('status'));
-            }
-            if ($request->query('role')) {
-                $query->where('role', $request->query('role'));
-            }
-            if ($request->query('branch')) {
-                $query->where('branch_name', $request->query('branch'));
-            }
+            if ($request->query('status')) $query->where('status', $request->query('status'));
+            if ($request->query('role'))   $query->where('role',   $request->query('role'));
+            if ($request->query('branch')) $query->where('branch_name', $request->query('branch'));
             if ($request->query('search')) {
                 $search = $request->query('search');
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
-                      ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%");
                 });
             }
 
-            $users = $query->get()->map(fn($u) => $this->transformUser($u));
+            $users = $query->get();
+
+            // ── Pull login audit data for all fetched users in one query ──
+            $userIds = $users->pluck('id');
+
+            $loginStats = DB::table('audit_logs')
+                ->selectRaw('user_id, MAX(created_at) as last_login_at, COUNT(*) as login_count')
+                ->whereIn('user_id', $userIds)
+                ->where(function ($q) {
+                    $q->where('action', 'like', '%logged in%')
+                    ->orWhere('action', 'like', '%User logged%')
+                    ->orWhere('action', 'like', '%login%');
+                })
+                ->groupBy('user_id')
+                ->get()
+                ->keyBy('user_id'); // keyed by user_id for O(1) lookup
+
+            $transformed = $users->map(function ($u) use ($loginStats) {
+                $stat = $loginStats->get($u->id);
+                return $this->transformUser(
+                    $u,
+                    $stat?->last_login_at ?? null,
+                    (int) ($stat?->login_count ?? 0)
+                );
+            });
 
             return response()->json([
                 'success' => true,
-                'data'    => $users,
+                'data'    => $transformed,
                 'message' => 'Users retrieved successfully'
             ], 200);
 
@@ -130,12 +149,13 @@ class UserController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|email|max:255|unique:users,email',
-            'password' => 'required|string|min:6',
-            'role'     => 'required|in:superadmin,system_admin,branch_manager,cashier,customer',
-            'branch'   => 'nullable|string|max:255',
-            'status'   => 'required|in:ACTIVE,INACTIVE',
+            'name'        => 'required|string|max:255',
+            'email'       => 'required|email|max:255|unique:users,email',
+            'password'    => 'required|string|min:6',
+            'role'        => 'required|in:superadmin,system_admin,branch_manager,cashier,customer',
+            'branch'      => 'nullable|string|max:255',
+            'status'      => 'required|in:ACTIVE,INACTIVE',
+            'manager_pin' => 'nullable|string|min:4|max:20',  // ← add
         ]);
 
         if ($validator->fails()) {
@@ -177,6 +197,7 @@ class UserController extends Controller
                 'status'      => $request->status,
                 'branch_name' => $branchName,
                 'branch_id'   => $branchId,
+                'manager_pin' => $request->filled('manager_pin') ? Hash::make($request->manager_pin) : null,  // ← add
             ]);
 
             return response()->json([
@@ -215,12 +236,13 @@ class UserController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'name'     => 'sometimes|required|string|max:255',
-            'email'    => 'sometimes|required|email|max:255|unique:users,email,' . $id,
-            'password' => 'nullable|string|min:6',
-            'role'     => 'sometimes|required|in:superadmin,system_admin,branch_manager,cashier,customer',
-            'status'   => 'sometimes|required|in:ACTIVE,INACTIVE',
-            'branch'   => 'nullable|string|max:255',
+            'name'        => 'sometimes|required|string|max:255',
+            'email'       => 'sometimes|required|email|max:255|unique:users,email,' . $id,
+            'password'    => 'nullable|string|min:6',
+            'role'        => 'sometimes|required|in:superadmin,system_admin,branch_manager,cashier,customer',
+            'status'      => 'sometimes|required|in:ACTIVE,INACTIVE',
+            'branch'      => 'nullable|string|max:255',
+            'manager_pin' => 'nullable|string|min:4|max:20',  // ← add
         ]);
 
         if ($validator->fails()) {
@@ -241,6 +263,10 @@ class UserController extends Controller
 
             if ($request->filled('password')) {
                 $updateData['password'] = Hash::make($request->password);
+            }
+
+            if ($request->filled('manager_pin')) {
+                $updateData['manager_pin'] = Hash::make($request->manager_pin);  // ← missing
             }
 
             if ($request->has('branch')) {
@@ -423,4 +449,24 @@ class UserController extends Controller
             ], 500);
         }
     }
+public function updatePin(Request $request, $id)
+{
+    $user = User::findOrFail($id);
+
+    \Log::info('updatePin called', [
+        'user_id' => $user->id,
+        'pin'     => $request->pin,
+    ]);
+
+    $request->validate([
+        'pin'              => ['required', 'digits_between:4,8', 'confirmed'],
+        'pin_confirmation' => ['required'],
+    ]);
+
+    \DB::table('users')
+        ->where('id', $user->id)
+        ->update(['manager_pin' => bcrypt($request->pin)]);
+
+    return response()->json(['message' => 'PIN updated successfully.']);
+}
 }

@@ -25,13 +25,23 @@ class SaleItem extends Model
         'add_ons',
         'bundle_id',
         'bundle_components',
+        'charge_type',      // this was also missing
+        'surcharge',        // this was also missing
+        'discount_id',
+        'discount_label',
+        'discount_type',
+        'discount_value',
+        'discount_amount',
     ];
 
     protected $casts = [
-        'options'     => 'array',
-        'add_ons'     => 'array',
-        'price'       => 'decimal:2',
-        'final_price' => 'decimal:2',
+        'options'          => 'array',
+        'add_ons'          => 'array',
+        'price'            => 'decimal:2',
+        'final_price'      => 'decimal:2',
+        'surcharge'        => 'decimal:2',
+        'discount_value'   => 'decimal:2',
+        'discount_amount'  => 'decimal:2',
     ];
 
     // ── Existing Relationships ────────────────────────────────────────────────

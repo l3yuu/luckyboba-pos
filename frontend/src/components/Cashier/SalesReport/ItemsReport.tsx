@@ -1,6 +1,6 @@
 import TopNavbar from '../TopNavbar';
 import * as XLSX from 'xlsx';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import api from '../../../services/api';
 import { 
   Calendar, 
@@ -10,9 +10,7 @@ import {
   Printer, 
   Database, 
   ChevronDown,
-  Activity,
-  Terminal
-} from 'lucide-react';
+  Activity} from 'lucide-react';
 
 // ============================================================
 // TYPE DEFINITIONS
@@ -56,32 +54,40 @@ const ItemsReport = () => {
   const today = getLocalToday();
   const phCurrency = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
 
+  const branchName = useMemo(() =>
+    localStorage.getItem('lucky_boba_user_branch') || 'Main Branch'
+  , []);
+
   const [fromDate, setFromDate] = useState(today);
   const [toDate, setToDate] = useState(today);
   const [reportType, setReportType] = useState<'item-list' | 'category-summary'>('item-list');
   const [loading, setLoading] = useState(false);
   const [_error, _setError] = useState<string | null>(null);
 
-  // ✅ FIX: buildCacheKey is a plain function defined above — no TDZ
   const [data, setData] = useState<ReportResponse | null>(() => {
     const key = buildCacheKey(today, today, 'item-list');
     const saved = localStorage.getItem(key);
     return saved ? JSON.parse(saved) : null;
   });
 
-  // Memoised wrapper (stable ref for useEffect deps)
   const getCacheKey = useCallback(
     (from: string, to: string, type: string) => buildCacheKey(from, to, type),
     []
   );
 
   const fetchReport = useCallback(async () => {
-    const key = getCacheKey(fromDate, toDate, reportType);
     setLoading(true);
     try {
       const response = await api.get('/reports/items-report', {
         params: { from: fromDate, to: toDate, type: reportType },
       });
+
+      // Clear ALL items report cache keys to avoid serving stale data
+      Object.keys(localStorage)
+        .filter(k => k.startsWith(CACHE_KEY_PREFIX))
+        .forEach(k => localStorage.removeItem(k));
+
+      const key = getCacheKey(fromDate, toDate, reportType);
       localStorage.setItem(key, JSON.stringify(response.data));
       setData(response.data);
     } catch (error) {
@@ -92,11 +98,10 @@ const ItemsReport = () => {
   }, [fromDate, toDate, reportType, getCacheKey]);
 
   useEffect(() => {
-    const key = getCacheKey(fromDate, toDate, reportType);
-    const saved = localStorage.getItem(key);
-    if (saved) setData(JSON.parse(saved));
-    else fetchReport();
-  }, [fromDate, toDate, reportType, getCacheKey, fetchReport]);
+    setData(null);
+    // Always fetch fresh — don't trust cache for amounts that can change
+    fetchReport();
+  }, [fromDate, toDate, reportType]); // removed getCacheKey and fetchReport from deps to avoid loop
 
   const generateExcel = useCallback(() => {
     if (!data || data.items.length === 0) {
@@ -104,21 +109,19 @@ const ItemsReport = () => {
       return;
     }
 
-    const rows = data.items.map((item, index) => ({
-      '#': index + 1,
-      [reportType === 'category-summary' ? 'Category' : 'Item Name']: item.name,
-      Category: item.category,
-      'Qty Sold': item.qty,
-      'Total Sales': item.amount,
-    }));
+    const isCategorySummary = reportType === 'category-summary';
 
-    rows.push({
-      '#': '',
-      [reportType === 'category-summary' ? 'Category' : 'Item Name']: 'GRAND TOTAL',
-      Category: '',
-      'Qty Sold': data.total_qty,
-      'Total Sales': data.grand_total,
-    } as never);
+    const rows = data.items.map((item, index) =>
+      isCategorySummary
+        ? { '#': index + 1, 'Category': item.name, 'Qty Sold': item.qty, 'Total Sales': item.amount }
+        : { '#': index + 1, 'Item Name': item.name, 'Category': item.category, 'Qty Sold': item.qty, 'Total Sales': item.amount }
+    );
+
+    rows.push(
+      isCategorySummary
+        ? ({ '#': '', 'Category': 'GRAND TOTAL', 'Qty Sold': data.total_qty, 'Total Sales': data.grand_total } as never)
+        : ({ '#': '', 'Item Name': 'GRAND TOTAL', 'Category': '', 'Qty Sold': data.total_qty, 'Total Sales': data.grand_total } as never)
+    );
 
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
@@ -161,13 +164,13 @@ const ItemsReport = () => {
       {/* PRINTABLE RECEIPT */}
       <div className="printable-receipt text-slate-800">
         <div className="text-center space-y-1">
-          <h1 className="font-black text-[14px] uppercase leading-tight">Lucky Boba Milktea</h1>
-          <p className="text-[10px] uppercase font-bold">Main Branch - QC</p>
+          <h1 className="font-black text-[20px] uppercase leading-tight">Lucky Boba Milktea</h1>
+          <p className="text-[15px] uppercase font-bold">{branchName}</p>
           <div className="receipt-divider" />
-          <h2 className="font-black text-[11px] uppercase tracking-widest">
+          <h2 className="font-black text-[16px] uppercase tracking-widest">
             {reportType === 'category-summary' ? 'Category Summary' : 'Item Sales'} Report
           </h2>
-          <div className="text-left text-[10px] space-y-0.5 mt-2 uppercase">
+          <div className="text-left text-[14px] space-y-0.5 mt-2 uppercase">
             <div className="flex-between"><span>From Date</span><span>{fromDate}</span></div>
             <div className="flex-between"><span>To Date</span><span>{toDate}</span></div>
             <div className="flex-between"><span>Print Time</span><span>{new Date().toLocaleTimeString()}</span></div>
@@ -176,7 +179,7 @@ const ItemsReport = () => {
         </div>
         <div className="my-4 pt-2">
           <div className="receipt-divider" />
-          <table className="w-full text-[10px]">
+          <table className="w-full text-[13px]">
             <thead>
               <tr className="font-black border-b border-black text-left">
                 <th className="pb-1 uppercase tracking-tighter w-1/2">
@@ -189,7 +192,7 @@ const ItemsReport = () => {
             <tbody>
               {data?.items.map((item, idx) => (
                 <tr key={idx}>
-                  <td className="py-1 uppercase text-[9px] font-bold">{item.name}</td>
+                  <td className="py-1 uppercase text-[13px] font-bold">{item.name}</td>
                   <td className="py-1 text-center font-bold">x{item.qty}</td>
                   <td className="py-1 text-right">{phCurrency.format(item.amount)}</td>
                 </tr>
@@ -198,17 +201,16 @@ const ItemsReport = () => {
           </table>
           <div className="receipt-divider" />
           <div className="space-y-1 mt-2">
-            <div className="flex-between text-[10px]"><span>TOTAL ITEMS SOLD</span><span className="font-bold">{data?.total_qty || 0}</span></div>
-            <div className="flex-between font-black text-[12px] pt-1 border-t border-black"><span>TOTAL REVENUE</span><span>{phCurrency.format(data?.grand_total || 0)}</span></div>
+            <div className="flex-between text-[14px]"><span>TOTAL ITEMS SOLD</span><span className="font-bold">{data?.total_qty || 0}</span></div>
+            <div className="flex-between font-black text-[16px] pt-1 border-t border-black"><span>TOTAL REVENUE</span><span>{phCurrency.format(data?.grand_total || 0)}</span></div>
           </div>
         </div>
-
         <div className="mt-8 text-center space-y-4">
           <div className="receipt-divider" />
           <div className="pt-2">
-            <p className="text-[10px] font-bold uppercase">{data?.cashier_name || 'System Admin'}</p>
-            <p className="text-[10px] leading-none">____________________</p>
-            <p className="text-[8px] uppercase mt-1">Prepared By</p>
+            <p className="text-[14px] font-bold uppercase">{data?.cashier_name || 'System Admin'}</p>
+            <p className="text-[14px] leading-none">____________________</p>
+            <p className="text-[12px] uppercase mt-1">Prepared By</p>
           </div>
         </div>
       </div>
@@ -231,7 +233,7 @@ const ItemsReport = () => {
                 <input
                   type="date" value={fromDate}
                   onChange={(e) => setFromDate(e.target.value)}
-                  className="w-full px-4 py-3 border border-zinc-200 bg-[#f4f2fb] font-semibold text-sm text-[#1a0f2e] outline-none focus:border-[#3b2063] transition-colors"
+                  className="w-full px-4 py-3 border border-zinc-200 bg-[#f4f2fb] font-semibold text-sm text-[#1a0f2e] outline-none focus:border-[#7c14d4] transition-colors"
                 />
               </div>
 
@@ -243,7 +245,7 @@ const ItemsReport = () => {
                 <input
                   type="date" value={toDate}
                   onChange={(e) => setToDate(e.target.value)}
-                  className="w-full px-4 py-3 border border-zinc-200 bg-[#f4f2fb] font-semibold text-sm text-[#1a0f2e] outline-none focus:border-[#3b2063] transition-colors"
+                  className="w-full px-4 py-3 border border-zinc-200 bg-[#f4f2fb] font-semibold text-sm text-[#1a0f2e] outline-none focus:border-[#7c14d4] transition-colors"
                 />
               </div>
 
@@ -253,7 +255,11 @@ const ItemsReport = () => {
                   <LayoutGrid size={12} /> Report Mode
                 </label>
                 <div className="relative group">
-                  <select value={reportType} onChange={(e) => setReportType(e.target.value as 'item-list' | 'category-summary')} className="w-full p-3.5 pr-10 rounded-none border border-zinc-200 bg-[#f8f6ff] font-black text-[#3b2063] text-xs uppercase tracking-widest outline-none cursor-pointer appearance-none">
+                  <select
+                    value={reportType}
+                    onChange={(e) => setReportType(e.target.value as 'item-list' | 'category-summary')}
+                    className="w-full p-3.5 pr-10 rounded-none border border-zinc-200 bg-[#f8f6ff] font-black text-[#7c14d4] text-xs uppercase tracking-widest outline-none cursor-pointer appearance-none focus:border-[#7c14d4]"
+                  >
                     <option value="item-list">Detailed Item List</option>
                     <option value="category-summary">Category Summary</option>
                   </select>
@@ -265,19 +271,19 @@ const ItemsReport = () => {
               <div className="flex gap-2 w-full lg:w-auto">
                 <button
                   onClick={fetchReport} disabled={loading}
-                  className="flex-1 lg:w-32 h-11.5 bg-[#3b2063] hover:bg-[#2a1647] text-white font-bold text-sm uppercase tracking-widest transition-all disabled:opacity-50 rounded-[0.625rem]"
+                  className="flex-1 lg:w-32 h-11 bg-[#7c14d4] hover:bg-[#6a12b8] text-white font-bold text-sm uppercase tracking-widest transition-all disabled:opacity-50 rounded-[0.625rem]"
                 >
                   {loading ? 'Loading...' : 'Query'}
                 </button>
                 <button
                   onClick={generateExcel} disabled={!hasData}
-                  className="w-12 h-11.5 bg-white border border-zinc-200 text-zinc-500 hover:text-[#3b2063] hover:border-[#3b2063] flex items-center justify-center transition-all disabled:opacity-30 rounded-[0.625rem]"
+                  className="w-11 h-11 bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#7c14d4] hover:border-[#7c14d4] flex items-center justify-center transition-all disabled:opacity-30 rounded-[0.625rem]"
                 >
                   <FileDown size={17} />
                 </button>
                 <button
                   onClick={handlePrint} disabled={!hasData}
-                  className="w-12 h-11.5 bg-white border border-zinc-200 text-zinc-500 hover:text-[#3b2063] hover:border-[#3b2063] flex items-center justify-center transition-all disabled:opacity-30 rounded-[0.625rem]"
+                  className="w-11 h-11 bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#7c14d4] hover:border-[#7c14d4] flex items-center justify-center transition-all disabled:opacity-30 rounded-[0.625rem]"
                 >
                   <Printer size={17} />
                 </button>
@@ -295,7 +301,7 @@ const ItemsReport = () => {
             {/* Table Header */}
             <div className="px-7 py-5 border-b border-zinc-100 flex justify-between items-center">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-[#3b2063] flex items-center justify-center">
+                <div className="w-9 h-9 bg-[#7c14d4] flex items-center justify-center rounded-sm">
                   <FileText size={16} className="text-white" />
                 </div>
                 <div>
@@ -303,7 +309,7 @@ const ItemsReport = () => {
                     {reportType === 'category-summary' ? 'Category Summary' : 'Item Performance Ledger'}
                   </h3>
                   <p className="text-[11px] font-medium text-zinc-400 mt-0.5">
-                    Terminal Audit · POS-01
+                    {branchName}
                     {data?.cashier_name && ` · ${data.cashier_name}`}
                   </p>
                 </div>
@@ -311,11 +317,11 @@ const ItemsReport = () => {
               <div className="flex items-center gap-6">
                 <div className="text-right hidden md:block">
                   <p className="text-[8px] font-black text-zinc-300 uppercase tracking-widest">Operator</p>
-                  <p className="text-[10px] font-black text-[#3b2063] uppercase">{data?.cashier_name || 'Terminal Root'}</p>
+                  <p className="text-[10px] font-black text-[#7c14d4] uppercase">{data?.cashier_name || 'Terminal Root'}</p>
                 </div>
-                <div className="bg-white border border-zinc-200 px-4 py-2 flex items-center gap-2">
+                <div className="bg-white border border-[#e9d5ff] px-4 py-2 flex items-center gap-2 rounded-sm">
                   <Activity size={12} className="text-emerald-500" />
-                  <span className="text-[9px] font-black text-[#3b2063] uppercase tracking-widest">{data?.items.length || 0} Records</span>
+                  <span className="text-[9px] font-black text-[#7c14d4] uppercase tracking-widest">{data?.items.length || 0} Records</span>
                 </div>
               </div>
             </div>
@@ -323,18 +329,18 @@ const ItemsReport = () => {
             {/* Table Body */}
             <div className="flex-1 overflow-auto">
               <table className="w-full text-left">
-                <thead className="sticky top-0 bg-white z-10 border-b border-zinc-100">
+                <thead className="sticky top-0 bg-white z-10 border-b border-[#e9d5ff]">
                   <tr>
-                    <th className="px-8 py-5 text-[9px] font-black text-zinc-400 uppercase tracking-[0.3em]">
+                    <th className="px-8 py-4 text-[9px] font-black text-zinc-400 uppercase tracking-[0.3em]">
                       {reportType === 'category-summary' ? 'Category Classification' : 'Item Description'}
                     </th>
-                    <th className="px-8 py-5 text-[9px] font-black text-zinc-400 uppercase tracking-[0.3em] text-right">Units Sold</th>
-                    <th className="px-8 py-5 text-[9px] font-black text-zinc-400 uppercase tracking-[0.3em] text-right">Revenue Accumulation</th>
+                    <th className="px-8 py-4 text-[9px] font-black text-zinc-400 uppercase tracking-[0.3em] text-right">Units Sold</th>
+                    <th className="px-8 py-4 text-[9px] font-black text-zinc-400 uppercase tracking-[0.3em] text-right">Revenue Accumulation</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100">
                   {data?.items.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-[#f4f2fb] transition-colors">
+                    <tr key={idx} className="hover:bg-[#f5f0ff] transition-colors">
                       <td className="px-7 py-3.5 text-sm font-semibold text-[#1a0f2e]">{item.name}</td>
                       <td className="px-7 py-3.5 text-sm font-bold text-zinc-500 text-right tabular-nums">{item.qty}</td>
                       <td className="px-7 py-3.5 text-sm font-bold text-[#1a0f2e] text-right tabular-nums">{phCurrency.format(item.amount)}</td>
@@ -353,9 +359,8 @@ const ItemsReport = () => {
             </div>
 
             {/* GRAND TOTAL BAR */}
-            <div className="bg-[#3b2063] text-white flex justify-between items-center px-8 py-6">
+            <div className="bg-[#7c14d4] text-white flex justify-between items-center px-8 py-6">
               <div className="flex items-center gap-3">
-                <Terminal size={16} className="text-purple-300/50" />
                 <span className="text-[11px] font-black uppercase tracking-[0.3em] text-purple-300">Shift Total Settlement</span>
               </div>
               <div className="flex gap-12 text-right">
@@ -372,7 +377,7 @@ const ItemsReport = () => {
 
             {loading && data && (
               <div className="absolute top-0 left-0 right-0 h-1 bg-purple-200">
-                <div className="h-full bg-[#3b2063] animate-pulse" />
+                <div className="h-full bg-[#7c14d4] animate-pulse" />
               </div>
             )}
           </div>

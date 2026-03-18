@@ -1,48 +1,31 @@
 "use client"
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Users, Plus, Trash2, Edit3, X, Save, Shield, GripVertical,
-  Search, CheckCircle2, CircleDashed, AlertCircle,
-  Clock, UserCheck, UserX, Key, ChevronDown, RefreshCw
+  Search, Plus, Eye, Edit2, Trash2, Lock, UserCheck, XCircle,
+  Users, ArrowUpRight, ArrowDownRight, X, AlertCircle,
+  RefreshCw, Mail, MapPin, ShieldCheck, Trash, CheckCircle,
 } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import api from '../../services/api';
-
-// ─── Font tokens ──────────────────────────────────────────────────────────────
-const STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
-  .um-root, .um-root * { font-family: 'DM Sans', sans-serif !important; box-sizing: border-box; }
-  .um-label { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #3f3f46; }
-  .um-sub { font-size: 0.65rem; font-weight: 400; color: #71717a; }
-  .um-value { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.035em; line-height: 1; }
-  .um-live { display: inline-flex; align-items: center; gap: 5px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 100px; padding: 4px 10px; }
-  .um-live-dot { width: 5px; height: 5px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 5px rgba(34,197,94,0.6); animation: um-pulse 2s infinite; }
-  .um-live-text { font-size: 0.55rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #16a34a; }
-  @keyframes um-pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-  .um-tab { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; padding: 6px 13px; border-radius: 0.4rem; border: none; cursor: pointer; transition: background 0.12s, color 0.12s; }
-  .um-tab-on  { background: #1a0f2e; color: #fff; }
-  .um-tab-off { background: transparent; color: #a1a1aa; }
-  .um-tab-off:hover { background: #ede8ff; color: #3b2063; }
-  .um-pill { font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 100px; padding: 3px 9px; border: 1px solid #e4e4e7; background: #f4f4f5; color: #71717a; }
-  .um-col-hdr { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #a1a1aa; }
-  .um-input { width: 100%; padding: 10px 14px; background: #f9f9fb; border: 1px solid #e4e4e7; border-radius: 0.75rem; outline: none; font-size: 0.82rem; color: #1a0f2e; transition: border 0.12s, box-shadow 0.12s; }
-  .um-input:focus { border-color: #a78bfa; box-shadow: 0 0 0 3px rgba(167,139,250,0.15); background: #fff; }
-`;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-interface ApiUser {
-  id:          number;
-  name:        string;
-  email:       string;
-  role:        string;
-  status:      string;
-  branch?:     string | null;   // matches transformUser() which returns 'branch'
-  branch_name?: string | null;  // kept for backward compat
-  branch_id?:  number | null;
-  created_at?: string;
-  last_login_at?: string | null;
-  login_count?:   number;
+type ColorKey   = 'violet' | 'emerald' | 'red' | 'amber';
+type VariantKey = 'primary' | 'secondary' | 'danger' | 'ghost';
+type SizeKey    = 'sm' | 'md' | 'lg';
+
+interface User {
+  id:           number;
+  name:         string;
+  email:        string;
+  role:         string;
+  branch:       string;
+  branch_id:    number | null;
+  status:       string;
+  lastLogin?:   string;
+  login_count?: number;
+  created_at?:  string;
 }
 
 interface FormState {
@@ -51,550 +34,806 @@ interface FormState {
   password:        string;
   passwordConfirm: string;
   role:            string;
+  status:          string;
 }
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const ROLE_LABELS: Record<string, string> = {
+  superadmin:     'Super Admin',
+  system_admin:   'System Admin',
+  branch_manager: 'Branch Manager',
+  cashier:        'Cashier',
+};
 
 const ROLE_OPTIONS = ['cashier', 'branch_manager'];
 
-const roleLabel: Record<string, string> = {
-  superadmin:     'SYSTEM ADMIN',
-  branch_manager: 'BRANCH MANAGER',
-  cashier:        'CASHIER',
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const mapUser = (u: any): User => ({
+  id:           u.id,
+  name:         u.name,
+  email:        u.email,
+  role:         u.role,
+  branch:       u.branch ?? u.branch_name ?? '—',
+  branch_id:    u.branch_id ?? null,
+  status:       u.status,
+  lastLogin:    u.last_login_at
+    ? new Date(u.last_login_at).toLocaleString('en-PH', {
+        month: 'short', day: 'numeric', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      })
+    : undefined,
+  login_count:  u.login_count,
+  created_at:   u.created_at,
+});
+
+const blankForm = (): FormState => ({
+  name: '', email: '', password: '', passwordConfirm: '', role: 'cashier', status: 'ACTIVE',
+});
+
+// ─── Shared UI primitives ─────────────────────────────────────────────────────
+
+const Avatar: React.FC<{ name: string; size?: string }> = ({ name, size = 'w-7 h-7 text-[10px]' }) => (
+  <div className={`${size} rounded-full bg-[#ede8ff] flex items-center justify-center font-bold text-[#3b2063] shrink-0`}>
+    {name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
+  </div>
+);
+
+const RolePill: React.FC<{ role: string }> = ({ role }) => (
+  <span className="text-xs font-semibold bg-violet-50 text-violet-700 border border-violet-200 px-2.5 py-0.5 rounded-full">
+    {ROLE_LABELS[role] ?? role}
+  </span>
+);
+
+const Badge: React.FC<{ status: string }> = ({ status }) => {
+  const isActive = status === 'ACTIVE' || status === 'active';
+  return (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider
+      ${isActive ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-zinc-100 text-zinc-500 border border-zinc-200'}`}>
+      {status}
+    </span>
+  );
 };
 
-const positionColor: Record<string, string> = {
-  superadmin:     'bg-violet-50 text-violet-700 border-violet-200',
-  branch_manager: 'bg-blue-50 text-blue-700 border-blue-200',
-  cashier:        'bg-gray-100 text-gray-600 border-gray-200',
+interface StatCardProps {
+  icon: React.ReactNode; label: string; value: string | number;
+  sub?: string; trend?: number; color?: ColorKey;
+}
+
+const StatCard: React.FC<StatCardProps> = ({ icon, label, value, trend, color = 'violet' }) => {
+  const colors: Record<ColorKey, { bg: string; border: string; icon: string }> = {
+    violet:  { bg: 'bg-violet-50',  border: 'border-violet-200',  icon: 'text-violet-600'  },
+    emerald: { bg: 'bg-emerald-50', border: 'border-emerald-200', icon: 'text-emerald-600' },
+    red:     { bg: 'bg-red-50',     border: 'border-red-200',     icon: 'text-red-500'     },
+    amber:   { bg: 'bg-amber-50',   border: 'border-amber-200',   icon: 'text-amber-600'   },
+  };
+  const c = colors[color];
+  return (
+    <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className={`w-10 h-10 ${c.bg} border ${c.border} flex items-center justify-center rounded-[0.4rem]`}>
+          <span className={c.icon}>{icon}</span>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{label}</p>
+          <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">{value}</p>
+        </div>
+      </div>
+      {trend !== undefined && (
+        <div className={`flex items-center gap-1 text-xs font-bold ${trend >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+          {trend >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+          {Math.abs(trend)}%
+        </div>
+      )}
+    </div>
+  );
 };
 
-const blankForm = (): FormState => ({ name: '', email: '', password: '', passwordConfirm: '', role: 'cashier' });
+interface BtnProps {
+  children: React.ReactNode; variant?: VariantKey; size?: SizeKey;
+  onClick?: () => void; className?: string; disabled?: boolean;
+  type?: 'button' | 'submit' | 'reset';
+}
 
-// ─── Component ────────────────────────────────────────────────────────────────
+const Btn: React.FC<BtnProps> = ({
+  children, variant = 'primary', size = 'sm',
+  onClick, className = '', disabled = false, type = 'button',
+}) => {
+  const sizes:    Record<SizeKey,    string> = { sm: 'px-3 py-2 text-xs', md: 'px-4 py-2.5 text-sm', lg: 'px-6 py-3 text-sm' };
+  const variants: Record<VariantKey, string> = {
+    primary:   'bg-[#3b2063] hover:bg-[#2a1647] text-white',
+    secondary: 'bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50',
+    danger:    'bg-red-600 hover:bg-red-700 text-white',
+    ghost:     'bg-transparent text-zinc-500 hover:bg-zinc-100',
+  };
+  return (
+    <button type={type} onClick={onClick} disabled={disabled}
+      className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 ${sizes[size]} ${variants[variant]} ${className}`}>
+      {children}
+    </button>
+  );
+};
+
+// ─── Modal Shell ──────────────────────────────────────────────────────────────
+
+const ModalShell: React.FC<{
+  onClose: () => void; icon: React.ReactNode; title: string; sub: string;
+  children: React.ReactNode; footer: React.ReactNode; maxWidth?: string;
+}> = ({ onClose, icon, title, sub, children, footer, maxWidth = 'max-w-md' }) =>
+  createPortal(
+    <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
+      style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.45)' }}>
+      <div className="absolute inset-0" onClick={onClose} />
+      <div className={`relative bg-white w-full ${maxWidth} border border-zinc-200 rounded-[1.25rem] shadow-2xl`}>
+        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-violet-50 border border-violet-200 rounded-lg flex items-center justify-center">{icon}</div>
+            <div>
+              <p className="text-sm font-bold text-[#1a0f2e]">{title}</p>
+              <p className="text-[10px] text-zinc-400">{sub}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600">
+            <X size={16} />
+          </button>
+        </div>
+        <div className="px-6 py-5 flex flex-col gap-4 max-h-[65vh] overflow-y-auto">{children}</div>
+        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-100">{footer}</div>
+      </div>
+    </div>,
+    document.body
+  );
+
+// ─── Field helpers ────────────────────────────────────────────────────────────
+
+const Field: React.FC<{ label: string; required?: boolean; error?: string; children: React.ReactNode }> = ({ label, required, error, children }) => (
+  <div>
+    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
+      {label} {required && <span className="text-red-400">*</span>}
+    </label>
+    {children}
+    {error && <p className="text-[10px] text-red-500 mt-1 font-medium">{error}</p>}
+  </div>
+);
+
+const inputCls = (err?: string) =>
+  `w-full text-sm font-medium text-zinc-700 bg-zinc-50 border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all ${err ? 'border-red-300 bg-red-50' : 'border-zinc-200'}`;
+
+// ─── View Modal ───────────────────────────────────────────────────────────────
+
+const ViewUserModal: React.FC<{ onClose: () => void; user: User }> = ({ onClose, user }) => {
+  const rows: [string, React.ReactNode][] = [
+    ['User ID',    `#${user.id}`],
+    ['Name',       <div className="flex items-center gap-2"><Avatar name={user.name} />{user.name}</div>],
+    ['Email',      <span className="flex items-center gap-1"><Mail size={11} />{user.email}</span>],
+    ['Role',       <RolePill role={user.role} />],
+    ['Branch',     <span className="flex items-center gap-1"><MapPin size={11} />{user.branch}</span>],
+    ['Status',     <Badge status={user.status} />],
+    ['Last Login', user.lastLogin ?? '—'],
+  ];
+  return (
+    <ModalShell onClose={onClose} icon={<Eye size={15} className="text-violet-600" />}
+      title={user.name} sub="User details"
+      footer={<Btn variant="secondary" onClick={onClose}>Close</Btn>}>
+      <div className="flex flex-col divide-y divide-zinc-100 -my-1">
+        {rows.map(([label, val]) => (
+          <div key={label as string} className="flex items-center justify-between py-2.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">{label}</span>
+            <span className="text-xs font-semibold text-zinc-700">{val}</span>
+          </div>
+        ))}
+      </div>
+    </ModalShell>
+  );
+};
+
+// ─── Add / Edit Modal ─────────────────────────────────────────────────────────
+
+const UserFormModal: React.FC<{
+  onClose:   () => void;
+  onSaved:   (u: User) => void;
+  editingUser?: User | null;
+}> = ({ onClose, onSaved, editingUser }) => {
+  const [form,     setForm]     = useState<FormState>(
+    editingUser
+      ? { name: editingUser.name, email: editingUser.email, password: '', passwordConfirm: '', role: editingUser.role, status: editingUser.status }
+      : blankForm()
+  );
+  const [errors,   setErrors]   = useState<Record<string, string>>({});
+  const [saving,   setSaving]   = useState(false);
+  const [apiError, setApiError] = useState('');
+
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!form.name.trim())  e.name  = 'Name is required.';
+    if (!form.email.trim()) e.email = 'Email is required.';
+    if (!editingUser && !form.password) e.password = 'Password is required.';
+    if (form.password && form.password.length < 6) e.password = 'Password must be at least 6 characters.';
+    if (form.password && form.password !== form.passwordConfirm) e.passwordConfirm = 'Passwords do not match.';
+    return e;
+  };
+
+  const handleSubmit = async () => {
+    const e = validate();
+    if (Object.keys(e).length) { setErrors(e); return; }
+    setSaving(true); setApiError('');
+    try {
+      if (editingUser) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const payload: Record<string, any> = { name: form.name, email: form.email, role: form.role, status: form.status };
+        if (form.password) { payload.password = form.password; payload.password_confirmation = form.passwordConfirm; }
+        const res     = await api.put(`/users/${editingUser.id}`, payload);
+        const updated = mapUser(res.data?.data ?? res.data);
+        onSaved(updated);
+      } else {
+        const res     = await api.post('/users', {
+          name: form.name, email: form.email,
+          password: form.password, password_confirmation: form.passwordConfirm,
+          role: form.role, status: form.status,
+        });
+        const created = mapUser(res.data?.data ?? res.data);
+        onSaved(created);
+      }
+      onClose();
+    } catch (err: unknown) {
+      type LaravelError = { response?: { data?: { message?: string; errors?: Record<string, string[]> } } };
+      const errData = (err as LaravelError)?.response?.data;
+      if (errData?.errors) {
+        const mapped: Record<string, string> = {};
+        Object.entries(errData.errors).forEach(([k, v]) => { mapped[k] = Array.isArray(v) ? v[0] : String(v); });
+        setErrors(mapped);
+      } else { setApiError(errData?.message ?? 'Something went wrong.'); }
+    } finally { setSaving(false); }
+  };
+
+  const f = (key: keyof FormState) => ({
+    value: form[key],
+    onChange: (ev: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      setForm(p => ({ ...p, [key]: ev.target.value }));
+      setErrors(prev => { const n = { ...prev }; delete n[key]; return n; });
+    },
+  });
+
+  return (
+    <ModalShell
+      onClose={onClose}
+      icon={editingUser ? <Edit2 size={15} className="text-violet-600" /> : <Users size={15} className="text-violet-600" />}
+      title={editingUser ? 'Edit User' : 'Add User'}
+      sub={editingUser ? `Updating ${editingUser.name}` : 'Create a new system user'}
+      footer={
+        <>
+          <Btn variant="secondary" onClick={onClose} disabled={saving}>Cancel</Btn>
+          <Btn onClick={handleSubmit} disabled={saving}>
+            {saving
+              ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</span>
+              : editingUser ? 'Save Changes' : <><Plus size={13} /> Add User</>}
+          </Btn>
+        </>
+      }>
+      {apiError && (
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <AlertCircle size={14} className="text-red-500 shrink-0" />
+          <p className="text-xs text-red-600 font-medium">{apiError}</p>
+        </div>
+      )}
+      <Field label="Full Name" required error={errors.name}>
+        <input {...f('name')} placeholder="e.g. Juan Dela Cruz" className={inputCls(errors.name)} />
+      </Field>
+      <Field label="Email" required error={errors.email}>
+        <input {...f('email')} type="email" placeholder="e.g. juan@luckyboba.com" className={inputCls(errors.email)} />
+      </Field>
+      <Field label={editingUser ? 'New Password' : 'Password'} required={!editingUser} error={errors.password}>
+        <input {...f('password')} type="password" placeholder={editingUser ? 'Leave blank to keep current' : 'Min. 6 characters'} className={inputCls(errors.password)} />
+      </Field>
+      <Field label="Confirm Password" error={errors.passwordConfirm}>
+        <input {...f('passwordConfirm')} type="password" placeholder="Re-enter password" className={inputCls(errors.passwordConfirm)} />
+      </Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Role" required>
+          <select {...f('role')} className={inputCls()}>
+            {ROLE_OPTIONS.map(r => <option key={r} value={r}>{ROLE_LABELS[r] ?? r}</option>)}
+          </select>
+        </Field>
+        <Field label="Status" required>
+          <select {...f('status')} className={inputCls()}>
+            <option value="ACTIVE">Active</option>
+            <option value="INACTIVE">Inactive</option>
+          </select>
+        </Field>
+      </div>
+    </ModalShell>
+  );
+};
+
+// ─── Toggle Status Modal ──────────────────────────────────────────────────────
+
+const ToggleStatusModal: React.FC<{
+  onClose:   () => void;
+  onToggled: (u: User) => void;
+  user:      User;
+}> = ({ onClose, onToggled, user }) => {
+  const [saving,   setSaving]   = useState(false);
+  const [apiError, setApiError] = useState('');
+  const isActive = user.status === 'ACTIVE';
+
+  const handleToggle = async () => {
+    setSaving(true); setApiError('');
+    try {
+      const res     = await api.patch(`/users/${user.id}/toggle-status`);
+      const toggled = mapUser(res.data?.data ?? res.data);
+      onToggled(toggled);
+      onClose();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setApiError(msg ?? 'Failed to update status.');
+    } finally { setSaving(false); }
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
+      style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.45)' }}>
+      <div className="absolute inset-0" onClick={onClose} />
+      <div className="relative bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] shadow-2xl">
+        <div className="flex flex-col items-center text-center px-6 pt-8 pb-5">
+          <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 border ${isActive ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'}`}>
+            {isActive ? <XCircle size={24} className="text-amber-500" /> : <UserCheck size={24} className="text-emerald-500" />}
+          </div>
+          <p className="text-base font-bold text-[#1a0f2e]">{isActive ? 'Deactivate User?' : 'Activate User?'}</p>
+          <p className="text-xs text-zinc-500 mt-1 leading-relaxed">
+            {isActive
+              ? <>This will prevent <span className="font-bold text-zinc-700">{user.name}</span> from logging in.</>
+              : <>This will restore <span className="font-bold text-zinc-700">{user.name}</span>'s access to the system.</>}
+          </p>
+          {apiError && (
+            <div className="flex items-center gap-2 mt-4 p-3 w-full bg-red-50 border border-red-200 rounded-lg">
+              <AlertCircle size={14} className="text-red-500 shrink-0" />
+              <p className="text-xs text-red-600 font-medium text-left">{apiError}</p>
+            </div>
+          )}
+        </div>
+        <div className="mx-6 mb-5 flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl">
+          <Avatar name={user.name} size="w-8 h-8 text-xs" />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold text-[#1a0f2e] truncate">{user.name}</p>
+            <p className="text-[10px] text-zinc-400 truncate">{user.email}</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Badge status={user.status} />
+            <span className="text-zinc-300">→</span>
+            <Badge status={isActive ? 'INACTIVE' : 'ACTIVE'} />
+          </div>
+        </div>
+        <div className="flex items-center gap-2 px-6 pb-6">
+          <Btn variant="secondary" className="flex-1 justify-center" onClick={onClose} disabled={saving}>Cancel</Btn>
+          <button onClick={handleToggle} disabled={saving}
+            className={`flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer disabled:opacity-50 text-white ${isActive ? 'bg-amber-500 hover:bg-amber-600' : 'bg-emerald-600 hover:bg-emerald-700'}`}>
+            {saving
+              ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Updating...</span>
+              : isActive ? <><XCircle size={13} /> Deactivate</> : <><UserCheck size={13} /> Activate</>}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+// ─── Delete Modal ─────────────────────────────────────────────────────────────
+
+const DeleteUserModal: React.FC<{
+  onClose:   () => void;
+  onDeleted: (id: number) => void;
+  user:      User;
+}> = ({ onClose, onDeleted, user }) => {
+  const [saving,   setSaving]   = useState(false);
+  const [apiError, setApiError] = useState('');
+
+  const handleDelete = async () => {
+    setSaving(true); setApiError('');
+    try {
+      await api.delete(`/users/${user.id}`);
+      onDeleted(user.id);
+      onClose();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setApiError(msg ?? 'Failed to delete user.');
+    } finally { setSaving(false); }
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
+      style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.45)' }}>
+      <div className="absolute inset-0" onClick={onClose} />
+      <div className="relative bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] shadow-2xl">
+        <div className="flex flex-col items-center text-center px-6 pt-8 pb-5">
+          <div className="w-14 h-14 bg-red-50 border border-red-200 rounded-full flex items-center justify-center mb-4">
+            <Trash size={22} className="text-red-500" />
+          </div>
+          <p className="text-base font-bold text-[#1a0f2e]">Delete User?</p>
+          <p className="text-xs text-zinc-500 mt-1 leading-relaxed">
+            You're about to permanently delete <span className="font-bold text-zinc-700">{user.name}</span>. This cannot be undone.
+          </p>
+          {apiError && (
+            <div className="flex items-center gap-2 mt-4 p-3 w-full bg-red-50 border border-red-200 rounded-lg">
+              <AlertCircle size={14} className="text-red-500 shrink-0" />
+              <p className="text-xs text-red-600 font-medium text-left">{apiError}</p>
+            </div>
+          )}
+        </div>
+        <div className="mx-6 mb-5 flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl">
+          <Avatar name={user.name} size="w-8 h-8 text-xs" />
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold text-[#1a0f2e] truncate">{user.name}</p>
+            <p className="text-[10px] text-zinc-400 truncate flex items-center gap-1">
+              <ShieldCheck size={9} />{ROLE_LABELS[user.role] ?? user.role}
+            </p>
+          </div>
+          <Badge status={user.status} />
+        </div>
+        <div className="flex items-center gap-2 px-6 pb-6">
+          <Btn variant="secondary" className="flex-1 justify-center" onClick={onClose} disabled={saving}>Cancel</Btn>
+          <Btn variant="danger" className="flex-1 justify-center" onClick={handleDelete} disabled={saving}>
+            {saving
+              ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Deleting...</span>
+              : <><Trash2 size={13} /> Delete</>}
+          </Btn>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+const ResetPinModal: React.FC<{
+  onClose: () => void;
+  user:    User;
+}> = ({ onClose, user }) => {
+  const [pin,       setPin]       = useState('');
+  const [pinConfirm, setPinConfirm] = useState('');
+  const [saving,    setSaving]    = useState(false);
+  const [apiError,  setApiError]  = useState('');
+  const [success,   setSuccess]   = useState(false);
+  const [errors,    setErrors]    = useState<{ pin?: string; pinConfirm?: string }>({});
+
+  const validate = () => {
+    const e: { pin?: string; pinConfirm?: string } = {};
+    if (!pin.trim())               e.pin        = 'PIN is required.';
+    else if (!/^\d{4,8}$/.test(pin)) e.pin      = 'PIN must be 4–8 digits.';
+    if (pin !== pinConfirm)        e.pinConfirm = 'PINs do not match.';
+    return e;
+  };
+
+  const handleSubmit = async () => {
+    const e = validate();
+    if (Object.keys(e).length) { setErrors(e); return; }
+    setSaving(true); setApiError('');
+    try {
+      await api.patch(`/users/${user.id}/pin`, { pin, pin_confirmation: pinConfirm });
+      setSuccess(true);
+      setTimeout(onClose, 1500);
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setApiError(msg ?? 'Failed to update PIN.');
+    } finally { setSaving(false); }
+  };
+
+  return (
+    <ModalShell
+      onClose={onClose}
+      icon={<Lock size={15} className="text-violet-600" />}
+      title="Change Manager PIN"
+      sub={`Update PIN for ${user.name}`}
+      footer={
+        success ? null : (
+          <>
+            <Btn variant="secondary" onClick={onClose} disabled={saving}>Cancel</Btn>
+            <Btn onClick={handleSubmit} disabled={saving}>
+              {saving
+                ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</span>
+                : <><ShieldCheck size={13} /> Update PIN</>}
+            </Btn>
+          </>
+        )
+      }>
+      {success ? (
+        <div className="flex flex-col items-center py-4 gap-3">
+          <div className="w-12 h-12 bg-emerald-50 border border-emerald-200 rounded-full flex items-center justify-center">
+            <CheckCircle size={24} className="text-emerald-500" />
+          </div>
+          <p className="text-sm font-bold text-[#1a0f2e]">PIN updated successfully</p>
+        </div>
+      ) : (
+        <>
+          {apiError && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <AlertCircle size={14} className="text-red-500 shrink-0" />
+              <p className="text-xs text-red-600 font-medium">{apiError}</p>
+            </div>
+          )}
+          <div className="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl">
+            <Avatar name={user.name} size="w-8 h-8 text-xs" />
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-[#1a0f2e] truncate">{user.name}</p>
+              <p className="text-[10px] text-zinc-400">{ROLE_LABELS[user.role] ?? user.role}</p>
+            </div>
+          </div>
+          <Field label="New PIN" required error={errors.pin}>
+            <input
+              type="password"
+              value={pin}
+              onChange={e => { setPin(e.target.value); setErrors(p => ({ ...p, pin: undefined })); }}
+              placeholder="Enter 4–8 digit PIN"
+              className={inputCls(errors.pin)}
+              maxLength={8}
+            />
+          </Field>
+          <Field label="Confirm PIN" required error={errors.pinConfirm}>
+            <input
+              type="password"
+              value={pinConfirm}
+              onChange={e => { setPinConfirm(e.target.value); setErrors(p => ({ ...p, pinConfirm: undefined })); }}
+              placeholder="Re-enter PIN"
+              className={inputCls(errors.pinConfirm)}
+              maxLength={8}
+            />
+          </Field>
+        </>
+      )}
+    </ModalShell>
+  );
+};
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 const UserManagement: React.FC = () => {
-  const [users,         setUsers]         = useState<ApiUser[]>([]);
-  const [loading,       setLoading]       = useState(true);
-  const [saving,        setSaving]        = useState(false);
-  const [apiError,      setApiError]      = useState<string | null>(null);
+  const [users,      setUsers]      = useState<User[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [fetchError, setFetchError] = useState('');
+  const [search,     setSearch]     = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
 
-  const [isModalOpen,        setIsModalOpen]        = useState(false);
-  const [editingUser,        setEditingUser]        = useState<ApiUser | null>(null);
-  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
-  const [selectedUser,       setSelectedUser]       = useState<ApiUser | null>(null);
-  const [expandedUser,       setExpandedUser]       = useState<number | null>(null);
-
-  const [searchQuery,  setSearchQuery]  = useState('');
-  const [filterStatus, setFilterStatus] = useState<'All' | 'ACTIVE' | 'INACTIVE'>('All');
-
-  const [form, setForm] = useState<FormState>(blankForm());
-  const [formError, setFormError] = useState<string | null>(null);
-
-  const dragItem     = useRef<number | null>(null);
-  const dragOverItem = useRef<number | null>(null);
-
-  // ── Fetch ──────────────────────────────────────────────────────────────────
+  const [addOpen,      setAddOpen]      = useState(false);
+  const [viewTarget,   setViewTarget]   = useState<User | null>(null);
+  const [editTarget,   setEditTarget]   = useState<User | null>(null);
+  const [toggleTarget, setToggleTarget] = useState<User | null>(null);
+  const [delTarget,    setDelTarget]    = useState<User | null>(null);
+  const [pinTarget, setPinTarget] = useState<User | null>(null);
 
   const fetchUsers = useCallback(async () => {
-    setLoading(true);
-    setApiError(null);
+    setLoading(true); setFetchError('');
     try {
-      const res = await api.get('/users');
-      const payload = res.data;
-      // Controller returns { success, data: [...], message }
+      // Fetch user list and current auth user in parallel
+      const [usersRes, meRes] = await Promise.allSettled([
+        api.get('/users'),
+        api.get('/user'),
+      ]);
+
+      if (usersRes.status === 'rejected') {
+        type E = { response?: { data?: { message?: string } } };
+        const msg = (usersRes.reason as E)?.response?.data?.message;
+        setFetchError(msg ?? 'Failed to load users.');
+        return;
+      }
+
+      const payload = usersRes.value.data;
       const raw: unknown[] = Array.isArray(payload)
         ? payload
-        : Array.isArray(payload?.data)
-        ? payload.data
-        : [];
-      // Filter out any non-object / malformed entries to prevent toLowerCase crash
-      const list: ApiUser[] = raw.filter(
-        (u): u is ApiUser => !!u && typeof u === 'object' && 'id' in (u as object)
-      );
+        : Array.isArray(payload?.data) ? payload.data : [];
+
+      const list = raw
+        .filter((u): u is Record<string, unknown> => !!u && typeof u === 'object' && 'id' in (u as object))
+        .map(mapUser);
+
+      // If the currently logged-in user is absent from the list, prepend them
+      // (happens when the backend scopes /users to only subordinates)
+      if (meRes.status === 'fulfilled') {
+        const meRaw = meRes.value.data?.data ?? meRes.value.data;
+        if (meRaw?.id && !list.find(u => u.id === meRaw.id)) {
+          list.unshift(mapUser(meRaw));
+        }
+      }
+
       setUsers(list);
-    } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setApiError(msg ?? 'Failed to load users.');
-    } finally {
-      setLoading(false);
-    }
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setFetchError(msg ?? 'Failed to load users.');
+    } finally { setLoading(false); }
   }, []);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
-  // ── Derived ────────────────────────────────────────────────────────────────
-
-  const filteredUsers = users.filter(u => {
-    const q = searchQuery.toLowerCase();
-    const matchSearch =
-      u.name.toLowerCase().includes(q) ||
-      u.email.toLowerCase().includes(q) ||
-      (roleLabel[u.role] ?? u.role).toLowerCase().includes(q);
-    const matchStatus = filterStatus === 'All' || u.status === filterStatus;
-    return matchSearch && matchStatus;
+  const filtered = users.filter(u => {
+    const matchSearch = u.name.toLowerCase().includes(search.toLowerCase()) ||
+                        u.email.toLowerCase().includes(search.toLowerCase());
+    const matchRole   = roleFilter ? u.role === roleFilter : true;
+    return matchSearch && matchRole;
   });
 
   const activeCount   = users.filter(u => u.status === 'ACTIVE').length;
-  const inactiveCount = users.filter(u => u.status === 'INACTIVE').length;
-
-  // ── Drag sort (local reorder only) ────────────────────────────────────────
-
-  const handleSort = () => {
-    if (dragItem.current === null || dragOverItem.current === null) return;
-    const arr     = [...users];
-    const dragged = arr[dragItem.current];
-    arr.splice(dragItem.current, 1);
-    arr.splice(dragOverItem.current, 0, dragged);
-    setUsers(arr);
-    dragItem.current = dragOverItem.current = null;
-  };
-
-  // ── Create / Update ────────────────────────────────────────────────────────
-
-  const openCreate = () => { setEditingUser(null); setForm(blankForm()); setFormError(null); setIsModalOpen(true); };
-
-  const openEdit = (user: ApiUser) => {
-    setEditingUser(user);
-    setForm({ name: user.name, email: user.email, password: '', passwordConfirm: '', role: user.role });
-    setFormError(null);
-    setIsModalOpen(true);
-  };
-
-  const closeModal = () => { setIsModalOpen(false); setEditingUser(null); setForm(blankForm()); setFormError(null); };
-
-  const handleSave = async () => {
-    setFormError(null);
-    if (!form.name.trim() || !form.email.trim()) { setFormError('Name and email are required.'); return; }
-    if (!editingUser && !form.password) { setFormError('Password is required for new users.'); return; }
-    if (form.password && form.password !== form.passwordConfirm) { setFormError('Passwords do not match.'); return; }
-
-    setSaving(true);
-    try {
-      if (editingUser) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const payload: Record<string, any> = { name: form.name, email: form.email, role: form.role };
-        if (form.password) {
-          payload.password = form.password;
-          payload.password_confirmation = form.passwordConfirm;
-        }
-        const res = await api.put(`/users/${editingUser.id}`, payload);
-        // Controller wraps response: { success, data: {...user}, message }
-        const updated: ApiUser = res.data?.data ?? res.data;
-        setUsers(prev => prev.map(u => u.id === editingUser.id ? updated : u));
-      } else {
-        const res = await api.post('/users', {
-          name:                  form.name,
-          email:                 form.email,
-          password:              form.password,
-          password_confirmation: form.passwordConfirm,
-          role:                  form.role,
-          status:                'ACTIVE',   // required by backend validation
-        });
-        // Controller wraps response: { success, data: {...user}, message }
-        const created: ApiUser = res.data?.data ?? res.data;
-        setUsers(prev => [created, ...prev]);
-      }
-      closeModal();
-    } catch (e: unknown) {
-      // Laravel returns { message, errors: { field: [msg, ...] } } on 422
-      type LaravelError = { response?: { data?: { message?: string; errors?: Record<string, string[]> } } };
-      const errData = (e as LaravelError)?.response?.data;
-      if (errData?.errors) {
-        const msgs = Object.values(errData.errors).flat().join(' · ');
-        setFormError(msgs);
-      } else {
-        setFormError(errData?.message ?? 'Failed to save user.');
-      }
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // ── Delete ─────────────────────────────────────────────────────────────────
-
-  const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this user?')) return;
-    try {
-      await api.delete(`/users/${id}`);
-      setUsers(prev => prev.filter(u => u.id !== id));
-    } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      alert(msg ?? 'Failed to delete user.');
-    }
-  };
-
-  // ── Status toggle ──────────────────────────────────────────────────────────
-
-  const openStatusToggle = (user: ApiUser) => { setSelectedUser(user); setIsConfirmModalOpen(true); };
-
-  const confirmStatusToggle = async () => {
-    if (!selectedUser) return;
-    setSaving(true);
-    try {
-      const res = await api.patch(`/users/${selectedUser.id}/toggle-status`);
-      const toggled: ApiUser = res.data?.data ?? res.data;
-      setUsers(prev => prev.map(u => u.id === selectedUser.id ? toggled : u));
-      setIsConfirmModalOpen(false);
-      setSelectedUser(null);
-    } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      alert(msg ?? 'Failed to toggle status.');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  // ── Render ─────────────────────────────────────────────────────────────────
+  const inactiveCount = users.filter(u => u.status !== 'ACTIVE').length;
 
   return (
-    <>
-      <style>{STYLES}</style>
-      <div className="um-root w-full flex-1 p-4 md:p-6 flex flex-col gap-5 bg-[#f5f4f8] min-h-full">
+    <div className="p-6 md:p-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
 
-        {/* ── SUMMARY STRIP ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            { label: 'Total Users', value: users.length,          icon: <Users     size={14}/>, color: '#7c3aed', bg: '#ede9fe' },
-            { label: 'Active',      value: activeCount,           icon: <UserCheck size={14}/>, color: '#16a34a', bg: '#dcfce7' },
-            { label: 'Inactive',    value: inactiveCount,         icon: <UserX     size={14}/>, color: '#dc2626', bg: '#fee2e2' },
-            { label: 'Roles',       value: ROLE_OPTIONS.length,   icon: <Shield    size={14}/>, color: '#0891b2', bg: '#cffafe' },
-          ].map((s, i) => (
-            <div key={i} className="bg-white border border-gray-100 rounded-xl px-4 py-3 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: s.bg, color: s.color }}>{s.icon}</div>
-              <div>
-                <p className="um-label" style={{ color: '#a1a1aa' }}>{s.label}</p>
-                <p className="um-value" style={{ fontSize: '1.35rem' }}>{loading ? '—' : s.value}</p>
-              </div>
-            </div>
-          ))}
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="text-base font-bold text-[#1a0f2e]">User Management</h2>
+          <p className="text-xs text-zinc-400 mt-0.5">
+            {loading ? 'Loading...' : `${users.length} users · ${activeCount} active`}
+          </p>
         </div>
-
-        {/* ── TOOLBAR ── */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-4 flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
-          <div className="flex items-center gap-3 flex-1 flex-wrap">
-            <div className="relative flex-1 min-w-50 max-w-xs">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300" size={15} />
-              <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search name, email, role…"
-                className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-100 rounded-lg outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-300 transition-all"
-                style={{ fontSize: '0.78rem', fontWeight: 500, color: '#1a0f2e' }} />
-            </div>
-            <div className="flex gap-1 p-1 bg-gray-50 border border-gray-100 rounded-lg">
-              {(['All', 'ACTIVE', 'INACTIVE'] as const).map(f => (
-                <button key={f} onClick={() => setFilterStatus(f)}
-                  className={`um-tab ${filterStatus === f ? 'um-tab-on' : 'um-tab-off'}`}>
-                  {f === 'All' ? 'All' : f === 'ACTIVE' ? `Active` : 'Inactive'}
-                  {f !== 'All' && <span className="ml-1 opacity-60">{f === 'ACTIVE' ? activeCount : inactiveCount}</span>}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button onClick={fetchUsers} disabled={loading}
-              className="p-2.5 border border-gray-200 rounded-xl text-gray-400 hover:text-[#3b2063] hover:border-[#ddd6f7] hover:bg-[#faf8ff] transition-all"
-              title="Refresh">
-              <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
-            </button>
-            <button onClick={openCreate}
-              className="px-5 py-2 bg-[#3b2063] text-white rounded-xl hover:bg-[#2e1850] flex items-center justify-center gap-2 transition-all shadow-sm whitespace-nowrap"
-              style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-              <Plus size={15} strokeWidth={2.5} /> Add User
-            </button>
-          </div>
+        <div className="flex items-center gap-2">
+          <Btn variant="secondary" onClick={fetchUsers} disabled={loading}>
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
+          </Btn>
+          <Btn onClick={() => setAddOpen(true)} disabled={loading}>
+            <Plus size={13} /> Add User
+          </Btn>
         </div>
-
-        {/* ── ERROR BANNER ── */}
-        {apiError && (
-          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-center gap-3">
-            <AlertCircle size={16} className="text-red-500 shrink-0" />
-            <p style={{ fontSize: '0.78rem', fontWeight: 600, color: '#dc2626' }}>{apiError}</p>
-            <button onClick={fetchUsers} className="ml-auto text-red-500 hover:text-red-700 transition-colors"
-              style={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Retry</button>
-          </div>
-        )}
-
-        {/* ── USER LIST ── */}
-        <div className="flex flex-col gap-2">
-
-          {/* Column headers */}
-          <div className="hidden sm:grid grid-cols-12 px-4 py-2">
-            {['', 'User', 'Role', 'Status', 'Last Login', 'Logins', ''].map((h, i) => (
-              <div key={i} className={`um-col-hdr ${
-                i === 0 ? 'col-span-1' : i === 1 ? 'col-span-3' : i === 2 ? 'col-span-2' :
-                i === 3 ? 'col-span-2' : i === 4 ? 'col-span-2' : i === 5 ? 'col-span-1' : 'col-span-1 text-right'}`}>
-                {h}
-              </div>
-            ))}
-          </div>
-
-          {/* Loading skeleton */}
-          {loading && (
-            <div className="flex flex-col gap-2">
-              {[1,2,3].map(i => (
-                <div key={i} className="bg-white border border-gray-100 rounded-xl px-4 py-4 flex items-center gap-3 animate-pulse">
-                  <div className="w-8 h-8 bg-gray-100 rounded-xl shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <div className="h-3 bg-gray-100 rounded w-1/4" />
-                    <div className="h-2 bg-gray-50 rounded w-1/6" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Empty state */}
-          {!loading && filteredUsers.length === 0 && (
-            <div className="text-center py-16 bg-white border border-gray-100 border-dashed rounded-2xl">
-              <Users className="mx-auto h-10 w-10 text-gray-200 mb-3" />
-              <p className="um-label" style={{ color: '#a1a1aa' }}>No users found</p>
-              <p className="um-sub" style={{ marginTop: 4 }}>Adjust your search or filter.</p>
-            </div>
-          )}
-
-          {/* Rows */}
-          {!loading && filteredUsers.map((user) => (
-            <div key={user.id}>
-              <div
-                draggable
-                onDragStart={e => {
-                  dragItem.current = users.findIndex(u => u.id === user.id);
-                  setTimeout(() => { if (e.target instanceof HTMLElement) e.target.classList.add('opacity-40'); }, 0);
-                }}
-                onDragEnter={() => { dragOverItem.current = users.findIndex(u => u.id === user.id); }}
-                onDragEnd={e => {
-                  if (e.target instanceof HTMLElement) e.target.classList.remove('opacity-40');
-                  handleSort();
-                }}
-                onDragOver={e => e.preventDefault()}
-                className={`bg-white border rounded-xl px-4 py-3.5 hover:border-gray-200 transition-all cursor-grab active:cursor-grabbing group ${expandedUser === user.id ? 'border-violet-200 rounded-b-none' : 'border-gray-100'}`}
-              >
-                <div className="grid grid-cols-12 items-center gap-2">
-
-                  {/* Drag handle */}
-                  <div className="col-span-1 flex items-center">
-                    <GripVertical size={14} className="text-gray-300 group-hover:text-gray-400 transition-colors" />
-                  </div>
-
-                  {/* Name + email */}
-                  <div className="col-span-11 sm:col-span-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${user.status === 'ACTIVE' ? 'bg-violet-100 text-violet-700' : 'bg-gray-100 text-gray-400'}`}
-                        style={{ fontSize: '0.72rem', fontWeight: 800 }}>
-                        {user.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <p style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1a0f2e', lineHeight: 1.2 }} className="truncate">{user.name}</p>
-                        <p className="um-sub truncate">{user.email}</p>
-                        {(user.branch ?? user.branch_name) && (
-                          <p className="truncate" style={{ fontSize: '0.6rem', fontWeight: 600, color: '#7c3aed', letterSpacing: '0.06em', marginTop: 1 }}>
-                            📍 {user.branch ?? user.branch_name}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Role */}
-                  <div className="hidden sm:flex col-span-2 items-center">
-                    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg border ${positionColor[user.role] ?? 'bg-gray-100 text-gray-600 border-gray-200'}`}
-                      style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                      {roleLabel[user.role] ?? user.role.toUpperCase()}
-                    </span>
-                  </div>
-
-                  {/* Status toggle */}
-                  <div className="hidden sm:flex col-span-2 items-center">
-                    <button onClick={() => openStatusToggle(user)}
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all hover:opacity-75 ${
-                        user.status === 'ACTIVE'
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                          : 'bg-gray-50 text-gray-500 border-gray-200'}`}
-                      style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                      {user.status === 'ACTIVE' ? <CheckCircle2 size={10} className="text-emerald-500" /> : <CircleDashed size={10} />}
-                      {user.status === 'ACTIVE' ? 'Active' : 'Inactive'}
-                    </button>
-                  </div>
-
-                  {/* Last Login */}
-                  <div className="hidden sm:flex col-span-2 items-center gap-1.5">
-                    <Clock size={11} className="text-gray-300 shrink-0" />
-                    <p className="um-sub truncate">
-                      {user.last_login_at
-                        ? new Date(user.last_login_at).toLocaleString('en-PH', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-                        : 'Never'}
-                    </p>
-                  </div>
-
-                  {/* Login count */}
-                  <div className="hidden sm:flex col-span-1 items-center">
-                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#71717a' }}>
-                      {(user.login_count ?? 0).toLocaleString()}
-                    </span>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="hidden sm:flex col-span-1 justify-end items-center gap-1">
-                    <button onClick={() => setExpandedUser(expandedUser === user.id ? null : user.id)}
-                      className={`p-1.5 rounded-lg transition-colors ${expandedUser === user.id ? 'text-violet-600 bg-violet-50' : 'text-gray-300 hover:text-gray-600 hover:bg-gray-50'}`}>
-                      <ChevronDown size={14} className={`transition-transform ${expandedUser === user.id ? 'rotate-180' : ''}`} />
-                    </button>
-                    <button onClick={() => openEdit(user)} className="p-1.5 rounded-lg text-gray-300 hover:text-blue-600 hover:bg-blue-50 transition-colors"><Edit3 size={14} /></button>
-                    <button onClick={() => handleDelete(user.id)} className="p-1.5 rounded-lg text-gray-300 hover:text-red-600 hover:bg-red-50 transition-colors"><Trash2 size={14} /></button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Expanded detail row */}
-              {expandedUser === user.id && (
-                <div className="bg-violet-50/50 border border-violet-200 border-t-0 rounded-b-xl px-6 py-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
-                  {[
-                    { label: 'Member Since',   value: user.created_at ? new Date(user.created_at).toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' }) : '—', icon: <Clock size={12}/> },
-                    { label: 'Total Logins',   value: `${(user.login_count ?? 0).toLocaleString()} sessions`,  icon: <Key    size={12}/> },
-                    { label: 'Role',           value: roleLabel[user.role] ?? user.role.toUpperCase(),          icon: <Shield size={12}/> },
-                    { label: 'Branch',         value: user.branch ?? user.branch_name ?? '—',                  icon: <Users  size={12}/> },
-                  ].map((d, di) => (
-                    <div key={di} className="flex flex-col gap-1">
-                      <div className="flex items-center gap-1.5 um-label" style={{ color: '#7c3aed' }}>{d.icon}{d.label}</div>
-                      <p style={{ fontSize: '0.82rem', fontWeight: 600, color: '#1a0f2e' }}>{d.value}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* ── ADD / EDIT MODAL ── */}
-        {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-            <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
-              <div className="px-6 py-4 flex justify-between items-center border-b border-gray-100">
-                <div>
-                  <h2 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.03em', margin: 0 }}>
-                    {editingUser ? 'Edit User' : 'Create New User'}
-                  </h2>
-                  <p className="um-sub" style={{ marginTop: 2 }}>{editingUser ? 'Update profile details' : 'Add a new system user'}</p>
-                </div>
-                <button onClick={closeModal} className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-
-                {formError && (
-                  <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 flex items-center gap-2">
-                    <AlertCircle size={14} className="text-red-500 shrink-0" />
-                    <p style={{ fontSize: '0.75rem', fontWeight: 600, color: '#dc2626' }}>{formError}</p>
-                  </div>
-                )}
-
-                <div className="space-y-1.5">
-                  <label className="um-label flex items-center gap-1.5"><Users size={12}/> Full Name</label>
-                  <input className="um-input" type="text" value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="Enter full name" />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="um-label flex items-center gap-1.5"><Shield size={12}/> Email</label>
-                  <input className="um-input" type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="user@luckyboba.com" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <label className="um-label flex items-center gap-1.5"><Key size={12}/> {editingUser ? 'New Password' : 'Password'}</label>
-                    <input className="um-input" type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} placeholder="••••••••" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="um-label">Confirm</label>
-                    <input className="um-input" type="password" value={form.passwordConfirm} onChange={e => setForm({...form, passwordConfirm: e.target.value})} placeholder="••••••••" />
-                  </div>
-                </div>
-                {editingUser && (
-                  <p className="um-sub" style={{ marginTop: -8 }}>Leave password blank to keep existing password.</p>
-                )}
-
-                <div className="space-y-1.5">
-                  <label className="um-label">Role / Position</label>
-                  <select className="um-input" value={form.role} onChange={e => setForm({...form, role: e.target.value})}>
-                    {ROLE_OPTIONS.map(r => <option key={r} value={r}>{roleLabel[r] ?? r.toUpperCase()}</option>)}
-                  </select>
-                </div>
-
-                <div className="bg-violet-50 border border-violet-100 rounded-xl p-3 flex gap-2.5">
-                  <Shield size={14} className="text-violet-500 shrink-0 mt-0.5" />
-                  <div>
-                    <p className="um-label" style={{ color: '#6d28d9' }}>
-                      {form.role === 'cashier' ? 'Cashier Access' : 'Branch Manager Access'}
-                    </p>
-                    <p className="um-sub" style={{ marginTop: 3 }}>
-                      {form.role === 'cashier'
-                        ? 'POS, inventory check, basic reports'
-                        : 'Full branch access, user management, all reports'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-3 p-6 pt-0">
-                <button onClick={closeModal}
-                  className="flex-1 bg-white border border-gray-200 py-2.5 rounded-xl transition-all hover:bg-gray-50"
-                  style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#3f3f46' }}>
-                  Cancel
-                </button>
-                <button onClick={handleSave} disabled={saving}
-                  className="flex-1 bg-[#3b2063] hover:bg-[#2e1850] text-white py-2.5 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all disabled:opacity-60"
-                  style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                  {saving
-                    ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    : <><Save size={13} /> {editingUser ? 'Save Changes' : 'Create User'}</>}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── STATUS TOGGLE CONFIRM MODAL ── */}
-        {isConfirmModalOpen && selectedUser && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-            <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6">
-              <div className={`w-14 h-14 mx-auto rounded-2xl flex items-center justify-center mb-4 ${selectedUser.status === 'ACTIVE' ? 'bg-red-100 text-red-600' : 'bg-emerald-100 text-emerald-600'}`}>
-                <AlertCircle size={26} />
-              </div>
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.03em', textAlign: 'center', marginBottom: 6 }}>
-                {selectedUser.status === 'ACTIVE' ? 'Deactivate User?' : 'Activate User?'}
-              </h3>
-              <p className="um-sub" style={{ textAlign: 'center', marginBottom: 8 }}>
-                {selectedUser.status === 'ACTIVE' ? 'This will revoke system access for' : 'This will restore system access for'}
-              </p>
-              <div className="flex justify-center mb-5">
-                <span className="inline-flex items-center gap-2 bg-gray-50 border border-gray-200 px-3 py-1.5 rounded-lg">
-                  <div className="w-6 h-6 rounded-lg bg-violet-100 text-violet-700 flex items-center justify-center"
-                    style={{ fontSize: '0.6rem', fontWeight: 800 }}>
-                    {selectedUser.name.charAt(0)}
-                  </div>
-                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1a0f2e' }}>{selectedUser.name}</span>
-                  <span className="um-sub">{selectedUser.email}</span>
-                </span>
-              </div>
-              <div className="flex gap-3">
-                <button onClick={() => { setIsConfirmModalOpen(false); setSelectedUser(null); }}
-                  className="flex-1 bg-white border border-gray-200 py-2.5 rounded-xl transition-all hover:bg-gray-50"
-                  style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#3f3f46' }}>
-                  Cancel
-                </button>
-                <button onClick={confirmStatusToggle} disabled={saving}
-                  className={`flex-1 py-2.5 rounded-xl text-white transition-all disabled:opacity-60 flex items-center justify-center gap-2 ${selectedUser.status === 'ACTIVE' ? 'bg-red-600 hover:bg-red-700' : 'bg-emerald-600 hover:bg-emerald-700'}`}
-                  style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                  {saving
-                    ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    : selectedUser.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
       </div>
-    </>
+
+      {/* ── Stat Cards ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <StatCard icon={<Users     size={16} />} label="Total Users" value={loading ? '—' : users.length}  color="violet"  />
+        <StatCard icon={<UserCheck size={16} />} label="Active"      value={loading ? '—' : activeCount}   color="emerald" />
+        <StatCard icon={<XCircle   size={16} />} label="Inactive"    value={loading ? '—' : inactiveCount} color="red"     />
+      </div>
+
+      {/* ── Table card ── */}
+      <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
+
+        {/* Toolbar */}
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-100">
+          <div className="flex-1 flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
+            <Search size={13} className="text-zinc-400" />
+            <input value={search} onChange={e => setSearch(e.target.value)}
+              className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400"
+              placeholder="Search users..." />
+          </div>
+          <select value={roleFilter} onChange={e => setRoleFilter(e.target.value)}
+            className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none">
+            <option value="">All Roles</option>
+            {ROLE_OPTIONS.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+          </select>
+        </div>
+
+        {/* Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-zinc-100">
+                {['Name', 'Role', 'Branch', 'Email', 'Last Login', 'Status', 'Actions'].map(h => (
+                  <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+
+              {/* Loading skeleton */}
+              {loading && [...Array(5)].map((_, i) => (
+                <tr key={i} className="border-b border-zinc-50">
+                  {[...Array(7)].map((_, j) => (
+                    <td key={j} className="px-5 py-4">
+                      <div className="h-3 bg-zinc-100 rounded animate-pulse" style={{ width: `${60 + (j * 7) % 40}%` }} />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+
+              {/* Error */}
+              {!loading && fetchError && (
+                <tr>
+                  <td colSpan={7} className="px-5 py-10 text-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <AlertCircle size={20} className="text-red-400" />
+                      <p className="text-sm font-semibold text-red-500">{fetchError}</p>
+                      <Btn variant="secondary" size="sm" onClick={fetchUsers}>Try again</Btn>
+                    </div>
+                  </td>
+                </tr>
+              )}
+
+              {/* Empty */}
+              {!loading && !fetchError && filtered.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-5 py-10 text-center text-zinc-400 text-xs font-medium">
+                    {search || roleFilter ? 'No users match your filters.' : 'No users found.'}
+                  </td>
+                </tr>
+              )}
+
+              {/* Rows */}
+              {!loading && !fetchError && filtered.map(u => (
+                <tr key={u.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-2.5">
+                      <Avatar name={u.name} />
+                      <span className="font-semibold text-[#1a0f2e]">{u.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-5 py-3.5"><RolePill role={u.role} /></td>
+                  <td className="px-5 py-3.5 text-zinc-500">{u.branch}</td>
+                  <td className="px-5 py-3.5 text-zinc-500">{u.email}</td>
+                  <td className="px-5 py-3.5 text-zinc-400 text-xs">{u.lastLogin ?? '—'}</td>
+                  <td className="px-5 py-3.5"><Badge status={u.status} /></td>
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => setViewTarget(u)}
+                        className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors" title="View">
+                        <Eye size={13} />
+                      </button>
+                      <button onClick={() => setEditTarget(u)}
+                        className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors" title="Edit">
+                        <Edit2 size={13} />
+                      </button>
+                      <button onClick={() => setToggleTarget(u)}
+                        className={`p-1.5 rounded-[0.4rem] transition-colors ${u.status === 'ACTIVE' ? 'hover:bg-amber-50 text-zinc-400 hover:text-amber-500' : 'hover:bg-emerald-50 text-zinc-400 hover:text-emerald-600'}`}
+                        title={u.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}>
+                        {u.status === 'ACTIVE' ? <Lock size={13} /> : <UserCheck size={13} />}
+                      </button>
+                      <button onClick={() => setDelTarget(u)}
+                        className="p-1.5 hover:bg-red-50 rounded-[0.4rem] text-zinc-400 hover:text-red-500 transition-colors" title="Delete">
+                        <Trash2 size={13} />
+                      </button>
+
+                      {u.role === 'branch_manager' && (
+  <button onClick={() => setPinTarget(u)}
+    className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors" title="Change PIN">
+    <ShieldCheck size={13} />
+  </button>
+)}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ── Modals ── */}
+      {addOpen && (
+        <UserFormModal
+          onClose={() => setAddOpen(false)}
+          onSaved={u => setUsers(p => [u, ...p])}
+        />
+      )}
+      {viewTarget && (
+        <ViewUserModal onClose={() => setViewTarget(null)} user={viewTarget} />
+      )}
+      {editTarget && (
+        <UserFormModal
+          onClose={() => setEditTarget(null)}
+          onSaved={u => { setUsers(p => p.map(x => x.id === u.id ? u : x)); setEditTarget(null); }}
+          editingUser={editTarget}
+        />
+      )}
+      {toggleTarget && (
+        <ToggleStatusModal
+          onClose={() => setToggleTarget(null)}
+          onToggled={u => { setUsers(p => p.map(x => x.id === u.id ? u : x)); setToggleTarget(null); }}
+          user={toggleTarget}
+        />
+      )}
+      {delTarget && (
+        <DeleteUserModal
+          onClose={() => setDelTarget(null)}
+          onDeleted={id => { setUsers(p => p.filter(x => x.id !== id)); setDelTarget(null); }}
+          user={delTarget}
+        />
+      )}
+      {pinTarget && (
+  <ResetPinModal
+    onClose={() => setPinTarget(null)}
+    user={pinTarget}
+  />
+)}
+
+    </div>
   );
 };
 
