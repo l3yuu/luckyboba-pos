@@ -159,8 +159,15 @@ export const ReceiptPrint = ({
           FOR FRANCHISE<br />EMAIL OR CONTACT US ON<br />luckyboba.franchise@gmail.com<br />0917199894
         </div>
 
-        {/* Queue number */}
-        <div className="mt-6 py-4 text-center">
+        {/* Queue number stub 1 — cut after */}
+        <div className="mt-6 py-4 text-center" style={{ pageBreakAfter: 'always' }}>
+          <p className="text-sm tracking-widest uppercase mb-1">Your Order Number Is:</p>
+          <h2 className="font-black text-4xl">#{queueNumber}</h2>
+          <p className="text-[10px] mt-2 uppercase text-gray-500">Please wait for your number to be called</p>
+        </div>
+
+        {/* Queue number stub 2 — cut after */}
+        <div className="py-4 text-center" style={{ pageBreakAfter: 'always' }}>
           <p className="text-sm tracking-widest uppercase mb-1">Your Order Number Is:</p>
           <h2 className="font-black text-4xl">#{queueNumber}</h2>
           <p className="text-[10px] mt-2 uppercase text-gray-500">Please wait for your number to be called</p>
