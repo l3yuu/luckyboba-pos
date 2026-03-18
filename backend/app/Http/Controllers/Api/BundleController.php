@@ -15,15 +15,22 @@ class BundleController extends Controller
      * GET /api/bundles
      * Returns all bundles with their items — used by POS cache
      */
-    public function index()
-    {
-        $bundles = Bundle::with('items')
-            ->where('is_active', true)
-            ->orderBy('category')
-            ->get();
+public function index(Request $request)
+{
+    $query = Bundle::with('items')->where('is_active', true);
 
-        return response()->json($bundles);
+    if ($request->has('category_id')) {
+        $query->where('category_id', $request->category_id);
     }
+
+    if ($request->has('name')) {
+        $query->where('name', $request->name);
+    }
+
+    $bundles = $query->orderBy('category')->get();
+
+    return response()->json($bundles);
+}
 
     /**
      * GET /api/bundles/all

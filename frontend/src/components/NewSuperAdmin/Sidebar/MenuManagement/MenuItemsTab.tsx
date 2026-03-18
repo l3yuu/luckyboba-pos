@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   Search, Plus, Edit2, Trash2, RefreshCw,
   AlertCircle, X, Package, ChevronDown,
-  ToggleLeft, ToggleRight, Barcode, Utensils, Coffee,
+  ToggleLeft, ToggleRight, Barcode, Utensils, Coffee, Info,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 
@@ -17,6 +17,13 @@ const authHeaders = (): Record<string, string> => ({
   "Accept":       "application/json",
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
+
+interface BundleItemRaw {
+  custom_name?: string;
+  name?:        string;
+  quantity?:    number;
+  size?:        string;
+}
 
 interface MenuItem {
   id:             number;
@@ -583,9 +590,33 @@ const MenuItemsTab: React.FC = () => {
   const [search,        setSearch]        = useState("");
   const [filterCat,     setFilterCat]     = useState("");
   const [filterAvail,   setFilterAvail]   = useState("");
+  const [filterType,    setFilterType]    = useState("");
   const [addOpen,       setAddOpen]       = useState(false);
   const [editTarget,    setEditTarget]    = useState<MenuItem | null>(null);
   const [delTarget,     setDelTarget]     = useState<MenuItem | null>(null);
+  const [bundleInfo, setBundleInfo] = useState<Record<number, { name: string; quantity: number; size: string }[]>>({});
+
+  const fetchBundleItems = async (itemId: number, categoryType: string, itemName: string) => {
+    if (bundleInfo[itemId] !== undefined || !["combo", "bundle"].includes(categoryType)) return;
+    try {
+      const res  = await fetch(`/api/bundles?name=${encodeURIComponent(itemName)}`, { headers: authHeaders() });
+      const data = await res.json();
+      const bundles = Array.isArray(data) ? data : (data.data ?? []);
+      if (bundles.length > 0) {
+        const rawItems = bundles[0].items ?? bundles[0].bundle_items ?? [];
+        setBundleInfo(prev => ({
+          ...prev,
+          [itemId]: rawItems.map((i: BundleItemRaw) => ({
+            name:     i.custom_name ?? i.name ?? "—",
+            quantity: i.quantity    ?? 1,
+            size:     i.size        ?? "—",
+          })),
+        }));
+      } else {
+        setBundleInfo(prev => ({ ...prev, [itemId]: [] }));
+      }
+    } catch { setBundleInfo(prev => ({ ...prev, [itemId]: [] })); }
+  };
 
   const fetchAll = useCallback(async () => {
     setLoading(true); setError("");
@@ -656,7 +687,8 @@ const MenuItemsTab: React.FC = () => {
                         (i.barcode ?? "").toLowerCase().includes(search.toLowerCase());
     const matchCat   = !filterCat   || String(i.category_id) === filterCat;
     const matchAvail = !filterAvail || String(i.is_available) === filterAvail;
-    return matchSearch && matchCat && matchAvail;
+    const matchType  = !filterType  || i.category_type === filterType;
+    return matchSearch && matchCat && matchAvail && matchType; // ✅ add matchType here
   });
 
   const fmt = (v: number) => `₱${Number(v).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
@@ -735,6 +767,20 @@ const MenuItemsTab: React.FC = () => {
             <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           </div>
           <div className="relative">
+          <select value={filterType} onChange={e => setFilterType(e.target.value)}
+            className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
+            <option value="">All Types</option>
+            <option value="food">Food</option>
+            <option value="drink">Drink</option>
+            <option value="wings">Wings</option>
+            <option value="waffle">Waffle</option>
+            <option value="combo">Combo</option>
+            <option value="bundle">Bundle</option>
+            <option value="promo">Promo</option>
+          </select>
+          <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+        </div>
+          <div className="relative">
             <select value={filterAvail} onChange={e => setFilterAvail(e.target.value)}
               className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
               <option value="">All Status</option>
@@ -743,8 +789,8 @@ const MenuItemsTab: React.FC = () => {
             </select>
             <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           </div>
-          {(filterCat || filterAvail) && (
-            <button onClick={() => { setFilterCat(""); setFilterAvail(""); }}
+          {(filterCat || filterAvail || filterType) && (   // ✅ add filterType
+            <button onClick={() => { setFilterCat(""); setFilterAvail(""); setFilterType(""); }}
               className="text-xs font-bold text-zinc-400 hover:text-red-500 flex items-center gap-1 transition-colors">
               <X size={11} /> Clear
             </button>
@@ -770,7 +816,7 @@ const MenuItemsTab: React.FC = () => {
               ))}
               {!loading && filtered.length === 0 && (
                 <tr><td colSpan={8} className="px-5 py-12 text-center text-zinc-400 text-xs font-medium">
-                  {search || filterCat || filterAvail ? "No items match your filters." : "No menu items found."}
+                  {search || filterCat || filterAvail || filterType ? "No items match your filters." : "No menu items found."}
                 </td></tr>
               )}
               {!loading && filtered.map(item => (
@@ -811,18 +857,64 @@ const MenuItemsTab: React.FC = () => {
                         : <ToggleLeft  size={22} className="text-zinc-300"  />}
                     </button>
                   </td>
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-1">
-                      <button onClick={() => setEditTarget(item)}
-                        className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors" title="Edit">
-                        <Edit2 size={13} />
-                      </button>
-                      <button onClick={() => setDelTarget(item)}
-                        className="p-1.5 hover:bg-red-50 rounded-[0.4rem] text-zinc-400 hover:text-red-500 transition-colors" title="Delete">
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </td>
+<td className="px-5 py-3.5">
+  <div className="flex items-center gap-1">
+
+    {/* ✅ Info popover for combo/bundle items */}
+    {["combo", "bundle"].includes(item.category_type) && (
+      <div className="relative group">
+        <button
+          className="p-1.5 hover:bg-purple-50 rounded-[0.4rem] text-zinc-300 hover:text-purple-500 transition-colors"
+          title="View components"
+          onMouseEnter={() => fetchBundleItems(item.id, item.category_type, item.name)}
+        >
+          <Info size={13} />
+        </button>
+
+        {/* Popover */}
+        <div className="absolute bottom-full right-0 mb-2 w-52 bg-white border border-zinc-200 rounded-xl shadow-xl z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 pointer-events-none">
+          <div className="px-3 py-2.5 border-b border-zinc-100">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Components</p>
+            <p className="text-[9px] text-zinc-400 mt-0.5">{item.name}</p>
+          </div>
+          <div className="px-3 py-2 flex flex-col gap-1.5">
+            {!bundleInfo[item.id] && (
+              <p className="text-[10px] text-zinc-400 italic">Loading...</p>
+            )}
+            {bundleInfo[item.id]?.length === 0 && (
+              <p className="text-[10px] text-zinc-400 italic">No components found.</p>
+            )}
+            {bundleInfo[item.id]?.map((comp, idx) => (
+              <div key={idx} className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${item.category_type === "combo" ? (idx === 0 ? "bg-amber-400" : "bg-blue-400") : "bg-violet-400"}`} />
+                  <span className="text-[10px] font-semibold text-zinc-700 truncate max-w-27.5">{comp.name}</span>
+                </div>
+                <div className="flex items-center gap-1 shrink-0">
+                  {comp.size !== "none" && comp.size !== "—" && (
+                    <span className="text-[9px] font-bold text-zinc-400 bg-zinc-100 px-1.5 py-0.5 rounded">{comp.size}</span>
+                  )}
+                  <span className="text-[9px] font-bold text-zinc-400">×{comp.quantity}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Arrow */}
+          <div className="absolute -bottom-1.5 right-3 w-3 h-3 bg-white border-r border-b border-zinc-200 rotate-45" />
+        </div>
+      </div>
+    )}
+
+    <button onClick={() => setEditTarget(item)}
+      className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors" title="Edit">
+      <Edit2 size={13} />
+    </button>
+    <button onClick={() => setDelTarget(item)}
+      className="p-1.5 hover:bg-red-50 rounded-[0.4rem] text-zinc-400 hover:text-red-500 transition-colors" title="Delete">
+      <Trash2 size={13} />
+    </button>
+  </div>
+</td>
                 </tr>
               ))}
             </tbody>
