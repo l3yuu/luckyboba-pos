@@ -9,16 +9,36 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Step 1: Fix any existing stale branch_name values
-        DB::statement('
-            UPDATE users u
-            JOIN branches b ON u.branch_id = b.id
-            SET u.branch_name = b.name
-            WHERE u.branch_name != b.name
-               OR u.branch_name IS NULL
-        ');
+        $driver = DB::getDriverName();
 
-        // Step 2: Add foreign key — but check indexes first
+        // Step 1: Fix any existing stale branch_name values (SQLite-compatible subquery)
+        DB::statement("
+            UPDATE users
+            SET branch_name = (
+                SELECT branches.name
+                FROM branches
+                WHERE branches.id = users.branch_id
+            )
+            WHERE branch_id IS NOT NULL
+              AND (
+                branch_name IS NULL
+                OR branch_name != (
+                    SELECT branches.name
+                    FROM branches
+                    WHERE branches.id = users.branch_id
+                )
+              )
+        ");
+
+        // Step 2: Add foreign key — SQLite handles FK differently
+        if ($driver === 'sqlite') {
+            // SQLite: foreign keys are defined at table creation and can't be
+            // added after the fact via ALTER TABLE, so we skip index/FK checks.
+            // FK constraints are enforced at the app/Eloquent level instead.
+            return;
+        }
+
+        // MySQL / other drivers: check indexes and add FK normally
         Schema::table('users', function (Blueprint $table) {
 
             // Only drop the plain index if it actually exists
@@ -55,6 +75,12 @@ return new class extends Migration
 
     public function down(): void
     {
+        $driver = DB::getDriverName();
+
+        if ($driver === 'sqlite') {
+            return;
+        }
+
         Schema::table('users', function (Blueprint $table) {
             $hasForeign = DB::select("
                 SELECT CONSTRAINT_NAME
