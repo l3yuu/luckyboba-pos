@@ -18,3 +18,46 @@
   border-radius: 8px;
 }
 
+/* ── Print Styles ─────────────────────────────────────────────────────────── */
+@media print {
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    background: white;
+  }
+
+  .printable-receipt-container {
+    display: block !important;
+    width: 80mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .receipt-area {
+    width: 80mm !important;
+    min-height: auto !important;
+    margin: 0 !important;
+    padding: 4mm !important;
+  }
+
+  .sticker-area {
+    width: 57mm !important;
+    height: 30mm !important;
+    overflow: hidden;
+  }
+
+  .page-break {
+    page-break-after: always;
+    break-after: page;
+  }
+}

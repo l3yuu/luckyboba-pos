@@ -15,7 +15,7 @@ class AddOnSeeder extends Seeder
             ['name' => 'Mini White Pearl',              'price' => 15.00, 'barcode' => 'AO-6',   'category' => 'drink', 'grab_price' => 25.00, 'panda_price' => 25.00],
             ['name' => 'Crushed Oreo',                  'price' => 10.00, 'barcode' => 'AO-7',   'category' => 'drink', 'grab_price' => 15.00, 'panda_price' => 15.00],
             ['name' => 'Milo',                          'price' => 10.00, 'barcode' => 'AO-13',  'category' => 'drink', 'grab_price' => 15.00, 'panda_price' => 15.00],
-            ['name' => 'Coffee Shot',                   'price' => 10.00, 'barcode' => 'AO-16',  'category' => 'drink', 'grab_price' => 15.00, 'panda_price' => 15.00],
+            ['name' => 'Coffee Shot',                   'price' => 10.00, 'barcode' => 'AO-16',  'category' => 'drink', 'grab_price' => 20.00, 'panda_price' => 20.00],
             ['name' => 'Coconut Jelly',                 'price' => 25.00, 'barcode' => 'AO-21',  'category' => 'drink', 'grab_price' => 35.00, 'panda_price' => 35.00],
             ['name' => 'Coffee Jelly',                  'price' => 25.00, 'barcode' => 'AO-9',   'category' => 'drink', 'grab_price' => 35.00, 'panda_price' => 35.00],
             ['name' => 'Mixed Fruit Jelly',             'price' => 25.00, 'barcode' => 'AO-10',  'category' => 'drink', 'grab_price' => 35.00, 'panda_price' => 35.00],
@@ -26,6 +26,7 @@ class AddOnSeeder extends Seeder
             ['name' => 'Cheese Mousse',                 'price' => 20.00, 'barcode' => 'AO-15',  'category' => 'drink', 'grab_price' => 30.00, 'panda_price' => 30.00],
             ['name' => 'Chia Seeds',                    'price' => 20.00, 'barcode' => 'AO-11',  'category' => 'drink', 'grab_price' => 30.00, 'panda_price' => 30.00],
             ['name' => 'Pudding',                       'price' => 25.00, 'barcode' => 'AO-20',  'category' => 'drink', 'grab_price' => 35.00, 'panda_price' => 35.00],
+            ['name' => 'Nata Jelly',                    'price' => 25.00, 'barcode' => 'AO-8',   'category' => 'drink', 'grab_price' => 35.00, 'panda_price' => 35.00],
 
             // Waffle combo add-ons (no grab/panda price increase)
             ['name' => 'Waffle Combo 8oz Dark Roast Coffee',  'price' => 39.00, 'barcode' => 'AO-WC1', 'category' => 'waffle', 'grab_price' => 0.00, 'panda_price' => 0.00],
