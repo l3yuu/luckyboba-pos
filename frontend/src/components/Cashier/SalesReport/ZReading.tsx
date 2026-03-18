@@ -164,8 +164,16 @@ const ZReading = () => {
         const cashDenominations = ALL_DENOMS.map(denom => ({ label: denom === 0.25 ? '0.25' : String(denom), qty: storedMap.get(denom) ?? 0, total: denom * (storedMap.get(denom) ?? 0) }));
         const totalCashCount = ccNested?.grand_total ?? (ccData.actual_amount as number) ?? 0;
         const expectedAmount = (ccData.expected_amount as number) ?? 0;
-        const shortOver = (ccData.short_over as number) ?? 0;
-        const merged = { ...zData, cash_denominations: cashDenominations, total_cash_count: totalCashCount, expected_amount: expectedAmount, over_short: shortOver, categories: (qtyRes.data as Record<string, unknown>).categories ?? [], all_addons_summary: (qtyRes.data as Record<string, unknown>).all_addons_summary ?? [], logs: (voidRes.data as Record<string, unknown>).logs ?? (Array.isArray(voidRes.data) ? voidRes.data : []) };
+        const merged = { 
+            ...zData, 
+            cash_denominations: cashDenominations, 
+            total_cash_count: totalCashCount, 
+            expected_amount: expectedAmount,
+            // ❌ Remove: over_short: shortOver  ← delete this line
+            categories: (qtyRes.data as Record<string, unknown>).categories ?? [], 
+            all_addons_summary: (qtyRes.data as Record<string, unknown>).all_addons_summary ?? [], 
+            logs: (voidRes.data as Record<string, unknown>).logs ?? (Array.isArray(voidRes.data) ? voidRes.data : []) 
+          };
         setRawApiResponse(merged as Record<string, unknown>);
         setReportData({ ...merged as unknown as ZReadingReport, report_type: type });
         return;
@@ -371,8 +379,6 @@ const ZReading = () => {
   const renderZReading = () => {
     const gross = reportData?.gross_sales || 0;
     const netSales = reportData?.net_sales || gross;
-    const cashTotal = reportData?.cash_total || 0;
-    const nonCash = reportData?.non_cash_total || 0;
     const txCount = reportData?.transaction_count || 0;
     const scDiscount = reportData?.sc_discount || 0;
     const pwdDiscount = reportData?.pwd_discount || 0;
@@ -414,14 +420,18 @@ const ZReading = () => {
         const key = METHOD_ALIASES[raw] ?? raw;
         paymentMap.set(key, (paymentMap.get(key) ?? 0) + Number(p.amount ?? 0));
       });
-    const creditMethods = ['visa', 'mastercard'];
-    const debitMethods = ['gcash'];
-    const totalCredit = creditMethods.reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
-    const totalDebit = debitMethods.reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
-    const totalCard = totalCredit + totalDebit;
+    const creditMethods = ['visa', 'mastercard', 'food panda', 'grab', 'gcash'];
+    const debitMethods: string[] = [];
+    const totalCredit  = creditMethods.reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
+    const totalDebit   = debitMethods.reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
+    const totalCard    = totalCredit + totalDebit;
+
+    // Recalculate cash from paymentMap (only actual cash in drawer)
+    const actualCash = paymentMap.get('cash') || 0;
+    const actualNonCash = gross - actualCash;
     const cashDenominations = reportData?.cash_denominations ?? reportData?.cash_count?.denominations ?? [];
     const totalCashCount = reportData?.total_cash_count ?? reportData?.cash_count?.grand_total ?? 0;
-    const expectedEOD = cashTotal + cashIn - cashDrop;
+    const expectedEOD = actualCash + cashIn - cashDrop;
     const overShort = reportData?.over_short ?? (totalCashCount - expectedEOD);
     const netTotal = reportData?.net_total ?? (gross - totalDisc);
     const isRange = dateMode === 'range';
@@ -487,8 +497,8 @@ const ZReading = () => {
         <Row label="TOTAL DEBIT" value={phCurrency.format(totalDebit)} />
         <Row label="TOTAL CARD" value={phCurrency.format(totalCard)} />
         <Divider />
-        <Row label="TOTAL CASH" value={phCurrency.format(cashTotal)} />
-        <Row label="TOTAL NON-CASH" value={phCurrency.format(nonCash)} />
+        <Row label="TOTAL CASH"     value={phCurrency.format(actualCash)} />
+        <Row label="TOTAL NON-CASH" value={phCurrency.format(actualNonCash)} />
         <Row label="TOTAL PAYMENTS" value={phCurrency.format(gross)} />
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>

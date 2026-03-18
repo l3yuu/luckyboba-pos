@@ -236,6 +236,10 @@ class SalesDashboardService
             ->where('status', 'completed')
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->where(fn($q) => $q->whereNull('charge_type')->orWhere('charge_type', ''))
+            ->whereNotIn(DB::raw('LOWER(TRIM(payment_method))'), [
+                'gcash', 'e-wallet', 'ewallet', 'visa', 'mastercard',
+                'master card', 'master', 'visa card',
+            ])
             ->sum('total_amount');
 
         $otherSales = $grossSales - $cashSales;
@@ -415,6 +419,10 @@ class SalesDashboardService
             ->where('status', 'completed')
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->where(fn($q) => $q->whereNull('charge_type')->orWhere('charge_type', ''))
+            ->whereNotIn(DB::raw('LOWER(TRIM(payment_method))'), [
+                'gcash', 'e-wallet', 'ewallet', 'visa', 'mastercard',
+                'master card', 'master', 'visa card',
+            ])
             ->sum('total_amount');
 
         $voidAmount = (float) DB::table('sales')
