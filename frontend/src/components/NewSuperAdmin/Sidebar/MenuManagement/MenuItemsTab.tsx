@@ -127,7 +127,7 @@ const ComboBuilder: React.FC<ComboBuilderProps> = ({
   allItems, foodItemId, drinkItemId, onFoodChange, onDrinkChange, errors,
 }) => {
 const FOOD_TYPES  = ["food", "wings", "waffle"];
-const DRINK_TYPES = ["drink", "bundle"];
+const DRINK_TYPES = ["drink"];
 
 const foodItems  = allItems.filter(i => FOOD_TYPES.includes(i.category_type));
 const drinkItems = allItems.filter(i => DRINK_TYPES.includes(i.category_type));
@@ -202,6 +202,109 @@ const drinkItems = allItems.filter(i => DRINK_TYPES.includes(i.category_type));
   );
 };
 
+// ── Bundle Builder Section ────────────────────────────────────────────────────
+
+interface BundleBuilderProps {
+  allItems:       MenuItem[];
+  bundleItemIds:  string[];
+  onItemsChange:  (ids: string[]) => void;
+  errors:         Record<string, string>;
+}
+
+const BundleBuilder: React.FC<BundleBuilderProps> = ({
+  allItems, bundleItemIds, onItemsChange, errors,
+}) => {
+  const DRINK_TYPES = ["drink"];
+  const drinkItems  = allItems.filter(i => DRINK_TYPES.includes(i.category_type));
+
+  const addSlot    = () => onItemsChange([...bundleItemIds, ""]);
+  const removeSlot = (idx: number) => onItemsChange(bundleItemIds.filter((_, i) => i !== idx));
+  const setSlot    = (idx: number, val: string) => {
+    const next = [...bundleItemIds];
+    next[idx]  = val;
+    onItemsChange(next);
+  };
+
+  return (
+    <div className="flex flex-col gap-3 p-4 bg-indigo-50 border border-indigo-200 rounded-xl">
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 bg-indigo-100 border border-indigo-300 rounded-md flex items-center justify-center">
+            <Package size={11} className="text-indigo-600" />
+          </div>
+          <p className="text-xs font-bold text-indigo-700 uppercase tracking-wider">Bundle Builder</p>
+          <span className="text-[10px] text-indigo-400 font-medium">— pick 2+ drinks</span>
+        </div>
+        <button
+          type="button"
+          onClick={addSlot}
+          className="flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-100 hover:bg-indigo-200 px-2 py-1 rounded-md transition-colors"
+        >
+          <Plus size={10} /> Add Item
+        </button>
+      </div>
+
+      {bundleItemIds.length === 0 && (
+        <p className="text-[10px] text-indigo-400 italic text-center py-2">
+          Click "Add Item" to start building the bundle.
+        </p>
+      )}
+
+      {bundleItemIds.map((itemId, idx) => (
+        <div key={idx}>
+          {idx > 0 && (
+            <div className="flex items-center gap-2 mb-3">
+              <div className="flex-1 h-px bg-indigo-200" />
+              <span className="text-[10px] font-bold text-indigo-400">+</span>
+              <div className="flex-1 h-px bg-indigo-200" />
+            </div>
+          )}
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 mb-1.5 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Coffee size={10} /> Item {idx + 1} <span className="text-red-400">*</span>
+              </span>
+              {bundleItemIds.length > 2 && (
+                <button
+                  type="button"
+                  onClick={() => removeSlot(idx)}
+                  className="text-[9px] font-bold text-red-400 hover:text-red-600 flex items-center gap-0.5 transition-colors"
+                >
+                  <X size={9} /> Remove
+                </button>
+              )}
+            </label>
+            <div className="relative">
+              <select
+                value={itemId}
+                onChange={e => setSlot(idx, e.target.value)}
+                className={`w-full text-sm font-medium text-zinc-700 bg-white border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-indigo-400 transition-all appearance-none pr-8 ${errors[`bundle_item_${idx}`] ? "border-red-300" : "border-indigo-200"}`}
+              >
+                <option value="">Select drink item...</option>
+                {drinkItems.map(i => (
+                  <option key={i.id} value={i.id}>
+                    {i.name} — {i.category} (₱{Number(i.price).toFixed(2)})
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+            </div>
+            {errors[`bundle_item_${idx}`] && (
+              <p className="text-[10px] text-red-500 mt-1 font-medium">{errors[`bundle_item_${idx}`]}</p>
+            )}
+          </div>
+        </div>
+      ))}
+
+      {bundleItemIds.length > 0 && (
+        <p className="text-[10px] text-indigo-500 font-medium leading-tight mt-1">
+          Each item will be linked to this bundle. Minimum 2 items required.
+        </p>
+      )}
+    </div>
+  );
+};
+
 // ── Add / Edit Modal ──────────────────────────────────────────────────────────
 
 interface MenuItemFormProps {
@@ -230,6 +333,7 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
   // ✅ Combo-specific state
   const [foodItemId,  setFoodItemId]  = useState("");
   const [drinkItemId, setDrinkItemId] = useState("");
+  const [bundleItemIds, setBundleItemIds] = useState<string[]>(["", ""]);
 
   const [errors,   setErrors]   = useState<Record<string, string>>({});
   const [loading,  setLoading]  = useState(false);
@@ -238,6 +342,7 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
   // ✅ Determine if selected category is combo type
   const selectedCategory    = categories.find(c => String(c.id) === form.category_id);
   const isComboCategory     = selectedCategory?.category_type === "combo";
+  const isBundleCategory = selectedCategory?.category_type === "bundle";
 
   // Filter subs based on selected category
   const filteredSubs = subcategories.filter(
@@ -249,6 +354,7 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
     setForm(p => ({ ...p, category_id: catId, subcategory_id: "" }));
     setFoodItemId("");
     setDrinkItemId("");
+    setBundleItemIds(["", ""]);  // ✅ add
     setErrors(ev => { const n = { ...ev }; delete n.category_id; delete n.food_item_id; delete n.drink_item_id; return n; });
   };
 
@@ -279,8 +385,8 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
         category_id:    form.category_id    ? Number(form.category_id)    : null,
         subcategory_id: form.subcategory_id ? Number(form.subcategory_id) : null,
         price:          Number(form.price),
-        grab_price:     Number(form.grab_price)  || 0,   // ✅ add
-        panda_price:    Number(form.panda_price) || 0,   // ✅ add
+        grab_price:     Number(form.grab_price)  || 0,
+        panda_price:    Number(form.panda_price) || 0,
         barcode:        form.barcode || null,
         is_available:   form.is_available,
       };
@@ -306,11 +412,11 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
         const drinkItem = allItems.find(i => String(i.id) === drinkItemId);
 
         const bundlePayload = {
-          name:         form.name,
-          category_id:  Number(form.category_id),
-          bundle_type:  "combo",
-          price:        Number(form.price),
-          barcode:      form.barcode || `COMBO-${savedItem.id}`,
+          name:        form.name,
+          category_id: Number(form.category_id),
+          bundle_type: "combo",
+          price:       Number(form.price),
+          barcode:     form.barcode || `COMBO-${savedItem.id}`,
           items: [
             {
               custom_name:  foodItem?.name  ?? "Food",
@@ -334,7 +440,40 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
         });
 
         if (!bundleRes.ok) {
-          // Menu item was saved but bundle creation failed — surface warning
+          setApiError("Item saved but combo bundle creation failed. Please create the bundle manually.");
+          onSaved(savedItem);
+          return;
+        }
+      }
+
+      // Step 3: If bundle category, create bundle record linking all drink items
+      if (isBundleCategory && !isEdit) {
+        const bundlePayload = {
+          name:        form.name,
+          category_id: Number(form.category_id),
+          bundle_type: "bundle",
+          price:       Number(form.price),
+          barcode:     form.barcode || `BUNDLE-${savedItem.id}`,
+          items:       bundleItemIds
+            .filter(id => id !== "")
+            .map(id => {
+              const found = allItems.find(i => String(i.id) === id);
+              return {
+                custom_name:  found?.name ?? "Item",
+                quantity:     1,
+                size:         "L",
+                display_name: found?.name ?? "Item",
+              };
+            }),
+        };
+
+        const bundleRes = await fetch("/api/bundles", {
+          method:  "POST",
+          headers: authHeaders(),
+          body:    JSON.stringify(bundlePayload),
+        });
+
+        if (!bundleRes.ok) {
           setApiError("Item saved but bundle creation failed. Please create the bundle manually.");
           onSaved(savedItem);
           return;
@@ -366,7 +505,7 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
           <Btn onClick={handleSubmit} disabled={loading}>
             {loading
               ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</span>
-              : isEdit ? "Save Changes" : <><Plus size={13} /> {isComboCategory ? "Add Combo" : "Add Item"}</>}
+              : isEdit ? "Save Changes" : <><Plus size={13} /> {isComboCategory ? "Add Combo" : isBundleCategory ? "Add Bundle" : "Add Item"}</>}
           </Btn>
         </>
       }>
@@ -517,6 +656,24 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
         <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
           <p className="text-xs font-bold text-amber-700 mb-0.5">Editing a combo item</p>
           <p className="text-[10px] text-amber-600">To change the food or drink components, edit the bundle directly from the Bundles tab.</p>
+        </div>
+      )}
+
+      {/* ✅ Bundle Builder — only shows when bundle category is selected */}
+      {isBundleCategory && !isEdit && (
+        <BundleBuilder
+          allItems={allItems}
+          bundleItemIds={bundleItemIds}
+          onItemsChange={setBundleItemIds}
+          errors={errors}
+        />
+      )}
+
+      {/* ✅ Info note when editing a bundle */}
+      {isBundleCategory && isEdit && (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+          <p className="text-xs font-bold text-amber-700 mb-0.5">Editing a bundle item</p>
+          <p className="text-[10px] text-amber-600">To change the bundle components, edit the bundle directly from the Bundles tab.</p>
         </div>
       )}
 
