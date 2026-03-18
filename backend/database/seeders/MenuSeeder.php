@@ -47,10 +47,13 @@ class MenuSeeder extends Seeder
             'CLASSIC MILKTEA'     => $smsl,
             'COFFEE FRAPPE'       => $umul,
             'FP COFFEE BUNDLES'   => $umul,
+            'HOLI-YEY'   => $umul,
             'FRAPPE SERIES'       => $umul,
             'HOT COFFEE'          => $pcmpcl,
             'HOT DRINKS'          => $pcmpcl,
             'LUCKY CLASSIC JR'    => $jr,
+            'PIZZA PEDRICOS'      => null,
+            'PIZZA PEDRICOS COMBO' => null,
         ];
 
         $cupSizeMap = [
@@ -64,7 +67,7 @@ class MenuSeeder extends Seeder
             'AFFORDA-BOWLS' => [
                 ['name' => "AFFORD-SIOMAI + RICE",         'price' => 59.00,  'barcode' => 'AB-1',  'size' => 'none', 'grab_price' => 30.00, 'panda_price' => 30.00],
                 ['name' => "AFFORD-HOTDOG + RICE",         'price' => 59.00,  'barcode' => 'AB-2',  'size' => 'none', 'grab_price' => 30.00, 'panda_price' => 30.00],
-                ['name' => "AFFORD-CHIC WINGS + RICE",     'price' => 69.00,  'barcode' => 'AB-3',  'size' => 'none', 'grab_price' => 45.00, 'panda_price' => 45.00],
+                ['name' => "AFFORD-CHIC WINGS + RICE",     'price' => 69.00,  'barcode' => 'AB-3',  'size' => 'none', 'grab_price' => 43.00, 'panda_price' => 43.00],
                 ['name' => "AFFORD-CHIC POPPERS + RICE",   'price' => 69.00,  'barcode' => 'AB-4',  'size' => 'none', 'grab_price' => 45.00, 'panda_price' => 45.00],
                 ['name' => "AFFORD-SHANGHAI + RICE",       'price' => 69.00,  'barcode' => 'AB-5',  'size' => 'none', 'grab_price' => 45.00, 'panda_price' => 45.00],
                 ['name' => "AFFORD-CHICK TONKATSU + RICE", 'price' => 79.00,  'barcode' => 'AB-6',  'size' => 'none', 'grab_price' => 45.00, 'panda_price' => 45.00],
@@ -78,6 +81,8 @@ class MenuSeeder extends Seeder
                 ['name' => "Cheesy Nachos",         'price' => 180.00, 'barcode' => 'ACS-5', 'size' => 'none', 'grab_price' => 85.00, 'panda_price' => 85.00],
                 ['name' => "Bottled Mineral Water", 'price' => 25.00,  'barcode' => 'ACS-6', 'size' => 'none', 'grab_price' => 0.00,  'panda_price' => 0.00],
                 ['name' => "Rice",                  'price' => 20.00,  'barcode' => 'ACS-7', 'size' => 'none', 'grab_price' => 5.00,  'panda_price' => 5.00],
+                ['name' => "Hungarian Sausage Meal",'price' => 85.00,  'barcode' => 'HSM',   'size' => 'none', 'grab_price' => 50.00,  'panda_price' => 50.00],
+
             ],
             'ALL DAY MEALS' => [
                 ['name' => "SPICY TAPA ALL DAY MEAL",       'price' => 135.00, 'barcode' => 'ADM-1', 'size' => 'none', 'grab_price' => 65.00, 'panda_price' => 65.00],
@@ -103,11 +108,13 @@ class MenuSeeder extends Seeder
                 ['name' => "CHOCO HAZELNUT + CHEESECAKE",  'price' => 135.00, 'barcode' => 'CCML2',  'size' => 'L', 'grab_price' => 50.00, 'panda_price' => 50.00],
                 ['name' => "TARO + CHEESECAKE",            'price' => 115.00, 'barcode' => 'CCMM6',  'size' => 'M', 'grab_price' => 40.00, 'panda_price' => 40.00],
                 ['name' => "TARO + CHEESECAKE",            'price' => 135.00, 'barcode' => 'CCML6',  'size' => 'L', 'grab_price' => 50.00, 'panda_price' => 50.00],
+                ['name' => "BELGIAN CHOCO M. TEA + CHEESECAKE",'price' => 115.00, 'barcode' => 'BCCKM1',  'size' => 'M', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "BELGIAN CHOCO M. TEA + CHEESECAKE",'price' => 135.00, 'barcode' => 'BCCKL1',  'size' => 'L', 'grab_price' => 50.00, 'panda_price' => 50.00],
             ],
             'CHICKEN WINGS' => [
                 ['name' => "BUFFALO",         'price' => 100.00, 'barcode' => 'CW3-1',  'size' => '3pc',  'grab_price' => 65.00, 'panda_price' => 65.00],
                 ['name' => "BUFFALO",         'price' => 120.00, 'barcode' => 'CW4-1',  'size' => '4pc',  'grab_price' => 80.00, 'panda_price' => 80.00],
-                ['name' => "BUFFALO",         'price' => 195.00, 'barcode' => 'CW6-1',  'size' => '6pc'],
+                ['name' => "BUFFALO",         'price' => 195.00, 'barcode' => 'CW6-1',  'size' => '6pc',  'grab_price' => 105.00, 'panda_price' => 105.00],
                 ['name' => "BUFFALO",         'price' => 390.00, 'barcode' => 'CW12-1', 'size' => '12pc'],
                 ['name' => "GARLIC PARMESAN", 'price' => 100.00, 'barcode' => 'CW3-2',  'size' => '3pc',  'grab_price' => 65.00, 'panda_price' => 65.00],
                 ['name' => "GARLIC PARMESAN", 'price' => 120.00, 'barcode' => 'CW4-2',  'size' => '4pc',  'grab_price' => 80.00, 'panda_price' => 80.00],
@@ -115,19 +122,19 @@ class MenuSeeder extends Seeder
                 ['name' => "GARLIC PARMESAN", 'price' => 390.00, 'barcode' => 'CW12-2', 'size' => '12pc'],
                 ['name' => "SWEET CHILI",     'price' => 100.00, 'barcode' => 'CW3-3',  'size' => '3pc',  'grab_price' => 65.00, 'panda_price' => 65.00],
                 ['name' => "SWEET CHILI",     'price' => 120.00, 'barcode' => 'CW4-3',  'size' => '4pc',  'grab_price' => 45.00, 'panda_price' => 45.00],
-                ['name' => "SWEET CHILI",     'price' => 195.00, 'barcode' => 'CW6-3',  'size' => '6pc'],
+                ['name' => "SWEET CHILI",     'price' => 195.00, 'barcode' => 'CW6-3',  'size' => '6pc',  'grab_price' => 105.00, 'panda_price' => 105.00],
                 ['name' => "SWEET CHILI",     'price' => 390.00, 'barcode' => 'CW12-3', 'size' => '12pc'],
                 ['name' => "TERIYAKI",        'price' => 100.00, 'barcode' => 'CW3-4',  'size' => '3pc',  'grab_price' => 65.00, 'panda_price' => 65.00],
                 ['name' => "TERIYAKI",        'price' => 120.00, 'barcode' => 'CW4-4',  'size' => '4pc',  'grab_price' => 80.00, 'panda_price' => 80.00],
-                ['name' => "TERIYAKI",        'price' => 195.00, 'barcode' => 'CW6-4',  'size' => '6pc'],
+                ['name' => "TERIYAKI",        'price' => 195.00, 'barcode' => 'CW6-4',  'size' => '6pc',  'grab_price' => 105.00, 'panda_price' => 105.00],
                 ['name' => "TERIYAKI",        'price' => 390.00, 'barcode' => 'CW12-4', 'size' => '12pc'],
                 ['name' => "SOY GARLIC",      'price' => 100.00, 'barcode' => 'CW3-5',  'size' => '3pc',  'grab_price' => 65.00, 'panda_price' => 65.00],
                 ['name' => "SOY GARLIC",      'price' => 120.00, 'barcode' => 'CW4-5',  'size' => '4pc',  'grab_price' => 80.00, 'panda_price' => 80.00],
-                ['name' => "SOY GARLIC",      'price' => 195.00, 'barcode' => 'CW6-5',  'size' => '6pc'],
+                ['name' => "SOY GARLIC",      'price' => 195.00, 'barcode' => 'CW6-5',  'size' => '6pc',  'grab_price' => 105.00, 'panda_price' => 105.00],
                 ['name' => "SOY GARLIC",      'price' => 390.00, 'barcode' => 'CW12-5', 'size' => '12pc'],
                 ['name' => "SALTED EGG",      'price' => 100.00, 'barcode' => 'CW3-6',  'size' => '3pc',  'grab_price' => 65.00, 'panda_price' => 65.00],
                 ['name' => "SALTED EGG",      'price' => 120.00, 'barcode' => 'CW4-6',  'size' => '4pc',  'grab_price' => 80.00, 'panda_price' => 80.00],
-                ['name' => "SALTED EGG",      'price' => 195.00, 'barcode' => 'CW6-6',  'size' => '6pc'],
+                ['name' => "SALTED EGG",      'price' => 195.00, 'barcode' => 'CW6-6',  'size' => '6pc',  'grab_price' => 105.00, 'panda_price' => 105.00],
                 ['name' => "SALTED EGG",      'price' => 390.00, 'barcode' => 'CW12-6', 'size' => '12pc'],
             ],
             'CLASSIC MILKTEA' => [
@@ -138,7 +145,7 @@ class MenuSeeder extends Seeder
                 ['name' => "CLASSIC OREO",              'price' => 85.00,  'barcode' => 'CMM8', 'size' => 'M', 'grab_price' => 25.00, 'panda_price' => 25.00],
                 ['name' => "CLASSIC OREO",              'price' => 105.00, 'barcode' => 'CML8', 'size' => 'L', 'grab_price' => 30.00, 'panda_price' => 30.00],
                 ['name' => "CLASSIC PUDDING",           'price' => 95.00,  'barcode' => 'CMM9', 'size' => 'M', 'grab_price' => 35.00, 'panda_price' => 35.00],
-                ['name' => "CLASSIC PUDDING",           'price' => 115.00, 'barcode' => 'CML9', 'size' => 'L', 'grab_price' => 35.00, 'panda_price' => 35.00],
+                ['name' => "CLASSIC PUDDING",           'price' => 115.00, 'barcode' => 'CML9', 'size' => 'L', 'grab_price' => 40.00, 'panda_price' => 40.00],
                 ['name' => "CLASSIC BUDDY",             'price' => 105.00, 'barcode' => 'CMM3', 'size' => 'M', 'grab_price' => 30.00, 'panda_price' => 30.00],
                 ['name' => "CLASSIC BUDDY",             'price' => 125.00, 'barcode' => 'CML3', 'size' => 'L', 'grab_price' => 35.00, 'panda_price' => 35.00],
                 ['name' => "CLASSIC DUO",               'price' => 105.00, 'barcode' => 'CMM4', 'size' => 'M', 'grab_price' => 30.00, 'panda_price' => 30.00],
@@ -185,6 +192,8 @@ class MenuSeeder extends Seeder
                 ['name' => "SALTED CARAMEL + CREAM CHEESE", 'price' => 135.00, 'barcode' => "CRML4", 'size' => 'L', 'grab_price' => 50.00, 'panda_price' => 50.00],
                 ['name' => "HERSHEYS + CREAM CHEESE",       'price' => 115.00, 'barcode' => "CRMM3", 'size' => 'M', 'grab_price' => 40.00, 'panda_price' => 40.00],
                 ['name' => "HERSHEYS + CREAM CHEESE",       'price' => 135.00, 'barcode' => "CRML3", 'size' => 'L', 'grab_price' => 50.00, 'panda_price' => 50.00],
+                ['name' => "CHOCO HAZELNUT + CREAM CHEESE", 'price' => 115.00, 'barcode' => "CRMM9", 'size' => 'M', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "CHOCO HAZELNUT + CREAM CHEESE", 'price' => 135.00, 'barcode' => "CRML9", 'size' => 'L', 'grab_price' => 50.00, 'panda_price' => 50.00],
             ],
             'FLAVORED MILK TEA' => [
                 ['name' => "WINTERMELON MILK TEA",     'price' => 85.00,  'barcode' => "FLMM4",  'size' => 'M', 'grab_price' => 35.00, 'panda_price' => 35.00],
@@ -229,6 +238,13 @@ class MenuSeeder extends Seeder
             'FP COFFEE BUNDLES' => [
                 ['name' => "TOFFEE CARAMEL ICED COFFEE + DARK ROAST COFFEE", 'price' => 154.00, 'barcode' => "COF1", 'size' => 'L', 'grab_price' => 45.00, 'panda_price' => 45.00],
                 ['name' => "VANILLA ICED COFFEE + JAVA CHIP COFEE FRP",      'price' => 250.00, 'barcode' => "COF2", 'size' => 'L', 'grab_price' => 75.00, 'panda_price' => 75.00],
+            ],
+            'HOLI-YEY' => [
+                ['name' => "HOLI-YEY : STRAWBERRY CCAKE",              'price' => 175.00, 'barcode' => "HYSTRW", 'size' => 'L', 'grab_price' => 65.00, 'panda_price' => 65.00],
+                ['name' => "HOLI-YEY : ROCKY ROAD CCAKE",              'price' => 175.00, 'barcode' => "HYRR", 'size' => 'L', 'grab_price' => 65.00, 'panda_price' => 65.00],
+                ['name' => "HOLI-YEY : TIRAMISU CCAKE",              'price' => 185.00, 'barcode' => "HYT", 'size' => 'L', 'grab_price' => 65.00, 'panda_price' => 65.00],
+                ['name' => "HOLI-YEY : BISCOFF MTEA",              'price' => 185.00, 'barcode' => "HYB", 'size' => 'L', 'grab_price' => 65.00, 'panda_price' => 65.00],
+                ['name' => "HOLI-YEY : PISTACHIO HYPIS",              'price' => 185.00, 'barcode' => "HYPH", 'size' => 'L', 'grab_price' => 65.00, 'panda_price' => 65.00],
             ],
             'FRAPPE SERIES' => [
                 ['name' => "TARO FRAPPE",            'price' => 110.00, 'barcode' => "FSM1", 'size' => 'M', 'grab_price' => 40.00, 'panda_price' => 40.00],
@@ -346,6 +362,44 @@ class MenuSeeder extends Seeder
                 ['name' => "OK BROWN SUGAR CHEESE MOUSSE",        'price' => 139.00, 'barcode' => "OKL2", 'size' => 'L', 'grab_price' => 35.00, 'panda_price' => 35.00],
                 ['name' => "OK BROWN SUGAR CHEESE MOUSSE + MILO", 'price' => 129.00, 'barcode' => "OKM3", 'size' => 'M', 'grab_price' => 35.00, 'panda_price' => 35.00],
                 ['name' => "OK BROWN SUGAR CHEESE MOUSSE + MILO", 'price' => 149.00, 'barcode' => "OKL3", 'size' => 'L', 'grab_price' => 40.00, 'panda_price' => 40.00],
+            ],
+            'PIZZA PEDRICOS' => [
+                ['name' => "Pizza Cheez and Cheez",           'price' => 69.00, 'barcode' => 'PPCC',  'size' => 'none', 'grab_price' => 0.00, 'panda_price' => 0.00],
+                ['name' => "Pizza Ham and Cheez",             'price' => 69.00, 'barcode' => 'PPHC',  'size' => 'none', 'grab_price' => 0.00, 'panda_price' => 0.00],
+                ['name' => "Pizza Chorizo and Cheez",         'price' => 69.00, 'barcode' => 'PPCHC', 'size' => 'none', 'grab_price' => 0.00, 'panda_price' => 0.00],
+                ['name' => "Pizza Ham - Pineapple and Cheez", 'price' => 69.00, 'barcode' => 'PPHPC', 'size' => 'none', 'grab_price' => 0.00, 'panda_price' => 0.00],
+            ],
+            'PIZZA PEDRICOS COMBO' => [
+                // Pizza + Classic Pearl (add-ons only)
+                ['name' => "PIZZA + CLASSIC PEARL",                  'price' => 174.00, 'barcode' => 'PPC-CP1',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+
+                // Pizza + Iced Coffee (all flavors except vanilla)
+                ['name' => "PIZZA + ICED COFFEE CLASSIC",            'price' => 174.00, 'barcode' => 'PPC-IC1',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + ICED MOCHA COFFEE",              'price' => 174.00, 'barcode' => 'PPC-IC2',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + ICED JAVA CHIP COFFEE",          'price' => 174.00, 'barcode' => 'PPC-IC3',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + ICED TOFFEE CARAMEL",            'price' => 174.00, 'barcode' => 'PPC-IC4',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + ICED CARAMEL MACCHIATO",         'price' => 174.00, 'barcode' => 'PPC-IC5',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+
+                // Pizza + Flavored Milk Tea (Cookies & Cream, Strawberry, Mango, Avocado, Belgian)
+                ['name' => "PIZZA + COOKIES & CREAM MILK TEA",       'price' => 174.00, 'barcode' => 'PPC-FM1',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + STRAWBERRY MILK TEA",            'price' => 174.00, 'barcode' => 'PPC-FM2',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + MANGO MILK TEA",                 'price' => 174.00, 'barcode' => 'PPC-FM3',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + AVOCADO MILK TEA",               'price' => 174.00, 'barcode' => 'PPC-FM4',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + BELGIAN MILK TEA",               'price' => 174.00, 'barcode' => 'PPC-FM5',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+
+                // Pizza + Yakult (all flavors except Green Tea and Strawberry)
+                ['name' => "PIZZA + GREEN APPLE YAKULT",             'price' => 194.00, 'barcode' => 'PPC-YK1',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + LYCHEE YAKULT",                  'price' => 194.00, 'barcode' => 'PPC-YK2',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + BLUEBERRY YAKULT",               'price' => 194.00, 'barcode' => 'PPC-YK3',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + LEMON YAKULT",                   'price' => 194.00, 'barcode' => 'PPC-YK4',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + BERRIES YAKULT",                 'price' => 194.00, 'barcode' => 'PPC-YK5',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+
+                // Pizza + Nova (all flavors)
+                ['name' => "PIZZA + BERRIES NOVA",                   'price' => 194.00, 'barcode' => 'PPC-NV1',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + MANGO LEMON NOVA",               'price' => 194.00, 'barcode' => 'PPC-NV2',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + LYCHEE LEM NOVA",                'price' => 194.00, 'barcode' => 'PPC-NV3',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + STRAWBERRY NOVA",                'price' => 194.00, 'barcode' => 'PPC-NV4',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "PIZZA + GREEN APPLE NOVA",               'price' => 194.00, 'barcode' => 'PPC-NV5',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
             ],
             'PUMPKIN SPICE' => [
                 ['name' => "PUMPKIN SPICE MILK TEA",      'price' => 145.00, 'barcode' => "PO1", 'size' => 'L', 'grab_price' => 40.00, 'panda_price' => 40.00],

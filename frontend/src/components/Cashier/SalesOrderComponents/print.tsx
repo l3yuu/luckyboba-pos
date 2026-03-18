@@ -10,11 +10,7 @@ import { type CartItem, type BundleComponentCustomization } from '../../../types
 // Shared helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-const getItemSurcharge = (item: CartItem): number => {
-  if (item.charges?.grab)  return Number(item.grab_price  ?? 0) * item.qty;
-  if (item.charges?.panda) return Number(item.panda_price ?? 0) * item.qty;
-  return 0;
-};
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ReceiptPrint
@@ -70,45 +66,42 @@ export const ReceiptPrint = ({
           <div className="mt-1">Cashier: {cashierName ?? 'Admin'}</div>
           {orderCharge && <div className="mt-1">Order Type: {orderCharge === 'grab' ? 'GRABFOOD' : 'FOODPANDA'}</div>}
         </div>
-
-        {/* Items */}
-        <div className="mt-3 mb-3 text-xs border-t border-dashed border-black pt-3">
-          {cart.map((item, i) => (
-            <div key={i} className="mb-2">
-              <div className="uppercase">{item.name} {item.cupSizeLabel ? `(${item.cupSizeLabel})` : ''}</div>
-              <div className="flex justify-between w-full mt-0.5">
-                <span>{item.qty} X {(item.finalPrice / item.qty).toFixed(2)}</span>
-                <span>{item.finalPrice.toFixed(2)}</span>
-              </div>
-              {(item.charges?.grab || item.charges?.panda) && (
-                <div className="flex justify-between w-full text-[10px]">
-                  <span>  • {item.charges.grab ? 'Grab' : 'FoodPanda'} Surcharge</span>
-                  <span>+{getItemSurcharge(item).toFixed(2)}</span>
-                </div>
-              )}
-              {item.discountLabel && (
-                <div className="flex justify-between w-full text-[10px] italic">
-                  <span>  • Discount: {item.discountLabel}</span>
-                </div>
-              )}
-              {item.size === 'none' && item.sugarLevel != null ? (
-                <>
-                  <div className="pl-2 text-[10px]">• Classic Pearl</div>
-                  <div className="pl-4 text-[10px]">• Sugar {item.sugarLevel}</div>
-                  {item.options?.map(o => <div key={o} className="pl-4 text-[10px]">• {o}</div>)}
-                  {item.addOns?.map(a  => <div key={a} className="pl-4 text-[10px]">• + {a}</div>)}
-                </>
-              ) : (
-                <>
-                  {item.sugarLevel != null && <div className="pl-2 text-[10px]">• Sugar {item.sugarLevel}</div>}
-                  {item.options?.map(o => <div key={o} className="pl-2 text-[10px]">• {o}</div>)}
-                  {item.addOns?.map(a  => <div key={a} className="pl-2 text-[10px]">• + {a}</div>)}
-                  {item.remarks && <div className="pl-2 text-[10px] italic">• {item.remarks}</div>}
-                </>
-              )}
-            </div>
-          ))}
+{/* Items */}
+<div className="mt-3 mb-3 text-xs border-t border-dashed border-black pt-3">
+  {cart.map((item, i) => (
+    <div key={i} className="mb-2">
+      <div className="uppercase">{item.name} {item.cupSizeLabel ? `(${item.cupSizeLabel})` : ''}</div>
+      <div className="flex justify-between w-full mt-0.5">
+  <span>
+    {item.qty} X {((item.finalPrice + (item.charges?.grab ? Number(item.grab_price ?? 0) : item.charges?.panda ? Number(item.panda_price ?? 0) : 0)) / item.qty).toFixed(2)}
+  </span>
+  <span>
+    {(item.finalPrice + (item.charges?.grab ? Number(item.grab_price ?? 0) * item.qty : item.charges?.panda ? Number(item.panda_price ?? 0) * item.qty : 0)).toFixed(2)}
+  </span>
+</div>
+      {item.discountLabel && (
+        <div className="flex justify-between w-full text-[10px] italic">
+          <span>  • Discount: {item.discountLabel}</span>
         </div>
+      )}
+      {item.size === 'none' && item.sugarLevel != null ? (
+        <>
+          <div className="pl-2 text-[10px]">• Classic Pearl</div>
+          <div className="pl-4 text-[10px]">• Sugar {item.sugarLevel}</div>
+          {item.options?.map(o => <div key={o} className="pl-4 text-[10px]">• {o}</div>)}
+          {item.addOns?.map(a  => <div key={a} className="pl-4 text-[10px]">• + {a}</div>)}
+        </>
+      ) : (
+        <>
+          {item.sugarLevel != null && <div className="pl-2 text-[10px]">• Sugar {item.sugarLevel}</div>}
+          {item.options?.map(o => <div key={o} className="pl-2 text-[10px]">• {o}</div>)}
+          {item.addOns?.map(a  => <div key={a} className="pl-2 text-[10px]">• + {a}</div>)}
+          {item.remarks && <div className="pl-2 text-[10px] italic">• {item.remarks}</div>}
+        </>
+      )}
+    </div>
+  ))}
+</div>
 
         {/* Totals */}
         <div className="text-xs space-y-1 border-t border-dashed border-black pt-2">
@@ -162,7 +155,7 @@ export const ReceiptPrint = ({
         </div>
 
         {/* Franchise info */}
-        <div className="mt-6 mb-4 text-center text-xs uppercase">
+        <div className="mt-6 mb-4 text-center text-xs">
           FOR FRANCHISE<br />EMAIL OR CONTACT US ON<br />luckyboba.franchise@gmail.com<br />0917199894
         </div>
 

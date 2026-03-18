@@ -16,8 +16,8 @@ import api           from '../services/api';
 
 // ── Component imports ─────────────────────────────────────────────────────────
 import {
-  generateORNumber, generateQueueNumber, getItemSurcharge,
-  DrinkIcon,
+  generateORNumber, generateQueueNumber, generateTerminalNumber, // ← add generateTerminalNumber
+  getItemSurcharge, DrinkIcon,
 } from '../components/Cashier/SalesOrderComponents/shared';
 
 import { Header, MenuArea, CartSidebar }
@@ -106,7 +106,14 @@ const SalesOrder = () => {
   const [customerName,     setCustomerName]     = useState('');
   const [isCustomerNameModalOpen, setIsCustomerNameModalOpen] = useState(false);
   // Add-ons data
-  const [addOnsData, setAddOnsData] = useState<{ id: number; name: string; price: number; category?: string }[]>(() => {
+  const [addOnsData, setAddOnsData] = useState<{ 
+  id: number; 
+  name: string; 
+  price: number; 
+  grab_price?: number;
+  panda_price?: number;
+  category?: string 
+}[]>(() => {
     try { const c = localStorage.getItem('pos_addons_cache'); return c ? JSON.parse(c) : []; }
     catch { return []; }
   });
@@ -157,13 +164,21 @@ const SalesOrder = () => {
     try {
       const c = localStorage.getItem('pos_discounts_cache');
       const all = c ? JSON.parse(c) : [];
-      return all.filter((d: Discount) => d.status === 'ON');
+      const seen = new Set<string>();
+      return all
+        .filter((d: Discount) => d.status === 'ON')
+        .filter((d: Discount) => {
+          const key = `${d.name}-${d.amount}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
     } catch { return []; }
   });
   const [selectedDiscount, setSelectedDiscount] = useState<Discount | null>(null);
 
   // OR / Queue
-  const [orNumber,     setOrNumber]     = useState(generateORNumber(1));
+  const [orNumber, setOrNumber] = useState(generateORNumber(1));
   const [queueNumber,  setQueueNumber]  = useState(generateQueueNumber(1));
 
   // Success / print
@@ -176,10 +191,11 @@ const SalesOrder = () => {
   // ── Derived values ──────────────────────────────────────────────────────────
 
   const isDrink              = selectedCategory?.type === 'drink';
-  const isBundle             = BUNDLE_CATEGORIES.includes(selectedCategory?.name as typeof BUNDLE_CATEGORIES[number]);
   const isWings              = selectedCategory?.name === 'CHICKEN WINGS';
   const isOz                 = selectedCategory?.name === 'HOT DRINKS' || selectedCategory?.name === 'HOT COFFEE';
-  const isCombo              = selectedCategory?.name?.toUpperCase() === 'COMBO MEALS';
+  const isCombo =
+  selectedCategory?.name?.toUpperCase() === 'COMBO MEALS' ||
+  selectedCategory?.name?.toUpperCase() === 'PIZZA PEDRICOS COMBO';
   const isWaffleCategory     = selectedCategory?.name?.toLowerCase().includes('waffle') ?? false;
   const categoryHasOnlyOneSize = (selectedCategory?.sub_categories?.length ?? 0) <= 1;
 
@@ -192,13 +208,15 @@ const totalCount = cart.reduce((acc, item) => acc + item.qty, 0);
 
 // 2. Gross Calculation (Total original price)
 const grossSubtotal = cart.reduce((acc, item) => 
-  acc + (Number(item.price) * item.qty) + getItemSurcharge(item), 0
+  acc + item.finalPrice + getItemSurcharge(item), 0
 );
 
 // 3. Item-Level Discounts (The cuts made in the Edit Modal)
-const itemDiscountTotal = cart.reduce((acc, item) =>
-  acc + Math.max(0, (Number(item.price) * item.qty) - item.finalPrice), 0
-);
+const itemDiscountTotal = cart.reduce((acc, item) => {
+  const baseTotal = item.finalPrice; // already includes add-on cost
+  const discountedTotal = item.finalPrice;
+  return acc + Math.max(0, baseTotal - discountedTotal);
+}, 0);
 
 // 4. Promo Eligibility (Vouchers)
 const eligibleForPromo = cart
@@ -260,7 +278,16 @@ const hasStickers = cart.some(item =>
 
     api.get('/discounts').then(({ data }) => {
       localStorage.setItem('pos_discounts_cache', JSON.stringify(data));
-      setDiscounts(data.filter((d: Discount) => d.status === 'ON')); // ADD THIS
+      const seen = new Set<string>();
+      const unique = data
+        .filter((d: Discount) => d.status === 'ON')
+        .filter((d: Discount) => {
+          const key = `${d.name}-${d.amount}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+      setDiscounts(unique);
     }).catch(() => {});
 
     api.get('/add-ons').then(({ data }) => {
@@ -291,22 +318,30 @@ const hasStickers = cart.some(item =>
   }, []);
 
   // ── Sequence helpers ────────────────────────────────────────────────────────
+const terminalNumber = generateTerminalNumber(branchId);
 
+// Update syncNextSequence — remove branchId from generateORNumber:
 const syncNextSequence = async () => {
   try {
     const { data }  = await api.get('/receipts/next-sequence');
     const serverSeq = parseInt(data.next_sequence, 10);
-    
+
     if (!isNaN(serverSeq)) {
-      // Trust the server — don't add +1 to localStorage
       localStorage.setItem('last_or_sequence', String(serverSeq));
-      setOrNumber(generateORNumber(serverSeq));
+      localStorage.setItem('last_or_date', new Date().toDateString());
+      setOrNumber(generateORNumber(serverSeq));         // ← no branchId
       setQueueNumber(generateQueueNumber(serverSeq));
     }
   } catch {
-    // Only fallback to localStorage +1 when offline
-    const fallback = parseInt(localStorage.getItem('last_or_sequence') || '0') + 1;
+    const savedDate = localStorage.getItem('last_or_date');
+    const today     = new Date().toDateString();
+    const isNewDay  = savedDate !== today;
+    const fallback  = isNewDay
+      ? 1
+      : parseInt(localStorage.getItem('last_or_sequence') || '0') + 1;
+
     localStorage.setItem('last_or_sequence', String(fallback));
+    localStorage.setItem('last_or_date', today);
     setOrNumber(generateORNumber(fallback));
     setQueueNumber(generateQueueNumber(fallback));
   }
@@ -370,13 +405,21 @@ const syncNextSequence = async () => {
   };
 
   const handleItemClick = (item: MenuItem) => {
-    if (isBundle) {
+    const actualCategory = categories.find(cat =>
+      cat.menu_items.some(mi => mi.id === item.id)
+    ) ?? selectedCategory;
+
+    setSelectedCategory(actualCategory);
+
+    const isActualBundle = BUNDLE_CATEGORIES.includes(actualCategory?.name as typeof BUNDLE_CATEGORIES[number]);
+
+    if (isActualBundle) {
       const bundle = bundlesData.find(b => b.barcode === item.barcode);
       if (bundle) {
         setActiveBundleItem(bundle);
         setBundleComponentIndex(0);
         setBundleComponentCustomizations([]);
-        setBundleComponentSugar('100%');
+        setBundleComponentSugar('');
         setBundleComponentOptions([]);
         setBundleComponentAddOns([]);
         setIsBundleModalOpen(true);
@@ -395,11 +438,10 @@ const syncNextSequence = async () => {
     if (item.size === 'M' || item.size === 'L') {
       setSize(item.size);
     } else {
-      const cupSizeL = selectedCategory?.cup?.size_l || 'L';
+      const cupSizeL = actualCategory?.cup?.size_l || 'L';
       setSize(categorySize === cupSizeL ? 'L' : 'M');
     }
   };
-
   // ── Order charge toggle ─────────────────────────────────────────────────────
 
   const toggleOrderCharge = (type: 'grab' | 'panda') => {
@@ -473,7 +515,15 @@ const syncNextSequence = async () => {
     if (isDrink || isWaffle) {
       selectedAddOns.forEach(name => {
         const addon = addOnsData.find(a => a.name === name);
-        if (addon) extraCost += Number(addon.price);
+        if (addon) {
+          const baseAddonPrice = Number(addon.price);
+          if (orderCharge === 'grab' && Number(addon.grab_price ?? 0) > 0) {
+            extraCost += Number(addon.grab_price) - baseAddonPrice; // delta only
+          } else if (orderCharge === 'panda' && Number(addon.panda_price ?? 0) > 0) {
+            extraCost += Number(addon.panda_price) - baseAddonPrice; // delta only
+          }
+          extraCost += baseAddonPrice; // always add base
+        }
       });
     }
 
@@ -579,30 +629,61 @@ const syncNextSequence = async () => {
 
   // ── Combo drink confirm ─────────────────────────────────────────────────────
 
-  const confirmComboDrink = () => {
-    if (!pendingComboCart) return;
-    // ← REMOVE the pearl validation block entirely
+const confirmComboDrink = () => {
+  if (!pendingComboCart) return;
 
-    const drinkDetails = [
-      `Sugar: ${comboDrinkSugar}`,
-      ...comboDrinkOptions,
-      ...comboDrinkAddOns.map(a => `+${a}`),
-    ].join(' | ');
+  const isPizzaCombo = selectedCategory?.name?.toUpperCase() === 'PIZZA PEDRICOS COMBO';
+  const isClassicPearl = pendingComboCart.name?.toUpperCase().includes('CLASSIC PEARL');
+  const pearlOpts = ['NO PRL', 'W/ PRL'];
 
-    const finalItem: CartItem = {
-      ...pendingComboCart,
-      remarks: `Classic Pearl [${drinkDetails}]${pendingComboCart.remarks ? ` | Note: ${pendingComboCart.remarks}` : ''}`,
-      sugarLevel: comboDrinkSugar,
-      options: comboDrinkOptions,
-      addOns: comboDrinkAddOns.length > 0 ? comboDrinkAddOns : undefined,
-    };
+  if (isPizzaCombo && !isClassicPearl && !comboDrinkOptions.some(o => pearlOpts.includes(o))) {
+    showToast('Please select NO PRL or W/ PRL', 'warning');
+    return;
+  }
 
-    mergeIntoCart(finalItem);
-    logCartAction(finalItem.name, finalItem.qty);
-    setIsCombodrinkModalOpen(false);
-    setPendingComboCart(null);
-    showToast(`${finalItem.name} + Classic Pearl added!`, 'success');
+  // Calculate add-on cost using REGULAR price only (surcharge is handled by getItemSurcharge)
+  let addOnExtraCost = 0;
+  comboDrinkAddOns.forEach(name => {
+    const addon = addOnsData.find(a => a.name === name);
+    if (addon) {
+      if (orderCharge === 'grab' && Number(addon.grab_price ?? 0) > 0) {
+        addOnExtraCost += Number(addon.grab_price); // ₱40 full grab price
+      } else if (orderCharge === 'panda' && Number(addon.panda_price ?? 0) > 0) {
+        addOnExtraCost += Number(addon.panda_price); // ₱40 full panda price
+      } else {
+        addOnExtraCost += Number(addon.price); // ₱30 base
+      }
+    }
+  });
+
+  const drinkDetails = [
+    `Sugar: ${comboDrinkSugar}`,
+    ...comboDrinkOptions,
+    ...comboDrinkAddOns.map(a => `+${a}`),
+  ].join(' | ');
+
+  const drinkLabel = isPizzaCombo && !isClassicPearl
+    ? pendingComboCart.name.replace(/^PIZZA \+ /i, '')
+    : 'Classic Pearl';
+
+  const finalItem: CartItem = {
+    ...pendingComboCart,  // preserves original grab_price/panda_price for getItemSurcharge
+    remarks: `${drinkLabel} [${drinkDetails}]${pendingComboCart.remarks ? ` | Note: ${pendingComboCart.remarks}` : ''}`,
+    sugarLevel: comboDrinkSugar,
+    options: comboDrinkOptions,
+    addOns: comboDrinkAddOns.length > 0 ? comboDrinkAddOns : undefined,
+    // finalPrice = base item price + add-on base cost (surcharge added separately by getItemSurcharge)
+    finalPrice: pendingComboCart.finalPrice + (addOnExtraCost * pendingComboCart.qty),
+    // Do NOT override grab_price/panda_price — let getItemSurcharge use them normally
   };
+
+  mergeIntoCart(finalItem);
+  logCartAction(finalItem.name, finalItem.qty);
+  setIsCombodrinkModalOpen(false);
+  setPendingComboCart(null);
+  showToast(`${finalItem.name} added!`, 'success');
+};
+  // ── Cart item editing ───────────────────────────────────────────────────────
 
   // ── Cart item editing ───────────────────────────────────────────────────────
 
@@ -738,7 +819,7 @@ const saveCartItemEdit = () => {
       try {
         await api.post('/sales', orderData);
 
-        const currentSeq = parseInt(orNumber.replace('SI-', ''), 10);
+        const currentSeq = parseInt(orNumber.split('-').pop() ?? '0', 10);
         if (!isNaN(currentSeq)) localStorage.setItem('last_or_sequence', String(currentSeq));
         localStorage.setItem('dashboard_stats_timestamp', '0');
 
@@ -849,7 +930,7 @@ const saveCartItemEdit = () => {
 
   const printProps = {
     cart, branchName, orNumber, queueNumber, cashierName,
-    formattedDate, formattedTime,
+    formattedDate, formattedTime, terminalNumber,
   };
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -928,6 +1009,7 @@ const saveCartItemEdit = () => {
             onToggle={toggleAddOn}
             onClose={() => setIsAddOnModalOpen(false)}
             zIndex="z-[110]"
+            orderCharge={orderCharge}
           />
         )}
 
@@ -969,6 +1051,7 @@ const saveCartItemEdit = () => {
             )}
             onConfirm={confirmComboDrink}
             onClose={() => { setIsCombodrinkModalOpen(false); setPendingComboCart(null); }}
+            orderCharge={orderCharge}
           />
         )}
 
@@ -1068,6 +1151,7 @@ const saveCartItemEdit = () => {
             cart={cart}
             cashierName={cashierName}
             orNumber={orNumber}
+            terminalNumber={terminalNumber} 
             totalCount={totalCount}
             subtotal={subtotal}
             onEditItem={openCartItemEdit}

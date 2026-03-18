@@ -147,10 +147,26 @@ const InventoryOverview: React.FC = () => {
       if (alertsRes.status === 'fulfilled') {
         setAlerts(alertsRes.value.data?.data ?? alertsRes.value.data ?? []);
       }
-      if (movementsRes.status === 'fulfilled') {
-        const mv = movementsRes.value.data;
-        setMovements(Array.isArray(mv) ? mv : mv?.data ?? []);
-      }
+if (movementsRes.status === 'fulfilled') {
+  const mv = movementsRes.value.data;
+  const raw = Array.isArray(mv) ? mv : mv?.data ?? [];
+
+  const str = (v: unknown): string => {
+    if (typeof v === 'string') return v;
+    if (typeof v === 'object' && v !== null && 'name' in v)
+      return String((v as { name: unknown }).name ?? '');
+    return '';
+  };
+
+  setMovements(raw.map((m: Record<string, unknown>) => ({
+    ...m,
+    raw_material: str(m.raw_material),
+    unit:         str(m.unit),
+    branch_name:  str(m.branch_name),
+    reason:       str(m.reason),
+    performed_by: str(m.performed_by),
+  })));
+}
       if (branchListRes.status === 'fulfilled') {
         const bl = branchListRes.value.data;
         setAllBranches(Array.isArray(bl) ? bl : bl?.data ?? []);
@@ -170,10 +186,17 @@ const InventoryOverview: React.FC = () => {
     return '#7c14d4';
   };
 
+const resolveUnit = (unit: unknown): string => {
+  if (typeof unit === 'object' && unit !== null && 'name' in unit)
+    return String((unit as { name: unknown }).name ?? '');
+  return typeof unit === 'string' ? unit : '';
+};
+
   const moveLabel = (m: StockMovement) => {
-    if (m.type === 'add')      return `+${m.quantity} ${m.unit}`;
-    if (m.type === 'subtract') return `-${m.quantity} ${m.unit}`;
-    return `Set to ${m.quantity} ${m.unit}`;
+    const u = resolveUnit(m.unit);
+    if (m.type === 'add')      return `+${m.quantity} ${u}`;
+    if (m.type === 'subtract') return `-${m.quantity} ${u}`;
+    return `Set to ${m.quantity} ${u}`;
   };
 
   const Skeleton = () => (
@@ -255,7 +278,11 @@ const InventoryOverview: React.FC = () => {
                       <tr key={item.id} className="border-b border-zinc-50 hover:bg-[#faf9ff] transition-colors">
                         <td className="px-4 py-3">
                           <p className="font-bold text-[#1a0f2e] text-xs">{item.name}</p>
-                          <p className="text-[10px] text-zinc-400">{item.category} · {item.unit}</p>
+                          <p className="text-[10px] text-zinc-400">
+                            {item.category} · {typeof item.unit === 'object' && item.unit !== null
+  ? (item.unit as { name: string }).name
+  : item.unit}
+                          </p>
                         </td>
                         <td className="px-4 py-3">
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#f5f0ff] text-[#7c14d4] border border-[#e9d5ff]">
