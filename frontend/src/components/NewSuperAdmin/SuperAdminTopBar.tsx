@@ -4,8 +4,8 @@ import type { TabId } from "./SuperAdminSidebar";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface SuperAdminTopBarProps {
-  active:      TabId;
-  onMenuClick: () => void;
+  active:       TabId;
+  onMenuClick:  () => void;
   branchLabel?: string | null;
 }
 
@@ -21,6 +21,7 @@ const PAGE_TITLES: Record<TabId, { label: string; desc: string }> = {
   cross_branch_reports: { label: "Cross-Branch Reports", desc: "Consolidated analytics across branches"   },
   x_reading:            { label: "X Reading",            desc: "Mid-day POS shift summary"                },
   z_reading:            { label: "Z Reading",            desc: "End-of-day POS closing report"            },
+  branch_performance:   { label: "Branch Performance",   desc: "Today's sales, all-time totals and metrics across all branches" }, // ✅ added
 
   menu_items:    { label: "Menu List",      desc: "All products & pricing"                    },
   categories:    { label: "Categories",     desc: "Top-level menu groupings"                  },
@@ -36,11 +37,11 @@ const PAGE_TITLES: Record<TabId, { label: string; desc: string }> = {
   purchase_order: { label: "Purchase Order",      desc: "Incoming stock orders"                   },
   stock_transfer: { label: "Stock Transfer",      desc: "Move stock between branches"             },
 
-  expenses: { label: "Expenses",                desc: "Operational costs & expense tracking"    },
+  expenses: { label: "Expenses", desc: "Operational costs & expense tracking" },
 
-  promotions: { label: "Promotions & Discounts", desc: "Active campaigns & vouchers"            },
-  audit:      { label: "Audit Logs",             desc: "Complete system activity trail"          },
-  settings:   { label: "System Settings",        desc: "Global configuration & preferences"     },
+  promotions: { label: "Promotions & Discounts", desc: "Active campaigns & vouchers"        },
+  audit:      { label: "Audit Logs",             desc: "Complete system activity trail"      },
+  settings:   { label: "System Settings",        desc: "Global configuration & preferences" },
 };
 
 // ── Pulse animation ───────────────────────────────────────────────────────────
@@ -107,7 +108,7 @@ const SuperAdminTopBar: React.FC<SuperAdminTopBarProps> = ({
             })}
           </span>
 
-          {/* Branch / role pill — shown if branchLabel provided, else shows "Super Admin" */}
+          {/* Branch / role pill */}
           <span
             className="hidden sm:inline-flex items-center gap-1.5 shrink-0"
             style={{

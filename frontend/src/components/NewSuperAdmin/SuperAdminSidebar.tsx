@@ -6,6 +6,7 @@ import {
   TrendingUp, FileText, ClipboardList, Receipt, Repeat2,
   Truck, ScanLine, Hash, ShoppingCart, ArrowLeftRight,
   DollarSign, BookOpen, FlaskConical, Wallet, X, ChevronDown,
+  Store, // ✅ added — required for branch_performance nav item
 } from "lucide-react";
 
 // ── Tab IDs ───────────────────────────────────────────────────────────────────
@@ -13,6 +14,7 @@ export type TabId =
   | "overview" | "branches" | "users"
   | "sales_report" | "analytics" | "items_report"
   | "cross_branch_reports" | "x_reading" | "z_reading"
+  | "branch_performance"   // ✅ already present
   | "menu_items" | "categories" | "subcategories"
   | "inv_overview" | "raw_materials" | "usage_report"
   | "recipes" | "supplier" | "item_checker"
@@ -42,7 +44,6 @@ const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
   .sa-sb-root, .sa-sb-root * { font-family: 'DM Sans', sans-serif !important; box-sizing: border-box; }
 
-  /* Desktop nav tab */
   .sa-tab {
     border-radius: 0.4rem; border: none; cursor: pointer;
     background: transparent; transition: background 0.12s, color 0.12s;
@@ -54,7 +55,6 @@ const STYLES = `
     width: 2.5px; background: #3b2063; border-radius: 0 2px 2px 0;
   }
 
-  /* Desktop: accordion */
   .sa-accordion {
     display: grid; grid-template-rows: 0fr; opacity: 0;
     transition: grid-template-rows 0.32s cubic-bezier(0.4,0,0.2,1), opacity 0.22s ease;
@@ -62,17 +62,14 @@ const STYLES = `
   .sa-accordion.open { grid-template-rows: 1fr; opacity: 1; }
   .sa-accordion-inner { overflow: hidden; }
 
-  /* Desktop: chevron */
   .sa-chevron { color: #a1a1aa; flex-shrink: 0; transition: transform 0.32s cubic-bezier(0.4,0,0.2,1); }
   .sa-chevron.open { transform: rotate(180deg); }
 
-  /* ── Overlay animations ── */
   @keyframes sa-overlay-in  { from { opacity: 0; } to { opacity: 1; } }
   @keyframes sa-overlay-out { from { opacity: 1; } to { opacity: 0; } }
   .sa-overlay-enter { animation: sa-overlay-in  0.2s ease forwards; }
   .sa-overlay-exit  { animation: sa-overlay-out 0.25s ease forwards; }
 
-  /* ── Mobile: panel slide ── */
   @keyframes sa-panel-in  { from { transform: translateX(-100%); } to { transform: translateX(0); } }
   @keyframes sa-panel-out { from { transform: translateX(0); }      to { transform: translateX(-100%); } }
   .sa-panel-enter { animation: sa-panel-in  0.3s cubic-bezier(0.22,1,0.36,1) forwards; }
@@ -81,14 +78,12 @@ const STYLES = `
   .sa-scroll { overflow-y: auto; -ms-overflow-style: none; scrollbar-width: none; }
   .sa-scroll::-webkit-scrollbar { display: none; }
 
-  /* ── Mobile: section label ── */
   .sa-sec {
     padding: 16px 4px 5px;
     font-size: 0.58rem; font-weight: 700; letter-spacing: 0.18em;
     text-transform: uppercase; color: #c4c4c8;
   }
 
-  /* ── Mobile: nav item ── */
   .sa-item {
     display: flex; align-items: center; gap: 14px;
     width: 100%; padding: 13px 14px; border: none;
@@ -105,7 +100,6 @@ const STYLES = `
     width: 3px; background: #3b2063; border-radius: 0 3px 3px 0;
   }
 
-  /* ── Mobile: icon box ── */
   .sa-item-icon {
     flex-shrink: 0; width: 38px; height: 38px; border-radius: 0.6rem;
     background: #f4f4f5; display: flex; align-items: center; justify-content: center;
@@ -114,7 +108,6 @@ const STYLES = `
   .sa-item.active .sa-item-icon { background: #ddd5ff; }
   .sa-item:hover  .sa-item-icon { background: #ede8ff; }
 
-  /* ── Mobile: group button ── */
   .sa-group-btn {
     display: flex; align-items: center; gap: 14px;
     width: 100%; padding: 13px 14px; border: none;
@@ -131,11 +124,9 @@ const STYLES = `
   }
   .sa-group-btn:hover .sa-item-icon { background: #ede8ff; }
 
-  /* ── Mobile: chevron ── */
   .sa-m-chevron { color: #a1a1aa; flex-shrink: 0; transition: transform 0.32s cubic-bezier(0.4,0,0.2,1); }
   .sa-m-chevron.open { transform: rotate(180deg); }
 
-  /* ── Mobile: accordion ── */
   .sa-m-accordion {
     display: grid; grid-template-rows: 0fr; opacity: 0;
     transition: grid-template-rows 0.32s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease;
@@ -143,7 +134,6 @@ const STYLES = `
   .sa-m-accordion.open { grid-template-rows: 1fr; opacity: 1; }
   .sa-m-accordion-inner { overflow: hidden; }
 
-  /* ── Mobile: sub item ── */
   .sa-sub {
     display: flex; align-items: center; gap: 8px;
     width: 100%; padding: 10px 14px 10px 64px; border: none;
@@ -167,7 +157,6 @@ const STYLES = `
   }
   .sa-sub.active::after, .sa-sub:hover::after { background: #3b2063; }
 
-  /* ── Mobile: logout button ── */
   .sa-logout {
     display: flex; align-items: center; gap: 14px;
     width: 100%; padding: 13px 14px; border: none;
@@ -187,24 +176,28 @@ const STYLES = `
 `;
 
 // ── Nav data ──────────────────────────────────────────────────────────────────
-const NAV_ITEMS:       { id: TabId; label: string; icon: React.ReactNode }[] = [
+const NAV_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "overview",  label: "Overview",          icon: <LayoutGrid size={14} /> },
   { id: "branches",  label: "Branch Management", icon: <GitBranch  size={14} /> },
   { id: "users",     label: "User Management",   icon: <Users      size={14} /> },
 ];
-const REPORTS_ITEMS:   { id: TabId; label: string; icon: React.ReactNode }[] = [
+
+const REPORTS_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "sales_report",         label: "Sales Report",         icon: <Receipt       size={13} /> },
   { id: "analytics",            label: "Analytics & Sales",    icon: <TrendingUp    size={13} /> },
   { id: "items_report",         label: "Items Report",         icon: <ClipboardList size={13} /> },
   { id: "cross_branch_reports", label: "Cross-Branch Reports", icon: <BarChart2     size={13} /> },
   { id: "x_reading",            label: "X Reading",            icon: <Repeat2       size={13} /> },
   { id: "z_reading",            label: "Z Reading",            icon: <FileText      size={13} /> },
+  { id: "branch_performance",   label: "Branch Performance",   icon: <Store         size={13} /> }, // ✅
 ];
-const MENU_ITEMS:      { id: TabId; label: string; icon: React.ReactNode }[] = [
+
+const MENU_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "menu_items",    label: "Menu List",      icon: <BookOpen size={13} /> },
   { id: "categories",    label: "Categories",     icon: <Layers   size={13} /> },
   { id: "subcategories", label: "Sub-Categories", icon: <List     size={13} /> },
 ];
+
 const INVENTORY_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "inv_overview",   label: "Overview",       icon: <Package        size={13} /> },
   { id: "raw_materials",  label: "Raw Materials",  icon: <FlaskConical   size={13} /> },
@@ -216,10 +209,12 @@ const INVENTORY_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "purchase_order", label: "Purchase Order", icon: <ShoppingCart   size={13} /> },
   { id: "stock_transfer", label: "Stock Transfer", icon: <ArrowLeftRight size={13} /> },
 ];
-const EXPENSES_ITEMS:  { id: TabId; label: string; icon: React.ReactNode }[] = [
+
+const EXPENSES_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "expenses", label: "Expenses", icon: <Wallet size={13} /> },
 ];
-const SYSTEM_ITEMS:    { id: TabId; label: string; icon: React.ReactNode }[] = [
+
+const SYSTEM_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "promotions", label: "Promotions & Discounts", icon: <Tag         size={14} /> },
   { id: "audit",      label: "Audit Logs",             icon: <ShieldCheck size={14} /> },
 ];
@@ -325,15 +320,13 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
   const [showLogoutModal,    setShowLogoutModal]    = useState(false);
   const [internalLoggingOut, setInternalLoggingOut] = useState(false);
   const [authUser,           setAuthUser]           = useState<AuthUser | null>(null);
-  const [isClosing,          setIsClosing]           = useState(false);
+  const [isClosing,          setIsClosing]          = useState(false);
 
-  // Desktop accordion state
   const [reportsExp,   setReportsExp]   = useState(false);
   const [menuExp,      setMenuExp]      = useState(false);
   const [inventoryExp, setInventoryExp] = useState(false);
   const [expensesExp,  setExpensesExp]  = useState(false);
 
-  // Mobile accordion state (separate so desktop and mobile don't share)
   const [mReportsExp,   setMReportsExp]   = useState(false);
   const [mMenuExp,      setMMenuExp]      = useState(false);
   const [mInventoryExp, setMInventoryExp] = useState(false);
@@ -398,12 +391,8 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
     <>
       <style>{STYLES}</style>
 
-      {/* ══════════════════════════════════════════════
-          DESKTOP SIDEBAR (md and above)
-      ══════════════════════════════════════════════ */}
+      {/* ── Desktop sidebar ── */}
       <aside className="sa-sb-root fixed inset-y-0 left-0 z-50 w-60 bg-white border-r border-zinc-100 flex-col hidden md:flex md:relative md:translate-x-0">
-
-        {/* User profile */}
         <div className="shrink-0 px-4 pt-6 pb-4 border-b border-zinc-100">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-[0.4rem] bg-[#3b2063] flex items-center justify-center shrink-0">
@@ -423,7 +412,6 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
           </div>
         </div>
 
-        {/* Desktop nav */}
         <div className="flex-1 sa-scroll px-3 py-2 min-h-0">
           <p className="px-2 pt-4 pb-1 text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">Navigation</p>
           {NAV_ITEMS.map(t => (
@@ -465,7 +453,6 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
           <div className="pb-4" />
         </div>
 
-        {/* Desktop bottom */}
         <div className="shrink-0 px-3 pb-4 pt-2 border-t border-zinc-100">
           <button onClick={() => go("settings")}
             className={`sa-tab flex items-center gap-2 w-full px-2.5 py-1.5 text-[0.8rem] font-medium mb-0.5 text-left relative ${active === "settings" ? "active" : "text-zinc-500"}`}>
@@ -497,24 +484,18 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
         </div>
       </aside>
 
-      {/* ══════════════════════════════════════════════
-          MOBILE — full-viewport panel
-      ══════════════════════════════════════════════ */}
+      {/* ── Mobile panel ── */}
       {(open || isClosing) && (
         <>
-          {/* Backdrop */}
           <div
             className={`${isClosing ? "sa-overlay-exit" : "sa-overlay-enter"} md:hidden`}
             onClick={closePanel}
             style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(3px)", zIndex: 40 }}
           />
-
-          {/* Panel */}
           <div
             className={`sa-panel-enter${isClosing ? " sa-panel-exit" : ""} sa-sb-root md:hidden`}
             style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "#fff", zIndex: 50, display: "flex", flexDirection: "column", overflow: "hidden" }}
           >
-            {/* Profile header */}
             <div style={{ flexShrink: 0, padding: "56px 20px 16px", paddingTop: "max(56px, calc(env(safe-area-inset-top) + 20px))" }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -523,9 +504,7 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
                   </div>
                   <div>
                     <div style={{ fontSize: "0.65rem", color: "#a1a1aa", fontWeight: 500, marginBottom: 1 }}>Hello,</div>
-                    <div style={{ fontSize: "1rem", fontWeight: 700, color: "#1a0f2e", lineHeight: 1.2 }}>
-                      {authUser?.name ?? "Super Admin"}
-                    </div>
+                    <div style={{ fontSize: "1rem", fontWeight: 700, color: "#1a0f2e", lineHeight: 1.2 }}>{authUser?.name ?? "Super Admin"}</div>
                     <div style={{ fontSize: "0.68rem", color: "#a1a1aa", fontWeight: 500, marginTop: 1 }}>Lucky Boba</div>
                   </div>
                 </div>
@@ -537,9 +516,7 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
 
             <div className="sa-divider" style={{ margin: "0 20px" }} />
 
-            {/* Scrollable nav */}
             <div className="sa-scroll" style={{ flex: 1, minHeight: 0, padding: "8px 14px" }}>
-
               <div className="sa-sec">Navigation</div>
               {NAV_ITEMS.map(t => (
                 <button key={t.id} onClick={() => go(t.id)} className={`sa-item ${active === t.id ? "active" : ""}`}>
@@ -575,10 +552,8 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
                   {t.label}
                 </button>
               ))}
-
             </div>
 
-            {/* Bottom actions */}
             <div style={{ flexShrink: 0, padding: "8px 14px", paddingBottom: "max(24px, env(safe-area-inset-bottom))", borderTop: "1px solid #f0f0f2" }}>
               <button onClick={() => go("settings")} className={`sa-item ${active === "settings" ? "active" : ""}`} style={{ color: active === "settings" ? "#3b2063" : "#3f3f46" }}>
                 <span className="sa-item-icon" style={{ color: active === "settings" ? "#3b2063" : "#71717a" }}><Settings size={18} /></span>
