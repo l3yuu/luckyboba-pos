@@ -16,8 +16,8 @@ import api           from '../services/api';
 
 // ── Component imports ─────────────────────────────────────────────────────────
 import {
-  generateORNumber, generateQueueNumber, getItemSurcharge,
-  DrinkIcon,
+  generateORNumber, generateQueueNumber, generateTerminalNumber, // ← add generateTerminalNumber
+  getItemSurcharge, DrinkIcon,
 } from '../components/Cashier/SalesOrderComponents/shared';
 
 import { Header, MenuArea, CartSidebar }
@@ -164,13 +164,21 @@ const SalesOrder = () => {
     try {
       const c = localStorage.getItem('pos_discounts_cache');
       const all = c ? JSON.parse(c) : [];
-      return all.filter((d: Discount) => d.status === 'ON');
+      const seen = new Set<string>();
+      return all
+        .filter((d: Discount) => d.status === 'ON')
+        .filter((d: Discount) => {
+          const key = `${d.name}-${d.amount}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
     } catch { return []; }
   });
   const [selectedDiscount, setSelectedDiscount] = useState<Discount | null>(null);
 
   // OR / Queue
-  const [orNumber,     setOrNumber]     = useState(generateORNumber(1));
+  const [orNumber, setOrNumber] = useState(generateORNumber(1));
   const [queueNumber,  setQueueNumber]  = useState(generateQueueNumber(1));
 
   // Success / print
@@ -270,7 +278,16 @@ const hasStickers = cart.some(item =>
 
     api.get('/discounts').then(({ data }) => {
       localStorage.setItem('pos_discounts_cache', JSON.stringify(data));
-      setDiscounts(data.filter((d: Discount) => d.status === 'ON')); // ADD THIS
+      const seen = new Set<string>();
+      const unique = data
+        .filter((d: Discount) => d.status === 'ON')
+        .filter((d: Discount) => {
+          const key = `${d.name}-${d.amount}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+      setDiscounts(unique);
     }).catch(() => {});
 
     api.get('/add-ons').then(({ data }) => {
@@ -301,22 +318,30 @@ const hasStickers = cart.some(item =>
   }, []);
 
   // ── Sequence helpers ────────────────────────────────────────────────────────
+const terminalNumber = generateTerminalNumber(branchId);
 
+// Update syncNextSequence — remove branchId from generateORNumber:
 const syncNextSequence = async () => {
   try {
     const { data }  = await api.get('/receipts/next-sequence');
     const serverSeq = parseInt(data.next_sequence, 10);
-    
+
     if (!isNaN(serverSeq)) {
-      // Trust the server — don't add +1 to localStorage
       localStorage.setItem('last_or_sequence', String(serverSeq));
-      setOrNumber(generateORNumber(serverSeq));
+      localStorage.setItem('last_or_date', new Date().toDateString());
+      setOrNumber(generateORNumber(serverSeq));         // ← no branchId
       setQueueNumber(generateQueueNumber(serverSeq));
     }
   } catch {
-    // Only fallback to localStorage +1 when offline
-    const fallback = parseInt(localStorage.getItem('last_or_sequence') || '0') + 1;
+    const savedDate = localStorage.getItem('last_or_date');
+    const today     = new Date().toDateString();
+    const isNewDay  = savedDate !== today;
+    const fallback  = isNewDay
+      ? 1
+      : parseInt(localStorage.getItem('last_or_sequence') || '0') + 1;
+
     localStorage.setItem('last_or_sequence', String(fallback));
+    localStorage.setItem('last_or_date', today);
     setOrNumber(generateORNumber(fallback));
     setQueueNumber(generateQueueNumber(fallback));
   }
@@ -794,7 +819,7 @@ const saveCartItemEdit = () => {
       try {
         await api.post('/sales', orderData);
 
-        const currentSeq = parseInt(orNumber.replace('SI-', ''), 10);
+        const currentSeq = parseInt(orNumber.split('-').pop() ?? '0', 10);
         if (!isNaN(currentSeq)) localStorage.setItem('last_or_sequence', String(currentSeq));
         localStorage.setItem('dashboard_stats_timestamp', '0');
 
@@ -905,7 +930,7 @@ const saveCartItemEdit = () => {
 
   const printProps = {
     cart, branchName, orNumber, queueNumber, cashierName,
-    formattedDate, formattedTime,
+    formattedDate, formattedTime, terminalNumber,
   };
 
   // ── Render ──────────────────────────────────────────────────────────────────
@@ -1126,6 +1151,7 @@ const saveCartItemEdit = () => {
             cart={cart}
             cashierName={cashierName}
             orNumber={orNumber}
+            terminalNumber={terminalNumber} 
             totalCount={totalCount}
             subtotal={subtotal}
             onEditItem={openCartItemEdit}

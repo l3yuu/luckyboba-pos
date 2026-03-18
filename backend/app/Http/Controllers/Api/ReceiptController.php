@@ -13,8 +13,14 @@ class ReceiptController extends Controller
 {
     public function getNextSequence()
     {
+        $user     = auth()->user();
+        $branchId = $user?->branch_id;
+        $today    = now()->toDateString();
+
         $latest = \App\Models\Sale::where('invoice_number', 'LIKE', 'SI-%')
             ->whereRaw("invoice_number REGEXP '^SI-[0-9]+$'")
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->whereDate('created_at', $today)
             ->orderByRaw('CAST(SUBSTRING(invoice_number, 4) AS UNSIGNED) DESC')
             ->first();
 
