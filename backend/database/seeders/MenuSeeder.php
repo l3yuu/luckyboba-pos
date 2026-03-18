@@ -192,6 +192,8 @@ class MenuSeeder extends Seeder
                 ['name' => "SALTED CARAMEL + CREAM CHEESE", 'price' => 135.00, 'barcode' => "CRML4", 'size' => 'L', 'grab_price' => 50.00, 'panda_price' => 50.00],
                 ['name' => "HERSHEYS + CREAM CHEESE",       'price' => 115.00, 'barcode' => "CRMM3", 'size' => 'M', 'grab_price' => 40.00, 'panda_price' => 40.00],
                 ['name' => "HERSHEYS + CREAM CHEESE",       'price' => 135.00, 'barcode' => "CRML3", 'size' => 'L', 'grab_price' => 50.00, 'panda_price' => 50.00],
+                ['name' => "CHOCO HAZELNUT + CREAM CHEESE", 'price' => 115.00, 'barcode' => "CRMM9", 'size' => 'M', 'grab_price' => 40.00, 'panda_price' => 40.00],
+                ['name' => "CHOCO HAZELNUT + CREAM CHEESE", 'price' => 135.00, 'barcode' => "CRML9", 'size' => 'L', 'grab_price' => 50.00, 'panda_price' => 50.00],
             ],
             'FLAVORED MILK TEA' => [
                 ['name' => "WINTERMELON MILK TEA",     'price' => 85.00,  'barcode' => "FLMM4",  'size' => 'M', 'grab_price' => 35.00, 'panda_price' => 35.00],
