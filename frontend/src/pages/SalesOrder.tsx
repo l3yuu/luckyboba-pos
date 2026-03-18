@@ -8,7 +8,6 @@ import OfflineQueueBanner  from '../components/Cashier/SalesOrderComponents/Offl
 import {
   type MenuItem, type Category, type CartItem,
   type Bundle, type BundleComponentCustomization,
-  BUNDLE_CATEGORIES,
 } from '../types/index';
 import { useToast }  from '../hooks/useToast';
 import { useAuth }   from '../hooks/useAuth';
@@ -190,13 +189,12 @@ const SalesOrder = () => {
 
   // ── Derived values ──────────────────────────────────────────────────────────
 
-  const isDrink              = selectedCategory?.type === 'drink';
-  const isWings              = selectedCategory?.name === 'CHICKEN WINGS';
-  const isOz                 = selectedCategory?.name === 'HOT DRINKS' || selectedCategory?.name === 'HOT COFFEE';
-  const isCombo =
-  selectedCategory?.name?.toUpperCase() === 'COMBO MEALS' ||
-  selectedCategory?.name?.toUpperCase() === 'PIZZA PEDRICOS COMBO';
-  const isWaffleCategory     = selectedCategory?.name?.toLowerCase().includes('waffle') ?? false;
+  // ✅ REPLACE with category_type driven checks
+  const isDrink        = selectedCategory?.type === 'drink' || selectedCategory?.category_type === 'bundle';
+  const isWings        = selectedCategory?.category_type === 'wings';
+  const isOz           = selectedCategory?.name === 'HOT DRINKS' || selectedCategory?.name === 'HOT COFFEE';
+  const isCombo        = selectedCategory?.category_type === 'combo';
+  const isWaffleCategory = selectedCategory?.category_type === 'waffle';
   const categoryHasOnlyOneSize = (selectedCategory?.sub_categories?.length ?? 0) <= 1;
 
   const filteredAddOns = addOnsData.filter(a =>
@@ -351,21 +349,28 @@ const syncNextSequence = async () => {
 
   // ── Category / item navigation ──────────────────────────────────────────────
 
-  const handleCategoryClick = (cat: Category) => {
-    setSelectedCategory(cat);
-    setCategorySize(null);
+// ✅ REPLACE
+const handleCategoryClick = (cat: Category) => {
+  setSelectedCategory(cat);
+  setCategorySize(null);
 
-    const isDrinkCat = cat.type === 'drink';
-    const isWingsCat = cat.name === 'CHICKEN WINGS';
-    const subCats    = cat.sub_categories ?? [];
+  const catType  = cat.category_type ?? cat.type;
+  const isDrinkCat  = catType === 'drink' || catType === 'bundle'; // bundles use drink size flow
+  const isWingsCat  = catType === 'wings';
+  const subCats     = cat.sub_categories ?? [];
 
-    if (!isDrinkCat && !isWingsCat) { setCategorySize('all'); return; }
-    if (isWingsCat) return;
-    if (subCats.length === 1)       { setCategorySize(subCats[0].name); return; }
-    if (subCats.length === 0 && cat.cup?.size_l == null) {
-      setCategorySize(cat.cup?.size_m || 'M');
-    }
-  };
+  // Food, combo, waffle, promo — no size selection needed
+  if (!isDrinkCat && !isWingsCat) { setCategorySize('all'); return; }
+
+  // Wings — show sub-categories (3pc, 4pc, 6pc, 12pc)
+  if (isWingsCat) return;
+
+  // Drinks and bundles — show size selection
+  if (subCats.length === 1)       { setCategorySize(subCats[0].name); return; }
+  if (subCats.length === 0 && cat.cup?.size_l == null) {
+    setCategorySize(cat.cup?.size_m || 'M');
+  }
+};
 
   const handleBack = () => {
     if ((isDrink || isWings) && categorySize && !categoryHasOnlyOneSize) {
@@ -411,8 +416,9 @@ const syncNextSequence = async () => {
 
     setSelectedCategory(actualCategory);
 
-    const isActualBundle = BUNDLE_CATEGORIES.includes(actualCategory?.name as typeof BUNDLE_CATEGORIES[number]);
-
+    // ✅ REPLACE
+const isActualBundle = actualCategory?.category_type === 'bundle' ||
+                       actualCategory?.category_type === 'combo';
     if (isActualBundle) {
       const bundle = bundlesData.find(b => b.barcode === item.barcode);
       if (bundle) {
