@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\Api\{ BackupController, CashCountController, CashTransactionController, CategoryController, DashboardController, DiscountController, ExpenseController, InventoryController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController, MenuItemController };
 use App\Http\Controllers\Api\AuditLogController;
-use App\Http\Controllers\Api\AuthController;          // ← added
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CupController;
 use App\Http\Controllers\Api\ItemsReportController;
 use App\Http\Controllers\Api\RawMaterialController;
@@ -16,22 +16,40 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 
-// ✅ Use AuthController so login/logout events are audit-logged
 Route::post('/login',  [AuthController::class, 'login'])->middleware('throttle:5,2');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 
-Route::post('/purchase-card',              [CardPurchaseController::class, 'purchase']);
-// ✅ CHANGED: Changed 'post' to 'get' so it matches Flutter's http.get request
+Route::post('/purchase-card',             [CardPurchaseController::class, 'purchase']);
 Route::get('/check-card-status/{userId}', [CardPurchaseController::class, 'checkStatus']);
 
+// ── PUBLIC MENU ───────────────────────────────────────────────────────────────
+// Returns all menu items with full image URL for the Flutter customer app.
 Route::get('/public-menu', function () {
     $items = DB::table('menu_items')
         ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
-        ->select('menu_items.id', 'menu_items.name', 'menu_items.barcode', 'menu_items.quantity', 'categories.name as category', 'menu_items.price as sellingPrice')
-        ->get();
+        ->select(
+            'menu_items.id',
+            'menu_items.name',
+            'menu_items.barcode',
+            'menu_items.quantity',
+            'categories.name as category',
+            'menu_items.price as sellingPrice',
+            'menu_items.image'   // ← the image column from menu_items
+        )
+        ->get()
+        ->map(function ($item) {
+            // Build full public URL so Flutter's Image.network() can load it.
+            // e.g.  http://192.168.254.136:8000/storage/menu-items/photo.jpg
+            $item->image = $item->image
+                ? url('storage/' . $item->image)
+                : null;
+            return $item;
+        });
+
     return response()->json($items);
 });
-
+// ─────────────────────────────────────────────────────────────────────────────
+Route::post('/google-login', [AuthController::class, 'googleLogin']);
 Route::post('/register', function (Request $request) {
     $request->validate(['name' => 'required|string|max:255', 'email' => 'required|string|email|max:255|unique:users', 'password' => 'required|string|min:8']);
     $user = User::create(['name' => $request->name, 'email' => $request->email, 'password' => Hash::make($request->password), 'role' => 'customer']);
@@ -42,7 +60,6 @@ Route::post('/register', function (Request $request) {
 Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::get('/user', fn (Request $request) => $request->user());
-    // Note: /logout is now outside this group (defined above with auth:sanctum middleware directly)
 
     // CASHIER + BRANCH MANAGER + SUPERADMIN
     Route::middleware(['role:superadmin,branch_manager,cashier'])->group(function () {
@@ -83,10 +100,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/notifications/summary', [NotificationController::class, 'summary']);
         Route::post('/audit-logs',           [AuditLogController::class, 'store']);
         Route::apiResource('menu-list',  MenuListController::class)->only(['index', 'store']);
-        Route::apiResource('menu-items', MenuItemController::class);  // ← add this
+        Route::apiResource('menu-items', MenuItemController::class);
         Route::get('/add-ons',           [AddOnController::class, 'index']);
         Route::get('/bundles',           fn () => \App\Models\Bundle::with('items')->where('is_active', true)->get());
-        Route::get('/discounts',         [DiscountController::class, 'index']); // ← ALL roles can read discounts
+        Route::get('/discounts',         [DiscountController::class, 'index']);
         Route::apiResource('categories', CategoryController::class);
         Route::apiResource('sub-categories', SubCategoryController::class);
         Route::get('/sub-categories/filter/{categoryId}', [SubCategoryController::class, 'getByCategory']);
@@ -106,26 +123,25 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/purchase-orders', [PurchaseOrderController::class, 'index']);
         Route::get('/item-serials',    [ItemSerialController::class, 'index']);
 
-        // Additional read-only for cashier
         Route::get('/recipes',  [RecipeController::class, 'index']);
         Route::get('/expenses', [ExpenseController::class, 'index']);
 
         Route::prefix('reports')->group(function () {
-            Route::get('/inventory',       [InventoryReportController::class, 'index']);
-            Route::get('/x-reading',       [SalesDashboardController::class, 'xReading']);
+            Route::get('/inventory',         [InventoryReportController::class, 'index']);
+            Route::get('/x-reading',         [SalesDashboardController::class, 'xReading']);
             Route::get('/z-reading/history', [SalesDashboardController::class, 'zReadingHistory']);
-            Route::get('/z-reading',       [SalesDashboardController::class, 'zReading']);
-            Route::get('/items-report',    [ItemsReportController::class, 'getItemsSoldReport']);
-            Route::get('/hourly-sales',    [ReportController::class, 'getHourlySales']);
-            Route::get('/void-logs',       [ReportController::class, 'getVoidLogs']);
-            Route::get('/item-quantities', [ReportController::class, 'getItemQuantities']);
-            Route::get('/sales',           [ReportController::class, 'getSalesReport']);
-            Route::get('/sales-summary',   [ReportController::class, 'getSalesSummary']);
-            Route::get('/sales-detailed',  [ReportController::class, 'getSalesDetailed']);
-            Route::get('/dashboard-data',  [SalesDashboardController::class, 'dashboardData']);
-            Route::get('/food-menu',       [ReportController::class, 'getFoodMenu']);
-            Route::get('/export-sales',    [ReportController::class, 'exportSales']);
-            Route::get('/export-items',    [ReportController::class, 'exportItems']);
+            Route::get('/z-reading',         [SalesDashboardController::class, 'zReading']);
+            Route::get('/items-report',      [ItemsReportController::class, 'getItemsSoldReport']);
+            Route::get('/hourly-sales',      [ReportController::class, 'getHourlySales']);
+            Route::get('/void-logs',         [ReportController::class, 'getVoidLogs']);
+            Route::get('/item-quantities',   [ReportController::class, 'getItemQuantities']);
+            Route::get('/sales',             [ReportController::class, 'getSalesReport']);
+            Route::get('/sales-summary',     [ReportController::class, 'getSalesSummary']);
+            Route::get('/sales-detailed',    [ReportController::class, 'getSalesDetailed']);
+            Route::get('/dashboard-data',    [SalesDashboardController::class, 'dashboardData']);
+            Route::get('/food-menu',         [ReportController::class, 'getFoodMenu']);
+            Route::get('/export-sales',      [ReportController::class, 'exportSales']);
+            Route::get('/export-items',      [ReportController::class, 'exportItems']);
         });
 
         Route::prefix('discounts')->group(function () {
@@ -159,8 +175,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
         });
 
         Route::apiResource('expenses',  ExpenseController::class)->only(['store']);
-        Route::get('/branch/audit-logs', [AuditLogController::class, 'branchIndex']); 
-        Route::apiResource('discounts', DiscountController::class)->except(['show', 'update', 'index']); // ← 'index' removed, handled above
+        Route::get('/branch/audit-logs', [AuditLogController::class, 'branchIndex']);
+        Route::apiResource('discounts', DiscountController::class)->except(['show', 'update', 'index']);
         Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
         Route::apiResource('vouchers', VoucherController::class)->only(['index', 'store']);
 
@@ -182,14 +198,14 @@ Route::middleware(['auth:sanctum'])->group(function () {
         });
 
         Route::prefix('branches')->group(function () {
-            Route::get('/performance',        [BranchController::class, 'performance']);
-            Route::get('/today-sales',        [BranchController::class, 'todaySales']);
+            Route::get('/performance',         [BranchController::class, 'performance']);
+            Route::get('/today-sales',         [BranchController::class, 'todaySales']);
             Route::get('/ownership-summary',   [BranchController::class, 'ownershipSummary']);
-            Route::get('/',                   [BranchController::class, 'index']);
-            Route::get('/{id}/daily-sales',   [BranchController::class, 'dailySales']);
-            Route::get('/{id}/sales-summary', [BranchController::class, 'salesSummary']);
-            Route::get('/{id}/analytics',     [BranchController::class, 'analytics']);
-            Route::get('/{id}',               [BranchController::class, 'show']);
+            Route::get('/',                    [BranchController::class, 'index']);
+            Route::get('/{id}/daily-sales',    [BranchController::class, 'dailySales']);
+            Route::get('/{id}/sales-summary',  [BranchController::class, 'salesSummary']);
+            Route::get('/{id}/analytics',      [BranchController::class, 'analytics']);
+            Route::get('/{id}',                [BranchController::class, 'show']);
         });
 
         Route::post('/raw-materials/{rawMaterial}/adjust', [RawMaterialController::class, 'adjust']);
@@ -211,7 +227,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::get('/branch-comparison',   [SuperAdminReportController::class, 'branchComparison']);
             Route::get('/x-reading',           [SalesDashboardController::class, 'xReading']);
             Route::get('/z-reading',           [SalesDashboardController::class, 'zReading']);
-            Route::get('/z-reading/history',   [SalesDashboardController::class, 'zReadingHistory']); // ← ADD
+            Route::get('/z-reading/history',   [SalesDashboardController::class, 'zReadingHistory']);
         });
 
         Route::prefix('system')->group(function () {

@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -21,7 +22,6 @@ class AuthController extends Controller
         $user = User::where('email', $request->email)->first();
 
         if (! $user || ! Hash::check($request->password, $user->password)) {
-            // ── Log failed login attempt ──────────────────────────────────────
             AuditLog::create([
                 'user_id'    => null,
                 'action'     => "Failed login attempt for: {$request->email}",
@@ -37,7 +37,6 @@ class AuthController extends Controller
 
         $token = $user->createToken('lucky_boba_token')->plainTextToken;
 
-        // ── Log successful login ──────────────────────────────────────────────
         AuditLog::create([
             'user_id'    => $user->id,
             'action'     => "User logged in: {$user->name}",
@@ -56,7 +55,6 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        // ── Log logout ────────────────────────────────────────────────────────
         AuditLog::create([
             'user_id'    => $user->id,
             'action'     => "User logged out: {$user->name}",
@@ -68,5 +66,37 @@ class AuthController extends Controller
         $user->currentAccessToken()->delete();
 
         return response()->json(['message' => 'Logged out successfully']);
+    }
+
+    // ── GOOGLE SIGN-IN ────────────────────────────────────────────────────────
+    // Called by Flutter after Google Sign-In succeeds.
+    // Creates the user if they don't exist, then returns the user object.
+    public function googleLogin(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'name'  => 'required|string|max:255',
+        ]);
+
+        // Find existing user or create a new customer account
+        $user = User::firstOrCreate(
+            ['email' => $request->email],
+            [
+                'name'     => $request->name,
+                'password' => Hash::make(Str::random(32)),
+                'role'     => 'customer',
+            ]
+        );
+
+        // Log the Google login
+        AuditLog::create([
+            'user_id'    => $user->id,
+            'action'     => "User signed in via Google: {$user->name}",
+            'module'     => 'Auth',
+            'details'    => "Email: {$user->email}",
+            'ip_address' => $request->ip(),
+        ]);
+
+        return response()->json(['user' => $user], 200);
     }
 }
