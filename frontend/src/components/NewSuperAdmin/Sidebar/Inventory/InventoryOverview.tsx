@@ -147,18 +147,26 @@ const InventoryOverview: React.FC = () => {
       if (alertsRes.status === 'fulfilled') {
         setAlerts(alertsRes.value.data?.data ?? alertsRes.value.data ?? []);
       }
-      if (movementsRes.status === 'fulfilled') {
-        const mv = movementsRes.value.data;
-        const raw = Array.isArray(mv) ? mv : mv?.data ?? [];
-        setMovements(raw.map((m: any) => ({
-          ...m,
-          raw_material: typeof m.raw_material === 'object' ? m.raw_material?.name ?? '' : m.raw_material ?? '',
-          unit:         typeof m.unit         === 'object' ? m.unit?.name         ?? '' : m.unit         ?? '',
-          branch_name:  typeof m.branch_name  === 'object' ? m.branch_name?.name  ?? '' : m.branch_name  ?? '',
-          reason:       typeof m.reason       === 'object' ? m.reason?.name       ?? '' : m.reason       ?? '',
-          performed_by: typeof m.performed_by === 'object' ? m.performed_by?.name ?? '' : m.performed_by ?? '',
-        })));
-      }
+if (movementsRes.status === 'fulfilled') {
+  const mv = movementsRes.value.data;
+  const raw = Array.isArray(mv) ? mv : mv?.data ?? [];
+
+  const str = (v: unknown): string => {
+    if (typeof v === 'string') return v;
+    if (typeof v === 'object' && v !== null && 'name' in v)
+      return String((v as { name: unknown }).name ?? '');
+    return '';
+  };
+
+  setMovements(raw.map((m: Record<string, unknown>) => ({
+    ...m,
+    raw_material: str(m.raw_material),
+    unit:         str(m.unit),
+    branch_name:  str(m.branch_name),
+    reason:       str(m.reason),
+    performed_by: str(m.performed_by),
+  })));
+}
       if (branchListRes.status === 'fulfilled') {
         const bl = branchListRes.value.data;
         setAllBranches(Array.isArray(bl) ? bl : bl?.data ?? []);
@@ -178,8 +186,11 @@ const InventoryOverview: React.FC = () => {
     return '#7c14d4';
   };
 
-  const resolveUnit = (unit: any): string =>
-    typeof unit === 'object' && unit !== null ? unit.name ?? '' : unit ?? '';
+const resolveUnit = (unit: unknown): string => {
+  if (typeof unit === 'object' && unit !== null && 'name' in unit)
+    return String((unit as { name: unknown }).name ?? '');
+  return typeof unit === 'string' ? unit : '';
+};
 
   const moveLabel = (m: StockMovement) => {
     const u = resolveUnit(m.unit);
@@ -268,7 +279,9 @@ const InventoryOverview: React.FC = () => {
                         <td className="px-4 py-3">
                           <p className="font-bold text-[#1a0f2e] text-xs">{item.name}</p>
                           <p className="text-[10px] text-zinc-400">
-                            {item.category} · {typeof item.unit === 'object' ? (item.unit as any).name : item.unit}
+                            {item.category} · {typeof item.unit === 'object' && item.unit !== null
+  ? (item.unit as { name: string }).name
+  : item.unit}
                           </p>
                         </td>
                         <td className="px-4 py-3">
