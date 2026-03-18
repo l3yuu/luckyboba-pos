@@ -7,15 +7,17 @@ const BACKUP_STATUS_KEY = 'settings-backup-status';
 const AUDIT_CACHE_KEY   = 'settings-audit';
 const BACKUP_TTL        = 2 * 60 * 1000;
 
-const BackupSystem = ({ onBack }: { onBack: () => void }) => {
-  const [lastBackup, setLastBackup] = useState<string>(getCache<string>(BACKUP_STATUS_KEY) ?? 'Loading...');
+const BackupSystem = ({ onBack, readOnly = false }: { onBack: () => void; readOnly?: boolean }) => {
+  const [lastBackup, setLastBackup] = useState<string>(getCache<string>(BACKUP_STATUS_KEY) ?? '—');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
+    // Skip API call entirely for cashiers — they can't access /system/backup-status
+    if (readOnly) return;
     if (getCache<string>(BACKUP_STATUS_KEY)) return;
     fetchStatus();
-  }, []);
+  }, [readOnly]);
 
   const fetchStatus = async () => {
     try {
@@ -30,6 +32,7 @@ const BackupSystem = ({ onBack }: { onBack: () => void }) => {
   };
 
   const handleRunBackup = async () => {
+    if (readOnly) return;
     setIsProcessing(true);
     setShowSuccess(false);
     try {
@@ -57,12 +60,19 @@ const BackupSystem = ({ onBack }: { onBack: () => void }) => {
   return (
     <div className="flex-1 bg-[#f4f2fb] h-full flex flex-col font-sans">
       <div className="p-6 flex flex-col gap-6">
-        <h1 className="text-xl font-black text-[#7c14d4] uppercase tracking-widest">System Backup</h1>
+        <div>
+          <h1 className="text-xl font-black text-[#7c14d4] uppercase tracking-widest">System Backup</h1>
+          {readOnly && (
+            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">View Only</p>
+          )}
+        </div>
 
         {showSuccess && (
           <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-[0.625rem] flex items-center gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
             <CheckCircle2 className="text-emerald-500" size={20} />
-            <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide">Backup successfully generated and downloaded!</p>
+            <p className="text-xs font-bold text-emerald-700 uppercase tracking-wide">
+              Backup successfully generated and downloaded!
+            </p>
           </div>
         )}
 
@@ -73,20 +83,32 @@ const BackupSystem = ({ onBack }: { onBack: () => void }) => {
             </div>
             <div>
               <p className="text-[10px] font-black text-zinc-400 uppercase tracking-tighter">Database Status</p>
-              <p className="text-sm font-bold text-slate-700 uppercase">Last backup: {lastBackup}</p>
+              <p className="text-sm font-bold text-slate-700 uppercase">
+                Last backup: {readOnly ? '—' : lastBackup}
+              </p>
             </div>
           </div>
-          <button
-            onClick={handleRunBackup}
-            disabled={isProcessing}
-            className="px-6 py-3 bg-[#7c14d4] text-white rounded-[0.625rem] font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:bg-[#6a12b8] transition-all disabled:opacity-50"
-          >
-            {isProcessing ? <Loader2 className="animate-spin" size={14} /> : <Download size={14} />}
-            {isProcessing ? 'Generating...' : 'Run New Backup'}
-          </button>
+          {!readOnly && (
+            <button
+              onClick={handleRunBackup}
+              disabled={isProcessing}
+              className="px-6 py-3 bg-[#7c14d4] text-white rounded-[0.625rem] font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:bg-[#6a12b8] transition-all disabled:opacity-50"
+            >
+              {isProcessing ? <Loader2 className="animate-spin" size={14} /> : <Download size={14} />}
+              {isProcessing ? 'Generating...' : 'Run New Backup'}
+            </button>
+          )}
+          {readOnly && (
+            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-4 py-2 bg-zinc-50 border border-zinc-200 rounded-[0.625rem]">
+              No Access
+            </span>
+          )}
         </div>
 
-        <button onClick={onBack} className="w-fit px-6 py-3 bg-white border border-[#e9d5ff] text-[#7c14d4] rounded-[0.625rem] font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:bg-[#f5f0ff] transition-colors">
+        <button
+          onClick={onBack}
+          className="w-fit px-6 py-3 bg-white border border-[#e9d5ff] text-[#7c14d4] rounded-[0.625rem] font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:bg-[#f5f0ff] transition-colors"
+        >
           <ArrowLeft size={14} /> Back
         </button>
       </div>

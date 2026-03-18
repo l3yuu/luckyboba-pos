@@ -53,10 +53,6 @@ interface ReprintPayload {
     vatable_sales?:   number;
     vat_amount?:      number;
     discount_amount?: number;
-    pax_regular?:     number;
-    pax_senior?:      number;
-    pax_pwd?:         number;
-    pax_diplomat?:    number;
     branch?: { name?: string };
     sale_items?: RawSaleItem[];
   };
@@ -90,9 +86,12 @@ interface RawSaleItem {
   remarks?:      string | null;
   charges?:      { grab?: boolean; panda?: boolean } | null;
   is_bundle?:    boolean;
+  discount_amount?: number;
+  discount_label?:  string;
+  discount_type?:   string;
+  discount_value?:  number;
 }
 
-type VoidStep    = 'reason' | 'manager_pin';
 type ReprintType = 'receipt' | 'kitchen' | 'sticker';
 
 // ============================================================
@@ -106,50 +105,48 @@ function mapToCartItem(raw: RawSaleItem): CartItem {
     try { return JSON.parse(v); } catch { return []; }
   };
 
-  // Laravel may nest the name under menu_item relation
   const resolvedName = (raw as unknown as { product_name?: string }).product_name
     || raw.name
     || raw.menu_item?.name
     || raw.item_name
     || 'Unknown Item';
 
-return {
-  id:           raw.menu_item_id ?? raw.id,
-  category_id:  0,
-  name:         resolvedName,
-  price:      Number(raw.unit_price ?? raw.price ?? 0),  // ← Number() guards undefined
-  barcode:      '',
-  qty:          Number(raw.quantity    ?? 1),
-  size:         (raw.size as 'M' | 'L' | 'none') ?? 'none',
-  cupSizeLabel: raw.cup_size_label ?? undefined,
-  sugarLevel:   raw.sugar_level   ?? undefined,
-  options:      parseArr(raw.options),
-  addOns:       parseArr(raw.add_ons),
-  remarks:      raw.remarks ?? '',
-  charges:      { grab: raw.charges?.grab ?? false, panda: raw.charges?.panda ?? false },
-  finalPrice: Number(raw.final_price ?? raw.total_price ?? 0),// ← this is likely the culprit
-  isBundle:     raw.is_bundle ?? !!raw.bundle_id,
-  bundleId:     raw.bundle_id ?? undefined,
-};
+  // Subtract item-level discount from final price
+  const rawFinalPrice = Number(raw.final_price ?? raw.total_price ?? 0);
+  const discountAmount = Number((raw as unknown as { discount_amount?: number }).discount_amount ?? 0);
+  const actualFinalPrice = Math.max(0, rawFinalPrice - discountAmount);
+
+  return {
+    id:           raw.menu_item_id ?? raw.id,
+    category_id:  0,
+    name:         resolvedName,
+    price:        Number(raw.unit_price ?? raw.price ?? 0),
+    barcode:      '',
+    qty:          Number(raw.quantity ?? 1),
+    size:         (raw.size as 'M' | 'L' | 'none') ?? 'none',
+    cupSizeLabel: raw.cup_size_label ?? undefined,
+    sugarLevel:   raw.sugar_level   ?? undefined,
+    options:      parseArr(raw.options),
+    addOns:       parseArr(raw.add_ons),
+    remarks:      raw.remarks ?? '',
+    charges:      { grab: raw.charges?.grab ?? false, panda: raw.charges?.panda ?? false },
+    finalPrice:   actualFinalPrice,
+    discountLabel: (raw as unknown as { discount_label?: string }).discount_label ?? undefined,
+    isBundle:     raw.is_bundle ?? !!raw.bundle_id,
+    bundleId:     raw.bundle_id ?? undefined,
+  };
 }
 
 // ============================================================
 // SUB-COMPONENTS
 // ============================================================
 
-const StatBox: React.FC<{ label: string; value: number; icon: React.ReactNode; isBrand?: boolean; isDanger?: boolean }> = ({ label, value, icon, isBrand, isDanger }) => {
-  const bgClass    = isBrand ? 'bg-[#7c14d4]' : isDanger ? 'bg-red-500' : 'bg-zinc-500';
-  const borderClass = isBrand ? 'border-[#6a12b8]' : isDanger ? 'border-red-600' : 'border-zinc-600';
-  const labelClass = isBrand ? 'text-[#e9d5ff]' : isDanger ? 'text-red-100' : 'text-zinc-300';
-
-  return (
-    <div className={`${bgClass} ${borderClass} border rounded-lg p-4 text-center shadow-lg`}>
-      <div className="flex justify-center mb-2">{icon}</div>
-      <div className={`text-xs font-semibold uppercase tracking-widest ${labelClass}`}>{label}</div>
-      <div className="text-xl font-bold text-white">₱{value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
-    </div>
-  );
-};
+const StatBox: React.FC<{ label: string; value: number; icon: React.ReactNode; isBrand?: boolean; isDanger?: boolean }> = ({ label, value, isDanger }) => (
+  <div className={`bg-white border rounded-lg p-4 text-center shadow-sm ${isDanger ? 'border-red-200' : 'border-zinc-200'}`}>
+    <div className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${isDanger ? 'text-red-400' : 'text-zinc-400'}`}>{label}</div>
+    <div className={`text-xl font-bold ${isDanger ? 'text-red-500' : 'text-[#1a0f2e]'}`}>₱{value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+  </div>
+);
 
 // ============================================================
 // MAIN COMPONENT
@@ -168,9 +165,7 @@ const SearchReceipts = () => {
 
   // Void state
   const [isModalOpen,    setIsModalOpen]    = useState(false);
-  const [voidStep,       setVoidStep]       = useState<VoidStep>('reason');
-  const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
-  const [cancelReason,   setCancelReason]   = useState('');
+  const [, setSelectedSaleId] = useState<number | null>(null);
   const [voidRequestId,  setVoidRequestId]  = useState<number | null>(null);
   const [managerPin,     setManagerPin]     = useState('');
   const [pinError,       setPinError]       = useState('');
@@ -187,11 +182,21 @@ const SearchReceipts = () => {
   // ── Void helpers ──────────────────────────────────────────────────────────
 
   const resetVoidModal = () => {
-    setCancelReason(''); setManagerPin(''); setVoidStep('reason');
-    setVoidRequestId(null); setPinError(''); setVoidSuccess(false); setSelectedSaleId(null);
+    setManagerPin(''); setVoidRequestId(null);
+    setPinError(''); setVoidSuccess(false); setSelectedSaleId(null);
   };
 
-  const openVoidModal  = (saleId: number) => { resetVoidModal(); setSelectedSaleId(saleId); setIsModalOpen(true); };
+  const openVoidModal = async (saleId: number) => {
+  resetVoidModal();
+  setSelectedSaleId(saleId);
+  setIsModalOpen(true);
+  setIsVoiding(true);
+  try {
+    const { data } = await api.post(`/receipts/${saleId}/void-request`, { reason: 'Voided by manager' });
+    setVoidRequestId(data.void_request_id);
+  } catch (err) { console.error(err); }
+  finally { setIsVoiding(false); }
+};
   const closeVoidModal = () => { setIsModalOpen(false); resetVoidModal(); };
 
   // ── Reprint helpers ───────────────────────────────────────────────────────
@@ -244,16 +249,6 @@ const SearchReceipts = () => {
 
   // ── Void step 1 ───────────────────────────────────────────────────────────
 
-  const handleSubmitReason = async () => {
-    if (!selectedSaleId || !cancelReason.trim()) return;
-    setIsVoiding(true);
-    try {
-      const { data } = await api.post(`/receipts/${selectedSaleId}/void-request`, { reason: cancelReason });
-      setVoidRequestId(data.void_request_id);
-      setVoidStep('manager_pin');
-    } catch (err) { console.error(err); }
-    finally { setIsVoiding(false); }
-  };
 
   // ── Void step 2 ───────────────────────────────────────────────────────────
 
@@ -272,51 +267,52 @@ const SearchReceipts = () => {
 
   // ── Derive print props from payload ──────────────────────────────────────
 
-  const buildPrintProps = (payload: ReprintPayload) => {
-    const { sale, receipt } = payload;
-    const cart: CartItem[]  = (sale.sale_items ?? []).map(mapToCartItem);
-    const dt                = new Date(sale.created_at);
-    const branchName        = receipt?.branch_name ?? sale.branch?.name ?? localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch';
-    const cashierName       = receipt?.cashier_name ?? sale.cashier_name ?? 'Admin';
-    const orNumber          = receipt?.si_number    ?? sale.invoice_number ?? '';
-    const subtotal          = cart.reduce((acc, item) => acc + item.finalPrice + getItemSurcharge(item), 0);
-    const amtDue            = sale.total    ?? subtotal;
-    const vatableSales      = sale.vatable_sales ?? amtDue / 1.12;
-    const vatAmount         = sale.vat_amount    ?? (amtDue - vatableSales);
-    const pax = {
-      regular:  sale.pax_regular  ?? 1,
-      senior:   sale.pax_senior   ?? 0,
-      pwd:      sale.pax_pwd      ?? 0,
-      diplomat: sale.pax_diplomat ?? 0,
-    };
+const buildPrintProps = (payload: ReprintPayload) => {
+  const { sale, receipt } = payload;
+  const cart: CartItem[]  = (sale.sale_items ?? []).map(mapToCartItem);
+  const dt                = new Date(sale.created_at);
+  const branchName        = receipt?.branch_name ?? sale.branch?.name ?? localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch';
+  const cashierName       = receipt?.cashier_name ?? sale.cashier_name ?? 'Admin';
+  const orNumber          = receipt?.si_number    ?? sale.invoice_number ?? '';
 
-    return {
-      cart,
-      branchName,
-      orNumber,
-      queueNumber: String(sale.queue_number ?? ''),
-      customerName: sale.customer_name?.trim() || '',
-      cashierName,
-      formattedDate:        dt.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
-      formattedTime:        dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-      paymentMethod:        sale.payment_method  ?? 'cash',
-      referenceNumber:      sale.reference_number ?? '',
-      orderCharge:          null as 'grab' | 'panda' | null,
-      pax,
-      totalCount:           cart.reduce((a, i) => a + i.qty, 0),
-      subtotal:             sale.subtotal ?? subtotal,
-      amtDue,
-      vatableSales,
-      vatAmount,
-      change:               0,
-      cashTendered:         '' as number | '',
-      selectedDiscount:     null,
-      totalDiscountDisplay: sale.discount_amount ?? 0,
-      itemDiscountTotal:    0,
-      seniorPwdDiscount:    0,
-      promoDiscount:        0,
-    };
+  // Calculate item-level discount total from sale_items
+  const itemDiscountTotal = (sale.sale_items ?? []).reduce((acc, item) => {
+    return acc + Number(item.discount_amount ?? 0);
+  }, 0);
+
+  const promoDiscount     = Number(sale.discount_amount ?? 0);
+  const totalDiscountDisplay = itemDiscountTotal + promoDiscount;
+
+  const subtotal    = cart.reduce((acc, item) => acc + item.finalPrice + getItemSurcharge(item), 0);
+  const amtDue      = sale.total ?? subtotal;
+  const vatableSales = sale.vatable_sales ?? amtDue / 1.12;
+  const vatAmount    = sale.vat_amount    ?? (amtDue - vatableSales);
+
+  return {
+    cart,
+    branchName,
+    orNumber,
+    queueNumber:          String(sale.queue_number ?? ''),
+    customerName:         sale.customer_name?.trim() || '',
+    cashierName,
+    formattedDate:        dt.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
+    formattedTime:        dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+    paymentMethod:        sale.payment_method   ?? 'cash',
+    referenceNumber:      sale.reference_number ?? '',
+    orderCharge:          null as 'grab' | 'panda' | null,
+    totalCount:           cart.reduce((a, i) => a + i.qty, 0),
+    subtotal:             sale.subtotal ?? subtotal,
+    amtDue,
+    vatableSales,
+    vatAmount,
+    change:               0,
+    cashTendered:         '' as number | '',
+    selectedDiscount:     null,
+    totalDiscountDisplay,
+    itemDiscountTotal,
+    promoDiscount,
   };
+};
 
   // ── Reprint button list ───────────────────────────────────────────────────
 
@@ -476,10 +472,16 @@ const SearchReceipts = () => {
                       </td>
                       <td className="px-7 py-4">
                         <div className="flex gap-2">
-                          <button onClick={() => openVoidModal(item.sale_id)}
-                            className="w-9 h-9 inline-flex items-center justify-center bg-white border border-red-200 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all rounded-[0.625rem]">
-                            <X size={14} strokeWidth={2.5} />
-                          </button>
+<button
+  onClick={() => openVoidModal(item.sale_id)}
+  disabled={item.status === 'cancelled'}
+  className={`w-9 h-9 inline-flex items-center justify-center bg-white border transition-all rounded-[0.625rem]
+    ${item.status === 'cancelled'
+      ? 'border-zinc-100 text-zinc-200 cursor-not-allowed'
+      : 'border-red-200 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-500'
+    }`}>
+  <X size={14} strokeWidth={2.5} />
+</button>
                           <button onClick={() => openReprintModal(item)}
                             className="w-9 h-9 inline-flex items-center justify-center bg-white border border-[#e9d5ff] text-zinc-400 hover:bg-[#7c14d4] hover:text-white hover:border-[#7c14d4] transition-all rounded-[0.625rem]">
                             <Printer size={14} />
@@ -500,61 +502,41 @@ const SearchReceipts = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-[0.625rem] shadow-2xl w-full max-w-md mx-4">
             <div className="bg-[#7c14d4] p-4 text-white rounded-t-[0.625rem]">
-              <h3 className="font-bold text-lg">Void Transaction</h3>
+              <h3 className="font-bold text-lg">Manager Approval Required</h3>
             </div>
-            <div className="p-5">
-              {!voidSuccess && voidStep === 'reason' && (
-                <div>
-                  <label className="block text-sm font-semibold text-black mb-2">Reason for voiding</label>
-                  <textarea
-                    value={cancelReason}
-                    onChange={e => setCancelReason(e.target.value)}
-                    className="w-full p-3 border border-[#e9d5ff] rounded-[0.625rem] text-sm resize-none focus:outline-none focus:border-[#7c14d4]"
-                    rows={3}
-                    placeholder="Enter reason..."
-                  />
-                  <div className="flex gap-3 mt-4">
-                    <button onClick={handleSubmitReason} disabled={isVoiding || !cancelReason.trim()}
-                      className="flex-1 bg-[#7c14d4] hover:bg-[#6a12b8] text-white py-3 rounded-[0.625rem] font-bold text-sm uppercase tracking-widest disabled:opacity-50 transition-all">
-                      {isVoiding ? 'Processing...' : 'Submit'}
-                    </button>
-                    <button onClick={closeVoidModal}
-                      className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 py-3 rounded-[0.625rem] font-bold text-sm uppercase tracking-widest transition-all">
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-              {!voidSuccess && voidStep === 'manager_pin' && (
-                <div>
-                  <label className="block text-sm font-semibold text-black mb-2">Manager PIN</label>
-                  <input
-                    type="password"
-                    value={managerPin}
-                    onChange={e => setManagerPin(e.target.value)}
-                    className="w-full p-3 border border-[#e9d5ff] rounded-[0.625rem] text-sm focus:outline-none focus:border-[#7c14d4]"
-                    placeholder="Enter manager PIN..."
-                  />
-                  {pinError && <p className="text-red-500 text-sm mt-2">{pinError}</p>}
-                  <div className="flex gap-3 mt-4">
-                    <button onClick={handleManagerApprove} disabled={isVoiding || !managerPin.trim()}
-                      className="flex-1 bg-[#7c14d4] hover:bg-[#6a12b8] text-white py-3 rounded-[0.625rem] font-bold text-sm uppercase tracking-widest disabled:opacity-50 transition-all">
-                      {isVoiding ? 'Processing...' : 'Approve'}
-                    </button>
-                    <button onClick={closeVoidModal}
-                      className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 py-3 rounded-[0.625rem] font-bold text-sm uppercase tracking-widest transition-all">
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              )}
-              {voidSuccess && (
-                <div className="text-center py-4">
-                  <CheckCircle2 size={48} className="mx-auto text-emerald-500 mb-3" />
-                  <p className="text-black font-semibold">Transaction voided successfully</p>
-                </div>
-              )}
-            </div>
+<div className="p-5">
+  {!voidSuccess && (
+    <div>
+      <label className="block text-sm font-semibold text-black mb-2">Branch Manager PIN</label>
+      <p className="text-[11px] text-zinc-400 mb-3">Enter the branch manager's PIN to approve this void.</p>
+      <input
+        type="password"
+        value={managerPin}
+        onChange={e => setManagerPin(e.target.value)}
+        onKeyDown={e => e.key === 'Enter' && handleManagerApprove()}
+        className="w-full p-3 border border-[#e9d5ff] rounded-[0.625rem] text-sm focus:outline-none focus:border-[#7c14d4]"
+        placeholder="Enter branch manager PIN..."
+      />
+      {pinError && <p className="text-red-500 text-sm mt-2">{pinError}</p>}
+      <div className="flex gap-3 mt-4">
+        <button onClick={handleManagerApprove} disabled={isVoiding || !managerPin.trim()}
+          className="flex-1 bg-[#7c14d4] hover:bg-[#6a12b8] text-white py-3 rounded-[0.625rem] font-bold text-sm uppercase tracking-widest disabled:opacity-50 transition-all">
+          {isVoiding ? 'Processing...' : 'Approve'}
+        </button>
+        <button onClick={closeVoidModal}
+          className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 py-3 rounded-[0.625rem] font-bold text-sm uppercase tracking-widest transition-all">
+          Cancel
+        </button>
+      </div>
+    </div>
+  )}
+  {voidSuccess && (
+    <div className="text-center py-4">
+      <CheckCircle2 size={48} className="mx-auto text-emerald-500 mb-3" />
+      <p className="text-black font-semibold">Transaction voided successfully</p>
+    </div>
+  )}
+</div>
           </div>
         </div>
       )}

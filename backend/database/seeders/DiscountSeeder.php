@@ -26,7 +26,9 @@ class DiscountSeeder extends Seeder
             ['name' => 'LUCKY CARD - 10%', 'amount' => 10,  'status' => 'ON', 'type' => 'Global-Percent'],
             ['name' => 'LUCKY CARD - 10%', 'amount' => 10,  'status' => 'ON', 'type' => 'Item-Percent'],
             ['name' => 'LUCKY CARD - BOGO','amount' => 50,  'status' => 'ON', 'type' => 'Item-Percent'],
-            ['name' => 'STUDENT_DISCOUNT', 'amount' => 10,  'status' => 'ON', 'type' => 'Item-Percent'],
+            ['name' => 'STUDENT DISCOUNT', 'amount' => 10,  'status' => 'ON', 'type' => 'Item-Percent'],
+            ['name' => 'SENIOR DISCOUNT',  'amount' => 20,  'status' => 'ON', 'type' => 'Item-Percent'],
+            ['name' => 'PWD DISCOUNT',     'amount' => 20,  'status' => 'ON', 'type' => 'Item-Percent'],
         ];
 
         foreach ($discounts as $discount) {

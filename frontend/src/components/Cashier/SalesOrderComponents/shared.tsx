@@ -114,29 +114,45 @@ export const QtyControl = ({
 );
 
 export const AddOnGrid = ({
-  addOns, selected, onToggle,
+  addOns, selected, onToggle, orderCharge,
 }: {
-  addOns: { id: number; name: string; price: number }[];
+  addOns: { id: number; name: string; price: number; grab_price?: number; panda_price?: number }[];
   selected: string[];
   onToggle: (name: string) => void;
-}) => (
-  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-    {addOns.map(addon => (
-      <button
-        key={addon.id}
-        onClick={() => onToggle(addon.name)}
-        className={`p-3 rounded-[0.625rem] text-left border-2 transition-all h-24 flex flex-col justify-between
-          ${selected.includes(addon.name)
-            ? 'bg-[#7c14d4] border-[#7c14d4] text-white'
-            : 'bg-white border-[#e9d5ff] text-black hover:border-[#7c14d4]/40 hover:bg-[#f5f0ff]'
-          }`}
-      >
-        <span className="text-[10px] font-black uppercase leading-tight">{addon.name}</span>
-        <span className="text-xs font-bold">₱{Number(addon.price).toFixed(2)}</span>
-      </button>
-    ))}
-  </div>
-);
+  orderCharge?: 'grab' | 'panda' | null;
+}) => {
+  const displayPrice = (addon: { price: number; grab_price?: number; panda_price?: number }) => {
+    if (orderCharge === 'grab'  && Number(addon.grab_price  ?? 0) > 0) return Number(addon.grab_price);
+    if (orderCharge === 'panda' && Number(addon.panda_price ?? 0) > 0) return Number(addon.panda_price);
+    return Number(addon.price);
+  };
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      {addOns.map(addon => (
+        <button
+          key={addon.id}
+          onClick={() => onToggle(addon.name)}
+          className={`p-3 rounded-[0.625rem] text-left border-2 transition-all h-24 flex flex-col justify-between
+            ${selected.includes(addon.name)
+              ? 'bg-[#7c14d4] border-[#7c14d4] text-white'
+              : 'bg-white border-[#e9d5ff] text-black hover:border-[#7c14d4]/40 hover:bg-[#f5f0ff]'
+            }`}
+        >
+          <span className="text-[10px] font-black uppercase leading-tight">{addon.name}</span>
+          <div className="flex flex-col">
+            <span className="text-xs font-bold">₱{displayPrice(addon).toFixed(2)}</span>
+            {/* Show original price as strikethrough if grab/panda price is different */}
+            {(orderCharge === 'grab' || orderCharge === 'panda') &&
+              displayPrice(addon) !== Number(addon.price) && (
+              <span className="text-[10px] line-through opacity-50">₱{Number(addon.price).toFixed(2)}</span>
+            )}
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+};
 
 // ── Generic AddOn Modal Shell ─────────────────────────────────────────────────
 // Reused by item add-ons, bundle add-ons, and combo drink add-ons.
@@ -148,18 +164,27 @@ export const AddOnModalShell = ({
   onToggle,
   onClose,
   zIndex = 'z-110',
+  orderCharge,
 }: {
   title: string;
-  addOns: { id: number; name: string; price: number }[];
+  addOns: { id: number; name: string; price: number; grab_price?: number; panda_price?: number }[];
   selected: string[];
   onToggle: (name: string) => void;
   onClose: () => void;
   zIndex?: string;
+  orderCharge?: 'grab' | 'panda' | null;
 }) => (
   <div className={`fixed inset-0 ${zIndex} flex items-center justify-center bg-black/60 backdrop-blur-sm p-4`}>
     <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl flex flex-col h-[80vh]">
       <div className="bg-[#7c14d4] p-6 text-white text-center relative shrink-0">
         <h2 className="text-lg font-black uppercase tracking-wider">{title}</h2>
+        {/* Show active charge badge */}
+        {orderCharge && (
+          <span className={`inline-block mt-1 text-[10px] font-black uppercase px-2 py-0.5 rounded-full
+            ${orderCharge === 'grab' ? 'bg-green-400 text-green-900' : 'bg-pink-400 text-pink-900'}`}>
+            {orderCharge === 'grab' ? '🛵 Grab Prices' : '🐼 Panda Prices'}
+          </span>
+        )}
         <button
           onClick={onClose}
           className="absolute top-6 right-6 text-white font-bold text-xs bg-white/20 px-3 py-1.5 rounded-lg"
@@ -168,7 +193,7 @@ export const AddOnModalShell = ({
         </button>
       </div>
       <div className="p-6 overflow-y-auto flex-1 bg-white">
-        <AddOnGrid addOns={addOns} selected={selected} onToggle={onToggle} />
+        <AddOnGrid addOns={addOns} selected={selected} onToggle={onToggle} orderCharge={orderCharge} />
       </div>
       <div className="p-4 border-t border-[#e9d5ff] bg-white">
         <button

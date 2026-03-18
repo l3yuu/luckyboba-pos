@@ -49,7 +49,6 @@ export const CartItemEditModal = ({
 }: CartItemEditModalProps) => {
   const discountOptions = [
     { id: null,  label: 'No Discount',  type: 'none'    as const, value: 0,  badge: null },
-    { id: -1,    label: 'Senior / PWD', type: 'percent' as const, value: 20, badge: '20% OFF' },
     ...discounts.map(d => ({
       id:    d.id,
       label: d.name,
@@ -369,7 +368,7 @@ const hasPearlOption = (selectedItem as { options?: string[] })?.options?.includ
               value={remarks}
               onChange={e => onRemarksChange(e.target.value)}
               placeholder="Additional notes..."
-              className="w-full bg-[#f5f0ff] border border-[#e9d5ff] text-sm font-bold p-4 bg-white resize-none h-16 outline-none focus:border-[#7c14d4] focus:bg-white transition-all"
+              className="w-full bg-[#f5f0ff] border border-[#e9d5ff] text-sm font-bold p-4 resize-none h-16 outline-none focus:border-[#7c14d4] focus:bg-white transition-all"
             />
           </div>
 
@@ -399,7 +398,13 @@ interface BundleModalProps {
   bundleComponentSugar: string;
   bundleComponentOptions: string[];
   bundleComponentAddOns: string[];
-  filteredAddOns: { id: number; name: string; price: number }[];
+  filteredAddOns: { 
+  id: number; 
+  name: string; 
+  price: number; 
+  grab_price?: number;
+  panda_price?: number;
+  }[];
   bundleComponentAddOnModalOpen: boolean;
   onSugarChange: (s: string) => void;
   onToggleOption: (opt: string) => void;
@@ -519,7 +524,8 @@ interface ComboDrinkModalProps {
   comboDrinkSugar: string;
   comboDrinkOptions: string[];
   comboDrinkAddOns: string[];
-  filteredAddOns: { id: number; name: string; price: number }[];
+  filteredAddOns: { id: number; name: string; price: number; grab_price?: number; panda_price?: number }[];
+  orderCharge?: 'grab' | 'panda' | null;
   comboDrinkAddOnModalOpen: boolean;
   onSugarChange: (s: string) => void;
   onToggleOption: (opt: string) => void;
@@ -544,8 +550,8 @@ export const ComboDrinkModal = ({
   onToggleAddOn,
   onConfirm,
   onClose,
+  orderCharge, // ← add this
 }: ComboDrinkModalProps) => {
-  const hasPearl = comboDrinkOptions.some(o => ['NO PRL', 'W/ PRL'].includes(o));
 
   return (
     <>
@@ -554,7 +560,11 @@ export const ComboDrinkModal = ({
           <div className="bg-[#7c14d4] p-5 text-white text-center relative shrink-0">
             <div className="text-[10px] font-bold uppercase opacity-60 tracking-widest leading-none mb-1">Step 2 of 2 — Combo Drink for</div>
             <h2 className="text-base font-black uppercase tracking-wider leading-tight">{pendingComboCart.name}</h2>
-            <div className="mt-2 inline-block bg-white/20 text-white text-[10px] font-black uppercase px-3 py-1 rounded-[0.625rem] tracking-widest">🧋 Classic Pearl Milk Tea</div>
+           <div className="mt-2 inline-block bg-white/20 text-white text-[10px] font-black uppercase px-3 py-1 rounded-[0.625rem] tracking-widest">
+            🧋 {pendingComboCart.name?.toUpperCase().includes('PIZZA +') && !pendingComboCart.name?.toUpperCase().includes('CLASSIC PEARL')
+              ? pendingComboCart.name.replace(/^PIZZA \+ /i, '')
+              : 'Classic Pearl Milk Tea'}
+          </div>
             <button onClick={onClose} className="absolute top-5 right-6 text-white/50 hover:text-white transition-colors">
               <CloseIcon size={6} />
             </button>
@@ -581,17 +591,26 @@ export const ComboDrinkModal = ({
             <div>
               <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Options (Free)</label>
               <div className="flex flex-wrap gap-2">
-                {EXTRA_OPTIONS.map((opt: string) => (
-                  <button key={opt} onClick={() => onToggleOption(opt)}
-                    className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${comboDrinkOptions.includes(opt) ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
-                    {opt}
-                  </button>
-                ))}
+                {EXTRA_OPTIONS
+                  .filter((opt: string) => {
+                    const isPizzaCombo = pendingComboCart.name?.toUpperCase().includes('PIZZA +');
+                    const isClassicPearl = pendingComboCart.name?.toUpperCase().includes('CLASSIC PEARL');
+                    if (['NO PRL', 'W/ PRL'].includes(opt)) {
+                      return isPizzaCombo && !isClassicPearl;
+                    }
+                    return true;
+                  })
+                  .map((opt: string) => (
+                    <button key={opt} onClick={() => onToggleOption(opt)}
+                      className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${comboDrinkOptions.includes(opt) ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+                      {opt}
+                    </button>
+                  ))}
               </div>
             </div>
-            <button onClick={onConfirm} disabled={!hasPearl}
-              className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${hasPearl ? 'bg-[#7c14d4] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-black cursor-not-allowed'}`}>
-              {hasPearl ? '🧋 Confirm & Add to Order' : 'Select Pearl Option First'}
+            <button onClick={onConfirm}
+              className="w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors bg-[#7c14d4] text-white hover:bg-[#6a12b8]">
+              🧋 Confirm & Add to Order
             </button>
           </div>
         </div>
@@ -605,11 +624,16 @@ export const ComboDrinkModal = ({
           onToggle={onToggleAddOn}
           onClose={onCloseAddOns}
           zIndex="z-[120]"
+          orderCharge={orderCharge}
         />
       )}
     </>
   );
 };
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ConfirmOrderModal
+// ─────────────────────────────────────────────────────────────────────────────
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ConfirmOrderModal
@@ -624,28 +648,22 @@ interface ConfirmOrderModalProps {
   vatableSales: number;
   vatAmount: number;
   change: number;
-  discountAmount: number;
   totalDiscountDisplay: number;
   orderCharge: 'grab' | 'panda' | null;
   selectedDiscount: Discount | null;
   paymentMethod: string;
   cashTendered: number | '';
   referenceNumber: string;
-  pax: { regular: number; senior: number; pwd: number; diplomat: number };
-  discountIDs: { senior: string; pwd: string; diplomat: string };
   discountRemarks: string;
   discounts: Discount[];
-  activeTab: 'payment' | 'discount' | 'pax';
+  activeTab: 'payment' | 'discount'; // Removed 'pax'
   submitting: boolean;
-  onTabChange: (t: 'payment' | 'discount' | 'pax') => void;
+  onTabChange: (t: 'payment' | 'discount') => void; // Removed 'pax'
   onPaymentMethodChange: (m: string) => void;
   onCashTenderedChange: (v: number | '') => void;
   onReferenceNumberChange: (v: string) => void;
   onDiscountChange: (d: Discount | null) => void;
   onDiscountRemarksChange: (v: string) => void;
-  onDiscountIDChange: (type: 'senior' | 'pwd' | 'diplomat', val: string) => void;
-  onAddPax: (type: 'regular' | 'senior' | 'pwd' | 'diplomat') => void;
-  onSubPax: (type: 'regular' | 'senior' | 'pwd' | 'diplomat') => void;
   onEditCartItem: (i: number) => void;
   onConfirm: () => void;
   onClose: () => void;
@@ -655,14 +673,12 @@ export const ConfirmOrderModal = ({
   cart, cashierName, totalCount, subtotal, amtDue,
   vatableSales, vatAmount, change, totalDiscountDisplay,
   orderCharge, selectedDiscount, paymentMethod, cashTendered,
-  referenceNumber, pax, discountIDs, discountRemarks, discounts,
+  referenceNumber, discountRemarks, discounts,
   activeTab, submitting,
   onTabChange, onPaymentMethodChange, onCashTenderedChange,
   onReferenceNumberChange, onDiscountChange, onDiscountRemarksChange,
-  onDiscountIDChange, onAddPax, onSubPax, onEditCartItem, onConfirm, onClose,
+  onEditCartItem, onConfirm, onClose,
 }: ConfirmOrderModalProps) => {
-  const paxTotal = pax.regular + pax.senior + pax.pwd + pax.diplomat;
-  const paxMismatch = paxTotal !== totalCount;
 
   return (
     <div className="fixed inset-0 z-120 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -710,7 +726,7 @@ export const ConfirmOrderModal = ({
               </div>
             </div>
 
-            {/* Totals */}
+            {/* Totals Section */}
             <div className="p-6 bg-[#f5f0ff] shrink-0 border-t border-[#e9d5ff]">
               <div className="space-y-1.5 text-[11px] font-bold text-zinc-600">
                 <div className="flex justify-between"><span>Quantity (Items)</span><span>{totalCount}</span></div>
@@ -723,12 +739,10 @@ export const ConfirmOrderModal = ({
                 )}
                 <div className="flex justify-between"><span>VATable Sales</span><span>₱ {vatableSales.toFixed(2)}</span></div>
                 <div className="flex justify-between"><span>VAT Amount</span><span>₱ {vatAmount.toFixed(2)}</span></div>
-                <div className="flex justify-between"><span>VAT Exempt Sales</span><span>₱ 0.00</span></div>
                 <div className="flex justify-between text-red-500 font-black">
                   <span>Discount {selectedDiscount ? `(${selectedDiscount.name})` : ''}</span>
                   <span>- ₱ {totalDiscountDisplay.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between"><span>Service Charge</span><span>₱ 0.00</span></div>
                 <div className="flex justify-between items-center text-black border-t-2 border-[#e9d5ff] pt-3 mt-2">
                   <span className="font-black uppercase text-sm">Amt Due</span>
                   <span className="text-2xl font-black">₱ {amtDue.toFixed(2)}</span>
@@ -743,7 +757,6 @@ export const ConfirmOrderModal = ({
               {([
                 { id: 'payment',  label: 'Payment',  dot: false },
                 { id: 'discount', label: 'Promo',    dot: !!selectedDiscount },
-                { id: 'pax',      label: 'Pax & ID', dot: pax.senior > 0 || pax.pwd > 0 || pax.diplomat > 0 },
               ] as const).map(tab => (
                 <button key={tab.id} onClick={() => onTabChange(tab.id)}
                   className={`flex-1 py-3 text-sm font-black uppercase tracking-widest rounded-[0.625rem] transition-all border-2 relative
@@ -832,52 +845,20 @@ export const ConfirmOrderModal = ({
                   </div>
                 </div>
               )}
-
-              {/* Pax Tab */}
-              {activeTab === 'pax' && (
-                <div className="space-y-6">
-                  <div className="space-y-3">
-                    <h3 className="font-black text-sm text-[#3b2063] uppercase tracking-wider">Headcount (Max {totalCount})</h3>
-                    <div className="grid grid-cols-2 gap-3">
-                      {(Object.keys(pax) as Array<keyof typeof pax>).map(type => (
-                        <div key={type} className="flex flex-col gap-1">
-                          <label className="text-[10px] font-black uppercase text-zinc-400 tracking-widest">{type}</label>
-                          <QtyControl value={pax[type]} onDecrement={() => onSubPax(type)} onIncrement={() => onAddPax(type)} />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    <h3 className="font-black text-sm text-[#3b2063] uppercase tracking-wider">Required Card IDs</h3>
-                    <div className="space-y-2">
-                      {(['senior', 'pwd', 'diplomat'] as const).map(type => (
-                        <div key={type} className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[9px] font-black tracking-widest text-zinc-400 w-16 capitalize">{type}</span>
-                          <input type="text" placeholder="ID Number..." value={discountIDs[type]}
-                            onChange={e => onDiscountIDChange(type, e.target.value)}
-                            className="w-full text-xs font-bold pl-20 p-3 bg-zinc-50 border-2 rounded-[0.625rem] border-zinc-200 outline-none focus:bg-white focus:border-[#3b2063] transition-colors" />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
 
-            {/* Confirm button */}
             <div className="p-6 bg-white border-t border-zinc-200 shrink-0">
-              <button
-                onClick={onConfirm}
-                disabled={
-                  submitting ||
-                  (paymentMethod === 'cash' && (cashTendered === '' || cashTendered < amtDue)) ||
-                  (paymentMethod !== 'cash' && !referenceNumber) ||
-                  paxMismatch
-                }
-                className="w-full bg-[#3b2063] hover:bg-[#2a1647] transition-colors text-white py-4 rounded-[0.625rem] font-black uppercase tracking-widest shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed"
-              >
-                {submitting ? 'Processing...' : paxMismatch ? `PAX MUST EQUAL ${totalCount}` : 'Complete Transaction'}
-              </button>
+            <button
+              onClick={onConfirm}
+              disabled={
+                submitting ||
+                (paymentMethod === 'cash' && (cashTendered === '' || cashTendered < amtDue)) ||
+                (paymentMethod !== 'cash' && !referenceNumber)
+              }
+              className="w-full bg-[#7c14d4] hover:bg-[#6a12b8] transition-colors text-white py-4 rounded-[0.625rem] font-black uppercase tracking-widest shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed"
+            >
+              {submitting ? 'Processing...' : 'Complete Transaction'}
+            </button>
             </div>
           </div>
         </div>
@@ -918,7 +899,7 @@ export const CustomerNameModal = ({ customerName, onChange, onSkip, onConfirm }:
           onKeyDown={e => { if (e.key === 'Enter') onConfirm(); }}
           placeholder="e.g. Juan"
           autoFocus
-          className="w-full bg-[#f5f0ff] border border-[#e9d5ff] text-sm font-bold p-4 bg-white resize-none h-16 outline-none focus:border-[#7c14d4] focus:bg-white transition-colors uppercase placeholder:normal-case placeholder:text-[#7c14d4]/30"
+          className="w-full bg-[#f5f0ff] border border-[#e9d5ff] text-sm font-bold p-4 resize-none h-16 outline-none focus:border-[#7c14d4] focus:bg-white transition-colors uppercase placeholder:normal-case placeholder:text-[#7c14d4]/30"
         />
         <div className="grid grid-cols-2 gap-3">
           <button onClick={onSkip} className="py-3 rounded-[0.625rem] border-2 border-zinc-200 text-zinc-500 font-black text-xs uppercase tracking-widest hover:bg-zinc-50 transition-colors">
@@ -1023,7 +1004,7 @@ export const SuccessModal = ({
           </div>
           <button onClick={onNewOrder} disabled={!allPrinted}
             className={`w-full h-14 font-black uppercase tracking-widest text-sm transition-all rounded-[0.625rem] flex items-center justify-center gap-2
-              ${allPrinted ? 'bg-[#3b2063] text-white hover:bg-[#2a1647] cursor-pointer' : 'bg-zinc-100 text-zinc-400 cursor-not-allowed'}`}>
+              ${allPrinted ? 'bg-[#7c14d4] hover:bg-[#6a12b8] text-white cursor-pointer' : 'bg-zinc-100 text-zinc-400 cursor-not-allowed'}`}>
             {allPrinted ? <><span>New Order</span><ArrowRightIcon /></> : `Print ${pending.length} remaining to continue`}
           </button>
         </div>

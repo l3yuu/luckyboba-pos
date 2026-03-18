@@ -9,36 +9,44 @@ use Illuminate\Http\Request;
 
 class ExpenseController extends Controller
 {
-    public function index(Request $request)
+public function index(Request $request)
     {
+        $from = $request->from ?? now()->startOfMonth()->toDateString();
+        $to   = $request->to   ?? now()->toDateString();
+
         $query = Expense::query();
 
         // Date Range Filtering
-        if ($request->from && $request->to) {
-            $query->whereBetween('date', [$request->from, $request->to]);
-        }
+        $query->whereBetween('date', [$from, $to]);
 
         // Search by Ref #
         if ($request->ref) {
             $query->where('ref_num', 'like', '%' . $request->ref . '%');
         }
 
+        // Category Filter
+        if ($request->category && $request->category !== 'ALL') {
+            $query->where('category', $request->category);
+        }
+
         $expenses = $query->orderBy('date', 'desc')->get();
 
-        // Summary Calculations
-        $totalExpense = $expenses->sum('amount');
-        
-        // Fetch real sales data for the same period
-        $totalSales = Sale::whereBetween('created_at', [$request->from, $request->to])
-                         ->where('status', 'completed')
-                         ->sum('total_amount');
+        $totalExpense = (float) $expenses->sum('amount');
+
+        // Always use full datetime range so sales on boundary dates are included
+        $totalSales = (float) Sale::whereBetween('created_at', [
+            $from . ' 00:00:00',
+            $to   . ' 23:59:59',
+        ])
+            ->where('status', 'completed')
+            ->sum('total_amount');
 
         return response()->json([
             'expenses' => $expenses,
-            'summary' => [
-                'totalExpense' => (float)$totalExpense,
-                'totalSales' => (float)$totalSales,
-                'netTotal' => (float)($totalSales - $totalExpense)
+            'summary'  => [
+                'totalExpense' => $totalExpense,
+                'totalSales'   => $totalSales,
+                'netTotal'     => $totalSales - $totalExpense,
             ]
         ]);
     }
