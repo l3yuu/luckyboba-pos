@@ -465,7 +465,7 @@ class SalesDashboardService
                 {$branchCondition}
             ) as t
             GROUP BY method
-        ", [$from, $to]));
+        ", [$start, $end]));
 
         // ── Discount calculations from sale_items (no pax columns needed) ─────
         $baseItemDiscount = DB::table('sale_items')

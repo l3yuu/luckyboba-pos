@@ -146,7 +146,9 @@ const ZReading = () => {
         return;
       }
       if (type === 'z_reading') {
-        const zParams = dateMode === 'range' ? { from: fromDate, to: toDate } : { date: selectedDate };
+        const zParams = dateMode === 'range' 
+        ? { from: fromDate, to: toDate } 
+        : { from: selectedDate, to: selectedDate };
         const [zRes, cashRes, qtyRes, voidRes] = await Promise.all([
           api.get('/reports/z-reading',       { params: zParams }),
           api.get('/cash-counts/summary',     { params: { date: dateMode === 'range' ? toDate : selectedDate } }),
@@ -388,9 +390,30 @@ const ZReading = () => {
     const previousAccumulated = reportData?.previous_accumulated ?? 0;
     const salesForDay = reportData?.sales_for_the_day ?? gross;
     const PAYMENT_METHODS = ['food panda', 'grab', 'gcash', 'visa', 'mastercard', 'cash'];
-    const METHOD_ALIASES: Record<string, string> = { 'panda': 'food panda', 'foodpanda': 'food panda', 'food_panda': 'food panda', 'grabfood': 'grab', 'grab food': 'grab', 'master card': 'mastercard', 'master': 'mastercard', 'visa card': 'visa', 'e-wallet': 'gcash' };
+    const METHOD_ALIASES: Record<string, string> = {
+      'panda': 'food panda',
+      'foodpanda': 'food panda',
+      'food_panda': 'food panda',
+      'food panda': 'food panda',
+      'grabfood': 'grab',
+      'grab food': 'grab',
+      'grab': 'grab',
+      'master card': 'mastercard',
+      'master': 'mastercard',
+      'mastercard': 'mastercard',
+      'visa card': 'visa',
+      'visa': 'visa',
+      'e-wallet': 'gcash',
+      'ewallet': 'gcash',
+      'gcash': 'gcash',
+      'cash': 'cash',
+    };
     const paymentMap = new Map<string, number>();
-    reportData?.payment_breakdown?.forEach(p => { const raw = p.method.toLowerCase().trim(); const key = METHOD_ALIASES[raw] ?? raw; paymentMap.set(key, (paymentMap.get(key) ?? 0) + Number(p.amount)); });
+      (reportData?.payment_breakdown ?? []).forEach(p => {
+        const raw = (p.method ?? '').toLowerCase().trim();
+        const key = METHOD_ALIASES[raw] ?? raw;
+        paymentMap.set(key, (paymentMap.get(key) ?? 0) + Number(p.amount ?? 0));
+      });
     const creditMethods = ['visa', 'mastercard'];
     const debitMethods = ['gcash'];
     const totalCredit = creditMethods.reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
@@ -399,7 +422,7 @@ const ZReading = () => {
     const cashDenominations = reportData?.cash_denominations ?? reportData?.cash_count?.denominations ?? [];
     const totalCashCount = reportData?.total_cash_count ?? reportData?.cash_count?.grand_total ?? 0;
     const expectedEOD = cashTotal + cashIn - cashDrop;
-    const overShort = (reportData?.over_short !== undefined && reportData?.over_short !== null) ? reportData.over_short : (totalCashCount - expectedEOD);
+    const overShort = reportData?.over_short ?? (totalCashCount - expectedEOD);
     const netTotal = reportData?.net_total ?? (gross - totalDisc);
     const isRange = dateMode === 'range';
     const now = new Date();
@@ -447,7 +470,18 @@ const ZReading = () => {
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">PAYMENTS RECEIVED</p>
         {PAYMENT_METHODS.map((method, i) => <Row key={i} label={method.toUpperCase()} value={phCurrency.format(paymentMap.get(method) || 0)} />)}
-        {reportData?.payment_breakdown?.filter(p => { const raw = p.method.toLowerCase().trim(); const normalized = METHOD_ALIASES[raw] ?? raw; return !PAYMENT_METHODS.includes(normalized); }).map((p, i) => { const raw = p.method.toLowerCase().trim(); const normalized = METHOD_ALIASES[raw] ?? raw; return <Row key={`extra-${i}`} label={normalized.toUpperCase()} value={phCurrency.format(p.amount)} />; })}
+        {reportData?.payment_breakdown
+        ?.filter(p => {
+          if (!p.method) return false;
+          const raw = p.method.toLowerCase().trim();
+          const normalized = METHOD_ALIASES[raw] ?? raw;
+          return !PAYMENT_METHODS.includes(normalized);
+        })
+        .map((p, i) => {
+          const raw = (p.method ?? '').toLowerCase().trim();
+          const normalized = METHOD_ALIASES[raw] ?? raw;
+          return <Row key={`extra-${i}`} label={normalized.toUpperCase()} value={phCurrency.format(p.amount ?? 0)} />;
+        })}
         <Divider />
         <Row label="TOTAL CREDIT" value={phCurrency.format(totalCredit)} />
         <Row label="TOTAL DEBIT" value={phCurrency.format(totalDebit)} />
@@ -484,7 +518,7 @@ const ZReading = () => {
             html, body { width: 80mm !important; margin: 0 !important; padding: 0 !important; background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             .printable-receipt-container, .printable-receipt-container * { visibility: visible !important; }
             .printable-receipt-container { position: absolute !important; left: 0 !important; top: 0 !important; width: 80mm !important; display: flex !important; justify-content: center !important; margin: 0 !important; padding: 0 !important; }
-            .receipt-area { width: 64mm !important; max-width: 64mm !important; margin: 0 !important; padding: 2mm 0 !important; box-sizing: border-box !important; background: white !important; color: #000 !important; font-family: Arial, Helvetica, sans-serif !important; font-size: 11px !important; line-height: 1.35 !important; box-shadow: none !important; border: none !important; border-radius: 0 !important; overflow: hidden !important; }
+            .receipt-area { width: 64mm !important; max-width: 64mm !important; margin: 0 !important; padding: 2mm 0 !important; box-sizing: border-box !important; background: white !important; color: #000 !important; font-family: Arial, Helvetica, sans-serif !important; font-size: 11px !important; line-height: 1.35 !important; box-shadow: none !important; border: none !important; border-radius: 0 !important; overflow: visible !important; }
             p, div, tr, td, th, span { page-break-inside: avoid !important; break-inside: avoid !important; }
             .flex-between { display: flex !important; justify-content: space-between !important; width: 100% !important; align-items: flex-end !important; }
             table { width: 100% !important; max-width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; font-size: 11px !important; }
