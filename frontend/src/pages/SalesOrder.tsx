@@ -183,7 +183,6 @@ const SalesOrder = () => {
   // ── Derived values ──────────────────────────────────────────────────────────
 
   const isDrink              = selectedCategory?.type === 'drink';
-  const isBundle             = BUNDLE_CATEGORIES.includes(selectedCategory?.name as typeof BUNDLE_CATEGORIES[number]);
   const isWings              = selectedCategory?.name === 'CHICKEN WINGS';
   const isOz                 = selectedCategory?.name === 'HOT DRINKS' || selectedCategory?.name === 'HOT COFFEE';
   const isCombo =

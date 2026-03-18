@@ -10,11 +10,7 @@ import { type CartItem, type BundleComponentCustomization } from '../../../types
 // Shared helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
-const getItemSurcharge = (item: CartItem): number => {
-  if (item.charges?.grab)  return Number(item.grab_price  ?? 0) * item.qty;
-  if (item.charges?.panda) return Number(item.panda_price ?? 0) * item.qty;
-  return 0;
-};
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ReceiptPrint
