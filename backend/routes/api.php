@@ -3,13 +3,14 @@
 use App\Http\Controllers\Api\{ BackupController, CashCountController, CashTransactionController, CategoryController, DashboardController, DiscountController, ExpenseController, InventoryController, StockTransferController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController, MenuItemController, SupplierController, ItemCheckerController };
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BundleController;
 use App\Http\Controllers\Api\CupController;
 use App\Http\Controllers\Api\ItemsReportController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\RawMaterialController;
 use App\Http\Controllers\Api\RecipeController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\CacheController;
-use App\Http\Controllers\Api\NotificationController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -122,7 +123,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::apiResource('menu-list',  MenuListController::class)->only(['index', 'store']);
         Route::apiResource('menu-items', MenuItemController::class);
         Route::get('/add-ons',           [AddOnController::class, 'index']);
-        Route::get('/bundles',           fn () => \App\Models\Bundle::with('items')->where('is_active', true)->get());
+        Route::get('/bundles', [BundleController::class, 'index']);
         Route::apiResource('categories',     CategoryController::class);
         Route::apiResource('sub-categories', SubCategoryController::class);
         Route::get('/sub-categories/filter/{categoryId}', [SubCategoryController::class, 'getByCategory']);
@@ -288,6 +289,14 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::put('/{id}',                 [BranchController::class, 'update']);
             Route::delete('/{id}',              [BranchController::class, 'destroy']);
             Route::post('/{id}/refresh-totals', [BranchController::class, 'refreshTotals']);
+        });
+        Route::prefix('bundles')->group(function () {
+            Route::get   ('/all',        [BundleController::class, 'all']);       // all including inactive
+            Route::get   ('/{id}',       [BundleController::class, 'show']);
+            Route::post  ('/',           [BundleController::class, 'store']);
+            Route::put   ('/{id}',       [BundleController::class, 'update']);
+            Route::delete('/{id}',       [BundleController::class, 'destroy']);
+            Route::patch ('/{id}/toggle',[BundleController::class, 'toggle']);
         });
     });
 });

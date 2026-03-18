@@ -13,7 +13,9 @@ class Bundle extends Model
     protected $fillable = [
         'name',
         'display_name',
-        'category',
+        'category',       
+        'category_id',    
+        'bundle_type',    
         'barcode',
         'price',
         'size',

@@ -19,6 +19,7 @@ class CategoryController extends Controller
                 'categories.id',
                 'categories.name',
                 'categories.type',
+                'categories.category_type',   // ✅ added
                 'categories.sort_order',
                 'categories.is_active',
                 'categories.description',
@@ -26,6 +27,7 @@ class CategoryController extends Controller
             )
             ->groupBy(
                 'categories.id', 'categories.name', 'categories.type',
+                'categories.category_type',   // ✅ added
                 'categories.sort_order', 'categories.is_active', 'categories.description'
             )
             ->orderBy('categories.sort_order', 'asc')
@@ -35,18 +37,32 @@ class CategoryController extends Controller
             $query->where('categories.type', $request->type);
         }
 
+        if ($request->has('category_type')) {
+            $query->where('categories.category_type', $request->category_type);
+        }
+
         return response()->json($query->get());
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'       => 'required|string|unique:categories,name|max:255',
-            'type'       => 'nullable|in:food,drink,promo,standard',
-            'cup_id'     => 'nullable|exists:cups,id',
-            'sort_order' => 'nullable|integer',
-            'is_active'  => 'nullable|boolean',
+            'name'          => 'required|string|unique:categories,name|max:255',
+            'type'          => 'nullable|in:food,drink,promo,standard',
+            'category_type' => 'nullable|in:food,drink,wings,waffle,combo,bundle,promo,standard', // ✅ added
+            'cup_id'        => 'nullable|exists:cups,id',
+            'sort_order'    => 'nullable|integer',
+            'is_active'     => 'nullable|boolean',
         ]);
+
+        // ✅ Auto-derive category_type from type if not explicitly provided
+        if (empty($validated['category_type'])) {
+            $validated['category_type'] = match($validated['type'] ?? 'food') {
+                'drink' => 'drink',
+                'promo' => 'promo',
+                default => 'food',
+            };
+        }
 
         try {
             DB::beginTransaction();
@@ -100,12 +116,22 @@ class CategoryController extends Controller
     public function update(Request $request, $id)
     {
         $validated = $request->validate([
-            'name'       => 'sometimes|required|string|max:255|unique:categories,name,' . $id,
-            'type'       => 'sometimes|nullable|in:food,drink,promo,standard',
-            'sort_order' => 'sometimes|integer',
-            'is_active'  => 'sometimes|boolean',
-            'description'=> 'sometimes|nullable|string',
+            'name'          => 'sometimes|required|string|max:255|unique:categories,name,' . $id,
+            'type'          => 'sometimes|nullable|in:food,drink,promo,standard',
+            'category_type' => 'sometimes|nullable|in:food,drink,wings,waffle,combo,bundle,promo,standard', // ✅ added
+            'sort_order'    => 'sometimes|integer',
+            'is_active'     => 'sometimes|boolean',
+            'description'   => 'sometimes|nullable|string',
         ]);
+
+        // ✅ If type changed but category_type wasn't explicitly sent, re-derive it
+        if (isset($validated['type']) && !isset($validated['category_type'])) {
+            $validated['category_type'] = match($validated['type']) {
+                'drink' => 'drink',
+                'promo' => 'promo',
+                default => 'food',
+            };
+        }
 
         try {
             $category = Category::findOrFail($id);
@@ -129,6 +155,15 @@ class CategoryController extends Controller
     public function destroy($id)
     {
         $category = Category::findOrFail($id);
+
+        // ✅ Guard: prevent deleting a category that still has menu items
+        $hasItems = DB::table('menu_items')->where('category_id', $id)->exists();
+        if ($hasItems) {
+            return response()->json([
+                'message' => 'Cannot delete a category that still has menu items. Remove or reassign them first.',
+            ], 400);
+        }
+
         $category->delete();
         Cache::forget('menu_data_v3');
         return response()->json(['success' => true, 'message' => 'Category deleted successfully']);
