@@ -15,54 +15,60 @@ class CardPurchaseController extends Controller
         $existingCard = DB::table('user_cards')
             ->where('user_id', $request->user_id)
             ->where('status', 'active')
-            ->where('expires_at', '>', Carbon::now()) // Make sure it hasn't expired
+            ->whereRaw('expires_at > NOW()')
             ->first();
 
-        // If they have one, reject the purchase!
         if ($existingCard) {
             return response()->json([
-                'status' => 'error',
+                'status'  => 'error',
                 'message' => 'You already have an active card!'
-            ], 400); // 400 means Bad Request
+            ], 400);
         }
 
-        // 2. If they don't have one, insert the new card (Expires in 30 days!)
+        // 2. Insert new card — expires in 30 days
         DB::table('user_cards')->insert([
-            'user_id' => $request->user_id, 
-            'card_id' => $request->card_id,
-            'status' => 'active',
+            'user_id'        => $request->user_id,
+            'card_id'        => $request->card_id,
+            'status'         => 'active',
             'payment_method' => $request->payment_method,
             'transaction_id' => 'ADMIN-TEST-' . rand(1000, 9999),
-            'expires_at' => Carbon::now()->addDays(30), // Sets expiration to exactly 30 days from now
-            'created_at' => Carbon::now(),
-            'updated_at' => Carbon::now(),
+            'expires_at'     => Carbon::now()->addDays(30),
+            'created_at'     => Carbon::now(),
+            'updated_at'     => Carbon::now(),
         ]);
 
         return response()->json([
-            'status' => 'success',
+            'status'  => 'success',
             'message' => 'Card successfully activated for 30 days!'
         ]);
     }
 
-    // --- NEW FUNCTION: The app will call this when it opens ---
     public function checkStatus($userId)
     {
+        // ✅ Uses database's own clock (NOW()) to avoid PHP timezone issues
         $activeCard = DB::table('user_cards')
             ->where('user_id', $userId)
             ->where('status', 'active')
-            ->where('expires_at', '>', Carbon::now())
+            ->whereRaw('expires_at > NOW()')
+            ->orderBy('expires_at', 'desc')
             ->first();
 
         if ($activeCard) {
+            $expiresAt     = Carbon::parse($activeCard->expires_at);
+            $now           = Carbon::now();
+            $daysRemaining = (int) $now->diffInDays($expiresAt, false);
+
             return response()->json([
-                'has_active_card' => true,
-                'card_id' => $activeCard->card_id, // ✅ ADDED THIS LINE: Tell Flutter which card to show!
-                'expires_at' => $activeCard->expires_at
+                'has_active_card'      => true,
+                'card_id'              => $activeCard->card_id,
+                'expires_at'           => $expiresAt->toDateString(),
+                'expires_at_formatted' => $expiresAt->format('F d, Y'),
+                'days_remaining'       => max(0, $daysRemaining),
             ]);
         }
 
         return response()->json([
-            'has_active_card' => false
+            'has_active_card' => false,
         ]);
     }
 }

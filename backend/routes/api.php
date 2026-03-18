@@ -24,6 +24,9 @@ Route::get('/check-card-status/{userId}', [CardPurchaseController::class, 'check
 
 // ── PUBLIC MENU ───────────────────────────────────────────────────────────────
 // Returns all menu items with full image URL for the Flutter customer app.
+// Uses Laravel's url() helper so it works correctly in both local and production.
+// Local:      http://10.0.2.2:8000/storage/menu/foods/photo.png
+// Production: https://luckybobastores.com/storage/menu/foods/photo.png
 Route::get('/public-menu', function () {
     $items = DB::table('menu_items')
         ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
@@ -34,12 +37,16 @@ Route::get('/public-menu', function () {
             'menu_items.quantity',
             'categories.name as category',
             'menu_items.price as sellingPrice',
-            'menu_items.image'   // ← the image column from menu_items
+            'menu_items.image'
         )
         ->get()
+        ->filter(function ($item) {
+            // Skip items with null/empty category to prevent JSON corruption
+            return !is_null($item->category) && $item->category !== '';
+        })
+        ->values()
         ->map(function ($item) {
-            // Build full public URL so Flutter's Image.network() can load it.
-            // e.g.  http://192.168.254.136:8000/storage/menu-items/photo.jpg
+            // url() automatically uses APP_URL from .env
             $item->image = $item->image
                 ? url('storage/' . $item->image)
                 : null;
@@ -163,10 +170,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::post('/',               [InventoryController::class, 'store']);
             Route::get('/check/{barcode}', [InventoryController::class, 'checkByBarcode']);
             Route::patch('/{id}/quantity', [InventoryController::class, 'updateQuantity']);
-            Route::get('/overview',        [InventoryController::class, 'overview']);  // ← ADD
+            Route::get('/overview',        [InventoryController::class, 'overview']);
             Route::get('/alerts',          [InventoryController::class, 'alerts']);
-            Route::get('/usage-report',    [InventoryController::class, 'usageReport']);   // ← ADD
-            Route::get('/usage-report/export', [InventoryController::class, 'exportUsageReport']); // ← ADD
+            Route::get('/usage-report',    [InventoryController::class, 'usageReport']);
+            Route::get('/usage-report/export', [InventoryController::class, 'exportUsageReport']);
         });
 
         Route::prefix('purchase-orders')->group(function () {
@@ -179,11 +186,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::patch('/{id}/status', [ItemSerialController::class, 'updateStatus']);
         });
 
-        Route::get('/branch/audit-logs', [AuditLogController::class, 'branchIndex']); 
-        Route::apiResource('discounts', DiscountController::class)->except(['show', 'update', 'index']); // ← 'index' removed, handled above
+        Route::get('/branch/audit-logs', [AuditLogController::class, 'branchIndex']);
+        Route::apiResource('discounts', DiscountController::class)->except(['show', 'update', 'index']);
         Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
         Route::apiResource('vouchers', VoucherController::class)->only(['index', 'store']);
-        Route::apiResource('suppliers', SupplierController::class)->only(['index','store','update','destroy']); // ← ADD HERE
+        Route::apiResource('suppliers', SupplierController::class)->only(['index','store','update','destroy']);
 
         Route::prefix('stock-transfers')->group(function () {
             Route::get ('/',                        [StockTransferController::class, 'index']);
@@ -241,7 +248,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::prefix('reports')->group(function () {
             Route::get('/admin-sales-summary', [SuperAdminReportController::class, 'salesSummary']);
             Route::get('/branch-comparison',   [SuperAdminReportController::class, 'branchComparison']);
-            Route::get('/z-reading/history',   [SalesDashboardController::class, 'zReadingHistory']); // ← ADD
+            Route::get('/z-reading/history',   [SalesDashboardController::class, 'zReadingHistory']);
         });
 
         Route::prefix('system')->group(function () {
