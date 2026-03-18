@@ -149,7 +149,15 @@ const InventoryOverview: React.FC = () => {
       }
       if (movementsRes.status === 'fulfilled') {
         const mv = movementsRes.value.data;
-        setMovements(Array.isArray(mv) ? mv : mv?.data ?? []);
+        const raw = Array.isArray(mv) ? mv : mv?.data ?? [];
+        setMovements(raw.map((m: any) => ({
+          ...m,
+          raw_material: typeof m.raw_material === 'object' ? m.raw_material?.name ?? '' : m.raw_material ?? '',
+          unit:         typeof m.unit         === 'object' ? m.unit?.name         ?? '' : m.unit         ?? '',
+          branch_name:  typeof m.branch_name  === 'object' ? m.branch_name?.name  ?? '' : m.branch_name  ?? '',
+          reason:       typeof m.reason       === 'object' ? m.reason?.name       ?? '' : m.reason       ?? '',
+          performed_by: typeof m.performed_by === 'object' ? m.performed_by?.name ?? '' : m.performed_by ?? '',
+        })));
       }
       if (branchListRes.status === 'fulfilled') {
         const bl = branchListRes.value.data;
@@ -170,10 +178,14 @@ const InventoryOverview: React.FC = () => {
     return '#7c14d4';
   };
 
+  const resolveUnit = (unit: any): string =>
+    typeof unit === 'object' && unit !== null ? unit.name ?? '' : unit ?? '';
+
   const moveLabel = (m: StockMovement) => {
-    if (m.type === 'add')      return `+${m.quantity} ${m.unit}`;
-    if (m.type === 'subtract') return `-${m.quantity} ${m.unit}`;
-    return `Set to ${m.quantity} ${m.unit}`;
+    const u = resolveUnit(m.unit);
+    if (m.type === 'add')      return `+${m.quantity} ${u}`;
+    if (m.type === 'subtract') return `-${m.quantity} ${u}`;
+    return `Set to ${m.quantity} ${u}`;
   };
 
   const Skeleton = () => (
@@ -255,7 +267,9 @@ const InventoryOverview: React.FC = () => {
                       <tr key={item.id} className="border-b border-zinc-50 hover:bg-[#faf9ff] transition-colors">
                         <td className="px-4 py-3">
                           <p className="font-bold text-[#1a0f2e] text-xs">{item.name}</p>
-                          <p className="text-[10px] text-zinc-400">{item.category} · {item.unit}</p>
+                          <p className="text-[10px] text-zinc-400">
+                            {item.category} · {typeof item.unit === 'object' ? (item.unit as any).name : item.unit}
+                          </p>
                         </td>
                         <td className="px-4 py-3">
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#f5f0ff] text-[#7c14d4] border border-[#e9d5ff]">
