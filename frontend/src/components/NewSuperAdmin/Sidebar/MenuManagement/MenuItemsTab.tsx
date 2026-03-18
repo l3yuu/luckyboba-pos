@@ -25,6 +25,11 @@ interface BundleItemRaw {
   size?:        string;
 }
 
+interface ItemOptions {
+  pearl: boolean;
+  ice:   boolean;
+}
+
 interface MenuItem {
   id:             number;
   name:           string;
@@ -71,6 +76,70 @@ const Btn: React.FC<BtnProps> = ({ children, variant = "primary", size = "sm", o
 
 const SkeletonBar: React.FC<{ h?: string; w?: string }> = ({ h = "h-4", w = "w-full" }) => (
   <div className={`${w} ${h} bg-zinc-100 rounded animate-pulse`} />
+);
+
+const OptionsBadge: React.FC<{ opts: ItemOptions }> = ({ opts }) => {
+  if (!opts.pearl && !opts.ice) return <span className="text-zinc-300 text-xs">—</span>;
+  return (
+    <div className="flex items-center gap-1">
+      {opts.pearl && (
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-200">
+          🧋 Pearl
+        </span>
+      )}
+      {opts.ice && (
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-sky-50 text-sky-600 border border-sky-200">
+          🧊 Ice
+        </span>
+      )}
+    </div>
+  );
+};
+
+const OptionsToggle: React.FC<{
+  value:    ItemOptions;
+  onChange: (v: ItemOptions) => void;
+}> = ({ value, onChange }) => (
+  <div className="flex flex-col gap-2 p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
+    <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Drink Options</p>
+    <div className="flex items-center gap-3">
+
+      {/* Pearl toggle */}
+      <button
+        type="button"
+        onClick={() => onChange({ ...value, pearl: !value.pearl })}
+        className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-bold transition-all ${
+          value.pearl
+            ? "bg-rose-50 border-rose-300 text-rose-700"
+            : "bg-white border-zinc-200 text-zinc-400"
+        }`}
+      >
+        🧋
+        <span>Pearl</span>
+        {value.pearl
+          ? <ToggleRight size={18} className="text-rose-500" />
+          : <ToggleLeft  size={18} className="text-zinc-300" />}
+      </button>
+
+      {/* Ice toggle */}
+      <button
+        type="button"
+        onClick={() => onChange({ ...value, ice: !value.ice })}
+        className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-bold transition-all ${
+          value.ice
+            ? "bg-sky-50 border-sky-300 text-sky-700"
+            : "bg-white border-zinc-200 text-zinc-400"
+        }`}
+      >
+        🧊
+        <span>Ice</span>
+        {value.ice
+          ? <ToggleRight size={18} className="text-sky-500" />
+          : <ToggleLeft  size={18} className="text-zinc-300" />}
+      </button>
+    </div>
+    <p className="text-[9px] text-zinc-400">These options will appear as add-on choices at the cashier.</p>
+  </div>
 );
 
 const inputCls = (err?: string) =>
@@ -335,6 +404,25 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
   const [drinkItemId, setDrinkItemId] = useState("");
   const [bundleItemIds, setBundleItemIds] = useState<string[]>(["", ""]);
 
+  const [options, setOptions] = useState<ItemOptions>({ pearl: false, ice: false });
+
+  // Pre-load existing options when editing a drink
+  useEffect(() => {
+    if (!isEdit || !item) return;
+    const isDrink = ["drink", "combo", "bundle"].includes(item.category_type ?? "");
+    if (!isDrink) return;
+    fetch(`/api/menu-item-options?menu_item_id=${item.id}`, { headers: authHeaders() })
+      .then(r => r.json())
+      .then(data => {
+        const rows: { option_type: string }[] = data.data ?? [];
+        setOptions({
+          pearl: rows.some(r => r.option_type === "pearl"),
+          ice:   rows.some(r => r.option_type === "ice"),
+        });
+      })
+      .catch(() => {});
+  }, [isEdit, item]);
+
   const [errors,   setErrors]   = useState<Record<string, string>>({});
   const [loading,  setLoading]  = useState(false);
   const [apiError, setApiError] = useState("");
@@ -405,6 +493,21 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
       }
 
       const savedItem: MenuItem = data.data;
+
+      // Save drink options if applicable
+      const isDrinkItem = ["drink"].includes(
+        categories.find(c => String(c.id) === form.category_id)?.category_type ?? ""
+      );
+      if (isDrinkItem) {
+        const optList: string[] = [];
+        if (options.pearl) optList.push("pearl");
+        if (options.ice)   optList.push("ice");
+        await fetch(`/api/menu-item-options/${savedItem.id}`, {
+          method:  "PUT",
+          headers: authHeaders(),
+          body:    JSON.stringify({ options: optList }),
+        }).catch(() => {});
+      }
 
       // Step 2: If combo, create bundle record linking food + drink
       if (isComboCategory && !isEdit) {
@@ -677,7 +780,11 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
         </div>
       )}
 
-      {/* Available toggle */}
+      {/* ✅ Drink Options — pearl & ice toggles */}
+      {["drink"].includes(selectedCategory?.category_type ?? "") && (
+        <OptionsToggle value={options} onChange={setOptions} />
+      )}
+
       <div className="flex items-center justify-between p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
         <div>
           <p className="text-xs font-bold text-zinc-700">Available on POS</p>
@@ -752,6 +859,32 @@ const MenuItemsTab: React.FC = () => {
   const [editTarget,    setEditTarget]    = useState<MenuItem | null>(null);
   const [delTarget,     setDelTarget]     = useState<MenuItem | null>(null);
   const [bundleInfo, setBundleInfo] = useState<Record<number, { name: string; quantity: number; size: string }[]>>({});
+  const [itemOptions, setItemOptions] = useState<Record<number, ItemOptions>>({});
+
+  // Fetch all item options in bulk when items load
+  const fetchAllOptions = useCallback(async (loadedItems: MenuItem[]) => {
+    const drinkIds = loadedItems
+      .filter(i => ["drink", "combo", "bundle"].includes(i.category_type))
+      .map(i => i.id);
+    if (drinkIds.length === 0) return;
+
+    try {
+      const params = drinkIds.map(id => `ids[]=${id}`).join("&");
+      const res    = await fetch(`/api/menu-item-options/bulk?${params}`, { headers: authHeaders() });
+      const data   = await res.json();
+      const rows: { menu_item_id: number; option_type: string }[] = data.data ?? [];
+
+      const map: Record<number, ItemOptions> = {};
+      drinkIds.forEach(id => { map[id] = { pearl: false, ice: false }; });
+      rows.forEach(r => {
+        if (!map[r.menu_item_id]) map[r.menu_item_id] = { pearl: false, ice: false };
+        if (r.option_type === "pearl") map[r.menu_item_id].pearl = true;
+        if (r.option_type === "ice")   map[r.menu_item_id].ice   = true;
+      });
+      setItemOptions(map);
+    } catch { /* silent */ }
+  }, []);
+
 
   const fetchBundleItems = async (itemId: number, categoryType: string, barcode: string | null) => {
     if (bundleInfo[itemId] !== undefined || !["combo", "bundle"].includes(categoryType) || !barcode) return;
@@ -788,23 +921,22 @@ const MenuItemsTab: React.FC = () => {
       ]);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mapItem = (i: any): MenuItem => ({
-      id:             i.id,
-      name:           i.name,
-      category_id:    i.category_id    ?? null,
-      category:       i.category?.name ?? i.category  ?? "—",
-      category_type:  i.category_type  ?? "food",
-      subcategory_id: i.subcategory_id ?? null,
-      subcategory:    i.subcategory?.name ?? i.subcategory ?? "—",
-      price:          Number(i.price      ?? 0),
-      grab_price:     Number(i.grab_price  ?? 0),  // ✅ add
-      panda_price:    Number(i.panda_price ?? 0),  // ✅ add
-      barcode:        i.barcode    ?? null,
-      image_path:     i.image_path ?? null,
-      is_available:   Boolean(i.is_available ?? true),
-    });
+      const mapItem = (i: any): MenuItem => ({
+        id:             i.id,
+        name:           i.name,
+        category_id:    i.category_id    ?? null,
+        category:       i.category?.name ?? i.category  ?? "—",
+        category_type:  i.category_type  ?? "food",
+        subcategory_id: i.subcategory_id ?? null,
+        subcategory:    i.subcategory?.name ?? i.subcategory ?? "—",
+        price:          Number(i.price      ?? 0),
+        grab_price:     Number(i.grab_price  ?? 0),
+        panda_price:    Number(i.panda_price ?? 0),
+        barcode:        i.barcode    ?? null,
+        image_path:     i.image_path ?? null,
+        is_available:   Boolean(i.is_available ?? true),
+      });
 
-      // ✅ Map category_type from categories response
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const mapCat = (c: any): Category => ({
         id:            c.id,
@@ -812,7 +944,10 @@ const MenuItemsTab: React.FC = () => {
         category_type: c.category_type ?? c.type ?? "food",
       });
 
-      setItems((Array.isArray(itemsData) ? itemsData : (itemsData.data ?? [])).map(mapItem));
+      const mapped = (Array.isArray(itemsData) ? itemsData : (itemsData.data ?? [])).map(mapItem);
+      setItems(mapped);
+      fetchAllOptions(mapped); // ✅ fetch drink options right after items are mapped
+
       setCategories((Array.isArray(catsData) ? catsData : (catsData.data ?? [])).map(mapCat));
 
       const rawSubs = Array.isArray(subsData) ? subsData : (subsData.data ?? []);
@@ -823,7 +958,7 @@ const MenuItemsTab: React.FC = () => {
       })));
     } catch { setError("Failed to load menu items."); }
     finally { setLoading(false); }
-  }, []);
+  }, [fetchAllOptions]); // ✅ add fetchAllOptions to dependency array
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -958,7 +1093,7 @@ const MenuItemsTab: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100">
-                {["Item", "Category", "Type", "Sub-Category", "Price", "Barcode", "Available", "Actions"].map(h => (
+                {["Item", "Category", "Type", "Sub-Category", "Price", "Barcode", "Options", "Available", "Actions"].map(h => (
                   <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
                 ))}
               </tr>
@@ -966,13 +1101,13 @@ const MenuItemsTab: React.FC = () => {
             <tbody>
               {loading && [...Array(6)].map((_, i) => (
                 <tr key={i} className="border-b border-zinc-50">
-                  {[...Array(8)].map((_, j) => (
+                  {[...Array(9)].map((_, j) => (
                     <td key={j} className="px-5 py-4"><SkeletonBar h="h-3" /></td>
                   ))}
                 </tr>
               ))}
               {!loading && filtered.length === 0 && (
-                <tr><td colSpan={8} className="px-5 py-12 text-center text-zinc-400 text-xs font-medium">
+                <tr><td colSpan={9} className="px-5 py-12 text-center text-zinc-400 text-xs font-medium">
                   {search || filterCat || filterAvail || filterType ? "No items match your filters." : "No menu items found."}
                 </td></tr>
               )}
@@ -1004,10 +1139,19 @@ const MenuItemsTab: React.FC = () => {
                       </span>
                     ) : <span className="text-zinc-300 text-xs">—</span>}
                   </td>
-                  <td className="px-5 py-3.5 font-bold text-[#3b2063] text-xs">{fmt(item.price)}</td>
-                  <td className="px-5 py-3.5 text-zinc-400 text-xs font-mono">{item.barcode ?? "—"}</td>
-                  <td className="px-5 py-3.5">
-                    <button onClick={() => toggleAvailable(item)} className="transition-colors"
+                    <td className="px-5 py-3.5 font-bold text-[#3b2063] text-xs">{fmt(item.price)}</td>
+                    <td className="px-5 py-3.5 text-zinc-400 text-xs font-mono">{item.barcode ?? "—"}</td>
+
+                    {/* ✅ Options column */}
+                    <td className="px-5 py-3.5">
+                      {["drink"].includes(item.category_type)
+                        ? <OptionsBadge opts={itemOptions[item.id] ?? { pearl: false, ice: false }} />
+                        : <span className="text-zinc-300 text-xs">—</span>
+                      }
+                    </td>
+
+                    <td className="px-5 py-3.5">
+                      <button onClick={() => toggleAvailable(item)} className="transition-colors"
                       title={item.is_available ? "Click to hide" : "Click to show"}>
                       {item.is_available
                         ? <ToggleRight size={22} className="text-[#3b2063]" />

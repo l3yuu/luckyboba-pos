@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BundleController;
 use App\Http\Controllers\Api\CupController;
 use App\Http\Controllers\Api\ItemsReportController;
+use App\Http\Controllers\Api\MenuItemOptionController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\RawMaterialController;
 use App\Http\Controllers\Api\RecipeController;
@@ -122,6 +123,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post('/audit-logs',           [AuditLogController::class, 'store']);
         Route::apiResource('menu-list',  MenuListController::class)->only(['index', 'store']);
         Route::apiResource('menu-items', MenuItemController::class);
+        Route::get('/menu-item-options',        [MenuItemOptionController::class, 'index']);
+        Route::get('/menu-item-options/bulk',   [MenuItemOptionController::class, 'bulk']);
+        Route::put('/menu-item-options/{id}',   [MenuItemOptionController::class, 'update']);
         Route::get('/add-ons',           [AddOnController::class, 'index']);
         Route::get('/bundles', [BundleController::class, 'index']);
         Route::apiResource('categories',     CategoryController::class);
