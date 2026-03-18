@@ -169,7 +169,6 @@ const ZReading = () => {
             cash_denominations: cashDenominations, 
             total_cash_count: totalCashCount, 
             expected_amount: expectedAmount,
-            // ❌ Remove: over_short: shortOver  ← delete this line
             categories: (qtyRes.data as Record<string, unknown>).categories ?? [], 
             all_addons_summary: (qtyRes.data as Record<string, unknown>).all_addons_summary ?? [], 
             logs: (voidRes.data as Record<string, unknown>).logs ?? (Array.isArray(voidRes.data) ? voidRes.data : []) 
