@@ -596,10 +596,10 @@ const MenuItemsTab: React.FC = () => {
   const [delTarget,     setDelTarget]     = useState<MenuItem | null>(null);
   const [bundleInfo, setBundleInfo] = useState<Record<number, { name: string; quantity: number; size: string }[]>>({});
 
-  const fetchBundleItems = async (itemId: number, categoryType: string, itemName: string) => {
-    if (bundleInfo[itemId] !== undefined || !["combo", "bundle"].includes(categoryType)) return;
+  const fetchBundleItems = async (itemId: number, categoryType: string, barcode: string | null) => {
+    if (bundleInfo[itemId] !== undefined || !["combo", "bundle"].includes(categoryType) || !barcode) return;
     try {
-      const res  = await fetch(`/api/bundles?name=${encodeURIComponent(itemName)}`, { headers: authHeaders() });
+      const res  = await fetch(`/api/bundles?barcode=${encodeURIComponent(barcode)}`, { headers: authHeaders() });
       const data = await res.json();
       const bundles = Array.isArray(data) ? data : (data.data ?? []);
       if (bundles.length > 0) {
@@ -866,7 +866,7 @@ const MenuItemsTab: React.FC = () => {
         <button
           className="p-1.5 hover:bg-purple-50 rounded-[0.4rem] text-zinc-300 hover:text-purple-500 transition-colors"
           title="View components"
-          onMouseEnter={() => fetchBundleItems(item.id, item.category_type, item.name)}
+          onMouseEnter={() => fetchBundleItems(item.id, item.category_type, item.barcode)}
         >
           <Info size={13} />
         </button>

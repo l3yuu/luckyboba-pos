@@ -24,7 +24,11 @@ public function index(Request $request)
     }
 
     if ($request->has('name')) {
-        $query->where('name', $request->name);
+        $query->whereRaw('LOWER(name) = ?', [strtolower($request->name)]);
+    }
+
+    if ($request->has('barcode')) {
+        $query->where('barcode', $request->barcode);  // ✅ add this
     }
 
     $bundles = $query->orderBy('category')->get();
