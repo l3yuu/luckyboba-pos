@@ -138,7 +138,7 @@ return new class extends Migration
         if (DB::table('branches')->count() === 0) {
             DB::table('branches')->insert([
                 [
-                    'name' => 'Vipra',
+                    'name' => 'Vipra Sangandaan',
                     'location' => 'Vipra',
                     'status' => 'active',
                     'total_sales' => 0.00,
