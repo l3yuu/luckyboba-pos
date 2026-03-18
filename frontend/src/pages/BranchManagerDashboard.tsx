@@ -2,15 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import BranchManagerSidebar from '../components/BranchManager/BranchManagerSidebar';
-import BranchManagerTopNav  from '../components/BranchManager/BranchManagerTopNav';
 import logo from '../assets/logo.png';
 import UserManagement from '../components/BranchManager/UserManagement';
 import api from '../services/api';
-import BranchManagerAuditLogsTab from '../components/BranchManager/BranchManagerAuditLogsTab';
 import {
   TrendingUp, TrendingDown, DollarSign, AlertCircle, Menu,
-  ShoppingBag, Activity, ArrowUpRight, ArrowDownRight,
-  Wallet, LogOut
+  ShoppingBag, Activity, Clock, ArrowUpRight, ArrowDownRight,
+  MapPin, Wallet, LogOut
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -22,10 +20,12 @@ import ItemsReport           from '../components/BranchManager/SalesReport/BM_It
 import XReading              from '../components/BranchManager/SalesReport/BM_X-Reading';
 import ZReading              from '../components/BranchManager/SalesReport/BM_Z-Reading';
 
+// ── BranchManager-specific Menu Items ─────────────
 import BM_MenuList           from '../components/BranchManager/MenuItems/BM_MenuList';
 import BM_Categories         from '../components/BranchManager/MenuItems/BM_Categories';
 import BM_SubCategories      from '../components/BranchManager/MenuItems/BM_Sub-Categories';
 
+// ── BranchManager-specific Inventory Items ─────────────
 import BM_InventoryDashboard     from '../components/BranchManager/Inventory/BM_InventoryDashboard';
 import BM_InventoryCategories    from '../components/BranchManager/Inventory/BM_InventoryCategories';
 import BM_InventoryList          from '../components/BranchManager/Inventory/BM_InventoryList';
@@ -36,14 +36,15 @@ import BM_InventoryPurchaseOrder from '../components/BranchManager/Inventory/BM_
 import BM_InventoryStockTransfer from '../components/BranchManager/Inventory/BM_InventoryStockTransfer';
 import BM_InventorySuppliers     from '../components/BranchManager/Inventory/BM_InventorySuppliers';
 
-import BM_AddCustomers   from '../components/BranchManager/Settings/BM_AddCustomers';
-import BM_AddVouchers    from '../components/BranchManager/Settings/BM_AddVouchers';
-import BM_BackupSystem   from '../components/BranchManager/Settings/BM_BackupSystem';
-import BM_CustomerReport from '../components/BranchManager/Settings/BM_CustomerReport';
-import BM_ImportData     from '../components/BranchManager/Settings/BM_ImportData';
-import BM_SalesSettings  from '../components/BranchManager/Settings/BM_SalesSettings';
-import BM_Settings       from '../components/BranchManager/Settings/BM_Settings';
-import BM_UploadData     from '../components/BranchManager/Settings/BM_UploadData';
+// ── BranchManager-specific Settings Items ─────────────
+import BM_AddCustomers       from '../components/BranchManager/Settings/BM_AddCustomers';
+import BM_AddVouchers        from '../components/BranchManager/Settings/BM_AddVouchers';
+import BM_BackupSystem       from '../components/BranchManager/Settings/BM_BackupSystem';
+import BM_CustomerReport     from '../components/BranchManager/Settings/BM_CustomerReport'; 6
+import BM_ImportData         from '../components/BranchManager/Settings/BM_ImportData';
+import BM_SalesSettings      from '../components/BranchManager/Settings/BM_SalesSettings';
+import BM_Settings           from '../components/BranchManager/Settings/BM_Settings';
+import BM_UploadData         from '../components/BranchManager/Settings/BM_UploadData';
 
 // ─── Font tokens ──────────────────────────────────────────────────────────────
 const STYLES = `
@@ -120,6 +121,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
 interface TopSellerItem { product_name: string; total_qty: number; }
 interface DashboardStatsData {
   cash_in_today:       number;
@@ -154,7 +156,7 @@ interface ChartTipProps {
 interface AuthUser {
   id:        number;
   name:      string;
-  email:     string;
+  email:     string;  
   role:      string;
   branch_id: number | null;
   branch?:   { id: number; name: string; location?: string };
@@ -165,30 +167,31 @@ const cacheKey = (branchId: number | null) =>
   `lucky_boba_analytics_${CACHE_VERSION}_branch_${branchId ?? 'all'}`;
 
 // ─── Root layout ─────────────────────────────────────────────────────────────
+
 const BranchManagerDashboard = () => {
-  const [isSidebarOpen,     setSidebarOpen]    = useState(false);
-  const [activeTab,         setActiveTab]      = useState('dashboard');
-  const [authUser,          setAuthUser]       = useState<AuthUser | null>(null);
+  const [isSidebarOpen,    setSidebarOpen]    = useState(false);
+  const [activeTab,        setActiveTab]      = useState('dashboard');
+  const [authUser,         setAuthUser]       = useState<AuthUser | null>(null);
   const [isLogoutModalOpen, setLogoutModalOpen] = useState(false);
-  const [isLoggingOut,      setIsLoggingOut]   = useState(false);
+  const [isLoggingOut,     setIsLoggingOut]   = useState(false);
 
-  useEffect(() => {
-    api.get<AuthUser>('/user')
-      .then(res => {
-        const u = res.data;
-        setAuthUser({
-          id:        u.id,
-          name:      u.name,
-          email:     u.email,
-          role:      u.role,
-          branch_id: u.branch_id,
-          branch:    u.branch ?? undefined,
-        });
-      })
-      .catch(err => console.error('Failed to load user', err));
-  }, []);
+useEffect(() => {
+  api.get<AuthUser>('/user')
+    .then(res => {
+      const u = res.data;
+      setAuthUser({
+        id:        u.id,
+        name:      u.name,
+        email:     u.email,
+        role:      u.role,
+        branch_id: u.branch_id,
+        branch:    u.branch ?? undefined,
+      });
+    })
+    .catch(err => console.error('Failed to load user', err));
+}, []);
 
-  const branchLabel = authUser?.name ?? null;
+const branchLabel = authUser?.name ?? null; // 'Main Branch' comes from here
 
   const handleLogoutClick = () => setLogoutModalOpen(true);
 
@@ -209,9 +212,13 @@ const BranchManagerDashboard = () => {
       case 'items-report':        return <ItemsReport />;
       case 'x-reading':           return <XReading />;
       case 'z-reading':           return <ZReading />;
-      case 'menu-list':           return <BM_MenuList />;
-      case 'category-list':       return <BM_Categories />;
-      case 'sub-category-list':   return <BM_SubCategories />;
+
+      // ── Menu Items ──
+      case 'menu-list':          return <BM_MenuList />;
+      case 'category-list':      return <BM_Categories />;
+      case 'sub-category-list':  return <BM_SubCategories />;
+
+      // ── Inventory ──
       case 'inventory-dashboard': return <BM_InventoryDashboard />;
       case 'inventory-list':      return <BM_InventoryList />;
       case 'inventory-category':  return <BM_InventoryCategories />;
@@ -221,21 +228,23 @@ const BranchManagerDashboard = () => {
       case 'purchase-order':      return <BM_InventoryPurchaseOrder />;
       case 'stock-transfer':      return <BM_InventoryStockTransfer />;
       case 'inventory-report':    return <BM_InventoryReports />;
-      case 'audit-logs':          return <BranchManagerAuditLogsTab />;
+      
+      // ── Settings ──
       case 'settings':            return <BM_Settings />;
       case 'add-customers':       return <BM_AddCustomers onBack={() => setActiveTab('settings')} />;
       case 'add-vouchers':        return <BM_AddVouchers onBack={() => setActiveTab('settings')} />;
       case 'backup-system':       return <BM_BackupSystem onBack={() => setActiveTab('settings')} />;
       case 'customer-report':
-        return <BM_CustomerReport
-          onBack={() => setActiveTab('settings')}
-          activeTab={activeTab as unknown as React.ComponentProps<typeof BM_CustomerReport>['activeTab']}
-          setActiveTab={setActiveTab as unknown as React.ComponentProps<typeof BM_CustomerReport>['setActiveTab']}
+        return <BM_CustomerReport 
+          onBack={() => setActiveTab('settings')} 
+          activeTab={activeTab as unknown as React.ComponentProps<typeof BM_CustomerReport>['activeTab']} 
+          setActiveTab={setActiveTab as unknown as React.ComponentProps<typeof BM_CustomerReport>['setActiveTab']} 
         />;
-      case 'import-data':   return <BM_ImportData onBack={() => setActiveTab('settings')} />;
-      case 'sales-settings': return <BM_SalesSettings isOpen={true} onClose={() => setActiveTab('settings')} />;
-      case 'upload-data':   return <BM_UploadData onBack={() => setActiveTab('settings')} />;
-      default:              return <DashboardPanel branchId={authUser?.branch_id ?? null} />;
+      case 'import-data':         return <BM_ImportData onBack={() => setActiveTab('settings')} />;
+      case 'sales-settings':      return <BM_SalesSettings isOpen={true} onClose={() => setActiveTab('settings')} />;
+      case 'upload-data':         return <BM_UploadData onBack={() => setActiveTab('settings')} />;
+
+      default:                    return <DashboardPanel branchId={authUser?.branch_id ?? null} />;
     }
   };
 
@@ -248,13 +257,10 @@ const BranchManagerDashboard = () => {
       <style>{STYLES}</style>
       <div className="bm-root flex flex-col md:flex-row h-screen bg-[#f5f4f8] overflow-hidden">
 
-        {/* Mobile header bar */}
         <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 shrink-0">
           <img src={logo} alt="Lucky Boba" className="h-8 w-auto object-contain" />
-          <button
-            onClick={() => setSidebarOpen(!isSidebarOpen)}
-            className="p-2 rounded-md text-[#3b2063] hover:bg-[#f5f3ff] transition-colors"
-          >
+          <button onClick={() => setSidebarOpen(!isSidebarOpen)}
+            className="p-2 rounded-md text-[#3b2063] hover:bg-[#f5f3ff] transition-colors">
             <Menu size={20} strokeWidth={2} />
           </button>
         </div>
@@ -267,7 +273,35 @@ const BranchManagerDashboard = () => {
         />
 
         <main className="flex-1 flex flex-col overflow-hidden">
-          <BranchManagerTopNav pageTitle={pageTitle} branchLabel={branchLabel} />
+          <div className="shrink-0 flex items-center justify-between px-6 md:px-10 py-4 bg-white border-b border-gray-200 shadow-sm min-h-18">
+            <div className="flex items-center gap-3 min-w-0">
+              <h1 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.03em', margin: 0, flexShrink: 0 }}>
+                {pageTitle}
+              </h1>
+              <span className="bm-label hidden sm:inline-block" style={{ background: '#f4f4f5', padding: '3px 8px', borderRadius: '0.375rem', color: '#a1a1aa' }}>
+                {new Date().toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+              </span>
+              {branchLabel && (
+                <span className="hidden sm:inline-flex items-center gap-1.5"
+                  style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+                    background: '#ede9fe', color: '#3b2063', border: '1px solid #ddd6f7',
+                    borderRadius: '100px', padding: '3px 9px', flexShrink: 0 }}>
+                  <MapPin size={9} strokeWidth={2.5} />
+                  {branchLabel}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <div className="hidden sm:flex items-center gap-2 bm-sub">
+                <Clock size={12} />
+                <span>Last updated: {new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
+              <div className="bm-live">
+                <div className="bm-live-dot" />
+                <span className="bm-live-text">Live</span>
+              </div>
+            </div>
+          </div>
 
           <div className="flex-1 overflow-auto">
             {renderContent()}
@@ -290,6 +324,7 @@ const BranchManagerDashboard = () => {
 };
 
 // ─── Interactive Sparkline bar ────────────────────────────────────────────────
+
 const ALL_SPARK_LABELS = ['6d ago', '5d ago', '4d ago', '3d ago', '2d ago', 'Yesterday', 'Today'];
 
 const getSparkLabels = (len: number): string[] => ALL_SPARK_LABELS.slice(ALL_SPARK_LABELS.length - len);
@@ -371,6 +406,7 @@ const MiniBar = ({
 };
 
 // ─── Dashboard panel ──────────────────────────────────────────────────────────
+
 const DashboardPanel = ({ branchId }: { branchId: number | null }) => {
   const CACHE_KEY = cacheKey(branchId);
 
@@ -505,18 +541,18 @@ const DashboardPanel = ({ branchId }: { branchId: number | null }) => {
   const overallCash = Number(sd?.cash_in_today ?? 0) + Number(sd?.total_sales_today ?? 0) - Number(sd?.cash_out_today ?? 0);
 
   const statCards = [
-    { label:'Cash In',      sub:'Opening float today',    value:fmt(sd?.cash_in_today),      compact:fmtS(sd?.cash_in_today),      icon:<TrendingUp   size={14} strokeWidth={2.5}/>, iconBg:'#dcfce7', iconColor:'#16a34a', valueColor:'#1a0f2e', trend:trendCashIn.label,  trendUp:trendCashIn.up  ?? true,  sparkColor:'#16a34a', spark:sparklines.cashIn,  sparkFmt:fmtTip },
-    { label:'Cash Out',     sub:'Total disbursed today',  value:fmt(sd?.cash_out_today),     compact:fmtS(sd?.cash_out_today),     icon:<TrendingDown size={14} strokeWidth={2.5}/>, iconBg:'#fee2e2', iconColor:'#dc2626', valueColor:'#1a0f2e', trend:trendCashOut.label, trendUp:trendCashOut.up ?? false, sparkColor:'#dc2626', spark:sparklines.cashOut, sparkFmt:fmtTip },
-    { label:'Total Sales',  sub:'Gross revenue today',    value:fmt(sd?.total_sales_today),  compact:fmtS(sd?.total_sales_today),  icon:<DollarSign   size={14} strokeWidth={2.5}/>, iconBg:'#ede9fe', iconColor:'#7c3aed', valueColor:'#3b2063', trend:trendSales.label,   trendUp:trendSales.up   ?? true,  sparkColor:'#7c3aed', spark:sparklines.sales,   sparkFmt:fmtTip },
-    { label:'Voided Sales', sub:'Cancelled transactions', value:fmt(sd?.voided_sales_today), compact:fmtS(sd?.voided_sales_today), icon:<AlertCircle  size={14} strokeWidth={2.5}/>, iconBg:'#fef9c3', iconColor:'#ca8a04', valueColor:'#1a0f2e', trend:trendVoided.label,  trendUp:trendVoided.up  ?? false, sparkColor:'#ca8a04', spark:sparklines.voided,  sparkFmt:fmtTip },
-    { label:'Overall Cash', sub:'Cash In + Sales − Drop', value:fmt(overallCash),            compact:fmtS(overallCash),            icon:<Wallet       size={14} strokeWidth={2.5}/>, iconBg:'#e0f2fe', iconColor:'#0284c7', valueColor:'#0c4a6e', trend:trendOverall.label, trendUp:trendOverall.up ?? true,  sparkColor:'#0284c7', spark:sparklines.overall, sparkFmt:fmtTip },
+    { label:'Cash In',      sub:'Opening float today',   value:fmt(sd?.cash_in_today),      compact:fmtS(sd?.cash_in_today),      icon:<TrendingUp   size={14} strokeWidth={2.5}/>, iconBg:'#dcfce7', iconColor:'#16a34a', valueColor:'#1a0f2e', trend:trendCashIn.label,  trendUp:trendCashIn.up  ?? true,  sparkColor:'#16a34a', spark:sparklines.cashIn,  sparkFmt:fmtTip },
+    { label:'Cash Out',     sub:'Total disbursed today', value:fmt(sd?.cash_out_today),     compact:fmtS(sd?.cash_out_today),     icon:<TrendingDown size={14} strokeWidth={2.5}/>, iconBg:'#fee2e2', iconColor:'#dc2626', valueColor:'#1a0f2e', trend:trendCashOut.label, trendUp:trendCashOut.up ?? false, sparkColor:'#dc2626', spark:sparklines.cashOut, sparkFmt:fmtTip },
+    { label:'Total Sales',  sub:'Gross revenue today',   value:fmt(sd?.total_sales_today),  compact:fmtS(sd?.total_sales_today),  icon:<DollarSign   size={14} strokeWidth={2.5}/>, iconBg:'#ede9fe', iconColor:'#7c3aed', valueColor:'#3b2063', trend:trendSales.label,   trendUp:trendSales.up   ?? true,  sparkColor:'#7c3aed', spark:sparklines.sales,   sparkFmt:fmtTip },
+    { label:'Voided Sales', sub:'Cancelled transactions',value:fmt(sd?.voided_sales_today), compact:fmtS(sd?.voided_sales_today), icon:<AlertCircle  size={14} strokeWidth={2.5}/>, iconBg:'#fef9c3', iconColor:'#ca8a04', valueColor:'#1a0f2e', trend:trendVoided.label,  trendUp:trendVoided.up  ?? false, sparkColor:'#ca8a04', spark:sparklines.voided,  sparkFmt:fmtTip },
+    { label:'Overall Cash', sub:'Cash In + Sales − Drop',value:fmt(overallCash),            compact:fmtS(overallCash),            icon:<Wallet       size={14} strokeWidth={2.5}/>, iconBg:'#e0f2fe', iconColor:'#0284c7', valueColor:'#0c4a6e', trend:trendOverall.label, trendUp:trendOverall.up ?? true,  sparkColor:'#0284c7', spark:sparklines.overall, sparkFmt:fmtTip },
   ];
 
   const quickStats = [
-    { label:'Total Orders',    value: Number(sd?.total_orders_today ?? 0),                                                                          icon:<ShoppingBag  size={12}/>, color:'#3b82f6' },
-    { label:'Avg Order Value', value: fmt(Number(sd?.total_sales_today ?? 0) / Math.max(Number(sd?.total_orders_today ?? 1), 1)),                   icon:<Activity     size={12}/>, color:'#8b5cf6' },
-    { label:'Net Cash Flow',   value: fmt(Number(sd?.cash_in_today ?? 0) - Number(sd?.cash_out_today ?? 0)),                                        icon:<ArrowUpRight size={12}/>, color:'#10b981' },
-    { label:'Void Rate',       value: `${((Number(sd?.voided_sales_today ?? 0) / Math.max(Number(sd?.total_sales_today ?? 1), 1)) * 100).toFixed(1)}%`, icon:<AlertCircle size={12}/>, color:'#f59e0b' },
+    { label:'Total Orders',    value: Number(sd?.total_orders_today ?? 0),                                                                         icon:<ShoppingBag size={12}/>, color:'#3b82f6' },
+    { label:'Avg Order Value', value: fmt(Number(sd?.total_sales_today ?? 0) / Math.max(Number(sd?.total_orders_today ?? 1), 1)),                                icon:<Activity    size={12}/>, color:'#8b5cf6' },
+    { label:'Net Cash Flow',   value: fmt(Number(sd?.cash_in_today ?? 0) - Number(sd?.cash_out_today ?? 0)),                                                     icon:<ArrowUpRight size={12}/>, color:'#10b981' },
+    { label:'Void Rate',       value: `${((Number(sd?.voided_sales_today ?? 0) / Math.max(Number(sd?.total_sales_today ?? 1), 1)) * 100).toFixed(1)}%`,          icon:<AlertCircle size={12}/>, color:'#f59e0b' },
   ];
 
   const purples = ['#3b2063','#6d28d9','#7c3aed','#a78bfa','#c4b5fd','#ede9fe'];
