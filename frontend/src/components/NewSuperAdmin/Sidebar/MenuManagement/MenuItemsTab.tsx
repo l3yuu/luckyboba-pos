@@ -23,10 +23,12 @@ interface MenuItem {
   name:           string;
   category_id:    number | null;
   category:       string;
-  category_type:  string; // ✅ added
+  category_type:  string;
   subcategory_id: number | null;
   subcategory:    string;
   price:          number;
+  grab_price:     number;   // ✅ add
+  panda_price:    number;   // ✅ add
   barcode:        string | null;
   image_path:     string | null;
   is_available:   boolean;
@@ -212,6 +214,8 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
     category_id:    item?.category_id    ? String(item.category_id)    : "",
     subcategory_id: item?.subcategory_id ? String(item.subcategory_id) : "",
     price:          item?.price          ? String(item.price)          : "",
+    grab_price:     item?.grab_price     ? String(item.grab_price)     : "0",  // ✅ add
+    panda_price:    item?.panda_price    ? String(item.panda_price)    : "0",  // ✅ add
     barcode:        item?.barcode        ?? "",
     is_available:   item?.is_available   ?? true,
   });
@@ -268,6 +272,8 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
         category_id:    form.category_id    ? Number(form.category_id)    : null,
         subcategory_id: form.subcategory_id ? Number(form.subcategory_id) : null,
         price:          Number(form.price),
+        grab_price:     Number(form.grab_price)  || 0,   // ✅ add
+        panda_price:    Number(form.panda_price) || 0,   // ✅ add
         barcode:        form.barcode || null,
         is_available:   form.is_available,
       };
@@ -427,6 +433,66 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
         </Field>
       </div>
 
+      {/* ✅ ADD THIS — Delivery surcharge fields */}
+      <div>
+        <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-2 block">
+          Delivery Surcharge <span className="text-zinc-300 font-medium normal-case">(added on top of base price)</span>
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+
+          {/* Grab surcharge */}
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+              <div className="w-6 h-6 bg-green-500 rounded-md flex items-center justify-center shrink-0">
+                <span className="text-white text-[9px] font-black">G</span>
+              </div>
+              <div className="flex-1">
+                <p className="text-[10px] font-bold text-green-700 uppercase tracking-wider leading-none">Grab</p>
+                <p className="text-[9px] text-green-500 mt-0.5">+₱ surcharge</p>
+              </div>
+              <div className="relative w-20">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-green-500 text-xs font-bold">+₱</span>
+                <input
+                  type="number" min="0" step="0.01" placeholder="0"
+                  value={form.grab_price}
+                  onChange={e => {
+                    setForm(p => ({ ...p, grab_price: e.target.value }));
+                    setErrors(ev => { const n = { ...ev }; delete n.grab_price; return n; });
+                  }}
+                  className="w-full bg-white border border-green-200 rounded-md pl-7 pr-2 py-1.5 text-xs font-bold text-zinc-700 outline-none focus:ring-2 focus:ring-green-400 text-right"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Panda surcharge */}
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-2 p-3 bg-pink-50 border border-pink-200 rounded-lg">
+              <div className="w-6 h-6 bg-pink-500 rounded-md flex items-center justify-center shrink-0">
+                <span className="text-white text-[9px] font-black">P</span>
+              </div>
+              <div className="flex-1">
+                <p className="text-[10px] font-bold text-pink-700 uppercase tracking-wider leading-none">Panda</p>
+                <p className="text-[9px] text-pink-500 mt-0.5">+₱ surcharge</p>
+              </div>
+              <div className="relative w-20">
+                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-pink-500 text-xs font-bold">+₱</span>
+                <input
+                  type="number" min="0" step="0.01" placeholder="0"
+                  value={form.panda_price}
+                  onChange={e => {
+                    setForm(p => ({ ...p, panda_price: e.target.value }));
+                    setErrors(ev => { const n = { ...ev }; delete n.panda_price; return n; });
+                  }}
+                  className="w-full bg-white border border-pink-200 rounded-md pl-7 pr-2 py-1.5 text-xs font-bold text-zinc-700 outline-none focus:ring-2 focus:ring-pink-400 text-right"
+                />
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
       {/* ✅ Combo Builder — only shows when combo category is selected */}
       {isComboCategory && !isEdit && (
         <ComboBuilder
@@ -534,19 +600,21 @@ const MenuItemsTab: React.FC = () => {
       ]);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mapItem = (i: any): MenuItem => ({
-        id:             i.id,
-        name:           i.name,
-        category_id:    i.category_id    ?? null,
-        category:       i.category?.name ?? i.category  ?? "—",
-        category_type:  i.category_type  ?? "food",      // ✅ map category_type
-        subcategory_id: i.subcategory_id ?? null,
-        subcategory:    i.subcategory?.name ?? i.subcategory ?? "—",
-        price:          Number(i.price ?? 0),
-        barcode:        i.barcode    ?? null,
-        image_path:     i.image_path ?? null,
-        is_available:   Boolean(i.is_available ?? true),
-      });
+    const mapItem = (i: any): MenuItem => ({
+      id:             i.id,
+      name:           i.name,
+      category_id:    i.category_id    ?? null,
+      category:       i.category?.name ?? i.category  ?? "—",
+      category_type:  i.category_type  ?? "food",
+      subcategory_id: i.subcategory_id ?? null,
+      subcategory:    i.subcategory?.name ?? i.subcategory ?? "—",
+      price:          Number(i.price      ?? 0),
+      grab_price:     Number(i.grab_price  ?? 0),  // ✅ add
+      panda_price:    Number(i.panda_price ?? 0),  // ✅ add
+      barcode:        i.barcode    ?? null,
+      image_path:     i.image_path ?? null,
+      is_available:   Boolean(i.is_available ?? true),
+    });
 
       // ✅ Map category_type from categories response
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
