@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   Search, Plus, Edit2, Trash2, RefreshCw,
   AlertCircle, X, Package, ChevronDown,
-  ToggleLeft, ToggleRight, Barcode,
+  ToggleLeft, ToggleRight, Barcode, Utensils, Coffee,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 
@@ -23,6 +23,7 @@ interface MenuItem {
   name:           string;
   category_id:    number | null;
   category:       string;
+  category_type:  string; // ✅ added
   subcategory_id: number | null;
   subcategory:    string;
   price:          number;
@@ -30,8 +31,14 @@ interface MenuItem {
   image_path:     string | null;
   is_available:   boolean;
 }
-interface Category    { id: number; name: string; }
+interface Category {
+  id:            number;
+  name:          string;
+  category_type: string; // ✅ added
+}
 interface SubCategory { id: number; name: string; category_id: number; }
+
+// ── Shared UI ─────────────────────────────────────────────────────────────────
 
 interface BtnProps {
   children: React.ReactNode; variant?: VariantKey; size?: SizeKey;
@@ -96,17 +103,110 @@ const ModalShell: React.FC<{
     document.body
   );
 
-// ── Add / Edit Modal ──────────────────────────────────────────────────────────
-interface MenuItemFormProps {
-  item?: MenuItem;
-  categories: Category[];
-  subcategories: SubCategory[];
-  onClose: () => void;
-  onSaved: (item: MenuItem) => void;
+// ── Combo Builder Section ─────────────────────────────────────────────────────
+
+interface ComboBuilderProps {
+  allItems:      MenuItem[];
+  foodItemId:    string;
+  drinkItemId:   string;
+  onFoodChange:  (id: string) => void;
+  onDrinkChange: (id: string) => void;
+  errors:        Record<string, string>;
 }
 
-const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, categories, subcategories, onClose, onSaved }) => {
+const ComboBuilder: React.FC<ComboBuilderProps> = ({
+  allItems, foodItemId, drinkItemId, onFoodChange, onDrinkChange, errors,
+}) => {
+const FOOD_TYPES  = ["food", "wings", "waffle"];
+const DRINK_TYPES = ["drink", "bundle"];
+
+const foodItems  = allItems.filter(i => FOOD_TYPES.includes(i.category_type));
+const drinkItems = allItems.filter(i => DRINK_TYPES.includes(i.category_type));
+
+  return (
+    <div className="flex flex-col gap-3 p-4 bg-purple-50 border border-purple-200 rounded-xl">
+      <div className="flex items-center gap-2 mb-1">
+        <div className="w-6 h-6 bg-purple-100 border border-purple-300 rounded-md flex items-center justify-center">
+          <Utensils size={11} className="text-purple-600" />
+        </div>
+        <p className="text-xs font-bold text-purple-700 uppercase tracking-wider">Combo Builder</p>
+        <span className="text-[10px] text-purple-400 font-medium">— pick 1 food + 1 drink</span>
+      </div>
+
+      {/* Food picker */}
+      <div>
+        <label className="text-[10px] font-bold uppercase tracking-wider text-purple-600 mb-1.5 flex items-center gap-1.5">
+          <Utensils size={10} /> Food Item <span className="text-red-400">*</span>
+        </label>
+        <div className="relative">
+          <select
+            value={foodItemId}
+            onChange={e => onFoodChange(e.target.value)}
+            className={`w-full text-sm font-medium text-zinc-700 bg-white border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-purple-400 transition-all appearance-none pr-8 ${errors.food_item_id ? "border-red-300" : "border-purple-200"}`}
+          >
+            <option value="">Select food item...</option>
+            {foodItems.map(i => (
+              <option key={i.id} value={i.id}>
+                {i.name} — {i.category} (₱{Number(i.price).toFixed(2)})
+              </option>
+            ))}
+          </select>
+          <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+        </div>
+        {errors.food_item_id && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.food_item_id}</p>}
+      </div>
+
+      {/* Divider */}
+      <div className="flex items-center gap-2">
+        <div className="flex-1 h-px bg-purple-200" />
+        <span className="text-[10px] font-bold text-purple-400">+</span>
+        <div className="flex-1 h-px bg-purple-200" />
+      </div>
+
+      {/* Drink picker */}
+      <div>
+        <label className="text-[10px] font-bold uppercase tracking-wider text-purple-600 mb-1.5 flex items-center gap-1.5">
+          <Coffee size={10} /> Drink Item <span className="text-red-400">*</span>
+        </label>
+        <div className="relative">
+          <select
+            value={drinkItemId}
+            onChange={e => onDrinkChange(e.target.value)}
+            className={`w-full text-sm font-medium text-zinc-700 bg-white border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-purple-400 transition-all appearance-none pr-8 ${errors.drink_item_id ? "border-red-300" : "border-purple-200"}`}
+          >
+            <option value="">Select drink item...</option>
+            {drinkItems.map(i => (
+              <option key={i.id} value={i.id}>
+                {i.name} — {i.category} (₱{Number(i.price).toFixed(2)})
+              </option>
+            ))}
+          </select>
+          <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+        </div>
+        {errors.drink_item_id && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.drink_item_id}</p>}
+      </div>
+
+      <p className="text-[10px] text-purple-500 font-medium leading-tight">
+        This will create a combo bundle. The cashier will select the food item, then customize the drink (sugar, options, add-ons).
+      </p>
+    </div>
+  );
+};
+
+// ── Add / Edit Modal ──────────────────────────────────────────────────────────
+
+interface MenuItemFormProps {
+  item?:         MenuItem;
+  allItems:      MenuItem[];   // ✅ for combo picker
+  categories:    Category[];
+  subcategories: SubCategory[];
+  onClose:       () => void;
+  onSaved:       (item: MenuItem) => void;
+}
+
+const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories, subcategories, onClose, onSaved }) => {
   const isEdit = !!item;
+
   const [form, setForm] = useState({
     name:           item?.name           ?? "",
     category_id:    item?.category_id    ? String(item.category_id)    : "",
@@ -115,21 +215,44 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, categories, subcatego
     barcode:        item?.barcode        ?? "",
     is_available:   item?.is_available   ?? true,
   });
+
+  // ✅ Combo-specific state
+  const [foodItemId,  setFoodItemId]  = useState("");
+  const [drinkItemId, setDrinkItemId] = useState("");
+
   const [errors,   setErrors]   = useState<Record<string, string>>({});
   const [loading,  setLoading]  = useState(false);
   const [apiError, setApiError] = useState("");
+
+  // ✅ Determine if selected category is combo type
+  const selectedCategory    = categories.find(c => String(c.id) === form.category_id);
+  const isComboCategory     = selectedCategory?.category_type === "combo";
 
   // Filter subs based on selected category
   const filteredSubs = subcategories.filter(
     s => !form.category_id || s.category_id === Number(form.category_id)
   );
 
+  // ✅ When category changes, reset sub and combo fields
+  const handleCategoryChange = (catId: string) => {
+    setForm(p => ({ ...p, category_id: catId, subcategory_id: "" }));
+    setFoodItemId("");
+    setDrinkItemId("");
+    setErrors(ev => { const n = { ...ev }; delete n.category_id; delete n.food_item_id; delete n.drink_item_id; return n; });
+  };
+
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.name.trim()) e.name = "Name is required.";
-    if (!form.category_id) e.category_id = "Category is required.";
+    if (!form.name.trim())  e.name        = "Name is required.";
+    if (!form.category_id)  e.category_id = "Category is required.";
     if (!form.price || isNaN(Number(form.price)) || Number(form.price) < 0)
       e.price = "Valid price is required.";
+
+    // ✅ Extra validation for combos
+    if (isComboCategory) {
+      if (!foodItemId)  e.food_item_id  = "Select a food item for this combo.";
+      if (!drinkItemId) e.drink_item_id = "Select a drink item for this combo.";
+    }
     return e;
   };
 
@@ -137,7 +260,9 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, categories, subcatego
     const e = validate();
     if (Object.keys(e).length) { setErrors(e); return; }
     setLoading(true); setApiError("");
+
     try {
+      // Step 1: Create/update the menu item
       const payload = {
         name:           form.name,
         category_id:    form.category_id    ? Number(form.category_id)    : null,
@@ -150,6 +275,7 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, categories, subcatego
       const method = isEdit ? "PUT" : "POST";
       const res    = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(payload) });
       const data   = await res.json();
+
       if (!res.ok || !data.success) {
         if (data.errors) {
           const mapped: Record<string, string> = {};
@@ -158,7 +284,51 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, categories, subcatego
         } else { setApiError(data.message ?? "Something went wrong."); }
         return;
       }
-      onSaved(data.data);
+
+      const savedItem: MenuItem = data.data;
+
+      // Step 2: If combo, create bundle record linking food + drink
+      if (isComboCategory && !isEdit) {
+        const foodItem  = allItems.find(i => String(i.id) === foodItemId);
+        const drinkItem = allItems.find(i => String(i.id) === drinkItemId);
+
+        const bundlePayload = {
+          name:         form.name,
+          category_id:  Number(form.category_id),
+          bundle_type:  "combo",
+          price:        Number(form.price),
+          barcode:      form.barcode || `COMBO-${savedItem.id}`,
+          items: [
+            {
+              custom_name:  foodItem?.name  ?? "Food",
+              quantity:     1,
+              size:         "none",
+              display_name: "Food",
+            },
+            {
+              custom_name:  drinkItem?.name ?? "Drink",
+              quantity:     1,
+              size:         "M",
+              display_name: "Drink",
+            },
+          ],
+        };
+
+        const bundleRes = await fetch("/api/bundles", {
+          method:  "POST",
+          headers: authHeaders(),
+          body:    JSON.stringify(bundlePayload),
+        });
+
+        if (!bundleRes.ok) {
+          // Menu item was saved but bundle creation failed — surface warning
+          setApiError("Item saved but bundle creation failed. Please create the bundle manually.");
+          onSaved(savedItem);
+          return;
+        }
+      }
+
+      onSaved(savedItem);
       onClose();
     } catch { setApiError("Network error. Please try again."); }
     finally { setLoading(false); }
@@ -183,7 +353,7 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, categories, subcatego
           <Btn onClick={handleSubmit} disabled={loading}>
             {loading
               ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</span>
-              : isEdit ? "Save Changes" : <><Plus size={13} /> Add Item</>}
+              : isEdit ? "Save Changes" : <><Plus size={13} /> {isComboCategory ? "Add Combo" : "Add Item"}</>}
           </Btn>
         </>
       }>
@@ -197,7 +367,7 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, categories, subcatego
 
       {/* Name */}
       <Field label="Item Name" required error={errors.name}>
-        <input {...f("name")} placeholder="e.g. Brown Sugar Milk Tea" className={inputCls(errors.name)} />
+        <input {...f("name")} placeholder="e.g. Spaghetti & Classic Pearl" className={inputCls(errors.name)} />
       </Field>
 
       {/* Category + Sub-Category */}
@@ -206,13 +376,14 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, categories, subcatego
           <div className="relative">
             <select
               value={form.category_id}
-              onChange={e => {
-                setForm(p => ({ ...p, category_id: e.target.value, subcategory_id: "" }));
-                setErrors(ev => { const n = { ...ev }; delete n.category_id; return n; });
-              }}
+              onChange={e => handleCategoryChange(e.target.value)}
               className={inputCls(errors.category_id) + " appearance-none pr-8"}>
               <option value="">Select Category</option>
-              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              {categories.map(c => (
+                <option key={c.id} value={c.id}>
+                  {c.name}{c.category_type === "combo" ? " (Combo)" : c.category_type === "bundle" ? " (Bundle)" : ""}
+                </option>
+              ))}
             </select>
             <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           </div>
@@ -224,13 +395,16 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, categories, subcatego
               value={form.subcategory_id}
               onChange={e => setForm(p => ({ ...p, subcategory_id: e.target.value }))}
               className={inputCls() + " appearance-none pr-8"}
-              disabled={!form.category_id}>
+              disabled={!form.category_id || isComboCategory}>
               <option value="">None</option>
               {filteredSubs.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
             <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           </div>
-          {form.category_id && filteredSubs.length === 0 && (
+          {isComboCategory && (
+            <p className="text-[10px] text-zinc-400 mt-1">Not used for combos.</p>
+          )}
+          {!isComboCategory && form.category_id && filteredSubs.length === 0 && (
             <p className="text-[10px] text-zinc-400 mt-1">No sub-categories for this category.</p>
           )}
         </Field>
@@ -252,6 +426,26 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, categories, subcatego
           </div>
         </Field>
       </div>
+
+      {/* ✅ Combo Builder — only shows when combo category is selected */}
+      {isComboCategory && !isEdit && (
+        <ComboBuilder
+          allItems={allItems}
+          foodItemId={foodItemId}
+          drinkItemId={drinkItemId}
+          onFoodChange={setFoodItemId}
+          onDrinkChange={setDrinkItemId}
+          errors={errors}
+        />
+      )}
+
+      {/* ✅ Info note when editing a combo */}
+      {isComboCategory && isEdit && (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+          <p className="text-xs font-bold text-amber-700 mb-0.5">Editing a combo item</p>
+          <p className="text-[10px] text-amber-600">To change the food or drink components, edit the bundle directly from the Bundles tab.</p>
+        </div>
+      )}
 
       {/* Available toggle */}
       <div className="flex items-center justify-between p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
@@ -345,16 +539,25 @@ const MenuItemsTab: React.FC = () => {
         name:           i.name,
         category_id:    i.category_id    ?? null,
         category:       i.category?.name ?? i.category  ?? "—",
+        category_type:  i.category_type  ?? "food",      // ✅ map category_type
         subcategory_id: i.subcategory_id ?? null,
         subcategory:    i.subcategory?.name ?? i.subcategory ?? "—",
         price:          Number(i.price ?? 0),
         barcode:        i.barcode    ?? null,
-        image_path:     null,
+        image_path:     i.image_path ?? null,
         is_available:   Boolean(i.is_available ?? true),
       });
 
+      // ✅ Map category_type from categories response
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mapCat = (c: any): Category => ({
+        id:            c.id,
+        name:          c.name,
+        category_type: c.category_type ?? c.type ?? "food",
+      });
+
       setItems((Array.isArray(itemsData) ? itemsData : (itemsData.data ?? [])).map(mapItem));
-      setCategories(Array.isArray(catsData) ? catsData : (catsData.data ?? []));
+      setCategories((Array.isArray(catsData) ? catsData : (catsData.data ?? [])).map(mapCat));
 
       const rawSubs = Array.isArray(subsData) ? subsData : (subsData.data ?? []);
       setSubcategories(rawSubs.map((s: SubCategory) => ({
@@ -390,6 +593,17 @@ const MenuItemsTab: React.FC = () => {
 
   const fmt = (v: number) => `₱${Number(v).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
+  // ✅ Badge for category_type in table
+  const catTypeBadge: Record<string, string> = {
+    food:    "bg-amber-50 text-amber-700 border-amber-200",
+    drink:   "bg-blue-50 text-blue-700 border-blue-200",
+    promo:   "bg-emerald-50 text-emerald-700 border-emerald-200",
+    wings:   "bg-orange-50 text-orange-700 border-orange-200",
+    waffle:  "bg-yellow-50 text-yellow-700 border-yellow-200",
+    combo:   "bg-purple-50 text-purple-700 border-purple-200",
+    bundle:  "bg-indigo-50 text-indigo-700 border-indigo-200",
+  };
+
   return (
     <div className="p-6 md:p-8 fade-in">
       {/* Header */}
@@ -413,10 +627,10 @@ const MenuItemsTab: React.FC = () => {
       {/* Stat cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         {[
-          { label: "Total Items",  value: items.length,                             color: "bg-violet-50 border-violet-200 text-violet-600"   },
-          { label: "Available",    value: items.filter(i => i.is_available).length, color: "bg-emerald-50 border-emerald-200 text-emerald-600" },
-          { label: "Unavailable",  value: items.filter(i => !i.is_available).length,color: "bg-red-50 border-red-200 text-red-500"            },
-          { label: "Categories",   value: categories.length,                        color: "bg-amber-50 border-amber-200 text-amber-600"      },
+          { label: "Total Items",  value: items.length,                              color: "bg-violet-50 border-violet-200 text-violet-600"   },
+          { label: "Available",    value: items.filter(i => i.is_available).length,  color: "bg-emerald-50 border-emerald-200 text-emerald-600" },
+          { label: "Unavailable",  value: items.filter(i => !i.is_available).length, color: "bg-red-50 border-red-200 text-red-500"            },
+          { label: "Categories",   value: categories.length,                         color: "bg-amber-50 border-amber-200 text-amber-600"      },
         ].map((s, i) => (
           <div key={i} className={`border rounded-[0.625rem] px-4 py-3 ${s.color.split(" ").slice(0, 2).join(" ")}`}>
             <p className={`text-xl font-black tabular-nums ${s.color.split(" ")[2]}`}>{loading ? "—" : s.value}</p>
@@ -473,7 +687,7 @@ const MenuItemsTab: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100">
-                {["Item", "Category", "Sub-Category", "Price", "Barcode", "Available", "Actions"].map(h => (
+                {["Item", "Category", "Type", "Sub-Category", "Price", "Barcode", "Available", "Actions"].map(h => (
                   <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
                 ))}
               </tr>
@@ -481,13 +695,13 @@ const MenuItemsTab: React.FC = () => {
             <tbody>
               {loading && [...Array(6)].map((_, i) => (
                 <tr key={i} className="border-b border-zinc-50">
-                  {[...Array(7)].map((_, j) => (
+                  {[...Array(8)].map((_, j) => (
                     <td key={j} className="px-5 py-4"><SkeletonBar h="h-3" /></td>
                   ))}
                 </tr>
               ))}
               {!loading && filtered.length === 0 && (
-                <tr><td colSpan={7} className="px-5 py-12 text-center text-zinc-400 text-xs font-medium">
+                <tr><td colSpan={8} className="px-5 py-12 text-center text-zinc-400 text-xs font-medium">
                   {search || filterCat || filterAvail ? "No items match your filters." : "No menu items found."}
                 </td></tr>
               )}
@@ -504,6 +718,12 @@ const MenuItemsTab: React.FC = () => {
                   <td className="px-5 py-3.5">
                     <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-violet-50 text-violet-700 border border-violet-200">
                       {item.category}
+                    </span>
+                  </td>
+                  {/* ✅ category_type badge */}
+                  <td className="px-5 py-3.5">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${catTypeBadge[item.category_type] ?? "bg-zinc-100 text-zinc-600 border-zinc-200"}`}>
+                      {item.category_type ?? "—"}
                     </span>
                   </td>
                   <td className="px-5 py-3.5">
@@ -550,14 +770,23 @@ const MenuItemsTab: React.FC = () => {
 
       {/* Modals */}
       {addOpen && (
-        <MenuItemForm categories={categories} subcategories={subcategories}
+        <MenuItemForm
+          allItems={items}
+          categories={categories}
+          subcategories={subcategories}
           onClose={() => setAddOpen(false)}
-          onSaved={item => { setItems(p => [item, ...p]); setAddOpen(false); }} />
+          onSaved={item => { setItems(p => [item, ...p]); setAddOpen(false); }}
+        />
       )}
       {editTarget && (
-        <MenuItemForm item={editTarget} categories={categories} subcategories={subcategories}
+        <MenuItemForm
+          item={editTarget}
+          allItems={items}
+          categories={categories}
+          subcategories={subcategories}
           onClose={() => setEditTarget(null)}
-          onSaved={updated => { setItems(p => p.map(i => i.id === updated.id ? updated : i)); setEditTarget(null); }} />
+          onSaved={updated => { setItems(p => p.map(i => i.id === updated.id ? updated : i)); setEditTarget(null); }}
+        />
       )}
       {delTarget && (
         <DeleteModal item={delTarget} onClose={() => setDelTarget(null)}

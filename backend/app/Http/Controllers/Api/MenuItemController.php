@@ -17,11 +17,11 @@ class MenuItemController extends Controller
             'menu_items.name',
             'menu_items.category_id',
             'categories.name as category',
+            'categories.category_type',              // ✅ ADD THIS
             'menu_items.sub_category_id as subcategory_id',
             'sub_categories.name as subcategory',
             'menu_items.price',
             'menu_items.barcode',
-            // ✅ UPDATED: Select the actual image from the DB and format it as a URL
             DB::raw("CASE WHEN menu_items.image IS NOT NULL THEN CONCAT('".url('storage')."/', menu_items.image) ELSE NULL END as image_path"),
             DB::raw("CASE WHEN menu_items.status = 'active' THEN 1 ELSE 0 END as is_available"),
         ];

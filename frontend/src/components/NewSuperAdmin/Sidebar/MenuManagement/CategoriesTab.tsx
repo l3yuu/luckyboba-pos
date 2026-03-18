@@ -17,13 +17,47 @@ const authHeaders = (): Record<string, string> => ({
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const CATEGORY_TYPES = ["food", "drink", "promo"] as const;
 type CategoryType = typeof CATEGORY_TYPES[number];
+
+const BASE_TYPE_OPTIONS: { value: CategoryType; label: string; desc: string }[] = [
+  { value: "food",  label: "Food",  desc: "Meals, snacks, waffles, wings, combos" },
+  { value: "drink", label: "Drink", desc: "Beverages with size selection" },
+  { value: "promo", label: "Promo", desc: "Promos, freebies, loyalty cards" },
+];
+
+const POS_BEHAVIOR_BY_TYPE: Record<CategoryType, { value: string; label: string; desc: string }[]> = {
+  food: [
+    { value: "food",   label: "Food",   desc: "Standard food — straight to cart, no size" },
+    { value: "wings",  label: "Wings",  desc: "Chicken wings — cashier picks piece count (3pc, 4pc, etc.)" },
+    { value: "waffle", label: "Waffle", desc: "Waffle items — shows waffle-specific add-ons" },
+    { value: "combo",  label: "Combo",  desc: "Food + drink — cashier picks food, then customizes the included drink" },
+  ],
+  drink: [
+    { value: "drink",  label: "Drink",  desc: "Regular drink — cashier picks size (SM/SL, UM/UL, etc.)" },
+    { value: "bundle", label: "Bundle", desc: "Drinks-only bundle — cashier customizes each drink step by step" },
+  ],
+  promo: [
+    { value: "promo",  label: "Promo",  desc: "Promos, freebies, loyalty cards — no size or sugar" },
+  ],
+};
+
+const TYPE_BADGE: Record<string, string> = {
+  food:    "bg-amber-50 text-amber-700 border border-amber-200",
+  drink:   "bg-blue-50 text-blue-700 border border-blue-200",
+  promo:   "bg-emerald-50 text-emerald-700 border border-emerald-200",
+  wings:   "bg-orange-50 text-orange-700 border border-orange-200",
+  waffle:  "bg-yellow-50 text-yellow-700 border border-yellow-200",
+  combo:   "bg-purple-50 text-purple-700 border border-purple-200",
+  bundle:  "bg-indigo-50 text-indigo-700 border border-indigo-200",
+};
 
 interface Category {
   id:               number;
   name:             string;
   type:             CategoryType;
+  category_type:    string;
   sort_order:       number;
   is_active:        boolean;
   menu_items_count: number;
@@ -56,26 +90,29 @@ const SkeletonBar: React.FC<{ h?: string }> = ({ h = "h-4" }) => (
 const inputCls = (err?: string) =>
   `w-full text-sm font-medium text-zinc-700 bg-zinc-50 border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all ${err ? "border-red-300 bg-red-50" : "border-zinc-200"}`;
 
-const typeBadgeColor: Record<CategoryType | string, string> = {
-  food:     "bg-amber-50 text-amber-700 border-amber-200",
-  drink:    "bg-blue-50 text-blue-700 border-blue-200",
-  promo:    "bg-emerald-50 text-emerald-700 border-emerald-200",
-};
-
-// ── Category Form Modal ───────────────────────────────────────────────────────
 const CategoryModal: React.FC<{
   category?: Category;
   onClose: () => void;
   onSaved: (c: Category) => void;
 }> = ({ category, onClose, onSaved }) => {
   const isEdit = !!category;
-  const [name,      setName]      = useState(category?.name      ?? "");
-  const [type, setType] = useState<CategoryType>(category?.type ?? "food");
-  const [sortOrder, setSortOrder] = useState(String(category?.sort_order ?? 0));
-  const [isActive,  setIsActive]  = useState(category?.is_active ?? true);
-  const [errors,    setErrors]    = useState<Record<string, string>>({});
-  const [loading,   setLoading]   = useState(false);
-  const [apiError,  setApiError]  = useState("");
+
+  const [name,        setName]        = useState(category?.name ?? "");
+  const [baseType,    setBaseType]    = useState<CategoryType>(category?.type ?? "food");
+  const [posBehavior, setPosBehavior] = useState<string>(category?.category_type ?? "food");
+  const [sortOrder,   setSortOrder]   = useState(String(category?.sort_order ?? 0));
+  const [isActive,    setIsActive]    = useState(category?.is_active ?? true);
+  const [errors,      setErrors]      = useState<Record<string, string>>({});
+  const [loading,     setLoading]     = useState(false);
+  const [apiError,    setApiError]    = useState("");
+
+  const handleBaseTypeChange = (t: CategoryType) => {
+    setBaseType(t);
+    setPosBehavior(POS_BEHAVIOR_BY_TYPE[t][0].value);
+  };
+
+  const behaviorOptions  = POS_BEHAVIOR_BY_TYPE[baseType];
+  const selectedBehavior = behaviorOptions.find(o => o.value === posBehavior);
 
   const handleSubmit = async () => {
     const e: Record<string, string> = {};
@@ -83,11 +120,17 @@ const CategoryModal: React.FC<{
     if (Object.keys(e).length) { setErrors(e); return; }
     setLoading(true); setApiError("");
     try {
-      const payload = { name, type, sort_order: Number(sortOrder), is_active: isActive };
-      const url     = isEdit ? `/api/categories/${category!.id}` : "/api/categories";
-      const method  = isEdit ? "PUT" : "POST";
-      const res     = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(payload) });
-      const data    = await res.json();
+      const payload = {
+        name,
+        type:          baseType,
+        category_type: posBehavior,
+        sort_order:    Number(sortOrder),
+        is_active:     isActive,
+      };
+      const url    = isEdit ? `/api/categories/${category!.id}` : "/api/categories";
+      const method = isEdit ? "PUT" : "POST";
+      const res    = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(payload) });
+      const data   = await res.json();
       if (!res.ok) { setApiError(data.message ?? "Something went wrong."); return; }
       onSaved(data.data ?? data);
       onClose();
@@ -99,7 +142,8 @@ const CategoryModal: React.FC<{
     <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
       style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", backgroundColor: "rgba(0,0,0,0.45)" }}>
       <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] shadow-2xl">
+      <div className="relative bg-white w-full max-w-md border border-zinc-200 rounded-[1.25rem] shadow-2xl">
+
         <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-violet-50 border border-violet-200 rounded-lg flex items-center justify-center">
@@ -110,7 +154,9 @@ const CategoryModal: React.FC<{
               <p className="text-[10px] text-zinc-400">{isEdit ? `Updating ${category!.name}` : "Create a new menu category"}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-400 hover:text-zinc-600 transition-colors"><X size={16} /></button>
+          <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-400 hover:text-zinc-600 transition-colors">
+            <X size={16} />
+          </button>
         </div>
 
         <div className="px-6 py-5 flex flex-col gap-4">
@@ -121,7 +167,6 @@ const CategoryModal: React.FC<{
             </div>
           )}
 
-          {/* Name */}
           <div>
             <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
               Category Name <span className="text-red-400">*</span>
@@ -131,39 +176,73 @@ const CategoryModal: React.FC<{
             {errors.name && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.name}</p>}
           </div>
 
-          {/* Type */}
-          <div>
-            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
-              Type
-            </label>
-            <div className="relative">
-              <select value={type} onChange={e => setType(e.target.value as CategoryType)}
-                className={inputCls() + " appearance-none pr-8 capitalize"}>
-                {CATEGORY_TYPES.map(t => (
-                  <option key={t} value={t} className="capitalize">{t.charAt(0).toUpperCase() + t.slice(1)}</option>
-                ))}
-              </select>
-              <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">Type</label>
+              <div className="relative">
+                <select value={baseType} onChange={e => handleBaseTypeChange(e.target.value as CategoryType)}
+                  className={inputCls() + " appearance-none pr-8"}>
+                  {BASE_TYPE_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+              </div>
+              <p className="text-[10px] text-zinc-400 mt-1 leading-tight">
+                {BASE_TYPE_OPTIONS.find(o => o.value === baseType)?.desc}
+              </p>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">POS Behavior</label>
+              <div className="relative">
+                <select value={posBehavior} onChange={e => setPosBehavior(e.target.value)}
+                  className={inputCls() + " appearance-none pr-8"}>
+                  {behaviorOptions.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+              </div>
+              {selectedBehavior && (
+                <p className="text-[10px] text-zinc-400 mt-1 leading-tight">{selectedBehavior.desc}</p>
+              )}
             </div>
           </div>
 
-          {/* Sort Order */}
+          {(posBehavior === "bundle" || posBehavior === "combo") && (
+            <div className={`p-3 rounded-lg border text-xs font-medium ${
+              posBehavior === "bundle"
+                ? "bg-indigo-50 border-indigo-200 text-indigo-700"
+                : "bg-purple-50 border-purple-200 text-purple-700"
+            }`}>
+              {posBehavior === "bundle" ? (
+                <>
+                  <p className="font-bold mb-1">Bundle — Drinks Only</p>
+                  <p className="opacity-80">Each drink gets its own sugar, options, and add-ons. Cashier steps through each drink one by one. e.g. GF Duo Bundles, FP Coffee Bundles.</p>
+                </>
+              ) : (
+                <>
+                  <p className="font-bold mb-1">Combo — Food + Drink</p>
+                  <p className="opacity-80">Cashier selects the combo item, then picks and customizes the included drink. e.g. Combo Meals, Pizza Pedricos Combo.</p>
+                </>
+              )}
+            </div>
+          )}
+
           <div>
             <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">Sort Order</label>
             <input type="number" min="0" value={sortOrder} onChange={e => setSortOrder(e.target.value)}
               className={inputCls()} placeholder="0" />
           </div>
 
-          {/* Active toggle */}
           <div className="flex items-center justify-between p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
             <div>
               <p className="text-xs font-bold text-zinc-700">Show on POS</p>
               <p className="text-[10px] text-zinc-400">Toggle off to hide category from cashiers</p>
             </div>
             <button type="button" onClick={() => setIsActive(v => !v)}>
-              {isActive
-                ? <ToggleRight size={28} className="text-[#3b2063]" />
-                : <ToggleLeft  size={28} className="text-zinc-300"  />}
+              {isActive ? <ToggleRight size={28} className="text-[#3b2063]" /> : <ToggleLeft size={28} className="text-zinc-300" />}
             </button>
           </div>
         </div>
@@ -171,7 +250,8 @@ const CategoryModal: React.FC<{
         <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-100">
           <Btn variant="secondary" onClick={onClose} disabled={loading}>Cancel</Btn>
           <Btn onClick={handleSubmit} disabled={loading}>
-            {loading ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</span>
+            {loading
+              ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</span>
               : isEdit ? "Save Changes" : <><Plus size={13} /> Add Category</>}
           </Btn>
         </div>
@@ -181,7 +261,6 @@ const CategoryModal: React.FC<{
   );
 };
 
-// ── Main Component ─────────────────────────────────────────────────────────────
 const CategoriesTab: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading,    setLoading]    = useState(true);
@@ -247,7 +326,6 @@ const CategoriesTab: React.FC = () => {
 
   return (
     <div className="p-6 md:p-8 fade-in">
-      {/* Header */}
       <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
         <div>
           <h2 className="text-base font-bold text-[#1a0f2e]">Categories</h2>
@@ -273,13 +351,12 @@ const CategoriesTab: React.FC = () => {
         </div>
       )}
 
-      {/* Table */}
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100">
-                {["Name", "Type", "Items", "Sort Order", "Active", "Actions"].map(h => (
+                {["Name", "Type", "POS Behavior", "Items", "Sort", "Active", "Actions"].map(h => (
                   <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
                 ))}
               </tr>
@@ -287,17 +364,16 @@ const CategoriesTab: React.FC = () => {
             <tbody>
               {loading && [...Array(5)].map((_, i) => (
                 <tr key={i} className="border-b border-zinc-50">
-                  {[...Array(6)].map((_, j) => (
+                  {[...Array(7)].map((_, j) => (
                     <td key={j} className="px-5 py-4"><SkeletonBar h="h-3" /></td>
                   ))}
                 </tr>
               ))}
               {!loading && categories.length === 0 && (
-                <tr><td colSpan={6} className="px-5 py-12 text-center text-zinc-400 text-xs">No categories found.</td></tr>
+                <tr><td colSpan={7} className="px-5 py-12 text-center text-zinc-400 text-xs">No categories found.</td></tr>
               )}
               {!loading && categories.map(cat => (
                 <tr key={cat.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
-                  {/* Inline-editable name */}
                   <td className="px-5 py-3.5">
                     {inlineEdit === cat.id ? (
                       <div className="flex items-center gap-2">
@@ -319,13 +395,16 @@ const CategoriesTab: React.FC = () => {
                       </span>
                     )}
                   </td>
-                  {/* Type badge */}
                   <td className="px-5 py-3.5">
-                    <span className={`... ${typeBadgeColor[cat.type] ?? "bg-zinc-100 text-zinc-600 border-zinc-200"}`}>
-                      {cat.type ?? "standard"}
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${TYPE_BADGE[cat.type] ?? "bg-zinc-100 text-zinc-600 border border-zinc-200"}`}>
+                      {cat.type ?? "—"}
                     </span>
                   </td>
-                  {/* Item count badge */}
+                  <td className="px-5 py-3.5">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${TYPE_BADGE[cat.category_type] ?? "bg-zinc-100 text-zinc-600 border border-zinc-200"}`}>
+                      {cat.category_type ?? cat.type ?? "—"}
+                    </span>
+                  </td>
                   <td className="px-5 py-3.5">
                     {(cat.menu_items_count ?? 0) > 0 ? (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-50 text-violet-700 border border-violet-200">
@@ -338,9 +417,7 @@ const CategoriesTab: React.FC = () => {
                   <td className="px-5 py-3.5 text-zinc-500 text-xs font-medium">{cat.sort_order}</td>
                   <td className="px-5 py-3.5">
                     <button onClick={() => toggleActive(cat)} className="transition-colors">
-                      {cat.is_active
-                        ? <ToggleRight size={22} className="text-[#3b2063]" />
-                        : <ToggleLeft  size={22} className="text-zinc-300"  />}
+                      {cat.is_active ? <ToggleRight size={22} className="text-[#3b2063]" /> : <ToggleLeft size={22} className="text-zinc-300" />}
                     </button>
                   </td>
                   <td className="px-5 py-3.5">
@@ -367,7 +444,6 @@ const CategoriesTab: React.FC = () => {
         )}
       </div>
 
-      {/* Delete confirm */}
       {delTarget && createPortal(
         <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
           style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", backgroundColor: "rgba(0,0,0,0.45)" }}>
@@ -385,7 +461,8 @@ const CategoriesTab: React.FC = () => {
             <div className="flex gap-2 px-6 pb-6">
               <Btn variant="secondary" className="flex-1 justify-center" onClick={() => setDelTarget(null)} disabled={delLoading}>Cancel</Btn>
               <Btn variant="danger"    className="flex-1 justify-center" onClick={() => handleDelete(delTarget)} disabled={delLoading}>
-                {delLoading ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Deleting...</span>
+                {delLoading
+                  ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Deleting...</span>
                   : <><Trash2 size={13} /> Delete</>}
               </Btn>
             </div>
@@ -394,7 +471,6 @@ const CategoriesTab: React.FC = () => {
         document.body
       )}
 
-      {/* Add / Edit Modal */}
       {addOpen    && <CategoryModal onClose={() => setAddOpen(false)} onSaved={c => { setCategories(p => [c, ...p]); setAddOpen(false); }} />}
       {editTarget && <CategoryModal category={editTarget} onClose={() => setEditTarget(null)}
         onSaved={c => { setCategories(p => p.map(x => x.id === c.id ? c : x)); setEditTarget(null); }} />}
