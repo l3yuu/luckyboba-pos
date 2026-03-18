@@ -381,13 +381,21 @@ const syncNextSequence = async () => {
   };
 
   const handleItemClick = (item: MenuItem) => {
-    if (isBundle) {
+    const actualCategory = categories.find(cat =>
+      cat.menu_items.some(mi => mi.id === item.id)
+    ) ?? selectedCategory;
+
+    setSelectedCategory(actualCategory);
+
+    const isActualBundle = BUNDLE_CATEGORIES.includes(actualCategory?.name as typeof BUNDLE_CATEGORIES[number]);
+
+    if (isActualBundle) {
       const bundle = bundlesData.find(b => b.barcode === item.barcode);
       if (bundle) {
         setActiveBundleItem(bundle);
         setBundleComponentIndex(0);
         setBundleComponentCustomizations([]);
-        setBundleComponentSugar('100%');
+        setBundleComponentSugar('');
         setBundleComponentOptions([]);
         setBundleComponentAddOns([]);
         setIsBundleModalOpen(true);
@@ -406,11 +414,10 @@ const syncNextSequence = async () => {
     if (item.size === 'M' || item.size === 'L') {
       setSize(item.size);
     } else {
-      const cupSizeL = selectedCategory?.cup?.size_l || 'L';
+      const cupSizeL = actualCategory?.cup?.size_l || 'L';
       setSize(categorySize === cupSizeL ? 'L' : 'M');
     }
   };
-
   // ── Order charge toggle ─────────────────────────────────────────────────────
 
   const toggleOrderCharge = (type: 'grab' | 'panda') => {

@@ -43,7 +43,7 @@ class UserController extends Controller
     {
         try {
             $authUser = $request->user();
-            $query = User::orderBy('created_at', 'desc');
+            $query    = User::orderBy('created_at', 'desc');
 
             if ($authUser->role === 'branch_manager') {
                 $query->where('role', 'cashier')
@@ -109,7 +109,7 @@ class UserController extends Controller
     {
         try {
             $authUser = $request->user();
-            $user = User::findOrFail($id);
+            $user     = User::findOrFail($id);
 
             // Branch managers can only view cashiers in their branch
             if ($authUser->role === 'branch_manager') {
@@ -139,11 +139,8 @@ class UserController extends Controller
     /**
      * POST /api/users
      */
-    
     public function store(Request $request)
     {
-
-    
         $authUser = $request->user();
 
         // Branch managers can only create cashiers — force the role
@@ -170,36 +167,27 @@ class UserController extends Controller
         }
 
         try {
-
-        \Log::info('UserController@store payload', [
-        'all'        => $request->all(),
-        'branch'     => $request->branch,
-        'has_branch' => $request->has('branch'),
-        'filled'     => $request->filled('branch'),
-    ]);
-            $isBranchManager = $authUser->role === 'branch_manager';
-
             $branchId   = null;
             $branchName = null;
 
-            if ($isBranchManager) {
+            if ($authUser->role === 'branch_manager') {
                 // Always inherit branch from the branch manager
                 $branchId   = $authUser->branch_id;
                 $branchName = $authUser->branch_name;
-            } elseif ($request->has('branch') && $request->branch !== '' && $request->branch !== null) {
-    $branch = Branch::where('name', $request->branch)->first();  // ← this line is missing!
+            } elseif ($request->filled('branch')) {
+                $branch = Branch::where('name', $request->branch)->first();
 
-    if (! $branch) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Branch not found',
-            'error'   => "No branch found with the name: {$request->branch}"
-        ], 404);
-    }
+                if (! $branch) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Branch not found',
+                        'error'   => "No branch found with the name: {$request->branch}"
+                    ], 404);
+                }
 
-    $branchId   = $branch->id;
-    $branchName = $branch->name;
-}
+                $branchId   = $branch->id;
+                $branchName = $branch->name;
+            }
 
             $user = User::create([
                 'name'        => $request->name,
@@ -282,8 +270,6 @@ class UserController extends Controller
             }
 
             if ($request->has('branch')) {
-                $updateData['branch_name'] = $request->branch;
-
                 if (! empty($request->branch)) {
                     $branch = Branch::where('name', $request->branch)->first();
 
@@ -295,9 +281,11 @@ class UserController extends Controller
                         ], 404);
                     }
 
-                    $updateData['branch_id'] = $branch->id;
+                    $updateData['branch_name'] = $branch->name;
+                    $updateData['branch_id']   = $branch->id;
                 } else {
-                    $updateData['branch_id'] = null;
+                    $updateData['branch_name'] = null;
+                    $updateData['branch_id']   = null;
                 }
             }
 
@@ -354,7 +342,6 @@ class UserController extends Controller
             }
 
             DB::transaction(function () use ($user) {
-
                 DB::table('personal_access_tokens')
                     ->where('tokenable_type', get_class($user))
                     ->where('tokenable_id', $user->id)
@@ -412,6 +399,9 @@ class UserController extends Controller
             $user->status = $user->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
             $user->save();
 
+            // FIX: Moved inside try block — was unreachable after the return above
+            AuditHelper::log('user', "Toggled status for user: {$user->name}", "New status: {$user->status}");
+
             return response()->json([
                 'success' => true,
                 'data'    => $this->transformUser($user),
@@ -424,8 +414,6 @@ class UserController extends Controller
                 'message' => $e->getMessage()
             ], 500);
         }
-
-        AuditHelper::log('user', "Toggled status for user: {$user->name}", "New status: {$user->status}");
     }
 
     /**

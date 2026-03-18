@@ -10,7 +10,7 @@ return [
     |--------------------------------------------------------------------------
     */
 
-    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS')),
+    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', '')),
 
     /*
     |--------------------------------------------------------------------------
@@ -20,7 +20,18 @@ return [
 
     'guard' => ['web'],
 
-    'expiration' => 60 * 8,
+    /*
+    |--------------------------------------------------------------------------
+    | Expiration
+    |--------------------------------------------------------------------------
+    | FIX: Was 60 * 8 (480 min) while the scheduler prunes tokens every 8 hours.
+    | Tokens issued near the prune boundary were getting wiped mid-session.
+    | Increased to 12 hours to give sessions a safe buffer. Adjust to taste,
+    | but always keep this value greater than your prune --hours value.
+    |--------------------------------------------------------------------------
+    */
+
+    'expiration' => 60 * 12,
 
     'token_prefix' => env('SANCTUM_TOKEN_PREFIX', ''),
 
@@ -32,8 +43,8 @@ return [
 
     'middleware' => [
         'authenticate_session' => Laravel\Sanctum\Http\Middleware\AuthenticateSession::class,
-        'encrypt_cookies' => Illuminate\Cookie\Middleware\EncryptCookies::class,
-        'validate_csrf_token' => Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
+        'encrypt_cookies'      => Illuminate\Cookie\Middleware\EncryptCookies::class,
+        'validate_csrf_token'  => Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
     ],
 
 ];

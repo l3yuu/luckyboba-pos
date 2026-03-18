@@ -247,7 +247,8 @@ const visibleOpts = EXTRA_OPTIONS.filter((opt: string) => {
   });
 
 const hasPearlOption = (selectedItem as { options?: string[] })?.options?.includes('pearl') ?? false;
-  const canAdd = isCombo || !isDrink || !hasPearlOption || selectedOptions.some((o: string) => ['NO PRL', 'W/ PRL'].includes(o));
+  const sugarSelected = !isDrink || sugarLevel !== '';
+const canAdd = sugarSelected && (isCombo || !isDrink || !hasPearlOption || selectedOptions.some((o: string) => ['NO PRL', 'W/ PRL'].includes(o)));
 
   return (
     <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -374,14 +375,20 @@ const hasPearlOption = (selectedItem as { options?: string[] })?.options?.includ
 
           {/* Add button */}
           <button
-            onClick={onAddToOrder}
-            disabled={!canAdd}
-            title={!canAdd ? 'Please select NO PRL or W/ PRL' : ''}
-            className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors
-              ${canAdd ? 'bg-[#7c14d4] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-black cursor-not-allowed'}`}
-          >
-            {isCombo ? 'Next: Customize Drink →' : canAdd ? 'Add Order' : 'Select Pearl Option First'}
-          </button>
+  onClick={onAddToOrder}
+  disabled={!canAdd}
+  title={!canAdd ? (!sugarSelected ? 'Please select sugar level' : 'Please select NO PRL or W/ PRL') : ''}
+  className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors
+    ${canAdd ? 'bg-[#7c14d4] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-black cursor-not-allowed'}`}
+>
+  {isCombo
+    ? 'Next: Customize Drink →'
+    : !sugarSelected
+      ? '⚠ Select Sugar Level First'
+      : canAdd
+        ? 'Add Order'
+        : 'Select Pearl Option First'}
+</button>
         </div>
       </div>
     </div>
@@ -437,7 +444,7 @@ export const BundleModal = ({
   const displayName = component.display_name ?? component.custom_name ?? '';
   const isMilkTea   = displayName.toLowerCase().includes('milk tea') || displayName.toLowerCase().includes('m.tea');
   const hasPearl    = bundleComponentOptions.some(o => ['NO PRL', 'W/ PRL'].includes(o));
-  const canNext     = !isMilkTea || hasPearl;
+  const canNext = bundleComponentSugar !== '' && (!isMilkTea || hasPearl);
 
   return (
     <>
@@ -493,9 +500,9 @@ export const BundleModal = ({
               <AddOnTriggerButton count={bundleComponentAddOns.length} onClick={onOpenAddOns} />
             </div>
             <button onClick={onConfirm} disabled={!canNext}
-              className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${canNext ? 'bg-[#7c14d4] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-black cursor-not-allowed'}`}>
-              {!canNext ? 'Select Pearl Option First' : isLastStep ? '✓ Add Bundle to Order' : `Next: Drink ${bundleComponentIndex + 2} of ${totalSteps} →`}
-            </button>
+  className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${canNext ? 'bg-[#7c14d4] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-black cursor-not-allowed'}`}>
+  {!canNext ? 'Select Pearl Option First' : isLastStep ? '✓ Add Bundle to Order' : `Next: Drink ${bundleComponentIndex + 2} of ${totalSteps} →`}
+</button>
           </div>
         </div>
       </div>
@@ -905,9 +912,14 @@ export const CustomerNameModal = ({ customerName, onChange, onSkip, onConfirm }:
           <button onClick={onSkip} className="py-3 rounded-[0.625rem] border-2 border-zinc-200 text-zinc-500 font-black text-xs uppercase tracking-widest hover:bg-zinc-50 transition-colors">
             Skip
           </button>
-          <button onClick={onConfirm} className="py-3 rounded-[0.625rem] bg-[#7c14d4] text-white font-black text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-colors shadow-md">
-            Confirm
-          </button>
+          <button
+  onClick={onConfirm}
+  disabled={customerName.trim() === ''}
+  className={`py-3 rounded-[0.625rem] font-black text-xs uppercase tracking-widest transition-colors shadow-md
+    ${customerName.trim() !== '' ? 'bg-[#7c14d4] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-zinc-400 cursor-not-allowed'}`}
+>
+  Confirm
+</button>
         </div>
       </div>
     </div>
