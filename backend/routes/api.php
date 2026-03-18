@@ -16,11 +16,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 
-<<<<<<< HEAD
-=======
-// ── Public routes (no auth required) ────────────────────────────────────────
-
->>>>>>> origin/development
 Route::post('/login',  [AuthController::class, 'login'])->middleware('throttle:5,2');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 
@@ -128,12 +123,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::apiResource('menu-items', MenuItemController::class);
         Route::get('/add-ons',           [AddOnController::class, 'index']);
         Route::get('/bundles',           fn () => \App\Models\Bundle::with('items')->where('is_active', true)->get());
-<<<<<<< HEAD
-        Route::get('/discounts',         [DiscountController::class, 'index']);
-        Route::apiResource('categories', CategoryController::class);
-=======
         Route::apiResource('categories',     CategoryController::class);
->>>>>>> origin/development
         Route::apiResource('sub-categories', SubCategoryController::class);
         Route::get('/sub-categories/filter/{categoryId}', [SubCategoryController::class, 'getByCategory']);
         Route::get('/cups', [CupController::class, 'index']);
@@ -211,10 +201,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::patch('/{id}/status', [ItemSerialController::class, 'updateStatus']);
         });
 
-<<<<<<< HEAD
-        Route::get('/branch/audit-logs', [AuditLogController::class, 'branchIndex']);
-        Route::apiResource('discounts', DiscountController::class)->except(['show', 'update', 'index']);
-=======
         Route::apiResource('expenses', ExpenseController::class)->only(['store']);
 
         // FIX: Removed duplicate Route::patch('/discounts/{discount}/toggle') and
@@ -225,7 +211,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
         Route::get('/branch/audit-logs', [AuditLogController::class, 'branchIndex']); 
         Route::apiResource('discounts', DiscountController::class)->except(['show', 'update', 'index']); // ← 'index' removed, handled above
->>>>>>> origin/development
         Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
         Route::apiResource('vouchers', VoucherController::class)->only(['index', 'store']);
         Route::apiResource('suppliers', SupplierController::class)->only(['index','store','update','destroy']);
