@@ -885,7 +885,7 @@ interface CustomerNameModalProps {
   onConfirm: () => void;
 }
 
-export const CustomerNameModal = ({ customerName, onChange, onSkip, onConfirm }: CustomerNameModalProps) => (
+export const CustomerNameModal = ({ customerName, onChange, onConfirm }: CustomerNameModalProps) => (
   <div className="fixed inset-0 z-140 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
     <div className="bg-white w-full max-w-sm rounded-[0.625rem] shadow-2xl overflow-hidden">
       <div className="bg-[#7c14d4] px-6 pt-6 pb-5 text-white text-center">
@@ -908,19 +908,15 @@ export const CustomerNameModal = ({ customerName, onChange, onSkip, onConfirm }:
           autoFocus
           className="w-full bg-[#f5f0ff] border border-[#e9d5ff] text-sm font-bold p-4 resize-none h-16 outline-none focus:border-[#7c14d4] focus:bg-white transition-colors uppercase placeholder:normal-case placeholder:text-[#7c14d4]/30"
         />
-        <div className="grid grid-cols-2 gap-3">
-          <button onClick={onSkip} className="py-3 rounded-[0.625rem] border-2 border-zinc-200 text-zinc-500 font-black text-xs uppercase tracking-widest hover:bg-zinc-50 transition-colors">
-            Skip
-          </button>
-          <button
-  onClick={onConfirm}
-  disabled={customerName.trim() === ''}
-  className={`py-3 rounded-[0.625rem] font-black text-xs uppercase tracking-widest transition-colors shadow-md
-    ${customerName.trim() !== '' ? 'bg-[#7c14d4] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-zinc-400 cursor-not-allowed'}`}
->
-  Confirm
-</button>
-        </div>
+        {/* ✅ removed grid, button is now full width */}
+        <button
+          onClick={onConfirm}
+          disabled={customerName.trim() === ''}
+          className={`w-full py-3 rounded-[0.625rem] font-black text-xs uppercase tracking-widest transition-colors shadow-md
+            ${customerName.trim() !== '' ? 'bg-[#7c14d4] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-zinc-400 cursor-not-allowed'}`}
+        >
+          Confirm
+        </button>
       </div>
     </div>
   </div>
