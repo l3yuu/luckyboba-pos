@@ -12,7 +12,7 @@ class AddOnSeeder extends Seeder
         $addOns = [
             // Drink add-ons (+10 for grab and panda)
             ['name' => 'Black Boba Pearl',              'price' => 15.00, 'barcode' => 'AO-5',   'category' => 'drink', 'grab_price' => 25.00, 'panda_price' => 25.00],
-            ['name' => 'Mini White Pearl',              'price' => 15.00, 'barcode' => 'AO-6',   'category' => 'drink', 'grab_price' => 30.00, 'panda_price' => 30.00],
+            ['name' => 'Mini White Pearl',              'price' => 15.00, 'barcode' => 'AO-6',   'category' => 'drink', 'grab_price' => 25.00, 'panda_price' => 25.00],
             ['name' => 'Crushed Oreo',                  'price' => 10.00, 'barcode' => 'AO-7',   'category' => 'drink', 'grab_price' => 15.00, 'panda_price' => 15.00],
             ['name' => 'Milo',                          'price' => 10.00, 'barcode' => 'AO-13',  'category' => 'drink', 'grab_price' => 15.00, 'panda_price' => 15.00],
             ['name' => 'Coffee Shot',                   'price' => 10.00, 'barcode' => 'AO-16',  'category' => 'drink', 'grab_price' => 20.00, 'panda_price' => 20.00],

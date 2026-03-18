@@ -103,13 +103,18 @@ class SalesController extends Controller
 
             foreach ($validated['items'] as $item) {
                 $hasCharge  = !empty($item['charges']['grab']) || !empty($item['charges']['panda']);
-                $surcharge  = $hasCharge ? 30 * $item['quantity'] : 0;
                 $basePrice  = (float) $item['unit_price'];
-                $finalPrice = ($basePrice * $item['quantity']) + $surcharge;
+                $totalPrice = (float) $item['total_price']; // ✅ use frontend's calculated total
+                
+                // Derive surcharge from what frontend sent — don't hardcode ₱30
+                $surcharge  = $hasCharge 
+                    ? round($totalPrice - ($basePrice * $item['quantity']), 2) 
+                    : 0;
+                
+                $finalPrice = $totalPrice; // ✅ already correct (₱112)
 
                 $totalQty += $item['quantity'];
 
-                // Compute item-level discount amount in pesos
                 $itemDiscountAmount = 0;
                 if (!empty($item['discount_type']) && isset($item['discount_value'])) {
                     $itemDiscountAmount = $item['discount_type'] === 'percent'
@@ -124,19 +129,19 @@ class SalesController extends Controller
                     'product_name'      => $item['name'],
                     'quantity'          => $item['quantity'],
                     'price'             => $basePrice,
-                    'final_price'       => $finalPrice,
+                    'final_price'       => $finalPrice,           // ✅ ₱112
                     'size'              => $item['size']           ?? null,
                     'cup_size_label'    => $item['cup_size_label'] ?? null,
-                    'sugar_level'       => $item['sugar_level']   ?? null,
-                    'options'           => $item['options']        ?? null,
-                    'add_ons'           => $item['add_ons']        ?? null,
+                    'sugar_level'       => $item['sugar_level']    ?? null,
+                    'options'           => $item['options']         ?? null,
+                    'add_ons'           => $item['add_ons']         ?? null,
                     'bundle_components' => isset($item['bundle_components'])
                                             ? json_encode($item['bundle_components'])
                                             : null,
                     'charge_type'       => $hasCharge
                                             ? ($item['charges']['grab'] ? 'grab' : 'panda')
                                             : null,
-                    'surcharge'         => $surcharge,
+                    'surcharge'         => $surcharge,            // ✅ ₱43, not ₱30
                     'discount_id'       => $item['discount_id']    ?? null,
                     'discount_label'    => $item['discount_label'] ?? null,
                     'discount_type'     => $item['discount_type']  ?? null,
@@ -144,7 +149,7 @@ class SalesController extends Controller
                     'discount_amount'   => $itemDiscountAmount,
                 ]);
 
-                // Decrement stock for regular menu items only
+                // Stock decrement unchanged
                 if (!empty($item['menu_item_id'])) {
                     $menuItem = MenuItem::find($item['menu_item_id']);
                     if ($menuItem) {
