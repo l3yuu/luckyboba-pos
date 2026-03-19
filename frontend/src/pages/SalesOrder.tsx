@@ -1166,7 +1166,7 @@ const handleSubmitOrder = async (nameOverride?: string) => {
       </div>
 
       {/* Print templates (off-screen, revealed by window.print()) */}
-      {printTarget === 'receipt' && <ReceiptPrint {...printProps} orderCharge={orderCharge} totalCount={totalCount} subtotal={subtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount}/>}
+      {printTarget === 'receipt' && <ReceiptPrint {...printProps} addOnsData={addOnsData} orderCharge={orderCharge} totalCount={totalCount} subtotal={subtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount}/>}
       {printTarget === 'kitchen'  && <KitchenPrint  {...printProps} />}
       {printTarget === 'stickers' && <StickerPrint  {...printProps} customerName={customerName} />}
     </>
