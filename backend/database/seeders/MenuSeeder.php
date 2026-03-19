@@ -234,6 +234,8 @@ class MenuSeeder extends Seeder
                 ['name' => "STRAWBERRY MILK TEA",      'price' => 105.00, 'barcode' => "FLML16", 'size' => 'L', 'grab_price' => 55.00, 'panda_price' => 55.00],
                 ['name' => "DARK CHOCOLATE MILK TEA",  'price' => 85.00,  'barcode' => "FLMM18", 'size' => 'M', 'grab_price' => 35.00, 'panda_price' => 35.00],
                 ['name' => "DARK CHOCOLATE MILK TEA",  'price' => 105.00, 'barcode' => "FLML18", 'size' => 'L', 'grab_price' => 55.00, 'panda_price' => 55.00],
+                ['name' => "CARAMEL MACCHIATO MILK TEA",  'price' => 85.00, 'barcode' => "FLCM30", 'size' => 'M', 'grab_price' => 35.00, 'panda_price' => 35.00],
+                ['name' => "CARAMEL MACCHIATO MILK TEA",  'price' => 105.00, 'barcode' => "FLCM30", 'size' => 'L', 'grab_price' => 55.00, 'panda_price' => 55.00],
             ],
             'FP COFFEE BUNDLES' => [
                 ['name' => "TOFFEE CARAMEL ICED COFFEE + DARK ROAST COFFEE", 'price' => 154.00, 'barcode' => "COF1", 'size' => 'L', 'grab_price' => 45.00, 'panda_price' => 45.00],

@@ -22,7 +22,7 @@ class MenuItemOptionSeeder extends Seeder
             'FLMM8','FLML8','FLMM3','FLML3','FLMM19','FLML19',
             'FLMM15','FLML15','FLMM20','FLML20','FLMM7','FLML7',
             'FLMM17','FLML17','FLMM6','FLML6','FLMM9','FLML9',
-            'FLMM5','FLML5','FLMM1','FLML1','FLMM16','FLML16','FLMM18','FLML18',
+            'FLMM5','FLML5','FLMM1','FLML1','FLMM16','FLML16','FLMM18','FLML18', 'FLMM30','FLML30',
             // FRAPPE SERIES
             'FSM1','FSL1','FSM7','FSL7','FSM8','FSL8','FSM3','FSL3',
             'FSM4','FSL4','FSM5','FSL5','FSM6','FSL6','FSM2','FSL2',
