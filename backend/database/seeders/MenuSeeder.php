@@ -156,6 +156,11 @@ class MenuSeeder extends Seeder
                 ['name' => "CLASSIC CHEESE CAKE",       'price' => 135.00, 'barcode' => 'CML6', 'size' => 'L', 'grab_price' => 50.00, 'panda_price' => 50.00],
                 ['name' => "CLASSIC ROCKSALT & CHEESE", 'price' => 115.00, 'barcode' => 'CMM7', 'size' => 'M', 'grab_price' => 40.00, 'panda_price' => 40.00],
                 ['name' => "CLASSIC ROCKSALT & CHEESE", 'price' => 135.00, 'barcode' => 'CML7', 'size' => 'L', 'grab_price' => 50.00, 'panda_price' => 50.00],
+
+                ['name' => "Classic Pudding + Black Pearl Milktea ", 'price' => 110.00, 'barcode' => 'CMM8', 'size' => 'M', 'grab_price' => 35.00, 'panda_price' => 35.00],
+                ['name' => "Classic Pudding + Black Pearl Milktea ", 'price' => 130.00, 'barcode' => 'CML8', 'size' => 'L', 'grab_price' => 35.00, 'panda_price' => 35.00],
+                ['name' => "Classic Pudding Mini White Pearl ", 'price' => 110.00, 'barcode' => 'CMM12', 'size' => 'M', 'grab_price' => 35.00, 'panda_price' => 35.00],
+                ['name' => "Classic Pudding Mini White Pearl ", 'price' => 130.00, 'barcode' => 'CML12', 'size' => 'L', 'grab_price' => 35.00, 'panda_price' => 35.00],
             ],
             'COFFEE FRAPPE' => [
                 ['name' => "MOCHA FRAPPE",             'price' => 125.00, 'barcode' => 'CFM1', 'size' => 'M', 'grab_price' => 45.00, 'panda_price' => 45.00],
@@ -235,7 +240,7 @@ class MenuSeeder extends Seeder
                 ['name' => "DARK CHOCOLATE MILK TEA",  'price' => 85.00,  'barcode' => "FLMM18", 'size' => 'M', 'grab_price' => 35.00, 'panda_price' => 35.00],
                 ['name' => "DARK CHOCOLATE MILK TEA",  'price' => 105.00, 'barcode' => "FLML18", 'size' => 'L', 'grab_price' => 55.00, 'panda_price' => 55.00],
                 ['name' => "CARAMEL MACCHIATO MILK TEA",  'price' => 85.00, 'barcode' => "FLCM30", 'size' => 'M', 'grab_price' => 35.00, 'panda_price' => 35.00],
-                ['name' => "CARAMEL MACCHIATO MILK TEA",  'price' => 105.00, 'barcode' => "FLCM30", 'size' => 'L', 'grab_price' => 55.00, 'panda_price' => 55.00],
+                ['name' => "CARAMEL MACCHIATO MILK TEA",  'price' => 105.00, 'barcode' => "FLCL30", 'size' => 'L', 'grab_price' => 55.00, 'panda_price' => 55.00],
             ],
             'FP COFFEE BUNDLES' => [
                 ['name' => "TOFFEE CARAMEL ICED COFFEE + DARK ROAST COFFEE", 'price' => 154.00, 'barcode' => "COF1", 'size' => 'L', 'grab_price' => 45.00, 'panda_price' => 45.00],
