@@ -974,13 +974,15 @@ const handleSubmitOrder = async (nameOverride?: string) => {
           nav, header, aside, button, .print\\:hidden { display: none !important; }
           .printable-receipt-container, .printable-receipt-container * { visibility: visible !important; }
           .printable-receipt-container {
-            position: absolute !important; left: 0 !important; top: 0 !important;
+            position: static !important;
             width: 100% !important;
             max-width: ${printTarget === 'stickers' ? '38.5mm' : '76mm'} !important;
             margin: 0 !important; padding: 0 !important;
+            height: auto !important;
           }
           .receipt-area { width: 66mm !important; margin: 0 auto !important; padding: 2mm 0 !important; box-sizing: border-box !important; color: #000 !important; font-family: Arial, Helvetica, sans-serif !important; font-size: 12px !important; line-height: 1.4 !important; }
           .sticker-area { width: 38.5mm !important; height: 50.8mm !important; padding: 2mm !important; margin: 0 auto !important; box-sizing: border-box !important; color: #000 !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; align-items: center !important; text-align: center !important; font-family: Arial, Helvetica, sans-serif !important; overflow: hidden !important; page-break-after: always !important; break-after: page !important; }
+          .queue-stub { page-break-before: always !important; break-before: page !important; }
         }
       `}</style>
 
