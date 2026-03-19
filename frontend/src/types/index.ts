@@ -6,12 +6,6 @@ export const EXTRA_OPTIONS = ['NO ICE', '-ICE', '+ICE', 'NO PRL', 'W/ PRL'];
 
 export const WINGS_QUANTITIES = ['3pc', '4pc', '6pc', '12pc'] as const;
 
-export const BUNDLE_CATEGORIES = [
-  'GF DUO BUNDLES',
-  'FP COFFEE BUNDLES',
-  'FP/GF FET2 CLASSIC',
-] as const;
-
 // ─── MODELS ──────────────────────────────────────────────────────────────────
 
 export interface Cup {
@@ -47,6 +41,7 @@ export interface Category {
     id: number;
     name: string;
     type: string;
+    category_type:  string;
     cup?: {
         id: number;
         code: string;
@@ -76,6 +71,8 @@ export interface Bundle {
     category: string;
     barcode: string;
     price: number;
+    grab_price?: number;   // ← add
+    panda_price?: number;  // ← add
     size: string;
     cup_id: number | null;
     is_active: boolean;
