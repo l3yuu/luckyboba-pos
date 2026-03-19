@@ -471,6 +471,16 @@ export const BundleModal = ({
       <div className="mt-3 w-full bg-white/20 rounded-full h-1.5">
         <div className="bg-white h-1.5 rounded-full transition-all" style={{ width: `${((bundleComponentIndex + 1) / totalSteps) * 100}%` }} />
       </div>
+      <div className="mt-2 flex items-center gap-3">
+        <span className="text-white/50 text-[10px] font-bold uppercase tracking-widest">Bundle Price</span>
+        <span className="text-white font-black text-sm">₱{Number(activeBundleItem.price).toFixed(2)}</span>
+        {bundleGrabPrice > 0 && orderCharge === 'grab' && (
+          <span className="text-green-300 font-black text-sm">+₱{bundleGrabPrice.toFixed(2)} Grab</span>
+        )}
+        {bundlePandaPrice > 0 && orderCharge === 'panda' && (
+          <span className="text-pink-300 font-black text-sm">+₱{bundlePandaPrice.toFixed(2)} Panda</span>
+        )}
+      </div>
       <button onClick={onClose} className="absolute top-5 right-5 w-7 h-7 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-colors">
         <CloseIcon size={4} />
       </button>
