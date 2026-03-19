@@ -111,10 +111,8 @@ function mapToCartItem(raw: RawSaleItem): CartItem {
     || raw.item_name
     || 'Unknown Item';
 
-  // Subtract item-level discount from final price
-  const rawFinalPrice = Number(raw.final_price ?? raw.total_price ?? 0);
-  const discountAmount = Number((raw as unknown as { discount_amount?: number }).discount_amount ?? 0);
-  const actualFinalPrice = Math.max(0, rawFinalPrice - discountAmount);
+  // ← Use finalPrice as-is — discount is already baked in by the backend
+  const actualFinalPrice = Number(raw.final_price ?? raw.total_price ?? 0);
 
   return {
     id:           raw.menu_item_id ?? raw.id,
@@ -132,6 +130,8 @@ function mapToCartItem(raw: RawSaleItem): CartItem {
     charges:      { grab: raw.charges?.grab ?? false, panda: raw.charges?.panda ?? false },
     finalPrice:   actualFinalPrice,
     discountLabel: (raw as unknown as { discount_label?: string }).discount_label ?? undefined,
+    discountType: (raw.discount_type as 'none' | 'percent' | 'fixed' | undefined) ?? undefined,
+    discountValue: raw.discount_value ?? undefined,
     isBundle:     raw.is_bundle ?? !!raw.bundle_id,
     bundleId:     raw.bundle_id ?? undefined,
   };
@@ -268,6 +268,10 @@ const SearchReceipts = () => {
   // ── Derive print props from payload ──────────────────────────────────────
 
 const buildPrintProps = (payload: ReprintPayload) => {
+  const addOnsData = (() => {
+    try { return JSON.parse(localStorage.getItem('pos_addons_cache') ?? '[]'); }
+    catch { return []; }
+  })();
   const { sale, receipt } = payload;
   const cart: CartItem[]  = (sale.sale_items ?? []).map(mapToCartItem);
   const dt                = new Date(sale.created_at);
@@ -292,6 +296,7 @@ const buildPrintProps = (payload: ReprintPayload) => {
     cart,
     branchName,
     orNumber,
+    addOnsData, 
     queueNumber:          String(sale.queue_number ?? ''),
     customerName:         sale.customer_name?.trim() || '',
     cashierName,
@@ -342,16 +347,18 @@ const buildPrintProps = (payload: ReprintPayload) => {
                 nav, header, aside, button, .print\\:hidden { display: none !important; }
                 .printable-receipt-container, .printable-receipt-container * { visibility: visible !important; }
                 .printable-receipt-container {
-                  position: absolute !important; left: 0 !important; top: 0 !important;
+                  position: static !important;
                   width: 100% !important;
                   max-width: ${printType === 'sticker' ? '38.5mm' : '76mm'} !important;
                   margin: 0 !important; padding: 0 !important;
+                  height: auto !important;
                 }
                 .receipt-area { width: 66mm !important; margin: 0 auto !important; padding: 2mm 0 !important; box-sizing: border-box !important; color: #000 !important; font-family: Arial, Helvetica, sans-serif !important; font-size: 12px !important; line-height: 1.4 !important; }
                 .sticker-area { width: 38.5mm !important; height: 50.8mm !important; padding: 2mm !important; margin: 0 auto !important; box-sizing: border-box !important; color: #000 !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; align-items: center !important; text-align: center !important; font-family: Arial, Helvetica, sans-serif !important; overflow: hidden !important; page-break-after: always !important; break-after: page !important; }
+                .queue-stub { page-break-before: always !important; break-before: page !important; }
               }
             `}</style>
-            {printType === 'receipt' && <ReceiptPrint {...props} />}
+            {printType === 'receipt' && <ReceiptPrint {...props} showDoubleQueueStub={false} isReprint={true} />}
             {printType === 'kitchen' && <KitchenPrint {...props} />}
             {printType === 'sticker' && <StickerPrint {...props} customerName={props.customerName} />}
           </>

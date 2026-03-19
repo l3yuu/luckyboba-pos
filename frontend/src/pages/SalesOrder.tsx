@@ -700,15 +700,17 @@ const confirmComboDrink = () => {
   const openCartItemEdit = (index: number) => {
     const item = cart[index];
     setEditingCartIndex(index);
-    
-    // Create a clone but reset finalPrice to the base price (original unit price * qty)
-    // This ensures the discount calculation in the modal starts from the original price.
+
+    // Calculate add-on cost baked into finalPrice so we can strip it out
+    // We only want to reset to (drinkBasePrice * qty), not including add-ons
+    // because the modal discount applies only to the drink base price.
+    // BUT we need to preserve add-on cost in the final saved price.
+    // Solution: reset finalPrice to full finalPrice (including add-ons), not item.price * qty
     setEditingCartItem({ 
       ...item, 
-      finalPrice: Number(item.price) * item.qty 
+      finalPrice: item.finalPrice, // ← keep the real finalPrice (drink + add-ons)
     });
 
-    // Restore the state from the item's saved metadata
     setEditingItemDiscountId(item.discountId ?? null);
     setItemDiscountType(item.discountType ?? 'none');
     setItemDiscountValue(item.discountValue ?? '');
@@ -732,25 +734,38 @@ const confirmComboDrink = () => {
 const saveCartItemEdit = () => {
   if (editingCartIndex === null || !editingCartItem) return;
 
-  // We use the original price for calculation (which we reset in openCartItemEdit)
-  const unitPrice = editingCartItem.finalPrice / editingCartItem.qty;
-  let discountedUnit = unitPrice;
+  // Compute add-on cost from the cart item's addOns list
+  const addOnCostPerUnit = (editingCartItem.addOns ?? []).reduce((sum, addonName) => {
+    const a = addOnsData.find(x => x.name === addonName);
+    if (!a) return sum;
+    return sum + (editingCartItem.charges?.grab && Number(a.grab_price ?? 0) > 0
+      ? Number(a.grab_price)
+      : editingCartItem.charges?.panda && Number(a.panda_price ?? 0) > 0
+      ? Number(a.panda_price)
+      : Number(a.price));
+  }, 0);
+
+  // Base drink unit price (without add-ons)
+  const drinkUnitPrice = Number(editingCartItem.price);
+  let discountedDrinkUnit = drinkUnitPrice;
   let discountLabel: string | undefined;
 
   if (itemDiscountType === 'percent' && itemDiscountValue !== '') {
-    discountedUnit = unitPrice * (1 - Number(itemDiscountValue) / 100);
+    discountedDrinkUnit = drinkUnitPrice * (1 - Number(itemDiscountValue) / 100);
     const d = discounts.find(d => d.id === editingItemDiscountId);
     if (d) discountLabel = `${d.name} (${d.amount}%)`;
   } else if (itemDiscountType === 'fixed' && itemDiscountValue !== '') {
-    discountedUnit = Math.max(0, unitPrice - Number(itemDiscountValue));
+    discountedDrinkUnit = Math.max(0, drinkUnitPrice - Number(itemDiscountValue));
     const d = discounts.find(d => d.id === editingItemDiscountId);
     if (d) discountLabel = `${d.name} (-₱${d.amount})`;
   }
 
+  // Final price = (discounted drink + add-ons) * qty
+  const newFinalPrice = (discountedDrinkUnit + addOnCostPerUnit) * editingCartItem.qty;
 
   const updated: CartItem = {
     ...editingCartItem,
-    finalPrice: discountedUnit * editingCartItem.qty,
+    finalPrice: newFinalPrice,
     discountLabel,
     discountId: editingItemDiscountId,
     discountType: itemDiscountType,
@@ -772,16 +787,29 @@ const saveCartItemEdit = () => {
     closeCartItemEdit();
   };
 
-  const computeDiscountedTotal = () => {
-    if (!editingCartItem) return 0;
-    const unitPrice = editingCartItem.finalPrice / editingCartItem.qty;
-    let discounted  = unitPrice;
-    if (itemDiscountType === 'percent' && itemDiscountValue !== '')
-      discounted = unitPrice * (1 - Number(itemDiscountValue) / 100);
-    else if (itemDiscountType === 'fixed' && itemDiscountValue !== '')
-      discounted = Math.max(0, unitPrice - Number(itemDiscountValue));
-    return discounted * editingCartItem.qty;
-  };
+const computeDiscountedTotal = () => {
+  if (!editingCartItem) return 0;
+
+  const addOnCostPerUnit = (editingCartItem.addOns ?? []).reduce((sum, addonName) => {
+    const a = addOnsData.find(x => x.name === addonName);
+    if (!a) return sum;
+    return sum + (editingCartItem.charges?.grab && Number(a.grab_price ?? 0) > 0
+      ? Number(a.grab_price)
+      : editingCartItem.charges?.panda && Number(a.panda_price ?? 0) > 0
+      ? Number(a.panda_price)
+      : Number(a.price));
+  }, 0);
+
+  const drinkUnitPrice = Number(editingCartItem.price);
+  let discountedDrink = drinkUnitPrice;
+
+  if (itemDiscountType === 'percent' && itemDiscountValue !== '')
+    discountedDrink = drinkUnitPrice * (1 - Number(itemDiscountValue) / 100);
+  else if (itemDiscountType === 'fixed' && itemDiscountValue !== '')
+    discountedDrink = Math.max(0, drinkUnitPrice - Number(itemDiscountValue));
+
+  return (discountedDrink + addOnCostPerUnit) * editingCartItem.qty;
+};
 
   // ── Confirm order ───────────────────────────────────────────────────────────
 
@@ -956,13 +984,15 @@ const handleSubmitOrder = async (nameOverride?: string) => {
           nav, header, aside, button, .print\\:hidden { display: none !important; }
           .printable-receipt-container, .printable-receipt-container * { visibility: visible !important; }
           .printable-receipt-container {
-            position: absolute !important; left: 0 !important; top: 0 !important;
+            position: static !important;
             width: 100% !important;
             max-width: ${printTarget === 'stickers' ? '38.5mm' : '76mm'} !important;
             margin: 0 !important; padding: 0 !important;
+            height: auto !important;
           }
           .receipt-area { width: 66mm !important; margin: 0 auto !important; padding: 2mm 0 !important; box-sizing: border-box !important; color: #000 !important; font-family: Arial, Helvetica, sans-serif !important; font-size: 12px !important; line-height: 1.4 !important; }
           .sticker-area { width: 38.5mm !important; height: 50.8mm !important; padding: 2mm !important; margin: 0 auto !important; box-sizing: border-box !important; color: #000 !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; align-items: center !important; text-align: center !important; font-family: Arial, Helvetica, sans-serif !important; overflow: hidden !important; page-break-after: always !important; break-after: page !important; }
+          .queue-stub { page-break-before: always !important; break-before: page !important; }
         }
       `}</style>
 
@@ -1176,7 +1206,7 @@ const handleSubmitOrder = async (nameOverride?: string) => {
       </div>
 
       {/* Print templates (off-screen, revealed by window.print()) */}
-      {printTarget === 'receipt' && <ReceiptPrint {...printProps} orderCharge={orderCharge} totalCount={totalCount} subtotal={subtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount}/>}
+      {printTarget === 'receipt' && <ReceiptPrint {...printProps} addOnsData={addOnsData} orderCharge={orderCharge} totalCount={totalCount} subtotal={subtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount}/>}
       {printTarget === 'kitchen'  && <KitchenPrint  {...printProps} />}
       {printTarget === 'stickers' && <StickerPrint  {...printProps} customerName={customerName} />}
     </>
