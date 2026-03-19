@@ -420,6 +420,10 @@ interface BundleModalProps {
   onToggleAddOn: (name: string) => void;
   onConfirm: () => void;
   onClose: () => void;
+  orderCharge?: 'grab' | 'panda' | null;
+  onToggleOrderCharge?: (type: 'grab' | 'panda') => void;
+    bundleGrabPrice:  number;  // ← add
+  bundlePandaPrice: number;  // ← add
 }
 
 export const BundleModal = ({
@@ -428,6 +432,8 @@ export const BundleModal = ({
   bundleComponentSugar,
   bundleComponentOptions,
   bundleComponentAddOns,
+    bundleGrabPrice,   // ← add
+  bundlePandaPrice,  // ← add
   filteredAddOns,
   bundleComponentAddOnModalOpen,
   onSugarChange,
@@ -437,6 +443,8 @@ export const BundleModal = ({
   onToggleAddOn,
   onConfirm,
   onClose,
+  orderCharge,
+  onToggleOrderCharge,
 }: BundleModalProps) => {
   const component   = activeBundleItem.items[bundleComponentIndex];
   const totalSteps  = activeBundleItem.items.length;
@@ -448,64 +456,106 @@ export const BundleModal = ({
 
   return (
     <>
-      <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-        <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+<div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+  <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
 
-          {/* Header */}
-          <div className="bg-[#7c14d4] p-5 text-white relative shrink-0">
-            <div className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/40 mb-1">
-              Bundle — {activeBundleItem.display_name ?? activeBundleItem.name}
-            </div>
-            <h2 className="text-base font-black uppercase tracking-wide leading-tight pr-8">
-              Drink {bundleComponentIndex + 1} of {totalSteps}: {displayName}
-              {component.quantity > 1 && <span className="ml-2 text-white/50 font-bold text-sm">×{component.quantity}</span>}
-            </h2>
-            <div className="mt-3 w-full bg-white/20 rounded-full h-1.5">
-              <div className="bg-white h-1.5 rounded-full transition-all" style={{ width: `${((bundleComponentIndex + 1) / totalSteps) * 100}%` }} />
-            </div>
-            <button onClick={onClose} className="absolute top-5 right-5 w-7 h-7 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-colors">
-              <CloseIcon size={4} />
+    {/* Header */}
+    <div className="bg-[#7c14d4] p-5 text-white relative shrink-0">
+      <div className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/40 mb-1">
+        Bundle — {activeBundleItem.display_name ?? activeBundleItem.name}
+      </div>
+      <h2 className="text-base font-black uppercase tracking-wide leading-tight pr-8">
+        Drink {bundleComponentIndex + 1} of {totalSteps}: {displayName}
+        {component.quantity > 1 && <span className="ml-2 text-white/50 font-bold text-sm">×{component.quantity}</span>}
+      </h2>
+      <div className="mt-3 w-full bg-white/20 rounded-full h-1.5">
+        <div className="bg-white h-1.5 rounded-full transition-all" style={{ width: `${((bundleComponentIndex + 1) / totalSteps) * 100}%` }} />
+      </div>
+      <div className="mt-2 flex items-center gap-3">
+        <span className="text-white/50 text-[10px] font-bold uppercase tracking-widest">Bundle Price</span>
+        <span className="text-white font-black text-sm">₱{Number(activeBundleItem.price).toFixed(2)}</span>
+        {bundleGrabPrice > 0 && orderCharge === 'grab' && (
+          <span className="text-green-300 font-black text-sm">+₱{bundleGrabPrice.toFixed(2)} Grab</span>
+        )}
+        {bundlePandaPrice > 0 && orderCharge === 'panda' && (
+          <span className="text-pink-300 font-black text-sm">+₱{bundlePandaPrice.toFixed(2)} Panda</span>
+        )}
+      </div>
+      <button onClick={onClose} className="absolute top-5 right-5 w-7 h-7 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-colors">
+        <CloseIcon size={4} />
+      </button>
+    </div>
+
+    {/* Body */}
+    <div className="p-6 space-y-5 overflow-y-auto bg-white">
+      <div>
+        <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
+        <div className="flex gap-2">
+          {SUGAR_LEVELS.map((level: string) => (
+            <button key={level} onClick={() => onSugarChange(level)}
+              className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${bundleComponentSugar === level && bundleComponentSugar !== '' ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+              {level}
             </button>
-          </div>
+          ))}
+        </div>
+        {bundleComponentSugar === '' && (
+          <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1.5 ml-1">⚠ Please select sugar level</p>
+        )}
+      </div>
 
-          {/* Body */}
-          <div className="p-6 space-y-5 overflow-y-auto bg-white">
-          <div>
-            <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
-            <div className="flex gap-2">
-              {SUGAR_LEVELS.map((level: string) => (
-                <button key={level} onClick={() => onSugarChange(level)}
-                  className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${bundleComponentSugar === level && bundleComponentSugar !== '' ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
-                  {level}
-                </button>
-              ))}
-            </div>
-            {bundleComponentSugar === '' && (
-              <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1.5 ml-1">⚠ Please select sugar level</p>
-            )}
-          </div>
-            <div>
-              <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Options (Free)</label>
-              <div className="flex flex-wrap gap-2">
-                {EXTRA_OPTIONS.map((opt: string) => (
-                  <button key={opt} onClick={() => onToggleOption(opt)}
-                    className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${bundleComponentOptions.includes(opt) ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
-                    {opt}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Extra Add-ons</label>
-              <AddOnTriggerButton count={bundleComponentAddOns.length} onClick={onOpenAddOns} />
-            </div>
-            <button onClick={onConfirm} disabled={!canNext}
-  className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${canNext ? 'bg-[#7c14d4] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-black cursor-not-allowed'}`}>
-  {!canNext ? 'Select Pearl Option First' : isLastStep ? '✓ Add Bundle to Order' : `Next: Drink ${bundleComponentIndex + 2} of ${totalSteps} →`}
-</button>
-          </div>
+      <div>
+        <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Options (Free)</label>
+        <div className="flex flex-wrap gap-2">
+          {EXTRA_OPTIONS.map((opt: string) => (
+            <button key={opt} onClick={() => onToggleOption(opt)}
+              className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${bundleComponentOptions.includes(opt) ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+              {opt}
+            </button>
+          ))}
         </div>
       </div>
+
+      <div>
+        <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Extra Add-ons</label>
+        <AddOnTriggerButton count={bundleComponentAddOns.length} onClick={onOpenAddOns} />
+      </div>
+
+      {/* Delivery charges */}
+      {onToggleOrderCharge && (
+        <div>
+      <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">
+        Charges
+        {orderCharge === 'grab'  && bundleGrabPrice  > 0 && ` (+₱${bundleGrabPrice.toFixed(2)})`}
+        {orderCharge === 'panda' && bundlePandaPrice > 0 && ` (+₱${bundlePandaPrice.toFixed(2)})`}
+        {orderCharge && (orderCharge === 'grab' ? bundleGrabPrice : bundlePandaPrice) === 0 && ' (No Surcharge)'}
+      </label>
+          <div className="grid grid-cols-2 gap-3">
+            {(['grab', 'panda'] as const).map(type => {
+              const isActive = orderCharge === type;
+              return (
+                <button key={type} type="button"
+                  onClick={() => onToggleOrderCharge(type)}
+                  className={`p-3 rounded-[0.625rem] border-2 transition-all flex items-center justify-center
+                    ${isActive
+                      ? type === 'grab' ? 'border-green-500 bg-green-50 text-green-700' : 'border-pink-500 bg-pink-50 text-pink-700'
+                      : type === 'grab' ? 'border-zinc-300 bg-white text-zinc-500 hover:border-green-300 hover:bg-green-50' : 'border-zinc-300 bg-white text-zinc-500 hover:border-pink-300 hover:bg-pink-50'
+                    }`}>
+                  <span className="font-bold text-xs uppercase">{type === 'grab' ? 'Grab Food' : 'Food Panda'}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <button onClick={onConfirm} disabled={!canNext}
+        className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${canNext ? 'bg-[#7c14d4] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-black cursor-not-allowed'}`}>
+        {!canNext ? 'Select Pearl Option First' : isLastStep ? '✓ Add Bundle to Order' : `Next: Drink ${bundleComponentIndex + 2} of ${totalSteps} →`}
+      </button>
+    </div>
+  </div>
+</div>
+
 
       {/* Bundle Add-on sub-modal */}
       {bundleComponentAddOnModalOpen && (
@@ -516,6 +566,7 @@ export const BundleModal = ({
           onToggle={onToggleAddOn}
           onClose={onCloseAddOns}
           zIndex="z-[110]"
+          orderCharge={orderCharge}
         />
       )}
     </>
@@ -885,7 +936,7 @@ interface CustomerNameModalProps {
   onConfirm: () => void;
 }
 
-export const CustomerNameModal = ({ customerName, onChange, onSkip, onConfirm }: CustomerNameModalProps) => (
+export const CustomerNameModal = ({ customerName, onChange, onConfirm }: CustomerNameModalProps) => (
   <div className="fixed inset-0 z-140 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
     <div className="bg-white w-full max-w-sm rounded-[0.625rem] shadow-2xl overflow-hidden">
       <div className="bg-[#7c14d4] px-6 pt-6 pb-5 text-white text-center">
@@ -908,16 +959,15 @@ export const CustomerNameModal = ({ customerName, onChange, onSkip, onConfirm }:
           autoFocus
           className="w-full bg-[#f5f0ff] border border-[#e9d5ff] text-sm font-bold p-4 resize-none h-16 outline-none focus:border-[#7c14d4] focus:bg-white transition-colors uppercase placeholder:normal-case placeholder:text-[#7c14d4]/30"
         />
-        <div className="grid grid-cols-2 gap-3">
-          <button
-  onClick={onConfirm}
-  disabled={customerName.trim() === ''}
-  className={`py-3 rounded-[0.625rem] font-black text-xs uppercase tracking-widest transition-colors shadow-md
-    ${customerName.trim() !== '' ? 'bg-[#7c14d4] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-zinc-400 cursor-not-allowed'}`}
->
-  Confirm
-</button>
-        </div>
+        {/* ✅ removed grid, button is now full width */}
+        <button
+          onClick={onConfirm}
+          disabled={customerName.trim() === ''}
+          className={`w-full py-3 rounded-[0.625rem] font-black text-xs uppercase tracking-widest transition-colors shadow-md
+            ${customerName.trim() !== '' ? 'bg-[#7c14d4] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-zinc-400 cursor-not-allowed'}`}
+        >
+          Confirm
+        </button>
       </div>
     </div>
   </div>

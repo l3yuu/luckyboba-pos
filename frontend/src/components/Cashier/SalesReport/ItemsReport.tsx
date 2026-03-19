@@ -97,11 +97,10 @@ const ItemsReport = () => {
     }
   }, [fromDate, toDate, reportType, getCacheKey]);
 
-  useEffect(() => {
-    setData(null);
-    // Always fetch fresh — don't trust cache for amounts that can change
-    fetchReport();
-  }, [fromDate, toDate, reportType]); // removed getCacheKey and fetchReport from deps to avoid loop
+useEffect(() => {
+  setData(null);
+  fetchReport();
+}, [fromDate, toDate, reportType, fetchReport]);
 
   const generateExcel = useCallback(() => {
     if (!data || data.items.length === 0) {

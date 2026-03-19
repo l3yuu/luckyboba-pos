@@ -15,7 +15,18 @@ export interface Discount {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-export const generateORNumber    = (count = 1) => `SI-${String(count).padStart(10, '0')}`;
+export const generateORNumber = (seq: number): string => {
+  const padded = String(seq).padStart(9, '0');
+  return `SI-${padded}`;
+  // e.g. SI-000000001
+};
+
+export const generateTerminalNumber = (branchId: number | null): string => {
+  const branch = branchId ? String(branchId).padStart(2, '0') : '00';
+  return `T${branch}-01`;
+  // e.g. T01-01 for branch 1, always terminal 01
+};
+
 export const generateQueueNumber = (count = 1) => String(count).padStart(3, '0');
 
 export const getItemSurcharge = (item: {

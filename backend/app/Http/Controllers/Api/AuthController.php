@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -90,5 +91,37 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'Logged out successfully',
         ]);
+    }
+
+    // ── GOOGLE SIGN-IN ────────────────────────────────────────────────────────
+    // Called by Flutter after Google Sign-In succeeds.
+    // Creates the user if they don't exist, then returns the user object.
+    public function googleLogin(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'name'  => 'required|string|max:255',
+        ]);
+
+        // Find existing user or create a new customer account
+        $user = User::firstOrCreate(
+            ['email' => $request->email],
+            [
+                'name'     => $request->name,
+                'password' => Hash::make(Str::random(32)),
+                'role'     => 'customer',
+            ]
+        );
+
+        // Log the Google login
+        AuditLog::create([
+            'user_id'    => $user->id,
+            'action'     => "User signed in via Google: {$user->name}",
+            'module'     => 'Auth',
+            'details'    => "Email: {$user->email}",
+            'ip_address' => $request->ip(),
+        ]);
+
+        return response()->json(['user' => $user], 200);
     }
 }
