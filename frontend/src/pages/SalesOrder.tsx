@@ -416,10 +416,10 @@ const handleCategoryClick = (cat: Category) => {
 
     setSelectedCategory(actualCategory);
 
-    // ✅ REPLACE
-const isActualBundle = actualCategory?.category_type === 'bundle' ||
-                       actualCategory?.category_type === 'combo';
-    if (isActualBundle) {
+    const catType = actualCategory?.category_type;
+
+    // ✅ Bundle only (NOT combo) — goes straight to BundleModal
+    if (catType === 'bundle') {
       const bundle = bundlesData.find(b => b.barcode === item.barcode);
       if (bundle) {
         setActiveBundleItem(bundle);
@@ -432,6 +432,9 @@ const isActualBundle = actualCategory?.category_type === 'bundle' ||
         return;
       }
     }
+
+    // ✅ Combo — goes to ItemSelectionModal first, then ComboDrinkModal via addToOrder
+    // (falls through to normal item flow below — isCombo state handles the rest)
 
     setSelectedItem(item);
     setQty(1);
@@ -515,6 +518,7 @@ const isActualBundle = actualCategory?.category_type === 'bundle' ||
 
   const addToOrder = () => {
     if (!selectedItem || !selectedCategory) return;
+     console.log('category_type:', selectedCategory.category_type, 'isCombo:', isCombo); 
 
     const isWaffle = selectedCategory?.name?.toLowerCase().includes('waffle');
     let extraCost = 0;
