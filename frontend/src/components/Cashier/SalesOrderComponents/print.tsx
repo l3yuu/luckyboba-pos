@@ -200,14 +200,14 @@ export const ReceiptPrint = ({
           FOR FRANCHISE<br />EMAIL OR CONTACT US ON<br />luckyboba.franchise@gmail.com<br />0917199894
         </div>
 
-        {/* Queue number stub 1 */}
-        <div className="mt-6 py-4 text-center queue-stub" style={{ pageBreakBefore: 'always', breakBefore: 'page' }}>
+        {/* Queue number stub 1 — flows naturally after receipt, no page break */}
+        <div className="mt-6 py-4 text-center">
           <p className="text-sm tracking-widest uppercase mb-1">Your Order Number Is:</p>
           <h2 className="font-black text-4xl">#{queueNumber}</h2>
           <p className="text-[10px] mt-2 uppercase text-gray-500">Please wait for your number to be called</p>
         </div>
 
-        {/* Queue number stub 2 — only on new orders, not reprints */}
+        {/* Queue number stub 2 — on its own page */}
         {showDoubleQueueStub && (
           <div className="py-4 text-center queue-stub" style={{ pageBreakBefore: 'always', breakBefore: 'page' }}>
             <p className="text-sm tracking-widest uppercase mb-1">Your Order Number Is:</p>
