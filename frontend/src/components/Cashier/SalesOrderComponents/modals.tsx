@@ -556,6 +556,7 @@ export const BundleModal = ({
           onToggle={onToggleAddOn}
           onClose={onCloseAddOns}
           zIndex="z-[110]"
+          orderCharge={orderCharge}
         />
       )}
     </>

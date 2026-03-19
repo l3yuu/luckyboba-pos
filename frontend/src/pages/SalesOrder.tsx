@@ -620,23 +620,34 @@ const handleCategoryClick = (cat: Category) => {
       `${c.addOns.length  ? ' | +' + c.addOns.join(', ')  : ''}`
     ).join(' || ');
 
+    // ← ADD: calculate add-on cost across all bundle components
+    const bundleAddOnCost = newCustomizations.reduce((total, c) => {
+      return total + c.addOns.reduce((sum, addonName) => {
+        const addon = addOnsData.find(a => a.name === addonName);
+        if (!addon) return sum;
+        if (orderCharge === 'grab'  && Number(addon.grab_price  ?? 0) > 0) return sum + Number(addon.grab_price);
+        if (orderCharge === 'panda' && Number(addon.panda_price ?? 0) > 0) return sum + Number(addon.panda_price);
+        return sum + Number(addon.price);
+      }, 0);
+    }, 0);
+
     const matchingMenuItem = categories
-  .flatMap(c => c.menu_items)
-  .find(m => m.barcode === activeBundleItem.barcode);
+      .flatMap(c => c.menu_items)
+      .find(m => m.barcode === activeBundleItem.barcode);
 
     const cartItem: CartItem = {
       id:           activeBundleItem.id,
       category_id:  0,
       name:         activeBundleItem.display_name ?? activeBundleItem.name,
-      grab_price:  Number(activeBundleItem.grab_price  || matchingMenuItem?.grab_price  || 0),
-      panda_price: Number(activeBundleItem.panda_price || matchingMenuItem?.panda_price || 0),
+      grab_price:   Number(activeBundleItem.grab_price  || matchingMenuItem?.grab_price  || 0),
+      panda_price:  Number(activeBundleItem.panda_price || matchingMenuItem?.panda_price || 0),
       price:        Number(activeBundleItem.price),
       barcode:      activeBundleItem.barcode,
       qty:          1,
       size:         'L',
       remarks:      remarksLines,
       charges:      { grab: orderCharge === 'grab', panda: orderCharge === 'panda' },
-      finalPrice:   Number(activeBundleItem.price),
+      finalPrice:   Number(activeBundleItem.price) + bundleAddOnCost,  // ← updated
       isBundle:     true,
       bundleId:     activeBundleItem.id,
       bundleComponents: newCustomizations,
