@@ -188,17 +188,19 @@ class UserController extends Controller
                 $branchId   = $branch->id;
                 $branchName = $branch->name;
             }
+$branch = \App\Models\Branch::find($request->branch_id);
+$branchName = $branch?->name ?? null;
 
-            $user = User::create([
-                'name'        => $request->name,
-                'email'       => $request->email,
-                'password'    => Hash::make($request->password),
-                'role'        => $request->role,
-                'status'      => $request->status,
-                'branch_name' => $branchName,
-                'branch_id'   => $branchId,
-                'manager_pin' => $request->filled('manager_pin') ? Hash::make($request->manager_pin) : null,  // ← add
-            ]);
+           $user = User::create([
+    'name'        => $request->name,
+    'email'       => $request->email,
+    'password'    => Hash::make($request->password),
+    'role'        => $request->role,
+    'status'      => $request->status,
+    'branch_name' => $branchName,
+    'branch_id'   => $request->branch_id,
+    'manager_pin' => $request->filled('manager_pin') ? Hash::make($request->manager_pin) : null,
+]);
 
             return response()->json([
                 'success' => true,

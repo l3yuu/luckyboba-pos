@@ -909,9 +909,6 @@ export const CustomerNameModal = ({ customerName, onChange, onSkip, onConfirm }:
           className="w-full bg-[#f5f0ff] border border-[#e9d5ff] text-sm font-bold p-4 resize-none h-16 outline-none focus:border-[#7c14d4] focus:bg-white transition-colors uppercase placeholder:normal-case placeholder:text-[#7c14d4]/30"
         />
         <div className="grid grid-cols-2 gap-3">
-          <button onClick={onSkip} className="py-3 rounded-[0.625rem] border-2 border-zinc-200 text-zinc-500 font-black text-xs uppercase tracking-widest hover:bg-zinc-50 transition-colors">
-            Skip
-          </button>
           <button
   onClick={onConfirm}
   disabled={customerName.trim() === ''}
