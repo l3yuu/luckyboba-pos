@@ -358,7 +358,7 @@ const buildPrintProps = (payload: ReprintPayload) => {
                 .queue-stub { page-break-before: always !important; break-before: page !important; }
               }
             `}</style>
-            {printType === 'receipt' && <ReceiptPrint {...props} showDoubleQueueStub={false} />}
+            {printType === 'receipt' && <ReceiptPrint {...props} showDoubleQueueStub={false} isReprint={true} />}
             {printType === 'kitchen' && <KitchenPrint {...props} />}
             {printType === 'sticker' && <StickerPrint {...props} customerName={props.customerName} />}
           </>

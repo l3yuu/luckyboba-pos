@@ -40,6 +40,7 @@ interface ReceiptPrintProps {
   promoDiscount: number;
   addOnsData?: { id: number; name: string; price: number; grab_price?: number; panda_price?: number }[];
   showDoubleQueueStub?: boolean;
+  isReprint?: boolean;
 }
 
 export const ReceiptPrint = ({
@@ -47,7 +48,8 @@ export const ReceiptPrint = ({
   formattedDate, formattedTime, orderCharge, totalCount,
   subtotal, amtDue, vatableSales, vatAmount, change, cashTendered,
   referenceNumber, paymentMethod, selectedDiscount,
-  totalDiscountDisplay, itemDiscountTotal, promoDiscount, addOnsData = [], showDoubleQueueStub = true,
+  totalDiscountDisplay, itemDiscountTotal, promoDiscount, addOnsData = [], showDoubleQueueStub = true, 
+  isReprint = false,
 }: ReceiptPrintProps) => {
 
   return (
@@ -68,6 +70,13 @@ export const ReceiptPrint = ({
           <div className="mt-1">Cashier: {cashierName ?? 'Admin'}</div>
           {orderCharge && <div className="mt-1">Order Type: {orderCharge === 'grab' ? 'GRABFOOD' : 'FOODPANDA'}</div>}
         </div>
+
+        {isReprint && (
+          <div className="text-center mb-2 border-t border-dashed border-black pt-2">
+            <p className="text-[15px] font-black uppercase tracking-widest">*** REPRINT ***</p>
+          </div>
+        )}
+        
         {/* Items */}
         <div className="mt-3 mb-3 text-xs border-t border-dashed border-black pt-3">
         {cart.map((item, i) => (
