@@ -67,92 +67,81 @@ export const ReceiptPrint = ({
           <div className="mt-1">Cashier: {cashierName ?? 'Admin'}</div>
           {orderCharge && <div className="mt-1">Order Type: {orderCharge === 'grab' ? 'GRABFOOD' : 'FOODPANDA'}</div>}
         </div>
-{/* Items */}
-<div className="mt-3 mb-3 text-xs border-t border-dashed border-black pt-3">
-{cart.map((item, i) => (
-  <div key={i} className="mb-2">
-    {/* Main item row */}
-{/* Main item row */}
-<div className="uppercase">{item.name} {item.cupSizeLabel ? `(${item.cupSizeLabel})` : ''}</div>
-<div className="flex justify-between w-full mt-0.5">
-  <span>
-    {(() => {
-      const addOnCost = (item.addOns ?? []).reduce((sum, addonName) => {
-        const a = addOnsData.find(x => x.name === addonName);
-        if (!a) return sum;
-        return sum + (item.charges?.grab && Number(a.grab_price ?? 0) > 0
-          ? Number(a.grab_price)
-          : item.charges?.panda && Number(a.panda_price ?? 0) > 0
-          ? Number(a.panda_price)
-          : Number(a.price));
-      }, 0);
-      const surcharge = item.charges?.grab ? Number(item.grab_price ?? 0) : item.charges?.panda ? Number(item.panda_price ?? 0) : 0;
-      const baseUnitPrice = (item.finalPrice - addOnCost * item.qty) / item.qty + surcharge;
-      return `${item.qty} X ${baseUnitPrice.toFixed(2)}`;
-    })()}
-  </span>
-  <span>
-    {(() => {
-      const addOnCost = (item.addOns ?? []).reduce((sum, addonName) => {
-        const a = addOnsData.find(x => x.name === addonName);
-        if (!a) return sum;
-        return sum + (item.charges?.grab && Number(a.grab_price ?? 0) > 0
-          ? Number(a.grab_price)
-          : item.charges?.panda && Number(a.panda_price ?? 0) > 0
-          ? Number(a.panda_price)
-          : Number(a.price));
-      }, 0);
-      const surcharge = item.charges?.grab ? Number(item.grab_price ?? 0) * item.qty : item.charges?.panda ? Number(item.panda_price ?? 0) * item.qty : 0;
-      return (item.finalPrice - addOnCost * item.qty + surcharge).toFixed(2);
-    })()}
-  </span>
-</div>
-    {item.discountLabel && (
-      <div className="flex justify-between w-full text-[10px] italic">
-        <span>  • Discount: {item.discountLabel}</span>
-      </div>
-    )}
+        {/* Items */}
+        <div className="mt-3 mb-3 text-xs border-t border-dashed border-black pt-3">
+        {cart.map((item, i) => (
+          <div key={i} className="mb-2">
+            {/* Main item row */}
+            <div className="uppercase">{item.name} {item.cupSizeLabel ? `(${item.cupSizeLabel})` : ''}</div>
+            <div className="flex justify-between w-full mt-0.5">
+              <span>
+                {(() => {
+                  const surcharge = item.charges?.grab ? Number(item.grab_price ?? 0) : item.charges?.panda ? Number(item.panda_price ?? 0) : 0;
+                  return `${item.qty} X ${(Number(item.price) + surcharge).toFixed(2)}`;
+                })()}
+              </span>
+              <span>
+                {(() => {
+                  const addOnCost = (item.addOns ?? []).reduce((sum, addonName) => {
+                    const a = addOnsData.find(x => x.name === addonName);
+                    if (!a) return sum;
+                    return sum + (item.charges?.grab && Number(a.grab_price ?? 0) > 0
+                      ? Number(a.grab_price)
+                      : item.charges?.panda && Number(a.panda_price ?? 0) > 0
+                      ? Number(a.panda_price)
+                      : Number(a.price));
+                  }, 0);
+                  const surcharge = item.charges?.grab ? Number(item.grab_price ?? 0) * item.qty : item.charges?.panda ? Number(item.panda_price ?? 0) * item.qty : 0;
+                  return (item.finalPrice - addOnCost * item.qty + surcharge).toFixed(2);
+                })()}
+              </span>
+            </div>
+            {item.discountLabel && (
+              <div className="flex justify-between w-full text-[10px] italic">
+                <span>  • Discount: {item.discountLabel}</span>
+              </div>
+            )}
 
-    {/* Sugar / options / remarks (no add-ons here) */}
-    {item.size === 'none' && item.sugarLevel != null ? (
-      <>
-        <div className="pl-2 text-[10px]">• Classic Pearl</div>
-        <div className="pl-4 text-[10px]">• Sugar {item.sugarLevel}</div>
-        {item.options?.map(o => <div key={o} className="pl-4 text-[10px]">• {o}</div>)}
-      </>
-    ) : (
-      <>
-        {item.sugarLevel != null && <div className="pl-2 text-[10px]">• Sugar {item.sugarLevel}</div>}
-        {item.options?.map(o => <div key={o} className="pl-2 text-[10px]">• {o}</div>)}
-        {item.remarks && <div className="pl-2 text-[10px] italic">• {item.remarks}</div>}
-      </>
-    )}
+            {/* Sugar / options / remarks (no add-ons here) */}
+            {item.size === 'none' && item.sugarLevel != null ? (
+              <>
+                <div className="pl-2 text-[10px]">• Classic Pearl</div>
+                <div className="pl-4 text-[10px]">• Sugar {item.sugarLevel}</div>
+                {item.options?.map(o => <div key={o} className="pl-4 text-[10px]">• {o}</div>)}
+              </>
+            ) : (
+              <>
+                {item.sugarLevel != null && <div className="pl-2 text-[10px]">• Sugar {item.sugarLevel}</div>}
+                {item.options?.map(o => <div key={o} className="pl-2 text-[10px]">• {o}</div>)}
+                {item.remarks && <div className="pl-2 text-[10px] italic">• {item.remarks}</div>}
+              </>
+            )}
 
-{/* Add-ons as separate line items */}
-{item.addOns && item.addOns.length > 0 && item.addOns.map((addonName, ai) => {
-  const addonData = addOnsData.find((a: { id: number; name: string; price: number; grab_price?: number; panda_price?: number }) => a.name === addonName);
-  const addonUnitPrice = addonData
-    ? (item.charges?.grab && Number(addonData.grab_price ?? 0) > 0
-        ? Number(addonData.grab_price)
-        : item.charges?.panda && Number(addonData.panda_price ?? 0) > 0
-        ? Number(addonData.panda_price)
-        : Number(addonData.price))
-    : 0;
-  const addonTotal = addonUnitPrice * item.qty;
+        {/* Add-ons as separate line items */}
+        {item.addOns && item.addOns.length > 0 && item.addOns.map((addonName, ai) => {
+          const addonData = addOnsData.find((a: { id: number; name: string; price: number; grab_price?: number; panda_price?: number }) => a.name === addonName);
+          const addonUnitPrice = addonData
+            ? (item.charges?.grab && Number(addonData.grab_price ?? 0) > 0
+                ? Number(addonData.grab_price)
+                : item.charges?.panda && Number(addonData.panda_price ?? 0) > 0
+                ? Number(addonData.panda_price)
+                : Number(addonData.price))
+            : 0;
+          const addonTotal = addonUnitPrice * item.qty;
 
-  return (
-    <div key={ai} className="mt-2 pt-1 border-t border-dashed border-gray-300">
-      <div className="uppercase font-medium">{addonName}</div>
-      <div className="flex justify-between w-full mt-0.5">
-        <span>{item.qty} X {addonUnitPrice.toFixed(2)}</span>
-        <span>{addonTotal.toFixed(2)}</span>
-      </div>
-    </div>
-  );
-})}
-  </div>
-))}
-</div>
+          return (
+            <div key={ai} className="mt-2 pt-1 border-t border-dashed border-gray-300">
+              <div className="uppercase font-medium">{addonName}</div>
+              <div className="flex justify-between w-full mt-0.5">
+                <span>{item.qty} X {addonUnitPrice.toFixed(2)}</span>
+                <span>{addonTotal.toFixed(2)}</span>
+              </div>
+            </div>
+          );
+        })}
+          </div>
+        ))}
+        </div>
 
         {/* Totals */}
         <div className="text-xs space-y-1 border-t border-dashed border-black pt-2">
