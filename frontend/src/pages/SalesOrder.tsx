@@ -428,6 +428,7 @@ const handleCategoryClick = (cat: Category) => {
         setBundleComponentSugar('');
         setBundleComponentOptions([]);
         setBundleComponentAddOns([]);
+        setOrderCharge(null);  
         setIsBundleModalOpen(true);
         return;
       }
@@ -461,6 +462,11 @@ const handleCategoryClick = (cat: Category) => {
       charges: { grab: next === 'grab', panda: next === 'panda' },
     })));
   };
+
+  const toggleBundleOrderCharge = (type: 'grab' | 'panda') => {
+  const next = orderCharge === type ? null : type;
+  setOrderCharge(next);
+};
 
   // ── Options toggles ─────────────────────────────────────────────────────────
 
@@ -614,10 +620,16 @@ const handleCategoryClick = (cat: Category) => {
       `${c.addOns.length  ? ' | +' + c.addOns.join(', ')  : ''}`
     ).join(' || ');
 
+    const matchingMenuItem = categories
+  .flatMap(c => c.menu_items)
+  .find(m => m.barcode === activeBundleItem.barcode);
+
     const cartItem: CartItem = {
       id:           activeBundleItem.id,
       category_id:  0,
       name:         activeBundleItem.display_name ?? activeBundleItem.name,
+      grab_price:  Number(activeBundleItem.grab_price  || matchingMenuItem?.grab_price  || 0),
+      panda_price: Number(activeBundleItem.panda_price || matchingMenuItem?.panda_price || 0),
       price:        Number(activeBundleItem.price),
       barcode:      activeBundleItem.barcode,
       qty:          1,
@@ -1053,26 +1065,35 @@ const handleSubmitOrder = async (nameOverride?: string) => {
           />
         )}
 
-        {isBundleModalOpen && activeBundleItem && (
-          <BundleModal
-            activeBundleItem={activeBundleItem}
-            bundleComponentIndex={bundleComponentIndex}
-            bundleComponentSugar={bundleComponentSugar}
-            bundleComponentOptions={bundleComponentOptions}
-            bundleComponentAddOns={bundleComponentAddOns}
-            filteredAddOns={filteredAddOns}
-            bundleComponentAddOnModalOpen={bundleComponentAddOnModalOpen}
-            onSugarChange={setBundleComponentSugar}
-            onToggleOption={makeToggleOption(setBundleComponentOptions)}
-            onOpenAddOns={() => setBundleComponentAddOnModalOpen(true)}
-            onCloseAddOns={() => setBundleComponentAddOnModalOpen(false)}
-            onToggleAddOn={name => setBundleComponentAddOns(prev =>
-              prev.includes(name) ? prev.filter(a => a !== name) : [...prev, name]
-            )}
-            onConfirm={confirmBundleComponent}
-            onClose={() => { setIsBundleModalOpen(false); setActiveBundleItem(null); }}
-          />
-        )}
+        {isBundleModalOpen && activeBundleItem && (() => {
+          const bundleMenuItem = categories.flatMap(c => c.menu_items).find(m => m.barcode === activeBundleItem.barcode);
+          const bundleGrabPrice  = Number(activeBundleItem.grab_price  || bundleMenuItem?.grab_price  || 0);
+          const bundlePandaPrice = Number(activeBundleItem.panda_price || bundleMenuItem?.panda_price || 0);
+          return (
+            <BundleModal
+              activeBundleItem={activeBundleItem}
+              bundleComponentIndex={bundleComponentIndex}
+              bundleComponentSugar={bundleComponentSugar}
+              bundleComponentOptions={bundleComponentOptions}
+              bundleComponentAddOns={bundleComponentAddOns}
+              filteredAddOns={filteredAddOns}
+              bundleComponentAddOnModalOpen={bundleComponentAddOnModalOpen}
+              onSugarChange={setBundleComponentSugar}
+              onToggleOption={makeToggleOption(setBundleComponentOptions)}
+              onOpenAddOns={() => setBundleComponentAddOnModalOpen(true)}
+              onCloseAddOns={() => setBundleComponentAddOnModalOpen(false)}
+              onToggleAddOn={name => setBundleComponentAddOns(prev =>
+                prev.includes(name) ? prev.filter(a => a !== name) : [...prev, name]
+              )}
+              onConfirm={confirmBundleComponent}
+              onClose={() => { setIsBundleModalOpen(false); setActiveBundleItem(null); }}
+              orderCharge={orderCharge}
+              onToggleOrderCharge={toggleBundleOrderCharge}
+              bundleGrabPrice={bundleGrabPrice}
+              bundlePandaPrice={bundlePandaPrice}
+            />
+          );
+        })()}
 
         {isCombodrinkModalOpen && pendingComboCart && (
           <ComboDrinkModal

@@ -420,6 +420,10 @@ interface BundleModalProps {
   onToggleAddOn: (name: string) => void;
   onConfirm: () => void;
   onClose: () => void;
+  orderCharge?: 'grab' | 'panda' | null;
+  onToggleOrderCharge?: (type: 'grab' | 'panda') => void;
+    bundleGrabPrice:  number;  // ← add
+  bundlePandaPrice: number;  // ← add
 }
 
 export const BundleModal = ({
@@ -428,6 +432,8 @@ export const BundleModal = ({
   bundleComponentSugar,
   bundleComponentOptions,
   bundleComponentAddOns,
+    bundleGrabPrice,   // ← add
+  bundlePandaPrice,  // ← add
   filteredAddOns,
   bundleComponentAddOnModalOpen,
   onSugarChange,
@@ -437,6 +443,8 @@ export const BundleModal = ({
   onToggleAddOn,
   onConfirm,
   onClose,
+  orderCharge,
+  onToggleOrderCharge,
 }: BundleModalProps) => {
   const component   = activeBundleItem.items[bundleComponentIndex];
   const totalSteps  = activeBundleItem.items.length;
@@ -448,64 +456,96 @@ export const BundleModal = ({
 
   return (
     <>
-      <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-        <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+<div className="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+  <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
 
-          {/* Header */}
-          <div className="bg-[#7c14d4] p-5 text-white relative shrink-0">
-            <div className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/40 mb-1">
-              Bundle — {activeBundleItem.display_name ?? activeBundleItem.name}
-            </div>
-            <h2 className="text-base font-black uppercase tracking-wide leading-tight pr-8">
-              Drink {bundleComponentIndex + 1} of {totalSteps}: {displayName}
-              {component.quantity > 1 && <span className="ml-2 text-white/50 font-bold text-sm">×{component.quantity}</span>}
-            </h2>
-            <div className="mt-3 w-full bg-white/20 rounded-full h-1.5">
-              <div className="bg-white h-1.5 rounded-full transition-all" style={{ width: `${((bundleComponentIndex + 1) / totalSteps) * 100}%` }} />
-            </div>
-            <button onClick={onClose} className="absolute top-5 right-5 w-7 h-7 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-colors">
-              <CloseIcon size={4} />
+    {/* Header */}
+    <div className="bg-[#7c14d4] p-5 text-white relative shrink-0">
+      <div className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/40 mb-1">
+        Bundle — {activeBundleItem.display_name ?? activeBundleItem.name}
+      </div>
+      <h2 className="text-base font-black uppercase tracking-wide leading-tight pr-8">
+        Drink {bundleComponentIndex + 1} of {totalSteps}: {displayName}
+        {component.quantity > 1 && <span className="ml-2 text-white/50 font-bold text-sm">×{component.quantity}</span>}
+      </h2>
+      <div className="mt-3 w-full bg-white/20 rounded-full h-1.5">
+        <div className="bg-white h-1.5 rounded-full transition-all" style={{ width: `${((bundleComponentIndex + 1) / totalSteps) * 100}%` }} />
+      </div>
+      <button onClick={onClose} className="absolute top-5 right-5 w-7 h-7 flex items-center justify-center rounded-lg bg-white/10 hover:bg-white/20 text-white/60 hover:text-white transition-colors">
+        <CloseIcon size={4} />
+      </button>
+    </div>
+
+    {/* Body */}
+    <div className="p-6 space-y-5 overflow-y-auto bg-white">
+      <div>
+        <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
+        <div className="flex gap-2">
+          {SUGAR_LEVELS.map((level: string) => (
+            <button key={level} onClick={() => onSugarChange(level)}
+              className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${bundleComponentSugar === level && bundleComponentSugar !== '' ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+              {level}
             </button>
-          </div>
+          ))}
+        </div>
+        {bundleComponentSugar === '' && (
+          <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1.5 ml-1">⚠ Please select sugar level</p>
+        )}
+      </div>
 
-          {/* Body */}
-          <div className="p-6 space-y-5 overflow-y-auto bg-white">
-          <div>
-            <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
-            <div className="flex gap-2">
-              {SUGAR_LEVELS.map((level: string) => (
-                <button key={level} onClick={() => onSugarChange(level)}
-                  className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${bundleComponentSugar === level && bundleComponentSugar !== '' ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
-                  {level}
-                </button>
-              ))}
-            </div>
-            {bundleComponentSugar === '' && (
-              <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1.5 ml-1">⚠ Please select sugar level</p>
-            )}
-          </div>
-            <div>
-              <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Options (Free)</label>
-              <div className="flex flex-wrap gap-2">
-                {EXTRA_OPTIONS.map((opt: string) => (
-                  <button key={opt} onClick={() => onToggleOption(opt)}
-                    className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${bundleComponentOptions.includes(opt) ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
-                    {opt}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Extra Add-ons</label>
-              <AddOnTriggerButton count={bundleComponentAddOns.length} onClick={onOpenAddOns} />
-            </div>
-            <button onClick={onConfirm} disabled={!canNext}
-  className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${canNext ? 'bg-[#7c14d4] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-black cursor-not-allowed'}`}>
-  {!canNext ? 'Select Pearl Option First' : isLastStep ? '✓ Add Bundle to Order' : `Next: Drink ${bundleComponentIndex + 2} of ${totalSteps} →`}
-</button>
-          </div>
+      <div>
+        <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Options (Free)</label>
+        <div className="flex flex-wrap gap-2">
+          {EXTRA_OPTIONS.map((opt: string) => (
+            <button key={opt} onClick={() => onToggleOption(opt)}
+              className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${bundleComponentOptions.includes(opt) ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+              {opt}
+            </button>
+          ))}
         </div>
       </div>
+
+      <div>
+        <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Extra Add-ons</label>
+        <AddOnTriggerButton count={bundleComponentAddOns.length} onClick={onOpenAddOns} />
+      </div>
+
+      {/* Delivery charges */}
+      {onToggleOrderCharge && (
+        <div>
+      <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">
+        Charges
+        {orderCharge === 'grab'  && bundleGrabPrice  > 0 && ` (+₱${bundleGrabPrice.toFixed(2)})`}
+        {orderCharge === 'panda' && bundlePandaPrice > 0 && ` (+₱${bundlePandaPrice.toFixed(2)})`}
+        {orderCharge && (orderCharge === 'grab' ? bundleGrabPrice : bundlePandaPrice) === 0 && ' (No Surcharge)'}
+      </label>
+          <div className="grid grid-cols-2 gap-3">
+            {(['grab', 'panda'] as const).map(type => {
+              const isActive = orderCharge === type;
+              return (
+                <button key={type} type="button"
+                  onClick={() => onToggleOrderCharge(type)}
+                  className={`p-3 rounded-[0.625rem] border-2 transition-all flex items-center justify-center
+                    ${isActive
+                      ? type === 'grab' ? 'border-green-500 bg-green-50 text-green-700' : 'border-pink-500 bg-pink-50 text-pink-700'
+                      : type === 'grab' ? 'border-zinc-300 bg-white text-zinc-500 hover:border-green-300 hover:bg-green-50' : 'border-zinc-300 bg-white text-zinc-500 hover:border-pink-300 hover:bg-pink-50'
+                    }`}>
+                  <span className="font-bold text-xs uppercase">{type === 'grab' ? 'Grab Food' : 'Food Panda'}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <button onClick={onConfirm} disabled={!canNext}
+        className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${canNext ? 'bg-[#7c14d4] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-black cursor-not-allowed'}`}>
+        {!canNext ? 'Select Pearl Option First' : isLastStep ? '✓ Add Bundle to Order' : `Next: Drink ${bundleComponentIndex + 2} of ${totalSteps} →`}
+      </button>
+    </div>
+  </div>
+</div>
+
 
       {/* Bundle Add-on sub-modal */}
       {bundleComponentAddOnModalOpen && (

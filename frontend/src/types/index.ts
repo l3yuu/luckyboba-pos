@@ -71,6 +71,8 @@ export interface Bundle {
     category: string;
     barcode: string;
     price: number;
+    grab_price?: number;   // ← add
+    panda_price?: number;  // ← add
     size: string;
     cup_id: number | null;
     is_active: boolean;

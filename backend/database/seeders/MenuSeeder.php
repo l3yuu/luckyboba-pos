@@ -161,10 +161,10 @@ class MenuSeeder extends Seeder
                 ['name' => "CLASSIC ROCKSALT & CHEESE", 'price' => 115.00, 'barcode' => 'CMM7', 'size' => 'M', 'grab_price' => 40.00, 'panda_price' => 40.00],
                 ['name' => "CLASSIC ROCKSALT & CHEESE", 'price' => 135.00, 'barcode' => 'CML7', 'size' => 'L', 'grab_price' => 50.00, 'panda_price' => 50.00],
 
-                ['name' => "Classic Pudding + Black Pearl Milktea ", 'price' => 110.00, 'barcode' => 'CMM8', 'size' => 'M', 'grab_price' => 35.00, 'panda_price' => 35.00],
-                ['name' => "Classic Pudding + Black Pearl Milktea ", 'price' => 130.00, 'barcode' => 'CML8', 'size' => 'L', 'grab_price' => 35.00, 'panda_price' => 35.00],
-                ['name' => "Classic Pudding Mini White Pearl ", 'price' => 110.00, 'barcode' => 'CMM12', 'size' => 'M', 'grab_price' => 35.00, 'panda_price' => 35.00],
-                ['name' => "Classic Pudding Mini White Pearl ", 'price' => 130.00, 'barcode' => 'CML12', 'size' => 'L', 'grab_price' => 35.00, 'panda_price' => 35.00],
+                ['name' => "Classic Pudding + Black Pearl Milktea", 'price' => 110.00, 'barcode' => 'CMM8B',  'size' => 'M', 'grab_price' => 35.00, 'panda_price' => 35.00],
+                ['name' => "Classic Pudding + Black Pearl Milktea", 'price' => 130.00, 'barcode' => 'CML8B',  'size' => 'L', 'grab_price' => 35.00, 'panda_price' => 35.00],
+                ['name' => "Classic Pudding Mini White Pearl",      'price' => 110.00, 'barcode' => 'CMM12B', 'size' => 'M', 'grab_price' => 35.00, 'panda_price' => 35.00],
+                ['name' => "Classic Pudding Mini White Pearl",      'price' => 130.00, 'barcode' => 'CML12B', 'size' => 'L', 'grab_price' => 35.00, 'panda_price' => 35.00],
             ],
             'COFFEE FRAPPE' => [
                 ['name' => "MOCHA FRAPPE",             'price' => 125.00, 'barcode' => 'CFM1', 'size' => 'M', 'grab_price' => 45.00, 'panda_price' => 45.00],

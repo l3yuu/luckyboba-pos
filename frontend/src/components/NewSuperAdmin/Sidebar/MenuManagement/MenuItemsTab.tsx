@@ -450,10 +450,10 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
     const e: Record<string, string> = {};
     if (!form.name.trim())  e.name        = "Name is required.";
     if (!form.category_id)  e.category_id = "Category is required.";
+    if (!form.barcode.trim()) e.barcode   = "Barcode is required.";
     if (!form.price || isNaN(Number(form.price)) || Number(form.price) < 0)
       e.price = "Valid price is required.";
 
-    // ✅ Extra validation for combos
     if (isComboCategory) {
       if (!foodItemId)  e.food_item_id  = "Select a food item for this combo.";
       if (!drinkItemId) e.drink_item_id = "Select a drink item for this combo.";
@@ -674,9 +674,9 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
               className={inputCls(errors.price) + " pl-7"} />
           </div>
         </Field>
-        <Field label="Barcode">
+        <Field label="Barcode" required error={errors.barcode}>
           <div className="relative">
-            <input {...f("barcode")} placeholder="Optional" className={inputCls() + " pl-9"} />
+            <input {...f("barcode")} placeholder="Required" className={inputCls(errors.barcode) + " pl-9"} />
             <Barcode size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
           </div>
         </Field>
