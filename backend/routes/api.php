@@ -27,6 +27,11 @@ Route::get('/check-card-status/{userId}', [CardPurchaseController::class, 'check
 // Uses Laravel's url() helper so it works correctly in both local and production.
 // Local:      http://10.0.2.2:8000/storage/menu/foods/photo.png
 // Production: https://luckybobastores.com/storage/menu/foods/photo.png
+//
+// ✅ FIX: php -S (built-in dev server) truncates large responses mid-stream
+// because it doesn't know the content length ahead of time. Setting the
+// Content-Length header explicitly forces it to send the full response before
+// closing the connection — preventing FormatException on the Flutter side.
 Route::get('/public-menu', function () {
     $items = DB::table('menu_items')
         ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
@@ -53,9 +58,16 @@ Route::get('/public-menu', function () {
             return $item;
         });
 
-    return response()->json($items);
+    // ✅ Encode to string first so we can measure exact byte length
+    $json = json_encode($items, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+
+    // ✅ Content-Length prevents php -S from truncating the response mid-stream
+    return response($json, 200)
+        ->header('Content-Type', 'application/json; charset=utf-8')
+        ->header('Content-Length', strlen($json));
 });
 // ─────────────────────────────────────────────────────────────────────────────
+
 Route::post('/google-login', [AuthController::class, 'googleLogin']);
 Route::post('/register', function (Request $request) {
     $request->validate([
@@ -209,7 +221,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         // operations (store/update/delete/toggle) are already covered in the
         // cashier group's prefix block which all three roles can access.
 
-        Route::get('/branch/audit-logs', [AuditLogController::class, 'branchIndex']); 
+        Route::get('/branch/audit-logs', [AuditLogController::class, 'branchIndex']);
         Route::apiResource('discounts', DiscountController::class)->except(['show', 'update', 'index']); // ← 'index' removed, handled above
         Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
         Route::apiResource('vouchers', VoucherController::class)->only(['index', 'store']);
