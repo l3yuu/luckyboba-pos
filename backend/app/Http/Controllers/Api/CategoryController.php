@@ -49,7 +49,7 @@ class CategoryController extends Controller
         $validated = $request->validate([
             'name'          => 'required|string|unique:categories,name|max:255',
             'type'          => 'nullable|in:food,drink,promo,standard',
-            'category_type' => 'nullable|in:food,drink,wings,waffle,combo,bundle,promo,standard', // ✅ added
+            'category_type' => 'nullable|in:food,drink,wings,waffle,combo,bundle,promo,mix_and_match,standard',
             'cup_id'        => 'nullable|exists:cups,id',
             'sort_order'    => 'nullable|integer',
             'is_active'     => 'nullable|boolean',
@@ -118,7 +118,7 @@ class CategoryController extends Controller
         $validated = $request->validate([
             'name'          => 'sometimes|required|string|max:255|unique:categories,name,' . $id,
             'type'          => 'sometimes|nullable|in:food,drink,promo,standard',
-            'category_type' => 'sometimes|nullable|in:food,drink,wings,waffle,combo,bundle,promo,standard', // ✅ added
+             'category_type' => 'sometimes|nullable|in:food,drink,wings,waffle,combo,bundle,promo,mix_and_match,standard',
             'sort_order'    => 'sometimes|integer',
             'is_active'     => 'sometimes|boolean',
             'description'   => 'sometimes|nullable|string',

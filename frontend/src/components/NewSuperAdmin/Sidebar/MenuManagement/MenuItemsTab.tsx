@@ -1,5 +1,5 @@
 // components/NewSuperAdmin/Tabs/MenuManagement/MenuItemsTab.tsx
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Search, Plus, Edit2, Trash2, RefreshCw,
   AlertCircle, X, Package, ChevronDown,
@@ -413,50 +413,51 @@ const BundleBuilder: React.FC<BundleBuilderProps> = ({
 
 
 interface MixAndMatchBuilderProps {
-  allItems:      MenuItem[];
-  foodItemId:    string;
-  onFoodChange:  (id: string) => void;
-  errors:        Record<string, string>;
+  allItems:          MenuItem[];
+  foodItemId:        string;
+  onFoodChange:      (id: string) => void;
+  selectedDrinkIds:  string[];
+  onDrinkIdsChange:  (ids: string[]) => void;
+  errors:            Record<string, string>;
 }
 
 // FIND the entire MixAndMatchBuilder component and REPLACE with:
 
 const MixAndMatchBuilder: React.FC<MixAndMatchBuilderProps> = ({
-  allItems, foodItemId, onFoodChange, errors,
+  allItems, foodItemId, onFoodChange, selectedDrinkIds, onDrinkIdsChange, errors,
 }) => {
   const FOOD_TYPES = ["food", "wings", "waffle"];
   const foodItems  = allItems.filter(i => FOOD_TYPES.includes(i.category_type));
 
-  const drinkPool = allItems
-    .filter(i => i.category_type === "drink")
-    .sort((a, b) => a.name.localeCompare(b.name) || (a.price - b.price));
+  const drinkPool = useMemo(() =>
+    allItems
+      .filter(i => i.category_type === "drink")
+      .sort((a, b) => a.name.localeCompare(b.name) || (a.price - b.price)),
+    [allItems]
+  );
 
-  const drinkNameCounts = drinkPool.reduce<Record<string, number>>((acc, d) => {
-    acc[d.name] = (acc[d.name] ?? 0) + 1;
-    return acc;
-  }, {});
-  const drinkNameIndex: Record<string, number> = {};
+  const allDrinks = useMemo(() => {
+    const nameCounts = drinkPool.reduce<Record<string, number>>((acc, d) => {
+      acc[d.name] = (acc[d.name] ?? 0) + 1;
+      return acc;
+    }, {});
+    const nameIndex: Record<string, number> = {};
+    return drinkPool.map(drink => {
+      const hasPair = nameCounts[drink.name] > 1;
+      let sizeLabel = drink.size && drink.size !== 'none' ? drink.size.toUpperCase() : '';
+      if (!sizeLabel && hasPair) {
+        nameIndex[drink.name] = (nameIndex[drink.name] ?? 0) + 1;
+        sizeLabel = nameIndex[drink.name] === 1 ? 'M' : 'L';
+      }
+      return { ...drink, _sizeLabel: sizeLabel };
+    });
+  }, [drinkPool]);
 
-  // Keep all entries — no deduplication, just label each with inferred size
-  const allDrinks = drinkPool.map(drink => {
-    const hasPair = drinkNameCounts[drink.name] > 1;
-    let sizeLabel = drink.size && drink.size !== 'none' ? drink.size.toUpperCase() : '';
-    if (!sizeLabel && hasPair) {
-      drinkNameIndex[drink.name] = (drinkNameIndex[drink.name] ?? 0) + 1;
-      sizeLabel = drinkNameIndex[drink.name] === 1 ? 'M' : 'L';
-    }
-    return { ...drink, _sizeLabel: sizeLabel };
-  });
-
-  const defaultSelected = allDrinks
-    .filter(d => ['HOT CHOCOLATE','CLASSIC PEARL','BELGIAN CHOCO. FRAPPE','ICED CARAMEL MACCHIATO','GREEN APPLE YAKULT','WINTERMELON MILK TEA'].includes(d.name.toUpperCase()) && (d._sizeLabel === 'M' || d._sizeLabel === ''))
-    .map(d => String(d.id));
-
-  const [selectedDrinkIds, setSelectedDrinkIds] = useState<string[]>(defaultSelected);
-
-  const toggleDrink = (id: string) => {
-    setSelectedDrinkIds(prev =>
-      prev.includes(id) ? prev.filter(n => n !== id) : [...prev, id]
+    const toggleDrink = (id: string) => {
+    onDrinkIdsChange(
+      selectedDrinkIds.includes(id)
+        ? selectedDrinkIds.filter(n => n !== id)
+        : [...selectedDrinkIds, id]
     );
   };
 
@@ -583,10 +584,11 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
   });
 
   // ✅ Combo-specific state
-  const [foodItemId,      setFoodItemId]      = useState("");
-  const [drinkItemId,     setDrinkItemId]     = useState("");
-  const [bundleItemIds,   setBundleItemIds]   = useState<string[]>(["", ""]);
-  const [mixMatchFoodId,  setMixMatchFoodId]  = useState("");
+  const [foodItemId,        setFoodItemId]        = useState("");
+  const [drinkItemId,       setDrinkItemId]       = useState("");
+  const [bundleItemIds,     setBundleItemIds]     = useState<string[]>(["", ""]);
+  const [mixMatchFoodId,    setMixMatchFoodId]    = useState("");
+  const [mixMatchDrinkIds,  setMixMatchDrinkIds]  = useState<string[]>([]);
 
   const [options, setOptions] = useState<ItemOptions>({ pearl: false, ice: false });
 
@@ -629,6 +631,7 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
     setDrinkItemId("");
     setBundleItemIds(["", ""]);
     setMixMatchFoodId("");
+    setMixMatchDrinkIds([]);
     setErrors(ev => { const n = { ...ev }; delete n.category_id; delete n.food_item_id; delete n.drink_item_id; return n; });
   };
 
@@ -1010,6 +1013,8 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
           allItems={allItems}
           foodItemId={mixMatchFoodId}
           onFoodChange={setMixMatchFoodId}
+          selectedDrinkIds={mixMatchDrinkIds}
+          onDrinkIdsChange={setMixMatchDrinkIds}
           errors={errors}
         />
       )}
