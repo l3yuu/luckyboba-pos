@@ -32,7 +32,8 @@ const POS_BEHAVIOR_BY_TYPE: Record<CategoryType, { value: string; label: string;
     { value: "food",   label: "Food",   desc: "Standard food — straight to cart, no size" },
     { value: "wings",  label: "Wings",  desc: "Chicken wings — cashier picks piece count (3pc, 4pc, etc.)" },
     { value: "waffle", label: "Waffle", desc: "Waffle items — shows waffle-specific add-ons" },
-    { value: "combo",  label: "Combo",  desc: "Food + drink — cashier picks food, then customizes the included drink" },
+    { value: "combo",        label: "Combo",        desc: "Food + drink — cashier picks food, then customizes the included drink" },
+    { value: "mix_and_match", label: "Mix & Match", desc: "Food + drink — cashier picks food, customer chooses one of 6 fixed drinks" },
   ],
   drink: [
     { value: "drink",  label: "Drink",  desc: "Regular drink — cashier picks size (SM/SL, UM/UL, etc.)" },
@@ -50,7 +51,8 @@ const TYPE_BADGE: Record<string, string> = {
   wings:   "bg-orange-50 text-orange-700 border border-orange-200",
   waffle:  "bg-yellow-50 text-yellow-700 border border-yellow-200",
   combo:   "bg-purple-50 text-purple-700 border border-purple-200",
-  bundle:  "bg-indigo-50 text-indigo-700 border border-indigo-200",
+  bundle:        "bg-indigo-50 text-indigo-700 border border-indigo-200",
+  mix_and_match: "bg-rose-50 text-rose-700 border border-rose-200",
 };
 
 interface Category {
@@ -210,21 +212,26 @@ const CategoryModal: React.FC<{
             </div>
           </div>
 
-          {(posBehavior === "bundle" || posBehavior === "combo") && (
+          {(posBehavior === "bundle" || posBehavior === "combo" || posBehavior === "mix_and_match") && (
             <div className={`p-3 rounded-lg border text-xs font-medium ${
-              posBehavior === "bundle"
-                ? "bg-indigo-50 border-indigo-200 text-indigo-700"
-                : "bg-purple-50 border-purple-200 text-purple-700"
+              posBehavior === "bundle"      ? "bg-indigo-50 border-indigo-200 text-indigo-700"
+              : posBehavior === "combo"     ? "bg-purple-50 border-purple-200 text-purple-700"
+              :                               "bg-rose-50 border-rose-200 text-rose-700"
             }`}>
               {posBehavior === "bundle" ? (
                 <>
                   <p className="font-bold mb-1">Bundle — Drinks Only</p>
                   <p className="opacity-80">Each drink gets its own sugar, options, and add-ons. Cashier steps through each drink one by one. e.g. GF Duo Bundles, FP Coffee Bundles.</p>
                 </>
-              ) : (
+              ) : posBehavior === "combo" ? (
                 <>
                   <p className="font-bold mb-1">Combo — Food + Drink</p>
                   <p className="opacity-80">Cashier selects the combo item, then picks and customizes the included drink. e.g. Combo Meals, Pizza Pedricos Combo.</p>
+                </>
+              ) : (
+                <>
+                  <p className="font-bold mb-1">Mix & Match — Food + Customer's Choice of Drink</p>
+                  <p className="opacity-80">Cashier selects the food item, then the customer picks one drink from 6 fixed options and customizes it. e.g. Spaghetti W/ Rice, Tonkatsu W/ Rice.</p>
                 </>
               )}
             </div>
