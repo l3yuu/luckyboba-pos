@@ -901,7 +901,7 @@ export const ConfirmOrderModal = ({
                               onChange={e => onReferenceNumberChange(e.target.value)}
                               className="w-full bg-zinc-50 border-2 border-zinc-300 rounded-[0.625rem] py-4 px-5 text-xl font-black outline-none focus:border-[#3b2063] focus:bg-white transition-colors"
                               placeholder={
-                                paymentMethod === 'grab' ? 'GRAB-XXXXXX (optional)'
+                                paymentMethod === 'grab' ? 'GRAB-XXXXXX'
                                 : paymentMethod === 'food_panda' ? 'FP-XXXXXX'
                                 : 'REF#'
                               }
