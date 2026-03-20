@@ -427,49 +427,36 @@ const MixAndMatchBuilder: React.FC<MixAndMatchBuilderProps> = ({
   const FOOD_TYPES = ["food", "wings", "waffle"];
   const foodItems  = allItems.filter(i => FOOD_TYPES.includes(i.category_type));
 
-  // All drinks available to pick from
   const drinkPool = allItems
     .filter(i => i.category_type === "drink")
     .sort((a, b) => a.name.localeCompare(b.name) || (a.price - b.price));
 
-  // Count how many items share each name (to detect M/L pairs)
   const drinkNameCounts = drinkPool.reduce<Record<string, number>>((acc, d) => {
     acc[d.name] = (acc[d.name] ?? 0) + 1;
     return acc;
   }, {});
   const drinkNameIndex: Record<string, number> = {};
 
-  // Build deduplicated list but attach an inferred size label
-  const allDrinks = drinkPool.reduce<(MenuItem & { _sizeLabel: string })[]>((acc, drink) => {
+  // Keep all entries — no deduplication, just label each with inferred size
+  const allDrinks = drinkPool.map(drink => {
     const hasPair = drinkNameCounts[drink.name] > 1;
     let sizeLabel = drink.size && drink.size !== 'none' ? drink.size.toUpperCase() : '';
     if (!sizeLabel && hasPair) {
       drinkNameIndex[drink.name] = (drinkNameIndex[drink.name] ?? 0) + 1;
       sizeLabel = drinkNameIndex[drink.name] === 1 ? 'M' : 'L';
     }
-    // For mix & match checklist — show one entry per name, prefer M
-    const existing = acc.find(d => d.name === drink.name);
-    if (!existing) {
-      acc.push({ ...drink, _sizeLabel: sizeLabel });
-    } else if (sizeLabel === 'M' && existing._sizeLabel !== 'M') {
-      const idx = acc.indexOf(existing);
-      acc[idx] = { ...drink, _sizeLabel: sizeLabel };
-    }
-    return acc;
-  }, []);
+    return { ...drink, _sizeLabel: sizeLabel };
+  });
 
-  const [selectedDrinkNames, setSelectedDrinkNames] = useState<string[]>([
-    'HOT CHOCOLATE',
-    'CLASSIC PEARL',
-    'BELGIAN CHOCO. FRAPPE',
-    'ICED CARAMEL MACCHIATO',
-    'GREEN APPLE YAKULT',
-    'WINTERMELON MILK TEA',
-  ]);
+  const defaultSelected = allDrinks
+    .filter(d => ['HOT CHOCOLATE','CLASSIC PEARL','BELGIAN CHOCO. FRAPPE','ICED CARAMEL MACCHIATO','GREEN APPLE YAKULT','WINTERMELON MILK TEA'].includes(d.name.toUpperCase()) && (d._sizeLabel === 'M' || d._sizeLabel === ''))
+    .map(d => String(d.id));
 
-  const toggleDrink = (name: string) => {
-    setSelectedDrinkNames(prev =>
-      prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]
+  const [selectedDrinkIds, setSelectedDrinkIds] = useState<string[]>(defaultSelected);
+
+  const toggleDrink = (id: string) => {
+    setSelectedDrinkIds(prev =>
+      prev.includes(id) ? prev.filter(n => n !== id) : [...prev, id]
     );
   };
 
@@ -517,19 +504,19 @@ const MixAndMatchBuilder: React.FC<MixAndMatchBuilderProps> = ({
       <div>
         <label className="text-[10px] font-bold uppercase tracking-wider text-rose-600 mb-2 flex items-center justify-between">
           <span className="flex items-center gap-1.5"><Coffee size={10} /> Available Drinks</span>
-          <span className="text-[9px] font-medium text-rose-400 normal-case">{selectedDrinkNames.length} selected</span>
+          <span className="text-[9px] font-medium text-rose-400 normal-case">{selectedDrinkIds.length} selected</span>
         </label>
         <div className="grid grid-cols-2 gap-1.5 max-h-48 overflow-y-auto pr-1">
           {allDrinks.length === 0 ? (
             <p className="text-[10px] text-rose-400 italic col-span-2">No drinks found.</p>
           ) : (
             allDrinks.map(d => {
-              const isSelected = selectedDrinkNames.includes(d.name);
+              const isSelected = selectedDrinkIds.includes(String(d.id));
               return (
                 <button
                   key={d.id}
                   type="button"
-                  onClick={() => toggleDrink(d.name)}
+                  onClick={() => toggleDrink(String(d.id))}
                   className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-left transition-all ${
                     isSelected
                       ? 'bg-rose-100 border-rose-400 text-rose-800'
@@ -558,7 +545,7 @@ const MixAndMatchBuilder: React.FC<MixAndMatchBuilderProps> = ({
             })
           )}
         </div>
-        {selectedDrinkNames.length === 0 && (
+        {selectedDrinkIds.length === 0 && (
           <p className="text-[10px] text-red-500 mt-1 font-medium">Select at least one drink.</p>
         )}
       </div>
