@@ -1238,6 +1238,7 @@ const handleSubmitOrder = async (nameOverride?: string) => {
           onToggleAddOn={name => setMixMatchDrinkAddOns(prev =>
             prev.includes(name) ? prev.filter(a => a !== name) : [...prev, name]
           )}
+          onToggleOrderCharge={toggleOrderCharge}
           onConfirm={confirmMixAndMatch}
           onClose={() => { setIsMixMatchModalOpen(false); setPendingMixMatchCart(null); }}
         />

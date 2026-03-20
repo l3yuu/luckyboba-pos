@@ -710,6 +710,7 @@ interface MixAndMatchDrinkModalProps {
   onToggleAddOn: (name: string) => void;
   onConfirm: () => void;
   onClose: () => void;
+  onToggleOrderCharge: (type: 'grab' | 'panda') => void;
 }
 
 export const MixAndMatchDrinkModal = ({
@@ -728,10 +729,14 @@ export const MixAndMatchDrinkModal = ({
   onOpenAddOns,
   onCloseAddOns,
   onToggleAddOn,
+  onToggleOrderCharge,
   onConfirm,
   onClose,
 }: MixAndMatchDrinkModalProps) => {
-  const canConfirm = selectedDrink !== null && drinkSugar !== '';
+  const drinkOpts = (selectedDrink as unknown as { options?: string[] })?.options ?? [];
+  const hasPearlOption = drinkOpts.includes('pearl');
+  const hasPearlSelected = drinkOptions.some(o => ['NO PRL', 'W/ PRL'].includes(o));
+  const canConfirm = selectedDrink !== null && drinkSugar !== '' && (!hasPearlOption || hasPearlSelected);
 
   return (
     <>
@@ -805,23 +810,66 @@ export const MixAndMatchDrinkModal = ({
                   )}
                 </div>
 
-                {/* Options */}
-                <div>
-                  <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Options (Free)</label>
-                  <div className="flex flex-wrap gap-2">
-                    {EXTRA_OPTIONS.filter((opt: string) => opt !== 'WARM').map((opt: string) => (
-                      <button key={opt} onClick={() => onToggleOption(opt)}
-                        className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${drinkOptions.includes(opt) ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
-                        {opt}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                {/* Options — filtered by what the selected drink supports */}
+                {(() => {
+                  const drinkOpts = (selectedDrink as unknown as { options?: string[] })?.options ?? [];
+                  const visibleOpts = EXTRA_OPTIONS.filter((opt: string) => {
+                    const pearlOpts = ['NO PRL', 'W/ PRL'];
+                    const iceOpts   = ['NO ICE', '-ICE', '+ICE'];
+                    if (pearlOpts.includes(opt)) return drinkOpts.includes('pearl');
+                    if (iceOpts.includes(opt))   return drinkOpts.includes('ice');
+                    if (opt === 'WARM')          return false;
+                    return true;
+                  });
+                  if (visibleOpts.length === 0) return null;
+                  return (
+                    <div>
+                      <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Options (Free)</label>
+                      <div className="flex flex-wrap gap-2">
+                        {visibleOpts.map((opt: string) => (
+                          <button key={opt} onClick={() => onToggleOption(opt)}
+                            className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${drinkOptions.includes(opt) ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Add-ons */}
                 <div>
                   <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Extra Add-ons</label>
                   <AddOnTriggerButton count={drinkAddOns.length} onClick={onOpenAddOns} />
+                </div>
+
+{/* Delivery charges — surcharge from food item */}
+                <div>
+                  <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">
+                    Charges
+                    {orderCharge === 'grab'  && Number((pendingMixMatchCart as { grab_price?: number })?.grab_price  ?? 0) > 0 ? ` (+₱${Number((pendingMixMatchCart as { grab_price?: number })?.grab_price).toFixed(2)})` : ''}
+                    {orderCharge === 'panda' && Number((pendingMixMatchCart as { panda_price?: number })?.panda_price ?? 0) > 0 ? ` (+₱${Number((pendingMixMatchCart as { panda_price?: number })?.panda_price).toFixed(2)})` : ''}
+                    {orderCharge && Number((pendingMixMatchCart as { grab_price?: number; panda_price?: number })?.[orderCharge === 'grab' ? 'grab_price' : 'panda_price'] ?? 0) === 0 ? ' (No Surcharge)' : ''}
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {(['grab', 'panda'] as const).map(type => {
+                      const isActive   = orderCharge === type;
+                      const isDisabled = orderCharge !== null && orderCharge !== type;
+                      return (
+                        <button key={type} type="button"
+                          onClick={() => !isDisabled && onToggleOrderCharge(type)}
+                          disabled={isDisabled}
+                          className={`p-3 rounded-[0.625rem] border-2 transition-all flex items-center justify-center gap-2
+                            ${isDisabled ? 'border-zinc-200 bg-white text-zinc-300 opacity-40 cursor-not-allowed'
+                              : isActive
+                                ? type === 'grab' ? 'border-green-500 bg-green-50 text-green-700' : 'border-pink-500 bg-pink-50 text-pink-700'
+                                : type === 'grab' ? 'border-zinc-300 bg-white text-zinc-500 hover:border-green-300 hover:bg-green-50' : 'border-zinc-300 bg-white text-zinc-500 hover:border-pink-300 hover:bg-pink-50'
+                            }`}>
+                          <span className="font-bold text-xs uppercase">{type === 'grab' ? 'Grab Food' : 'Food Panda'}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Confirm */}
@@ -830,7 +878,7 @@ export const MixAndMatchDrinkModal = ({
                   disabled={!canConfirm}
                   className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${canConfirm ? 'bg-[#7c14d4] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-black cursor-not-allowed'}`}
                 >
-                  ✓ Add Mix & Match to Order
+                  {!drinkSugar ? '⚠ Select Sugar Level First' : hasPearlOption && !hasPearlSelected ? 'Select Pearl Option First' : '✓ Add Mix & Match to Order'}
                 </button>
               </div>
             )}

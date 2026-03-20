@@ -505,6 +505,128 @@ class BundleSeeder extends Seeder
                     ['custom_name' => 'GREEN APPLE NOVA',  'quantity' => 1, 'size' => 'L',    'display_name' => 'Drink'],
                 ],
             ],
+            // ── MIX & MATCH (₱105 meals) ──────────────────────────────────────────
+            [
+                'name'        => 'SPAGHETTI W/ RICE + DRINK',
+                'category'    => 'MIX & MATCH',
+                'bundle_type' => 'mix_and_match',
+                'barcode'     => 'MM-SP',
+                'price'       => 105.00,
+                'size'        => 'none',
+                'cup_id'      => $smsl,
+                'items'       => [
+                    ['custom_name' => 'SPAGHETTI W/ RICE', 'quantity' => 1, 'size' => 'none', 'display_name' => 'Food'],
+                    ['custom_name' => 'DRINK',              'quantity' => 1, 'size' => 'M',    'display_name' => 'Drink'],
+                ],
+            ],
+            [
+                'name'        => 'SIOMAI W/ RICE + DRINK',
+                'category'    => 'MIX & MATCH',
+                'bundle_type' => 'mix_and_match',
+                'barcode'     => 'MM-SM',
+                'price'       => 105.00,
+                'size'        => 'none',
+                'cup_id'      => $smsl,
+                'items'       => [
+                    ['custom_name' => 'SIOMAI W/ RICE', 'quantity' => 1, 'size' => 'none', 'display_name' => 'Food'],
+                    ['custom_name' => 'DRINK',           'quantity' => 1, 'size' => 'M',    'display_name' => 'Drink'],
+                ],
+            ],
+            [
+                'name'        => 'HOTDOG W/ RICE + DRINK',
+                'category'    => 'MIX & MATCH',
+                'bundle_type' => 'mix_and_match',
+                'barcode'     => 'MM-HD',
+                'price'       => 105.00,
+                'size'        => 'none',
+                'cup_id'      => $smsl,
+                'items'       => [
+                    ['custom_name' => 'HOTDOG W/ RICE', 'quantity' => 1, 'size' => 'none', 'display_name' => 'Food'],
+                    ['custom_name' => 'DRINK',           'quantity' => 1, 'size' => 'M',    'display_name' => 'Drink'],
+                ],
+            ],
+
+            // ── MIX & MATCH (₱125 meals) ──────────────────────────────────────────
+            [
+                'name'        => 'CHICKEN POPPERS W/ RICE + DRINK',
+                'category'    => 'MIX & MATCH',
+                'bundle_type' => 'mix_and_match',
+                'barcode'     => 'MM-CP',
+                'price'       => 125.00,
+                'size'        => 'none',
+                'cup_id'      => $smsl,
+                'items'       => [
+                    ['custom_name' => 'CHICKEN POPPERS W/ RICE', 'quantity' => 1, 'size' => 'none', 'display_name' => 'Food'],
+                    ['custom_name' => 'DRINK',                    'quantity' => 1, 'size' => 'M',    'display_name' => 'Drink'],
+                ],
+            ],
+            [
+                'name'        => 'SHANGHAI W/ RICE + DRINK',
+                'category'    => 'MIX & MATCH',
+                'bundle_type' => 'mix_and_match',
+                'barcode'     => 'MM-SH',
+                'price'       => 125.00,
+                'size'        => 'none',
+                'cup_id'      => $smsl,
+                'items'       => [
+                    ['custom_name' => 'SHANGHAI W/ RICE', 'quantity' => 1, 'size' => 'none', 'display_name' => 'Food'],
+                    ['custom_name' => 'DRINK',             'quantity' => 1, 'size' => 'M',    'display_name' => 'Drink'],
+                ],
+            ],
+            [
+                'name'        => 'CHICKEN WINGS W/ RICE + DRINK',
+                'category'    => 'MIX & MATCH',
+                'bundle_type' => 'mix_and_match',
+                'barcode'     => 'MM-CW',
+                'price'       => 125.00,
+                'size'        => 'none',
+                'cup_id'      => $smsl,
+                'items'       => [
+                    ['custom_name' => 'CHICKEN WINGS W/ RICE', 'quantity' => 1, 'size' => 'none', 'display_name' => 'Food'],
+                    ['custom_name' => 'DRINK',                  'quantity' => 1, 'size' => 'M',    'display_name' => 'Drink'],
+                ],
+            ],
+
+            // ── MIX & MATCH (₱150 meals) ──────────────────────────────────────────
+            [
+                'name'        => 'TONKATSU W/ RICE + DRINK',
+                'category'    => 'MIX & MATCH',
+                'bundle_type' => 'mix_and_match',
+                'barcode'     => 'MM-TK',
+                'price'       => 150.00,
+                'size'        => 'none',
+                'cup_id'      => $smsl,
+                'items'       => [
+                    ['custom_name' => 'TONKATSU W/ RICE', 'quantity' => 1, 'size' => 'none', 'display_name' => 'Food'],
+                    ['custom_name' => 'DRINK',             'quantity' => 1, 'size' => 'M',    'display_name' => 'Drink'],
+                ],
+            ],
+            [
+                'name'        => 'CHICKEN TWISTER WRAP + DRINK',
+                'category'    => 'MIX & MATCH',
+                'bundle_type' => 'mix_and_match',
+                'barcode'     => 'MM-CTW',
+                'price'       => 150.00,
+                'size'        => 'none',
+                'cup_id'      => $smsl,
+                'items'       => [
+                    ['custom_name' => 'CHICKEN TWISTER WRAP', 'quantity' => 1, 'size' => 'none', 'display_name' => 'Food'],
+                    ['custom_name' => 'DRINK',                 'quantity' => 1, 'size' => 'M',    'display_name' => 'Drink'],
+                ],
+            ],
+            [
+                'name'        => 'THICK COATED FRIES + DRINK',
+                'category'    => 'MIX & MATCH',
+                'bundle_type' => 'mix_and_match',
+                'barcode'     => 'MM-TCF',
+                'price'       => 150.00,
+                'size'        => 'none',
+                'cup_id'      => $smsl,
+                'items'       => [
+                    ['custom_name' => 'THICK COATED FRIES', 'quantity' => 1, 'size' => 'none', 'display_name' => 'Food'],
+                    ['custom_name' => 'DRINK',               'quantity' => 1, 'size' => 'M',    'display_name' => 'Drink'],
+                ],
+            ],
         ];
 
         foreach ($bundles as $bundleData) {
