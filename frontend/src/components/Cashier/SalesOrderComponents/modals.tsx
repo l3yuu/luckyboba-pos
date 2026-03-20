@@ -2,7 +2,7 @@
 // All modal overlays used in the SalesOrder page.
 
 import {
-  type CartItem, type Bundle,
+  type CartItem, type Bundle, type MenuItem,
   SUGAR_LEVELS, EXTRA_OPTIONS,
 } from '../../../types/index';
 import {
@@ -688,10 +688,170 @@ export const ComboDrinkModal = ({
     </>
   );
 };
+// ─────────────────────────────────────────────────────────────────────────────
+// MixAndMatchDrinkModal
+// ─────────────────────────────────────────────────────────────────────────────
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ConfirmOrderModal
-// ─────────────────────────────────────────────────────────────────────────────
+interface MixAndMatchDrinkModalProps {
+  pendingMixMatchCart: CartItem;
+  drinkItems: MenuItem[];
+  selectedDrink: MenuItem | null;
+  drinkSugar: string;
+  drinkOptions: string[];
+  drinkAddOns: string[];
+  filteredAddOns: { id: number; name: string; price: number; grab_price?: number; panda_price?: number }[];
+  drinkAddOnModalOpen: boolean;
+  orderCharge: 'grab' | 'panda' | null;
+  onSelectDrink: (item: MenuItem) => void;
+  onSugarChange: (s: string) => void;
+  onToggleOption: (opt: string) => void;
+  onOpenAddOns: () => void;
+  onCloseAddOns: () => void;
+  onToggleAddOn: (name: string) => void;
+  onConfirm: () => void;
+  onClose: () => void;
+}
+
+export const MixAndMatchDrinkModal = ({
+  pendingMixMatchCart,
+  drinkItems,
+  selectedDrink,
+  drinkSugar,
+  drinkOptions,
+  drinkAddOns,
+  filteredAddOns,
+  drinkAddOnModalOpen,
+  orderCharge,
+  onSelectDrink,
+  onSugarChange,
+  onToggleOption,
+  onOpenAddOns,
+  onCloseAddOns,
+  onToggleAddOn,
+  onConfirm,
+  onClose,
+}: MixAndMatchDrinkModalProps) => {
+  const canConfirm = selectedDrink !== null && drinkSugar !== '';
+
+  return (
+    <>
+      <div className="fixed inset-0 z-110 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div className="bg-white w-full max-w-2xl rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+
+          {/* Header */}
+          <div className="bg-[#7c14d4] p-5 text-white relative shrink-0">
+            <div className="text-[10px] font-bold uppercase opacity-60 tracking-widest leading-none mb-1">Step 2 of 2 — Choose Your Drink</div>
+            <h2 className="text-base font-black uppercase tracking-wider leading-tight">
+              {pendingMixMatchCart.name}
+            </h2>
+            <div className="mt-1 inline-block bg-white/20 text-white text-[10px] font-black uppercase px-3 py-1 rounded-[0.625rem] tracking-widest">
+              🧋 Select a drink to complete your Mix & Match
+            </div>
+            <button onClick={onClose} className="absolute top-5 right-6 text-white/50 hover:text-white transition-colors">
+              <CloseIcon size={6} />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto bg-white">
+            {/* Step 1: Pick drink */}
+            {!selectedDrink ? (
+              <div className="p-6">
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4">Available Drinks</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {drinkItems.map(drink => (
+                    <button
+                      key={drink.id}
+                      onClick={() => onSelectDrink(drink)}
+                      className="p-4 rounded-[0.625rem] border-2 border-[#e9d5ff] bg-white hover:border-[#7c14d4] hover:bg-[#f5f0ff] transition-all text-left flex flex-col gap-1"
+                    >
+                      <span className="text-xs font-black uppercase leading-tight text-black">{drink.name}</span>
+                      {drink.size && drink.size !== 'none' && (
+                        <span className="text-[10px] font-bold text-zinc-400 uppercase">{drink.size}</span>
+                      )}
+                      <span className="text-sm font-black text-[#7c14d4] mt-1">₱{Number(drink.price).toFixed(2)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="p-6 space-y-5">
+                {/* Selected drink header */}
+                <div className="flex items-center justify-between bg-[#f5f0ff] border-2 border-[#7c14d4]/30 rounded-[0.625rem] px-4 py-3">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Selected Drink</p>
+                    <p className="font-black text-sm text-black uppercase">{selectedDrink.name}</p>
+                  </div>
+                  <button
+                    onClick={() => onSelectDrink(null as unknown as MenuItem)}
+                    className="text-[10px] font-black uppercase text-[#7c14d4] hover:text-red-500 transition-colors"
+                  >
+                    Change
+                  </button>
+                </div>
+
+                {/* Sugar Level */}
+                <div>
+                  <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
+                  <div className="flex gap-2">
+                    {SUGAR_LEVELS.map((level: string) => (
+                      <button key={level} onClick={() => onSugarChange(level)}
+                        className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${drinkSugar === level ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+                        {level}
+                      </button>
+                    ))}
+                  </div>
+                  {drinkSugar === '' && (
+                    <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1.5 ml-1">⚠ Please select sugar level</p>
+                  )}
+                </div>
+
+                {/* Options */}
+                <div>
+                  <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Options (Free)</label>
+                  <div className="flex flex-wrap gap-2">
+                    {EXTRA_OPTIONS.filter((opt: string) => opt !== 'WARM').map((opt: string) => (
+                      <button key={opt} onClick={() => onToggleOption(opt)}
+                        className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${drinkOptions.includes(opt) ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+                        {opt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Add-ons */}
+                <div>
+                  <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Extra Add-ons</label>
+                  <AddOnTriggerButton count={drinkAddOns.length} onClick={onOpenAddOns} />
+                </div>
+
+                {/* Confirm */}
+                <button
+                  onClick={onConfirm}
+                  disabled={!canConfirm}
+                  className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${canConfirm ? 'bg-[#7c14d4] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-black cursor-not-allowed'}`}
+                >
+                  ✓ Add Mix & Match to Order
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {drinkAddOnModalOpen && (
+        <AddOnModalShell
+          title="Drink Add-ons"
+          addOns={filteredAddOns}
+          selected={drinkAddOns}
+          onToggle={onToggleAddOn}
+          onClose={onCloseAddOns}
+          zIndex="z-[120]"
+          orderCharge={orderCharge}
+        />
+      )}
+    </>
+  );
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ConfirmOrderModal
