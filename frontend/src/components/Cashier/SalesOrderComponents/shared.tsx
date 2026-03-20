@@ -86,6 +86,8 @@ export const PAYMENT_METHODS = [
   { id: 'paymaya', label: 'Maya'   },
   { id: 'credit',  label: 'Credit' },
   { id: 'debit',   label: 'Debit'  },
+  { id: 'grab',       label: 'GrabFood' },   // ← ADD
+  { id: 'food_panda', label: 'FoodPanda' },  // ← ADD
 ] as const;
 
 export const TYPE_BADGE = {

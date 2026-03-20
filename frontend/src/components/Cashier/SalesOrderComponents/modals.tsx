@@ -832,13 +832,33 @@ export const ConfirmOrderModal = ({
                   <div>
                     <h3 className="font-black text-sm text-black uppercase mb-3 tracking-wider">Payment Method</h3>
                     <div className="grid grid-cols-3 gap-2 mb-5">
-                      {PAYMENT_METHODS.map(({ id, label }) => (
-                        <button key={id} onClick={() => { onPaymentMethodChange(id); onReferenceNumberChange(''); onCashTenderedChange(''); }}
-                          className={`py-3 rounded-[0.625rem] font-black text-sm uppercase transition-all border-2 flex flex-col items-center gap-1
-                            ${paymentMethod === id ? 'bg-[#7c14d4] text-white border-[#7c14d4] shadow-md' : 'bg-[#f5f0ff] text-black border-[#e9d5ff] hover:border-[#7c14d4]/40'}`}>
-                          {label}
-                        </button>
-                      ))}
+                      {PAYMENT_METHODS.map(({ id, label }) => {
+                        // If order has grab charge → only allow 'grab' payment
+                        // If order has panda charge → only allow 'food_panda' payment
+                        // If no charge → only allow non-delivery payment methods
+                        const isDeliveryMethod = id === 'grab' || id === 'food_panda';
+                        const isLocked =
+                          (orderCharge === 'grab'  && id !== 'grab') ||
+                          (orderCharge === 'panda' && id !== 'food_panda') ||
+                          (!orderCharge && isDeliveryMethod);
+
+                        return (
+                          <button
+                            key={id}
+                            onClick={() => { if (!isLocked) { onPaymentMethodChange(id); onReferenceNumberChange(''); onCashTenderedChange(''); }}}
+                            disabled={isLocked}
+                            className={`py-3 rounded-[0.625rem] font-black text-sm uppercase transition-all border-2 flex flex-col items-center gap-1
+                              ${isLocked
+                                ? 'bg-zinc-100 text-zinc-300 border-zinc-100 cursor-not-allowed opacity-40'
+                                : paymentMethod === id
+                                  ? 'bg-[#7c14d4] text-white border-[#7c14d4] shadow-md'
+                                  : 'bg-[#f5f0ff] text-black border-[#e9d5ff] hover:border-[#7c14d4]/40'
+                              }`}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
                     </div>
                     {paymentMethod === 'cash' ? (
                       <>
@@ -864,13 +884,72 @@ export const ConfirmOrderModal = ({
                           <span className="text-2xl font-black text-green-600">₱ {change.toFixed(2)}</span>
                         </div>
                       </>
-                    ) : (
-                      <div className="space-y-2">
-                        <h3 className="font-black text-[10px] text-zinc-400 tracking-widest uppercase">Reference Number</h3>
-                        <input type="text" value={referenceNumber} onChange={e => onReferenceNumberChange(e.target.value)}
-                          className="w-full bg-zinc-50 border-2 border-zinc-300 rounded-[0.625rem] py-4 px-5 text-xl font-black outline-none focus:border-[#3b2063] focus:bg-white transition-colors" placeholder="REF#" />
-                      </div>
-                    )}
+                      ) : (
+                        <div className="space-y-4">
+                          {/* Reference number — optional for all non-cash */}
+                          <div className="space-y-2">
+                            <h3 className="font-black text-[10px] text-zinc-400 tracking-widest uppercase">
+                              {paymentMethod === 'grab'
+                                ? 'GrabFood Order Reference (Optional)'
+                                : paymentMethod === 'food_panda'
+                                ? 'FoodPanda Order Reference (Optional)'
+                                : 'Reference Number'}
+                            </h3>
+                            <input
+                              type="text"
+                              value={referenceNumber}
+                              onChange={e => onReferenceNumberChange(e.target.value)}
+                              className="w-full bg-zinc-50 border-2 border-zinc-300 rounded-[0.625rem] py-4 px-5 text-xl font-black outline-none focus:border-[#3b2063] focus:bg-white transition-colors"
+                              placeholder={
+                                paymentMethod === 'grab' ? 'GRAB-XXXXXX (optional)'
+                                : paymentMethod === 'food_panda' ? 'FP-XXXXXX'
+                                : 'REF#'
+                              }
+                            />
+                          </div>
+
+                          {/* Cash sent to platform — only for Grab/FoodPanda */}
+                          {(paymentMethod === 'grab' || paymentMethod === 'food_panda') && (
+                            <div className="space-y-2">
+                              <h3 className="font-black text-[10px] text-zinc-400 tracking-widest uppercase">
+                                Cash Sent to {paymentMethod === 'grab' ? 'GrabFood' : 'FoodPanda'} Credits
+                              </h3>
+                              <div className="relative">
+                                <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-2xl text-[#7c14d4]/30">₱</span>
+                                <input
+                                  type="number"
+                                  value={cashTendered}
+                                  onChange={e => onCashTenderedChange(e.target.value ? Number(e.target.value) : '')}
+                                  className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-4 pl-12 pr-4 text-3xl font-black text-black outline-none focus:border-[#7c14d4] focus:bg-white transition-colors"
+                                  placeholder="0.00"
+                                />
+                              </div>
+                              <div className="grid grid-cols-4 gap-2">
+                                <button onClick={() => onCashTenderedChange(amtDue)}
+                                  className="col-span-4 bg-[#7c14d4] text-white py-2.5 rounded-[0.625rem] font-black text-sm uppercase tracking-widest">
+                                  Exact Amount (₱ {amtDue.toFixed(2)})
+                                </button>
+                                {[100, 200, 500, 1000].map(amount => (
+                                  <button key={amount} onClick={() => onCashTenderedChange(amount)}
+                                    className="bg-[#f5f0ff] hover:bg-[#7c14d4] hover:text-white text-black py-3 rounded-[0.625rem] font-black text-base transition-all border-2 border-[#e9d5ff] hover:border-[#7c14d4]">
+                                    ₱{amount}
+                                  </button>
+                                ))}
+                              </div>
+                              {cashTendered !== '' && (
+                                <div className="flex justify-between items-center bg-[#f5f0ff] border border-[#e9d5ff] p-4 rounded-[0.625rem]">
+                                  <span className="font-black text-zinc-400 uppercase text-xs tracking-widest">
+                                    {Number(cashTendered) >= amtDue ? 'Change' : 'Short by'}
+                                  </span>
+                                  <span className={`text-2xl font-black ${Number(cashTendered) >= amtDue ? 'text-green-600' : 'text-red-500'}`}>
+                                    ₱ {Math.abs(Number(cashTendered) - amtDue).toFixed(2)}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
                   </div>
                 </div>
               )}
@@ -910,8 +989,7 @@ export const ConfirmOrderModal = ({
               onClick={onConfirm}
               disabled={
                 submitting ||
-                (paymentMethod === 'cash' && (cashTendered === '' || cashTendered < amtDue)) ||
-                (paymentMethod !== 'cash' && !referenceNumber)
+                (paymentMethod === 'cash' && (cashTendered === '' || cashTendered < amtDue))
               }
               className="w-full bg-[#7c14d4] hover:bg-[#6a12b8] transition-colors text-white py-4 rounded-[0.625rem] font-black uppercase tracking-widest shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed"
             >

@@ -880,6 +880,7 @@ const handleSubmitOrder = async (nameOverride?: string) => {
     vatable_sales:    vatableSales,
     vat_amount:       vatAmount,
     customer_name:    nameOverride ?? customerName ?? null, // ✅ name is now captured
+    cash_tendered: typeof cashTendered === 'number' ? cashTendered : 0,
   };
 
   if (navigator.onLine) {
@@ -1232,7 +1233,13 @@ const handleSubmitOrder = async (nameOverride?: string) => {
             totalCount={totalCount}
             subtotal={subtotal}
             onEditItem={openCartItemEdit}
-            onConfirmOrder={() => setIsConfirmModalOpen(true)}
+            onConfirmOrder={() => {
+              // Auto-set payment method when opening confirm modal
+              if (orderCharge === 'grab')        setPaymentMethod('grab');
+              else if (orderCharge === 'panda')  setPaymentMethod('food_panda');
+              else                               setPaymentMethod('cash');
+              setIsConfirmModalOpen(true);
+            }}
           />
         </div>
       </div>
