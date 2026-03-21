@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\RawMaterialController;
 use App\Http\Controllers\Api\RecipeController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\CacheController;
+use App\Http\Controllers\CategoryDrinkController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -301,6 +302,10 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::put   ('/{id}',       [BundleController::class, 'update']);
             Route::delete('/{id}',       [BundleController::class, 'destroy']);
             Route::patch ('/{id}/toggle',[BundleController::class, 'toggle']);
+        });
+        Route::prefix('category-drinks')->group(function () {
+            Route::get ('/', [CategoryDrinkController::class, 'index']);
+            Route::post('/', [CategoryDrinkController::class, 'store']);
         });
     });
 });

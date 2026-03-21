@@ -53,6 +53,15 @@ interface Category {
 }
 interface SubCategory { id: number; name: string; category_id: number; }
 
+interface CategoryDrink {
+  id:           number;
+  category_id:  number;
+  menu_item_id: number;
+  name:         string;
+  size:         string;
+  price:        number;
+}
+
 // ── Shared UI ─────────────────────────────────────────────────────────────────
 
 interface BtnProps {
@@ -409,26 +418,18 @@ const BundleBuilder: React.FC<BundleBuilderProps> = ({
   );
 };
 
-// ── Mix & Match Builder ───────────────────────────────────────────────────────
+// ── Category Drinks Manager ───────────────────────────────────────────────────
 
-
-interface MixAndMatchBuilderProps {
-  allItems:          MenuItem[];
-  foodItemId:        string;
-  onFoodChange:      (id: string) => void;
-  selectedDrinkIds:  string[];
-  onDrinkIdsChange:  (ids: string[]) => void;
-  errors:            Record<string, string>;
+interface CategoryDrinksManagerProps {
+  categoryId:   number;
+  categoryName: string;
+  allItems:     MenuItem[];
+  onClose:      () => void;
 }
 
-// FIND the entire MixAndMatchBuilder component and REPLACE with:
-
-const MixAndMatchBuilder: React.FC<MixAndMatchBuilderProps> = ({
-  allItems, foodItemId, onFoodChange, selectedDrinkIds, onDrinkIdsChange, errors,
+const CategoryDrinksManager: React.FC<CategoryDrinksManagerProps> = ({
+  categoryId, categoryName, allItems, onClose,
 }) => {
-  const FOOD_TYPES = ["food", "wings", "waffle"];
-  const foodItems  = allItems.filter(i => FOOD_TYPES.includes(i.category_type));
-
   const drinkPool = useMemo(() =>
     allItems
       .filter(i => i.category_type === "drink")
@@ -438,8 +439,7 @@ const MixAndMatchBuilder: React.FC<MixAndMatchBuilderProps> = ({
 
   const allDrinks = useMemo(() => {
     const nameCounts = drinkPool.reduce<Record<string, number>>((acc, d) => {
-      acc[d.name] = (acc[d.name] ?? 0) + 1;
-      return acc;
+      acc[d.name] = (acc[d.name] ?? 0) + 1; return acc;
     }, {});
     const nameIndex: Record<string, number> = {};
     return drinkPool.map(drink => {
@@ -453,75 +453,112 @@ const MixAndMatchBuilder: React.FC<MixAndMatchBuilderProps> = ({
     });
   }, [drinkPool]);
 
-    const toggleDrink = (id: string) => {
-    onDrinkIdsChange(
-      selectedDrinkIds.includes(id)
-        ? selectedDrinkIds.filter(n => n !== id)
-        : [...selectedDrinkIds, id]
-    );
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [loading,     setLoading]     = useState(true);
+  const [saving,      setSaving]      = useState(false);
+  const [saved,       setSaved]       = useState(false);
+  const [error,       setError]       = useState("");
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/category-drinks?category_id=${categoryId}`, { headers: authHeaders() })
+      .then(r => r.json())
+      .then(data => {
+        const rows: CategoryDrink[] = data.data ?? [];
+        setSelectedIds(new Set(rows.map(r => r.menu_item_id)));
+      })
+      .catch(() => setError("Failed to load drink pool."))
+      .finally(() => setLoading(false));
+  }, [categoryId]);
+
+  const toggle = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
+      return next;
+    });
+    setSaved(false);
+  };
+
+  const handleSave = async () => {
+    setSaving(true); setError("");
+    try {
+      const res = await fetch("/api/category-drinks", {
+        method:  "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          category_id: categoryId,
+          drinks: allDrinks
+            .filter(d => selectedIds.has(d.id))
+            .map(d => ({ menu_item_id: d.id, size: d._sizeLabel || "M" })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) { setError("Failed to save."); return; }
+      setSaved(true);
+    } catch { setError("Network error."); }
+    finally { setSaving(false); }
   };
 
   return (
-    <div className="flex flex-col gap-3 p-4 bg-rose-50 border border-rose-200 rounded-xl">
-      <div className="flex items-center gap-2 mb-1">
-        <div className="w-6 h-6 bg-rose-100 border border-rose-300 rounded-md flex items-center justify-center">
-          <Utensils size={11} className="text-rose-600" />
+    <ModalShell
+      onClose={onClose}
+      icon={<Coffee size={15} className="text-rose-600" />}
+      title="Manage Drink Pool"
+      sub={`Shared drinks for "${categoryName}"`}
+      footer={
+        <>
+          <Btn variant="secondary" onClick={onClose} disabled={saving}>Close</Btn>
+          <Btn onClick={handleSave} disabled={saving || loading}>
+            {saving
+              ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</span>
+              : saved ? "✓ Saved!" : "Save Drink Pool"
+            }
+          </Btn>
+        </>
+      }
+    >
+      {error && (
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <AlertCircle size={14} className="text-red-500 shrink-0" />
+          <p className="text-xs text-red-600 font-medium">{error}</p>
         </div>
-        <p className="text-xs font-bold text-rose-700 uppercase tracking-wider">Mix & Match Builder</p>
-        <span className="text-[10px] text-rose-400 font-medium">— food + customer picks drink</span>
+      )}
+
+      <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg">
+        <p className="text-xs font-bold text-rose-700 mb-0.5">Shared Drink Pool</p>
+        <p className="text-[10px] text-rose-600 leading-relaxed">
+          All Mix & Match items in <span className="font-bold">{categoryName}</span> will offer these drinks. Changes apply to every item in this category automatically.
+        </p>
       </div>
 
-      {/* Food picker */}
       <div>
-        <label className="text-[10px] font-bold uppercase tracking-wider text-rose-600 mb-1.5 flex items-center gap-1.5">
-          <Utensils size={10} /> Food Item <span className="text-red-400">*</span>
-        </label>
-        <div className="relative">
-          <select
-            value={foodItemId}
-            onChange={e => onFoodChange(e.target.value)}
-            className={`w-full text-sm font-medium text-zinc-700 bg-white border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-rose-400 transition-all appearance-none pr-8 ${errors.food_item_id ? "border-red-300" : "border-rose-200"}`}
-          >
-            <option value="">Select food item...</option>
-            {foodItems.map(i => (
-              <option key={i.id} value={i.id}>
-                {i.name} — {i.category} (₱{Number(i.price).toFixed(2)})
-              </option>
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Available Drinks</label>
+          <span className="text-[9px] font-bold text-rose-500 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">
+            {selectedIds.size} selected
+          </span>
+        </div>
+
+        {loading ? (
+          <div className="grid grid-cols-2 gap-1.5">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-10 bg-zinc-100 rounded-lg animate-pulse" />
             ))}
-          </select>
-          <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-        </div>
-        {errors.food_item_id && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.food_item_id}</p>}
-      </div>
-
-      {/* Divider */}
-      <div className="flex items-center gap-2">
-        <div className="flex-1 h-px bg-rose-200" />
-        <span className="text-[10px] font-bold text-rose-400">+ customer picks one of</span>
-        <div className="flex-1 h-px bg-rose-200" />
-      </div>
-
-      {/* Selectable drinks */}
-      <div>
-        <label className="text-[10px] font-bold uppercase tracking-wider text-rose-600 mb-2 flex items-center justify-between">
-          <span className="flex items-center gap-1.5"><Coffee size={10} /> Available Drinks</span>
-          <span className="text-[9px] font-medium text-rose-400 normal-case">{selectedDrinkIds.length} selected</span>
-        </label>
-        <div className="grid grid-cols-2 gap-1.5 max-h-48 overflow-y-auto pr-1">
-          {allDrinks.length === 0 ? (
-            <p className="text-[10px] text-rose-400 italic col-span-2">No drinks found.</p>
-          ) : (
-            allDrinks.map(d => {
-              const isSelected = selectedDrinkIds.includes(String(d.id));
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-1.5 max-h-72 overflow-y-auto pr-1">
+            {allDrinks.map(d => {
+              const isSelected = selectedIds.has(d.id);
               return (
                 <button
                   key={d.id}
                   type="button"
-                  onClick={() => toggleDrink(String(d.id))}
+                  onClick={() => toggle(d.id)}
                   className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-left transition-all ${
                     isSelected
                       ? 'bg-rose-100 border-rose-400 text-rose-800'
-                      : 'bg-white border-rose-200 text-zinc-500 hover:border-rose-300'
+                      : 'bg-white border-zinc-200 text-zinc-500 hover:border-rose-300'
                   }`}
                 >
                   <div className={`w-3 h-3 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
@@ -543,18 +580,11 @@ const MixAndMatchBuilder: React.FC<MixAndMatchBuilderProps> = ({
                   </div>
                 </button>
               );
-            })
-          )}
-        </div>
-        {selectedDrinkIds.length === 0 && (
-          <p className="text-[10px] text-red-500 mt-1 font-medium">Select at least one drink.</p>
+            })}
+          </div>
         )}
       </div>
-
-      <p className="text-[10px] text-rose-500 font-medium leading-tight">
-        The cashier selects the food item, then the customer picks one drink from the selected options. Sugar level and add-ons are customized at the POS.
-      </p>
-    </div>
+    </ModalShell>
   );
 };
 
@@ -588,9 +618,14 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
   const [drinkItemId,       setDrinkItemId]       = useState("");
   const [bundleItemIds,     setBundleItemIds]     = useState<string[]>(["", ""]);
   const [mixMatchFoodId,    setMixMatchFoodId]    = useState("");
-  const [mixMatchDrinkIds,  setMixMatchDrinkIds]  = useState<string[]>([]);
 
   const [options, setOptions] = useState<ItemOptions>({ pearl: false, ice: false });
+  // Mix & Match bundle items for edit mode display
+const [mmBundleItems, setMmBundleItems] = useState<{ name: string; quantity: number; size: string }[] | null>(null);
+const [mmBundleLoading, setMmBundleLoading] = useState(false);
+
+// Pre-load Mix & Match bundle components when editing
+
 
   // Pre-load existing options when editing a drink
   useEffect(() => {
@@ -617,7 +652,38 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
   const selectedCategory    = categories.find(c => String(c.id) === form.category_id);
   const isComboCategory        = selectedCategory?.category_type === "combo";
   const isBundleCategory       = selectedCategory?.category_type === "bundle";
-  const isMixAndMatchCategory  = selectedCategory?.category_type === "mix_and_match";
+  const isMixAndMatchCategory  = Boolean(selectedCategory?.category_type === "mix_and_match");
+
+useEffect(() => {
+    if (!isEdit || !item || !isMixAndMatchCategory) return;
+    if (!item.category_id || !item.barcode) { setMmBundleItems([]); return; }
+    setMmBundleLoading(true);
+
+    Promise.all([
+      fetch(`/api/bundles?barcode=${encodeURIComponent(item.barcode)}`, { headers: authHeaders() }).then(r => r.json()),
+      fetch(`/api/category-drinks?category_id=${item.category_id}`, { headers: authHeaders() }).then(r => r.json()),
+    ])
+      .then(([bundleData, drinksData]) => {
+        const bundles = Array.isArray(bundleData) ? bundleData : (bundleData.data ?? []);
+        const foodItem = bundles.length > 0
+          ? (bundles[0].items ?? bundles[0].bundle_items ?? []).find((i: BundleItemRaw) => i.size === 'none')
+          : null;
+
+        const drinks: CategoryDrink[] = drinksData.data ?? [];
+
+        setMmBundleItems([
+          ...(foodItem ? [{ name: foodItem.custom_name ?? foodItem.name ?? "Food", quantity: 1, size: "none" }] : []),
+          ...drinks.map(d => ({ name: d.name, quantity: 1, size: d.size ?? "M" })),
+        ]);
+      })
+      .catch(() => setMmBundleItems([]))
+      .finally(() => setMmBundleLoading(false));
+    }, [isEdit, item, isMixAndMatchCategory]);
+
+  // Derived display values
+const mmDrinkCount = mmBundleItems !== null
+  ? mmBundleItems.filter(i => i.size !== 'none').length
+  : null;
 
   // Filter subs based on selected category
   const filteredSubs = subcategories.filter(
@@ -631,23 +697,21 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
     setDrinkItemId("");
     setBundleItemIds(["", ""]);
     setMixMatchFoodId("");
-    setMixMatchDrinkIds([]);
     setErrors(ev => { const n = { ...ev }; delete n.category_id; delete n.food_item_id; delete n.drink_item_id; return n; });
   };
 
-  const validate = () => {
+const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.name.trim())  e.name        = "Name is required.";
-    if (!form.category_id)  e.category_id = "Category is required.";
-    if (!form.barcode.trim()) e.barcode   = "Barcode is required.";
+    if (!form.name.trim())        e.name        = "Name is required.";
+    if (!form.category_id)        e.category_id = "Category is required.";
+    if (!form.barcode.trim())     e.barcode     = "Barcode is required.";
     if (!form.price || isNaN(Number(form.price)) || Number(form.price) < 0)
       e.price = "Valid price is required.";
-
-    if (isComboCategory) {
+    if (isComboCategory && !isEdit) {
       if (!foodItemId)  e.food_item_id  = "Select a food item for this combo.";
       if (!drinkItemId) e.drink_item_id = "Select a drink item for this combo.";
     }
-    if (isMixAndMatchCategory) {
+    if (isMixAndMatchCategory && !isEdit) {
       if (!mixMatchFoodId) e.food_item_id = "Select a food item for this Mix & Match.";
     }
     return e;
@@ -695,45 +759,27 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
         if (options.pearl) optList.push("pearl");
         if (options.ice)   optList.push("ice");
         await fetch(`/api/menu-item-options/${savedItem.id}`, {
-          method:  "PUT",
-          headers: authHeaders(),
-          body:    JSON.stringify({ options: optList }),
+          method: "PUT", headers: authHeaders(),
+          body: JSON.stringify({ options: optList }),
         }).catch(() => {});
       }
 
-      // Step 2: If combo, create bundle record linking food + drink
+      // Step 2: If combo (add only), create bundle
       if (isComboCategory && !isEdit) {
         const foodItem  = allItems.find(i => String(i.id) === foodItemId);
         const drinkItem = allItems.find(i => String(i.id) === drinkItemId);
-
-        const bundlePayload = {
-          name:        form.name,
-          category_id: Number(form.category_id),
-          bundle_type: "combo",
-          price:       Number(form.price),
-          barcode:     form.barcode || `COMBO-${savedItem.id}`,
-          items: [
-            {
-              custom_name:  foodItem?.name  ?? "Food",
-              quantity:     1,
-              size:         "none",
-              display_name: "Food",
-            },
-            {
-              custom_name:  drinkItem?.name ?? "Drink",
-              quantity:     1,
-              size:         "M",
-              display_name: "Drink",
-            },
-          ],
-        };
-
         const bundleRes = await fetch("/api/bundles", {
-          method:  "POST",
-          headers: authHeaders(),
-          body:    JSON.stringify(bundlePayload),
+          method: "POST", headers: authHeaders(),
+          body: JSON.stringify({
+            name: form.name, category_id: Number(form.category_id),
+            bundle_type: "combo", price: Number(form.price),
+            barcode: form.barcode || `COMBO-${savedItem.id}`,
+            items: [
+              { custom_name: foodItem?.name  ?? "Food",  quantity: 1, size: "none", display_name: "Food" },
+              { custom_name: drinkItem?.name ?? "Drink", quantity: 1, size: "M",    display_name: "Drink" },
+            ],
+          }),
         });
-
         if (!bundleRes.ok) {
           setApiError("Item saved but combo bundle creation failed. Please create the bundle manually.");
           onSaved(savedItem);
@@ -741,33 +787,50 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
         }
       }
 
-            if (isMixAndMatchCategory && !isEdit) {
+      // Step 2b: If Mix & Match edit and food changed, update the bundle
+      if (isMixAndMatchCategory && isEdit && mixMatchFoodId && item?.barcode) {
+        const newFoodItem = allItems.find(i => String(i.id) === mixMatchFoodId);
+        if (newFoodItem) {
+          const bundleData = await fetch(`/api/bundles?barcode=${encodeURIComponent(item.barcode)}`, { headers: authHeaders() }).then(r => r.json());
+          const bundles = Array.isArray(bundleData) ? bundleData : (bundleData.data ?? []);
+          if (bundles.length > 0) {
+            const bundleId = bundles[0].id;
+            const existingItems: BundleItemRaw[] = bundles[0].items ?? bundles[0].bundle_items ?? [];
+            const drinkItems = existingItems.filter((bi: BundleItemRaw) => bi.size !== 'none');
+            await fetch(`/api/bundles/${bundleId}`, {
+              method: 'PUT', headers: authHeaders(),
+              body: JSON.stringify({
+                items: [
+                  { custom_name: newFoodItem.name, quantity: 1, size: 'none', display_name: 'Food' },
+                  ...drinkItems.map((d: BundleItemRaw) => ({
+                    custom_name: d.custom_name ?? d.name ?? 'Drink',
+                    quantity: d.quantity ?? 1,
+                    size: d.size ?? 'M',
+                    display_name: 'Drink',
+                  })),
+                ],
+              }),
+            }).catch(() => {});
+          }
+        }
+      }
+
+      // Step 2c: If Mix & Match (add only), create bundle with food + drink pool
+      if (isMixAndMatchCategory && !isEdit) {
         const foodItem = allItems.find(i => String(i.id) === mixMatchFoodId);
-        const mmBundlePayload = {
-          name:        form.name,
-          category_id: Number(form.category_id),
-          bundle_type: "mix_and_match",
-          price:       Number(form.price),
-          barcode:     form.barcode || `MM-${savedItem.id}`,
-          items: [
-            {
-              custom_name:  foodItem?.name ?? "Food",
-              quantity:     1,
-              size:         "none",
-              display_name: "Food",
-            },
-            {
-              custom_name:  "DRINK",
-              quantity:     1,
-              size:         "M",
-              display_name: "Drink",
-            },
-          ],
-        };
+        const drinkPoolData = await fetch(`/api/category-drinks?category_id=${form.category_id}`, { headers: authHeaders() }).then(r => r.json());
+        const categoryDrinks: { menu_item_id: number; name: string; size: string }[] = drinkPoolData.data ?? [];
         const mmBundleRes = await fetch("/api/bundles", {
-          method:  "POST",
-          headers: authHeaders(),
-          body:    JSON.stringify(mmBundlePayload),
+          method: "POST", headers: authHeaders(),
+          body: JSON.stringify({
+            name: form.name, category_id: Number(form.category_id),
+            bundle_type: "mix_and_match", price: Number(form.price),
+            barcode: form.barcode || `MM-${savedItem.id}`,
+            items: [
+              { custom_name: foodItem?.name ?? "Food", quantity: 1, size: "none", display_name: "Food" },
+              ...categoryDrinks.map(d => ({ custom_name: d.name, quantity: 1, size: d.size || "M", display_name: "Drink" })),
+            ],
+          }),
         });
         if (!mmBundleRes.ok) {
           setApiError("Item saved but Mix & Match bundle creation failed. Please create the bundle manually.");
@@ -776,33 +839,20 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
         }
       }
 
-      // Step 3: If bundle category, create bundle record linking all drink items
+      // Step 3: If bundle (add only), create bundle with drink items
       if (isBundleCategory && !isEdit) {
-        const bundlePayload = {
-          name:        form.name,
-          category_id: Number(form.category_id),
-          bundle_type: "bundle",
-          price:       Number(form.price),
-          barcode:     form.barcode || `BUNDLE-${savedItem.id}`,
-          items:       bundleItemIds
-            .filter(id => id !== "")
-            .map(id => {
-              const found = allItems.find(i => String(i.id) === id);
-              return {
-                custom_name:  found?.name ?? "Item",
-                quantity:     1,
-                size:         "L",
-                display_name: found?.name ?? "Item",
-              };
-            }),
-        };
-
         const bundleRes = await fetch("/api/bundles", {
-          method:  "POST",
-          headers: authHeaders(),
-          body:    JSON.stringify(bundlePayload),
+          method: "POST", headers: authHeaders(),
+          body: JSON.stringify({
+            name: form.name, category_id: Number(form.category_id),
+            bundle_type: "bundle", price: Number(form.price),
+            barcode: form.barcode || `BUNDLE-${savedItem.id}`,
+            items: bundleItemIds.filter(id => id !== "").map(id => {
+              const found = allItems.find(i => String(i.id) === id);
+              return { custom_name: found?.name ?? "Item", quantity: 1, size: "L", display_name: found?.name ?? "Item" };
+            }),
+          }),
         });
-
         if (!bundleRes.ok) {
           setApiError("Item saved but bundle creation failed. Please create the bundle manually.");
           onSaved(savedItem);
@@ -812,7 +862,7 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
 
       onSaved(savedItem);
       onClose();
-    } catch { setApiError("Network error. Please try again."); }
+    } catch (err) { console.error('submit error:', err); setApiError("Network error. Please try again."); }
     finally { setLoading(false); }
   };
 
@@ -1007,26 +1057,135 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
         </div>
       )}
 
-            {/* Mix & Match Builder */}
-      {isMixAndMatchCategory && !isEdit && (
-        <MixAndMatchBuilder
-          allItems={allItems}
-          foodItemId={mixMatchFoodId}
-          onFoodChange={setMixMatchFoodId}
-          selectedDrinkIds={mixMatchDrinkIds}
-          onDrinkIdsChange={setMixMatchDrinkIds}
-          errors={errors}
-        />
-      )}
+{/* Mix & Match — food picker + auto-inherit info */}
+{isMixAndMatchCategory && !isEdit && (
+  <div className="flex flex-col gap-3 p-4 bg-rose-50 border border-rose-200 rounded-xl">
+    <div className="flex items-center gap-2 mb-1">
+      <div className="w-6 h-6 bg-rose-100 border border-rose-300 rounded-md flex items-center justify-center">
+        <Utensils size={11} className="text-rose-600" />
+      </div>
+      <p className="text-xs font-bold text-rose-700 uppercase tracking-wider">Mix & Match</p>
+      <span className="text-[10px] text-rose-400 font-medium">— food + shared drink pool</span>
+    </div>
 
-      {/* Info note when editing a mix & match item */}
-      {isMixAndMatchCategory && isEdit && (
-        <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg">
-          <p className="text-xs font-bold text-rose-700 mb-0.5">Editing a Mix & Match item</p>
-          <p className="text-[10px] text-rose-600">The 6 available drinks are fixed at the POS level. To change the food component, edit the bundle directly from the Bundles tab.</p>
+    {/* Food picker */}
+    <div>
+      <label className="text-[10px] font-bold uppercase tracking-wider text-rose-600 mb-1.5 flex items-center gap-1.5">
+        <Utensils size={10} /> Food Item <span className="text-red-400">*</span>
+      </label>
+      <div className="relative">
+        <select
+          value={mixMatchFoodId}
+          onChange={e => { setMixMatchFoodId(e.target.value); setErrors(ev => { const n = { ...ev }; delete n.food_item_id; return n; }); }}
+          className={`w-full text-sm font-medium text-zinc-700 bg-white border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-rose-400 transition-all appearance-none pr-8 ${errors.food_item_id ? "border-red-300" : "border-rose-200"}`}
+        >
+          <option value="">Select food item...</option>
+          {allItems.filter(i => ["food", "wings", "waffle"].includes(i.category_type)).map(i => (
+            <option key={i.id} value={i.id}>
+              {i.name} — {i.category} (₱{Number(i.price).toFixed(2)})
+            </option>
+          ))}
+        </select>
+        <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+      </div>
+      {errors.food_item_id && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.food_item_id}</p>}
+    </div>
+
+{/* Drinks auto-inherit notice */}
+<div className="flex items-start gap-2 p-2.5 bg-white border border-rose-200 rounded-lg">
+  <Coffee size={12} className="text-rose-400 mt-0.5 shrink-0" />
+  <div className="flex-1">
+    <p className="text-[10px] text-rose-600 leading-relaxed mb-1.5">
+      Drinks are <span className="font-bold">automatically inherited</span> from this category's shared drink pool.
+    </p>
+    <button
+      type="button"
+      onClick={() => {
+        const cat = categories.find(c => String(c.id) === form.category_id);
+        if (cat) window.dispatchEvent(new CustomEvent('open-drink-pool', { detail: cat }));
+      }}
+      className="text-[10px] font-bold text-rose-600 hover:text-rose-800 bg-rose-100 hover:bg-rose-200 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1"
+    >
+      <Coffee size={10} /> Manage Drink Pool
+    </button>
+  </div>
+</div>
+  </div>
+)}
+
+{isMixAndMatchCategory && isEdit && (
+  <div className="flex flex-col gap-3 p-4 bg-rose-50 border border-rose-200 rounded-xl">
+    <div className="flex items-center gap-2">
+      <div className="w-6 h-6 bg-rose-100 border border-rose-300 rounded-md flex items-center justify-center">
+        <Coffee size={11} className="text-rose-600" />
+      </div>
+      <p className="text-xs font-bold text-rose-700 uppercase tracking-wider">Mix & Match</p>
+      <span className="text-[9px] font-bold text-rose-400 bg-rose-100 border border-rose-200 px-1.5 py-0.5 rounded-full">
+        {mmDrinkCount !== null ? `${mmDrinkCount} drinks` : '...'}
+      </span>
+    </div>
+
+    {/* Food picker in edit mode */}
+    <div>
+      <label className="text-[10px] font-bold uppercase tracking-wider text-rose-600 mb-1.5 flex items-center gap-1.5">
+        <Utensils size={10} /> Food Item
+      </label>
+      <div className="relative">
+        <select
+          value={mixMatchFoodId}
+          onChange={e => setMixMatchFoodId(e.target.value)}
+          className="w-full text-sm font-medium text-zinc-700 bg-white border border-rose-200 rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-rose-400 transition-all appearance-none pr-8"
+        >
+          <option value="">
+            {mmBundleItems?.[0]?.name ?? "Keep current food item"}
+          </option>
+          {allItems.filter(i => ["food", "wings", "waffle"].includes(i.category_type)).map(i => (
+            <option key={i.id} value={i.id}>
+              {i.name} — {i.category} (₱{Number(i.price).toFixed(2)})
+            </option>
+          ))}
+        </select>
+        <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+      </div>
+      <p className="text-[9px] text-rose-400 mt-1">Leave blank to keep the current food item.</p>
+    </div>
+
+    {mmBundleLoading && (
+      <div className="grid grid-cols-2 gap-1.5">
+        {[...Array(4)].map((_, i) => <div key={i} className="h-8 bg-rose-100 rounded-lg animate-pulse" />)}
+      </div>
+    )}
+
+{!mmBundleLoading && mmBundleItems !== null && mmBundleItems.filter(i => i.size !== 'none').length > 0 && (
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center gap-2">
+          <div className="flex-1 h-px bg-rose-200" />
+          <span className="text-[9px] font-bold text-rose-400">
+            {mmBundleItems.filter(i => i.size !== 'none').length} drinks in pool
+          </span>
+          <div className="flex-1 h-px bg-rose-200" />
         </div>
-      )}
+        <div className="grid grid-cols-2 gap-1.5">
+          {mmBundleItems.filter(i => i.size !== 'none').map((drink, idx) => (
+            <div key={idx} className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg border bg-white border-rose-200">
+              <div className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0" />
+              <div className="flex flex-col min-w-0 flex-1">
+                <span className="text-[10px] font-semibold text-zinc-700 truncate">{drink.name}</span>
+                {drink.size !== "none" && drink.size !== "—" && (
+                  <span className="text-[9px] font-bold text-rose-400 uppercase">{drink.size}</span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
 
+    <p className="text-[10px] text-rose-500 font-medium leading-tight">
+      To update the drink pool for all items in this category, use the <span className="font-bold">Manage Drinks</span> button on the menu list.
+    </p>
+  </div>
+)}
       {/* ✅ Drink Options — pearl & ice toggles */}
       {["drink"].includes(selectedCategory?.category_type ?? "") && (
         <OptionsToggle value={options} onChange={setOptions} />
@@ -1107,6 +1266,7 @@ const MenuItemsTab: React.FC = () => {
   const [delTarget,     setDelTarget]     = useState<MenuItem | null>(null);
   const [bundleInfo, setBundleInfo] = useState<Record<number, { name: string; quantity: number; size: string }[]>>({});
   const [itemOptions, setItemOptions] = useState<Record<number, ItemOptions>>({});
+  const [drinkPoolTarget, setDrinkPoolTarget] = useState<Category | null>(null);
 
   // Fetch all item options in bulk when items load
   const fetchAllOptions = useCallback(async (loadedItems: MenuItem[]) => {
@@ -1210,6 +1370,15 @@ const MenuItemsTab: React.FC = () => {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  useEffect(() => {
+  const handler = (e: Event) => {
+    const cat = (e as CustomEvent<Category>).detail;
+    setDrinkPoolTarget(cat);
+  };
+  window.addEventListener('open-drink-pool', handler);
+  return () => window.removeEventListener('open-drink-pool', handler);
+}, []);
+
   const toggleAvailable = async (item: MenuItem) => {
     try {
       const res  = await fetch(`/api/menu-items/${item.id}`, {
@@ -1259,6 +1428,12 @@ const MenuItemsTab: React.FC = () => {
           <Btn variant="secondary" onClick={fetchAll} disabled={loading}>
             <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
           </Btn>
+          {/* Show "Manage Drinks" when filtered to a mix_and_match category */}
+          {filterType === "mix_and_match" && filterCat && categories.find(c => String(c.id) === filterCat) && (
+            <Btn variant="secondary" onClick={() => setDrinkPoolTarget(categories.find(c => String(c.id) === filterCat)!)}>
+              <Coffee size={13} /> Manage Drinks
+            </Btn>
+          )}
           <Btn onClick={() => setAddOpen(true)} disabled={loading}>
             <Plus size={13} /> Add Item
           </Btn>
@@ -1502,6 +1677,14 @@ const MenuItemsTab: React.FC = () => {
       {delTarget && (
         <DeleteModal item={delTarget} onClose={() => setDelTarget(null)}
           onDeleted={id => { setItems(p => p.filter(i => i.id !== id)); setDelTarget(null); }} />
+      )}
+      {drinkPoolTarget && (
+        <CategoryDrinksManager
+          categoryId={drinkPoolTarget.id}
+          categoryName={drinkPoolTarget.name}
+          allItems={items}
+          onClose={() => setDrinkPoolTarget(null)}
+        />
       )}
     </div>
   );
