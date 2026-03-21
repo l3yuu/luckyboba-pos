@@ -2,7 +2,7 @@
 // All modal overlays used in the SalesOrder page.
 
 import {
-  type CartItem, type Bundle,
+  type CartItem, type Bundle, type MenuItem,
   SUGAR_LEVELS, EXTRA_OPTIONS,
 } from '../../../types/index';
 import {
@@ -688,10 +688,218 @@ export const ComboDrinkModal = ({
     </>
   );
 };
+// ─────────────────────────────────────────────────────────────────────────────
+// MixAndMatchDrinkModal
+// ─────────────────────────────────────────────────────────────────────────────
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ConfirmOrderModal
-// ─────────────────────────────────────────────────────────────────────────────
+interface MixAndMatchDrinkModalProps {
+  pendingMixMatchCart: CartItem;
+  drinkItems: MenuItem[];
+  selectedDrink: MenuItem | null;
+  drinkSugar: string;
+  drinkOptions: string[];
+  drinkAddOns: string[];
+  filteredAddOns: { id: number; name: string; price: number; grab_price?: number; panda_price?: number }[];
+  drinkAddOnModalOpen: boolean;
+  orderCharge: 'grab' | 'panda' | null;
+  onSelectDrink: (item: MenuItem) => void;
+  onSugarChange: (s: string) => void;
+  onToggleOption: (opt: string) => void;
+  onOpenAddOns: () => void;
+  onCloseAddOns: () => void;
+  onToggleAddOn: (name: string) => void;
+  onConfirm: () => void;
+  onClose: () => void;
+  onToggleOrderCharge: (type: 'grab' | 'panda') => void;
+}
+
+export const MixAndMatchDrinkModal = ({
+  pendingMixMatchCart,
+  drinkItems,
+  selectedDrink,
+  drinkSugar,
+  drinkOptions,
+  drinkAddOns,
+  filteredAddOns,
+  drinkAddOnModalOpen,
+  orderCharge,
+  onSelectDrink,
+  onSugarChange,
+  onToggleOption,
+  onOpenAddOns,
+  onCloseAddOns,
+  onToggleAddOn,
+  onToggleOrderCharge,
+  onConfirm,
+  onClose,
+}: MixAndMatchDrinkModalProps) => {
+  const drinkOpts = (selectedDrink as unknown as { options?: string[] })?.options ?? [];
+  const hasPearlOption = drinkOpts.includes('pearl');
+  const hasPearlSelected = drinkOptions.some(o => ['NO PRL', 'W/ PRL'].includes(o));
+  const canConfirm = selectedDrink !== null && drinkSugar !== '' && (!hasPearlOption || hasPearlSelected);
+
+  return (
+    <>
+      <div className="fixed inset-0 z-110 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div className="bg-white w-full max-w-2xl rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+
+          {/* Header */}
+          <div className="bg-[#7c14d4] p-5 text-white relative shrink-0">
+            <div className="text-[10px] font-bold uppercase opacity-60 tracking-widest leading-none mb-1">Step 2 of 2 — Choose Your Drink</div>
+            <h2 className="text-base font-black uppercase tracking-wider leading-tight">
+              {pendingMixMatchCart.name}
+            </h2>
+            <div className="mt-1 inline-block bg-white/20 text-white text-[10px] font-black uppercase px-3 py-1 rounded-[0.625rem] tracking-widest">
+              🧋 Select a drink to complete your Mix & Match
+            </div>
+            <button onClick={onClose} className="absolute top-5 right-6 text-white/50 hover:text-white transition-colors">
+              <CloseIcon size={6} />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto bg-white">
+            {/* Step 1: Pick drink */}
+            {!selectedDrink ? (
+              <div className="p-6">
+                <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-4">Available Drinks</p>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {drinkItems.map(drink => (
+                    <button
+                      key={drink.id}
+                      onClick={() => onSelectDrink(drink)}
+                      className="p-4 rounded-[0.625rem] border-2 border-[#e9d5ff] bg-white hover:border-[#7c14d4] hover:bg-[#f5f0ff] transition-all text-left flex flex-col gap-1"
+                    >
+                      <span className="text-xs font-black uppercase leading-tight text-black">{drink.name}</span>
+                      {drink.size && drink.size !== 'none' && (
+                        <span className="text-[10px] font-bold text-zinc-400 uppercase">{drink.size}</span>
+                      )}
+                      <span className="text-sm font-black text-[#7c14d4] mt-1">₱{Number(drink.price).toFixed(2)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="p-6 space-y-5">
+                {/* Selected drink header */}
+                <div className="flex items-center justify-between bg-[#f5f0ff] border-2 border-[#7c14d4]/30 rounded-[0.625rem] px-4 py-3">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Selected Drink</p>
+                    <p className="font-black text-sm text-black uppercase">{selectedDrink.name}</p>
+                  </div>
+                  <button
+                    onClick={() => onSelectDrink(null as unknown as MenuItem)}
+                    className="text-[10px] font-black uppercase text-[#7c14d4] hover:text-red-500 transition-colors"
+                  >
+                    Change
+                  </button>
+                </div>
+
+                {/* Sugar Level */}
+                <div>
+                  <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
+                  <div className="flex gap-2">
+                    {SUGAR_LEVELS.map((level: string) => (
+                      <button key={level} onClick={() => onSugarChange(level)}
+                        className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${drinkSugar === level ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+                        {level}
+                      </button>
+                    ))}
+                  </div>
+                  {drinkSugar === '' && (
+                    <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1.5 ml-1">⚠ Please select sugar level</p>
+                  )}
+                </div>
+
+                {/* Options — filtered by what the selected drink supports */}
+                {(() => {
+                  const drinkOpts = (selectedDrink as unknown as { options?: string[] })?.options ?? [];
+                  const visibleOpts = EXTRA_OPTIONS.filter((opt: string) => {
+                    const pearlOpts = ['NO PRL', 'W/ PRL'];
+                    const iceOpts   = ['NO ICE', '-ICE', '+ICE'];
+                    if (pearlOpts.includes(opt)) return drinkOpts.includes('pearl');
+                    if (iceOpts.includes(opt))   return drinkOpts.includes('ice');
+                    if (opt === 'WARM')          return false;
+                    return true;
+                  });
+                  if (visibleOpts.length === 0) return null;
+                  return (
+                    <div>
+                      <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Options (Free)</label>
+                      <div className="flex flex-wrap gap-2">
+                        {visibleOpts.map((opt: string) => (
+                          <button key={opt} onClick={() => onToggleOption(opt)}
+                            className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${drinkOptions.includes(opt) ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Add-ons */}
+                <div>
+                  <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Extra Add-ons</label>
+                  <AddOnTriggerButton count={drinkAddOns.length} onClick={onOpenAddOns} />
+                </div>
+
+{/* Delivery charges — surcharge from food item */}
+                <div>
+                  <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">
+                    Charges
+                    {orderCharge === 'grab'  && Number((pendingMixMatchCart as { grab_price?: number })?.grab_price  ?? 0) > 0 ? ` (+₱${Number((pendingMixMatchCart as { grab_price?: number })?.grab_price).toFixed(2)})` : ''}
+                    {orderCharge === 'panda' && Number((pendingMixMatchCart as { panda_price?: number })?.panda_price ?? 0) > 0 ? ` (+₱${Number((pendingMixMatchCart as { panda_price?: number })?.panda_price).toFixed(2)})` : ''}
+                    {orderCharge && Number((pendingMixMatchCart as { grab_price?: number; panda_price?: number })?.[orderCharge === 'grab' ? 'grab_price' : 'panda_price'] ?? 0) === 0 ? ' (No Surcharge)' : ''}
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {(['grab', 'panda'] as const).map(type => {
+                      const isActive   = orderCharge === type;
+                      const isDisabled = orderCharge !== null && orderCharge !== type;
+                      return (
+                        <button key={type} type="button"
+                          onClick={() => !isDisabled && onToggleOrderCharge(type)}
+                          disabled={isDisabled}
+                          className={`p-3 rounded-[0.625rem] border-2 transition-all flex items-center justify-center gap-2
+                            ${isDisabled ? 'border-zinc-200 bg-white text-zinc-300 opacity-40 cursor-not-allowed'
+                              : isActive
+                                ? type === 'grab' ? 'border-green-500 bg-green-50 text-green-700' : 'border-pink-500 bg-pink-50 text-pink-700'
+                                : type === 'grab' ? 'border-zinc-300 bg-white text-zinc-500 hover:border-green-300 hover:bg-green-50' : 'border-zinc-300 bg-white text-zinc-500 hover:border-pink-300 hover:bg-pink-50'
+                            }`}>
+                          <span className="font-bold text-xs uppercase">{type === 'grab' ? 'Grab Food' : 'Food Panda'}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Confirm */}
+                <button
+                  onClick={onConfirm}
+                  disabled={!canConfirm}
+                  className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${canConfirm ? 'bg-[#7c14d4] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-black cursor-not-allowed'}`}
+                >
+                  {!drinkSugar ? '⚠ Select Sugar Level First' : hasPearlOption && !hasPearlSelected ? 'Select Pearl Option First' : '✓ Add Mix & Match to Order'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {drinkAddOnModalOpen && (
+        <AddOnModalShell
+          title="Drink Add-ons"
+          addOns={filteredAddOns}
+          selected={drinkAddOns}
+          onToggle={onToggleAddOn}
+          onClose={onCloseAddOns}
+          zIndex="z-[120]"
+          orderCharge={orderCharge}
+        />
+      )}
+    </>
+  );
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ConfirmOrderModal
@@ -832,13 +1040,33 @@ export const ConfirmOrderModal = ({
                   <div>
                     <h3 className="font-black text-sm text-black uppercase mb-3 tracking-wider">Payment Method</h3>
                     <div className="grid grid-cols-3 gap-2 mb-5">
-                      {PAYMENT_METHODS.map(({ id, label }) => (
-                        <button key={id} onClick={() => { onPaymentMethodChange(id); onReferenceNumberChange(''); onCashTenderedChange(''); }}
-                          className={`py-3 rounded-[0.625rem] font-black text-sm uppercase transition-all border-2 flex flex-col items-center gap-1
-                            ${paymentMethod === id ? 'bg-[#7c14d4] text-white border-[#7c14d4] shadow-md' : 'bg-[#f5f0ff] text-black border-[#e9d5ff] hover:border-[#7c14d4]/40'}`}>
-                          {label}
-                        </button>
-                      ))}
+                      {PAYMENT_METHODS.map(({ id, label }) => {
+                        // If order has grab charge → only allow 'grab' payment
+                        // If order has panda charge → only allow 'food_panda' payment
+                        // If no charge → only allow non-delivery payment methods
+                        const isDeliveryMethod = id === 'grab' || id === 'food_panda';
+                        const isLocked =
+                          (orderCharge === 'grab'  && id !== 'grab') ||
+                          (orderCharge === 'panda' && id !== 'food_panda') ||
+                          (!orderCharge && isDeliveryMethod);
+
+                        return (
+                          <button
+                            key={id}
+                            onClick={() => { if (!isLocked) { onPaymentMethodChange(id); onReferenceNumberChange(''); onCashTenderedChange(''); }}}
+                            disabled={isLocked}
+                            className={`py-3 rounded-[0.625rem] font-black text-sm uppercase transition-all border-2 flex flex-col items-center gap-1
+                              ${isLocked
+                                ? 'bg-zinc-100 text-zinc-300 border-zinc-100 cursor-not-allowed opacity-40'
+                                : paymentMethod === id
+                                  ? 'bg-[#7c14d4] text-white border-[#7c14d4] shadow-md'
+                                  : 'bg-[#f5f0ff] text-black border-[#e9d5ff] hover:border-[#7c14d4]/40'
+                              }`}
+                          >
+                            {label}
+                          </button>
+                        );
+                      })}
                     </div>
                     {paymentMethod === 'cash' ? (
                       <>
@@ -864,13 +1092,72 @@ export const ConfirmOrderModal = ({
                           <span className="text-2xl font-black text-green-600">₱ {change.toFixed(2)}</span>
                         </div>
                       </>
-                    ) : (
-                      <div className="space-y-2">
-                        <h3 className="font-black text-[10px] text-zinc-400 tracking-widest uppercase">Reference Number</h3>
-                        <input type="text" value={referenceNumber} onChange={e => onReferenceNumberChange(e.target.value)}
-                          className="w-full bg-zinc-50 border-2 border-zinc-300 rounded-[0.625rem] py-4 px-5 text-xl font-black outline-none focus:border-[#3b2063] focus:bg-white transition-colors" placeholder="REF#" />
-                      </div>
-                    )}
+                      ) : (
+                        <div className="space-y-4">
+                          {/* Reference number — optional for all non-cash */}
+                          <div className="space-y-2">
+                            <h3 className="font-black text-[10px] text-zinc-400 tracking-widest uppercase">
+                              {paymentMethod === 'grab'
+                                ? 'GrabFood Order Reference (Optional)'
+                                : paymentMethod === 'food_panda'
+                                ? 'FoodPanda Order Reference (Optional)'
+                                : 'Reference Number'}
+                            </h3>
+                            <input
+                              type="text"
+                              value={referenceNumber}
+                              onChange={e => onReferenceNumberChange(e.target.value)}
+                              className="w-full bg-zinc-50 border-2 border-zinc-300 rounded-[0.625rem] py-4 px-5 text-xl font-black outline-none focus:border-[#3b2063] focus:bg-white transition-colors"
+                              placeholder={
+                                paymentMethod === 'grab' ? 'GRAB-XXXXXX'
+                                : paymentMethod === 'food_panda' ? 'FP-XXXXXX'
+                                : 'REF#'
+                              }
+                            />
+                          </div>
+
+                          {/* Cash sent to platform — only for Grab/FoodPanda */}
+                          {(paymentMethod === 'grab' || paymentMethod === 'food_panda') && (
+                            <div className="space-y-2">
+                              <h3 className="font-black text-[10px] text-zinc-400 tracking-widest uppercase">
+                                Cash Sent to {paymentMethod === 'grab' ? 'GrabFood' : 'FoodPanda'} Credits
+                              </h3>
+                              <div className="relative">
+                                <span className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-2xl text-[#7c14d4]/30">₱</span>
+                                <input
+                                  type="number"
+                                  value={cashTendered}
+                                  onChange={e => onCashTenderedChange(e.target.value ? Number(e.target.value) : '')}
+                                  className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-4 pl-12 pr-4 text-3xl font-black text-black outline-none focus:border-[#7c14d4] focus:bg-white transition-colors"
+                                  placeholder="0.00"
+                                />
+                              </div>
+                              <div className="grid grid-cols-4 gap-2">
+                                <button onClick={() => onCashTenderedChange(amtDue)}
+                                  className="col-span-4 bg-[#7c14d4] text-white py-2.5 rounded-[0.625rem] font-black text-sm uppercase tracking-widest">
+                                  Exact Amount (₱ {amtDue.toFixed(2)})
+                                </button>
+                                {[100, 200, 500, 1000].map(amount => (
+                                  <button key={amount} onClick={() => onCashTenderedChange(amount)}
+                                    className="bg-[#f5f0ff] hover:bg-[#7c14d4] hover:text-white text-black py-3 rounded-[0.625rem] font-black text-base transition-all border-2 border-[#e9d5ff] hover:border-[#7c14d4]">
+                                    ₱{amount}
+                                  </button>
+                                ))}
+                              </div>
+                              {cashTendered !== '' && (
+                                <div className="flex justify-between items-center bg-[#f5f0ff] border border-[#e9d5ff] p-4 rounded-[0.625rem]">
+                                  <span className="font-black text-zinc-400 uppercase text-xs tracking-widest">
+                                    {Number(cashTendered) >= amtDue ? 'Change' : 'Short by'}
+                                  </span>
+                                  <span className={`text-2xl font-black ${Number(cashTendered) >= amtDue ? 'text-green-600' : 'text-red-500'}`}>
+                                    ₱ {Math.abs(Number(cashTendered) - amtDue).toFixed(2)}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
                   </div>
                 </div>
               )}
@@ -910,8 +1197,7 @@ export const ConfirmOrderModal = ({
               onClick={onConfirm}
               disabled={
                 submitting ||
-                (paymentMethod === 'cash' && (cashTendered === '' || cashTendered < amtDue)) ||
-                (paymentMethod !== 'cash' && !referenceNumber)
+                (paymentMethod === 'cash' && (cashTendered === '' || cashTendered < amtDue))
               }
               className="w-full bg-[#7c14d4] hover:bg-[#6a12b8] transition-colors text-white py-4 rounded-[0.625rem] font-black uppercase tracking-widest shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed"
             >

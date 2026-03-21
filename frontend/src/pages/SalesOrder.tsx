@@ -26,7 +26,7 @@ import {
   CartItemEditModal, ItemSelectionModal,
   BundleModal, ComboDrinkModal,
   ConfirmOrderModal, CustomerNameModal, SuccessModal,
-  AddOnModalShell,
+  AddOnModalShell, MixAndMatchDrinkModal,
 } from '../components/Cashier/SalesOrderComponents/modals';
 
 import { ReceiptPrint, KitchenPrint, StickerPrint }
@@ -149,6 +149,16 @@ const SalesOrder = () => {
   const [comboDrinkAddOnModalOpen, setComboDrinkAddOnModalOpen] = useState(false);
   const [pendingComboCart,         setPendingComboCart]         = useState<CartItem | null>(null);
 
+  // Mix & Match state
+  const [isMixMatchModalOpen,    setIsMixMatchModalOpen]    = useState(false);
+  const [pendingMixMatchCart,    setPendingMixMatchCart]    = useState<CartItem | null>(null);
+  const [mixMatchDrinkItems,     setMixMatchDrinkItems]     = useState<MenuItem[]>([]);
+  const [selectedMixMatchDrink,  setSelectedMixMatchDrink]  = useState<MenuItem | null>(null);
+  const [mixMatchDrinkSugar,     setMixMatchDrinkSugar]     = useState('');
+  const [mixMatchDrinkOptions,   setMixMatchDrinkOptions]   = useState<string[]>([]);
+  const [mixMatchDrinkAddOns,    setMixMatchDrinkAddOns]    = useState<string[]>([]);
+  const [mixMatchDrinkAddOnOpen, setMixMatchDrinkAddOnOpen] = useState(false);
+
   // Confirm / payment
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [submitting,         setSubmitting]         = useState(false);
@@ -243,7 +253,8 @@ const hasStickers = cart.some(item =>
   item.sugarLevel !== undefined ||
   item.size === 'M' || item.size === 'L' ||
   (item.addOns?.some(a => a.toLowerCase().includes('waffle combo')) ?? false) ||
-  (item.isBundle && (item.bundleComponents?.length ?? 0) > 0)
+  (item.isBundle && (item.bundleComponents?.length ?? 0) > 0) ||
+  (item.remarks?.startsWith('[Drink:') ?? false)  // ← Mix & Match
 );
 
   const formattedDate = currentDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
@@ -409,49 +420,100 @@ const handleCategoryClick = (cat: Category) => {
     return items;
   };
 
-  const handleItemClick = (item: MenuItem) => {
-    const actualCategory = categories.find(cat =>
-      cat.menu_items.some(mi => mi.id === item.id)
-    ) ?? selectedCategory;
+const handleItemClick = async (item: MenuItem) => {
+  const actualCategory = categories.find(cat =>
+    cat.menu_items.some(mi => mi.id === item.id)
+  ) ?? selectedCategory;
 
-    setSelectedCategory(actualCategory);
+  setSelectedCategory(actualCategory);
 
-    const catType = actualCategory?.category_type;
+  const catType = actualCategory?.category_type;
 
-    // ✅ Bundle only (NOT combo) — goes straight to BundleModal
-    if (catType === 'bundle') {
-      const bundle = bundlesData.find(b => b.barcode === item.barcode);
-      if (bundle) {
-        setActiveBundleItem(bundle);
-        setBundleComponentIndex(0);
-        setBundleComponentCustomizations([]);
-        setBundleComponentSugar('');
-        setBundleComponentOptions([]);
-        setBundleComponentAddOns([]);
-        setOrderCharge(null);  
-        setIsBundleModalOpen(true);
-        return;
+  // ✅ Mix & Match — show drink picker modal
+if (catType === 'mix_and_match') {
+      // Fetch the shared drink pool for this category from the API
+      const categoryId = actualCategory?.id;
+      let allDrinks: MenuItem[] = [];
+      if (categoryId) {
+        try {
+          const token = localStorage.getItem('auth_token') || localStorage.getItem('lucky_boba_token') || '';
+          const res = await fetch(`/api/category-drinks?category_id=${categoryId}`, {
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+          });
+          const data = await res.json();
+          const poolDrinks: { menu_item_id: number; name: string; size: string; price: number }[] = data.data ?? [];
+          // Map pool drinks to MenuItem shape, pulling full item data from categories
+          allDrinks = poolDrinks.map(d => {
+            const found = categories.flatMap(c => c.menu_items).find(m => m.id === d.menu_item_id);
+            // Use the found item but override size from category_drinks table
+            const validSize = (s: string): 'M' | 'L' | 'none' =>
+                          s === 'M' || s === 'L' ? s : 'none';
+            return found
+              ? { ...found, size: validSize(d.size || found.size || 'none') }
+              : { id: d.menu_item_id, name: d.name, price: d.price, size: validSize(d.size), barcode: '', category_id: categoryId } as unknown as MenuItem;
+          });
+        } catch {
+          allDrinks = [];
+        }
       }
+
+    const newCartItem: CartItem = {
+      ...item,
+      qty: 1,
+      remarks: '',
+      charges: { grab: orderCharge === 'grab', panda: orderCharge === 'panda' },
+      size: 'none',
+      finalPrice: Number(item.price),
+    };
+
+    setPendingMixMatchCart(newCartItem);
+    setMixMatchDrinkItems(allDrinks);
+    setSelectedMixMatchDrink(null);
+    setMixMatchDrinkSugar('');
+    setMixMatchDrinkOptions([]);
+    setMixMatchDrinkAddOns([]);
+    setIsMixMatchModalOpen(true);
+    return;
+  }
+
+  // ✅ Bundle only (NOT combo) — goes straight to BundleModal
+  if (catType === 'bundle') {
+    const bundle = bundlesData.find(b => b.barcode === item.barcode);
+    if (bundle) {
+      setActiveBundleItem(bundle);
+      setBundleComponentIndex(0);
+      setBundleComponentCustomizations([]);
+      setBundleComponentSugar('');
+      setBundleComponentOptions([]);
+      setBundleComponentAddOns([]);
+      setOrderCharge(null);
+      setIsBundleModalOpen(true);
+      return;
     }
+  }
 
-    // ✅ Combo — goes to ItemSelectionModal first, then ComboDrinkModal via addToOrder
-    // (falls through to normal item flow below — isCombo state handles the rest)
+  // ✅ Combo — goes to ItemSelectionModal first, then ComboDrinkModal via addToOrder
+  // (falls through to normal item flow below — isCombo state handles the rest)
 
-    setSelectedItem(item);
-    setQty(1);
-    setRemarks('');
-    setSugarLevel('');
-    setSelectedOptions([]);
-    setSelectedAddOns([]);
-    setIsAddOnModalOpen(false);
+  setSelectedItem(item);
+  setQty(1);
+  setRemarks('');
+  setSugarLevel('');
+  setSelectedOptions([]);
+  setSelectedAddOns([]);
+  setIsAddOnModalOpen(false);
 
-    if (item.size === 'M' || item.size === 'L') {
-      setSize(item.size);
-    } else {
-      const cupSizeL = actualCategory?.cup?.size_l || 'L';
-      setSize(categorySize === cupSizeL ? 'L' : 'M');
-    }
-  };
+  if (item.size === 'M' || item.size === 'L') {
+    setSize(item.size);
+  } else {
+    const cupSizeL = actualCategory?.cup?.size_l || 'L';
+    setSize(categorySize === cupSizeL ? 'L' : 'M');
+  }
+};
   // ── Order charge toggle ─────────────────────────────────────────────────────
 
   const toggleOrderCharge = (type: 'grab' | 'panda') => {
@@ -718,6 +780,42 @@ const confirmComboDrink = () => {
 };
   // ── Cart item editing ───────────────────────────────────────────────────────
 
+  const confirmMixAndMatch = () => {
+  if (!pendingMixMatchCart || !selectedMixMatchDrink) return;
+
+  let addOnExtraCost = 0;
+  mixMatchDrinkAddOns.forEach(name => {
+    const addon = addOnsData.find(a => a.name === name);
+    if (addon) {
+      if (orderCharge === 'grab' && Number(addon.grab_price ?? 0) > 0)
+        addOnExtraCost += Number(addon.grab_price);
+      else if (orderCharge === 'panda' && Number(addon.panda_price ?? 0) > 0)
+        addOnExtraCost += Number(addon.panda_price);
+      else
+        addOnExtraCost += Number(addon.price);
+    }
+  });
+
+  const drinkDetails = [
+    `Drink: ${selectedMixMatchDrink.name}`,
+    `Sugar: ${mixMatchDrinkSugar}`,
+    ...mixMatchDrinkOptions,
+    ...mixMatchDrinkAddOns.map(a => `+${a}`),
+  ].join(' | ');
+
+  const finalItem: CartItem = {
+    ...pendingMixMatchCart,
+    remarks: `[${drinkDetails}]`,
+    finalPrice: pendingMixMatchCart.finalPrice + addOnExtraCost,
+  };
+
+  mergeIntoCart(finalItem);
+  logCartAction(finalItem.name, finalItem.qty);
+  setIsMixMatchModalOpen(false);
+  setPendingMixMatchCart(null);
+  showToast(`${finalItem.name} + ${selectedMixMatchDrink.name} added!`, 'success');
+};
+
   // ── Cart item editing ───────────────────────────────────────────────────────
 
   const openCartItemEdit = (index: number) => {
@@ -880,6 +978,7 @@ const handleSubmitOrder = async (nameOverride?: string) => {
     vatable_sales:    vatableSales,
     vat_amount:       vatAmount,
     customer_name:    nameOverride ?? customerName ?? null, // ✅ name is now captured
+    cash_tendered: typeof cashTendered === 'number' ? cashTendered : 0,
   };
 
   if (navigator.onLine) {
@@ -960,6 +1059,12 @@ const handleSubmitOrder = async (nameOverride?: string) => {
     setCategorySize(null);
     setDiscountRemarks('');
     setCustomerName('');
+    setIsMixMatchModalOpen(false);
+    setPendingMixMatchCart(null);
+    setSelectedMixMatchDrink(null);
+    setMixMatchDrinkSugar('');
+    setMixMatchDrinkOptions([]);
+    setMixMatchDrinkAddOns([]);
     await syncNextSequence();
   };
 
@@ -1127,6 +1232,35 @@ const handleSubmitOrder = async (nameOverride?: string) => {
           />
         )}
 
+        {isMixMatchModalOpen && pendingMixMatchCart && (
+        <MixAndMatchDrinkModal
+          pendingMixMatchCart={pendingMixMatchCart}
+          drinkItems={mixMatchDrinkItems}
+          selectedDrink={selectedMixMatchDrink}
+          drinkSugar={mixMatchDrinkSugar}
+          drinkOptions={mixMatchDrinkOptions}
+          drinkAddOns={mixMatchDrinkAddOns}
+          filteredAddOns={filteredAddOns}
+          drinkAddOnModalOpen={mixMatchDrinkAddOnOpen}
+          orderCharge={orderCharge}
+          onSelectDrink={item => {
+            setSelectedMixMatchDrink(item ?? null);
+            setMixMatchDrinkSugar('');
+            setMixMatchDrinkOptions([]);
+          }}
+          onSugarChange={setMixMatchDrinkSugar}
+          onToggleOption={makeToggleOption(setMixMatchDrinkOptions)}
+          onOpenAddOns={() => setMixMatchDrinkAddOnOpen(true)}
+          onCloseAddOns={() => setMixMatchDrinkAddOnOpen(false)}
+          onToggleAddOn={name => setMixMatchDrinkAddOns(prev =>
+            prev.includes(name) ? prev.filter(a => a !== name) : [...prev, name]
+          )}
+          onToggleOrderCharge={toggleOrderCharge}
+          onConfirm={confirmMixAndMatch}
+          onClose={() => { setIsMixMatchModalOpen(false); setPendingMixMatchCart(null); }}
+        />
+      )}
+
         {isConfirmModalOpen && (
           <ConfirmOrderModal
             cart={cart}
@@ -1232,7 +1366,13 @@ const handleSubmitOrder = async (nameOverride?: string) => {
             totalCount={totalCount}
             subtotal={subtotal}
             onEditItem={openCartItemEdit}
-            onConfirmOrder={() => setIsConfirmModalOpen(true)}
+            onConfirmOrder={() => {
+              // Auto-set payment method when opening confirm modal
+              if (orderCharge === 'grab')        setPaymentMethod('grab');
+              else if (orderCharge === 'panda')  setPaymentMethod('food_panda');
+              else                               setPaymentMethod('cash');
+              setIsConfirmModalOpen(true);
+            }}
           />
         </div>
       </div>

@@ -75,7 +75,7 @@ public function index(Request $request)
             'name'          => 'required|string|max:255',
             'display_name'  => 'nullable|string|max:255',
             'category_id'   => 'required|exists:categories,id',
-            'bundle_type'   => 'required|in:bundle,combo',
+            'bundle_type'   => 'required|in:bundle,combo,mix_and_match',
             'price'         => 'required|numeric|min:0',
             'barcode'       => 'required|string|unique:bundles,barcode',
             'size'          => 'nullable|string',
@@ -111,7 +111,7 @@ public function index(Request $request)
                 $bundle->items()->create([
                     'custom_name'  => $item['custom_name'],
                     'quantity'     => $item['quantity'],
-                    'size'         => $item['size'] ?? 'L',
+                    'size'         => $item['size'] ?? 'none',
                     'display_name' => $item['display_name'] ?? null,
                 ]);
             }
@@ -150,7 +150,7 @@ public function index(Request $request)
             'name'          => 'sometimes|required|string|max:255',
             'display_name'  => 'sometimes|nullable|string|max:255',
             'category_id'   => 'sometimes|exists:categories,id',
-            'bundle_type'   => 'sometimes|in:bundle,combo',
+            'bundle_type'   => 'sometimes|in:bundle,combo,mix_and_match',
             'price'         => 'sometimes|numeric|min:0',
             'barcode'       => 'sometimes|string|unique:bundles,barcode,' . $id,
             'size'          => 'sometimes|nullable|string',
@@ -183,7 +183,7 @@ public function index(Request $request)
                     $bundle->items()->create([
                         'custom_name'  => $item['custom_name'],
                         'quantity'     => $item['quantity'],
-                        'size'         => $item['size'] ?? 'L',
+                        'size'         => $item['size'] ?? 'none',
                         'display_name' => $item['display_name'] ?? null,
                     ]);
                 }
