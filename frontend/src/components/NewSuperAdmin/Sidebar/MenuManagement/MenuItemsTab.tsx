@@ -1630,6 +1630,19 @@ const MenuItemsTab: React.FC = () => {
         </div>
       </div>
     )}
+    {/* Manage Drinks button for mix_and_match items */}
+    {item.category_type === "mix_and_match" && (() => {
+      const cat = categories.find(c => c.id === item.category_id);
+      return cat ? (
+        <button
+          onClick={() => setDrinkPoolTarget(cat)}
+          className="p-1.5 hover:bg-rose-50 rounded-[0.4rem] text-zinc-300 hover:text-rose-500 transition-colors"
+          title="Manage drink pool"
+        >
+          <Coffee size={13} />
+        </button>
+      ) : null;
+    })()}
 
     <button onClick={() => setEditTarget(item)}
       className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors" title="Edit">

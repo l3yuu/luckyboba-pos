@@ -420,7 +420,7 @@ const handleCategoryClick = (cat: Category) => {
     return items;
   };
 
-const handleItemClick = (item: MenuItem) => {
+const handleItemClick = async (item: MenuItem) => {
   const actualCategory = categories.find(cat =>
     cat.menu_items.some(mi => mi.id === item.id)
   ) ?? selectedCategory;
@@ -430,19 +430,36 @@ const handleItemClick = (item: MenuItem) => {
   const catType = actualCategory?.category_type;
 
   // ✅ Mix & Match — show drink picker modal
-  if (catType === 'mix_and_match') {
-      const mixMatchDrinkBarcodes = [
-        'HDM1', 'HDL1',   // Hot Chocolate
-        'CMM2', 'CML2',   // Classic Pearl
-        'FSM7', 'FSL7',   // Belgian Chocolate Frappe
-        'ICM6', 'ICL6',   // Iced Coffee Caramel Macchiato
-        'YSM1', 'YSL1',   // Green Apple Yakult
-        'FLMM4', 'FLML4', // Wintermelon Milk Tea
-      ];
-
-      const allDrinks = categories
-        .flatMap(c => c.menu_items)
-        .filter(m => mixMatchDrinkBarcodes.includes(m.barcode));
+if (catType === 'mix_and_match') {
+      // Fetch the shared drink pool for this category from the API
+      const categoryId = actualCategory?.id;
+      let allDrinks: MenuItem[] = [];
+      if (categoryId) {
+        try {
+          const token = localStorage.getItem('auth_token') || localStorage.getItem('lucky_boba_token') || '';
+          const res = await fetch(`/api/category-drinks?category_id=${categoryId}`, {
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+          });
+          const data = await res.json();
+          const poolDrinks: { menu_item_id: number; name: string; size: string; price: number }[] = data.data ?? [];
+          // Map pool drinks to MenuItem shape, pulling full item data from categories
+          allDrinks = poolDrinks.map(d => {
+            const found = categories.flatMap(c => c.menu_items).find(m => m.id === d.menu_item_id);
+            // Use the found item but override size from category_drinks table
+            const validSize = (s: string): 'M' | 'L' | 'none' =>
+                          s === 'M' || s === 'L' ? s : 'none';
+            return found
+              ? { ...found, size: validSize(d.size || found.size || 'none') }
+              : { id: d.menu_item_id, name: d.name, price: d.price, size: validSize(d.size), barcode: '', category_id: categoryId } as unknown as MenuItem;
+          });
+        } catch {
+          allDrinks = [];
+        }
+      }
 
     const newCartItem: CartItem = {
       ...item,

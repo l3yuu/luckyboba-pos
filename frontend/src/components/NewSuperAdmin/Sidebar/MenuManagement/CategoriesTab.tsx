@@ -1,8 +1,9 @@
 // components/NewSuperAdmin/Tabs/MenuManagement/CategoriesTab.tsx
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Plus, Edit2, Trash2, RefreshCw, AlertCircle,
   X, Tag, ToggleLeft, ToggleRight, Check, ChevronDown,
+  Coffee, Search, Sparkles,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 
@@ -17,9 +18,7 @@ const authHeaders = (): Record<string, string> => ({
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const CATEGORY_TYPES = ["food", "drink", "promo"] as const;
-type CategoryType = typeof CATEGORY_TYPES[number];
+type CategoryType = "food" | "drink" | "promo";
 
 const BASE_TYPE_OPTIONS: { value: CategoryType; label: string; desc: string }[] = [
   { value: "food",  label: "Food",  desc: "Meals, snacks, waffles, wings, combos" },
@@ -29,11 +28,11 @@ const BASE_TYPE_OPTIONS: { value: CategoryType; label: string; desc: string }[] 
 
 const POS_BEHAVIOR_BY_TYPE: Record<CategoryType, { value: string; label: string; desc: string }[]> = {
   food: [
-    { value: "food",   label: "Food",   desc: "Standard food — straight to cart, no size" },
-    { value: "wings",  label: "Wings",  desc: "Chicken wings — cashier picks piece count (3pc, 4pc, etc.)" },
-    { value: "waffle", label: "Waffle", desc: "Waffle items — shows waffle-specific add-ons" },
-    { value: "combo",        label: "Combo",        desc: "Food + drink — cashier picks food, then customizes the included drink" },
-    { value: "mix_and_match", label: "Mix & Match", desc: "Food + drink — cashier picks food, customer chooses one of 6 fixed drinks" },
+    { value: "food",          label: "Food",          desc: "Standard food — straight to cart, no size" },
+    { value: "wings",         label: "Wings",         desc: "Chicken wings — cashier picks piece count (3pc, 4pc, etc.)" },
+    { value: "waffle",        label: "Waffle",        desc: "Waffle items — shows waffle-specific add-ons" },
+    { value: "combo",         label: "Combo",         desc: "Food + drink — cashier picks food, then customizes the included drink" },
+    { value: "mix_and_match", label: "Mix & Match",   desc: "Food + drink — cashier selects food, customer picks from a fixed drink pool" },
   ],
   drink: [
     { value: "drink",  label: "Drink",  desc: "Regular drink — cashier picks size (SM/SL, UM/UL, etc.)" },
@@ -45,12 +44,12 @@ const POS_BEHAVIOR_BY_TYPE: Record<CategoryType, { value: string; label: string;
 };
 
 const TYPE_BADGE: Record<string, string> = {
-  food:    "bg-amber-50 text-amber-700 border border-amber-200",
-  drink:   "bg-blue-50 text-blue-700 border border-blue-200",
-  promo:   "bg-emerald-50 text-emerald-700 border border-emerald-200",
-  wings:   "bg-orange-50 text-orange-700 border border-orange-200",
-  waffle:  "bg-yellow-50 text-yellow-700 border border-yellow-200",
-  combo:   "bg-purple-50 text-purple-700 border border-purple-200",
+  food:          "bg-amber-50 text-amber-700 border border-amber-200",
+  drink:         "bg-blue-50 text-blue-700 border border-blue-200",
+  promo:         "bg-emerald-50 text-emerald-700 border border-emerald-200",
+  wings:         "bg-orange-50 text-orange-700 border border-orange-200",
+  waffle:        "bg-yellow-50 text-yellow-700 border border-yellow-200",
+  combo:         "bg-purple-50 text-purple-700 border border-purple-200",
   bundle:        "bg-indigo-50 text-indigo-700 border border-indigo-200",
   mix_and_match: "bg-rose-50 text-rose-700 border border-rose-200",
 };
@@ -64,6 +63,26 @@ interface Category {
   is_active:        boolean;
   menu_items_count: number;
 }
+
+interface MenuItem {
+  id:            number;
+  name:          string;
+  category_type: string;
+  category:      string;
+  price:         number;
+  size:          string | null;
+}
+
+interface CategoryDrink {
+  id:           number;
+  category_id:  number;
+  menu_item_id: number;
+  name:         string;
+  size:         string;
+  price:        number;
+}
+
+// ── Shared UI ────────────────────────────────────────────────────────────────
 
 interface BtnProps {
   children: React.ReactNode; variant?: VariantKey; size?: SizeKey;
@@ -91,6 +110,294 @@ const SkeletonBar: React.FC<{ h?: string }> = ({ h = "h-4" }) => (
 
 const inputCls = (err?: string) =>
   `w-full text-sm font-medium text-zinc-700 bg-zinc-50 border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all ${err ? "border-red-300 bg-red-50" : "border-zinc-200"}`;
+
+// ── Drink Pool Setup Modal ────────────────────────────────────────────────────
+// First-time setup experience for a freshly created mix_and_match category.
+
+interface DrinkPoolSetupModalProps {
+  category:  Category;
+  onClose:   () => void;
+  onSkip:    () => void;
+}
+
+const DrinkPoolSetupModal: React.FC<DrinkPoolSetupModalProps> = ({ category, onClose, onSkip }) => {
+  const [allDrinks,   setAllDrinks]   = useState<(MenuItem & { _sizeLabel: string })[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [search,      setSearch]      = useState("");
+  const [loading,     setLoading]     = useState(true);
+  const [saving,      setSaving]      = useState(false);
+  const [saved,       setSaved]       = useState(false);
+  const [error,       setError]       = useState("");
+
+  // Fetch all drink-type menu items
+  useEffect(() => {
+    setLoading(true);
+    fetch("/api/menu-items", { headers: authHeaders() })
+      .then(r => r.json())
+      .then(data => {
+        const items: MenuItem[] = (Array.isArray(data) ? data : (data.data ?? []));
+        const drinkPool = items
+          .filter(i => i.category_type === "drink")
+          .sort((a, b) => a.name.localeCompare(b.name) || (a.price - b.price));
+
+        const nameCounts = drinkPool.reduce<Record<string, number>>((acc, d) => {
+          acc[d.name] = (acc[d.name] ?? 0) + 1; return acc;
+        }, {});
+        const nameIndex: Record<string, number> = {};
+        const annotated = drinkPool.map(drink => {
+          const hasPair = nameCounts[drink.name] > 1;
+          let sizeLabel = drink.size && drink.size !== "none" ? drink.size.toUpperCase() : "";
+          if (!sizeLabel && hasPair) {
+            nameIndex[drink.name] = (nameIndex[drink.name] ?? 0) + 1;
+            sizeLabel = nameIndex[drink.name] === 1 ? "M" : "L";
+          }
+          return { ...drink, _sizeLabel: sizeLabel };
+        });
+        setAllDrinks(annotated);
+      })
+      .catch(() => setError("Failed to load drinks."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = useMemo(() =>
+    allDrinks.filter(d =>
+      d.name.toLowerCase().includes(search.toLowerCase()) ||
+      d.category.toLowerCase().includes(search.toLowerCase())
+    ),
+    [allDrinks, search]
+  );
+
+  const toggle = (id: number) => {
+    setSaved(false);
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
+      return next;
+    });
+  };
+
+  const selectAll = () => {
+    setSaved(false);
+    setSelectedIds(new Set(filtered.map(d => d.id)));
+  };
+
+  const clearAll = () => {
+    setSaved(false);
+    setSelectedIds(new Set());
+  };
+
+  const handleSave = async () => {
+    if (selectedIds.size === 0) { setError("Select at least one drink."); return; }
+    setSaving(true); setError("");
+    try {
+      const res = await fetch("/api/category-drinks", {
+        method:  "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          category_id: category.id,
+          drinks: allDrinks
+            .filter(d => selectedIds.has(d.id))
+            .map(d => ({ menu_item_id: d.id, size: d._sizeLabel || "M" })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) { setError("Failed to save drink pool."); return; }
+      setSaved(true);
+      setTimeout(onClose, 800);
+    } catch { setError("Network error."); }
+    finally { setSaving(false); }
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-10000 flex items-center justify-center p-4"
+      style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", backgroundColor: "rgba(0,0,0,0.5)" }}>
+      <div className="absolute inset-0" onClick={onSkip} />
+
+      <div className="relative bg-white w-full max-w-xl border border-zinc-200 rounded-[1.25rem] shadow-2xl flex flex-col max-h-[90vh]">
+
+        {/* Header */}
+        <div className="px-6 pt-6 pb-5 border-b border-zinc-100 shrink-0">
+          {/* Celebration strip */}
+          <div className="flex items-center gap-2 mb-4 p-3 bg-rose-50 border border-rose-200 rounded-xl">
+            <div className="w-8 h-8 bg-rose-100 border border-rose-300 rounded-lg flex items-center justify-center shrink-0">
+              <Sparkles size={14} className="text-rose-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-bold text-rose-700">
+                "{category.name}" created!
+              </p>
+              <p className="text-[10px] text-rose-500 leading-tight mt-0.5">
+                Now set up the drinks customers can pick from in this Mix & Match category.
+              </p>
+            </div>
+            <button onClick={onSkip} className="p-1.5 hover:bg-rose-100 rounded-lg text-rose-300 hover:text-rose-500 transition-colors shrink-0">
+              <X size={14} />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-bold text-[#1a0f2e]">Set Up Drink Pool</p>
+              <p className="text-[10px] text-zinc-400 mt-0.5">
+                Choose which drinks customers can pick from in <span className="font-semibold text-zinc-600">{category.name}</span>
+              </p>
+            </div>
+            <span className="text-[10px] font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-full">
+              {selectedIds.size} selected
+            </span>
+          </div>
+        </div>
+
+        {/* Search + controls */}
+        <div className="px-6 pt-4 pb-2 flex items-center gap-2 shrink-0">
+          <div className="flex-1 flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
+            <Search size={12} className="text-zinc-400 shrink-0" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Filter drinks…"
+              className="flex-1 bg-transparent text-xs text-zinc-700 outline-none placeholder:text-zinc-400"
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="text-zinc-300 hover:text-zinc-500">
+                <X size={11} />
+              </button>
+            )}
+          </div>
+          <button
+            onClick={selectAll}
+            className="text-[10px] font-bold text-violet-600 hover:text-violet-800 bg-violet-50 hover:bg-violet-100 px-2.5 py-2 rounded-lg border border-violet-200 transition-colors whitespace-nowrap"
+          >
+            All
+          </button>
+          <button
+            onClick={clearAll}
+            className="text-[10px] font-bold text-zinc-400 hover:text-zinc-600 bg-zinc-50 hover:bg-zinc-100 px-2.5 py-2 rounded-lg border border-zinc-200 transition-colors whitespace-nowrap"
+          >
+            None
+          </button>
+        </div>
+
+        {/* Error */}
+        {error && (
+          <div className="mx-6 mt-2 flex items-center gap-2 p-2.5 bg-red-50 border border-red-200 rounded-lg shrink-0">
+            <AlertCircle size={13} className="text-red-500 shrink-0" />
+            <p className="text-xs text-red-600 font-medium">{error}</p>
+          </div>
+        )}
+
+        {/* Drink grid */}
+        <div className="px-6 py-3 overflow-y-auto flex-1">
+          {loading ? (
+            <div className="grid grid-cols-2 gap-2">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="h-12 bg-zinc-100 rounded-xl animate-pulse" />
+              ))}
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-10 text-center">
+              <Coffee size={24} className="text-zinc-200 mb-2" />
+              <p className="text-xs text-zinc-400 font-medium">
+                {search ? "No drinks match your search." : "No drink items found. Add drinks to the menu first."}
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Group by category */}
+              {Object.entries(
+                filtered.reduce<Record<string, typeof filtered>>((acc, d) => {
+                  const cat = d.category ?? "Other";
+                  if (!acc[cat]) acc[cat] = [];
+                  acc[cat].push(d);
+                  return acc;
+                }, {})
+              ).map(([catName, drinks]) => (
+                <div key={catName} className="mb-4">
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 mb-2 px-0.5">
+                    {catName}
+                  </p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {drinks.map(d => {
+                      const isSelected = selectedIds.has(d.id);
+                      return (
+                        <button
+                          key={d.id}
+                          type="button"
+                          onClick={() => toggle(d.id)}
+                          className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-all ${
+                            isSelected
+                              ? "bg-rose-50 border-rose-400 text-rose-800 shadow-sm"
+                              : "bg-white border-zinc-200 text-zinc-500 hover:border-rose-300 hover:bg-rose-50/50"
+                          }`}
+                        >
+                          {/* Checkbox */}
+                          <div className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                            isSelected ? "bg-rose-500 border-rose-500" : "border-zinc-300"
+                          }`}>
+                            {isSelected && (
+                              <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                                <path d="M1.5 4L3 5.5L6.5 2" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            )}
+                          </div>
+
+                          {/* Name + size + price */}
+                          <div className="flex flex-col min-w-0 flex-1">
+                            <span className="text-[11px] font-semibold truncate leading-tight">{d.name}</span>
+                            <div className="flex items-center gap-1 mt-0.5">
+                              {d._sizeLabel && (
+                                <span className={`text-[9px] font-bold uppercase px-1.5 py-px rounded-full ${
+                                  isSelected ? "bg-rose-200 text-rose-700" : "bg-zinc-100 text-zinc-400"
+                                }`}>
+                                  {d._sizeLabel}
+                                </span>
+                              )}
+                              <span className={`text-[9px] font-medium ${isSelected ? "text-rose-500" : "text-zinc-400"}`}>
+                                ₱{Number(d.price).toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-zinc-100 flex items-center justify-between gap-3 shrink-0">
+          <button
+            onClick={onSkip}
+            className="text-xs font-bold text-zinc-400 hover:text-zinc-600 transition-colors"
+          >
+            Skip for now
+          </button>
+          <div className="flex items-center gap-2">
+            <Btn variant="secondary" onClick={onSkip} disabled={saving}>Cancel</Btn>
+            <Btn onClick={handleSave} disabled={saving || loading || selectedIds.size === 0}>
+              {saving ? (
+                <span className="flex items-center gap-1.5">
+                  <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Saving…
+                </span>
+              ) : saved ? (
+                "✓ Saved!"
+              ) : (
+                <><Coffee size={12} /> Save Drink Pool ({selectedIds.size})</>
+              )}
+            </Btn>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+// ── Category Modal ────────────────────────────────────────────────────────────
 
 const CategoryModal: React.FC<{
   category?: Category;
@@ -174,7 +481,7 @@ const CategoryModal: React.FC<{
               Category Name <span className="text-red-400">*</span>
             </label>
             <input value={name} onChange={e => { setName(e.target.value); setErrors({}); }}
-              placeholder="e.g. Milk Tea" className={inputCls(errors.name)} />
+              placeholder="e.g. Spaghetti W/ Drink" className={inputCls(errors.name)} />
             {errors.name && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.name}</p>}
           </div>
 
@@ -214,24 +521,26 @@ const CategoryModal: React.FC<{
 
           {(posBehavior === "bundle" || posBehavior === "combo" || posBehavior === "mix_and_match") && (
             <div className={`p-3 rounded-lg border text-xs font-medium ${
-              posBehavior === "bundle"      ? "bg-indigo-50 border-indigo-200 text-indigo-700"
-              : posBehavior === "combo"     ? "bg-purple-50 border-purple-200 text-purple-700"
-              :                               "bg-rose-50 border-rose-200 text-rose-700"
+              posBehavior === "bundle"
+                ? "bg-indigo-50 border-indigo-200 text-indigo-700"
+                : posBehavior === "combo"
+                ? "bg-purple-50 border-purple-200 text-purple-700"
+                : "bg-rose-50 border-rose-200 text-rose-700"
             }`}>
               {posBehavior === "bundle" ? (
                 <>
                   <p className="font-bold mb-1">Bundle — Drinks Only</p>
-                  <p className="opacity-80">Each drink gets its own sugar, options, and add-ons. Cashier steps through each drink one by one. e.g. GF Duo Bundles, FP Coffee Bundles.</p>
+                  <p className="opacity-80">Each drink gets its own sugar, options, and add-ons. Cashier steps through each drink one by one.</p>
                 </>
               ) : posBehavior === "combo" ? (
                 <>
                   <p className="font-bold mb-1">Combo — Food + Drink</p>
-                  <p className="opacity-80">Cashier selects the combo item, then picks and customizes the included drink. e.g. Combo Meals, Pizza Pedricos Combo.</p>
+                  <p className="opacity-80">Cashier selects the combo item, then picks and customizes the included drink.</p>
                 </>
               ) : (
                 <>
-                  <p className="font-bold mb-1">Mix & Match — Food + Customer's Choice of Drink</p>
-                  <p className="opacity-80">Cashier selects the food item, then the customer picks one drink from 6 fixed options and customizes it. e.g. Spaghetti W/ Rice, Tonkatsu W/ Rice.</p>
+                  <p className="font-bold mb-1">Mix & Match — Food + Customer's Choice</p>
+                  <p className="opacity-80">After saving, you'll be prompted to set up the drink pool customers can choose from.</p>
                 </>
               )}
             </div>
@@ -259,7 +568,12 @@ const CategoryModal: React.FC<{
           <Btn onClick={handleSubmit} disabled={loading}>
             {loading
               ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</span>
-              : isEdit ? "Save Changes" : <><Plus size={13} /> Add Category</>}
+              : isEdit
+                ? "Save Changes"
+                : posBehavior === "mix_and_match"
+                  ? <><Plus size={13} /> Add & Set Up Drinks</>
+                  : <><Plus size={13} /> Add Category</>
+            }
           </Btn>
         </div>
       </div>
@@ -268,16 +582,191 @@ const CategoryModal: React.FC<{
   );
 };
 
+// ── CategoryDrinksManager (inline edit from table) ────────────────────────────
+
+const CategoryDrinksManager: React.FC<{
+  category:  Category;
+  onClose:   () => void;
+}> = ({ category, onClose }) => {
+  const [allDrinks,   setAllDrinks]   = useState<(MenuItem & { _sizeLabel: string })[]>([]);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [search,      setSearch]      = useState("");
+  const [loading,     setLoading]     = useState(true);
+  const [saving,      setSaving]      = useState(false);
+  const [saved,       setSaved]       = useState(false);
+  const [error,       setError]       = useState("");
+
+  useEffect(() => {
+    setLoading(true);
+    Promise.all([
+      fetch("/api/menu-items",    { headers: authHeaders() }).then(r => r.json()),
+      fetch(`/api/category-drinks?category_id=${category.id}`, { headers: authHeaders() }).then(r => r.json()),
+    ]).then(([itemsData, drinksData]) => {
+      const items: MenuItem[] = (Array.isArray(itemsData) ? itemsData : (itemsData.data ?? []));
+      const drinkPool = items.filter(i => i.category_type === "drink")
+        .sort((a, b) => a.name.localeCompare(b.name) || (a.price - b.price));
+
+      const nameCounts = drinkPool.reduce<Record<string, number>>((acc, d) => {
+        acc[d.name] = (acc[d.name] ?? 0) + 1; return acc;
+      }, {});
+      const nameIndex: Record<string, number> = {};
+      setAllDrinks(drinkPool.map(drink => {
+        const hasPair = nameCounts[drink.name] > 1;
+        let sizeLabel = drink.size && drink.size !== "none" ? drink.size.toUpperCase() : "";
+        if (!sizeLabel && hasPair) {
+          nameIndex[drink.name] = (nameIndex[drink.name] ?? 0) + 1;
+          sizeLabel = nameIndex[drink.name] === 1 ? "M" : "L";
+        }
+        return { ...drink, _sizeLabel: sizeLabel };
+      }));
+
+      const existing: CategoryDrink[] = drinksData.data ?? [];
+      setSelectedIds(new Set(existing.map(d => d.menu_item_id)));
+    })
+    .catch(() => setError("Failed to load data."))
+    .finally(() => setLoading(false));
+  }, [category.id]);
+
+  const filtered = useMemo(() =>
+    allDrinks.filter(d => d.name.toLowerCase().includes(search.toLowerCase())),
+    [allDrinks, search]
+  );
+
+  const toggle = (id: number) => {
+    setSaved(false);
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
+      return next;
+    });
+  };
+
+  const handleSave = async () => {
+    setSaving(true); setError("");
+    try {
+      const res = await fetch("/api/category-drinks", {
+        method: "POST", headers: authHeaders(),
+        body: JSON.stringify({
+          category_id: category.id,
+          drinks: allDrinks.filter(d => selectedIds.has(d.id))
+            .map(d => ({ menu_item_id: d.id, size: d._sizeLabel || "M" })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) { setError("Failed to save."); return; }
+      setSaved(true);
+    } catch { setError("Network error."); }
+    finally { setSaving(false); }
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-9999 flex items-center justify-center p-4"
+      style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", backgroundColor: "rgba(0,0,0,0.45)" }}>
+      <div className="absolute inset-0" onClick={onClose} />
+      <div className="relative bg-white w-full max-w-lg border border-zinc-200 rounded-[1.25rem] shadow-2xl flex flex-col max-h-[85vh]">
+
+        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-rose-50 border border-rose-200 rounded-lg flex items-center justify-center">
+              <Coffee size={15} className="text-rose-600" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-[#1a0f2e]">Manage Drink Pool</p>
+              <p className="text-[10px] text-zinc-400">{category.name} · {selectedIds.size} selected</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-400 hover:text-zinc-600 transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="px-6 pt-4 pb-2 shrink-0 flex items-center gap-2">
+          <div className="flex-1 flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
+            <Search size={12} className="text-zinc-400 shrink-0" />
+            <input value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Filter drinks…"
+              className="flex-1 bg-transparent text-xs text-zinc-700 outline-none placeholder:text-zinc-400" />
+            {search && <button onClick={() => setSearch("")} className="text-zinc-300 hover:text-zinc-500"><X size={11} /></button>}
+          </div>
+        </div>
+
+        {error && (
+          <div className="mx-6 mt-2 flex items-center gap-2 p-2.5 bg-red-50 border border-red-200 rounded-lg shrink-0">
+            <AlertCircle size={13} className="text-red-500 shrink-0" />
+            <p className="text-xs text-red-600 font-medium">{error}</p>
+          </div>
+        )}
+
+        <div className="px-6 py-3 overflow-y-auto flex-1">
+          {loading ? (
+            <div className="grid grid-cols-2 gap-2">
+              {[...Array(6)].map((_, i) => <div key={i} className="h-12 bg-zinc-100 rounded-xl animate-pulse" />)}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-1.5">
+              {filtered.map(d => {
+                const isSelected = selectedIds.has(d.id);
+                return (
+                  <button key={d.id} type="button" onClick={() => toggle(d.id)}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-all ${
+                      isSelected
+                        ? "bg-rose-50 border-rose-400 text-rose-800"
+                        : "bg-white border-zinc-200 text-zinc-500 hover:border-rose-300"
+                    }`}>
+                    <div className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                      isSelected ? "bg-rose-500 border-rose-500" : "border-zinc-300"
+                    }`}>
+                      {isSelected && (
+                        <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                          <path d="M1.5 4L3 5.5L6.5 2" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      )}
+                    </div>
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span className="text-[11px] font-semibold truncate">{d.name}</span>
+                      {d._sizeLabel && (
+                        <span className={`text-[9px] font-bold uppercase ${isSelected ? "text-rose-500" : "text-zinc-400"}`}>
+                          {d._sizeLabel}
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-100 shrink-0">
+          <Btn variant="secondary" onClick={onClose} disabled={saving}>Close</Btn>
+          <Btn onClick={handleSave} disabled={saving || loading}>
+            {saving
+              ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving…</span>
+              : saved ? "✓ Saved!" : "Save Drink Pool"
+            }
+          </Btn>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+// ── Main Component ────────────────────────────────────────────────────────────
+
 const CategoriesTab: React.FC = () => {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading,    setLoading]    = useState(true);
-  const [error,      setError]      = useState("");
-  const [addOpen,    setAddOpen]    = useState(false);
-  const [editTarget, setEditTarget] = useState<Category | null>(null);
-  const [delTarget,  setDelTarget]  = useState<Category | null>(null);
-  const [delLoading, setDelLoading] = useState(false);
-  const [inlineEdit, setInlineEdit] = useState<number | null>(null);
-  const [inlineVal,  setInlineVal]  = useState("");
+  const [categories,       setCategories]       = useState<Category[]>([]);
+  const [loading,          setLoading]          = useState(true);
+  const [error,            setError]            = useState("");
+  const [addOpen,          setAddOpen]          = useState(false);
+  const [editTarget,       setEditTarget]       = useState<Category | null>(null);
+  const [delTarget,        setDelTarget]        = useState<Category | null>(null);
+  const [delLoading,       setDelLoading]       = useState(false);
+  const [inlineEdit,       setInlineEdit]       = useState<number | null>(null);
+  const [inlineVal,        setInlineVal]        = useState("");
+  // ── New: post-create drink pool setup
+  const [drinkSetupTarget, setDrinkSetupTarget] = useState<Category | null>(null);
+  const [drinkPoolTarget,  setDrinkPoolTarget]  = useState<Category | null>(null);
 
   const fetchAll = useCallback(async () => {
     setLoading(true); setError("");
@@ -298,9 +787,7 @@ const CategoriesTab: React.FC = () => {
         method: "PUT", headers: authHeaders(),
         body: JSON.stringify({ is_active: !cat.is_active }),
       });
-      const data = await res.json();
       if (res.ok) setCategories(p => p.map(c => c.id === cat.id ? { ...c, is_active: !c.is_active } : c));
-      else console.error(data.message);
     } catch { /* silent */ }
   };
 
@@ -318,15 +805,25 @@ const CategoriesTab: React.FC = () => {
   const saveInline = async (cat: Category) => {
     if (!inlineVal.trim()) { setInlineEdit(null); return; }
     try {
-      const res  = await fetch(`/api/categories/${cat.id}`, {
+      const res = await fetch(`/api/categories/${cat.id}`, {
         method: "PUT", headers: authHeaders(),
         body: JSON.stringify({ name: inlineVal }),
       });
-      const data = await res.json();
       if (res.ok) setCategories(p => p.map(c => c.id === cat.id ? { ...c, name: inlineVal } : c));
-      else console.error(data.message);
     } catch { /* silent */ }
     finally { setInlineEdit(null); }
+  };
+
+  // Called when CategoryModal saves. If it's a new mix_and_match, prompt drink setup.
+  const handleCategorySaved = (cat: Category, isNew: boolean) => {
+    if (isNew) {
+      setCategories(p => [cat, ...p]);
+      if (cat.category_type === "mix_and_match") {
+        setDrinkSetupTarget(cat);
+      }
+    } else {
+      setCategories(p => p.map(c => c.id === cat.id ? cat : c));
+    }
   };
 
   const totalItems = categories.reduce((sum, c) => sum + (c.menu_items_count ?? 0), 0);
@@ -429,6 +926,16 @@ const CategoriesTab: React.FC = () => {
                   </td>
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-1">
+                      {/* ── Drink pool button for mix_and_match categories */}
+                      {cat.category_type === "mix_and_match" && (
+                        <button
+                          onClick={() => setDrinkPoolTarget(cat)}
+                          className="p-1.5 hover:bg-rose-50 rounded-[0.4rem] text-zinc-300 hover:text-rose-500 transition-colors"
+                          title="Manage drink pool"
+                        >
+                          <Coffee size={13} />
+                        </button>
+                      )}
                       <button onClick={() => setEditTarget(cat)}
                         className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors" title="Edit">
                         <Edit2 size={13} />
@@ -446,11 +953,13 @@ const CategoriesTab: React.FC = () => {
         </div>
         {!loading && categories.length > 0 && (
           <div className="px-5 py-3 border-t border-zinc-50 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-            {categories.length} categories · double-click name to edit inline
+            {categories.length} categories · double-click name to edit inline ·{" "}
+            <span className="text-rose-400">☕ = manage drink pool</span>
           </div>
         )}
       </div>
 
+      {/* Delete confirm */}
       {delTarget && createPortal(
         <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
           style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", backgroundColor: "rgba(0,0,0,0.45)" }}>
@@ -478,9 +987,39 @@ const CategoriesTab: React.FC = () => {
         document.body
       )}
 
-      {addOpen    && <CategoryModal onClose={() => setAddOpen(false)} onSaved={c => { setCategories(p => [c, ...p]); setAddOpen(false); }} />}
-      {editTarget && <CategoryModal category={editTarget} onClose={() => setEditTarget(null)}
-        onSaved={c => { setCategories(p => p.map(x => x.id === c.id ? c : x)); setEditTarget(null); }} />}
+      {/* Add category modal */}
+      {addOpen && (
+        <CategoryModal
+          onClose={() => setAddOpen(false)}
+          onSaved={c => { handleCategorySaved(c, true); setAddOpen(false); }}
+        />
+      )}
+
+      {/* Edit category modal */}
+      {editTarget && (
+        <CategoryModal
+          category={editTarget}
+          onClose={() => setEditTarget(null)}
+          onSaved={c => { handleCategorySaved(c, false); setEditTarget(null); }}
+        />
+      )}
+
+      {/* ── Post-create drink pool setup (first-time, new mix_and_match) */}
+      {drinkSetupTarget && (
+        <DrinkPoolSetupModal
+          category={drinkSetupTarget}
+          onClose={() => setDrinkSetupTarget(null)}
+          onSkip={() => setDrinkSetupTarget(null)}
+        />
+      )}
+
+      {/* ── Drink pool manager (edit from table row coffee icon) */}
+      {drinkPoolTarget && (
+        <CategoryDrinksManager
+          category={drinkPoolTarget}
+          onClose={() => setDrinkPoolTarget(null)}
+        />
+      )}
     </div>
   );
 };

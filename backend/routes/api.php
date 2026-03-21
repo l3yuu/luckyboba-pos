@@ -129,6 +129,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::put('/menu-item-options/{id}',   [MenuItemOptionController::class, 'update']);
         Route::get('/add-ons',           [AddOnController::class, 'index']);
         Route::get('/bundles', [BundleController::class, 'index']);
+        Route::get('/category-drinks', [CategoryDrinkController::class, 'index']); 
         Route::apiResource('categories',     CategoryController::class);
         Route::apiResource('sub-categories', SubCategoryController::class);
         Route::get('/sub-categories/filter/{categoryId}', [SubCategoryController::class, 'getByCategory']);
@@ -304,7 +305,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::patch ('/{id}/toggle',[BundleController::class, 'toggle']);
         });
         Route::prefix('category-drinks')->group(function () {
-            Route::get ('/', [CategoryDrinkController::class, 'index']);
             Route::post('/', [CategoryDrinkController::class, 'store']);
         });
     });
