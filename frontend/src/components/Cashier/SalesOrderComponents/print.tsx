@@ -41,6 +41,7 @@ interface ReceiptPrintProps {
   addOnsData?: { id: number; name: string; price: number; grab_price?: number; panda_price?: number }[];
   showDoubleQueueStub?: boolean;
   isReprint?: boolean;
+  vatType?: 'vat' | 'non_vat';
 }
 
 export const ReceiptPrint = ({
@@ -48,8 +49,9 @@ export const ReceiptPrint = ({
   formattedDate, formattedTime, orderCharge, totalCount,
   subtotal, amtDue, vatableSales, vatAmount, change, cashTendered,
   referenceNumber, paymentMethod, selectedDiscount,
-  totalDiscountDisplay, itemDiscountTotal, promoDiscount, addOnsData = [], showDoubleQueueStub = true, 
+  totalDiscountDisplay, itemDiscountTotal, promoDiscount, addOnsData = [], showDoubleQueueStub = true,
   isReprint = false,
+  vatType = 'vat',  
 }: ReceiptPrintProps) => {
 
   return (
@@ -189,10 +191,21 @@ export const ReceiptPrint = ({
 
         {/* VAT breakdown */}
         <div className="text-[11px] mt-3 space-y-1">
-          <div className="flex justify-between"><span>VATable Sales(V)</span><span>{Number(vatableSales || 0).toFixed(2)}</span></div>
-          <div className="flex justify-between"><span>VAT Amount</span><span>{Number(vatAmount || 0).toFixed(2)}</span></div>
-          <div className="flex justify-between"><span>VAT Exempt Sales(E)</span><span>0.00</span></div>
-          <div className="flex justify-between"><span>Zero-Rated Sales(Z)</span><span>0.00</span></div>
+          {vatType === 'non_vat' ? (
+            <>
+              <div className="flex justify-between"><span>VATable Sales(V)</span><span>0.00</span></div>
+              <div className="flex justify-between"><span>VAT Amount</span><span>0.00</span></div>
+              <div className="flex justify-between"><span>VAT Exempt Sales(E)</span><span>{Number(amtDue || 0).toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>Zero-Rated Sales(Z)</span><span>0.00</span></div>
+            </>
+          ) : (
+            <>
+              <div className="flex justify-between"><span>VATable Sales(V)</span><span>{Number(vatableSales || 0).toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>VAT Amount</span><span>{Number(vatAmount || 0).toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>VAT Exempt Sales(E)</span><span>0.00</span></div>
+              <div className="flex justify-between"><span>Zero-Rated Sales(Z)</span><span>0.00</span></div>
+            </>
+          )}
         </div>
 
         {/* Signature fields */}

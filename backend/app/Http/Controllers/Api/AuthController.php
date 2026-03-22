@@ -55,6 +55,7 @@ class AuthController extends Controller
             ], 403);
         }
 
+        $user->load('branch');
         $token = $user->createToken('auth_token')->plainTextToken;
 
         AuditLog::create([
@@ -68,7 +69,9 @@ class AuthController extends Controller
         // ── FIX 2: Wrap in success envelope so frontend can check success flag
         return response()->json([
             'success' => true,
-            'user'    => $user,
+            'user'    => array_merge($user->toArray(), [
+                'branch_vat_type' => $user->branch?->vat_type ?? 'vat',
+            ]),
             'token'   => $token,
         ]);
     }
