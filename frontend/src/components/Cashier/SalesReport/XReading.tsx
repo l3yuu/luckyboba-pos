@@ -111,6 +111,8 @@ const XReading = () => {
   const phCurrency = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
   const [cashierName, setCashierName] = useState("ADMIN USER");
   const [invoiceQuery, setInvoiceQuery] = useState("");
+  const vatType = (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat';
+  const isVat = vatType === 'vat';
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -644,7 +646,7 @@ const XReading = () => {
             { label: 'LESS SC DISCOUNT:', value: scDiscount > 0 ? `-${phCurrency.format(scDiscount)}` : phCurrency.format(0) },
             { label: 'LESS DIPLOMAT:', value: diplomat > 0 ? `-${phCurrency.format(diplomat)}` : phCurrency.format(0) },
             { label: 'LESS OTHER DISC:', value: otherDisc > 0 ? `-${phCurrency.format(otherDisc)}` : phCurrency.format(0) },
-            { label: 'LESS 12% VAT:', value: vatAmt > 0 ? `-${phCurrency.format(vatAmt)}` : phCurrency.format(0) },
+            { label: 'LESS 12% VAT:', value: isVat && vatAmt > 0 ? `-${phCurrency.format(vatAmt)}` : phCurrency.format(0) },
           ];
           return (
             <>
@@ -660,10 +662,10 @@ const XReading = () => {
               </div>
               <Divider />
               {[
-                { label: 'VATABLE SALES:', value: phCurrency.format(vatableSales) },
-                { label: 'VAT AMOUNT:', value: phCurrency.format(vatAmt) },
-                { label: 'VAT EXEMPT SALES:', value: phCurrency.format(0) },
-                { label: 'ZERO RATED SALES:', value: phCurrency.format(0) },
+              { label: 'VATABLE SALES:',    value: phCurrency.format(isVat ? vatableSales : 0) },
+              { label: 'VAT AMOUNT:',       value: phCurrency.format(isVat ? vatAmt : 0) },
+              { label: 'VAT EXEMPT SALES:', value: phCurrency.format(isVat ? 0 : gross) },
+              { label: 'ZERO RATED SALES:', value: phCurrency.format(0) },
               ].map((r, i) => (
                 <div key={i} className="flex text-[11px] leading-snug">
                   <span className="flex-1 text-right uppercase pr-1">{r.label}</span>
@@ -719,9 +721,9 @@ const XReading = () => {
         <Row label="END. SI #" value={reportData?.end_si || '0000000000'} />
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">BREAKDOWN OF SALES</p>
-        <Row label="VATABLE SALES" value={phCurrency.format(vatableSales)} />
-        <Row label="VAT AMOUNT" value={phCurrency.format(vatAmount)} />
-        <Row label="VAT EXEMPT SALES" value={phCurrency.format(0)} />
+        <Row label="VATABLE SALES"    value={phCurrency.format(isVat ? vatableSales : 0)} />
+        <Row label="VAT AMOUNT"       value={phCurrency.format(isVat ? vatAmount : 0)} />
+        <Row label="VAT EXEMPT SALES" value={phCurrency.format(isVat ? 0 : gross)} />
         <Row label="ZERO-RATED SALES" value={phCurrency.format(0)} />
         <Divider />
         <Row label="SERVICE CHARGE" value={phCurrency.format(0)} />

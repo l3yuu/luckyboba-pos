@@ -316,6 +316,7 @@ const buildPrintProps = (payload: ReprintPayload) => {
     totalDiscountDisplay,
     itemDiscountTotal,
     promoDiscount,
+    vatType: (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat',
   };
 };
 

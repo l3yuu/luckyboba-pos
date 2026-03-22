@@ -91,6 +91,8 @@ interface ZReadingReport {
   total_cash_count?: number;
   over_short?: number;
   net_total?: number;
+  vat_type?:   string;   // 👈 add
+  vat_exempt?: number;   // 👈 add
 }
 
 const Row = ({ label, value, indent = false }: { label: string; value: string | number; indent?: boolean }) => (
@@ -116,6 +118,8 @@ const ZReading = () => {
   const [rawApiResponse, setRawApiResponse] = useState<Record<string, unknown> | unknown[] | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const phCurrency = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
+  const vatType = (reportData?.vat_type ?? localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat';
+  const isVat = vatType === 'vat';
   const [cashierName, setCashierName] = useState("ADMIN USER");
   const [invoiceQuery, setInvoiceQuery] = useState("");
 
@@ -457,9 +461,9 @@ const ZReading = () => {
         <Row label="Sales for the Day(s)" value={phCurrency.format(salesForDay)} />
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">BREAKDOWN OF SALES</p>
-        <Row label="VATable Sales" value={phCurrency.format(vatableSales)} />
-        <Row label="VAT Amount" value={phCurrency.format(vatAmount)} />
-        <Row label="VAT Exempt Sales" value={phCurrency.format(0)} />
+        <Row label="VATable Sales"    value={phCurrency.format(isVat ? vatableSales : 0)} />
+        <Row label="VAT Amount"       value={phCurrency.format(isVat ? vatAmount : 0)} />
+        <Row label="VAT Exempt Sales" value={phCurrency.format(isVat ? 0 : gross)} />
         <Row label="Zero-Rated Sales" value={phCurrency.format(0)} />
         <Divider />
         <Row label="Service Charge" value={phCurrency.format(0)} />
