@@ -41,6 +41,7 @@ interface ReceiptPrintProps {
   addOnsData?: { id: number; name: string; price: number; grab_price?: number; panda_price?: number }[];
   showDoubleQueueStub?: boolean;
   isReprint?: boolean;
+  vatType?: 'vat' | 'non_vat';
 }
 
 export const ReceiptPrint = ({
@@ -48,8 +49,9 @@ export const ReceiptPrint = ({
   formattedDate, formattedTime, orderCharge, totalCount,
   subtotal, amtDue, vatableSales, vatAmount, change, cashTendered,
   referenceNumber, paymentMethod, selectedDiscount,
-  totalDiscountDisplay, itemDiscountTotal, promoDiscount, addOnsData = [], showDoubleQueueStub = true, 
+  totalDiscountDisplay, itemDiscountTotal, promoDiscount, addOnsData = [], showDoubleQueueStub = true,
   isReprint = false,
+  vatType = 'vat',  
 }: ReceiptPrintProps) => {
 
   return (
@@ -189,10 +191,21 @@ export const ReceiptPrint = ({
 
         {/* VAT breakdown */}
         <div className="text-[11px] mt-3 space-y-1">
-          <div className="flex justify-between"><span>VATable Sales(V)</span><span>{Number(vatableSales || 0).toFixed(2)}</span></div>
-          <div className="flex justify-between"><span>VAT Amount</span><span>{Number(vatAmount || 0).toFixed(2)}</span></div>
-          <div className="flex justify-between"><span>VAT Exempt Sales(E)</span><span>0.00</span></div>
-          <div className="flex justify-between"><span>Zero-Rated Sales(Z)</span><span>0.00</span></div>
+          {vatType === 'non_vat' ? (
+            <>
+              <div className="flex justify-between"><span>VATable Sales(V)</span><span>0.00</span></div>
+              <div className="flex justify-between"><span>VAT Amount</span><span>0.00</span></div>
+              <div className="flex justify-between"><span>VAT Exempt Sales(E)</span><span>{Number(amtDue || 0).toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>Zero-Rated Sales(Z)</span><span>0.00</span></div>
+            </>
+          ) : (
+            <>
+              <div className="flex justify-between"><span>VATable Sales(V)</span><span>{Number(vatableSales || 0).toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>VAT Amount</span><span>{Number(vatAmount || 0).toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>VAT Exempt Sales(E)</span><span>0.00</span></div>
+              <div className="flex justify-between"><span>Zero-Rated Sales(Z)</span><span>0.00</span></div>
+            </>
+          )}
         </div>
 
         {/* Signature fields */}
@@ -397,9 +410,10 @@ export const StickerPrint = ({
     if (item.isBundle) {
       return acc + (item.bundleComponents?.reduce((s, c) => s + c.quantity, 0) ?? 0) * item.qty;
     }
-    const isSticker   = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
-    const waffleCount = (item.addOns?.filter(a => a.toLowerCase().includes('waffle combo')).length ?? 0) * item.qty;
-    return acc + (isSticker ? item.qty : 0) + (!isSticker ? waffleCount : 0);
+    const isSticker    = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
+    const isMixMatch   = item.remarks?.startsWith('[Drink:') ?? false;
+    const waffleCount  = (item.addOns?.filter(a => a.toLowerCase().includes('waffle combo')).length ?? 0) * item.qty;
+    return acc + (isSticker ? item.qty : 0) + (!isSticker && isMixMatch ? item.qty : 0) + (!isSticker ? waffleCount : 0);
   }, 0);
 
   const sharedProps = { branchName, orNumber, queueNumber, customerName, totalDrinks, formattedDate, formattedTime };
@@ -462,6 +476,49 @@ export const StickerPrint = ({
           );
           drinkIndex++;
         });
+      }
+      return;
+    }
+
+    const isMixMatch = item.remarks?.startsWith('[Drink:') ?? false;
+
+    if (!isSticker && isMixMatch) {
+      for (let i = 0; i < item.qty; i++) {
+        // Parse drink details from remarks: "[Drink: NAME | Sugar: LEVEL | ...]"
+        const remarksContent = item.remarks?.replace(/^\[|\]$/g, '') ?? '';
+        const parts = remarksContent.split(' | ');
+        const drinkName = parts.find(p => p.startsWith('Drink:'))?.replace('Drink: ', '') ?? '';
+        const sugarPart = parts.find(p => p.startsWith('Sugar:'))?.replace('Sugar: ', '') ?? '';
+        const options   = parts.filter(p => !p.startsWith('Drink:') && !p.startsWith('Sugar:') && !p.startsWith('+'));
+        const addOns    = parts.filter(p => p.startsWith('+')).map(p => p.replace('+', '').trim());
+
+        const extraCount = options.length + addOns.length;
+        const cls = getStickerClasses(extraCount);
+
+        stickers.push(
+          <div
+            key={`sticker-mixmatch-${cartIndex}-${i}`}
+            className={`sticker-area page-break bg-white text-black flex flex-col justify-between items-center h-full w-full ${cls.paddingClass}`}
+            style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
+          >
+            <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls} />
+            <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
+              <div className="text-[7px] font-bold uppercase text-zinc-400 leading-none mb-0.5 tracking-wider">
+                Mix & Match — {item.name}
+              </div>
+              <div className={`w-full font-black uppercase leading-tight ${cls.nameSize} ${cls.marginClass}`}>
+                {drinkName}
+              </div>
+              <div className={`w-full text-center font-bold ${cls.addOnSize} ${cls.gapClass}`}>
+                {sugarPart && <div>Sugar: {sugarPart}</div>}
+                {options.map(opt => <div key={opt}>{opt}</div>)}
+                {addOns.map(a => <div key={a}>+ {a}</div>)}
+              </div>
+            </div>
+            <StickerFooter cls={cls} formattedDate={formattedDate} formattedTime={formattedTime} />
+          </div>
+        );
+        drinkIndex++;
       }
       return;
     }

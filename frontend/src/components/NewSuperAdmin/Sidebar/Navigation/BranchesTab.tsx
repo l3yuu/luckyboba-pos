@@ -21,6 +21,7 @@ interface Branch {
   staff:          number;
   manager:        string;
   ownership_type: 'company' | 'franchise';
+  vat_type:       'vat' | 'non_vat';  // 👈 add
 }
 interface StatCardProps {
   icon: React.ReactNode; label: string; value: string | number;
@@ -43,6 +44,7 @@ interface RawBranch {
   location:        string;
   status:          string;
   ownership_type?: string;
+  vat_type?:       'vat' | 'non_vat';  // 👈 add
   today_sales?:    number | string;
   total_sales?:    number | string;
   staff_count?:    number;
@@ -71,6 +73,7 @@ const mapBranch = (b: RawBranch): Branch => ({
                   ?? b.users?.find(u => u.role === "branch_manager")?.name
                   ?? "—",
   ownership_type: b.ownership_type === 'franchise' ? 'franchise' : 'company',
+  vat_type:       b.vat_type === 'non_vat' ? 'non_vat' : 'vat',  // 👈 add
 });
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
@@ -94,6 +97,16 @@ const OwnershipBadge: React.FC<{ type: 'company' | 'franchise' }> = ({ type }) =
       : 'bg-violet-50 text-violet-700 border-violet-200'
   }`}>
     {type === 'franchise' ? 'Franchise' : 'Company'}
+  </span>
+);
+
+const VatBadge: React.FC<{ type: 'vat' | 'non_vat' }> = ({ type }) => (
+  <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+    type === 'non_vat'
+      ? 'bg-zinc-50 text-zinc-600 border-zinc-300'
+      : 'bg-blue-50 text-blue-700 border-blue-200'
+  }`}>
+    {type === 'non_vat' ? 'Non-VAT' : 'VAT'}
   </span>
 );
 
@@ -203,6 +216,10 @@ const ViewBranchModal: React.FC<ViewBranchModalProps> = ({ onClose, branch }) =>
     ["Location",      <span className="flex items-center gap-1"><MapPin size={11} />{branch.location}</span>],
     ["Manager",       branch.manager],
     ["Type",          <OwnershipBadge type={branch.ownership_type} />],
+    // 👇 add this
+    ...(branch.ownership_type === 'franchise'
+      ? [["VAT Setting", <VatBadge type={branch.vat_type} />] as [string, React.ReactNode]]
+      : []),
     ["Status",        <Badge status={branch.status} />],
     ["Staff Count",   branch.staff || "—"],
     ["Today's Sales", <span className="font-bold text-emerald-600">{branch.status === "active" ? fmt(branch.today) : "—"}</span>],
@@ -235,6 +252,7 @@ const EditBranchModal: React.FC<EditBranchModalProps> = ({ onClose, onUpdated, b
     location:       branch.location,
     status:         branch.status,
     ownership_type: branch.ownership_type,
+    vat_type:       branch.vat_type,  // 👈 add
   });
   const [errors,   setErrors]   = useState<Record<string, string>>({});
   const [loading,  setLoading]  = useState(false);
@@ -345,6 +363,22 @@ const EditBranchModal: React.FC<EditBranchModalProps> = ({ onClose, onUpdated, b
           <option value="franchise">Franchise</option>
         </select>
       </div>
+
+      {/* 👇 add this */}
+      {form.ownership_type === 'franchise' && (
+        <div>
+          <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
+            VAT Setting
+          </label>
+          <select {...field("vat_type")}
+            className="w-full text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all"
+          >
+            <option value="vat">VAT (12%)</option>
+            <option value="non_vat">Non-VAT</option>
+          </select>
+          <p className="text-[10px] text-zinc-400 mt-1">Controls whether this franchise applies VAT to transactions.</p>
+        </div>
+      )}
     </ModalShell>
   );
 };
@@ -433,6 +467,7 @@ const AddBranchModal: React.FC<AddBranchModalProps> = ({ onClose, onSaved }) => 
     location:       "",
     status:         "active",
     ownership_type: "company",
+    vat_type:       "vat",  // 👈 add
   });
   const [errors,   setErrors]   = useState<Record<string, string>>({});
   const [loading,  setLoading]  = useState(false);
@@ -542,6 +577,20 @@ const AddBranchModal: React.FC<AddBranchModalProps> = ({ onClose, onSaved }) => 
           <option value="company">Company-Owned</option>
           <option value="franchise">Franchise</option>
         </select>
+        {form.ownership_type === 'franchise' && (
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
+              VAT Setting
+            </label>
+            <select {...field("vat_type")}
+              className="w-full text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all"
+            >
+              <option value="vat">VAT (12%)</option>
+              <option value="non_vat">Non-VAT</option>
+            </select>
+            <p className="text-[10px] text-zinc-400 mt-1">Controls whether this franchise applies VAT to transactions.</p>
+          </div>
+        )}
       </div>
     </ModalShell>
   );
@@ -765,7 +814,7 @@ const BranchesTab: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100">
-                {["Branch", "Location", "Manager", "Type", "Today Sales", "Total Sales", "Staff", "Status", "Actions"].map(h => (
+                {["Branch", "Location", "Manager", "Type", "VAT", "Today Sales", "Total Sales", "Staff", "Status", "Actions"].map(h => (
                   <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
                 ))}
               </tr>
@@ -773,7 +822,7 @@ const BranchesTab: React.FC = () => {
             <tbody>
               {loading && [...Array(4)].map((_, i) => (
                 <tr key={i} className="border-b border-zinc-50">
-                  {[...Array(9)].map((_, j) => (
+                  {[...Array(10)].map((_, j) => (
                     <td key={j} className="px-5 py-4">
                       <div className="h-3 bg-zinc-100 rounded animate-pulse" style={{ width: `${60 + Math.random() * 40}%` }} />
                     </td>
@@ -783,7 +832,7 @@ const BranchesTab: React.FC = () => {
 
               {!loading && fetchError && (
                 <tr>
-                  <td colSpan={9} className="px-5 py-10 text-center">
+                  <td colSpan={10} className="px-5 py-10 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <AlertCircle size={20} className="text-red-400" />
                       <p className="text-sm font-semibold text-red-500">{fetchError}</p>
@@ -795,7 +844,7 @@ const BranchesTab: React.FC = () => {
 
               {!loading && !fetchError && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-5 py-10 text-center text-zinc-400 text-xs font-medium">
+                  <td colSpan={10} className="px-5 py-10 text-center text-zinc-400 text-xs font-medium">
                     {search || filterStatus !== "all" || filterOwnership !== "all"
                       ? "No branches match your filters."
                       : "No branches found."}
@@ -810,6 +859,11 @@ const BranchesTab: React.FC = () => {
                   <td className="px-5 py-3.5 text-zinc-600">{b.manager}</td>
                   <td className="px-5 py-3.5">
                     <OwnershipBadge type={b.ownership_type} />
+                  </td>
+                  <td className="px-5 py-3.5">
+                    {b.ownership_type === 'franchise'
+                      ? <VatBadge type={b.vat_type} />
+                      : <span className="text-zinc-300 text-xs">—</span>}
                   </td>
                   <td className="px-5 py-3.5 font-bold text-emerald-600">{b.status === "active" ? fmt(b.today) : "—"}</td>
                   <td className="px-5 py-3.5 font-bold text-[#3b2063]">{fmt(b.total)}</td>

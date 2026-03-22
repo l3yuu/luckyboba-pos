@@ -55,6 +55,7 @@ class MenuSeeder extends Seeder
             'LUCKY CLASSIC'       => $smsl,
             'PIZZA PEDRICOS'      => null,
             'PIZZA PEDRICOS COMBO' => null,
+            'MIX & MATCH' => null,
         ];
 
         $cupSizeMap = [
@@ -164,10 +165,10 @@ class MenuSeeder extends Seeder
                 ['name' => "CLASSIC M. TEA + OREO",     'price' => 105.00, 'barcode' => 'CMM13', 'size' => 'M', 'grab_price' => 135.00, 'panda_price' => 135.00],
                 ['name' => "CLASSIC M. TEA + OREO",     'price' => 125.00, 'barcode' => 'CML13', 'size' => 'L', 'grab_price' => 155.00, 'panda_price' => 155.00],
 
-                ['name' => "Classic Pudding + Black Pearl Milktea ", 'price' => 110.00, 'barcode' => 'CMM8', 'size' => 'M', 'grab_price' => 35.00, 'panda_price' => 35.00],
-                ['name' => "Classic Pudding + Black Pearl Milktea ", 'price' => 130.00, 'barcode' => 'CML8', 'size' => 'L', 'grab_price' => 35.00, 'panda_price' => 35.00],
-                ['name' => "Classic Pudding Mini White Pearl ", 'price' => 110.00, 'barcode' => 'CMM12', 'size' => 'M', 'grab_price' => 35.00, 'panda_price' => 35.00],
-                ['name' => "Classic Pudding Mini White Pearl ", 'price' => 130.00, 'barcode' => 'CML12', 'size' => 'L', 'grab_price' => 35.00, 'panda_price' => 35.00],
+                ['name' => "Classic Pudding + Black Pearl Milktea", 'price' => 110.00, 'barcode' => 'CMM8B',  'size' => 'M', 'grab_price' => 35.00, 'panda_price' => 35.00],
+                ['name' => "Classic Pudding + Black Pearl Milktea", 'price' => 130.00, 'barcode' => 'CML8B',  'size' => 'L', 'grab_price' => 35.00, 'panda_price' => 35.00],
+                ['name' => "Classic Pudding Mini White Pearl",      'price' => 110.00, 'barcode' => 'CMM12B', 'size' => 'M', 'grab_price' => 35.00, 'panda_price' => 35.00],
+                ['name' => "Classic Pudding Mini White Pearl",      'price' => 130.00, 'barcode' => 'CML12B', 'size' => 'L', 'grab_price' => 35.00, 'panda_price' => 35.00],
             ],
             'COFFEE FRAPPE' => [
                 ['name' => "MOCHA FRAPPE",             'price' => 125.00, 'barcode' => 'CFM1', 'size' => 'M', 'grab_price' => 45.00, 'panda_price' => 45.00],
@@ -427,6 +428,20 @@ class MenuSeeder extends Seeder
                 ['name' => "PIZZA + LYCHEE LEM NOVA",                'price' => 194.00, 'barcode' => 'PPC-NV3',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
                 ['name' => "PIZZA + STRAWBERRY NOVA",                'price' => 194.00, 'barcode' => 'PPC-NV4',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
                 ['name' => "PIZZA + GREEN APPLE NOVA",               'price' => 194.00, 'barcode' => 'PPC-NV5',  'size' => 'none', 'grab_price' => 40.00, 'panda_price' => 40.00],
+            ],
+            'MIX & MATCH' => [
+                // ₱105 meals
+                ['name' => 'SPAGHETTI W/ RICE',         'price' => 105.00, 'barcode' => 'MM-SP',  'size' => 'none', 'grab_price' => 0.00, 'panda_price' => 0.00],
+                ['name' => 'SIOMAI W/ RICE',             'price' => 105.00, 'barcode' => 'MM-SM',  'size' => 'none', 'grab_price' => 0.00, 'panda_price' => 0.00],
+                ['name' => 'HOTDOG W/ RICE',             'price' => 105.00, 'barcode' => 'MM-HD',  'size' => 'none', 'grab_price' => 0.00, 'panda_price' => 0.00],
+                // ₱125 meals
+                ['name' => 'CHICKEN POPPERS W/ RICE',    'price' => 125.00, 'barcode' => 'MM-CP',  'size' => 'none', 'grab_price' => 0.00, 'panda_price' => 0.00],
+                ['name' => 'SHANGHAI W/ RICE',           'price' => 125.00, 'barcode' => 'MM-SH',  'size' => 'none', 'grab_price' => 0.00, 'panda_price' => 0.00],
+                ['name' => 'CHICKEN WINGS W/ RICE',      'price' => 125.00, 'barcode' => 'MM-CW',  'size' => 'none', 'grab_price' => 0.00, 'panda_price' => 0.00],
+                // ₱150 meals
+                ['name' => 'TONKATSU W/ RICE',           'price' => 150.00, 'barcode' => 'MM-TK',  'size' => 'none', 'grab_price' => 0.00, 'panda_price' => 0.00],
+                ['name' => 'CHICKEN TWISTER WRAP',       'price' => 150.00, 'barcode' => 'MM-CTW', 'size' => 'none', 'grab_price' => 0.00, 'panda_price' => 0.00],
+                ['name' => 'THICK COATED FRIES',         'price' => 150.00, 'barcode' => 'MM-TCF', 'size' => 'none', 'grab_price' => 0.00, 'panda_price' => 0.00],
             ],
             'PUMPKIN SPICE' => [
                 ['name' => "PUMPKIN SPICE MILK TEA",      'price' => 145.00, 'barcode' => "PO1", 'size' => 'L', 'grab_price' => 40.00, 'panda_price' => 40.00],

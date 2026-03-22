@@ -26,6 +26,7 @@ class DatabaseSeeder extends Seeder
             CashCountSeeder::class,
             RawMaterialSeeder::class,
             MenuItemOptionSeeder::class,
+            CategoryDrinkSeeder::class,
         ]);
     }
 }

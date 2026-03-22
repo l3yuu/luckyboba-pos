@@ -17,11 +17,14 @@ class MenuItemController extends Controller
             'menu_items.name',
             'menu_items.category_id',
             'categories.name as category',
+            'categories.category_type',
             'menu_items.sub_category_id as subcategory_id',
             'sub_categories.name as subcategory',
             'menu_items.price',
+            'menu_items.grab_price',    // ✅ add
+            'menu_items.panda_price',   // ✅ add
             'menu_items.barcode',
-            // ✅ UPDATED: Select the actual image from the DB and format it as a URL
+            'menu_items.size',
             DB::raw("CASE WHEN menu_items.image IS NOT NULL THEN CONCAT('".url('storage')."/', menu_items.image) ELSE NULL END as image_path"),
             DB::raw("CASE WHEN menu_items.status = 'active' THEN 1 ELSE 0 END as is_available"),
         ];
@@ -51,9 +54,11 @@ class MenuItemController extends Controller
             'category_id'    => 'nullable|integer|exists:categories,id',
             'subcategory_id' => 'nullable|integer|exists:sub_categories,id',
             'price'          => 'required|numeric|min:0',
+            'grab_price'     => 'nullable|numeric|min:0',   // ✅ add
+            'panda_price'    => 'nullable|numeric|min:0',   // ✅ add
             'barcode'        => 'nullable|string|unique:menu_items,barcode',
             'is_available'   => 'boolean',
-            'image'          => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048', // ✅ Validate the image file
+            'image'          => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ]);
         
         if ($v->fails()) {
@@ -77,6 +82,8 @@ class MenuItemController extends Controller
             'status'          => $request->boolean('is_available', true) ? 'active' : 'inactive',
             'created_at'      => now(),
             'updated_at'      => now(),
+            'grab_price'  => $request->grab_price  ?? 0,   // ✅ add
+            'panda_price' => $request->panda_price ?? 0,   // ✅ add
         ]);
 
         $item = $this->baseQuery()
@@ -94,9 +101,11 @@ class MenuItemController extends Controller
             'category_id'    => 'nullable|integer|exists:categories,id',
             'subcategory_id' => 'nullable|integer|exists:sub_categories,id',
             'price'          => 'sometimes|numeric|min:0',
+            'grab_price'     => 'nullable|numeric|min:0',   // ✅ add
+            'panda_price'    => 'nullable|numeric|min:0',   // ✅ add
             'barcode'        => 'nullable|string|unique:menu_items,barcode,' . $id,
             'is_available'   => 'boolean',
-            'image'          => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048', // ✅ Validate new image
+            'image'          => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ]);
         
         if ($v->fails()) {
@@ -107,17 +116,16 @@ class MenuItemController extends Controller
         $existingItem = DB::table('menu_items')->where('id', $id)->first();
 
         // Build Payload
-        $payload = array_filter([
-            'name'            => $request->name,
-            'category_id'     => $request->category_id,
-            'sub_category_id' => $request->subcategory_id,
-            'price'           => $request->price,
-            'barcode'         => $request->barcode,
-            'status'          => $request->has('is_available')
-                                    ? ($request->boolean('is_available') ? 'active' : 'inactive')
-                                    : null,
-            'updated_at'      => now(),
-        ], fn($v) => !is_null($v));
+        $payload = ['updated_at' => now()];
+
+        if ($request->has('name'))           $payload['name']            = $request->name;
+        if ($request->has('category_id'))    $payload['category_id']     = $request->category_id;
+        if ($request->has('subcategory_id')) $payload['sub_category_id'] = $request->subcategory_id;
+        if ($request->has('price'))          $payload['price']           = $request->price;
+        if ($request->has('barcode'))        $payload['barcode']         = $request->barcode;
+        if ($request->has('grab_price'))     $payload['grab_price']      = (float) $request->grab_price;
+        if ($request->has('panda_price'))    $payload['panda_price']     = (float) $request->panda_price;
+        if ($request->has('is_available'))   $payload['status']          = $request->boolean('is_available') ? 'active' : 'inactive';
 
         // ✅ Handle Image Update
         if ($request->hasFile('image')) {
