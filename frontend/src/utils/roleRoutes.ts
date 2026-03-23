@@ -1,6 +1,6 @@
 export const ROLE_HOME: Record<string, string> = {
-  superadmin:     '/superadmin',
-  system_admin:   '/superadmin',
+  superadmin:     '/super-admin',
+  system_admin:   '/super-admin',
   branch_manager: '/branch-manager',
   team_leader:    '/team-leader',   // ← add
   cashier:        '/cashier',
