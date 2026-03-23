@@ -24,6 +24,7 @@ class MenuItemController extends Controller
             'menu_items.grab_price',    // ✅ add
             'menu_items.panda_price',   // ✅ add
             'menu_items.barcode',
+            'menu_items.size',
             DB::raw("CASE WHEN menu_items.image IS NOT NULL THEN CONCAT('".url('storage')."/', menu_items.image) ELSE NULL END as image_path"),
             DB::raw("CASE WHEN menu_items.status = 'active' THEN 1 ELSE 0 END as is_available"),
         ];

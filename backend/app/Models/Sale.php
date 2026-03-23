@@ -31,6 +31,7 @@ class Sale extends Model
         'customer_name',
         'discount_id',      // ADD
         'discount_amount',  // ADD
+        'cash_tendered',
     ];
 
     protected $casts = [
@@ -39,6 +40,7 @@ class Sale extends Model
         'discount_amount' => 'decimal:2',  // ADD
         'vatable_sales'   => 'decimal:2',  // ADD
         'vat_amount'      => 'decimal:2',  // ADD
+        'cash_tendered' => 'decimal:2',
     ];
 
     protected $appends = ['or_number'];

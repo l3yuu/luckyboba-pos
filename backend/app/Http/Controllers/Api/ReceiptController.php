@@ -15,22 +15,18 @@ class ReceiptController extends Controller
     {
         $user     = auth()->user();
         $branchId = $user?->branch_id;
-        $today    = now()->toDateString();
 
+        // Per-branch sequence, never resets — just always finds the highest
+        // SI number used by this branch and adds 1
         $latest = \App\Models\Sale::where('invoice_number', 'LIKE', 'SI-%')
             ->whereRaw("invoice_number REGEXP '^SI-[0-9]+$'")
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->whereDate('created_at', $today)
             ->orderByRaw('CAST(SUBSTRING(invoice_number, 4) AS UNSIGNED) DESC')
             ->first();
 
-        if (!$latest) {
-            return response()->json(['next_sequence' => 1]);
-        }
+        $nextSeq = $latest ? ((int) substr($latest->invoice_number, 3)) + 1 : 1;
 
-        $lastNumber = (int) substr($latest->invoice_number, 3);
-
-        return response()->json(['next_sequence' => $lastNumber + 1]);
+        return response()->json(['next_sequence' => $nextSeq]);
     }
 
     public function search(Request $request)
@@ -44,14 +40,18 @@ class ReceiptController extends Controller
             ->select([
                 'receipts.sale_id',
                 'receipts.si_number',
-                'sales.total_amount',     // ← use sales table (correct discounted amount)
+                'sales.total_amount',
+                'sales.payment_method',    // ← add
+                'sales.cash_tendered',     // ← add
+                'sales.reference_number',  // ← add
+                'sales.charge_type',       // ← add
                 'receipts.cashier_name',
                 'receipts.terminal',
                 'receipts.items_count',
                 'receipts.created_at',
                 'sales.status',
                 'sales.cancellation_reason',
-                'sales.customer_name',    // also add this so customer name shows
+                'sales.customer_name',
             ])
             ->selectRaw('
                 EXISTS(
@@ -94,15 +94,6 @@ class ReceiptController extends Controller
             'stats'   => [
                 'gross'  => round($gross, 2),
                 'voided' => round($voidedAmt, 2),
-                'net'    => round($net, 2),
-            ],
-        ]);
-
-        return response()->json([
-            'results' => $results->values(),
-            'stats'   => [
-                'gross'  => round($gross, 2),
-                'voided' => round($voided, 2),
                 'net'    => round($net, 2),
             ],
         ]);
@@ -199,6 +190,12 @@ public function reprint(Request $request, int $id)
         'type'    => $type,
         'sale'    => $saleArray,
         'receipt' => $receipt,
+        'payment' => [
+            'method'        => $sale->payment_method,
+            'cash_tendered' => (float) ($sale->cash_tendered ?? 0),
+            'reference'     => $sale->reference_number,
+            'charge_type'   => $sale->charge_type,
+        ],
     ]);
 }
 }

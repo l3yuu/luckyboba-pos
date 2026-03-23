@@ -30,6 +30,7 @@ class CategorySeeder extends Seeder
             // ── COMBO (food + drink) ──────────────────────────────────────────
             'COMBO MEALS'          => ['type' => 'food',  'category_type' => 'combo',  'cup_id' => null, 'sub_category_id' => null],
             'PIZZA PEDRICOS COMBO' => ['type' => 'food',  'category_type' => 'combo',  'cup_id' => null, 'sub_category_id' => null],
+            'MIX & MATCH'          => ['type' => 'food', 'category_type' => 'mix_and_match', 'cup_id' => null, 'sub_category_id' => null],
 
             // ── DRINKS SM/SL ──────────────────────────────────────────────────
             'CHEESECAKE MILK TEA'    => ['type' => 'drink', 'category_type' => 'drink', 'cup_id' => $smsl,   'sub_category_id' => $sub('SM')],
