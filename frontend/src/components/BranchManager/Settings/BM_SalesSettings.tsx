@@ -150,7 +150,7 @@ const BM_SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
   return (
     <>
       <style>{STYLES}</style>
-      <div className="bm-root fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+      <div className="bm-root fixed inset-0 z-60 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
         <div className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl border border-gray-100 overflow-hidden flex flex-col md:flex-row h-[90vh] md:h-auto animate-in zoom-in-95 duration-200">
 
           {/* ── Left panel: config ── */}

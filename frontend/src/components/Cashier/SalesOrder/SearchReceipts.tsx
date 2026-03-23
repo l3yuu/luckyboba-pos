@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import TopNavbar from '../../Cashier/TopNavbar';
+import { useAuth } from '../../../hooks/useAuth';
 import { 
   Terminal, 
   Search, 
@@ -153,6 +154,8 @@ const StatBox: React.FC<{ label: string; value: number; icon: React.ReactNode; i
 // ============================================================
 
 const SearchReceipts = () => {
+  const { user } = useAuth();
+  const isCashier = user?.role === 'cashier';
   const today = new Date().toISOString().split('T')[0];
 
   const [searchQuery,   setSearchQuery]   = useState('');
@@ -482,9 +485,10 @@ const buildPrintProps = (payload: ReprintPayload) => {
                         <div className="flex gap-2">
 <button
   onClick={() => openVoidModal(item.sale_id)}
-  disabled={item.status === 'cancelled'}
+  disabled={item.status === 'cancelled' || isCashier}
+  title={isCashier ? 'Cashiers cannot void orders. Only admin/managers can approve voids.' : ''}
   className={`w-9 h-9 inline-flex items-center justify-center bg-white border transition-all rounded-[0.625rem]
-    ${item.status === 'cancelled'
+    ${item.status === 'cancelled' || isCashier
       ? 'border-zinc-100 text-zinc-200 cursor-not-allowed'
       : 'border-red-200 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-500'
     }`}>
