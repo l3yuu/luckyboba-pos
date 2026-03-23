@@ -245,15 +245,15 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/item-checker/{barcode}', [ItemCheckerController::class, 'lookup']);
 
         Route::prefix('users')->group(function () {
-            Route::get('/',                     [UserController::class, 'index']);
-            Route::post('/',                    [UserController::class, 'store']);
-            Route::get('/stats',                [UserController::class, 'stats']);
-            Route::get('/{id}',                 [UserController::class, 'show']);
-            Route::put('/{id}',                 [UserController::class, 'update']);
-            Route::delete('/{id}',              [UserController::class, 'destroy']);
-            Route::patch('/{id}/toggle-status', [UserController::class, 'toggleStatus']);
-            Route::patch('/{id}/pin',           [UserController::class, 'updatePin']);
-        });
+    Route::get('/',                     [UserController::class, 'index']);
+    Route::post('/',                    [UserController::class, 'store']);
+    Route::get('/stats',                [UserController::class, 'stats']);   // ← static before /{id}
+    Route::get('/{id}',                 [UserController::class, 'show']);
+    Route::put('/{id}',                 [UserController::class, 'update']);
+    Route::delete('/{id}',              [UserController::class, 'destroy']);
+    Route::patch('/{id}/toggle-status', [UserController::class, 'toggleStatus']);
+    Route::patch('/{id}/pin',           [UserController::class, 'updatePin']);
+});
 
         Route::prefix('branches')->group(function () {
             Route::get('/performance',         [BranchController::class, 'performance']);
