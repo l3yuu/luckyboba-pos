@@ -8,7 +8,6 @@ import OfflineQueueBanner  from '../components/Cashier/SalesOrderComponents/Offl
 import {
   type MenuItem, type Category, type CartItem,
   type Bundle, type BundleComponentCustomization,
-  BUNDLE_CATEGORIES,
 } from '../types/index';
 import { useToast }  from '../hooks/useToast';
 import { useAuth }   from '../hooks/useAuth';
@@ -27,7 +26,7 @@ import {
   CartItemEditModal, ItemSelectionModal,
   BundleModal, ComboDrinkModal,
   ConfirmOrderModal, CustomerNameModal, SuccessModal,
-  AddOnModalShell,
+  AddOnModalShell, MixAndMatchDrinkModal,
 } from '../components/Cashier/SalesOrderComponents/modals';
 
 import { ReceiptPrint, KitchenPrint, StickerPrint }
@@ -150,6 +149,16 @@ const SalesOrder = () => {
   const [comboDrinkAddOnModalOpen, setComboDrinkAddOnModalOpen] = useState(false);
   const [pendingComboCart,         setPendingComboCart]         = useState<CartItem | null>(null);
 
+  // Mix & Match state
+  const [isMixMatchModalOpen,    setIsMixMatchModalOpen]    = useState(false);
+  const [pendingMixMatchCart,    setPendingMixMatchCart]    = useState<CartItem | null>(null);
+  const [mixMatchDrinkItems,     setMixMatchDrinkItems]     = useState<MenuItem[]>([]);
+  const [selectedMixMatchDrink,  setSelectedMixMatchDrink]  = useState<MenuItem | null>(null);
+  const [mixMatchDrinkSugar,     setMixMatchDrinkSugar]     = useState('');
+  const [mixMatchDrinkOptions,   setMixMatchDrinkOptions]   = useState<string[]>([]);
+  const [mixMatchDrinkAddOns,    setMixMatchDrinkAddOns]    = useState<string[]>([]);
+  const [mixMatchDrinkAddOnOpen, setMixMatchDrinkAddOnOpen] = useState(false);
+
   // Confirm / payment
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [submitting,         setSubmitting]         = useState(false);
@@ -190,13 +199,12 @@ const SalesOrder = () => {
 
   // ── Derived values ──────────────────────────────────────────────────────────
 
-  const isDrink              = selectedCategory?.type === 'drink';
-  const isWings              = selectedCategory?.name === 'CHICKEN WINGS';
-  const isOz                 = selectedCategory?.name === 'HOT DRINKS' || selectedCategory?.name === 'HOT COFFEE';
-  const isCombo =
-  selectedCategory?.name?.toUpperCase() === 'COMBO MEALS' ||
-  selectedCategory?.name?.toUpperCase() === 'PIZZA PEDRICOS COMBO';
-  const isWaffleCategory     = selectedCategory?.name?.toLowerCase().includes('waffle') ?? false;
+  // ✅ REPLACE with category_type driven checks
+  const isDrink        = selectedCategory?.type === 'drink' || selectedCategory?.category_type === 'bundle';
+  const isWings        = selectedCategory?.category_type === 'wings';
+  const isOz           = selectedCategory?.name === 'HOT DRINKS' || selectedCategory?.name === 'HOT COFFEE';
+  const isCombo        = selectedCategory?.category_type === 'combo';
+  const isWaffleCategory = selectedCategory?.category_type === 'waffle';
   const categoryHasOnlyOneSize = (selectedCategory?.sub_categories?.length ?? 0) <= 1;
 
   const filteredAddOns = addOnsData.filter(a =>
@@ -245,7 +253,8 @@ const hasStickers = cart.some(item =>
   item.sugarLevel !== undefined ||
   item.size === 'M' || item.size === 'L' ||
   (item.addOns?.some(a => a.toLowerCase().includes('waffle combo')) ?? false) ||
-  (item.isBundle && (item.bundleComponents?.length ?? 0) > 0)
+  (item.isBundle && (item.bundleComponents?.length ?? 0) > 0) ||
+  (item.remarks?.startsWith('[Drink:') ?? false)  // ← Mix & Match
 );
 
   const formattedDate = currentDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
@@ -351,21 +360,28 @@ const syncNextSequence = async () => {
 
   // ── Category / item navigation ──────────────────────────────────────────────
 
-  const handleCategoryClick = (cat: Category) => {
-    setSelectedCategory(cat);
-    setCategorySize(null);
+// ✅ REPLACE
+const handleCategoryClick = (cat: Category) => {
+  setSelectedCategory(cat);
+  setCategorySize(null);
 
-    const isDrinkCat = cat.type === 'drink';
-    const isWingsCat = cat.name === 'CHICKEN WINGS';
-    const subCats    = cat.sub_categories ?? [];
+  const catType  = cat.category_type ?? cat.type;
+  const isDrinkCat  = catType === 'drink' || catType === 'bundle'; // bundles use drink size flow
+  const isWingsCat  = catType === 'wings';
+  const subCats     = cat.sub_categories ?? [];
 
-    if (!isDrinkCat && !isWingsCat) { setCategorySize('all'); return; }
-    if (isWingsCat) return;
-    if (subCats.length === 1)       { setCategorySize(subCats[0].name); return; }
-    if (subCats.length === 0 && cat.cup?.size_l == null) {
-      setCategorySize(cat.cup?.size_m || 'M');
-    }
-  };
+  // Food, combo, waffle, promo — no size selection needed
+  if (!isDrinkCat && !isWingsCat) { setCategorySize('all'); return; }
+
+  // Wings — show sub-categories (3pc, 4pc, 6pc, 12pc)
+  if (isWingsCat) return;
+
+  // Drinks and bundles — show size selection
+  if (subCats.length === 1)       { setCategorySize(subCats[0].name); return; }
+  if (subCats.length === 0 && cat.cup?.size_l == null) {
+    setCategorySize(cat.cup?.size_m || 'M');
+  }
+};
 
   const handleBack = () => {
     if ((isDrink || isWings) && categorySize && !categoryHasOnlyOneSize) {
@@ -404,44 +420,100 @@ const syncNextSequence = async () => {
     return items;
   };
 
-  const handleItemClick = (item: MenuItem) => {
-    const actualCategory = categories.find(cat =>
-      cat.menu_items.some(mi => mi.id === item.id)
-    ) ?? selectedCategory;
+const handleItemClick = async (item: MenuItem) => {
+  const actualCategory = categories.find(cat =>
+    cat.menu_items.some(mi => mi.id === item.id)
+  ) ?? selectedCategory;
 
-    setSelectedCategory(actualCategory);
+  setSelectedCategory(actualCategory);
 
-    const isActualBundle = BUNDLE_CATEGORIES.includes(actualCategory?.name as typeof BUNDLE_CATEGORIES[number]);
+  const catType = actualCategory?.category_type;
 
-    if (isActualBundle) {
-      const bundle = bundlesData.find(b => b.barcode === item.barcode);
-      if (bundle) {
-        setActiveBundleItem(bundle);
-        setBundleComponentIndex(0);
-        setBundleComponentCustomizations([]);
-        setBundleComponentSugar('');
-        setBundleComponentOptions([]);
-        setBundleComponentAddOns([]);
-        setIsBundleModalOpen(true);
-        return;
+  // ✅ Mix & Match — show drink picker modal
+if (catType === 'mix_and_match') {
+      // Fetch the shared drink pool for this category from the API
+      const categoryId = actualCategory?.id;
+      let allDrinks: MenuItem[] = [];
+      if (categoryId) {
+        try {
+          const token = localStorage.getItem('auth_token') || localStorage.getItem('lucky_boba_token') || '';
+          const res = await fetch(`/api/category-drinks?category_id=${categoryId}`, {
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+          });
+          const data = await res.json();
+          const poolDrinks: { menu_item_id: number; name: string; size: string; price: number }[] = data.data ?? [];
+          // Map pool drinks to MenuItem shape, pulling full item data from categories
+          allDrinks = poolDrinks.map(d => {
+            const found = categories.flatMap(c => c.menu_items).find(m => m.id === d.menu_item_id);
+            // Use the found item but override size from category_drinks table
+            const validSize = (s: string): 'M' | 'L' | 'none' =>
+                          s === 'M' || s === 'L' ? s : 'none';
+            return found
+              ? { ...found, size: validSize(d.size || found.size || 'none') }
+              : { id: d.menu_item_id, name: d.name, price: d.price, size: validSize(d.size), barcode: '', category_id: categoryId } as unknown as MenuItem;
+          });
+        } catch {
+          allDrinks = [];
+        }
       }
-    }
 
-    setSelectedItem(item);
-    setQty(1);
-    setRemarks('');
-    setSugarLevel('');
-    setSelectedOptions([]);
-    setSelectedAddOns([]);
-    setIsAddOnModalOpen(false);
+    const newCartItem: CartItem = {
+      ...item,
+      qty: 1,
+      remarks: '',
+      charges: { grab: orderCharge === 'grab', panda: orderCharge === 'panda' },
+      size: 'none',
+      finalPrice: Number(item.price),
+    };
 
-    if (item.size === 'M' || item.size === 'L') {
-      setSize(item.size);
-    } else {
-      const cupSizeL = actualCategory?.cup?.size_l || 'L';
-      setSize(categorySize === cupSizeL ? 'L' : 'M');
+    setPendingMixMatchCart(newCartItem);
+    setMixMatchDrinkItems(allDrinks);
+    setSelectedMixMatchDrink(null);
+    setMixMatchDrinkSugar('');
+    setMixMatchDrinkOptions([]);
+    setMixMatchDrinkAddOns([]);
+    setIsMixMatchModalOpen(true);
+    return;
+  }
+
+  // ✅ Bundle only (NOT combo) — goes straight to BundleModal
+  if (catType === 'bundle') {
+    const bundle = bundlesData.find(b => b.barcode === item.barcode);
+    if (bundle) {
+      setActiveBundleItem(bundle);
+      setBundleComponentIndex(0);
+      setBundleComponentCustomizations([]);
+      setBundleComponentSugar('');
+      setBundleComponentOptions([]);
+      setBundleComponentAddOns([]);
+      setOrderCharge(null);
+      setIsBundleModalOpen(true);
+      return;
     }
-  };
+  }
+
+  // ✅ Combo — goes to ItemSelectionModal first, then ComboDrinkModal via addToOrder
+  // (falls through to normal item flow below — isCombo state handles the rest)
+
+  setSelectedItem(item);
+  setQty(1);
+  setRemarks('');
+  setSugarLevel('');
+  setSelectedOptions([]);
+  setSelectedAddOns([]);
+  setIsAddOnModalOpen(false);
+
+  if (item.size === 'M' || item.size === 'L') {
+    setSize(item.size);
+  } else {
+    const cupSizeL = actualCategory?.cup?.size_l || 'L';
+    setSize(categorySize === cupSizeL ? 'L' : 'M');
+  }
+};
   // ── Order charge toggle ─────────────────────────────────────────────────────
 
   const toggleOrderCharge = (type: 'grab' | 'panda') => {
@@ -452,6 +524,11 @@ const syncNextSequence = async () => {
       charges: { grab: next === 'grab', panda: next === 'panda' },
     })));
   };
+
+  const toggleBundleOrderCharge = (type: 'grab' | 'panda') => {
+  const next = orderCharge === type ? null : type;
+  setOrderCharge(next);
+};
 
   // ── Options toggles ─────────────────────────────────────────────────────────
 
@@ -509,6 +586,7 @@ const syncNextSequence = async () => {
 
   const addToOrder = () => {
     if (!selectedItem || !selectedCategory) return;
+     console.log('category_type:', selectedCategory.category_type, 'isCombo:', isCombo); 
 
     const isWaffle = selectedCategory?.name?.toLowerCase().includes('waffle');
     let extraCost = 0;
@@ -604,17 +682,34 @@ const syncNextSequence = async () => {
       `${c.addOns.length  ? ' | +' + c.addOns.join(', ')  : ''}`
     ).join(' || ');
 
+    // ← ADD: calculate add-on cost across all bundle components
+    const bundleAddOnCost = newCustomizations.reduce((total, c) => {
+      return total + c.addOns.reduce((sum, addonName) => {
+        const addon = addOnsData.find(a => a.name === addonName);
+        if (!addon) return sum;
+        if (orderCharge === 'grab'  && Number(addon.grab_price  ?? 0) > 0) return sum + Number(addon.grab_price);
+        if (orderCharge === 'panda' && Number(addon.panda_price ?? 0) > 0) return sum + Number(addon.panda_price);
+        return sum + Number(addon.price);
+      }, 0);
+    }, 0);
+
+    const matchingMenuItem = categories
+      .flatMap(c => c.menu_items)
+      .find(m => m.barcode === activeBundleItem.barcode);
+
     const cartItem: CartItem = {
       id:           activeBundleItem.id,
       category_id:  0,
       name:         activeBundleItem.display_name ?? activeBundleItem.name,
+      grab_price:   Number(activeBundleItem.grab_price  || matchingMenuItem?.grab_price  || 0),
+      panda_price:  Number(activeBundleItem.panda_price || matchingMenuItem?.panda_price || 0),
       price:        Number(activeBundleItem.price),
       barcode:      activeBundleItem.barcode,
       qty:          1,
       size:         'L',
       remarks:      remarksLines,
       charges:      { grab: orderCharge === 'grab', panda: orderCharge === 'panda' },
-      finalPrice:   Number(activeBundleItem.price),
+      finalPrice:   Number(activeBundleItem.price) + bundleAddOnCost,  // ← updated
       isBundle:     true,
       bundleId:     activeBundleItem.id,
       bundleComponents: newCustomizations,
@@ -684,6 +779,42 @@ const confirmComboDrink = () => {
   showToast(`${finalItem.name} added!`, 'success');
 };
   // ── Cart item editing ───────────────────────────────────────────────────────
+
+  const confirmMixAndMatch = () => {
+  if (!pendingMixMatchCart || !selectedMixMatchDrink) return;
+
+  let addOnExtraCost = 0;
+  mixMatchDrinkAddOns.forEach(name => {
+    const addon = addOnsData.find(a => a.name === name);
+    if (addon) {
+      if (orderCharge === 'grab' && Number(addon.grab_price ?? 0) > 0)
+        addOnExtraCost += Number(addon.grab_price);
+      else if (orderCharge === 'panda' && Number(addon.panda_price ?? 0) > 0)
+        addOnExtraCost += Number(addon.panda_price);
+      else
+        addOnExtraCost += Number(addon.price);
+    }
+  });
+
+  const drinkDetails = [
+    `Drink: ${selectedMixMatchDrink.name}`,
+    `Sugar: ${mixMatchDrinkSugar}`,
+    ...mixMatchDrinkOptions,
+    ...mixMatchDrinkAddOns.map(a => `+${a}`),
+  ].join(' | ');
+
+  const finalItem: CartItem = {
+    ...pendingMixMatchCart,
+    remarks: `[${drinkDetails}]`,
+    finalPrice: pendingMixMatchCart.finalPrice + addOnExtraCost,
+  };
+
+  mergeIntoCart(finalItem);
+  logCartAction(finalItem.name, finalItem.qty);
+  setIsMixMatchModalOpen(false);
+  setPendingMixMatchCart(null);
+  showToast(`${finalItem.name} + ${selectedMixMatchDrink.name} added!`, 'success');
+};
 
   // ── Cart item editing ───────────────────────────────────────────────────────
 
@@ -847,6 +978,7 @@ const handleSubmitOrder = async (nameOverride?: string) => {
     vatable_sales:    vatableSales,
     vat_amount:       vatAmount,
     customer_name:    nameOverride ?? customerName ?? null, // ✅ name is now captured
+    cash_tendered: typeof cashTendered === 'number' ? cashTendered : 0,
   };
 
   if (navigator.onLine) {
@@ -927,6 +1059,12 @@ const handleSubmitOrder = async (nameOverride?: string) => {
     setCategorySize(null);
     setDiscountRemarks('');
     setCustomerName('');
+    setIsMixMatchModalOpen(false);
+    setPendingMixMatchCart(null);
+    setSelectedMixMatchDrink(null);
+    setMixMatchDrinkSugar('');
+    setMixMatchDrinkOptions([]);
+    setMixMatchDrinkAddOns([]);
     await syncNextSequence();
   };
 
@@ -1043,26 +1181,35 @@ const handleSubmitOrder = async (nameOverride?: string) => {
           />
         )}
 
-        {isBundleModalOpen && activeBundleItem && (
-          <BundleModal
-            activeBundleItem={activeBundleItem}
-            bundleComponentIndex={bundleComponentIndex}
-            bundleComponentSugar={bundleComponentSugar}
-            bundleComponentOptions={bundleComponentOptions}
-            bundleComponentAddOns={bundleComponentAddOns}
-            filteredAddOns={filteredAddOns}
-            bundleComponentAddOnModalOpen={bundleComponentAddOnModalOpen}
-            onSugarChange={setBundleComponentSugar}
-            onToggleOption={makeToggleOption(setBundleComponentOptions)}
-            onOpenAddOns={() => setBundleComponentAddOnModalOpen(true)}
-            onCloseAddOns={() => setBundleComponentAddOnModalOpen(false)}
-            onToggleAddOn={name => setBundleComponentAddOns(prev =>
-              prev.includes(name) ? prev.filter(a => a !== name) : [...prev, name]
-            )}
-            onConfirm={confirmBundleComponent}
-            onClose={() => { setIsBundleModalOpen(false); setActiveBundleItem(null); }}
-          />
-        )}
+        {isBundleModalOpen && activeBundleItem && (() => {
+          const bundleMenuItem = categories.flatMap(c => c.menu_items).find(m => m.barcode === activeBundleItem.barcode);
+          const bundleGrabPrice  = Number(activeBundleItem.grab_price  || bundleMenuItem?.grab_price  || 0);
+          const bundlePandaPrice = Number(activeBundleItem.panda_price || bundleMenuItem?.panda_price || 0);
+          return (
+            <BundleModal
+              activeBundleItem={activeBundleItem}
+              bundleComponentIndex={bundleComponentIndex}
+              bundleComponentSugar={bundleComponentSugar}
+              bundleComponentOptions={bundleComponentOptions}
+              bundleComponentAddOns={bundleComponentAddOns}
+              filteredAddOns={filteredAddOns}
+              bundleComponentAddOnModalOpen={bundleComponentAddOnModalOpen}
+              onSugarChange={setBundleComponentSugar}
+              onToggleOption={makeToggleOption(setBundleComponentOptions)}
+              onOpenAddOns={() => setBundleComponentAddOnModalOpen(true)}
+              onCloseAddOns={() => setBundleComponentAddOnModalOpen(false)}
+              onToggleAddOn={name => setBundleComponentAddOns(prev =>
+                prev.includes(name) ? prev.filter(a => a !== name) : [...prev, name]
+              )}
+              onConfirm={confirmBundleComponent}
+              onClose={() => { setIsBundleModalOpen(false); setActiveBundleItem(null); }}
+              orderCharge={orderCharge}
+              onToggleOrderCharge={toggleBundleOrderCharge}
+              bundleGrabPrice={bundleGrabPrice}
+              bundlePandaPrice={bundlePandaPrice}
+            />
+          );
+        })()}
 
         {isCombodrinkModalOpen && pendingComboCart && (
           <ComboDrinkModal
@@ -1084,6 +1231,35 @@ const handleSubmitOrder = async (nameOverride?: string) => {
             orderCharge={orderCharge}
           />
         )}
+
+        {isMixMatchModalOpen && pendingMixMatchCart && (
+        <MixAndMatchDrinkModal
+          pendingMixMatchCart={pendingMixMatchCart}
+          drinkItems={mixMatchDrinkItems}
+          selectedDrink={selectedMixMatchDrink}
+          drinkSugar={mixMatchDrinkSugar}
+          drinkOptions={mixMatchDrinkOptions}
+          drinkAddOns={mixMatchDrinkAddOns}
+          filteredAddOns={filteredAddOns}
+          drinkAddOnModalOpen={mixMatchDrinkAddOnOpen}
+          orderCharge={orderCharge}
+          onSelectDrink={item => {
+            setSelectedMixMatchDrink(item ?? null);
+            setMixMatchDrinkSugar('');
+            setMixMatchDrinkOptions([]);
+          }}
+          onSugarChange={setMixMatchDrinkSugar}
+          onToggleOption={makeToggleOption(setMixMatchDrinkOptions)}
+          onOpenAddOns={() => setMixMatchDrinkAddOnOpen(true)}
+          onCloseAddOns={() => setMixMatchDrinkAddOnOpen(false)}
+          onToggleAddOn={name => setMixMatchDrinkAddOns(prev =>
+            prev.includes(name) ? prev.filter(a => a !== name) : [...prev, name]
+          )}
+          onToggleOrderCharge={toggleOrderCharge}
+          onConfirm={confirmMixAndMatch}
+          onClose={() => { setIsMixMatchModalOpen(false); setPendingMixMatchCart(null); }}
+        />
+      )}
 
         {isConfirmModalOpen && (
           <ConfirmOrderModal
@@ -1190,7 +1366,13 @@ const handleSubmitOrder = async (nameOverride?: string) => {
             totalCount={totalCount}
             subtotal={subtotal}
             onEditItem={openCartItemEdit}
-            onConfirmOrder={() => setIsConfirmModalOpen(true)}
+            onConfirmOrder={() => {
+              // Auto-set payment method when opening confirm modal
+              if (orderCharge === 'grab')        setPaymentMethod('grab');
+              else if (orderCharge === 'panda')  setPaymentMethod('food_panda');
+              else                               setPaymentMethod('cash');
+              setIsConfirmModalOpen(true);
+            }}
           />
         </div>
       </div>

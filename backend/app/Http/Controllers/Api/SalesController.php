@@ -61,6 +61,7 @@ class SalesController extends Controller
             'vatable_sales'          => 'required|numeric',
             'vat_amount'             => 'required|numeric',
             'customer_name'          => 'nullable|string',
+            'cash_tendered' => 'nullable|numeric|min:0',
         ]);
 
         $user        = auth('sanctum')->user();
@@ -73,11 +74,18 @@ class SalesController extends Controller
             DB::beginTransaction();
 
             // ── Determine order-level charge type ────────────────────────────────
-            $chargeType = null;
-            foreach ($validated['items'] as $item) {
-                if (!empty($item['charges']['grab']))  { $chargeType = 'grab';  break; }
-                if (!empty($item['charges']['panda'])) { $chargeType = 'panda'; break; }
-            }
+            $paymentMethod = $request->input('payment_method', 'cash');
+
+            $chargeType = match(true) {
+                in_array($paymentMethod, ['grab', 'food_panda']) => $paymentMethod,
+                default => (function() use ($validated) {
+                    foreach ($validated['items'] as $item) {
+                        if (!empty($item['charges']['grab']))  return 'grab';
+                        if (!empty($item['charges']['panda'])) return 'panda';
+                    }
+                    return null;
+                })(),
+            };
 
             // ── 1. Create Sale ────────────────────────────────────────────────────
             $sale = Sale::create([
@@ -96,6 +104,7 @@ class SalesController extends Controller
                 'vat_amount'       => $validated['vat_amount'],
                 'customer_name'    => $validated['customer_name'] ?? null,
                 'is_synced'        => false,
+                'cash_tendered' => (float) $request->input('cash_tendered', 0),
             ]);
 
             // ── 2. Create Sale Items ──────────────────────────────────────────────
