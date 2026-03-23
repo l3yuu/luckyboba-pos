@@ -126,7 +126,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'sales-dashboard', label: 'Dashboard' },
     { id: 'items-report', label: 'Items Report' },
     { id: 'x-reading', label: 'X Reading' },
-    { id: 'z-reading', label: 'Z Reading' },
+    // Z-Reading removed for cashier role - only for admin/branch manager
   ];
   const menuManagementItems: MenuItem[] = [
     { id: 'menu-list', label: 'Menu List' },
