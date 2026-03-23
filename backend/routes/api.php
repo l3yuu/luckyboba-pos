@@ -84,6 +84,11 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     Route::get('/user', fn (Request $request) => $request->user());
 
+    // ── NO ROLE RESTRICTION — any authenticated user can call this ────────────
+    // Placed outside all role middleware groups so cashiers can call it.
+    // The PIN itself is what determines authorization, not the caller's role.
+    Route::post('/auth/verify-manager-pin', [UserController::class, 'verifyManagerPin']);
+
     // ── CASHIER + BRANCH MANAGER + SUPERADMIN ────────────────────────────────
     Route::middleware(['role:superadmin,branch_manager,cashier'])->group(function () {
 
@@ -129,7 +134,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::put('/menu-item-options/{id}',   [MenuItemOptionController::class, 'update']);
         Route::get('/add-ons',           [AddOnController::class, 'index']);
         Route::get('/bundles', [BundleController::class, 'index']);
-        Route::get('/category-drinks', [CategoryDrinkController::class, 'index']); 
+        Route::get('/category-drinks', [CategoryDrinkController::class, 'index']);
         Route::apiResource('categories',     CategoryController::class);
         Route::apiResource('sub-categories', SubCategoryController::class);
         Route::get('/sub-categories/filter/{categoryId}', [SubCategoryController::class, 'getByCategory']);
@@ -216,7 +221,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         // operations (store/update/delete/toggle) are already covered in the
         // cashier group's prefix block which all three roles can access.
 
-        Route::get('/branch/audit-logs', [AuditLogController::class, 'branchIndex']); 
+        Route::get('/branch/audit-logs', [AuditLogController::class, 'branchIndex']);
         Route::apiResource('discounts', DiscountController::class)->except(['show', 'update', 'index']); // ← 'index' removed, handled above
         Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
         Route::apiResource('vouchers', VoucherController::class)->only(['index', 'store']);
@@ -296,14 +301,16 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::delete('/{id}',              [BranchController::class, 'destroy']);
             Route::post('/{id}/refresh-totals', [BranchController::class, 'refreshTotals']);
         });
+
         Route::prefix('bundles')->group(function () {
-            Route::get   ('/all',        [BundleController::class, 'all']);       // all including inactive
-            Route::get   ('/{id}',       [BundleController::class, 'show']);
-            Route::post  ('/',           [BundleController::class, 'store']);
-            Route::put   ('/{id}',       [BundleController::class, 'update']);
-            Route::delete('/{id}',       [BundleController::class, 'destroy']);
-            Route::patch ('/{id}/toggle',[BundleController::class, 'toggle']);
+            Route::get   ('/all',         [BundleController::class, 'all']);       // all including inactive
+            Route::get   ('/{id}',        [BundleController::class, 'show']);
+            Route::post  ('/',            [BundleController::class, 'store']);
+            Route::put   ('/{id}',        [BundleController::class, 'update']);
+            Route::delete('/{id}',        [BundleController::class, 'destroy']);
+            Route::patch ('/{id}/toggle', [BundleController::class, 'toggle']);
         });
+
         Route::prefix('category-drinks')->group(function () {
             Route::post('/', [CategoryDrinkController::class, 'store']);
         });

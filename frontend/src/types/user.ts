@@ -1,11 +1,12 @@
 // src/types/user.ts
 
 // Must match Laravel's Rule::in() exactly:
-// 'in:superadmin,system_admin,branch_manager,cashier,customer'
+// 'in:superadmin,system_admin,branch_manager,team_leader,cashier,customer'
 export type UserRole =
   | 'superadmin'
-  | 'system_admin'    // was 'admin'   ← fixed
+  | 'system_admin'
   | 'branch_manager'
+  | 'team_leader'    // ← add
   | 'cashier'
   | 'customer';       // was 'manager' ← fixed
 

@@ -1,13 +1,15 @@
-  import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import SalesOrder from './pages/SalesOrder';
 import SuperAdminDashboard from './pages/SuperAdminDashboard';
 import BranchManagerDashboard from './pages/BranchManagerDashboard';
+import TeamLeaderDashboard from './pages/TeamLeaderDashboard'; // ← add
 import Calendar from './pages/Calendar';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { PublicRoute } from './components/PublicRoute';
 import { ErrorFallback } from './components/ErrorFallback';
+
 export const router = createBrowserRouter([
   // ── Public ──────────────────────────────────────────────────────────────
   {
@@ -54,6 +56,19 @@ export const router = createBrowserRouter([
         children: [
           { path: '/branch-manager', element: <BranchManagerDashboard /> },
           { path: '/calendar',       element: <Calendar /> },
+        ],
+      },
+    ],
+  },
+
+  // ── Team Leader only ─────────────────────────────────────────────────────
+  {
+    element: <ProtectedRoute allowedRoles={['team_leader']} />,
+    errorElement: <ErrorFallback />,
+    children: [
+      {
+        children: [
+          { path: '/team-leader', element: <TeamLeaderDashboard /> },
         ],
       },
     ],
