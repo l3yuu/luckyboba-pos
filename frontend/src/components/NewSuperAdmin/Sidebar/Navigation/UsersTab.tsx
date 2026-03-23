@@ -79,8 +79,9 @@ const ROLE_LABELS: Record<string, string> = {
   branch_manager: "Branch Manager",
   cashier:        "Cashier",
   customer:       "Customer",
+  team_leader:    "Team Leader",
 };
-const ALL_ROLES = ["superadmin", "system_admin", "branch_manager", "cashier"];
+const ALL_ROLES = ['superadmin', 'system_admin', 'branch_manager', 'team_leader', 'cashier', 'customer'];
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
 const Avatar: React.FC<{ name: string; size?: string }> = ({ name, size = "w-7 h-7 text-[10px]" }) => (
@@ -246,7 +247,7 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ onClose, onSaved, branches 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading,  setLoading]  = useState(false);
   const [apiError, setApiError] = useState("");
-  const PIN_ROLES = ['branch_manager'];
+  const PIN_ROLES = ['branch_manager', 'team_leader'];
   const showPin = PIN_ROLES.includes(form.role);
 
 const validate = () => {

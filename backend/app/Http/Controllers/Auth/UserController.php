@@ -158,14 +158,14 @@ class UserController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'name'        => 'required|string|max:255',
-            'email'       => 'required|email|max:255|unique:users,email',
-            'password'    => 'required|string|min:6',
-            'role'        => 'required|in:superadmin,system_admin,branch_manager,cashier,customer',
-            'branch'      => 'nullable|string|max:255',
-            'status'      => 'required|in:ACTIVE,INACTIVE',
-            'manager_pin' => 'nullable|string|min:4|max:20',
-        ]);
+    'name'        => 'required|string|max:255',
+    'email'       => 'required|email|max:255|unique:users,email',
+    'password'    => 'required|string|min:6',
+    'role'        => 'required|in:superadmin,system_admin,branch_manager,team_leader,cashier,customer', // ← update
+    'branch'      => 'nullable|string|max:255',
+    'status'      => 'required|in:ACTIVE,INACTIVE',
+    'manager_pin' => 'nullable|string|min:4|max:20',
+]);
 
         if ($validator->fails()) {
             return response()->json([
@@ -245,14 +245,14 @@ class UserController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'name'        => 'sometimes|required|string|max:255',
-            'email'       => 'sometimes|required|email|max:255|unique:users,email,' . $id,
-            'password'    => 'nullable|string|min:6',
-            'role'        => 'sometimes|required|in:superadmin,system_admin,branch_manager,cashier,customer',
-            'status'      => 'sometimes|required|in:ACTIVE,INACTIVE',
-            'branch'      => 'nullable|string|max:255',
-            'manager_pin' => 'nullable|string|min:4|max:20',
-        ]);
+    'name'        => 'sometimes|required|string|max:255',
+    'email'       => 'sometimes|required|email|max:255|unique:users,email,' . $id,
+    'password'    => 'nullable|string|min:6',
+    'role'        => 'sometimes|required|in:superadmin,system_admin,branch_manager,team_leader,cashier,customer', // ← update
+    'status'      => 'sometimes|required|in:ACTIVE,INACTIVE',
+    'branch'      => 'nullable|string|max:255',
+    'manager_pin' => 'nullable|string|min:4|max:20',
+]);
 
         if ($validator->fails()) {
             return response()->json([
@@ -485,11 +485,10 @@ class UserController extends Controller
     {
         $request->validate(['pin' => 'required|string']);
 
-        $admins = User::whereIn('role', ['superadmin', 'system_admin', 'branch_manager'])
-            ->where('status', 'ACTIVE')
-            ->whereNotNull('manager_pin')
-            ->get();
-
+        $admins = User::whereIn('role', ['superadmin', 'system_admin', 'branch_manager', 'team_leader'])
+    ->where('status', 'ACTIVE')
+    ->whereNotNull('manager_pin')
+    ->get();
         foreach ($admins as $admin) {
             if (Hash::check($request->pin, $admin->manager_pin)) {
                 return response()->json(['success' => true, 'message' => 'Authorized']);
