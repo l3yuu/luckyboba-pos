@@ -61,7 +61,7 @@ const AdminPinOverlay = ({
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white rounded-[0.625rem] shadow-2xl w-72 overflow-hidden">
         <div className="bg-[#7c14d4] px-6 py-5 text-white text-center">
           <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/50 mb-1">Authorization Required</p>

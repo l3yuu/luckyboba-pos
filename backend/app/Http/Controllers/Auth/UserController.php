@@ -20,32 +20,31 @@ class UserController extends Controller
      * Also includes active card info for the Flutter app.
      */
     private function transformUser(User $user, ?string $lastLoginAt = null, int $loginCount = 0): array
-    {
-        // ── Check if user has an active card ─────────────────────────────────
-        $activeCard = DB::table('user_cards')
-            ->where('user_id', $user->id)
-            ->where('status', 'active')
-            ->first();
+{
+    $activeCard = DB::table('user_cards')
+        ->where('user_id', $user->id)
+        ->where('status', 'active')
+        ->first();
 
-        return [
-            'id'                => $user->id,
-            'name'              => $user->name,
-            'email'             => $user->email,
-            'role'              => $user->role,
-            'status'            => $user->status,
-            'branch'            => $user->branch_name ?? null,
-            'branch_id'         => $user->branch_id,
-            'email_verified_at' => $user->email_verified_at,
-            'created_at'        => $user->created_at,
-            'updated_at'        => $user->updated_at,
-            'last_login_at'     => $lastLoginAt,
-            'login_count'       => $loginCount,
-            // ── Active card fields (used by Flutter app) ──────────────────────
-            'has_active_card'   => $activeCard !== null,
-            'card_id'           => $activeCard?->card_id ?? null,
-            'card_expires_at'   => $activeCard?->expires_at ?? null,
-        ];
-    }
+    return [
+        'id'                => $user->id,
+        'name'              => $user->name,
+        'email'             => $user->email,
+        'role'              => $user->role,
+        'status'            => $user->status,
+        'branch'            => $user->branch_name ?? null,
+        'branch_id'         => $user->branch_id,
+        'email_verified_at' => $user->email_verified_at,
+        'created_at'        => $user->created_at,
+        'updated_at'        => $user->updated_at,
+        'last_login_at'     => $lastLoginAt,
+        'login_count'       => $loginCount,
+        'has_active_card'   => $activeCard !== null,
+        'card_id'           => $activeCard?->card_id ?? null,
+        'card_expires_at'   => $activeCard?->expires_at ?? null,
+        'has_pin'           => ! is_null($user->manager_pin), // ← added
+    ];
+}
 
     /**
      * GET /api/users
