@@ -1,12 +1,11 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
+import { createRoot } from 'react-dom/client';
 import './index.css';
+import App from './App.tsx';
+import { CacheProvider } from './GlobalCache.tsx';
+import { AuthProvider } from './context/AuthContext';
 import { registerSW } from 'virtual:pwa-register';
 
 // ── Force reload when a new Service Worker activates ──────────────────────────
-// Without this, users on production see stale JS until they close all tabs.
-// With this, as soon as a new SW is ready, the page reloads automatically.
 registerSW({
   onNeedRefresh() {
     window.location.reload();
@@ -19,8 +18,10 @@ registerSW({
   },
 });
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
+createRoot(document.getElementById('root')!).render(
+  <AuthProvider>
+    <CacheProvider>
+      <App />
+    </CacheProvider>
+  </AuthProvider>
 );
