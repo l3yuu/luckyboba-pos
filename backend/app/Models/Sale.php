@@ -28,19 +28,35 @@ class Sale extends Model
         'discount_remarks',
         'vatable_sales',
         'vat_amount',
+        'vat_type',
         'customer_name',
-        'discount_id',      // ADD
-        'discount_amount',  // ADD
+        'discount_id',
+        'discount_amount',
+        'sc_discount_amount',
+        'pwd_discount_amount',
+        'diplomat_discount_amount',
+        'other_discount_amount',
         'cash_tendered',
+        'pax_senior',
+        'pax_pwd',
+        'senior_id',
+        'pwd_id',
+        'pax_discount_ids',
     ];
 
     protected $casts = [
-        'cancelled_at'    => 'datetime',
-        'total_amount'    => 'decimal:2',
-        'discount_amount' => 'decimal:2',  // ADD
-        'vatable_sales'   => 'decimal:2',  // ADD
-        'vat_amount'      => 'decimal:2',  // ADD
-        'cash_tendered' => 'decimal:2',
+        'cancelled_at'             => 'datetime',
+        'total_amount'             => 'decimal:2',
+        'discount_amount'          => 'decimal:2',
+        'sc_discount_amount'       => 'decimal:2',
+        'pwd_discount_amount'      => 'decimal:2',
+        'diplomat_discount_amount' => 'decimal:2',
+        'other_discount_amount'    => 'decimal:2',
+        'vatable_sales'            => 'decimal:2',
+        'vat_amount'               => 'decimal:2',
+        'cash_tendered'            => 'decimal:2',
+        'pax_senior'               => 'integer',
+        'pax_pwd'                  => 'integer',
     ];
 
     protected $appends = ['or_number'];
@@ -49,8 +65,6 @@ class Sale extends Model
     {
         return $this->invoice_number;
     }
-
-    // ── Existing Relationships ────────────────────────────────────────────────
 
     public function items(): HasMany
     {
@@ -67,12 +81,11 @@ class Sale extends Model
         return $this->hasOne(Receipt::class);
     }
 
-    // ── NEW: Inventory Relationships ──────────────────────────────────────────
-
     public function stockDeductions(): HasMany
     {
         return $this->hasMany(StockDeduction::class);
     }
+
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);

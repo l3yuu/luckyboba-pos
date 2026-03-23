@@ -962,7 +962,53 @@ const SalesOrder = () => {
   const handleSubmitOrder = async (nameOverride?: string) => {
     setSubmitting(true);
 
+    // ── Pre-calculate split discount amounts ──────────────────────────────
+    const allUnits = cart
+      .flatMap(item => Array(item.qty).fill(Number(item.price) + getItemSurcharge(item) / item.qty))
+      .sort((a: number, b: number) => b - a);
+
+    let alreadyUsed = 0;
+    let scDiscountAmount       = 0;
+    let pwdDiscountAmount      = 0;
+    let diplomatDiscountAmount = 0;
+
+    for (const d of selectedDiscounts) {
+      const name      = d.name.toUpperCase();
+      const isSenior  = name.includes('SENIOR');
+      const isPwd     = name.includes('PWD');
+      const isDiplomat = name.includes('DIPLOMAT');
+      const pax       = isSenior ? (paxSenior || 0) : (isPwd || isDiplomat) ? (paxPwd || 0) : 0;
+
+      if (pax === 0) continue;
+
+      const units = allUnits.slice(alreadyUsed, alreadyUsed + pax);
+      const base  = units.reduce((s: number, p: number) => s + p, 0);
+      const amt   = d.type.includes('Percent')
+        ? base * (Number(d.amount) / 100)
+        : Number(d.amount) * pax;
+
+      if (isSenior)        scDiscountAmount       += amt;
+      else if (isPwd)      pwdDiscountAmount      += amt;
+      else if (isDiplomat) diplomatDiscountAmount += amt;
+
+      alreadyUsed += pax;
+    }
+
+    const otherDiscountAmount = selectedDiscount
+      ? selectedDiscount.type.includes('Percent')
+        ? eligibleForPromo * (Number(selectedDiscount.amount) / 100)
+        : Number(selectedDiscount.amount)
+      : 0;
+
+    // ── DEBUG — remove after fixing ───────────────────────────────────────
+    console.log('allUnits:', allUnits);
+    console.log('selectedDiscounts:', selectedDiscounts.map(d => d.name));
+    console.log('paxSenior:', paxSenior, 'paxPwd:', paxPwd);
+    console.log('sc:', scDiscountAmount, 'pwd:', pwdDiscountAmount);
+    // ─────────────────────────────────────────────────────────────────────
+
     const orderData = {
+      // ... rest unchanged
       si_number:        orNumber,
       branch_id:        branchId,
       items: cart.map(item => ({
@@ -986,9 +1032,14 @@ const SalesOrder = () => {
         discount_value:    item.discountValue !== '' ? item.discountValue : null,
       })),
       subtotal,
-      discount_amount:  orderLevelDiscount,
-      discount_id:      selectedDiscount?.id || null,
-      // Include all selected pax discount IDs as a comma-separated string
+      discount_amount:          orderLevelDiscount,
+      sc_discount_amount:       scDiscountAmount,
+      pwd_discount_amount:      pwdDiscountAmount,
+      diplomat_discount_amount: diplomatDiscountAmount,
+      other_discount_amount:    otherDiscountAmount,
+      discount_id: selectedDiscount?.id
+        ?? (selectedDiscounts.length === 1 ? selectedDiscounts[0].id : null)
+        ?? null,
       pax_discount_ids: selectedDiscounts.map(d => d.id).join(',') || null,
       total:            amtDue,
       cashier_name:     cashierName ?? 'Admin',
@@ -999,10 +1050,10 @@ const SalesOrder = () => {
       vat_amount:       vatAmount,
       customer_name:    nameOverride ?? customerName ?? null,
       cash_tendered:    typeof cashTendered === 'number' ? cashTendered : 0,
-      pax_senior:       paxSenior || null,
-      pax_pwd:          paxPwd || null,
-      senior_id:        seniorId || null,
-      pwd_id:           pwdId || null,
+      pax_senior:       paxSenior || 0,
+      pax_pwd:          paxPwd    || 0,
+      senior_id:        seniorId  || null,
+      pwd_id:           pwdId     || null,
     };
 
     if (navigator.onLine) {
