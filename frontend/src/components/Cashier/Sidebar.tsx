@@ -122,12 +122,12 @@ const Sidebar: React.FC<SidebarProps> = ({
     { id: 'search-receipts', label: 'Search Receipts' },
     { id: 'cash-count', label: 'Cash Count EOD' },
   ];
-  const salesReportItems: MenuItem[] = [
-    { id: 'sales-dashboard', label: 'Dashboard' },
-    { id: 'items-report', label: 'Items Report' },
-    { id: 'x-reading', label: 'X Reading' },
-    // Z-Reading removed for cashier role - only for admin/branch manager
-  ];
+const salesReportItems: MenuItem[] = [
+  { id: 'sales-dashboard', label: 'Dashboard' },
+  { id: 'items-report', label: 'Items Report' },
+  { id: 'x-reading', label: 'X Reading' },
+  { id: 'z-reading', label: 'Z Reading' },  // ← add this line
+];
   const menuManagementItems: MenuItem[] = [
     { id: 'menu-list', label: 'Menu List' },
     { id: 'category-list', label: 'Category List' },
