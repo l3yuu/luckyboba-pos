@@ -196,8 +196,9 @@ class UserController extends Controller
                 $branchId   = $branch->id;
                 $branchName = $branch->name;
             }
-$branch = \App\Models\Branch::find($request->branch_id);
-$branchName = $branch?->name ?? null;
+
+            $branch     = \App\Models\Branch::find($request->branch_id);
+            $branchName = $branch?->name ?? null;
 
             $user = User::create([
                 'name'        => $request->name,
@@ -475,5 +476,26 @@ $branchName = $branch?->name ?? null;
             ->update(['manager_pin' => bcrypt($request->pin)]);
 
         return response()->json(['message' => 'PIN updated successfully.']);
+    }
+
+    /**
+     * POST /api/auth/verify-manager-pin
+     */
+    public function verifyManagerPin(Request $request)
+    {
+        $request->validate(['pin' => 'required|string']);
+
+        $admins = User::whereIn('role', ['superadmin', 'system_admin', 'branch_manager'])
+            ->where('status', 'ACTIVE')
+            ->whereNotNull('manager_pin')
+            ->get();
+
+        foreach ($admins as $admin) {
+            if (Hash::check($request->pin, $admin->manager_pin)) {
+                return response()->json(['success' => true, 'message' => 'Authorized']);
+            }
+        }
+
+        return response()->json(['success' => false, 'message' => 'Incorrect PIN.']);
     }
 }

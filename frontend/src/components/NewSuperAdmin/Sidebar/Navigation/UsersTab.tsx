@@ -238,43 +238,65 @@ const ViewUserModal: React.FC<ViewUserModalProps> = ({ onClose, user }) => {
 
 // ── Add User Modal ────────────────────────────────────────────────────────────
 const AddUserModal: React.FC<AddUserModalProps> = ({ onClose, onSaved, branches }) => {
-  const [form,     setForm]     = useState({ name: "", email: "", password: "", role: "cashier", branch: "", status: "ACTIVE" });
-  const [errors,   setErrors]   = useState<Record<string, string>>({});
+  const [form, setForm] = useState({
+    name: "", email: "", password: "", role: "cashier",
+    branch: "", status: "ACTIVE",
+    manager_pin: "", manager_pin_confirmation: "",
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading,  setLoading]  = useState(false);
   const [apiError, setApiError] = useState("");
+  const PIN_ROLES = ['branch_manager'];
+  const showPin = PIN_ROLES.includes(form.role);
 
-  const validate = () => {
-    const e: Record<string, string> = {};
-    if (!form.name.trim())     e.name     = "Name is required.";
-    if (!form.email.trim())    e.email    = "Email is required.";
-    if (!form.password.trim()) e.password = "Password is required.";
-    if (form.password && form.password.length < 6) e.password = "Password must be at least 6 characters.";
-    return e;
-  };
+const validate = () => {
+  const e: Record<string, string> = {};
+  if (!form.name.trim())     e.name     = "Name is required.";
+  if (!form.email.trim())    e.email    = "Email is required.";
+  if (!form.password.trim()) e.password = "Password is required.";
+  if (form.password && form.password.length < 6) e.password = "Password must be at least 6 characters.";
+  if (showPin) {
+    if (!form.manager_pin.trim())
+      e.manager_pin = "PIN is required for this role.";
+    else if (form.manager_pin.length < 4)
+      e.manager_pin = "PIN must be at least 4 digits.";
+    else if (form.manager_pin !== form.manager_pin_confirmation)
+      e.manager_pin_confirmation = "PINs do not match.";
+  }
+  return e;
+};
 
-  const handleSubmit = async () => {
-    const e = validate();
-    if (Object.keys(e).length) { setErrors(e); return; }
-    setLoading(true); setApiError("");
-    try {
-      const res  = await fetch("/api/users", {
-        method: "POST", headers: authHeaders(),
-        body: JSON.stringify({ ...form, branch: form.branch || null }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.success) {
-        if (data.errors) {
-          const mapped: Record<string, string> = {};
-          Object.entries(data.errors).forEach(([k, v]) => { mapped[k] = Array.isArray(v) ? v[0] : String(v); });
-          setErrors(mapped);
-        } else { setApiError(data.message ?? "Something went wrong."); }
-        return;
-      }
-      onSaved(mapUser(data.data));
-      onClose();
-    } catch { setApiError("Network error. Please try again."); }
-    finally { setLoading(false); }
-  };
+const handleSubmit = async () => {
+  const e = validate();
+  if (Object.keys(e).length) { setErrors(e); return; }
+  setLoading(true); setApiError("");
+  try {
+    const payload: Record<string, string | null> = {
+      ...form,
+      branch: form.branch || null,
+    };
+    if (!showPin) {
+      delete payload.manager_pin;
+      delete payload.manager_pin_confirmation;
+    }
+    const res  = await fetch("/api/users", {
+      method: "POST", headers: authHeaders(),
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      if (data.errors) {
+        const mapped: Record<string, string> = {};
+        Object.entries(data.errors).forEach(([k, v]) => { mapped[k] = Array.isArray(v) ? v[0] : String(v); });
+        setErrors(mapped);
+      } else { setApiError(data.message ?? "Something went wrong."); }
+      return;
+    }
+    onSaved(mapUser(data.data));
+    onClose();
+  } catch { setApiError("Network error. Please try again."); }
+  finally { setLoading(false); }
+};
 
   const f = (key: keyof typeof form) => ({
     value: form[key],
@@ -330,6 +352,45 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ onClose, onSaved, branches 
           {branches.map(b => <option key={b} value={b}>{b}</option>)}
         </select>
       </Field>
+
+      {showPin && (
+  <div className="rounded-lg border border-violet-200 bg-violet-50 p-3 space-y-3">
+    <div className="flex items-center gap-2">
+      <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+        fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+        className="text-violet-600 shrink-0">
+        <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+      <p className="text-[10px] font-black uppercase tracking-widest text-violet-700">
+        Branch Manager PIN
+      </p>
+    </div>
+    <div className="grid grid-cols-2 gap-3">
+      <Field label="PIN" required error={errors.manager_pin}>
+        <input
+          {...f("manager_pin")}
+          type="password"
+          placeholder="Min. 4 digits"
+          maxLength={8}
+          className={inputCls(errors.manager_pin)}
+        />
+      </Field>
+      <Field label="Confirm PIN" required error={errors.manager_pin_confirmation}>
+        <input
+          {...f("manager_pin_confirmation")}
+          type="password"
+          placeholder="Re-enter PIN"
+          maxLength={8}
+          className={inputCls(errors.manager_pin_confirmation)}
+        />
+      </Field>
+    </div>
+    <p className="text-[10px] text-violet-500 font-medium">
+      This PIN is used to authorize sensitive actions at the POS.
+    </p>
+  </div>
+)}
     </ModalShell>
   );
 };

@@ -1,6 +1,7 @@
 // ── modals.tsx ────────────────────────────────────────────────────────────────
 // All modal overlays used in the SalesOrder page.
 
+import React from 'react';
 import {
   type CartItem, type Bundle, type MenuItem,
   SUGAR_LEVELS, EXTRA_OPTIONS,
@@ -11,6 +12,105 @@ import {
   PAYMENT_METHODS, type Discount,
   getItemSurcharge,
 } from './shared';
+import { useToast } from '../../../context/ToastContext';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AdminPinOverlay
+// ─────────────────────────────────────────────────────────────────────────────
+
+const AdminPinOverlay = ({
+  onCancel,
+  onSuccess,
+}: {
+  onCancel: () => void;
+  onSuccess: () => void;
+}) => {
+  const [pin, setPin]         = React.useState('');
+  const [error, setError]     = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+
+  const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api';
+
+  const getHeaders = (): Record<string, string> => {
+    const token =
+      localStorage.getItem('auth_token') ??
+      localStorage.getItem('lucky_boba_token') ??
+      localStorage.getItem('token') ??
+      '';
+    return {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    };
+  };
+
+  const handleSubmit = async () => {
+    if (!pin.trim()) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res  = await fetch(`${API_BASE}/auth/verify-manager-pin`, {
+        method:  'POST',
+        headers: getHeaders(),
+        body:    JSON.stringify({ pin }),
+      });
+      const json = await res.json();
+
+      if (json.success) {
+        onSuccess();
+      } else {
+        setError(json.message ?? 'Incorrect PIN. Try again.');
+        setPin('');
+      }
+    } catch {
+      setError('Connection error. Try again.');
+      setPin('');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-[0.625rem]">
+      <div className="bg-white rounded-[0.625rem] shadow-2xl w-72 overflow-hidden">
+        <div className="bg-[#7c14d4] px-6 py-5 text-white text-center">
+          <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/50 mb-1">Authorization Required</p>
+          <h3 className="text-base font-black uppercase tracking-widest">Admin PIN</h3>
+          <p className="text-white/50 text-[10px] mt-1">Enter admin PIN to cancel this order</p>
+        </div>
+        <div className="p-5 space-y-4">
+          <input
+            type="password"
+            value={pin}
+            onChange={e => setPin(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+            placeholder="••••"
+            autoFocus
+            className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-3 px-4 text-center text-2xl font-black tracking-[0.5em] outline-none focus:border-[#7c14d4] transition-colors"
+          />
+          {error && (
+            <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest text-center">{error}</p>
+          )}
+          <div className="flex gap-2">
+            <button
+              onClick={onCancel}
+              className="flex-1 py-3 rounded-[0.625rem] border-2 border-zinc-200 text-zinc-500 font-black text-xs uppercase tracking-widest hover:bg-zinc-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={loading || !pin.trim()}
+              className="flex-1 py-3 rounded-[0.625rem] bg-red-500 hover:bg-red-600 text-white font-black text-xs uppercase tracking-widest transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {loading ? '...' : 'Confirm'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CartItemEditModal
@@ -422,8 +522,8 @@ interface BundleModalProps {
   onClose: () => void;
   orderCharge?: 'grab' | 'panda' | null;
   onToggleOrderCharge?: (type: 'grab' | 'panda') => void;
-    bundleGrabPrice:  number;  // ← add
-  bundlePandaPrice: number;  // ← add
+  bundleGrabPrice:  number;
+  bundlePandaPrice: number;
 }
 
 export const BundleModal = ({
@@ -432,8 +532,8 @@ export const BundleModal = ({
   bundleComponentSugar,
   bundleComponentOptions,
   bundleComponentAddOns,
-    bundleGrabPrice,   // ← add
-  bundlePandaPrice,  // ← add
+  bundleGrabPrice,
+  bundlePandaPrice,
   filteredAddOns,
   bundleComponentAddOnModalOpen,
   onSugarChange,
@@ -556,7 +656,6 @@ export const BundleModal = ({
   </div>
 </div>
 
-
       {/* Bundle Add-on sub-modal */}
       {bundleComponentAddOnModalOpen && (
         <AddOnModalShell
@@ -608,7 +707,7 @@ export const ComboDrinkModal = ({
   onToggleAddOn,
   onConfirm,
   onClose,
-  orderCharge, // ← add this
+  orderCharge,
 }: ComboDrinkModalProps) => {
 
   return (
@@ -688,6 +787,7 @@ export const ComboDrinkModal = ({
     </>
   );
 };
+
 // ─────────────────────────────────────────────────────────────────────────────
 // MixAndMatchDrinkModal
 // ─────────────────────────────────────────────────────────────────────────────
@@ -843,7 +943,7 @@ export const MixAndMatchDrinkModal = ({
                   <AddOnTriggerButton count={drinkAddOns.length} onClick={onOpenAddOns} />
                 </div>
 
-{/* Delivery charges — surcharge from food item */}
+                {/* Delivery charges */}
                 <div>
                   <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">
                     Charges
@@ -922,9 +1022,9 @@ interface ConfirmOrderModalProps {
   referenceNumber: string;
   discountRemarks: string;
   discounts: Discount[];
-  activeTab: 'payment' | 'discount'; // Removed 'pax'
+  activeTab: 'payment' | 'discount';
   submitting: boolean;
-  onTabChange: (t: 'payment' | 'discount') => void; // Removed 'pax'
+  onTabChange: (t: 'payment' | 'discount') => void;
   onPaymentMethodChange: (m: string) => void;
   onCashTenderedChange: (v: number | '') => void;
   onReferenceNumberChange: (v: string) => void;
@@ -933,6 +1033,7 @@ interface ConfirmOrderModalProps {
   onEditCartItem: (i: number) => void;
   onConfirm: () => void;
   onClose: () => void;
+  onResetOrder?: () => void; // ← new
   vatType?: 'vat' | 'non_vat';
 }
 
@@ -945,12 +1046,29 @@ export const ConfirmOrderModal = ({
   onTabChange, onPaymentMethodChange, onCashTenderedChange,
   onReferenceNumberChange, onDiscountChange, onDiscountRemarksChange,
   onEditCartItem, onConfirm, onClose,
+  onResetOrder, // ← new
 }: ConfirmOrderModalProps) => {
-  const isVat = vatType === 'vat'; 
+  const { showToast } = useToast();
+  const isVat = vatType === 'vat';
+  const [showPinOverlay, setShowPinOverlay]     = React.useState(false);
 
   return (
+    <>
     <div className="fixed inset-0 z-120 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white w-full max-w-6xl rounded-[0.625rem] shadow-2xl flex flex-col overflow-hidden max-h-[95vh]">
+      {/* ↓ added `relative` so AdminPinOverlay anchors to this box */}
+      <div className="bg-white w-full max-w-6xl rounded-[0.625rem] shadow-2xl flex flex-col overflow-hidden max-h-[95vh] relative">
+
+        {/* Admin PIN overlay */}
+        {showPinOverlay && (
+          <AdminPinOverlay
+            onCancel={() => setShowPinOverlay(false)}
+            onSuccess={() => {
+              onResetOrder?.();
+              onClose();
+              showToast('Order cancelled by admin authorization.', 'error');
+            }}
+          />
+        )}
 
         {/* Header */}
         <div className="bg-[#7c14d4] p-5 text-white text-center shrink-0 shadow-sm z-10 flex justify-between items-center">
@@ -960,7 +1078,13 @@ export const ConfirmOrderModal = ({
             <p className="text-white/60 text-xs mt-1 uppercase">Cashier: {cashierName ?? 'Admin'}</p>
           </div>
           <div className="w-1/3 text-right">
-            <button onClick={onClose} className="text-white/50 hover:text-white transition-colors"><CloseIcon size={6} /></button>
+            {/* ↓ always clickable — triggers PIN overlay for everyone */}
+            <button
+              onClick={() => setShowPinOverlay(true)}
+              className="text-white/50 hover:text-white transition-colors"
+            >
+              <CloseIcon size={6} />
+            </button>
           </div>
         </div>
 
@@ -1051,9 +1175,6 @@ export const ConfirmOrderModal = ({
                     <h3 className="font-black text-sm text-black uppercase mb-3 tracking-wider">Payment Method</h3>
                     <div className="grid grid-cols-3 gap-2 mb-5">
                       {PAYMENT_METHODS.map(({ id, label }) => {
-                        // If order has grab charge → only allow 'grab' payment
-                        // If order has panda charge → only allow 'food_panda' payment
-                        // If no charge → only allow non-delivery payment methods
                         const isDeliveryMethod = id === 'grab' || id === 'food_panda';
                         const isLocked =
                           (orderCharge === 'grab'  && id !== 'grab') ||
@@ -1104,7 +1225,6 @@ export const ConfirmOrderModal = ({
                       </>
                       ) : (
                         <div className="space-y-4">
-                          {/* Reference number — optional for all non-cash */}
                           <div className="space-y-2">
                             <h3 className="font-black text-[10px] text-zinc-400 tracking-widest uppercase">
                               {paymentMethod === 'grab'
@@ -1126,7 +1246,6 @@ export const ConfirmOrderModal = ({
                             />
                           </div>
 
-                          {/* Cash sent to platform — only for Grab/FoodPanda */}
                           {(paymentMethod === 'grab' || paymentMethod === 'food_panda') && (
                             <div className="space-y-2">
                               <h3 className="font-black text-[10px] text-zinc-400 tracking-widest uppercase">
@@ -1203,21 +1322,24 @@ export const ConfirmOrderModal = ({
             </div>
 
             <div className="p-6 bg-white border-t border-zinc-200 shrink-0">
-            <button
-              onClick={onConfirm}
-              disabled={
-                submitting ||
-                (paymentMethod === 'cash' && (cashTendered === '' || cashTendered < amtDue))
-              }
-              className="w-full bg-[#7c14d4] hover:bg-[#6a12b8] transition-colors text-white py-4 rounded-[0.625rem] font-black uppercase tracking-widest shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed"
-            >
-              {submitting ? 'Processing...' : 'Complete Transaction'}
-            </button>
+              <button
+                onClick={onConfirm}
+                disabled={
+                  submitting ||
+                  (paymentMethod === 'cash' && (cashTendered === '' || cashTendered < amtDue))
+                }
+                className="w-full bg-[#7c14d4] hover:bg-[#6a12b8] transition-colors text-white py-4 rounded-[0.625rem] font-black uppercase tracking-widest shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed"
+              >
+                {submitting ? 'Processing...' : 'Complete Transaction'}
+              </button>
             </div>
           </div>
         </div>
       </div>
     </div>
+
+    {/* Cancel toast — rendered outside the modal so it survives onClose() */}
+    </>
   );
 };
 
@@ -1255,7 +1377,6 @@ export const CustomerNameModal = ({ customerName, onChange, onConfirm }: Custome
           autoFocus
           className="w-full bg-[#f5f0ff] border border-[#e9d5ff] text-sm font-bold p-4 resize-none h-16 outline-none focus:border-[#7c14d4] focus:bg-white transition-colors uppercase placeholder:normal-case placeholder:text-[#7c14d4]/30"
         />
-        {/* ✅ removed grid, button is now full width */}
         <button
           onClick={onConfirm}
           disabled={customerName.trim() === ''}
