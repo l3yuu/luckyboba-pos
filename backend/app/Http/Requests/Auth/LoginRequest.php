@@ -50,7 +50,14 @@ class LoginRequest extends FormRequest
                 'message' => __('auth.failed') // Usually "These credentials do not match..."
             ], 200));
         }
+        if (Auth::user()->status === 'INACTIVE') {
+            Auth::logout(); // immediately clear the session so no access leaks through
 
+            throw new HttpResponseException(response()->json([
+                'success' => false,
+                'message' => 'Your account has been deactivated. Please contact your administrator.'
+            ], 200));
+        }
         RateLimiter::clear($this->throttleKey());
     }
 

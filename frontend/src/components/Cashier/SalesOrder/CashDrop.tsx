@@ -1,10 +1,11 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { AxiosError } from 'axios';
 import api from '../../../services/api';
 import type { BackendTransaction, Transaction, CashDropProps } from '../../../types/transactions';
 import TopNavbar from '../../Cashier/TopNavbar';
+import { useToast } from '../../../context/ToastContext';
 import { getCache, setCache } from '../../../utils/cache';
 import { Banknote, History as HistoryIcon, Printer, MessageSquare, CheckCircle2, Clock, RefreshCw, Monitor, Wallet, AlertTriangle } from 'lucide-react';
 
@@ -12,13 +13,24 @@ const CACHE_KEY = 'cash-drop-history';
 const CACHE_TTL = 5 * 60 * 1000;
 
 const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
+  const { dismissToast } = useToast();
   const denominations = [1000, 500, 200, 100, 50, 20, 10, 5, 1, 0.25];
+  const phCurrency = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
+
   const [counts, setCounts] = useState<{ [key: number]: string }>({});
   const [remarks, setRemarks] = useState('');
   const [isEodLocked, setIsEodLocked] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>(getCache<Transaction[]>(CACHE_KEY) ?? []);
   const [isLoading, setIsLoading] = useState(false);
   const [printData, setPrintData] = useState<Transaction | null>(null);
+
+  const cashierName = useMemo(() =>
+    localStorage.getItem('lucky_boba_user_name') || 'Staff'
+  , []);
+
+  const branchName = useMemo(() =>
+    localStorage.getItem('lucky_boba_user_branch') || 'Main Branch'
+  , []);
 
   useEffect(() => {
     void (async () => { await fetchTodaysDrops(); })();
@@ -41,7 +53,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
       const mappedData: Transaction[] = response.data.map(tx => ({
         id: tx.id,
         time: new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        date: new Date(tx.created_at).toLocaleDateString(),
+        date: new Date(tx.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
         total: parseFloat(tx.amount),
         remarks: tx.note || '-',
         breakdown: {}
@@ -73,15 +85,15 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
         const now = new Date();
         const newTx: Transaction = {
           id: response.data.data.id,
-          date: now.toLocaleDateString(),
+          date: now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
           time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           total, remarks: remarks || '-', breakdown: { ...counts }
         };
         const updatedHistory = [newTx, ...transactions];
         setTransactions(updatedHistory);
         setCache<Transaction[]>(CACHE_KEY, updatedHistory, CACHE_TTL);
-        setCounts({}); 
-        setRemarks(''); 
+        setCounts({});
+        setRemarks('');
         if (onSuccess) onSuccess();
         handlePrint(newTx);
       }
@@ -91,10 +103,14 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
     } finally { setIsLoading(false); }
   };
 
-  const handlePrint = (tx: Transaction) => {
+  const handlePrint = useCallback((tx: Transaction) => {
     setPrintData(tx);
-    setTimeout(() => { window.print(); setPrintData(null); }, 150);
-  };
+    dismissToast();
+    setTimeout(() => {
+      window.print();
+      setPrintData(null);
+    }, 300);
+  }, [dismissToast]);
 
   const grandTotal = getGrandTotal(counts);
 
@@ -103,64 +119,81 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
       <style>{`
         .printable-receipt { display: none; }
         @media print {
-          @page { size: 80mm auto; margin: 0 !important; }
-          html, body { margin: 0 !important; padding: 0 !important; background: white !important; }
-          body * { visibility: hidden; }
-          .printable-receipt, .printable-receipt * { visibility: visible !important; }
-          .printable-receipt { display: block !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; max-width: 76mm !important; }
-          .receipt-area { width: 70mm !important; margin: 0 auto !important; padding: 4mm 0 15mm 0 !important; font-family: Arial, sans-serif !important; font-size: 14px !important; }
+          @page { size: 80mm auto; margin: 0; }
+          html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
+          #main-ui { display: none !important; }
+          [role="alert"],
+          [aria-live],
+          .toast,
+          .toaster,
+          [data-sonner-toaster],
+          [data-radix-toast-viewport] { display: none !important; }
+          .printable-receipt {
+            display: block !important; position: absolute !important; left: 0 !important; top: 0 !important;
+            width: 80mm !important; padding: 5mm !important; background: white !important; color: black !important;
+            font-family: 'Courier New', monospace;
+          }
+          .printable-receipt * { visibility: visible !important; }
+          .receipt-divider { border-top: 1px dashed #000 !important; margin: 8px 0; width: 100%; }
+          .flex-between { display: flex !important; justify-content: space-between !important; width: 100%; }
         }
+        .receipt-divider { border-top: 1px dashed #000; margin: 8px 0; width: 100%; }
+        .flex-between { display: flex; justify-content: space-between; width: 100%; }
       `}</style>
 
       {/* PRINTABLE RECEIPT */}
       {printData && (
-        <div className="printable-receipt">
-          <div className="receipt-area">
-            <div style={{ textAlign: 'center', marginBottom: 8 }}>
-              <div style={{ fontWeight: 900, fontSize: 16, textTransform: 'uppercase' }}>Lucky Boba Food and Beverage Trading</div>
-              <div style={{ fontWeight: 700, fontSize: 13, textTransform: 'uppercase', marginTop: 3 }}>
-                {localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'}
-              </div>
+        <div className="printable-receipt text-slate-800">
+          <div className="text-center space-y-1">
+            <h1 className="font-black text-[17px] uppercase leading-tight">Lucky Boba Food and Beverage Trading</h1>
+            <p className="text-[13px] uppercase font-bold">{branchName}</p>
+            <div className="receipt-divider" />
+            <h2 className="font-black text-[14px] uppercase tracking-widest">Cash Drop Receipt</h2>
+            <div className="text-left text-[13px] space-y-0.5 mt-2 uppercase">
+              <div className="flex-between"><span>Date</span><span>{printData.date}</span></div>
+              <div className="flex-between"><span>Time</span><span>{printData.time}</span></div>
+              <div className="flex-between"><span>Terminal</span><span>POS-01</span></div>
+              <div className="flex-between"><span>Cashier</span><span>{cashierName}</span></div>
             </div>
-            <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
-            <div style={{ textAlign: 'center', fontWeight: 900, fontSize: 15, textTransform: 'uppercase', marginBottom: 6 }}>Cash Drop Receipt</div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 14 }}><span>Date</span><span>{printData.date}</span></div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}><span>Time</span><span>{printData.time}</span></div>
-            <div style={{ borderTop: '1px dashed #000', margin: '8px 0' }} />
-            <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
-              <tbody>
-                {denominations.map(denom => {
-                  const qty = parseFloat(printData.breakdown[denom] || '0') || 0;
-                  return (
-                    <tr key={denom} style={{ lineHeight: '1.8' }}>
-                      <td style={{ fontWeight: 600 }}>₱{denom.toLocaleString()}</td>
-                      <td style={{ textAlign: 'center' }}>x{qty}</td>
-                      <td style={{ textAlign: 'right', fontWeight: 700 }}>
-                        ₱{(qty * denom).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            <div style={{ borderTop: '2px solid #000', marginTop: 6, padding: '6px 0', display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: 15 }}>
-              <span>GRAND TOTAL</span>
-              <span>₱{printData.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
-            </div>
+          </div>
 
-            {/* Prepared By */}
-            <div style={{ marginTop: 16, textAlign: 'center' }}>
-              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 4 }}>
-                {localStorage.getItem('lucky_boba_user_name')?.toUpperCase() ?? 'CASHIER'}
-              </div>
-              <div style={{ borderBottom: '1px solid #000', width: '60%', margin: '0 auto 6px auto' }} />
-              <div style={{ fontSize: 12 }}>PREPARED BY</div>
-            </div>
+          {/* Denomination breakdown */}
+          <div className="mt-2">
+            <div className="receipt-divider" />
+            <p className="text-[15px] font-black uppercase tracking-widest mb-1">Denomination Breakdown</p>
+            {denominations.map(denom => {
+              const qty = parseFloat(printData.breakdown[denom] || '0') || 0;
+              return (
+                <div key={denom} className="flex-between text-[18px]" style={{ lineHeight: '1.7' }}>
+                  <span>₱{denom.toLocaleString()}</span>
+                  <span>x{qty}</span>
+                  <span className="font-bold">₱{(qty * denom).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                </div>
+              );
+            })}
+          </div>
 
-            <div style={{ marginTop: 20, textAlign: 'center' }}>
-              <div style={{ borderBottom: '1px solid #000', width: '60%', margin: '0 auto 6px auto' }} />
-              <div style={{ fontSize: 12 }}>SIGNED BY</div>
+          <div className="mt-2">
+            <div className="receipt-divider" />
+            <div className="flex-between" style={{ paddingTop: 4, paddingBottom: 4 }}>
+              <span className="text-[13px] font-black uppercase tracking-widest">Total Amount</span>
+              <span className="text-[18px] font-black">{phCurrency.format(printData.total)}</span>
             </div>
+            <div className="receipt-divider" />
+            {printData.remarks && printData.remarks !== '-' && (
+              <div className="mt-2 px-2 italic text-[11px] text-center">
+                Note: {printData.remarks}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-10 text-center">
+            <p className="text-[12px] font-bold uppercase underline underline-offset-4">{cashierName}</p>
+            <p className="text-[11px] uppercase tracking-widest mt-1">Prepared By</p>
+          </div>
+          <div className="mt-6 text-center">
+            <p className="text-[12px] font-bold uppercase">____________________</p>
+            <p className="text-[11px] uppercase tracking-widest mt-1">Signed By</p>
           </div>
         </div>
       )}
@@ -175,7 +208,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
           <div className="bg-white w-full flex-1 border border-[#e9d5ff] flex flex-col h-full shadow-sm rounded-[0.625rem]">
 
             {/* Card Header */}
-            <div className="flex items-center justify-between pb-5 mb-6 border-b border-[#e9d5ff]">
+            <div className="flex items-center justify-between p-6 border-b border-[#e9d5ff]">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 bg-[#7c14d4] flex items-center justify-center">
                   <Wallet size={17} className="text-white" />
@@ -193,7 +226,6 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
 
             {/* Denomination Grid */}
             <div className="flex-1 overflow-y-auto">
-              {/* Column Headers */}
               <div className="grid grid-cols-12 gap-2 px-6 py-3 border-b border-[#e9d5ff] bg-[#f5f0ff]">
                 <div className="col-span-4 text-[10px] font-bold text-black uppercase tracking-widest">Denomination</div>
                 <div className="col-span-4 text-center text-[10px] font-bold text-black uppercase tracking-widest">Qty</div>
@@ -208,9 +240,7 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
                     <div key={denom} className="grid grid-cols-12 gap-3 items-center px-6 py-3 transition-colors hover:bg-[#f5f0ff] focus-within:bg-[#f4f2fb]">
                       <div className="col-span-4 flex items-center gap-2">
                         <Banknote size={15} className="text-[#7c14d4] shrink-0" />
-                        <span className="font-bold text-black text-sm tabular-nums">
-                          ₱{denom.toLocaleString()}
-                        </span>
+                        <span className="font-bold text-black text-sm tabular-nums">₱{denom.toLocaleString()}</span>
                       </div>
                       <div className="col-span-4">
                         <input
@@ -239,9 +269,8 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
               </div>
             </div>
 
-            {/* Footer: Total + Remarks + Submit */}
+            {/* Footer */}
             <div className="p-6 border-t border-[#e9d5ff] space-y-4 bg-white">
-              {/* Grand Total */}
               <div className="flex items-center justify-between bg-[#f5f0ff] border border-[#e9d5ff] px-5 py-4">
                 <p className="text-sm font-bold uppercase tracking-widest text-black">Total Drop Amount</p>
                 <p className={`text-2xl font-bold tabular-nums ${grandTotal > 0 ? 'text-[#7c14d4]' : 'text-[#7c14d4]/30'}`}>
@@ -249,7 +278,6 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
                 </p>
               </div>
 
-              {/* Remarks */}
               <div className="relative">
                 <MessageSquare size={14} className="absolute left-4 top-3.5 text-[#7c14d4]" />
                 <textarea
@@ -263,7 +291,6 @@ const CashDrop: React.FC<CashDropProps> = ({ onSuccess }) => {
                 />
               </div>
 
-              {/* Submit */}
               <button
                 onClick={handleSubmit}
                 disabled={isLoading || isEodLocked || grandTotal <= 0}

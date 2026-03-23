@@ -53,10 +53,6 @@ interface ReprintPayload {
     vatable_sales?:   number;
     vat_amount?:      number;
     discount_amount?: number;
-    pax_regular?:     number;
-    pax_senior?:      number;
-    pax_pwd?:         number;
-    pax_diplomat?:    number;
     branch?: { name?: string };
     sale_items?: RawSaleItem[];
   };
@@ -90,6 +86,10 @@ interface RawSaleItem {
   remarks?:      string | null;
   charges?:      { grab?: boolean; panda?: boolean } | null;
   is_bundle?:    boolean;
+  discount_amount?: number;
+  discount_label?:  string;
+  discount_type?:   string;
+  discount_value?:  number;
 }
 
 type ReprintType = 'receipt' | 'kitchen' | 'sticker';
@@ -105,31 +105,36 @@ function mapToCartItem(raw: RawSaleItem): CartItem {
     try { return JSON.parse(v); } catch { return []; }
   };
 
-  // Laravel may nest the name under menu_item relation
   const resolvedName = (raw as unknown as { product_name?: string }).product_name
     || raw.name
     || raw.menu_item?.name
     || raw.item_name
     || 'Unknown Item';
 
-return {
-  id:           raw.menu_item_id ?? raw.id,
-  category_id:  0,
-  name:         resolvedName,
-  price:      Number(raw.unit_price ?? raw.price ?? 0),  // ← Number() guards undefined
-  barcode:      '',
-  qty:          Number(raw.quantity    ?? 1),
-  size:         (raw.size as 'M' | 'L' | 'none') ?? 'none',
-  cupSizeLabel: raw.cup_size_label ?? undefined,
-  sugarLevel:   raw.sugar_level   ?? undefined,
-  options:      parseArr(raw.options),
-  addOns:       parseArr(raw.add_ons),
-  remarks:      raw.remarks ?? '',
-  charges:      { grab: raw.charges?.grab ?? false, panda: raw.charges?.panda ?? false },
-  finalPrice: Number(raw.final_price ?? raw.total_price ?? 0),// ← this is likely the culprit
-  isBundle:     raw.is_bundle ?? !!raw.bundle_id,
-  bundleId:     raw.bundle_id ?? undefined,
-};
+  // ← Use finalPrice as-is — discount is already baked in by the backend
+  const actualFinalPrice = Number(raw.final_price ?? raw.total_price ?? 0);
+
+  return {
+    id:           raw.menu_item_id ?? raw.id,
+    category_id:  0,
+    name:         resolvedName,
+    price:        Number(raw.unit_price ?? raw.price ?? 0),
+    barcode:      '',
+    qty:          Number(raw.quantity ?? 1),
+    size:         (raw.size as 'M' | 'L' | 'none') ?? 'none',
+    cupSizeLabel: raw.cup_size_label ?? undefined,
+    sugarLevel:   raw.sugar_level   ?? undefined,
+    options:      parseArr(raw.options),
+    addOns:       parseArr(raw.add_ons),
+    remarks:      raw.remarks ?? '',
+    charges:      { grab: raw.charges?.grab ?? false, panda: raw.charges?.panda ?? false },
+    finalPrice:   actualFinalPrice,
+    discountLabel: (raw as unknown as { discount_label?: string }).discount_label ?? undefined,
+    discountType: (raw.discount_type as 'none' | 'percent' | 'fixed' | undefined) ?? undefined,
+    discountValue: raw.discount_value ?? undefined,
+    isBundle:     raw.is_bundle ?? !!raw.bundle_id,
+    bundleId:     raw.bundle_id ?? undefined,
+  };
 }
 
 // ============================================================
@@ -262,51 +267,57 @@ const SearchReceipts = () => {
 
   // ── Derive print props from payload ──────────────────────────────────────
 
-  const buildPrintProps = (payload: ReprintPayload) => {
-    const { sale, receipt } = payload;
-    const cart: CartItem[]  = (sale.sale_items ?? []).map(mapToCartItem);
-    const dt                = new Date(sale.created_at);
-    const branchName        = receipt?.branch_name ?? sale.branch?.name ?? localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch';
-    const cashierName       = receipt?.cashier_name ?? sale.cashier_name ?? 'Admin';
-    const orNumber          = receipt?.si_number    ?? sale.invoice_number ?? '';
-    const subtotal          = cart.reduce((acc, item) => acc + item.finalPrice + getItemSurcharge(item), 0);
-    const amtDue            = sale.total    ?? subtotal;
-    const vatableSales      = sale.vatable_sales ?? amtDue / 1.12;
-    const vatAmount         = sale.vat_amount    ?? (amtDue - vatableSales);
-    const pax = {
-      regular:  sale.pax_regular  ?? 1,
-      senior:   sale.pax_senior   ?? 0,
-      pwd:      sale.pax_pwd      ?? 0,
-      diplomat: sale.pax_diplomat ?? 0,
-    };
+const buildPrintProps = (payload: ReprintPayload) => {
+  const addOnsData = (() => {
+    try { return JSON.parse(localStorage.getItem('pos_addons_cache') ?? '[]'); }
+    catch { return []; }
+  })();
+  const { sale, receipt } = payload;
+  const cart: CartItem[]  = (sale.sale_items ?? []).map(mapToCartItem);
+  const dt                = new Date(sale.created_at);
+  const branchName        = receipt?.branch_name ?? sale.branch?.name ?? localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch';
+  const cashierName       = receipt?.cashier_name ?? sale.cashier_name ?? 'Admin';
+  const orNumber          = receipt?.si_number    ?? sale.invoice_number ?? '';
 
-    return {
-      cart,
-      branchName,
-      orNumber,
-      queueNumber: String(sale.queue_number ?? ''),
-      customerName: sale.customer_name?.trim() || '',
-      cashierName,
-      formattedDate:        dt.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
-      formattedTime:        dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-      paymentMethod:        sale.payment_method  ?? 'cash',
-      referenceNumber:      sale.reference_number ?? '',
-      orderCharge:          null as 'grab' | 'panda' | null,
-      pax,
-      totalCount:           cart.reduce((a, i) => a + i.qty, 0),
-      subtotal:             sale.subtotal ?? subtotal,
-      amtDue,
-      vatableSales,
-      vatAmount,
-      change:               0,
-      cashTendered:         '' as number | '',
-      selectedDiscount:     null,
-      totalDiscountDisplay: sale.discount_amount ?? 0,
-      itemDiscountTotal:    0,
-      seniorPwdDiscount:    0,
-      promoDiscount:        0,
-    };
+  // Calculate item-level discount total from sale_items
+  const itemDiscountTotal = (sale.sale_items ?? []).reduce((acc, item) => {
+    return acc + Number(item.discount_amount ?? 0);
+  }, 0);
+
+  const promoDiscount     = Number(sale.discount_amount ?? 0);
+  const totalDiscountDisplay = itemDiscountTotal + promoDiscount;
+
+  const subtotal    = cart.reduce((acc, item) => acc + item.finalPrice + getItemSurcharge(item), 0);
+  const amtDue      = sale.total ?? subtotal;
+  const vatableSales = sale.vatable_sales ?? amtDue / 1.12;
+  const vatAmount    = sale.vat_amount    ?? (amtDue - vatableSales);
+
+  return {
+    cart,
+    branchName,
+    orNumber,
+    addOnsData, 
+    queueNumber:          String(sale.queue_number ?? ''),
+    customerName:         sale.customer_name?.trim() || '',
+    cashierName,
+    formattedDate:        dt.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
+    formattedTime:        dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+    paymentMethod:        sale.payment_method   ?? 'cash',
+    referenceNumber:      sale.reference_number ?? '',
+    orderCharge:          null as 'grab' | 'panda' | null,
+    totalCount:           cart.reduce((a, i) => a + i.qty, 0),
+    subtotal:             sale.subtotal ?? subtotal,
+    amtDue,
+    vatableSales,
+    vatAmount,
+    change:               0,
+    cashTendered:         '' as number | '',
+    selectedDiscount:     null,
+    totalDiscountDisplay,
+    itemDiscountTotal,
+    promoDiscount,
   };
+};
 
   // ── Reprint button list ───────────────────────────────────────────────────
 
@@ -336,16 +347,18 @@ const SearchReceipts = () => {
                 nav, header, aside, button, .print\\:hidden { display: none !important; }
                 .printable-receipt-container, .printable-receipt-container * { visibility: visible !important; }
                 .printable-receipt-container {
-                  position: absolute !important; left: 0 !important; top: 0 !important;
+                  position: static !important;
                   width: 100% !important;
                   max-width: ${printType === 'sticker' ? '38.5mm' : '76mm'} !important;
                   margin: 0 !important; padding: 0 !important;
+                  height: auto !important;
                 }
                 .receipt-area { width: 66mm !important; margin: 0 auto !important; padding: 2mm 0 !important; box-sizing: border-box !important; color: #000 !important; font-family: Arial, Helvetica, sans-serif !important; font-size: 12px !important; line-height: 1.4 !important; }
                 .sticker-area { width: 38.5mm !important; height: 50.8mm !important; padding: 2mm !important; margin: 0 auto !important; box-sizing: border-box !important; color: #000 !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; align-items: center !important; text-align: center !important; font-family: Arial, Helvetica, sans-serif !important; overflow: hidden !important; page-break-after: always !important; break-after: page !important; }
+                .queue-stub { page-break-before: always !important; break-before: page !important; }
               }
             `}</style>
-            {printType === 'receipt' && <ReceiptPrint {...props} />}
+            {printType === 'receipt' && <ReceiptPrint {...props} showDoubleQueueStub={false} isReprint={true} />}
             {printType === 'kitchen' && <KitchenPrint {...props} />}
             {printType === 'sticker' && <StickerPrint {...props} customerName={props.customerName} />}
           </>

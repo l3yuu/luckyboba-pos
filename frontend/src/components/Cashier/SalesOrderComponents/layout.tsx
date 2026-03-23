@@ -53,7 +53,7 @@ export const Header = ({
           <div className="text-[11px] font-black text-[#7c14d4] uppercase leading-tight mt-0.5">{branchName}</div>
         </div>
       </div>
-      <div className="bg-[#7c14d4] rounded-[0.625rem] flex items-center justify-center px-4 min-w-[90px] shadow-md">
+      <div className="bg-[#7c14d4] rounded-[0.625rem] flex items-center justify-center px-4 min-w-22.5 shadow-md">
         <div className="text-center text-white">
           <div className="text-[9px] font-bold uppercase opacity-60 leading-none">{formattedDate}</div>
           <div className="text-[13px] font-black leading-tight mt-0.5">{formattedTime}</div>
@@ -168,7 +168,7 @@ export const MenuArea = ({
                 <div className="flex gap-5 w-full max-w-md flex-wrap justify-center">
                   {selectedCategory.sub_categories.map(sub => (
                     <button key={sub.id} onClick={() => onSizeSelect(sub.name)}
-                      className="flex-1 min-w-[140px] h-56 bg-white rounded-[0.625rem] shadow-md border-2 border-[#e9d5ff] hover:border-[#7c14d4] hover:shadow-xl hover:scale-105 transition-all flex flex-col items-center justify-center font-black text-sm text-black">
+                      className="flex-1 min-w-35 h-56 bg-white rounded-[0.625rem] shadow-md border-2 border-[#e9d5ff] hover:border-[#7c14d4] hover:shadow-xl hover:scale-105 transition-all flex flex-col items-center justify-center font-black text-sm text-black">
                       <DrinkIcon className="w-14 h-14 mb-3 opacity-70" />
                       <span className="text-3xl font-black tracking-widest">{sub.name}</span>
                       <span className="mt-2 bg-[#3b2063]/10 text-[#3b2063] text-sm font-black px-3 py-1 rounded-full tracking-widest">
@@ -299,6 +299,7 @@ interface CartSidebarProps {
   cart: CartItem[];
   cashierName: string;
   orNumber: string;
+  terminalNumber: string;
   totalCount: number;
   subtotal: number;
   onEditItem: (index: number) => void;
@@ -312,25 +313,29 @@ const getItemSurcharge = (item: CartItem): number => {
 };
 
 export const CartSidebar = ({
-  cart, cashierName, orNumber, totalCount, subtotal, onEditItem, onConfirmOrder,
+  cart, cashierName, orNumber, totalCount, subtotal, terminalNumber, onEditItem, onConfirmOrder,
 }: CartSidebarProps) => (
   <div className="w-96 bg-white border-l-2 border-[#e9d5ff] flex flex-col shrink-0 shadow-2xl z-30">
 
-    {/* Cart header */}
-    <div className="bg-[#7c14d4] p-4 text-white flex items-center justify-between shrink-0">
-      <div>
-        <div className="text-[9px] font-bold uppercase tracking-widest opacity-60 leading-none">Cashier</div>
-        <div className="text-[11px] font-black uppercase leading-tight mt-0.5">{cashierName ?? 'Admin'}</div>
-      </div>
-      <div className="text-center">
-        <div className="text-[9px] font-bold uppercase tracking-widest opacity-60 leading-none">Current Order</div>
-        <div className="text-[11px] font-black uppercase leading-tight mt-0.5">{orNumber}</div>
-      </div>
-      <div className="text-right">
-        <div className="text-[9px] font-bold uppercase tracking-widest opacity-60 leading-none">Items</div>
-        <div className="text-[15px] font-black leading-tight mt-0.5">{totalCount}</div>
-      </div>
-    </div>
+{/* Cart header */}
+<div className="bg-[#7c14d4] p-4 text-white flex items-center justify-between shrink-0">
+  <div>
+    <div className="text-[9px] font-bold uppercase tracking-widest opacity-60 leading-none">Cashier</div>
+    <div className="text-[11px] font-black uppercase leading-tight mt-0.5">{cashierName ?? 'Admin'}</div>
+  </div>
+  <div className="text-center">
+    <div className="text-[9px] font-bold uppercase tracking-widest opacity-60 leading-none">Current Order</div>
+    <div className="text-[11px] font-black uppercase leading-tight mt-0.5">{orNumber}</div>
+  </div>
+  <div className="text-center">
+    <div className="text-[9px] font-bold uppercase tracking-widest opacity-60 leading-none">Terminal</div>
+    <div className="text-[11px] font-black uppercase leading-tight mt-0.5">{terminalNumber}</div>
+  </div>
+  <div className="text-right">
+    <div className="text-[9px] font-bold uppercase tracking-widest opacity-60 leading-none">Items</div>
+    <div className="text-[15px] font-black leading-tight mt-0.5">{totalCount}</div>
+  </div>
+</div>
 
     {/* Cart items */}
     <div className="flex-1 overflow-y-auto p-4 bg-white">

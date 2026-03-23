@@ -25,7 +25,7 @@ class ReportController extends Controller
                     'menu_items.cost as Cost_Price',
                     'menu_items.price as Selling_Price'
                 )
-                ->where('categories.type', '!=', 'standard') // Hides discounts/cards
+                ->where('categories.type', '!=', 'standard')
                 ->orderBy('categories.name')
                 ->get();
 
@@ -45,7 +45,6 @@ class ReportController extends Controller
 
             switch ($type) {
                 case 'SUMMARY':
-                    // Daily aggregation for the Summary Excel sheet
                     $data = DB::table('sales')
                         ->select(
                             DB::raw('DATE(created_at) as Sales_Date'),
@@ -60,7 +59,6 @@ class ReportController extends Controller
                     break;
 
                 case 'SOLD_ITEMS':
-                    // Detailed breakdown of which boba flavors sold most
                     $data = DB::table('sale_items')
                         ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
                         ->select(
@@ -75,7 +73,6 @@ class ReportController extends Controller
                     break;
 
                 case 'PAYMENTS':
-                    // List of transactions focused on payment methods
                     $data = Sale::whereBetween('created_at', [$from, $to])
                         ->select('invoice_number as Invoice', 'payment_method as Method', 'total_amount as Amount', 'created_at as Date')
                         ->where('status', 'completed')
@@ -83,7 +80,6 @@ class ReportController extends Controller
                     break;
 
                 default:
-                    // General Sales List (matches your 'SALES' button)
                     $data = Sale::whereBetween('created_at', [$from, $to])
                         ->select('invoice_number as Invoice', 'total_amount as Amount', 'status as Status', 'created_at as Date_Time')
                         ->orderBy('created_at', 'desc')
@@ -91,7 +87,6 @@ class ReportController extends Controller
                     break;
             }
 
-            // Return values() to ensure it is always a clean array for XLSX
             return response()->json($data->values());
 
         } catch (\Exception $e) {
@@ -99,11 +94,10 @@ class ReportController extends Controller
             return response()->json(['error' => 'Server Error: Check Laravel Logs'], 500);
         }
     }
-    
+
     private function getSummaryData($from, $to)
     {
         try {
-            // 1. Daily Sales List
             $summary = Sale::whereBetween('created_at', [$from, $to])
                 ->where('status', 'completed')
                 ->select(
@@ -115,13 +109,10 @@ class ReportController extends Controller
                 ->orderBy('Sales_Date', 'desc')
                 ->get();
 
-            // 2. Aggregate Metrics
             $totalGross = Sale::whereBetween('created_at', [$from, $to])
                 ->where('status', 'completed')
                 ->sum('total_amount') ?? 0;
 
-            // We use a fallback here to prevent the 500 error if column names differ
-            // Check if your column is 'total_discount' or 'discount_amount'
             $totalDiscounts = 0;
             if (\Schema::hasColumn('sales', 'total_discount')) {
                 $totalDiscounts = Sale::whereBetween('created_at', [$from, $to])->where('status', 'completed')->sum('total_discount');
@@ -142,9 +133,8 @@ class ReportController extends Controller
                 'to_date'           => $to
             ];
         } catch (\Exception $e) {
-            // This will print the REAL error in your storage/logs/laravel.log
             Log::error("Summary Logic Error: " . $e->getMessage());
-            throw $e; 
+            throw $e;
         }
     }
 
@@ -166,25 +156,23 @@ class ReportController extends Controller
         return ['transactions' => $data];
     }
 
-    public function getItemQuantities(Request $request) {
-        $date = $request->query('date');
-        $user = auth('sanctum')->user() ?? $request->user();
+    public function getItemQuantities(Request $request)
+    {
+        $date        = $request->query('date');
+        $user        = auth('sanctum')->user() ?? $request->user();
         $cashierName = $user ? $user->name : 'System Admin';
 
         $rawItems = DB::table('sale_items')
             ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
-            // Use LEFT JOINs so bundle items (menu_item_id = null) are not dropped
             ->leftJoin('menu_items', 'sale_items.menu_item_id', '=', 'menu_items.id')
             ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
             ->leftJoin('bundles', 'sale_items.bundle_id', '=', 'bundles.id')
             ->whereDate('sales.created_at', $date)
             ->where('sales.status', 'completed')
             ->select(
-                // If it's a bundle, use the bundle's category; otherwise use the menu item's category
                 DB::raw("COALESCE(bundles.category, categories.name, 'UNCATEGORIZED') as category_name"),
                 DB::raw("COALESCE(categories.type, 'drink') as category_type"),
                 'sale_items.*',
-                // Use bundle name as product_name if it's a bundle sale item
                 DB::raw("CASE WHEN sale_items.bundle_id IS NOT NULL THEN COALESCE(bundles.display_name, bundles.name, sale_items.product_name) ELSE sale_items.product_name END as resolved_product_name"),
                 DB::raw("COALESCE(cups.size_m, 'M') as cup_size_m"),
                 DB::raw("COALESCE(cups.size_l, 'L') as cup_size_l")
@@ -195,20 +183,16 @@ class ReportController extends Controller
         $globalAddonSummary = [];
 
         $groupedData = $rawItems->groupBy('category_name')->map(function ($items, $category) use (&$globalAddonSummary) {
-
-            // Group by product_name + size together
             $productSummary = $items->groupBy(function ($item) {
                 $size = $item->size ?? null;
                 $name = $item->resolved_product_name ?? $item->product_name;
                 return $name . '||' . ($size ?? 'none');
             })->map(function ($pGroup) use (&$globalAddonSummary) {
-
                 $firstItem = $pGroup->first();
-                $rawSize   = $firstItem->size ?? null;        // 'M' or 'L' or null
-                $cupSizeM  = $firstItem->cup_size_m ?? 'SM';  // e.g. 'SM', 'UM', 'PCM'
-                $cupSizeL  = $firstItem->cup_size_l ?? 'SL';  // e.g. 'SL', 'UL', 'PCL'
+                $rawSize   = $firstItem->size ?? null;
+                $cupSizeM  = $firstItem->cup_size_m ?? 'SM';
+                $cupSizeL  = $firstItem->cup_size_l ?? 'SL';
 
-                // Map generic M/L → branded cup size label
                 $sizeLabel = null;
                 if ($rawSize === 'M') $sizeLabel = $cupSizeM;
                 elseif ($rawSize === 'L') $sizeLabel = $cupSizeL;
@@ -229,7 +213,7 @@ class ReportController extends Controller
 
                 return [
                     'product_name' => $firstItem->resolved_product_name ?? $firstItem->product_name,
-                    'size'         => $sizeLabel,   // e.g. "SM", "SL", "JR", null
+                    'size'         => $sizeLabel,
                     'total_qty'    => (int) $pGroup->sum('quantity'),
                     'total_sales'  => (float) $pGroup->sum('final_price'),
                     'add_ons'      => $formattedAddons,
@@ -261,32 +245,34 @@ class ReportController extends Controller
         ]);
     }
 
-    public function getHourlySales(Request $request) {
-        $date = $request->query('date');
-        $user = auth('sanctum')->user() ?? $request->user();
+    public function getHourlySales(Request $request)
+    {
+        $date        = $request->query('date');
+        $user        = auth('sanctum')->user() ?? $request->user();
         $cashierName = $user ? $user->name : 'System Admin';
 
         $hourlyData = Sale::whereDate('created_at', $date)
-            ->where('status', '!=', 'cancelled') 
+            ->where('status', '!=', 'cancelled')
             ->selectRaw('HOUR(created_at) as hour, SUM(total_amount) as total, COUNT(*) as count')
             ->groupBy('hour')
             ->orderBy('hour')
             ->get();
-            
+
         return response()->json([
-            'hourly_data' => $hourlyData, 
-            'prepared_by' => $cashierName
+            'hourly_data' => $hourlyData,
+            'prepared_by' => $cashierName,
         ]);
     }
 
-    public function getCashCountSummary(Request $request) {
+    public function getCashCountSummary(Request $request)
+    {
         $date = $request->query('date', now()->toDateString());
 
         try {
             $cashCount = DB::table('cash_counts')
                 ->where(function ($q) use ($date) {
                     $q->whereDate('date', $date)
-                    ->orWhereDate('created_at', $date);
+                      ->orWhereDate('created_at', $date);
                 })
                 ->latest()
                 ->first();
@@ -300,17 +286,14 @@ class ReportController extends Controller
                 ]);
             }
 
-            // Handle whichever column name your DB uses
             $breakdown = $cashCount->breakdown ?? $cashCount->denominations_data ?? '[]';
             if (is_string($breakdown)) {
                 $breakdown = json_decode($breakdown, true) ?? [];
             }
 
-            // All denominations to always show, in descending order
             $allDenoms = [1000, 500, 200, 100, 50, 20, 10, 5, 1, 0.25];
 
             $denominations = collect($allDenoms)->map(function ($denom) use ($breakdown) {
-                // Match stored key (could be "1000", "0.25", etc.)
                 $qty = 0;
                 foreach ($breakdown as $key => $val) {
                     if ((float)$key === (float)$denom) {
@@ -350,43 +333,45 @@ class ReportController extends Controller
         }
     }
 
-    public function getVoidLogs(Request $request) {
-        $date = $request->query('date');
-        $voids = Sale::whereDate('created_at', $date)->where('status', 'cancelled')
-            ->select('id', 'invoice_number as reason', 'total_amount as amount', DB::raw("DATE_FORMAT(created_at, '%h:%i %p') as time"))->get();
-        return response()->json(['logs' => $voids, 'prepared_by' => auth()->user()->name ?? 'System Admin']);
+    public function getVoidLogs(Request $request)
+    {
+        $date  = $request->query('date');
+        $voids = Sale::whereDate('created_at', $date)
+            ->where('status', 'cancelled')
+            ->select('id', 'invoice_number as reason', 'total_amount as amount', DB::raw("DATE_FORMAT(created_at, '%h:%i %p') as time"))
+            ->get();
+
+        return response()->json([
+            'logs'        => $voids,
+            'prepared_by' => auth()->user()->name ?? 'System Admin',
+        ]);
     }
 
     public function exportSales(Request $request)
     {
-        $date = $request->query('date', now()->toDateString());
-
+        $date  = $request->query('date', now()->toDateString());
         $sales = Sale::whereDate('created_at', $date)
-                     ->where('status', '!=', 'cancelled')
-                     ->get();
+            ->where('status', '!=', 'cancelled')
+            ->get();
 
         $headers = [
             "Content-type"        => "text/csv",
             "Content-Disposition" => "attachment; filename=lucky_boba_sales_{$date}.csv",
             "Pragma"              => "no-cache",
             "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
-            "Expires"             => "0"
+            "Expires"             => "0",
         ];
 
-        $callback = function() use($sales) {
+        $callback = function () use ($sales) {
             $file = fopen('php://output', 'w');
-            
-            // CSV Header Row
             fputcsv($file, ['Invoice Number', 'Payment Method', 'Total Amount', 'Status', 'Date Time']);
-
-            // CSV Data Rows
             foreach ($sales as $sale) {
                 fputcsv($file, [
                     $sale->invoice_number,
                     $sale->payment_method,
                     $sale->total_amount,
                     $sale->status,
-                    $sale->created_at->format('Y-m-d H:i:s')
+                    $sale->created_at->format('Y-m-d H:i:s'),
                 ]);
             }
             fclose($file);
@@ -397,16 +382,14 @@ class ReportController extends Controller
 
     public function exportItems(Request $request)
     {
-        $date = $request->query('date', now()->toDateString());
-
-        // Get all items sold on this date, excluding cancelled sales
+        $date  = $request->query('date', now()->toDateString());
         $items = SaleItem::join('sales', 'sale_items.sale_id', '=', 'sales.id')
             ->whereDate('sales.created_at', $date)
             ->where('sales.status', '!=', 'cancelled')
             ->select(
                 'sale_items.product_name',
-                \DB::raw('SUM(sale_items.quantity) as total_qty'),
-                \DB::raw('SUM(sale_items.final_price) as total_sales')
+                DB::raw('SUM(sale_items.quantity) as total_qty'),
+                DB::raw('SUM(sale_items.final_price) as total_sales')
             )
             ->groupBy('sale_items.product_name')
             ->get();
@@ -416,22 +399,14 @@ class ReportController extends Controller
             "Content-Disposition" => "attachment; filename=lucky_boba_items_{$date}.csv",
             "Pragma"              => "no-cache",
             "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
-            "Expires"             => "0"
+            "Expires"             => "0",
         ];
 
-        $callback = function() use($items) {
+        $callback = function () use ($items) {
             $file = fopen('php://output', 'w');
-            
-            // CSV Header Row
             fputcsv($file, ['Product Name', 'Quantity Sold', 'Total Revenue']);
-
-            // CSV Data Rows
             foreach ($items as $item) {
-                fputcsv($file, [
-                    $item->product_name,
-                    $item->total_qty,
-                    $item->total_sales
-                ]);
+                fputcsv($file, [$item->product_name, $item->total_qty, $item->total_sales]);
             }
             fclose($file);
         };
@@ -442,104 +417,82 @@ class ReportController extends Controller
     /**
      * GET /api/reports/sales-summary?from=YYYY-MM-DD&to=YYYY-MM-DD
      */
-public function getSalesSummary(Request $request)
-{
-    try {
-        $from = $request->query('from', now()->toDateString()) . ' 00:00:00';
-        $to   = $request->query('to',   now()->toDateString()) . ' 23:59:59';
+    public function getSalesSummary(Request $request)
+    {
+        try {
+            $from = $request->query('from', now()->toDateString()) . ' 00:00:00';
+            $to   = $request->query('to',   now()->toDateString()) . ' 23:59:59';
 
-        $data = $this->getSummaryData($from, $to);
+            $data = $this->getSummaryData($from, $to);
 
-        $paymentBreakdown = Sale::whereBetween('created_at', [$from, $to])
-            ->where('status', 'completed')
-            ->selectRaw('payment_method as method, SUM(total_amount) as amount')
-            ->groupBy('payment_method')
-            ->get();
+            $paymentBreakdown = Sale::whereBetween('created_at', [$from, $to])
+                ->where('status', 'completed')
+                ->selectRaw('payment_method as method, SUM(total_amount) as amount')
+                ->groupBy('payment_method')
+                ->get();
 
-        $gross        = $data['gross_sales'];
-        $vatableSales = round($gross / 1.12, 2);
-        $vatAmount    = round($gross - $vatableSales, 2);
+            $gross        = $data['gross_sales'];
+            $vatableSales = round($gross / 1.12, 2);
+            $vatAmount    = round($gross - $vatableSales, 2);
 
-        $discountTotals = Sale::whereBetween('created_at', [$from, $to])
-            ->where('status', 'completed')
-            ->selectRaw('SUM(pax_senior) as total_senior_pax, SUM(pax_pwd) as total_pwd_pax, SUM(pax_diplomat) as total_diplomat_pax')
-            ->first();
+            // ── Discount calculations from sale_items (no pax columns needed) ──
+            $scDiscount = DB::table('sale_items')
+                ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+                ->whereBetween('sales.created_at', [$from, $to])
+                ->where('sales.status', 'completed')
+                ->where('sale_items.discount_label', 'LIKE', '%SENIOR%')
+                ->sum('sale_items.discount_amount');
 
-        // ── Use stored vatable_sales per sale to calculate SC discount correctly ──
-        // SC/PWD get 20% off the vatable portion per pax, not 20% of total_amount
-        $seniorRows = Sale::whereBetween('created_at', [$from, $to])
-            ->where('status', 'completed')
-            ->where('pax_senior', '>', 0)
-            ->selectRaw('
-                COALESCE(pax_senior, 0) as pax_senior,
-                COALESCE(pax_pwd, 0) as pax_pwd,
-                COALESCE(pax_diplomat, 0) as pax_diplomat,
-                total_amount,
-                COALESCE(vatable_sales, total_amount / 1.12) as vatable_sales,
-                (COALESCE(pax_regular, 0) + COALESCE(pax_senior, 0) + 
-                COALESCE(pax_pwd, 0) + COALESCE(pax_diplomat, 0)) as total_pax
-            ')
-            ->get();
+            $pwdDiscount = DB::table('sale_items')
+                ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+                ->whereBetween('sales.created_at', [$from, $to])
+                ->where('sales.status', 'completed')
+                ->where('sale_items.discount_label', 'LIKE', '%PWD%')
+                ->sum('sale_items.discount_amount');
 
-            Log::info('Senior rows found: ' . $seniorRows->count());
-Log::info('Senior rows data: ' . $seniorRows->toJson());
+            $diplomatDiscount = DB::table('sale_items')
+                ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+                ->whereBetween('sales.created_at', [$from, $to])
+                ->where('sales.status', 'completed')
+                ->where('sale_items.discount_label', 'LIKE', '%DIPLOMAT%')
+                ->sum('sale_items.discount_amount');
 
-        $seniorDiscount = 0;
-        $pwdDiscount    = 0;
+            $otherDiscount = DB::table('sale_items')
+                ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+                ->whereBetween('sales.created_at', [$from, $to])
+                ->where('sales.status', 'completed')
+                ->where('sale_items.discount_label', 'NOT LIKE', '%SENIOR%')
+                ->where('sale_items.discount_label', 'NOT LIKE', '%PWD%')
+                ->where('sale_items.discount_label', 'NOT LIKE', '%DIPLOMAT%')
+                ->whereNotNull('sale_items.discount_label')
+                ->where('sale_items.discount_label', '!=', '')
+                ->sum('sale_items.discount_amount');
 
-        foreach ($seniorRows as $row) {
-            $totalPax   = max(1, (int)$row->total_pax);
-            $sharePerPax = (float)$row->vatable_sales / $totalPax;
-            $seniorDiscount += (int)$row->pax_senior * ($sharePerPax * 0.20);
-            $pwdDiscount    += (int)$row->pax_pwd    * ($sharePerPax * 0.20);
+            $orderLevelOtherDiscount = DB::table('sales')
+                ->whereBetween('created_at', [$from, $to])
+                ->where('status', 'completed')
+                ->whereNotNull('discount_id')
+                ->sum('discount_amount');
+
+            return response()->json(array_merge($data, [
+                'payment_breakdown'  => $paymentBreakdown,
+                'vatable_sales'      => $vatableSales,
+                'vat_amount'         => $vatAmount,
+                'sc_discount'        => round((float)$scDiscount,       2),
+                'pwd_discount'       => round((float)$pwdDiscount,      2),
+                'diplomat_discount'  => round((float)$diplomatDiscount, 2),
+                'other_discount'     => round((float)$otherDiscount + (float)$orderLevelOtherDiscount, 2), // ADD THIS
+                'sc_pwd_discount'    => round((float)$scDiscount + (float)$pwdDiscount, 2),
+                'total_senior_pax'   => 0,
+                'total_pwd_pax'      => 0,
+                'total_diplomat_pax' => 0,
+            ]));
+
+        } catch (\Exception $e) {
+            Log::error("getSalesSummary Error: " . $e->getMessage());
+            return response()->json(['error' => 'Failed to generate summary report'], 500);
         }
-
-        // Also catch pwd-only rows
-        $pwdOnlyRows = Sale::whereBetween('created_at', [$from, $to])
-            ->where('status', 'completed')
-            ->where('pax_pwd', '>', 0)      // ← corrected
-            ->where('pax_senior', '=', 0)   // ← exclude rows already counted in $seniorRows
-            ->selectRaw('
-                COALESCE(pax_senior, 0) as pax_senior,
-                COALESCE(pax_pwd, 0) as pax_pwd,
-                COALESCE(pax_diplomat, 0) as pax_diplomat,
-                total_amount,
-                COALESCE(vatable_sales, total_amount / 1.12) as vatable_sales,
-                (COALESCE(pax_regular, 0) + COALESCE(pax_senior, 0) + 
-                COALESCE(pax_pwd, 0) + COALESCE(pax_diplomat, 0)) as total_pax
-            ')
-            ->get();
-
-        foreach ($pwdOnlyRows as $row) {
-            $totalPax    = max(1, (int)$row->total_pax);
-            $sharePerPax = (float)$row->vatable_sales / $totalPax;
-            $pwdDiscount += (int)$row->pax_pwd * ($sharePerPax * 0.20);
-        }
-
-        $diplomatDiscount = Sale::whereBetween('created_at', [$from, $to])
-            ->where('status', 'completed')
-            ->where('pax_diplomat', '>', 0)
-            ->selectRaw('SUM(total_amount * 0.20) as total')
-            ->value('total') ?? 0;
-
-        return response()->json(array_merge($data, [
-            'payment_breakdown'  => $paymentBreakdown,
-            'vatable_sales'      => $vatableSales,
-            'vat_amount'         => $vatAmount,
-            'sc_discount'        => round((float)$seniorDiscount,   2),
-            'pwd_discount'       => round((float)$pwdDiscount,      2),
-            'diplomat_discount'  => round((float)$diplomatDiscount, 2),
-            'sc_pwd_discount'    => round((float)$seniorDiscount + (float)$pwdDiscount, 2),
-            'total_senior_pax'   => (int)($discountTotals->total_senior_pax   ?? 0),
-            'total_pwd_pax'      => (int)($discountTotals->total_pwd_pax      ?? 0),
-            'total_diplomat_pax' => (int)($discountTotals->total_diplomat_pax ?? 0),
-        ]));
-
-    } catch (\Exception $e) {
-        Log::error("getSalesSummary Error: " . $e->getMessage());
-        return response()->json(['error' => 'Failed to generate summary report'], 500);
     }
-}
 
     /**
      * GET /api/reports/sales-detailed?date=YYYY-MM-DD
@@ -554,16 +507,16 @@ Log::info('Senior rows data: ' . $seniorRows->toJson());
             $transactions = Sale::whereBetween('sales.created_at', [$from, $to])
                 ->leftJoin('users', 'users.id', '=', 'sales.user_id')
                 ->selectRaw('
-                    sales.invoice_number                                          as Invoice,
-                    sales.total_amount                                            as Amount,
-                    sales.status                                                  as Status,
-                    sales.created_at                                              as Date_Time,
-                    sales.payment_method                                          as Method,
-                    COALESCE(users.name, "N/A")                                   as Cashier,
-                    COALESCE(sales.vatable_sales, ROUND(sales.total_amount / 1.12, 2)) as Vatable,
-                    COALESCE(sales.vat_amount,    ROUND(sales.total_amount - (sales.total_amount / 1.12), 2)) as Tax,
-                    (COALESCE(sales.pax_senior, 0) + COALESCE(sales.pax_pwd, 0)) as Disc_Pax,
-                    (SELECT COUNT(*) FROM sale_items WHERE sale_items.sale_id = sales.id) as Items_Count
+                    sales.invoice_number                                                        as Invoice,
+                    sales.total_amount                                                          as Amount,
+                    sales.status                                                                as Status,
+                    sales.created_at                                                            as Date_Time,
+                    sales.payment_method                                                        as Method,
+                    COALESCE(users.name, "N/A")                                                 as Cashier,
+                    COALESCE(sales.vatable_sales, ROUND(sales.total_amount / 1.12, 2))          as Vatable,
+                    COALESCE(sales.vat_amount, ROUND(sales.total_amount - (sales.total_amount / 1.12), 2)) as Tax,
+                    0                                                                           as Disc_Pax,
+                    (SELECT COUNT(*) FROM sale_items WHERE sale_items.sale_id = sales.id)       as Items_Count
                 ')
                 ->orderBy('sales.created_at', 'desc')
                 ->get();

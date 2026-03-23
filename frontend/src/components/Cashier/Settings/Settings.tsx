@@ -2,20 +2,15 @@
 
 import TopNavbar from '../../Cashier/TopNavbar';
 import SalesSettings from './SalesSettings';
-import AddCustomers from './AddCustomers';
 import DiscountSettings from './DiscountSettings';
 import ExportData from './ExportData';
-import UploadData from './UploadData';
-import AddVouchers from './AddVouchers';
-import ImportData from './ImportData';
 import BackupSystem from './BackupSystem';
 import { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../../context/AuthContext';
 
 import { 
-  Settings as SettingsIcon, UserPlus, Percent, FileUp, 
-  Upload, Ticket, FileDown, Database, ShieldCheck, 
-  Clock, Activity, X, AlertTriangle
+  Settings as SettingsIcon, Percent, FileUp, 
+  Database, ShieldCheck, Clock, Activity, X, AlertTriangle
 } from 'lucide-react';
 import api from '../../../services/api';
 import { getCache, setCache } from '../../../utils/cache';
@@ -45,12 +40,8 @@ interface AuditCache {
 }
 
 const subViewLabels: Record<string, string> = {
-  'add-customers': 'Customer Management',
   'discount':      'Discount Settings',
   'export-data':   'Export Data',
-  'upload-data':   'Upload Data',
-  'add-vouchers':  'Voucher Management',
-  'import-data':   'Import Data',
   'backup-system': 'Backup System',
 };
 
@@ -80,14 +71,12 @@ const Settings = () => {
         api.get('/system/backup-status'),
         api.get('/system/audit'),
       ]);
-
       const freshInfo: AuditInfo = {
         last_backup: backupRes.data.last_backup,
         active_session: auditRes.data.active_session || 'Administrator',
         system_status: auditRes.data.system_status || 'Online',
       };
       const freshLogs: SystemLog[] = auditRes.data.logs || [];
-
       setCache<AuditCache>(AUDIT_CACHE_KEY, { auditInfo: freshInfo, recentLogs: freshLogs }, AUDIT_TTL);
       setCache<string>(BACKUP_CACHE_KEY, backupRes.data.last_backup, AUDIT_TTL);
       setAuditInfo(freshInfo);
@@ -142,51 +131,94 @@ const Settings = () => {
     ? (subViewLabels[activeSubView] ?? 'System Configuration')
     : 'Quezon City • System Configuration';
 
-  const settingActions = [
-    { label: "Sales Settings", Icon: SettingsIcon, color: "#7c14d4", iconColor: "#7c14d4", action: () => setIsSalesSettingsOpen(true) },
-    { label: "Add Customers", Icon: UserPlus,      color: "#7c14d4", iconColor: "#7c14d4", action: () => setActiveSubView('add-customers') },
-    { label: "Discount",      Icon: Percent,       color: "#7c14d4", iconColor: "#7c14d4", action: () => setActiveSubView('discount') },
-    { label: "Export Data",   Icon: FileUp,        color: "#7c14d4", iconColor: "#7c14d4", action: () => setActiveSubView('export-data') },
-    { label: "Upload Data",   Icon: Upload,        color: "#7c14d4", iconColor: "#7c14d4", action: () => setActiveSubView('upload-data') },
-    { label: "Add Vouchers",  Icon: Ticket,        color: "#7c14d4", iconColor: "#7c14d4", action: () => setActiveSubView('add-vouchers') },
-    { label: "Import Data",   Icon: FileDown,      color: "#7c14d4", iconColor: "#7c14d4", action: () => setActiveSubView('import-data') },
-    { label: "Backup System", Icon: Database,      color: "#7c14d4", iconColor: "#7c14d4", action: () => setActiveSubView('backup-system') },
-  ];
-
-  const renderContent = () => {
-    switch (activeSubView) {
-      case 'add-customers':  return <AddCustomers onBack={closeSubView} />;
-      case 'discount':       return <DiscountSettings onBack={closeSubView} />;
-      case 'export-data':    return <ExportData onBack={closeSubView} />;
-      case 'upload-data':    return <UploadData onBack={closeSubView} />;
-      case 'add-vouchers':   return <AddVouchers onBack={closeSubView} />;
-      case 'import-data':    return <ImportData onBack={closeSubView} />;
-      case 'backup-system':  return <BackupSystem onBack={closeSubView} />;
-      default:
-        return (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 animate-in fade-in duration-300">
-            {settingActions.map((item, index) => (
-              <button
-                key={index}
-                onClick={item.action}
-                className="group relative overflow-hidden flex flex-col items-center justify-center p-8 rounded-[0.625rem] shadow-sm border border-zinc-200 bg-white transition-all duration-200 active:scale-95 hover:shadow-md hover:border-[#e9d5ff]"
-              >
-                <div className="absolute left-0 top-0 bottom-0 w-1.5" style={{ backgroundColor: item.color }} />
-                <div className="mb-4 transition-transform duration-200 group-hover:scale-110" style={{ color: item.iconColor }}>
-                  <item.Icon size={32} strokeWidth={1.5} />
-                </div>
-                <span className="text-[11px] font-extrabold text-[#1c1c1e] uppercase tracking-widest text-center">{item.label}</span>
-                <div className="mt-3 px-3 py-1 rounded-[0.625rem] bg-[#f5f0ff] text-[8px] font-bold text-[#7c14d4] uppercase tracking-tighter border border-[#e9d5ff] group-hover:bg-[#7c14d4] group-hover:text-white group-hover:border-[#7c14d4] transition-colors">Configure</div>
-              </button>
-            ))}
-          </div>
-        );
-    }
-  };
-
   const formatBackupDate = (raw: string | null) => {
     if (!raw || raw === 'Loading...') return raw;
     return raw === 'Never' ? 'No backup yet' : raw;
+  };
+
+  const renderContent = () => {
+    switch (activeSubView) {
+      case 'discount': return <DiscountSettings onBack={closeSubView} readOnly={!isAdmin} />;
+      case 'export-data':   return <ExportData onBack={closeSubView} />;
+      case 'backup-system': return <BackupSystem onBack={closeSubView} readOnly={!isAdmin} />;
+default:
+  return (
+    <div
+      className="flex-1 grid gap-4 w-full animate-in fade-in duration-300"
+      style={{ gridTemplateRows: '1fr 1fr 1fr', gridTemplateColumns: '1fr 1fr' }}
+    >
+      {/* Sales Settings — spans full width, row 1 */}
+      <button
+        onClick={() => setIsSalesSettingsOpen(true)}
+        style={{ gridColumn: '1 / -1' }}
+        className="group relative overflow-hidden flex items-center gap-6 p-7 rounded-[0.625rem] shadow-sm border border-zinc-200 bg-white transition-all duration-200 active:scale-[0.99] hover:shadow-md hover:border-[#e9d5ff]"
+      >
+        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#7c14d4]" />
+        <div className="w-14 h-14 rounded-[0.625rem] bg-[#f5f0ff] border border-[#e9d5ff] flex items-center justify-center shrink-0 group-hover:bg-[#7c14d4] transition-colors">
+          <SettingsIcon size={24} strokeWidth={1.5} className="text-[#7c14d4] group-hover:text-white transition-colors" />
+        </div>
+        <div className="text-left">
+          <p className="text-[11px] font-black text-[#1c1c1e] uppercase tracking-widest">Sales Settings</p>
+          <p className="text-[10px] text-zinc-400 font-medium mt-0.5">Configure POS behavior, taxes & receipts</p>
+        </div>
+        <div className="ml-auto px-3 py-1 rounded-[0.625rem] bg-[#f5f0ff] text-[8px] font-bold text-[#7c14d4] uppercase tracking-tighter border border-[#e9d5ff] group-hover:bg-[#7c14d4] group-hover:text-white group-hover:border-[#7c14d4] transition-colors shrink-0">
+          Configure
+        </div>
+      </button>
+
+      {/* Discount — row 2, col 1 */}
+      <button
+        onClick={() => setActiveSubView('discount')}
+        className="group relative overflow-hidden flex items-center gap-5 p-6 rounded-[0.625rem] shadow-sm border border-zinc-200 bg-white transition-all duration-200 active:scale-[0.99] hover:shadow-md hover:border-[#e9d5ff]"
+      >
+        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#7c14d4]" />
+        <div className="w-12 h-12 rounded-[0.625rem] bg-[#f5f0ff] border border-[#e9d5ff] flex items-center justify-center shrink-0 group-hover:bg-[#7c14d4] transition-colors">
+          <Percent size={20} strokeWidth={1.5} className="text-[#7c14d4] group-hover:text-white transition-colors" />
+        </div>
+        <div className="text-left">
+          <p className="text-[11px] font-black text-[#1c1c1e] uppercase tracking-widest">Discount</p>
+          <p className="text-[10px] text-zinc-400 font-medium mt-0.5">Manage promos & discounts</p>
+        </div>
+      </button>
+
+      {/* Export Data — row 2, col 2 */}
+      <button
+        onClick={() => setActiveSubView('export-data')}
+        className="group relative overflow-hidden flex items-center gap-5 p-6 rounded-[0.625rem] shadow-sm border border-zinc-200 bg-white transition-all duration-200 active:scale-[0.99] hover:shadow-md hover:border-[#e9d5ff]"
+      >
+        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#7c14d4]" />
+        <div className="w-12 h-12 rounded-[0.625rem] bg-[#f5f0ff] border border-[#e9d5ff] flex items-center justify-center shrink-0 group-hover:bg-[#7c14d4] transition-colors">
+          <FileUp size={20} strokeWidth={1.5} className="text-[#7c14d4] group-hover:text-white transition-colors" />
+        </div>
+        <div className="text-left">
+          <p className="text-[11px] font-black text-[#1c1c1e] uppercase tracking-widest">Export Data</p>
+          <p className="text-[10px] text-zinc-400 font-medium mt-0.5">Download sales & reports</p>
+        </div>
+      </button>
+
+      {/* Backup System — spans full width, row 3 */}
+      <button
+        onClick={() => setActiveSubView('backup-system')}
+        style={{ gridColumn: '1 / -1' }}
+        className="group relative overflow-hidden flex items-center gap-6 p-7 rounded-[0.625rem] shadow-sm border border-zinc-200 bg-white transition-all duration-200 active:scale-[0.99] hover:shadow-md hover:border-[#e9d5ff]"
+      >
+        <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#7c14d4]" />
+        <div className="w-14 h-14 rounded-[0.625rem] bg-[#f5f0ff] border border-[#e9d5ff] flex items-center justify-center shrink-0 group-hover:bg-[#7c14d4] transition-colors">
+          <Database size={24} strokeWidth={1.5} className="text-[#7c14d4] group-hover:text-white transition-colors" />
+        </div>
+        <div className="text-left">
+          <p className="text-[11px] font-black text-[#1c1c1e] uppercase tracking-widest">Backup System</p>
+          <p className="text-[10px] text-zinc-400 font-medium mt-0.5">
+            Last backup: {formatBackupDate(auditInfo.last_backup) ?? '—'}
+          </p>
+        </div>
+        <div className="ml-auto px-3 py-1 rounded-[0.625rem] bg-[#f5f0ff] text-[8px] font-bold text-[#7c14d4] uppercase tracking-tighter border border-[#e9d5ff] group-hover:bg-[#7c14d4] group-hover:text-white group-hover:border-[#7c14d4] transition-colors shrink-0">
+          Manage
+        </div>
+      </button>
+    </div>
+  );
+    }
   };
 
   return (
@@ -194,56 +226,60 @@ const Settings = () => {
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');`}</style>
       <div className="flex-1 bg-[#f4f2fb] min-h-0 flex flex-col overflow-hidden font-sans" style={dashboardFont}>
         <TopNavbar />
-        <div className="flex-1 overflow-y-auto p-5 md:p-7 flex flex-col gap-4">
+        <div className="flex-1 p-5 md:p-7 flex flex-col gap-4" style={{ minHeight: 0 }}>
+
           {/* Header */}
-          <div className="mb-2">
+          <div className="shrink-0">
             <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">System</p>
             <h1 className="text-lg font-extrabold text-[#1c1c1e] mt-0.5">Settings</h1>
             <p className="text-zinc-400 font-bold text-xs uppercase tracking-widest mt-1">{pageSubtitle}</p>
           </div>
 
-          {renderContent()}
+          {/* Main content — fills remaining height */}
+          <div className="flex-1 flex flex-col gap-4" style={{ minHeight: 0 }}>
+            {renderContent()}
 
-          {/* System audit section — admin only */}
-          {isAdmin && (
-            <div className="mt-4 bg-white rounded-[0.625rem] shadow-sm border border-[#e9d5ff] overflow-hidden shrink-0">
-              <div className="bg-[#7c14d4] px-7 py-4 border-b border-[#6a12b8]">
-                <h2 className="text-white font-extrabold text-[10px] uppercase tracking-[0.3em] text-center">System Audit & Security</h2>
-              </div>
-              <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="flex flex-col items-center text-center gap-2">
-                  <div className="text-[#7c14d4]"><Clock size={16} /></div>
-                  <div>
-                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Last Backup</p>
-                    <p className="text-sm font-extrabold text-black uppercase italic">{formatBackupDate(auditInfo.last_backup)}</p>
-                  </div>
+            {/* System audit — admin only, only on main view */}
+            {isAdmin && !activeSubView && (
+              <div className="bg-white rounded-[0.625rem] shadow-sm border border-[#e9d5ff] overflow-hidden w-full shrink-0">
+                <div className="bg-[#7c14d4] px-7 py-4 border-b border-[#6a12b8]">
+                  <h2 className="text-white font-extrabold text-[10px] uppercase tracking-[0.3em] text-center">System Audit & Security</h2>
                 </div>
-                <div className="flex flex-col items-center text-center gap-2 border-x border-[#e9d5ff] px-4">
-                  <div className="text-[#7c14d4]"><ShieldCheck size={16} /></div>
-                  <div>
-                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Active Session</p>
-                    <p className="text-sm font-extrabold text-black uppercase mb-1">{auditInfo.active_session}</p>
-                    <button
-                      onClick={() => setIsLogOpen(true)}
-                      className="text-[8px] font-bold text-[#7c14d4] border border-[#7c14d4]/20 px-2 py-0.5 rounded-[0.625rem] hover:bg-[#7c14d4] hover:text-white transition-colors"
-                    >
-                      VIEW LOGS
-                    </button>
+                <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-8">
+                  <div className="flex flex-col items-center text-center gap-2">
+                    <div className="text-[#7c14d4]"><Clock size={16} /></div>
+                    <div>
+                      <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Last Backup</p>
+                      <p className="text-sm font-extrabold text-black uppercase italic">{formatBackupDate(auditInfo.last_backup)}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex flex-col items-center text-center gap-2">
-                  <div className="text-[#7c14d4]"><Activity size={16} /></div>
-                  <div>
-                    <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">System Status</p>
-                    <div className="flex items-center justify-center gap-2">
-                      <div className={`w-2 h-2 rounded-none animate-pulse ${auditInfo.system_status === 'Online' ? 'bg-[#7c14d4]' : 'bg-red-500'}`} />
-                      <p className={`text-sm font-extrabold uppercase ${auditInfo.system_status === 'Online' ? 'text-black' : 'text-red-500'}`}>{auditInfo.system_status}</p>
+                  <div className="flex flex-col items-center text-center gap-2 border-x border-[#e9d5ff] px-4">
+                    <div className="text-[#7c14d4]"><ShieldCheck size={16} /></div>
+                    <div>
+                      <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">Active Session</p>
+                      <p className="text-sm font-extrabold text-black uppercase mb-1">{auditInfo.active_session}</p>
+                      <button
+                        onClick={() => setIsLogOpen(true)}
+                        className="text-[8px] font-bold text-[#7c14d4] border border-[#7c14d4]/20 px-2 py-0.5 rounded-[0.625rem] hover:bg-[#7c14d4] hover:text-white transition-colors"
+                      >
+                        VIEW LOGS
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex flex-col items-center text-center gap-2">
+                    <div className="text-[#7c14d4]"><Activity size={16} /></div>
+                    <div>
+                      <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mb-1">System Status</p>
+                      <div className="flex items-center justify-center gap-2">
+                        <div className={`w-2 h-2 rounded-none animate-pulse ${auditInfo.system_status === 'Online' ? 'bg-[#7c14d4]' : 'bg-red-500'}`} />
+                        <p className={`text-sm font-extrabold uppercase ${auditInfo.system_status === 'Online' ? 'text-black' : 'text-red-500'}`}>{auditInfo.system_status}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
@@ -288,7 +324,12 @@ const Settings = () => {
           </div>
         </div>
       )}
-      <SalesSettings isOpen={isSalesSettingsOpen} onClose={() => setIsSalesSettingsOpen(false)} />
+
+      <SalesSettings
+        isOpen={isSalesSettingsOpen}
+        onClose={() => setIsSalesSettingsOpen(false)}
+        userRole={user?.role}  // ← ADD
+      />
     </>
   );
 };

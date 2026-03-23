@@ -22,6 +22,7 @@ class MenuController extends Controller
                             'id'             => $cat->id,
                             'name'           => $cat->name,
                             'type'           => $cat->type,
+                            'category_type'  => $cat->category_type,  // ✅ add this
                             'cup'            => $cat->cup,
                             'sub_categories' => $subCategories->map(fn($s) => [
                                 'id'   => $s->id,

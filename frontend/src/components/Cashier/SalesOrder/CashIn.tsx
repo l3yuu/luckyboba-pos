@@ -9,7 +9,6 @@ import { useToast } from '../../../context/ToastContext';
 import { Monitor, Printer, Wallet, CheckCircle2, AlertTriangle, RefreshCw } from 'lucide-react';
 
 const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
-  const { showToast } = useToast();
   const phCurrency = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
 
   const [amount, setAmount] = useState('');
@@ -20,6 +19,7 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
   const [prepLabel, setPrepLabel] = useState('');
   const [isEodLocked, setIsEodLocked] = useState(false);
   const [receiptData, setReceiptData] = useState<ReceiptData>({ date: '', time: '' });
+  const { showToast, dismissToast } = useToast();
 
   const cashierName = useMemo(() => {
     return localStorage.getItem('lucky_boba_user_name') || 'Staff';
@@ -140,22 +140,25 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
     }
   };
 
+  // Replace handlePrint
   const handlePrint = useCallback(() => {
     if (!isFlipped) return;
-    window.print();
-  }, [isFlipped]);
+    dismissToast();
+    setTimeout(() => window.print(), 300);
+  }, [isFlipped, dismissToast]);
 
+  // Replace the ALT+P useEffect
   useEffect(() => {
     const handleGlobalKeyDown = (event: KeyboardEvent) => {
       if (isFlipped && event.altKey && (event.key === 'p' || event.key === 'P')) {
         event.preventDefault();
-        handlePrint();
+        dismissToast();
+        setTimeout(() => window.print(), 300);
       }
     };
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [isFlipped, handlePrint]); 
-
+  }, [isFlipped, dismissToast]);
   return (
     <>
       <style>{`
@@ -164,6 +167,13 @@ const CashIn: React.FC<CashInProps> = ({ onSuccess }) => {
           @page { size: 80mm auto; margin: 0; }
           html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
           #dashboard-main-container { display: none !important; }
+              /* ── Hide toast notifications ── */
+          [role="alert"],
+          [aria-live],
+          .toast,
+          .toaster,
+          [data-sonner-toaster],
+          [data-radix-toast-viewport] { display: none !important; }
           .printable-receipt { 
             display: block !important; position: absolute !important; left: 0 !important; top: 0 !important;
             width: 80mm !important; padding: 5mm !important; background: white !important; color: black !important; 

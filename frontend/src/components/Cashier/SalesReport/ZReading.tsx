@@ -146,7 +146,9 @@ const ZReading = () => {
         return;
       }
       if (type === 'z_reading') {
-        const zParams = dateMode === 'range' ? { from: fromDate, to: toDate } : { date: selectedDate };
+        const zParams = dateMode === 'range' 
+        ? { from: fromDate, to: toDate } 
+        : { from: selectedDate, to: selectedDate };
         const [zRes, cashRes, qtyRes, voidRes] = await Promise.all([
           api.get('/reports/z-reading',       { params: zParams }),
           api.get('/cash-counts/summary',     { params: { date: dateMode === 'range' ? toDate : selectedDate } }),
@@ -162,8 +164,15 @@ const ZReading = () => {
         const cashDenominations = ALL_DENOMS.map(denom => ({ label: denom === 0.25 ? '0.25' : String(denom), qty: storedMap.get(denom) ?? 0, total: denom * (storedMap.get(denom) ?? 0) }));
         const totalCashCount = ccNested?.grand_total ?? (ccData.actual_amount as number) ?? 0;
         const expectedAmount = (ccData.expected_amount as number) ?? 0;
-        const shortOver = (ccData.short_over as number) ?? 0;
-        const merged = { ...zData, cash_denominations: cashDenominations, total_cash_count: totalCashCount, expected_amount: expectedAmount, over_short: shortOver, categories: (qtyRes.data as Record<string, unknown>).categories ?? [], all_addons_summary: (qtyRes.data as Record<string, unknown>).all_addons_summary ?? [], logs: (voidRes.data as Record<string, unknown>).logs ?? (Array.isArray(voidRes.data) ? voidRes.data : []) };
+        const merged = { 
+            ...zData, 
+            cash_denominations: cashDenominations, 
+            total_cash_count: totalCashCount, 
+            expected_amount: expectedAmount,
+            categories: (qtyRes.data as Record<string, unknown>).categories ?? [], 
+            all_addons_summary: (qtyRes.data as Record<string, unknown>).all_addons_summary ?? [], 
+            logs: (voidRes.data as Record<string, unknown>).logs ?? (Array.isArray(voidRes.data) ? voidRes.data : []) 
+          };
         setRawApiResponse(merged as Record<string, unknown>);
         setReportData({ ...merged as unknown as ZReadingReport, report_type: type });
         return;
@@ -369,8 +378,6 @@ const ZReading = () => {
   const renderZReading = () => {
     const gross = reportData?.gross_sales || 0;
     const netSales = reportData?.net_sales || gross;
-    const cashTotal = reportData?.cash_total || 0;
-    const nonCash = reportData?.non_cash_total || 0;
     const txCount = reportData?.transaction_count || 0;
     const scDiscount = reportData?.sc_discount || 0;
     const pwdDiscount = reportData?.pwd_discount || 0;
@@ -388,18 +395,43 @@ const ZReading = () => {
     const previousAccumulated = reportData?.previous_accumulated ?? 0;
     const salesForDay = reportData?.sales_for_the_day ?? gross;
     const PAYMENT_METHODS = ['food panda', 'grab', 'gcash', 'visa', 'mastercard', 'cash'];
-    const METHOD_ALIASES: Record<string, string> = { 'panda': 'food panda', 'foodpanda': 'food panda', 'food_panda': 'food panda', 'grabfood': 'grab', 'grab food': 'grab', 'master card': 'mastercard', 'master': 'mastercard', 'visa card': 'visa', 'e-wallet': 'gcash' };
+    const METHOD_ALIASES: Record<string, string> = {
+      'panda': 'food panda',
+      'foodpanda': 'food panda',
+      'food_panda': 'food panda',
+      'food panda': 'food panda',
+      'grabfood': 'grab',
+      'grab food': 'grab',
+      'grab': 'grab',
+      'master card': 'mastercard',
+      'master': 'mastercard',
+      'mastercard': 'mastercard',
+      'visa card': 'visa',
+      'visa': 'visa',
+      'e-wallet': 'gcash',
+      'ewallet': 'gcash',
+      'gcash': 'gcash',
+      'cash': 'cash',
+    };
     const paymentMap = new Map<string, number>();
-    reportData?.payment_breakdown?.forEach(p => { const raw = p.method.toLowerCase().trim(); const key = METHOD_ALIASES[raw] ?? raw; paymentMap.set(key, (paymentMap.get(key) ?? 0) + Number(p.amount)); });
-    const creditMethods = ['visa', 'mastercard'];
-    const debitMethods = ['gcash'];
-    const totalCredit = creditMethods.reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
-    const totalDebit = debitMethods.reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
-    const totalCard = totalCredit + totalDebit;
+      (reportData?.payment_breakdown ?? []).forEach(p => {
+        const raw = (p.method ?? '').toLowerCase().trim();
+        const key = METHOD_ALIASES[raw] ?? raw;
+        paymentMap.set(key, (paymentMap.get(key) ?? 0) + Number(p.amount ?? 0));
+      });
+    const creditMethods = ['visa', 'mastercard', 'food panda', 'grab', 'gcash'];
+    const debitMethods: string[] = [];
+    const totalCredit  = creditMethods.reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
+    const totalDebit   = debitMethods.reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
+    const totalCard    = totalCredit + totalDebit;
+
+    // Recalculate cash from paymentMap (only actual cash in drawer)
+    const actualCash = paymentMap.get('cash') || 0;
+    const actualNonCash = gross - actualCash;
     const cashDenominations = reportData?.cash_denominations ?? reportData?.cash_count?.denominations ?? [];
     const totalCashCount = reportData?.total_cash_count ?? reportData?.cash_count?.grand_total ?? 0;
-    const expectedEOD = cashTotal + cashIn - cashDrop;
-    const overShort = (reportData?.over_short !== undefined && reportData?.over_short !== null) ? reportData.over_short : (totalCashCount - expectedEOD);
+    const expectedEOD = actualCash + cashIn - cashDrop;
+    const overShort = reportData?.over_short ?? (totalCashCount - expectedEOD);
     const netTotal = reportData?.net_total ?? (gross - totalDisc);
     const isRange = dateMode === 'range';
     const now = new Date();
@@ -447,14 +479,25 @@ const ZReading = () => {
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">PAYMENTS RECEIVED</p>
         {PAYMENT_METHODS.map((method, i) => <Row key={i} label={method.toUpperCase()} value={phCurrency.format(paymentMap.get(method) || 0)} />)}
-        {reportData?.payment_breakdown?.filter(p => { const raw = p.method.toLowerCase().trim(); const normalized = METHOD_ALIASES[raw] ?? raw; return !PAYMENT_METHODS.includes(normalized); }).map((p, i) => { const raw = p.method.toLowerCase().trim(); const normalized = METHOD_ALIASES[raw] ?? raw; return <Row key={`extra-${i}`} label={normalized.toUpperCase()} value={phCurrency.format(p.amount)} />; })}
+        {reportData?.payment_breakdown
+        ?.filter(p => {
+          if (!p.method) return false;
+          const raw = p.method.toLowerCase().trim();
+          const normalized = METHOD_ALIASES[raw] ?? raw;
+          return !PAYMENT_METHODS.includes(normalized);
+        })
+        .map((p, i) => {
+          const raw = (p.method ?? '').toLowerCase().trim();
+          const normalized = METHOD_ALIASES[raw] ?? raw;
+          return <Row key={`extra-${i}`} label={normalized.toUpperCase()} value={phCurrency.format(p.amount ?? 0)} />;
+        })}
         <Divider />
         <Row label="TOTAL CREDIT" value={phCurrency.format(totalCredit)} />
         <Row label="TOTAL DEBIT" value={phCurrency.format(totalDebit)} />
         <Row label="TOTAL CARD" value={phCurrency.format(totalCard)} />
         <Divider />
-        <Row label="TOTAL CASH" value={phCurrency.format(cashTotal)} />
-        <Row label="TOTAL NON-CASH" value={phCurrency.format(nonCash)} />
+        <Row label="TOTAL CASH"     value={phCurrency.format(actualCash)} />
+        <Row label="TOTAL NON-CASH" value={phCurrency.format(actualNonCash)} />
         <Row label="TOTAL PAYMENTS" value={phCurrency.format(gross)} />
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
@@ -484,7 +527,7 @@ const ZReading = () => {
             html, body { width: 80mm !important; margin: 0 !important; padding: 0 !important; background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
             .printable-receipt-container, .printable-receipt-container * { visibility: visible !important; }
             .printable-receipt-container { position: absolute !important; left: 0 !important; top: 0 !important; width: 80mm !important; display: flex !important; justify-content: center !important; margin: 0 !important; padding: 0 !important; }
-            .receipt-area { width: 64mm !important; max-width: 64mm !important; margin: 0 !important; padding: 2mm 0 !important; box-sizing: border-box !important; background: white !important; color: #000 !important; font-family: Arial, Helvetica, sans-serif !important; font-size: 11px !important; line-height: 1.35 !important; box-shadow: none !important; border: none !important; border-radius: 0 !important; overflow: hidden !important; }
+            .receipt-area { width: 64mm !important; max-width: 64mm !important; margin: 0 !important; padding: 2mm 0 !important; box-sizing: border-box !important; background: white !important; color: #000 !important; font-family: Arial, Helvetica, sans-serif !important; font-size: 11px !important; line-height: 1.35 !important; box-shadow: none !important; border: none !important; border-radius: 0 !important; overflow: visible !important; }
             p, div, tr, td, th, span { page-break-inside: avoid !important; break-inside: avoid !important; }
             .flex-between { display: flex !important; justify-content: space-between !important; width: 100% !important; align-items: flex-end !important; }
             table { width: 100% !important; max-width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; font-size: 11px !important; }
