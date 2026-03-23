@@ -60,6 +60,7 @@ class SalesController extends Controller
             'discount_remarks'       => 'nullable|string',
             'vatable_sales'          => 'required|numeric',
             'vat_amount'             => 'required|numeric',
+            'vat_type'               => 'nullable|in:vat,non_vat',
             'customer_name'          => 'nullable|string',
             'cash_tendered' => 'nullable|numeric|min:0',
         ]);
@@ -102,6 +103,7 @@ class SalesController extends Controller
                 'discount_remarks' => $validated['discount_remarks'] ?? null,
                 'vatable_sales'    => $validated['vatable_sales'],
                 'vat_amount'       => $validated['vat_amount'],
+                'vat_type'         => $request->input('vat_type', 'vat'),
                 'customer_name'    => $validated['customer_name'] ?? null,
                 'is_synced'        => false,
                 'cash_tendered' => (float) $request->input('cash_tendered', 0),

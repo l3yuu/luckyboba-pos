@@ -933,6 +933,7 @@ interface ConfirmOrderModalProps {
   onEditCartItem: (i: number) => void;
   onConfirm: () => void;
   onClose: () => void;
+  vatType?: 'vat' | 'non_vat';
 }
 
 export const ConfirmOrderModal = ({
@@ -940,11 +941,12 @@ export const ConfirmOrderModal = ({
   vatableSales, vatAmount, change, totalDiscountDisplay,
   orderCharge, selectedDiscount, paymentMethod, cashTendered,
   referenceNumber, discountRemarks, discounts,
-  activeTab, submitting,
+  activeTab, submitting, vatType = 'vat',
   onTabChange, onPaymentMethodChange, onCashTenderedChange,
   onReferenceNumberChange, onDiscountChange, onDiscountRemarksChange,
   onEditCartItem, onConfirm, onClose,
 }: ConfirmOrderModalProps) => {
+  const isVat = vatType === 'vat'; 
 
   return (
     <div className="fixed inset-0 z-120 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -1003,8 +1005,16 @@ export const ConfirmOrderModal = ({
                     <span>₱ {cart.reduce((acc, i) => acc + getItemSurcharge(i), 0).toFixed(2)}</span>
                   </div>
                 )}
-                <div className="flex justify-between"><span>VATable Sales</span><span>₱ {vatableSales.toFixed(2)}</span></div>
-                <div className="flex justify-between"><span>VAT Amount</span><span>₱ {vatAmount.toFixed(2)}</span></div>
+                {isVat ? (
+                  <>
+                    <div className="flex justify-between"><span>VATable Sales</span><span>₱ {vatableSales.toFixed(2)}</span></div>
+                    <div className="flex justify-between"><span>VAT Amount (12%)</span><span>₱ {vatAmount.toFixed(2)}</span></div>
+                  </>
+                ) : (
+                  <div className="flex justify-between text-zinc-400 text-[10px]">
+                    <span>VAT Exempt</span><span>Non-VAT</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-red-500 font-black">
                   <span>Discount {selectedDiscount ? `(${selectedDiscount.name})` : ''}</span>
                   <span>- ₱ {totalDiscountDisplay.toFixed(2)}</span>

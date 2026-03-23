@@ -63,6 +63,9 @@ const SalesOrder = () => {
 
   const branchId   = user?.branch_id   ?? null;
   const branchName = user?.branch_name ?? localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch';
+  const [vatType] = useState<'vat' | 'non_vat'>(
+    () => (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat'
+  );
 
   const handleNavClick = (label: string) => {
     if (label !== 'Home') return;
@@ -242,8 +245,9 @@ const orderLevelDiscount = promoDiscount;
 
 // 5. Final Totals
 const amtDue = Math.max(0, grossSubtotal - itemDiscountTotal - promoDiscount);
-const vatableSales = amtDue / 1.12;
-const vatAmount = amtDue - vatableSales;
+const isVat = vatType === 'vat';
+const vatableSales = isVat ? amtDue / 1.12 : amtDue;
+const vatAmount    = isVat ? amtDue - vatableSales : 0;
 const totalDiscountDisplay = itemDiscountTotal + promoDiscount;
 const change = typeof cashTendered === 'number' ? Math.max(0, cashTendered - amtDue) : 0;
 const subtotal = grossSubtotal - itemDiscountTotal;
@@ -1290,6 +1294,7 @@ const handleSubmitOrder = async (nameOverride?: string) => {
             onEditCartItem={openCartItemEdit}
             onConfirm={handleConfirmOrder}
             onClose={() => setIsConfirmModalOpen(false)}
+            vatType={vatType}
           />
         )}
 
@@ -1378,7 +1383,7 @@ const handleSubmitOrder = async (nameOverride?: string) => {
       </div>
 
       {/* Print templates (off-screen, revealed by window.print()) */}
-      {printTarget === 'receipt' && <ReceiptPrint {...printProps} addOnsData={addOnsData} orderCharge={orderCharge} totalCount={totalCount} subtotal={subtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount}/>}
+      {printTarget === 'receipt' && <ReceiptPrint {...printProps} vatType={vatType} addOnsData={addOnsData} orderCharge={orderCharge} totalCount={totalCount} subtotal={subtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount}/>}
       {printTarget === 'kitchen'  && <KitchenPrint  {...printProps} />}
       {printTarget === 'stickers' && <StickerPrint  {...printProps} customerName={customerName} />}
     </>
