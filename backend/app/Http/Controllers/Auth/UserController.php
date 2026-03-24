@@ -20,31 +20,31 @@ class UserController extends Controller
      * Also includes active card info for the Flutter app.
      */
     private function transformUser(User $user, ?string $lastLoginAt = null, int $loginCount = 0): array
-{
-    $activeCard = DB::table('user_cards')
-        ->where('user_id', $user->id)
-        ->where('status', 'active')
-        ->first();
+    {
+        $activeCard = DB::table('user_cards')
+            ->where('user_id', $user->id)
+            ->where('status', 'active')
+            ->first();
 
-    return [
-        'id'                => $user->id,
-        'name'              => $user->name,
-        'email'             => $user->email,
-        'role'              => $user->role,
-        'status'            => $user->status,
-        'branch'            => $user->branch_name ?? null,
-        'branch_id'         => $user->branch_id,
-        'email_verified_at' => $user->email_verified_at,
-        'created_at'        => $user->created_at,
-        'updated_at'        => $user->updated_at,
-        'last_login_at'     => $lastLoginAt,
-        'login_count'       => $loginCount,
-        'has_active_card'   => $activeCard !== null,
-        'card_id'           => $activeCard?->card_id ?? null,
-        'card_expires_at'   => $activeCard?->expires_at ?? null,
-        'has_pin'           => ! is_null($user->manager_pin), // ← added
-    ];
-}
+        return [
+            'id'                => $user->id,
+            'name'              => $user->name,
+            'email'             => $user->email,
+            'role'              => $user->role,
+            'status'            => $user->status,
+            'branch'            => $user->branch_name ?? null,
+            'branch_id'         => $user->branch_id,
+            'email_verified_at' => $user->email_verified_at,
+            'created_at'        => $user->created_at,
+            'updated_at'        => $user->updated_at,
+            'last_login_at'     => $lastLoginAt,
+            'login_count'       => $loginCount,
+            'has_active_card'   => $activeCard !== null,
+            'card_id'           => $activeCard?->card_id ?? null,
+            'card_expires_at'   => $activeCard?->expires_at ?? null,
+            'has_pin'           => ! is_null($user->manager_pin),
+        ];
+    }
 
     /**
      * GET /api/users
@@ -55,9 +55,16 @@ class UserController extends Controller
             $authUser = $request->user();
             $query    = User::orderBy('created_at', 'desc');
 
+            // Branch managers only see cashiers in their branch
             if ($authUser->role === 'branch_manager') {
                 $query->where('role', 'cashier')
-                    ->where('branch_name', $authUser->branch_name);
+                      ->where('branch_name', $authUser->branch_name);
+            }
+
+            // IT Admins only see non-superadmin users
+            // (they can manage users but cannot touch superadmin accounts)
+            if ($authUser->role === 'it_admin') {
+                $query->where('role', '!=', 'superadmin');
             }
 
             if ($request->query('status')) $query->where('status', $request->query('status'));
@@ -73,7 +80,6 @@ class UserController extends Controller
 
             $users = $query->get();
 
-            // ── Pull login audit data for all fetched users in one query ──────
             $userIds = $users->pluck('id');
 
             $loginStats = DB::table('audit_logs')
@@ -100,14 +106,14 @@ class UserController extends Controller
             return response()->json([
                 'success' => true,
                 'data'    => $transformed,
-                'message' => 'Users retrieved successfully'
+                'message' => 'Users retrieved successfully',
             ], 200);
 
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve users',
-                'error'   => $e->getMessage()
+                'error'   => $e->getMessage(),
             ], 500);
         }
     }
@@ -130,17 +136,25 @@ class UserController extends Controller
                 }
             }
 
+            // IT Admin cannot view superadmin accounts
+            if ($authUser->role === 'it_admin' && $user->role === 'superadmin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access denied. IT Admin cannot view superadmin accounts.',
+                ], 403);
+            }
+
             return response()->json([
                 'success' => true,
                 'data'    => $this->transformUser($user),
-                'message' => 'User retrieved successfully'
+                'message' => 'User retrieved successfully',
             ], 200);
 
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'User not found',
-                'error'   => $e->getMessage()
+                'error'   => $e->getMessage(),
             ], 404);
         }
     }
@@ -156,21 +170,30 @@ class UserController extends Controller
             $request->merge(['role' => 'cashier']);
         }
 
+        // IT Admin cannot create superadmin accounts
+        if ($authUser->role === 'it_admin' && $request->role === 'superadmin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Access denied. IT Admin cannot create superadmin accounts.',
+            ], 403);
+        }
+
         $validator = Validator::make($request->all(), [
-    'name'        => 'required|string|max:255',
-    'email'       => 'required|email|max:255|unique:users,email',
-    'password'    => 'required|string|min:6',
-    'role'        => 'required|in:superadmin,system_admin,branch_manager,team_leader,cashier,customer', // ← update
-    'branch'      => 'nullable|string|max:255',
-    'status'      => 'required|in:ACTIVE,INACTIVE',
-    'manager_pin' => 'nullable|string|min:4|max:20',
-]);
+            'name'        => 'required|string|max:255',
+            'email'       => 'required|email|max:255|unique:users,email',
+            'password'    => 'required|string|min:6',
+            // ← it_admin added to allowed roles
+            'role'        => 'required|in:superadmin,system_admin,branch_manager,team_leader,cashier,customer,it_admin',
+            'branch'      => 'nullable|string|max:255',
+            'status'      => 'required|in:ACTIVE,INACTIVE',
+            'manager_pin' => 'nullable|string|min:4|max:20',
+        ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors'  => $validator->errors()
+                'errors'  => $validator->errors(),
             ], 422);
         }
 
@@ -188,7 +211,7 @@ class UserController extends Controller
                     return response()->json([
                         'success' => false,
                         'message' => 'Branch not found',
-                        'error'   => "No branch found with the name: {$request->branch}"
+                        'error'   => "No branch found with the name: {$request->branch}",
                     ], 404);
                 }
 
@@ -213,14 +236,14 @@ class UserController extends Controller
             return response()->json([
                 'success' => true,
                 'data'    => $this->transformUser($user),
-                'message' => 'User created successfully'
+                'message' => 'User created successfully',
             ], 201);
 
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create user',
-                'error'   => $e->getMessage()
+                'error'   => $e->getMessage(),
             ], 500);
         }
     }
@@ -243,21 +266,30 @@ class UserController extends Controller
             $request->merge(['role' => 'cashier']);
         }
 
+        // IT Admin cannot edit superadmin accounts
+        if ($authUser->role === 'it_admin' && $target->role === 'superadmin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Access denied. IT Admin cannot edit superadmin accounts.',
+            ], 403);
+        }
+
         $validator = Validator::make($request->all(), [
-    'name'        => 'sometimes|required|string|max:255',
-    'email'       => 'sometimes|required|email|max:255|unique:users,email,' . $id,
-    'password'    => 'nullable|string|min:6',
-    'role'        => 'sometimes|required|in:superadmin,system_admin,branch_manager,team_leader,cashier,customer', // ← update
-    'status'      => 'sometimes|required|in:ACTIVE,INACTIVE',
-    'branch'      => 'nullable|string|max:255',
-    'manager_pin' => 'nullable|string|min:4|max:20',
-]);
+            'name'        => 'sometimes|required|string|max:255',
+            'email'       => 'sometimes|required|email|max:255|unique:users,email,' . $id,
+            'password'    => 'nullable|string|min:6',
+            // ← it_admin added to allowed roles
+            'role'        => 'sometimes|required|in:superadmin,system_admin,branch_manager,team_leader,cashier,customer,it_admin',
+            'status'      => 'sometimes|required|in:ACTIVE,INACTIVE',
+            'branch'      => 'nullable|string|max:255',
+            'manager_pin' => 'nullable|string|min:4|max:20',
+        ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors'  => $validator->errors()
+                'errors'  => $validator->errors(),
             ], 422);
         }
 
@@ -285,7 +317,7 @@ class UserController extends Controller
                         return response()->json([
                             'success' => false,
                             'message' => 'Branch not found',
-                            'error'   => "No branch found with the name: {$request->branch}"
+                            'error'   => "No branch found with the name: {$request->branch}",
                         ], 404);
                     }
 
@@ -302,14 +334,14 @@ class UserController extends Controller
             return response()->json([
                 'success' => true,
                 'data'    => $this->transformUser($target->fresh()),
-                'message' => 'User updated successfully'
+                'message' => 'User updated successfully',
             ], 200);
 
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update user',
-                'error'   => $e->getMessage()
+                'error'   => $e->getMessage(),
             ], 500);
         }
     }
@@ -330,6 +362,14 @@ class UserController extends Controller
                         'message' => 'Access denied. Branch managers can only delete cashiers in their branch.',
                     ], 403);
                 }
+            }
+
+            // IT Admin cannot delete superadmin accounts
+            if ($authUser->role === 'it_admin' && $user->role === 'superadmin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access denied. IT Admin cannot delete superadmin accounts.',
+                ], 403);
             }
 
             if ($user->role === 'superadmin') {
@@ -370,14 +410,14 @@ class UserController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'User deleted successfully'
+                'message' => 'User deleted successfully',
             ], 200);
 
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete user',
-                'error'   => $e->getMessage()
+                'error'   => $e->getMessage(),
             ], 500);
         }
     }
@@ -400,6 +440,14 @@ class UserController extends Controller
                 }
             }
 
+            // IT Admin cannot toggle superadmin status
+            if ($authUser->role === 'it_admin' && $user->role === 'superadmin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access denied. IT Admin cannot change status of superadmin accounts.',
+                ], 403);
+            }
+
             $user->status = $user->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
             $user->save();
 
@@ -408,13 +456,13 @@ class UserController extends Controller
             return response()->json([
                 'success' => true,
                 'data'    => $this->transformUser($user),
-                'message' => 'User status updated successfully'
+                'message' => 'User status updated successfully',
             ], 200);
 
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -433,22 +481,24 @@ class UserController extends Controller
                     'superadmin'     => User::where('role', 'superadmin')->count(),
                     'system_admin'   => User::where('role', 'system_admin')->count(),
                     'branch_manager' => User::where('role', 'branch_manager')->count(),
+                    'team_leader'    => User::where('role', 'team_leader')->count(),
                     'cashier'        => User::where('role', 'cashier')->count(),
                     'customer'       => User::where('role', 'customer')->count(),
+                    'it_admin'       => User::where('role', 'it_admin')->count(), // ← added
                 ],
             ];
 
             return response()->json([
                 'success' => true,
                 'data'    => $stats,
-                'message' => 'User statistics retrieved successfully'
+                'message' => 'User statistics retrieved successfully',
             ], 200);
 
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve statistics',
-                'error'   => $e->getMessage()
+                'error'   => $e->getMessage(),
             ], 500);
         }
     }
@@ -484,10 +534,11 @@ class UserController extends Controller
     {
         $request->validate(['pin' => 'required|string']);
 
-        $admins = User::whereIn('role', ['superadmin', 'system_admin', 'branch_manager', 'team_leader'])
-    ->where('status', 'ACTIVE')
-    ->whereNotNull('manager_pin')
-    ->get();
+        $admins = User::whereIn('role', ['superadmin', 'system_admin', 'branch_manager', 'team_leader', 'it_admin']) // ← it_admin added
+            ->where('status', 'ACTIVE')
+            ->whereNotNull('manager_pin')
+            ->get();
+
         foreach ($admins as $admin) {
             if (Hash::check($request->pin, $admin->manager_pin)) {
                 return response()->json(['success' => true, 'message' => 'Authorized']);

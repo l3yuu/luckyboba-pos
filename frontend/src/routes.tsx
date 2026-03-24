@@ -1,28 +1,30 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import SalesOrder from './pages/SalesOrder';
-import SuperAdminDashboard from './pages/SuperAdminDashboard';
-import BranchManagerDashboard from './pages/BranchManagerDashboard';
-import TeamLeaderDashboard from './pages/TeamLeaderDashboard'; // ← add
-import Calendar from './pages/Calendar';
-import { ProtectedRoute } from './components/ProtectedRoute';
-import { PublicRoute } from './components/PublicRoute';
-import { ErrorFallback } from './components/ErrorFallback';
+import Login                   from './pages/Login';
+import Dashboard               from './pages/Dashboard';
+import SalesOrder              from './pages/SalesOrder';
+import SuperAdminDashboard     from './pages/SuperAdminDashboard';
+import BranchManagerDashboard  from './pages/BranchManagerDashboard';
+import TeamLeaderDashboard     from './pages/TeamLeaderDashboard';
+import ITDashboard             from './pages/ITDashboard';       // ← added
+import Calendar                from './pages/Calendar';
+import { ProtectedRoute }      from './components/ProtectedRoute';
+import { PublicRoute }         from './components/PublicRoute';
+import { ErrorFallback }       from './components/ErrorFallback';
 
 export const router = createBrowserRouter([
+
   // ── Public ──────────────────────────────────────────────────────────────
   {
-    element: <PublicRoute />,
+    element:      <PublicRoute />,
     errorElement: <ErrorFallback />,
     children: [
       { path: '/login', element: <Login /> },
-    ]
+    ],
   },
 
   // ── Super Admin only ─────────────────────────────────────────────────────
   {
-    element: <ProtectedRoute allowedRoles={['super_admin', 'superadmin']} />,
+    element:      <ProtectedRoute allowedRoles={['super_admin', 'superadmin']} />,
     errorElement: <ErrorFallback />,
     children: [
       {
@@ -33,9 +35,9 @@ export const router = createBrowserRouter([
     ],
   },
 
-  // ── Admin only ───────────────────────────────────────────────────────────
+  // ── System Admin (same dashboard as Super Admin) ──────────────────────────
   {
-    element: <ProtectedRoute allowedRoles={['admin', 'system_admin']} />,
+    element:      <ProtectedRoute allowedRoles={['admin', 'system_admin']} />,
     errorElement: <ErrorFallback />,
     children: [
       {
@@ -49,7 +51,7 @@ export const router = createBrowserRouter([
 
   // ── Branch Manager only ──────────────────────────────────────────────────
   {
-    element: <ProtectedRoute allowedRoles={['manager', 'branch_manager']} />,
+    element:      <ProtectedRoute allowedRoles={['manager', 'branch_manager']} />,
     errorElement: <ErrorFallback />,
     children: [
       {
@@ -63,7 +65,7 @@ export const router = createBrowserRouter([
 
   // ── Team Leader only ─────────────────────────────────────────────────────
   {
-    element: <ProtectedRoute allowedRoles={['team_leader']} />,
+    element:      <ProtectedRoute allowedRoles={['team_leader']} />,
     errorElement: <ErrorFallback />,
     children: [
       {
@@ -74,9 +76,24 @@ export const router = createBrowserRouter([
     ],
   },
 
+  // ── IT Admin only ────────────────────────────────────────────────────────
+  // Access: overview, branches (read-only), users, menu management, audit, settings
+  // Blocked: sales reports, analytics, inventory, expenses, promotions
+  {
+    element:      <ProtectedRoute allowedRoles={['it_admin']} />,
+    errorElement: <ErrorFallback />,
+    children: [
+      {
+        children: [
+          { path: '/it-admin', element: <ITDashboard /> },
+        ],
+      },
+    ],
+  },
+
   // ── Cashier only ─────────────────────────────────────────────────────────
   {
-    element: <ProtectedRoute allowedRoles={['cashier']} />,
+    element:      <ProtectedRoute allowedRoles={['cashier']} />,
     errorElement: <ErrorFallback />,
     children: [
       {
@@ -90,7 +107,7 @@ export const router = createBrowserRouter([
 
   // ── POS — accessible to cashier, branch_manager, superadmin ──────────────
   {
-    element: <ProtectedRoute allowedRoles={['cashier', 'branch_manager', 'superadmin']} />,
+    element:      <ProtectedRoute allowedRoles={['cashier', 'branch_manager', 'superadmin']} />,
     errorElement: <ErrorFallback />,
     children: [
       {
