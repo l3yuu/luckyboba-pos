@@ -10,7 +10,8 @@ import {
   Printer, 
   Database, 
   ChevronDown,
-  Activity} from 'lucide-react';
+  Activity
+} from 'lucide-react';
 
 // ============================================================
 // TYPE DEFINITIONS
@@ -92,16 +93,17 @@ const ItemsReport = () => {
       setData(response.data);
     } catch (error) {
       console.error('Error fetching fresh report:', error);
+      _setError('Failed to fetch report data. Please try again.');
     } finally {
       setLoading(false);
     }
   }, [fromDate, toDate, reportType, getCacheKey]);
 
+  // ✅ FIX: Now properly tracks fetchReport without causing an infinite loop
   useEffect(() => {
     setData(null);
-    // Always fetch fresh — don't trust cache for amounts that can change
     fetchReport();
-  }, [fromDate, toDate, reportType]); // removed getCacheKey and fetchReport from deps to avoid loop
+  }, [fetchReport]);
 
   const generateExcel = useCallback(() => {
     if (!data || data.items.length === 0) {
