@@ -16,7 +16,7 @@ interface ApiError {
 
 export function useDeviceCheck(enabled: boolean = true) {
   const [status,    setStatus]    = useState<DeviceStatus>(
-    enabled ? 'checking' : 'registered'  // skip check if not enabled
+    enabled ? 'checking' : 'registered'
   );
   const [posNumber, setPosNumber] = useState('');
   const [branchId,  setBranchId]  = useState<number | null>(null);
@@ -27,13 +27,18 @@ export function useDeviceCheck(enabled: boolean = true) {
   const hasFetched = useRef(false);
 
   useEffect(() => {
-    // Skip if not a cashier or already fetched
     if (!enabled || hasFetched.current) return;
     hasFetched.current = true;
 
     void (async () => {
       try {
-        const res = await api.post('/device/check', { device_name: deviceId });
+        // ── Pull user id from localStorage for cashier pairing check ─────────
+        const storedUserId = localStorage.getItem('lucky_boba_user_id');
+
+        const res = await api.post('/devices/check', {
+          device_name: deviceId,
+          user_id: storedUserId ? parseInt(storedUserId) : undefined,
+        });
 
         if (res.data.success) {
           sessionStorage.setItem('pos_number', res.data.pos_number);

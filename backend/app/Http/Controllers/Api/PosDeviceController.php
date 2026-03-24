@@ -11,44 +11,71 @@ use Illuminate\Http\Request;
 class PosDeviceController extends Controller
 {
     // ── PUBLIC ────────────────────────────────────────────────────────────────
-    public function check(Request $request)
-    {
-        $request->validate([
-            'device_name' => 'required|string',
-        ]);
+public function check(Request $request)
+{
+    $request->validate([
+        'device_name' => 'required|string',
+        'user_id'     => 'nullable|exists:users,id',  // ← pass from frontend on login
+    ]);
 
-        $device = PosDevice::where('device_name', $request->device_name)
-            ->with(['branch', 'user'])
-            ->first();
+    $device = PosDevice::where('device_name', $request->device_name)
+        ->with(['branch', 'user'])
+        ->first();
 
-        if (! $device) {
-            return response()->json([
-                'success'    => false,
-                'registered' => false,
-                'message'    => 'Device not registered. Contact your administrator.',
-            ], 403);
-        }
-
-        if ($device->status === 'INACTIVE') {
-            return response()->json([
-                'success'    => false,
-                'registered' => false,
-                'message'    => 'This device has been deactivated. Contact your administrator.',
-            ], 403);
-        }
-
-        $device->update(['last_seen' => now()]);
-
+    if (! $device) {
         return response()->json([
-            'success'          => true,
-            'registered'       => true,
-            'pos_number'       => $device->pos_number,
-            'branch_id'        => $device->branch_id,
-            'branch'           => $device->branch,
-            'assigned_user_id' => $device->user_id,   // ← frontend can use this
-        ]);
+            'success'    => false,
+            'registered' => false,
+            'message'    => 'Device not registered. Contact your administrator.',
+        ], 403);
     }
 
+    if ($device->status === 'INACTIVE') {
+        return response()->json([
+            'success'    => false,
+            'registered' => false,
+            'message'    => 'This device has been deactivated. Contact your administrator.',
+        ], 403);
+    }
+
+    // ── Cashier-device pairing enforcement ───────────────────────────────
+    // Only applies when a user_id is provided and the logging-in user is a cashier.
+    if ($request->filled('user_id')) {
+        $user = User::find($request->user_id);
+
+        if ($user && $user->role === 'cashier') {
+            // Device has an assigned cashier but it's not this one → block
+            if ($device->user_id !== null && $device->user_id !== $user->id) {
+                return response()->json([
+                    'success'    => false,
+                    'registered' => false,
+                    'message'    => 'This device is assigned to a different cashier account. Access denied.',
+                ], 403);
+            }
+
+            // Device has no assigned cashier → block (must be assigned by admin first)
+            if ($device->user_id === null) {
+                return response()->json([
+                    'success'    => false,
+                    'registered' => false,
+                    'message'    => 'No cashier is assigned to this device. Contact your administrator.',
+                ], 403);
+            }
+        }
+    }
+    // ─────────────────────────────────────────────────────────────────────
+
+    $device->update(['last_seen' => now()]);
+
+    return response()->json([
+        'success'          => true,
+        'registered'       => true,
+        'pos_number'       => $device->pos_number,
+        'branch_id'        => $device->branch_id,
+        'branch'           => $device->branch,
+        'assigned_user_id' => $device->user_id,
+    ]);
+}
     // ── SUPERADMIN — list all devices ─────────────────────────────────────────
     public function index()
     {

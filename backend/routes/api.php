@@ -24,7 +24,7 @@ Route::post('/login',  [AuthController::class, 'login'])->middleware('throttle:5
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 
 // ── DEVICE CHECK — public, no auth, called before login ──────────────────────
-Route::post('/device/check', [PosDeviceController::class, 'check']);
+Route::post('/devices/check', [PosDeviceController::class, 'check']);
 // ─────────────────────────────────────────────────────────────────────────────
 
 Route::post('/purchase-card',             [CardPurchaseController::class, 'purchase']);
