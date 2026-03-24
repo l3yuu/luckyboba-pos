@@ -8,7 +8,6 @@ import OfflineQueueBanner  from '../components/Cashier/SalesOrderComponents/Offl
 import {
   type MenuItem, type Category, type CartItem,
   type Bundle, type BundleComponentCustomization,
-  BUNDLE_CATEGORIES,
 } from '../types/index';
 import { useToast }  from '../hooks/useToast';
 import { useAuth }   from '../hooks/useAuth';
@@ -16,7 +15,7 @@ import api           from '../services/api';
 
 // ── Component imports ─────────────────────────────────────────────────────────
 import {
-  generateORNumber, generateQueueNumber, generateTerminalNumber, // ← add generateTerminalNumber
+  generateORNumber, generateQueueNumber, generateTerminalNumber,
   getItemSurcharge, DrinkIcon,
 } from '../components/Cashier/SalesOrderComponents/shared';
 
@@ -27,7 +26,7 @@ import {
   CartItemEditModal, ItemSelectionModal,
   BundleModal, ComboDrinkModal,
   ConfirmOrderModal, CustomerNameModal, SuccessModal,
-  AddOnModalShell,
+  AddOnModalShell, MixAndMatchDrinkModal,
 } from '../components/Cashier/SalesOrderComponents/modals';
 
 import { ReceiptPrint, KitchenPrint, StickerPrint }
@@ -64,6 +63,9 @@ const SalesOrder = () => {
 
   const branchId   = user?.branch_id   ?? null;
   const branchName = user?.branch_name ?? localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch';
+  const [vatType] = useState<'vat' | 'non_vat'>(
+    () => (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat'
+  );
 
   const handleNavClick = (label: string) => {
     if (label !== 'Home') return;
@@ -105,15 +107,16 @@ const SalesOrder = () => {
   const [isAddOnModalOpen, setIsAddOnModalOpen] = useState(false);
   const [customerName,     setCustomerName]     = useState('');
   const [isCustomerNameModalOpen, setIsCustomerNameModalOpen] = useState(false);
+
   // Add-ons data
   const [addOnsData, setAddOnsData] = useState<{ 
-  id: number; 
-  name: string; 
-  price: number; 
-  grab_price?: number;
-  panda_price?: number;
-  category?: string 
-}[]>(() => {
+    id: number; 
+    name: string; 
+    price: number; 
+    grab_price?: number;
+    panda_price?: number;
+    category?: string 
+  }[]>(() => {
     try { const c = localStorage.getItem('pos_addons_cache'); return c ? JSON.parse(c) : []; }
     catch { return []; }
   });
@@ -150,6 +153,16 @@ const SalesOrder = () => {
   const [comboDrinkAddOnModalOpen, setComboDrinkAddOnModalOpen] = useState(false);
   const [pendingComboCart,         setPendingComboCart]         = useState<CartItem | null>(null);
 
+  // Mix & Match state
+  const [isMixMatchModalOpen,    setIsMixMatchModalOpen]    = useState(false);
+  const [pendingMixMatchCart,    setPendingMixMatchCart]    = useState<CartItem | null>(null);
+  const [mixMatchDrinkItems,     setMixMatchDrinkItems]     = useState<MenuItem[]>([]);
+  const [selectedMixMatchDrink,  setSelectedMixMatchDrink]  = useState<MenuItem | null>(null);
+  const [mixMatchDrinkSugar,     setMixMatchDrinkSugar]     = useState('');
+  const [mixMatchDrinkOptions,   setMixMatchDrinkOptions]   = useState<string[]>([]);
+  const [mixMatchDrinkAddOns,    setMixMatchDrinkAddOns]    = useState<string[]>([]);
+  const [mixMatchDrinkAddOnOpen, setMixMatchDrinkAddOnOpen] = useState(false);
+
   // Confirm / payment
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [submitting,         setSubmitting]         = useState(false);
@@ -160,6 +173,10 @@ const SalesOrder = () => {
 
   // Pax / discounts
   const [discountRemarks,  setDiscountRemarks]  = useState('');
+  const [paxSenior, setPaxSenior] = useState<number>(0);
+  const [paxPwd,    setPaxPwd]    = useState<number>(0);
+  const [seniorId,  setSeniorId]  = useState('');
+  const [pwdId,     setPwdId]     = useState('');
   const [discounts, setDiscounts] = useState<Discount[]>(() => {
     try {
       const c = localStorage.getItem('pos_discounts_cache');
@@ -175,10 +192,15 @@ const SalesOrder = () => {
         });
     } catch { return []; }
   });
+
+  // ── Single discount (Promo tab) ──────────────────────────────────────────
   const [selectedDiscount, setSelectedDiscount] = useState<Discount | null>(null);
 
+  // ── Multi-select discounts (PAX tab — Senior + PWD can both be selected) ──
+  const [selectedDiscounts, setSelectedDiscounts] = useState<Discount[]>([]);
+
   // OR / Queue
-  const [orNumber, setOrNumber] = useState(generateORNumber(1));
+  const [orNumber,     setOrNumber]     = useState(generateORNumber(1));
   const [queueNumber,  setQueueNumber]  = useState(generateQueueNumber(1));
 
   // Success / print
@@ -190,63 +212,102 @@ const SalesOrder = () => {
 
   // ── Derived values ──────────────────────────────────────────────────────────
 
-  const isDrink              = selectedCategory?.type === 'drink';
-  const isWings              = selectedCategory?.name === 'CHICKEN WINGS';
-  const isOz                 = selectedCategory?.name === 'HOT DRINKS' || selectedCategory?.name === 'HOT COFFEE';
-  const isCombo =
-  selectedCategory?.name?.toUpperCase() === 'COMBO MEALS' ||
-  selectedCategory?.name?.toUpperCase() === 'PIZZA PEDRICOS COMBO';
-  const isWaffleCategory     = selectedCategory?.name?.toLowerCase().includes('waffle') ?? false;
+  const isDrink          = selectedCategory?.type === 'drink' || selectedCategory?.category_type === 'bundle';
+  const isWings          = selectedCategory?.category_type === 'wings';
+  const isOz             = selectedCategory?.name === 'HOT DRINKS' || selectedCategory?.name === 'HOT COFFEE';
+  const isCombo          = selectedCategory?.category_type === 'combo';
+  const isWaffleCategory = selectedCategory?.category_type === 'waffle';
   const categoryHasOnlyOneSize = (selectedCategory?.sub_categories?.length ?? 0) <= 1;
 
   const filteredAddOns = addOnsData.filter(a =>
     isWaffleCategory ? a.category === 'waffle' : a.category !== 'waffle'
   );
 
-// 1. Basic counts
-const totalCount = cart.reduce((acc, item) => acc + item.qty, 0);
+  // 1. Basic counts
+  const totalCount = cart.reduce((acc, item) => acc + item.qty, 0);
 
-// 2. Gross Calculation (Total original price)
-const grossSubtotal = cart.reduce((acc, item) => 
-  acc + item.finalPrice + getItemSurcharge(item), 0
-);
+  // 2. Gross Calculation
+  const grossSubtotal = cart.reduce((acc, item) =>
+    acc + item.finalPrice + getItemSurcharge(item), 0
+  );
 
-// 3. Item-Level Discounts (The cuts made in the Edit Modal)
-const itemDiscountTotal = cart.reduce((acc, item) => {
-  const baseTotal = item.finalPrice; // already includes add-on cost
-  const discountedTotal = item.finalPrice;
-  return acc + Math.max(0, baseTotal - discountedTotal);
-}, 0);
+  // 3. Item-Level Discounts
+  const itemDiscountTotal = cart.reduce((acc, item) => {
+    const baseTotal      = item.finalPrice;
+    const discountedTotal = item.finalPrice;
+    return acc + Math.max(0, baseTotal - discountedTotal);
+  }, 0);
 
-// 4. Promo Eligibility (Vouchers)
-const eligibleForPromo = cart
-  .filter(item => !item.discountId)
-  .reduce((acc, item) => acc + (Number(item.price) * item.qty) + getItemSurcharge(item), 0);
+  // 4. Promo Eligibility (Vouchers — Promo tab only)
+  const eligibleForPromo = cart
+    .filter(item => !item.discountId)
+    .reduce((acc, item) => acc + (Number(item.price) * item.qty) + getItemSurcharge(item), 0);
 
-const promoDiscount = selectedDiscount
-  ? selectedDiscount.type.includes('Percent')
-    ? eligibleForPromo * (Number(selectedDiscount.amount) / 100)
-    : Number(selectedDiscount.amount)
-  : 0;
+  // ── PAX-based multi-discount calculation ────────────────────────────────────
+  // Each selected pax discount (Senior / PWD) applies independently based on its pax count.
+  // Senior discount → applies to paxSenior number of items (highest priced first).
+  // PWD discount    → applies to paxPwd    number of items (continuing from where Senior left off).
 
-// Set these to 0 as they are now absorbed into itemDiscountTotal
-const orderLevelDiscount = promoDiscount;
+  const totalPaxDiscount = selectedDiscounts.reduce((total, d) => {
+    const isSenior = d.name.toUpperCase().includes('SENIOR');
+    const isPwd    = d.name.toUpperCase().includes('PWD') || d.name.toUpperCase().includes('DIPLOMAT');
+    const pax      = isSenior ? (paxSenior || 0) : isPwd ? (paxPwd || 0) : 0;
 
-// 5. Final Totals
-const amtDue = Math.max(0, grossSubtotal - itemDiscountTotal - promoDiscount);
-const vatableSales = amtDue / 1.12;
-const vatAmount = amtDue - vatableSales;
-const totalDiscountDisplay = itemDiscountTotal + promoDiscount;
-const change = typeof cashTendered === 'number' ? Math.max(0, cashTendered - amtDue) : 0;
-const subtotal = grossSubtotal - itemDiscountTotal;
+    if (pax === 0) return total;
 
-// 8. Sticker Logic (Unchanged)
-const hasStickers = cart.some(item =>
-  item.sugarLevel !== undefined ||
-  item.size === 'M' || item.size === 'L' ||
-  (item.addOns?.some(a => a.toLowerCase().includes('waffle combo')) ?? false) ||
-  (item.isBundle && (item.bundleComponents?.length ?? 0) > 0)
-);
+    // Flatten all cart units sorted by price descending
+    const allUnits = cart
+      .flatMap(item =>
+        Array(item.qty).fill(Number(item.price) + getItemSurcharge(item) / item.qty)
+      )
+      .sort((a, b) => b - a);
+
+    // How many units are already consumed by previously processed discounts
+    const alreadyUsed = selectedDiscounts
+      .slice(0, selectedDiscounts.indexOf(d))
+      .reduce((used, prev) => {
+        const prevIsSenior = prev.name.toUpperCase().includes('SENIOR');
+        const prevIsPwd    = prev.name.toUpperCase().includes('PWD') || prev.name.toUpperCase().includes('DIPLOMAT');
+        return used + (prevIsSenior ? (paxSenior || 0) : prevIsPwd ? (paxPwd || 0) : 0);
+      }, 0);
+
+    const discountedUnits = allUnits.slice(alreadyUsed, alreadyUsed + pax);
+    const base = discountedUnits.reduce((sum, price) => sum + price, 0);
+
+    const discountAmt = d.type.includes('Percent')
+      ? base * (Number(d.amount) / 100)
+      : Number(d.amount) * pax;
+
+    return total + discountAmt;
+  }, 0);
+
+  // ── Single promo discount (Promo tab) ───────────────────────────────────────
+  const promoDiscount = selectedDiscount
+    ? selectedDiscount.type.includes('Percent')
+      ? eligibleForPromo * (Number(selectedDiscount.amount) / 100)
+      : Number(selectedDiscount.amount)
+    : 0;
+
+  // Total discount = item-level + pax discounts + promo discount
+  const orderLevelDiscount = totalPaxDiscount + promoDiscount;
+
+  // 5. Final Totals
+  const amtDue        = Math.max(0, grossSubtotal - itemDiscountTotal - totalPaxDiscount - promoDiscount);
+  const isVat         = vatType === 'vat';
+  const vatableSales  = isVat ? amtDue / 1.12 : amtDue;
+  const vatAmount     = isVat ? amtDue - vatableSales : 0;
+  const totalDiscountDisplay = itemDiscountTotal + totalPaxDiscount + promoDiscount;
+  const change        = typeof cashTendered === 'number' ? Math.max(0, cashTendered - amtDue) : 0;
+  const subtotal      = grossSubtotal - itemDiscountTotal;
+
+  // 6. Sticker Logic
+  const hasStickers = cart.some(item =>
+    item.sugarLevel !== undefined ||
+    item.size === 'M' || item.size === 'L' ||
+    (item.addOns?.some(a => a.toLowerCase().includes('waffle combo')) ?? false) ||
+    (item.isBundle && (item.bundleComponents?.length ?? 0) > 0) ||
+    (item.remarks?.startsWith('[Drink:') ?? false)
+  );
 
   const formattedDate = currentDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
   const formattedTime = currentDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -261,7 +322,6 @@ const hasStickers = cart.some(item =>
 
   // ── Effects ─────────────────────────────────────────────────────────────────
 
-  // Boot: check cash-in, fetch add-ons + bundles
   useEffect(() => {
     const boot = async () => {
       try {
@@ -305,8 +365,6 @@ const hasStickers = cart.some(item =>
     return () => window.removeEventListener('cash-in-completed', onCashIn);
   }, []);
 
-
-  // Init: sync OR sequence, cashier name, clock
   useEffect(() => {
     api.get('/user').then(({ data: u }) => {
       const name = u?.name || u?.username || u?.full_name || u?.display_name;
@@ -318,36 +376,34 @@ const hasStickers = cart.some(item =>
   }, []);
 
   // ── Sequence helpers ────────────────────────────────────────────────────────
-const terminalNumber = generateTerminalNumber(branchId);
 
-// Update syncNextSequence — remove branchId from generateORNumber:
-const syncNextSequence = async () => {
-  try {
-    const { data }  = await api.get('/receipts/next-sequence');
-    const serverSeq = parseInt(data.next_sequence, 10);
+  const terminalNumber = generateTerminalNumber(branchId);
 
-    if (!isNaN(serverSeq)) {
-      localStorage.setItem('last_or_sequence', String(serverSeq));
-      localStorage.setItem('last_or_date', new Date().toDateString());
-      setOrNumber(generateORNumber(serverSeq));         // ← no branchId
-      setQueueNumber(generateQueueNumber(serverSeq));
+  const syncNextSequence = async () => {
+    try {
+      const { data }  = await api.get('/receipts/next-sequence');
+      const serverSeq = parseInt(data.next_sequence, 10);
+
+      if (!isNaN(serverSeq)) {
+        localStorage.setItem('last_or_sequence', String(serverSeq));
+        localStorage.setItem('last_or_date', new Date().toDateString());
+        setOrNumber(generateORNumber(serverSeq));
+        setQueueNumber(generateQueueNumber(serverSeq));
+      }
+    } catch {
+      const savedDate = localStorage.getItem('last_or_date');
+      const today     = new Date().toDateString();
+      const isNewDay  = savedDate !== today;
+      const fallback  = isNewDay
+        ? 1
+        : parseInt(localStorage.getItem('last_or_sequence') || '0') + 1;
+
+      localStorage.setItem('last_or_sequence', String(fallback));
+      localStorage.setItem('last_or_date', today);
+      setOrNumber(generateORNumber(fallback));
+      setQueueNumber(generateQueueNumber(fallback));
     }
-  } catch {
-    const savedDate = localStorage.getItem('last_or_date');
-    const today     = new Date().toDateString();
-    const isNewDay  = savedDate !== today;
-    const fallback  = isNewDay
-      ? 1
-      : parseInt(localStorage.getItem('last_or_sequence') || '0') + 1;
-
-    localStorage.setItem('last_or_sequence', String(fallback));
-    localStorage.setItem('last_or_date', today);
-    setOrNumber(generateORNumber(fallback));
-    setQueueNumber(generateQueueNumber(fallback));
-  }
-};
-
-  // ── Pax handlers ────────────────────────────────────────────────────────────
+  };
 
   // ── Category / item navigation ──────────────────────────────────────────────
 
@@ -355,12 +411,14 @@ const syncNextSequence = async () => {
     setSelectedCategory(cat);
     setCategorySize(null);
 
-    const isDrinkCat = cat.type === 'drink';
-    const isWingsCat = cat.name === 'CHICKEN WINGS';
+    const catType    = cat.category_type ?? cat.type;
+    const isDrinkCat = catType === 'drink' || catType === 'bundle';
+    const isWingsCat = catType === 'wings';
     const subCats    = cat.sub_categories ?? [];
 
     if (!isDrinkCat && !isWingsCat) { setCategorySize('all'); return; }
     if (isWingsCat) return;
+
     if (subCats.length === 1)       { setCategorySize(subCats[0].name); return; }
     if (subCats.length === 0 && cat.cup?.size_l == null) {
       setCategorySize(cat.cup?.size_m || 'M');
@@ -404,16 +462,63 @@ const syncNextSequence = async () => {
     return items;
   };
 
-  const handleItemClick = (item: MenuItem) => {
+  const handleItemClick = async (item: MenuItem) => {
     const actualCategory = categories.find(cat =>
       cat.menu_items.some(mi => mi.id === item.id)
     ) ?? selectedCategory;
 
     setSelectedCategory(actualCategory);
 
-    const isActualBundle = BUNDLE_CATEGORIES.includes(actualCategory?.name as typeof BUNDLE_CATEGORIES[number]);
+    const catType = actualCategory?.category_type;
 
-    if (isActualBundle) {
+    if (catType === 'mix_and_match') {
+      const categoryId = actualCategory?.id;
+      let allDrinks: MenuItem[] = [];
+      if (categoryId) {
+        try {
+          const token = localStorage.getItem('auth_token') || localStorage.getItem('lucky_boba_token') || '';
+          const res = await fetch(`/api/category-drinks?category_id=${categoryId}`, {
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+          });
+          const data = await res.json();
+          const poolDrinks: { menu_item_id: number; name: string; size: string; price: number }[] = data.data ?? [];
+          allDrinks = poolDrinks.map(d => {
+            const found = categories.flatMap(c => c.menu_items).find(m => m.id === d.menu_item_id);
+            const validSize = (s: string): 'M' | 'L' | 'none' =>
+              s === 'M' || s === 'L' ? s : 'none';
+            return found
+              ? { ...found, size: validSize(d.size || found.size || 'none') }
+              : { id: d.menu_item_id, name: d.name, price: d.price, size: validSize(d.size), barcode: '', category_id: categoryId } as unknown as MenuItem;
+          });
+        } catch {
+          allDrinks = [];
+        }
+      }
+
+      const newCartItem: CartItem = {
+        ...item,
+        qty: 1,
+        remarks: '',
+        charges: { grab: orderCharge === 'grab', panda: orderCharge === 'panda' },
+        size: 'none',
+        finalPrice: Number(item.price),
+      };
+
+      setPendingMixMatchCart(newCartItem);
+      setMixMatchDrinkItems(allDrinks);
+      setSelectedMixMatchDrink(null);
+      setMixMatchDrinkSugar('');
+      setMixMatchDrinkOptions([]);
+      setMixMatchDrinkAddOns([]);
+      setIsMixMatchModalOpen(true);
+      return;
+    }
+
+    if (catType === 'bundle') {
       const bundle = bundlesData.find(b => b.barcode === item.barcode);
       if (bundle) {
         setActiveBundleItem(bundle);
@@ -422,6 +527,7 @@ const syncNextSequence = async () => {
         setBundleComponentSugar('');
         setBundleComponentOptions([]);
         setBundleComponentAddOns([]);
+        setOrderCharge(null);
         setIsBundleModalOpen(true);
         return;
       }
@@ -442,6 +548,7 @@ const syncNextSequence = async () => {
       setSize(categorySize === cupSizeL ? 'L' : 'M');
     }
   };
+
   // ── Order charge toggle ─────────────────────────────────────────────────────
 
   const toggleOrderCharge = (type: 'grab' | 'panda') => {
@@ -451,6 +558,11 @@ const syncNextSequence = async () => {
       ...item,
       charges: { grab: next === 'grab', panda: next === 'panda' },
     })));
+  };
+
+  const toggleBundleOrderCharge = (type: 'grab' | 'panda') => {
+    const next = orderCharge === type ? null : type;
+    setOrderCharge(next);
   };
 
   // ── Options toggles ─────────────────────────────────────────────────────────
@@ -509,6 +621,7 @@ const syncNextSequence = async () => {
 
   const addToOrder = () => {
     if (!selectedItem || !selectedCategory) return;
+    console.log('category_type:', selectedCategory.category_type, 'isCombo:', isCombo);
 
     const isWaffle = selectedCategory?.name?.toLowerCase().includes('waffle');
     let extraCost = 0;
@@ -518,11 +631,11 @@ const syncNextSequence = async () => {
         if (addon) {
           const baseAddonPrice = Number(addon.price);
           if (orderCharge === 'grab' && Number(addon.grab_price ?? 0) > 0) {
-            extraCost += Number(addon.grab_price) - baseAddonPrice; // delta only
+            extraCost += Number(addon.grab_price) - baseAddonPrice;
           } else if (orderCharge === 'panda' && Number(addon.panda_price ?? 0) > 0) {
-            extraCost += Number(addon.panda_price) - baseAddonPrice; // delta only
+            extraCost += Number(addon.panda_price) - baseAddonPrice;
           }
-          extraCost += baseAddonPrice; // always add base
+          extraCost += baseAddonPrice;
         }
       });
     }
@@ -597,31 +710,46 @@ const syncNextSequence = async () => {
       return;
     }
 
-    // All steps done — build cart item
     const remarksLines = newCustomizations.map((c, i) =>
       `[${i + 1}] ${c.quantity > 1 ? `${c.quantity}x ` : ''}${c.name}: Sugar ${c.sugarLevel}` +
       `${c.options.length ? ' | ' + c.options.join(', ') : ''}` +
       `${c.addOns.length  ? ' | +' + c.addOns.join(', ')  : ''}`
     ).join(' || ');
 
+    const bundleAddOnCost = newCustomizations.reduce((total, c) => {
+      return total + c.addOns.reduce((sum, addonName) => {
+        const addon = addOnsData.find(a => a.name === addonName);
+        if (!addon) return sum;
+        if (orderCharge === 'grab'  && Number(addon.grab_price  ?? 0) > 0) return sum + Number(addon.grab_price);
+        if (orderCharge === 'panda' && Number(addon.panda_price ?? 0) > 0) return sum + Number(addon.panda_price);
+        return sum + Number(addon.price);
+      }, 0);
+    }, 0);
+
+    const matchingMenuItem = categories
+      .flatMap(c => c.menu_items)
+      .find(m => m.barcode === activeBundleItem.barcode);
+
     const cartItem: CartItem = {
       id:           activeBundleItem.id,
       category_id:  0,
       name:         activeBundleItem.display_name ?? activeBundleItem.name,
+      grab_price:   Number(activeBundleItem.grab_price  || matchingMenuItem?.grab_price  || 0),
+      panda_price:  Number(activeBundleItem.panda_price || matchingMenuItem?.panda_price || 0),
       price:        Number(activeBundleItem.price),
       barcode:      activeBundleItem.barcode,
       qty:          1,
       size:         'L',
       remarks:      remarksLines,
       charges:      { grab: orderCharge === 'grab', panda: orderCharge === 'panda' },
-      finalPrice:   Number(activeBundleItem.price),
+      finalPrice:   Number(activeBundleItem.price) + bundleAddOnCost,
       isBundle:     true,
       bundleId:     activeBundleItem.id,
       bundleComponents: newCustomizations,
     };
 
     mergeIntoCart(cartItem);
-    logCartAction(cartItem.name, 1); 
+    logCartAction(cartItem.name, 1);
     setIsBundleModalOpen(false);
     setActiveBundleItem(null);
     showToast(`${activeBundleItem.name} added!`, 'success');
@@ -629,76 +757,102 @@ const syncNextSequence = async () => {
 
   // ── Combo drink confirm ─────────────────────────────────────────────────────
 
-const confirmComboDrink = () => {
-  if (!pendingComboCart) return;
+  const confirmComboDrink = () => {
+    if (!pendingComboCart) return;
 
-  const isPizzaCombo = selectedCategory?.name?.toUpperCase() === 'PIZZA PEDRICOS COMBO';
-  const isClassicPearl = pendingComboCart.name?.toUpperCase().includes('CLASSIC PEARL');
-  const pearlOpts = ['NO PRL', 'W/ PRL'];
+    const isPizzaCombo   = selectedCategory?.name?.toUpperCase() === 'PIZZA PEDRICOS COMBO';
+    const isClassicPearl = pendingComboCart.name?.toUpperCase().includes('CLASSIC PEARL');
+    const pearlOpts      = ['NO PRL', 'W/ PRL'];
 
-  if (isPizzaCombo && !isClassicPearl && !comboDrinkOptions.some(o => pearlOpts.includes(o))) {
-    showToast('Please select NO PRL or W/ PRL', 'warning');
-    return;
-  }
-
-  // Calculate add-on cost using REGULAR price only (surcharge is handled by getItemSurcharge)
-  let addOnExtraCost = 0;
-  comboDrinkAddOns.forEach(name => {
-    const addon = addOnsData.find(a => a.name === name);
-    if (addon) {
-      if (orderCharge === 'grab' && Number(addon.grab_price ?? 0) > 0) {
-        addOnExtraCost += Number(addon.grab_price); // ₱40 full grab price
-      } else if (orderCharge === 'panda' && Number(addon.panda_price ?? 0) > 0) {
-        addOnExtraCost += Number(addon.panda_price); // ₱40 full panda price
-      } else {
-        addOnExtraCost += Number(addon.price); // ₱30 base
-      }
+    if (isPizzaCombo && !isClassicPearl && !comboDrinkOptions.some(o => pearlOpts.includes(o))) {
+      showToast('Please select NO PRL or W/ PRL', 'warning');
+      return;
     }
-  });
 
-  const drinkDetails = [
-    `Sugar: ${comboDrinkSugar}`,
-    ...comboDrinkOptions,
-    ...comboDrinkAddOns.map(a => `+${a}`),
-  ].join(' | ');
+    let addOnExtraCost = 0;
+    comboDrinkAddOns.forEach(name => {
+      const addon = addOnsData.find(a => a.name === name);
+      if (addon) {
+        if (orderCharge === 'grab' && Number(addon.grab_price ?? 0) > 0) {
+          addOnExtraCost += Number(addon.grab_price);
+        } else if (orderCharge === 'panda' && Number(addon.panda_price ?? 0) > 0) {
+          addOnExtraCost += Number(addon.panda_price);
+        } else {
+          addOnExtraCost += Number(addon.price);
+        }
+      }
+    });
 
-  const drinkLabel = isPizzaCombo && !isClassicPearl
-    ? pendingComboCart.name.replace(/^PIZZA \+ /i, '')
-    : 'Classic Pearl';
+    const drinkDetails = [
+      `Sugar: ${comboDrinkSugar}`,
+      ...comboDrinkOptions,
+      ...comboDrinkAddOns.map(a => `+${a}`),
+    ].join(' | ');
 
-  const finalItem: CartItem = {
-    ...pendingComboCart,  // preserves original grab_price/panda_price for getItemSurcharge
-    remarks: `${drinkLabel} [${drinkDetails}]${pendingComboCart.remarks ? ` | Note: ${pendingComboCart.remarks}` : ''}`,
-    sugarLevel: comboDrinkSugar,
-    options: comboDrinkOptions,
-    addOns: comboDrinkAddOns.length > 0 ? comboDrinkAddOns : undefined,
-    // finalPrice = base item price + add-on base cost (surcharge added separately by getItemSurcharge)
-    finalPrice: pendingComboCart.finalPrice + (addOnExtraCost * pendingComboCart.qty),
-    // Do NOT override grab_price/panda_price — let getItemSurcharge use them normally
+    const drinkLabel = isPizzaCombo && !isClassicPearl
+      ? pendingComboCart.name.replace(/^PIZZA \+ /i, '')
+      : 'Classic Pearl';
+
+    const finalItem: CartItem = {
+      ...pendingComboCart,
+      remarks:    `${drinkLabel} [${drinkDetails}]${pendingComboCart.remarks ? ` | Note: ${pendingComboCart.remarks}` : ''}`,
+      sugarLevel: comboDrinkSugar,
+      options:    comboDrinkOptions,
+      addOns:     comboDrinkAddOns.length > 0 ? comboDrinkAddOns : undefined,
+      finalPrice: pendingComboCart.finalPrice + (addOnExtraCost * pendingComboCart.qty),
+    };
+
+    mergeIntoCart(finalItem);
+    logCartAction(finalItem.name, finalItem.qty);
+    setIsCombodrinkModalOpen(false);
+    setPendingComboCart(null);
+    showToast(`${finalItem.name} added!`, 'success');
   };
 
-  mergeIntoCart(finalItem);
-  logCartAction(finalItem.name, finalItem.qty);
-  setIsCombodrinkModalOpen(false);
-  setPendingComboCart(null);
-  showToast(`${finalItem.name} added!`, 'success');
-};
-  // ── Cart item editing ───────────────────────────────────────────────────────
+  // ── Mix & Match confirm ─────────────────────────────────────────────────────
+
+  const confirmMixAndMatch = () => {
+    if (!pendingMixMatchCart || !selectedMixMatchDrink) return;
+
+    let addOnExtraCost = 0;
+    mixMatchDrinkAddOns.forEach(name => {
+      const addon = addOnsData.find(a => a.name === name);
+      if (addon) {
+        if (orderCharge === 'grab' && Number(addon.grab_price ?? 0) > 0)
+          addOnExtraCost += Number(addon.grab_price);
+        else if (orderCharge === 'panda' && Number(addon.panda_price ?? 0) > 0)
+          addOnExtraCost += Number(addon.panda_price);
+        else
+          addOnExtraCost += Number(addon.price);
+      }
+    });
+
+    const drinkDetails = [
+      `Drink: ${selectedMixMatchDrink.name}`,
+      `Sugar: ${mixMatchDrinkSugar}`,
+      ...mixMatchDrinkOptions,
+      ...mixMatchDrinkAddOns.map(a => `+${a}`),
+    ].join(' | ');
+
+    const finalItem: CartItem = {
+      ...pendingMixMatchCart,
+      remarks:    `[${drinkDetails}]`,
+      finalPrice: pendingMixMatchCart.finalPrice + addOnExtraCost,
+    };
+
+    mergeIntoCart(finalItem);
+    logCartAction(finalItem.name, finalItem.qty);
+    setIsMixMatchModalOpen(false);
+    setPendingMixMatchCart(null);
+    showToast(`${finalItem.name} + ${selectedMixMatchDrink.name} added!`, 'success');
+  };
 
   // ── Cart item editing ───────────────────────────────────────────────────────
 
   const openCartItemEdit = (index: number) => {
     const item = cart[index];
     setEditingCartIndex(index);
-    
-    // Create a clone but reset finalPrice to the base price (original unit price * qty)
-    // This ensures the discount calculation in the modal starts from the original price.
-    setEditingCartItem({ 
-      ...item, 
-      finalPrice: Number(item.price) * item.qty 
-    });
-
-    // Restore the state from the item's saved metadata
+    setEditingCartItem({ ...item, finalPrice: item.finalPrice });
     setEditingItemDiscountId(item.discountId ?? null);
     setItemDiscountType(item.discountType ?? 'none');
     setItemDiscountValue(item.discountValue ?? '');
@@ -719,67 +873,142 @@ const confirmComboDrink = () => {
     setEditingCartItem({ ...editingCartItem, qty: newQty, finalPrice: unitPrice * newQty });
   };
 
-const saveCartItemEdit = () => {
-  if (editingCartIndex === null || !editingCartItem) return;
+  const saveCartItemEdit = () => {
+    if (editingCartIndex === null || !editingCartItem) return;
 
-  // We use the original price for calculation (which we reset in openCartItemEdit)
-  const unitPrice = editingCartItem.finalPrice / editingCartItem.qty;
-  let discountedUnit = unitPrice;
-  let discountLabel: string | undefined;
+    const addOnCostPerUnit = (editingCartItem.addOns ?? []).reduce((sum, addonName) => {
+      const a = addOnsData.find(x => x.name === addonName);
+      if (!a) return sum;
+      return sum + (editingCartItem.charges?.grab && Number(a.grab_price ?? 0) > 0
+        ? Number(a.grab_price)
+        : editingCartItem.charges?.panda && Number(a.panda_price ?? 0) > 0
+        ? Number(a.panda_price)
+        : Number(a.price));
+    }, 0);
 
-  if (itemDiscountType === 'percent' && itemDiscountValue !== '') {
-    discountedUnit = unitPrice * (1 - Number(itemDiscountValue) / 100);
-    const d = discounts.find(d => d.id === editingItemDiscountId);
-    if (d) discountLabel = `${d.name} (${d.amount}%)`;
-  } else if (itemDiscountType === 'fixed' && itemDiscountValue !== '') {
-    discountedUnit = Math.max(0, unitPrice - Number(itemDiscountValue));
-    const d = discounts.find(d => d.id === editingItemDiscountId);
-    if (d) discountLabel = `${d.name} (-₱${d.amount})`;
-  }
+    const drinkUnitPrice = Number(editingCartItem.price);
+    let discountedDrinkUnit = drinkUnitPrice;
+    let discountLabel: string | undefined;
 
+    if (itemDiscountType === 'percent' && itemDiscountValue !== '') {
+      discountedDrinkUnit = drinkUnitPrice * (1 - Number(itemDiscountValue) / 100);
+      const d = discounts.find(d => d.id === editingItemDiscountId);
+      if (d) discountLabel = `${d.name} (${d.amount}%)`;
+    } else if (itemDiscountType === 'fixed' && itemDiscountValue !== '') {
+      discountedDrinkUnit = Math.max(0, drinkUnitPrice - Number(itemDiscountValue));
+      const d = discounts.find(d => d.id === editingItemDiscountId);
+      if (d) discountLabel = `${d.name} (-₱${d.amount})`;
+    }
 
-  const updated: CartItem = {
-    ...editingCartItem,
-    finalPrice: discountedUnit * editingCartItem.qty,
-    discountLabel,
-    discountId: editingItemDiscountId,
-    discountType: itemDiscountType,
-    discountValue: itemDiscountValue,
+    const newFinalPrice = (discountedDrinkUnit + addOnCostPerUnit) * editingCartItem.qty;
+
+    const updated: CartItem = {
+      ...editingCartItem,
+      finalPrice:    newFinalPrice,
+      discountLabel,
+      discountId:    editingItemDiscountId,
+      discountType:  itemDiscountType,
+      discountValue: itemDiscountValue,
+    };
+
+    setCart(prev => prev.map((item, i) => i === editingCartIndex ? updated : item));
+    showToast('Item updated & Pax adjusted', 'success');
+    closeCartItemEdit();
   };
-
-  setCart(prev => prev.map((item, i) => i === editingCartIndex ? updated : item));
-  showToast('Item updated & Pax adjusted', 'success');
-  closeCartItemEdit();
-};
 
   const removeEditingItem = () => {
     if (editingCartIndex === null) return;
     const name = cart[editingCartIndex].name;
-    const qty  = cart[editingCartIndex].qty; 
+    const qty  = cart[editingCartIndex].qty;
     setCart(prev => prev.filter((_, i) => i !== editingCartIndex));
-    logCartAction(`REMOVED: ${name}`, qty); 
+    logCartAction(`REMOVED: ${name}`, qty);
     showToast(`${name} removed`, 'warning');
     closeCartItemEdit();
   };
 
   const computeDiscountedTotal = () => {
     if (!editingCartItem) return 0;
-    const unitPrice = editingCartItem.finalPrice / editingCartItem.qty;
-    let discounted  = unitPrice;
+
+    const addOnCostPerUnit = (editingCartItem.addOns ?? []).reduce((sum, addonName) => {
+      const a = addOnsData.find(x => x.name === addonName);
+      if (!a) return sum;
+      return sum + (editingCartItem.charges?.grab && Number(a.grab_price ?? 0) > 0
+        ? Number(a.grab_price)
+        : editingCartItem.charges?.panda && Number(a.panda_price ?? 0) > 0
+        ? Number(a.panda_price)
+        : Number(a.price));
+    }, 0);
+
+    const drinkUnitPrice = Number(editingCartItem.price);
+    let discountedDrink = drinkUnitPrice;
+
     if (itemDiscountType === 'percent' && itemDiscountValue !== '')
-      discounted = unitPrice * (1 - Number(itemDiscountValue) / 100);
+      discountedDrink = drinkUnitPrice * (1 - Number(itemDiscountValue) / 100);
     else if (itemDiscountType === 'fixed' && itemDiscountValue !== '')
-      discounted = Math.max(0, unitPrice - Number(itemDiscountValue));
-    return discounted * editingCartItem.qty;
+      discountedDrink = Math.max(0, drinkUnitPrice - Number(itemDiscountValue));
+
+    return (discountedDrink + addOnCostPerUnit) * editingCartItem.qty;
   };
 
   // ── Confirm order ───────────────────────────────────────────────────────────
 
-  const handleConfirmOrder = async () => {
+  const handleConfirmOrder = () => {
     if (cart.length === 0) return;
+    setIsConfirmModalOpen(false);
+    setCustomerName('');
+    setIsCustomerNameModalOpen(true);
+  };
+
+  const handleSubmitOrder = async (nameOverride?: string) => {
     setSubmitting(true);
 
+    // ── Pre-calculate split discount amounts ──────────────────────────────
+    const allUnits = cart
+      .flatMap(item => Array(item.qty).fill(Number(item.price) + getItemSurcharge(item) / item.qty))
+      .sort((a: number, b: number) => b - a);
+
+    let alreadyUsed = 0;
+    let scDiscountAmount       = 0;
+    let pwdDiscountAmount      = 0;
+    let diplomatDiscountAmount = 0;
+
+    for (const d of selectedDiscounts) {
+      const name      = d.name.toUpperCase();
+      const isSenior  = name.includes('SENIOR');
+      const isPwd     = name.includes('PWD');
+      const isDiplomat = name.includes('DIPLOMAT');
+      const pax       = isSenior ? (paxSenior || 0) : (isPwd || isDiplomat) ? (paxPwd || 0) : 0;
+
+      if (pax === 0) continue;
+
+      const units = allUnits.slice(alreadyUsed, alreadyUsed + pax);
+      const base  = units.reduce((s: number, p: number) => s + p, 0);
+      const amt   = d.type.includes('Percent')
+        ? base * (Number(d.amount) / 100)
+        : Number(d.amount) * pax;
+
+      if (isSenior)        scDiscountAmount       += amt;
+      else if (isPwd)      pwdDiscountAmount      += amt;
+      else if (isDiplomat) diplomatDiscountAmount += amt;
+
+      alreadyUsed += pax;
+    }
+
+    const otherDiscountAmount = selectedDiscount
+      ? selectedDiscount.type.includes('Percent')
+        ? eligibleForPromo * (Number(selectedDiscount.amount) / 100)
+        : Number(selectedDiscount.amount)
+      : 0;
+
+    // ── DEBUG — remove after fixing ───────────────────────────────────────
+    console.log('allUnits:', allUnits);
+    console.log('selectedDiscounts:', selectedDiscounts.map(d => d.name));
+    console.log('paxSenior:', paxSenior, 'paxPwd:', paxPwd);
+    console.log('sc:', scDiscountAmount, 'pwd:', pwdDiscountAmount);
+    // ─────────────────────────────────────────────────────────────────────
+
     const orderData = {
+      // ... rest unchanged
       si_number:        orNumber,
       branch_id:        branchId,
       items: cart.map(item => ({
@@ -797,14 +1026,21 @@ const saveCartItemEdit = () => {
         add_ons:           item.addOns  || [],
         remarks:           item.remarks || null,
         charges:           { grab: item.charges.grab, panda: item.charges.panda },
-        discount_id: item.discountId ?? null,
-        discount_label: item.discountLabel ?? null,
-        discount_type:  item.discountType  ?? null,
-        discount_value: item.discountValue !== '' ? item.discountValue : null,
+        discount_id:       item.discountId    ?? null,
+        discount_label:    item.discountLabel ?? null,
+        discount_type:     item.discountType  ?? null,
+        discount_value:    item.discountValue !== '' ? item.discountValue : null,
       })),
       subtotal,
-      discount_amount:  orderLevelDiscount,
-      discount_id:      selectedDiscount?.id || null,
+      discount_amount:          orderLevelDiscount,
+      sc_discount_amount:       scDiscountAmount,
+      pwd_discount_amount:      pwdDiscountAmount,
+      diplomat_discount_amount: diplomatDiscountAmount,
+      other_discount_amount:    otherDiscountAmount,
+      discount_id: selectedDiscount?.id
+        ?? (selectedDiscounts.length === 1 ? selectedDiscounts[0].id : null)
+        ?? null,
+      pax_discount_ids: selectedDiscounts.map(d => d.id).join(',') || null,
       total:            amtDue,
       cashier_name:     cashierName ?? 'Admin',
       payment_method:   paymentMethod,
@@ -812,7 +1048,12 @@ const saveCartItemEdit = () => {
       discount_remarks: discountRemarks || null,
       vatable_sales:    vatableSales,
       vat_amount:       vatAmount,
-      customer_name:    customerName || null,
+      customer_name:    nameOverride ?? customerName ?? null,
+      cash_tendered:    typeof cashTendered === 'number' ? cashTendered : 0,
+      pax_senior:       paxSenior || 0,
+      pax_pwd:          paxPwd    || 0,
+      senior_id:        seniorId  || null,
+      pwd_id:           pwdId     || null,
     };
 
     if (navigator.onLine) {
@@ -838,24 +1079,20 @@ const saveCartItemEdit = () => {
           }),
         ]).catch(e => console.error('Failed to fetch fresh data', e));
 
-        setIsConfirmModalOpen(false);
-        setCustomerName('');
-        setIsCustomerNameModalOpen(true);
         setPrintedReceipt(false);
         setPrintedKitchen(false);
         setPrintedStickers(false);
+        setIsSuccessModalOpen(true);
         showToast('Order saved successfully!', 'success');
 
-} catch (err) {
-  const axiosErr = err as { response?: { data?: unknown } };
-  console.error('422 detail:', axiosErr?.response?.data);
-  enqueue(orderData);
-        setIsConfirmModalOpen(false);
-        setCustomerName('');
-        setIsCustomerNameModalOpen(true);
+      } catch (err) {
+        const axiosErr = err as { response?: { data?: unknown } };
+        console.error('422 detail:', axiosErr?.response?.data);
+        enqueue(orderData);
         setPrintedReceipt(false);
         setPrintedKitchen(false);
         setPrintedStickers(false);
+        setIsSuccessModalOpen(true);
         showToast('Order saved locally — will sync when server is available.', 'warning');
       }
 
@@ -863,12 +1100,10 @@ const saveCartItemEdit = () => {
       enqueue(orderData);
       const currentSeq = parseInt(orNumber.replace('SI-', ''), 10);
       if (!isNaN(currentSeq)) localStorage.setItem('last_or_sequence', String(currentSeq));
-      setIsConfirmModalOpen(false);
-      setCustomerName('');
-      setIsCustomerNameModalOpen(true);
       setPrintedReceipt(false);
       setPrintedKitchen(false);
       setPrintedStickers(false);
+      setIsSuccessModalOpen(true);
       showToast('Offline — order queued and will sync when connected.', 'warning');
     }
 
@@ -890,6 +1125,7 @@ const saveCartItemEdit = () => {
     setPaymentMethod('cash');
     setReferenceNumber('');
     setSelectedDiscount(null);
+    setSelectedDiscounts([]);       // ← reset multi-select pax discounts
     setIsSuccessModalOpen(false);
     setPrintTarget(null);
     setPrintedReceipt(false);
@@ -899,6 +1135,16 @@ const saveCartItemEdit = () => {
     setCategorySize(null);
     setDiscountRemarks('');
     setCustomerName('');
+    setIsMixMatchModalOpen(false);
+    setPendingMixMatchCart(null);
+    setSelectedMixMatchDrink(null);
+    setMixMatchDrinkSugar('');
+    setMixMatchDrinkOptions([]);
+    setMixMatchDrinkAddOns([]);
+    setPaxSenior(0);
+    setPaxPwd(0);
+    setSeniorId('');
+    setPwdId('');
     await syncNextSequence();
   };
 
@@ -946,13 +1192,15 @@ const saveCartItemEdit = () => {
           nav, header, aside, button, .print\\:hidden { display: none !important; }
           .printable-receipt-container, .printable-receipt-container * { visibility: visible !important; }
           .printable-receipt-container {
-            position: absolute !important; left: 0 !important; top: 0 !important;
+            position: static !important;
             width: 100% !important;
             max-width: ${printTarget === 'stickers' ? '38.5mm' : '76mm'} !important;
             margin: 0 !important; padding: 0 !important;
+            height: auto !important;
           }
           .receipt-area { width: 66mm !important; margin: 0 auto !important; padding: 2mm 0 !important; box-sizing: border-box !important; color: #000 !important; font-family: Arial, Helvetica, sans-serif !important; font-size: 12px !important; line-height: 1.4 !important; }
           .sticker-area { width: 38.5mm !important; height: 50.8mm !important; padding: 2mm !important; margin: 0 auto !important; box-sizing: border-box !important; color: #000 !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; align-items: center !important; text-align: center !important; font-family: Arial, Helvetica, sans-serif !important; overflow: hidden !important; page-break-after: always !important; break-after: page !important; }
+          .queue-stub { page-break-before: always !important; break-before: page !important; }
         }
       `}</style>
 
@@ -1013,26 +1261,35 @@ const saveCartItemEdit = () => {
           />
         )}
 
-        {isBundleModalOpen && activeBundleItem && (
-          <BundleModal
-            activeBundleItem={activeBundleItem}
-            bundleComponentIndex={bundleComponentIndex}
-            bundleComponentSugar={bundleComponentSugar}
-            bundleComponentOptions={bundleComponentOptions}
-            bundleComponentAddOns={bundleComponentAddOns}
-            filteredAddOns={filteredAddOns}
-            bundleComponentAddOnModalOpen={bundleComponentAddOnModalOpen}
-            onSugarChange={setBundleComponentSugar}
-            onToggleOption={makeToggleOption(setBundleComponentOptions)}
-            onOpenAddOns={() => setBundleComponentAddOnModalOpen(true)}
-            onCloseAddOns={() => setBundleComponentAddOnModalOpen(false)}
-            onToggleAddOn={name => setBundleComponentAddOns(prev =>
-              prev.includes(name) ? prev.filter(a => a !== name) : [...prev, name]
-            )}
-            onConfirm={confirmBundleComponent}
-            onClose={() => { setIsBundleModalOpen(false); setActiveBundleItem(null); }}
-          />
-        )}
+        {isBundleModalOpen && activeBundleItem && (() => {
+          const bundleMenuItem   = categories.flatMap(c => c.menu_items).find(m => m.barcode === activeBundleItem.barcode);
+          const bundleGrabPrice  = Number(activeBundleItem.grab_price  || bundleMenuItem?.grab_price  || 0);
+          const bundlePandaPrice = Number(activeBundleItem.panda_price || bundleMenuItem?.panda_price || 0);
+          return (
+            <BundleModal
+              activeBundleItem={activeBundleItem}
+              bundleComponentIndex={bundleComponentIndex}
+              bundleComponentSugar={bundleComponentSugar}
+              bundleComponentOptions={bundleComponentOptions}
+              bundleComponentAddOns={bundleComponentAddOns}
+              filteredAddOns={filteredAddOns}
+              bundleComponentAddOnModalOpen={bundleComponentAddOnModalOpen}
+              onSugarChange={setBundleComponentSugar}
+              onToggleOption={makeToggleOption(setBundleComponentOptions)}
+              onOpenAddOns={() => setBundleComponentAddOnModalOpen(true)}
+              onCloseAddOns={() => setBundleComponentAddOnModalOpen(false)}
+              onToggleAddOn={name => setBundleComponentAddOns(prev =>
+                prev.includes(name) ? prev.filter(a => a !== name) : [...prev, name]
+              )}
+              onConfirm={confirmBundleComponent}
+              onClose={() => { setIsBundleModalOpen(false); setActiveBundleItem(null); }}
+              orderCharge={orderCharge}
+              onToggleOrderCharge={toggleBundleOrderCharge}
+              bundleGrabPrice={bundleGrabPrice}
+              bundlePandaPrice={bundlePandaPrice}
+            />
+          );
+        })()}
 
         {isCombodrinkModalOpen && pendingComboCart && (
           <ComboDrinkModal
@@ -1055,12 +1312,41 @@ const saveCartItemEdit = () => {
           />
         )}
 
+        {isMixMatchModalOpen && pendingMixMatchCart && (
+          <MixAndMatchDrinkModal
+            pendingMixMatchCart={pendingMixMatchCart}
+            drinkItems={mixMatchDrinkItems}
+            selectedDrink={selectedMixMatchDrink}
+            drinkSugar={mixMatchDrinkSugar}
+            drinkOptions={mixMatchDrinkOptions}
+            drinkAddOns={mixMatchDrinkAddOns}
+            filteredAddOns={filteredAddOns}
+            drinkAddOnModalOpen={mixMatchDrinkAddOnOpen}
+            orderCharge={orderCharge}
+            onSelectDrink={item => {
+              setSelectedMixMatchDrink(item ?? null);
+              setMixMatchDrinkSugar('');
+              setMixMatchDrinkOptions([]);
+            }}
+            onSugarChange={setMixMatchDrinkSugar}
+            onToggleOption={makeToggleOption(setMixMatchDrinkOptions)}
+            onOpenAddOns={() => setMixMatchDrinkAddOnOpen(true)}
+            onCloseAddOns={() => setMixMatchDrinkAddOnOpen(false)}
+            onToggleAddOn={name => setMixMatchDrinkAddOns(prev =>
+              prev.includes(name) ? prev.filter(a => a !== name) : [...prev, name]
+            )}
+            onToggleOrderCharge={toggleOrderCharge}
+            onConfirm={confirmMixAndMatch}
+            onClose={() => { setIsMixMatchModalOpen(false); setPendingMixMatchCart(null); }}
+          />
+        )}
+
         {isConfirmModalOpen && (
           <ConfirmOrderModal
             cart={cart}
             cashierName={cashierName}
             totalCount={totalCount}
-            subtotal={grossSubtotal} // Pass the original price as the anchor
+            subtotal={grossSubtotal}
             amtDue={amtDue}
             vatableSales={vatableSales}
             vatAmount={vatAmount}
@@ -1068,22 +1354,33 @@ const saveCartItemEdit = () => {
             totalDiscountDisplay={totalDiscountDisplay}
             orderCharge={orderCharge}
             selectedDiscount={selectedDiscount}
+            selectedDiscounts={selectedDiscounts}         // ← new
             paymentMethod={paymentMethod}
             cashTendered={cashTendered}
             referenceNumber={referenceNumber}
             discountRemarks={discountRemarks}
             discounts={discounts}
-            activeTab={activeTab as 'payment' | 'discount'} 
+            activeTab={activeTab as 'payment' | 'discount' | 'pax'}
             submitting={submitting}
-            onTabChange={(t) => setActiveTab(t as 'payment' | 'discount')}
+            paxSenior={paxSenior}
+            paxPwd={paxPwd}
+            seniorId={seniorId}
+            pwdId={pwdId}
+            onTabChange={(t) => setActiveTab(t as 'payment' | 'discount' | 'pax')}
             onPaymentMethodChange={setPaymentMethod}
             onCashTenderedChange={setCashTendered}
             onReferenceNumberChange={setReferenceNumber}
             onDiscountChange={setSelectedDiscount}
+            onDiscountsChange={setSelectedDiscounts}     // ← new
             onDiscountRemarksChange={setDiscountRemarks}
+            onPaxSeniorChange={setPaxSenior}
+            onPaxPwdChange={setPaxPwd}
+            onSeniorIdChange={setSeniorId}
+            onPwdIdChange={setPwdId}
             onEditCartItem={openCartItemEdit}
             onConfirm={handleConfirmOrder}
             onClose={() => setIsConfirmModalOpen(false)}
+            vatType={vatType}
           />
         )}
 
@@ -1091,8 +1388,14 @@ const saveCartItemEdit = () => {
           <CustomerNameModal
             customerName={customerName}
             onChange={setCustomerName}
-            onSkip={() => { setIsCustomerNameModalOpen(false); setIsSuccessModalOpen(true); }}
-            onConfirm={() => { setIsCustomerNameModalOpen(false); setIsSuccessModalOpen(true); }}
+            onSkip={() => {
+              setIsCustomerNameModalOpen(false);
+              handleSubmitOrder('');
+            }}
+            onConfirm={() => {
+              setIsCustomerNameModalOpen(false);
+              handleSubmitOrder(customerName);
+            }}
           />
         )}
 
@@ -1151,17 +1454,22 @@ const saveCartItemEdit = () => {
             cart={cart}
             cashierName={cashierName}
             orNumber={orNumber}
-            terminalNumber={terminalNumber} 
+            terminalNumber={terminalNumber}
             totalCount={totalCount}
             subtotal={subtotal}
             onEditItem={openCartItemEdit}
-            onConfirmOrder={() => setIsConfirmModalOpen(true)}
+            onConfirmOrder={() => {
+              if (orderCharge === 'grab')       setPaymentMethod('grab');
+              else if (orderCharge === 'panda') setPaymentMethod('food_panda');
+              else                              setPaymentMethod('cash');
+              setIsConfirmModalOpen(true);
+            }}
           />
         </div>
       </div>
 
-      {/* Print templates (off-screen, revealed by window.print()) */}
-      {printTarget === 'receipt' && <ReceiptPrint {...printProps} orderCharge={orderCharge} totalCount={totalCount} subtotal={subtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount}/>}
+      {/* Print templates */}
+      {printTarget === 'receipt' && <ReceiptPrint {...printProps} vatType={vatType} addOnsData={addOnsData} orderCharge={orderCharge} totalCount={totalCount} subtotal={subtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount}/>}
       {printTarget === 'kitchen'  && <KitchenPrint  {...printProps} />}
       {printTarget === 'stickers' && <StickerPrint  {...printProps} customerName={customerName} />}
     </>

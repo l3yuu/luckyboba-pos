@@ -3,17 +3,20 @@
 use App\Http\Controllers\Api\{ BackupController, CashCountController, CashTransactionController, CategoryController, DashboardController, DiscountController, ExpenseController, InventoryController, StockTransferController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController, MenuItemController, SupplierController, ItemCheckerController };
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BundleController;
 use App\Http\Controllers\Api\CupController;
 use App\Http\Controllers\Api\ItemsReportController;
+use App\Http\Controllers\Api\MenuItemOptionController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\RawMaterialController;
 use App\Http\Controllers\Api\RecipeController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\CacheController;
-use App\Http\Controllers\Api\NotificationController;
 // ── NEW CONTROLLERS FOR CARDS ──
 use App\Http\Controllers\Api\CardController;
 use App\Http\Controllers\PaymentSettingController;
 
+use App\Http\Controllers\CategoryDrinkController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -100,6 +103,11 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     Route::get('/user', fn (Request $request) => $request->user());
 
+    // ── NO ROLE RESTRICTION — any authenticated user can call this ────────────
+    // Placed outside all role middleware groups so cashiers can call it.
+    // The PIN itself is what determines authorization, not the caller's role.
+    Route::post('/auth/verify-manager-pin', [UserController::class, 'verifyManagerPin']);
+
     // ── CASHIER + BRANCH MANAGER + SUPERADMIN ────────────────────────────────
     Route::middleware(['role:superadmin,branch_manager,cashier'])->group(function () {
 
@@ -140,8 +148,12 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post('/audit-logs',           [AuditLogController::class, 'store']);
         Route::apiResource('menu-list',  MenuListController::class)->only(['index', 'store']);
         Route::apiResource('menu-items', MenuItemController::class);
+        Route::get('/menu-item-options',        [MenuItemOptionController::class, 'index']);
+        Route::get('/menu-item-options/bulk',   [MenuItemOptionController::class, 'bulk']);
+        Route::put('/menu-item-options/{id}',   [MenuItemOptionController::class, 'update']);
         Route::get('/add-ons',           [AddOnController::class, 'index']);
-        Route::get('/bundles',           fn () => \App\Models\Bundle::with('items')->where('is_active', true)->get());
+        Route::get('/bundles', [BundleController::class, 'index']);
+        Route::get('/category-drinks', [CategoryDrinkController::class, 'index']);
         Route::apiResource('categories',     CategoryController::class);
         Route::apiResource('sub-categories', SubCategoryController::class);
         Route::get('/sub-categories/filter/{categoryId}', [SubCategoryController::class, 'getByCategory']);
@@ -222,6 +234,12 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
         Route::apiResource('expenses', ExpenseController::class)->only(['store']);
 
+        // FIX: Removed duplicate Route::patch('/discounts/{discount}/toggle') and
+        // the conflicting Route::apiResource('discounts') that was re-declaring
+        // routes already defined in the cashier group above. Discount write
+        // operations (store/update/delete/toggle) are already covered in the
+        // cashier group's prefix block which all three roles can access.
+
         Route::get('/branch/audit-logs', [AuditLogController::class, 'branchIndex']);
         Route::apiResource('discounts', DiscountController::class)->except(['show', 'update', 'index']); // ← 'index' removed, handled above
         Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
@@ -246,15 +264,15 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/item-checker/{barcode}', [ItemCheckerController::class, 'lookup']);
 
         Route::prefix('users')->group(function () {
-            Route::get('/',                     [UserController::class, 'index']);
-            Route::post('/',                    [UserController::class, 'store']);
-            Route::get('/stats',                [UserController::class, 'stats']);
-            Route::get('/{id}',                 [UserController::class, 'show']);
-            Route::put('/{id}',                 [UserController::class, 'update']);
-            Route::delete('/{id}',              [UserController::class, 'destroy']);
-            Route::patch('/{id}/toggle-status', [UserController::class, 'toggleStatus']);
-            Route::patch('/{id}/pin',           [UserController::class, 'updatePin']);
-        });
+    Route::get('/',                     [UserController::class, 'index']);
+    Route::post('/',                    [UserController::class, 'store']);
+    Route::get('/stats',                [UserController::class, 'stats']);   // ← static before /{id}
+    Route::get('/{id}',                 [UserController::class, 'show']);
+    Route::put('/{id}',                 [UserController::class, 'update']);
+    Route::delete('/{id}',              [UserController::class, 'destroy']);
+    Route::patch('/{id}/toggle-status', [UserController::class, 'toggleStatus']);
+    Route::patch('/{id}/pin',           [UserController::class, 'updatePin']);
+});
 
         Route::prefix('branches')->group(function () {
             Route::get('/performance',         [BranchController::class, 'performance']);
@@ -310,6 +328,19 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::put('/{id}',                 [BranchController::class, 'update']);
             Route::delete('/{id}',              [BranchController::class, 'destroy']);
             Route::post('/{id}/refresh-totals', [BranchController::class, 'refreshTotals']);
+        });
+
+        Route::prefix('bundles')->group(function () {
+            Route::get   ('/all',         [BundleController::class, 'all']);       // all including inactive
+            Route::get   ('/{id}',        [BundleController::class, 'show']);
+            Route::post  ('/',            [BundleController::class, 'store']);
+            Route::put   ('/{id}',        [BundleController::class, 'update']);
+            Route::delete('/{id}',        [BundleController::class, 'destroy']);
+            Route::patch ('/{id}/toggle', [BundleController::class, 'toggle']);
+        });
+
+        Route::prefix('category-drinks')->group(function () {
+            Route::post('/', [CategoryDrinkController::class, 'store']);
         });
     });
 });

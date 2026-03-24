@@ -3,6 +3,106 @@
 import React, { useState, useRef, useEffect } from 'react';
 import TopNavbar from '../../Cashier/TopNavbar';
 import api from '../../../services/api';
+import { useToast } from '../../../context/ToastContext';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AdminPinOverlay — reused from POS modal, gates the Generate button
+// ─────────────────────────────────────────────────────────────────────────────
+
+const AdminPinOverlay = ({
+  onCancel,
+  onSuccess,
+}: {
+  onCancel: () => void;
+  onSuccess: () => void;
+}) => {
+  const [pin, setPin]         = React.useState('');
+  const [error, setError]     = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+
+  const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api';
+
+  const getHeaders = (): Record<string, string> => {
+    const token =
+      localStorage.getItem('auth_token') ??
+      localStorage.getItem('lucky_boba_token') ??
+      localStorage.getItem('token') ??
+      '';
+    return {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      Authorization: `Bearer ${token}`,
+    };
+  };
+
+  const handleSubmit = async () => {
+    if (!pin.trim()) return;
+    setLoading(true);
+    setError('');
+    try {
+      const res  = await fetch(`${API_BASE}/auth/verify-manager-pin`, {
+        method:  'POST',
+        headers: getHeaders(),
+        body:    JSON.stringify({ pin }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        onSuccess();
+      } else {
+        setError(json.message ?? 'Incorrect PIN. Try again.');
+        setPin('');
+      }
+    } catch {
+      setError('Connection error. Try again.');
+      setPin('');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-[0.625rem] shadow-2xl w-72 overflow-hidden">
+        <div className="bg-[#7c14d4] px-6 py-5 text-white text-center">
+          <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/50 mb-1">Authorization Required</p>
+          <h3 className="text-base font-black uppercase tracking-widest">Admin PIN</h3>
+          <p className="text-white/50 text-[10px] mt-1">Enter admin PIN to generate this report</p>
+        </div>
+        <div className="p-5 space-y-4">
+          <input
+            type="password"
+            value={pin}
+            onChange={e => setPin(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleSubmit()}
+            placeholder="••••"
+            autoFocus
+            className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-3 px-4 text-center text-2xl font-black tracking-[0.5em] outline-none focus:border-[#7c14d4] transition-colors"
+          />
+          {error && (
+            <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest text-center">{error}</p>
+          )}
+          <div className="flex gap-2">
+            <button
+              onClick={onCancel}
+              className="flex-1 py-3 rounded-[0.625rem] border-2 border-zinc-200 text-zinc-500 font-black text-xs uppercase tracking-widest hover:bg-zinc-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={loading || !pin.trim()}
+              className="flex-1 py-3 rounded-[0.625rem] bg-[#7c14d4] hover:bg-[#6a12b8] text-white font-black text-xs uppercase tracking-widest transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {loading ? '...' : 'Confirm'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface ZReadingReport {
   date?: string;
@@ -91,6 +191,8 @@ interface ZReadingReport {
   total_cash_count?: number;
   over_short?: number;
   net_total?: number;
+  vat_type?:   string;
+  vat_exempt?: number;
 }
 
 const Row = ({ label, value, indent = false }: { label: string; value: string | number; indent?: boolean }) => (
@@ -103,6 +205,7 @@ const Row = ({ label, value, indent = false }: { label: string; value: string | 
 const Divider = () => <div className="border-t border-dashed border-black my-1.5 w-full" />;
 
 const ZReading = () => {
+  const { showToast } = useToast();
   const today = new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState(today);
   const [fromDate, setFromDate] = useState(today);
@@ -116,8 +219,14 @@ const ZReading = () => {
   const [rawApiResponse, setRawApiResponse] = useState<Record<string, unknown> | unknown[] | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const phCurrency = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
+  const vatType = (reportData?.vat_type ?? localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat';
+  const isVat = vatType === 'vat';
   const [cashierName, setCashierName] = useState("ADMIN USER");
   const [invoiceQuery, setInvoiceQuery] = useState("");
+
+  // ── PIN overlay state ──────────────────────────────────────────────────────
+  const [showPinOverlay, setShowPinOverlay]         = useState(false);
+  const [pendingReportType, setPendingReportType]   = useState<string | null>(null);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -146,9 +255,9 @@ const ZReading = () => {
         return;
       }
       if (type === 'z_reading') {
-        const zParams = dateMode === 'range' 
-        ? { from: fromDate, to: toDate } 
-        : { from: selectedDate, to: selectedDate };
+        const zParams = dateMode === 'range'
+          ? { from: fromDate, to: toDate }
+          : { from: selectedDate, to: selectedDate };
         const [zRes, cashRes, qtyRes, voidRes] = await Promise.all([
           api.get('/reports/z-reading',       { params: zParams }),
           api.get('/cash-counts/summary',     { params: { date: dateMode === 'range' ? toDate : selectedDate } }),
@@ -164,15 +273,15 @@ const ZReading = () => {
         const cashDenominations = ALL_DENOMS.map(denom => ({ label: denom === 0.25 ? '0.25' : String(denom), qty: storedMap.get(denom) ?? 0, total: denom * (storedMap.get(denom) ?? 0) }));
         const totalCashCount = ccNested?.grand_total ?? (ccData.actual_amount as number) ?? 0;
         const expectedAmount = (ccData.expected_amount as number) ?? 0;
-        const merged = { 
-            ...zData, 
-            cash_denominations: cashDenominations, 
-            total_cash_count: totalCashCount, 
-            expected_amount: expectedAmount,
-            categories: (qtyRes.data as Record<string, unknown>).categories ?? [], 
-            all_addons_summary: (qtyRes.data as Record<string, unknown>).all_addons_summary ?? [], 
-            logs: (voidRes.data as Record<string, unknown>).logs ?? (Array.isArray(voidRes.data) ? voidRes.data : []) 
-          };
+        const merged = {
+          ...zData,
+          cash_denominations: cashDenominations,
+          total_cash_count: totalCashCount,
+          expected_amount: expectedAmount,
+          categories: (qtyRes.data as Record<string, unknown>).categories ?? [],
+          all_addons_summary: (qtyRes.data as Record<string, unknown>).all_addons_summary ?? [],
+          logs: (voidRes.data as Record<string, unknown>).logs ?? (Array.isArray(voidRes.data) ? voidRes.data : [])
+        };
         setRawApiResponse(merged as Record<string, unknown>);
         setReportData({ ...merged as unknown as ZReadingReport, report_type: type });
         return;
@@ -226,13 +335,23 @@ const ZReading = () => {
     }
   };
 
-  const handleGenerate = () => fetchReportData('z_reading');
-  const handlePrint = () => window.print();
+  // ── Generate button click — always requires PIN ────────────────────────────
+  const handleGenerate = () => {
+    setPendingReportType('z_reading');
+    setShowPinOverlay(true);
+  };
 
+  // ── Menu action click — requires PIN for all report types ─────────────────
   const handleMenuAction = async (type: string) => {
     const fetchable = ['z_reading', 'hourly_sales', 'void_logs', 'detailed', 'qty_items', 'cash_count', 'summary', 'search'];
-    if (fetchable.includes(type)) { await fetchReportData(type); }
-    else if (type === 'export_sales' || type === 'export_items') {
+    if (fetchable.includes(type)) {
+      setPendingReportType(type);
+      setShowPinOverlay(true);
+      setIsMenuOpen(false);
+      return;
+    }
+    // exports don't need PIN
+    if (type === 'export_sales' || type === 'export_items') {
       try {
         const endpoint = type === 'export_sales' ? 'export-sales' : 'export-items';
         const response = await api.get(`/reports/${endpoint}`, { params: { date: selectedDate }, responseType: 'blob' });
@@ -243,6 +362,22 @@ const ZReading = () => {
       } catch { setError("Export failed. Check console for details."); }
     }
   };
+
+  const handlePinSuccess = async () => {
+    setShowPinOverlay(false);
+    if (pendingReportType) {
+      showToast('Access granted. Generating report...', 'success');
+      await fetchReportData(pendingReportType);
+      setPendingReportType(null);
+    }
+  };
+
+  const handlePinCancel = () => {
+    setShowPinOverlay(false);
+    setPendingReportType(null);
+  };
+
+  const handlePrint = () => window.print();
 
   const menuCards = [
     { label: "REPORT",          title: "HOURLY SALES",         type: "hourly_sales", color: "border-[#7c14d4]" },
@@ -256,8 +391,6 @@ const ZReading = () => {
     { label: "Z-READING",  title: "", isAction: true, type: "z_reading",  actionLabel: "Z-READING",  actionText: "PRINT", color: "border-emerald-500" },
     { label: "CASH COUNT", title: "", isAction: true, type: "cash_count", actionLabel: "CASH COUNT", actionText: "VIEW",  color: "border-[#7c14d4]" },
   ];
-
-  // ── All render helpers are identical to original (receipt content unchanged) ──
 
   const renderHourlySales = () => {
     const HOUR_LABELS = ['12am','1am','2am','3am','4am','5am','6am','7am','8am','9am','10am','11am','12pm','1pm','2pm','3pm','4pm','5pm','6pm','7pm','8pm','9pm','10pm','11pm'];
@@ -367,7 +500,6 @@ const ZReading = () => {
     return (
       <div className="my-2">
         {reportData?.categories && reportData.categories.length > 0 && (<><Divider /><div className="flex text-[11px] border-b border-black pb-0.5 mb-0.5"><span className="w-[55%] uppercase">DESCRIPTION</span><span className="w-[15%] text-center uppercase">QTY</span><span className="w-[30%] text-right uppercase">AMOUNT</span></div>{reportData.categories.map((cat, catIdx) => { const hasSizes = cat.products.some(p => p.size !== null && p.size !== undefined); const sizeGroups = new Map<string | null, typeof cat.products>(); for (const product of cat.products) { const key = product.size ?? null; if (!sizeGroups.has(key)) sizeGroups.set(key, []); sizeGroups.get(key)!.push(product); } const orderedKeys: (string | null)[] = [...SIZE_ORDER.filter(s => sizeGroups.has(s)), ...(sizeGroups.has(null) ? [null] : [])]; return (<div key={catIdx} className="mb-1"><p className="text-[11px] font-bold uppercase mt-1">{cat.category_name}</p>{orderedKeys.map((sizeKey, si) => { const products = sizeGroups.get(sizeKey) ?? []; return (<div key={si}>{hasSizes && sizeKey !== null && <p className="text-[11px] uppercase pl-2">{sizeKey}:</p>}{products.map((item, i) => (<React.Fragment key={i}><div className="flex text-[11px] leading-snug"><span className={`w-[55%] uppercase leading-tight ${hasSizes && sizeKey !== null ? 'pl-4' : 'pl-2'}`}>{item.product_name}{item.size ? ` (${item.size})` : ''}</span><span className="w-[15%] text-center">{item.total_qty}</span><span className="w-[30%] text-right">{phCurrency.format(item.total_sales)}</span></div>{item.add_ons?.map((addon, aIdx) => (<div key={aIdx} className="flex text-[10px] pl-4 leading-snug"><span className="w-[70%]">+ {addon.name}</span><span className="w-[30%] text-right">x{addon.qty}</span></div>))}</React.Fragment>))}</div>); })}<div className="flex justify-between text-[11px] border-t border-dashed border-zinc-800 mt-1 pt-1"><span className="uppercase">T. PER: {cat.category_name}</span><span>{phCurrency.format(cat.category_total || 0)}</span></div><Divider /></div>); })}{reportData.all_addons_summary && reportData.all_addons_summary.length > 0 && (<div className="mt-1"><p className="text-[11px] uppercase">ADD ONS</p>{reportData.all_addons_summary.map((addon, idx) => (<div key={idx} className="flex text-[11px] leading-snug"><span className="w-[70%] uppercase pl-2">{addon.name}</span><span className="w-[30%] text-right">x{addon.qty}</span></div>))}<div className="flex justify-between text-[11px] border-t border-dashed border-zinc-800 mt-1 pt-1"><span className="uppercase">T. PER: ADD ONS</span><span>QTY: {reportData.all_addons_summary.reduce((a, b) => a + b.qty, 0)}</span></div></div>)}</>)}
-        {/* Cup Size Totals, grand total, audit rows — identical to original */}
         <Divider />
         <div className="flex text-[11px] justify-end gap-2 mb-0.5"><span className="uppercase">TOTAL:</span><span className="w-[35%] text-right font-bold">{phCurrency.format(reportData?.gross_sales || 0)}</span></div>
         <Divider />
@@ -414,18 +546,16 @@ const ZReading = () => {
       'cash': 'cash',
     };
     const paymentMap = new Map<string, number>();
-      (reportData?.payment_breakdown ?? []).forEach(p => {
-        const raw = (p.method ?? '').toLowerCase().trim();
-        const key = METHOD_ALIASES[raw] ?? raw;
-        paymentMap.set(key, (paymentMap.get(key) ?? 0) + Number(p.amount ?? 0));
-      });
+    (reportData?.payment_breakdown ?? []).forEach(p => {
+      const raw = (p.method ?? '').toLowerCase().trim();
+      const key = METHOD_ALIASES[raw] ?? raw;
+      paymentMap.set(key, (paymentMap.get(key) ?? 0) + Number(p.amount ?? 0));
+    });
     const creditMethods = ['visa', 'mastercard', 'food panda', 'grab', 'gcash'];
     const debitMethods: string[] = [];
     const totalCredit  = creditMethods.reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
     const totalDebit   = debitMethods.reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
     const totalCard    = totalCredit + totalDebit;
-
-    // Recalculate cash from paymentMap (only actual cash in drawer)
     const actualCash = paymentMap.get('cash') || 0;
     const actualNonCash = gross - actualCash;
     const cashDenominations = reportData?.cash_denominations ?? reportData?.cash_count?.denominations ?? [];
@@ -457,9 +587,9 @@ const ZReading = () => {
         <Row label="Sales for the Day(s)" value={phCurrency.format(salesForDay)} />
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">BREAKDOWN OF SALES</p>
-        <Row label="VATable Sales" value={phCurrency.format(vatableSales)} />
-        <Row label="VAT Amount" value={phCurrency.format(vatAmount)} />
-        <Row label="VAT Exempt Sales" value={phCurrency.format(0)} />
+        <Row label="VATable Sales"    value={phCurrency.format(isVat ? vatableSales : 0)} />
+        <Row label="VAT Amount"       value={phCurrency.format(isVat ? vatAmount : 0)} />
+        <Row label="VAT Exempt Sales" value={phCurrency.format(isVat ? 0 : gross)} />
         <Row label="Zero-Rated Sales" value={phCurrency.format(0)} />
         <Divider />
         <Row label="Service Charge" value={phCurrency.format(0)} />
@@ -480,17 +610,17 @@ const ZReading = () => {
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">PAYMENTS RECEIVED</p>
         {PAYMENT_METHODS.map((method, i) => <Row key={i} label={method.toUpperCase()} value={phCurrency.format(paymentMap.get(method) || 0)} />)}
         {reportData?.payment_breakdown
-        ?.filter(p => {
-          if (!p.method) return false;
-          const raw = p.method.toLowerCase().trim();
-          const normalized = METHOD_ALIASES[raw] ?? raw;
-          return !PAYMENT_METHODS.includes(normalized);
-        })
-        .map((p, i) => {
-          const raw = (p.method ?? '').toLowerCase().trim();
-          const normalized = METHOD_ALIASES[raw] ?? raw;
-          return <Row key={`extra-${i}`} label={normalized.toUpperCase()} value={phCurrency.format(p.amount ?? 0)} />;
-        })}
+          ?.filter(p => {
+            if (!p.method) return false;
+            const raw = p.method.toLowerCase().trim();
+            const normalized = METHOD_ALIASES[raw] ?? raw;
+            return !PAYMENT_METHODS.includes(normalized);
+          })
+          .map((p, i) => {
+            const raw = (p.method ?? '').toLowerCase().trim();
+            const normalized = METHOD_ALIASES[raw] ?? raw;
+            return <Row key={`extra-${i}`} label={normalized.toUpperCase()} value={phCurrency.format(p.amount ?? 0)} />;
+          })}
         <Divider />
         <Row label="TOTAL CREDIT" value={phCurrency.format(totalCredit)} />
         <Row label="TOTAL DEBIT" value={phCurrency.format(totalDebit)} />
@@ -515,6 +645,15 @@ const ZReading = () => {
 
   return (
     <div className="flex-1 bg-[#f4f2fb] h-full flex flex-col overflow-hidden font-sans">
+
+      {/* Admin PIN overlay */}
+      {showPinOverlay && (
+        <AdminPinOverlay
+          onCancel={handlePinCancel}
+          onSuccess={handlePinSuccess}
+        />
+      )}
+
       <TopNavbar />
       <div className="flex-1 overflow-y-auto p-6 flex flex-col relative">
         <style>{`
@@ -552,7 +691,7 @@ const ZReading = () => {
               <div className="absolute top-full left-0 mt-1 w-96 bg-white border border-[#e9d5ff] shadow-2xl p-5 z-50 max-h-[70vh] overflow-y-auto rounded-[0.625rem]">
                 <div className="grid grid-cols-2 gap-3">
                   {menuCards.map((card, index) => (
-                    <div key={index} onClick={() => { handleMenuAction(card.type); setIsMenuOpen(false); }}
+                    <div key={index} onClick={() => handleMenuAction(card.type)}
                       className={`bg-white border-l-4 ${card.color} shadow-sm p-4 h-20 flex flex-col justify-center cursor-pointer group hover:bg-[#f5f0ff] transition-all rounded-[0.625rem]`}>
                       <h3 className="text-zinc-400 font-bold uppercase tracking-widest text-[9px] mb-1">{card.label}</h3>
                       <h2 className="text-sm font-black text-slate-800 uppercase group-hover:text-[#7c14d4]">{card.title || card.actionLabel}</h2>

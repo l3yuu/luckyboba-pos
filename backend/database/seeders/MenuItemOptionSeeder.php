@@ -22,7 +22,7 @@ class MenuItemOptionSeeder extends Seeder
             'FLMM8','FLML8','FLMM3','FLML3','FLMM19','FLML19',
             'FLMM15','FLML15','FLMM20','FLML20','FLMM7','FLML7',
             'FLMM17','FLML17','FLMM6','FLML6','FLMM9','FLML9',
-            'FLMM5','FLML5','FLMM1','FLML1','FLMM16','FLML16','FLMM18','FLML18',
+            'FLMM5','FLML5','FLMM1','FLML1','FLMM16','FLML16','FLMM18','FLML18','FLMM30','FLML30',
             // FRAPPE SERIES
             'FSM1','FSL1','FSM7','FSL7','FSM8','FSL8','FSM3','FSL3',
             'FSM4','FSL4','FSM5','FSL5','FSM6','FSL6','FSM2','FSL2',
@@ -34,9 +34,15 @@ class MenuItemOptionSeeder extends Seeder
             'CCMM5','CCML5','CCMM10','CCML10','CCMM3','CCML3',
             'CCMM7','CCML7','CCMM4','CCML4','CCMM1','CCML1',
             'CCMM2','CCML2','CCMM6','CCML6',
+            'BCCKM1','BCCKL1',
+            'CCMM11','CCML11',
+            'CCMM12','CCML12',
             // CREAM CHEESE MILK TEA
             'CRMM2','CRML2','CRMM7','CRML7','CRMM5','CRML5',
             'CRMM8','CRML8','CRMM1','CRML1','CRMM4','CRML4','CRMM3','CRML3',
+            'CRMM9','CRML9',
+            'CRMM10','CRML10',
+            'CRMM11','CRML11',
             // FP COFFEE BUNDLES
             'COF1','COF2',
             // GF DUO BUNDLES

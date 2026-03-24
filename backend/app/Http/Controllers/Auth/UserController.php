@@ -20,32 +20,31 @@ class UserController extends Controller
      * Also includes active card info for the Flutter app.
      */
     private function transformUser(User $user, ?string $lastLoginAt = null, int $loginCount = 0): array
-    {
-        // ── Check if user has an active card ─────────────────────────────────
-        $activeCard = DB::table('user_cards')
-            ->where('user_id', $user->id)
-            ->where('status', 'active')
-            ->first();
+{
+    $activeCard = DB::table('user_cards')
+        ->where('user_id', $user->id)
+        ->where('status', 'active')
+        ->first();
 
-        return [
-            'id'                => $user->id,
-            'name'              => $user->name,
-            'email'             => $user->email,
-            'role'              => $user->role,
-            'status'            => $user->status,
-            'branch'            => $user->branch_name ?? null,
-            'branch_id'         => $user->branch_id,
-            'email_verified_at' => $user->email_verified_at,
-            'created_at'        => $user->created_at,
-            'updated_at'        => $user->updated_at,
-            'last_login_at'     => $lastLoginAt,
-            'login_count'       => $loginCount,
-            // ── Active card fields (used by Flutter app) ──────────────────────
-            'has_active_card'   => $activeCard !== null,
-            'card_id'           => $activeCard?->card_id ?? null,
-            'card_expires_at'   => $activeCard?->expires_at ?? null,
-        ];
-    }
+    return [
+        'id'                => $user->id,
+        'name'              => $user->name,
+        'email'             => $user->email,
+        'role'              => $user->role,
+        'status'            => $user->status,
+        'branch'            => $user->branch_name ?? null,
+        'branch_id'         => $user->branch_id,
+        'email_verified_at' => $user->email_verified_at,
+        'created_at'        => $user->created_at,
+        'updated_at'        => $user->updated_at,
+        'last_login_at'     => $lastLoginAt,
+        'login_count'       => $loginCount,
+        'has_active_card'   => $activeCard !== null,
+        'card_id'           => $activeCard?->card_id ?? null,
+        'card_expires_at'   => $activeCard?->expires_at ?? null,
+        'has_pin'           => ! is_null($user->manager_pin), // ← added
+    ];
+}
 
     /**
      * GET /api/users
@@ -158,14 +157,14 @@ class UserController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'name'        => 'required|string|max:255',
-            'email'       => 'required|email|max:255|unique:users,email',
-            'password'    => 'required|string|min:6',
-            'role'        => 'required|in:superadmin,system_admin,branch_manager,cashier,customer',
-            'branch'      => 'nullable|string|max:255',
-            'status'      => 'required|in:ACTIVE,INACTIVE',
-            'manager_pin' => 'nullable|string|min:4|max:20',
-        ]);
+    'name'        => 'required|string|max:255',
+    'email'       => 'required|email|max:255|unique:users,email',
+    'password'    => 'required|string|min:6',
+    'role'        => 'required|in:superadmin,system_admin,branch_manager,team_leader,cashier,customer', // ← update
+    'branch'      => 'nullable|string|max:255',
+    'status'      => 'required|in:ACTIVE,INACTIVE',
+    'manager_pin' => 'nullable|string|min:4|max:20',
+]);
 
         if ($validator->fails()) {
             return response()->json([
@@ -196,6 +195,9 @@ class UserController extends Controller
                 $branchId   = $branch->id;
                 $branchName = $branch->name;
             }
+
+            $branch     = \App\Models\Branch::find($request->branch_id);
+            $branchName = $branch?->name ?? null;
 
             $user = User::create([
                 'name'        => $request->name,
@@ -242,14 +244,14 @@ class UserController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'name'        => 'sometimes|required|string|max:255',
-            'email'       => 'sometimes|required|email|max:255|unique:users,email,' . $id,
-            'password'    => 'nullable|string|min:6',
-            'role'        => 'sometimes|required|in:superadmin,system_admin,branch_manager,cashier,customer',
-            'status'      => 'sometimes|required|in:ACTIVE,INACTIVE',
-            'branch'      => 'nullable|string|max:255',
-            'manager_pin' => 'nullable|string|min:4|max:20',
-        ]);
+    'name'        => 'sometimes|required|string|max:255',
+    'email'       => 'sometimes|required|email|max:255|unique:users,email,' . $id,
+    'password'    => 'nullable|string|min:6',
+    'role'        => 'sometimes|required|in:superadmin,system_admin,branch_manager,team_leader,cashier,customer', // ← update
+    'status'      => 'sometimes|required|in:ACTIVE,INACTIVE',
+    'branch'      => 'nullable|string|max:255',
+    'manager_pin' => 'nullable|string|min:4|max:20',
+]);
 
         if ($validator->fails()) {
             return response()->json([
@@ -473,5 +475,25 @@ class UserController extends Controller
             ->update(['manager_pin' => bcrypt($request->pin)]);
 
         return response()->json(['message' => 'PIN updated successfully.']);
+    }
+
+    /**
+     * POST /api/auth/verify-manager-pin
+     */
+    public function verifyManagerPin(Request $request)
+    {
+        $request->validate(['pin' => 'required|string']);
+
+        $admins = User::whereIn('role', ['superadmin', 'system_admin', 'branch_manager', 'team_leader'])
+    ->where('status', 'ACTIVE')
+    ->whereNotNull('manager_pin')
+    ->get();
+        foreach ($admins as $admin) {
+            if (Hash::check($request->pin, $admin->manager_pin)) {
+                return response()->json(['success' => true, 'message' => 'Authorized']);
+            }
+        }
+
+        return response()->json(['success' => false, 'message' => 'Incorrect PIN.']);
     }
 }

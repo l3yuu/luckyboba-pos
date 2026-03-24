@@ -38,6 +38,10 @@ interface ReceiptPrintProps {
   totalDiscountDisplay: number;
   itemDiscountTotal: number;
   promoDiscount: number;
+  addOnsData?: { id: number; name: string; price: number; grab_price?: number; panda_price?: number }[];
+  showDoubleQueueStub?: boolean;
+  isReprint?: boolean;
+  vatType?: 'vat' | 'non_vat';
 }
 
 export const ReceiptPrint = ({
@@ -45,7 +49,9 @@ export const ReceiptPrint = ({
   formattedDate, formattedTime, orderCharge, totalCount,
   subtotal, amtDue, vatableSales, vatAmount, change, cashTendered,
   referenceNumber, paymentMethod, selectedDiscount,
-  totalDiscountDisplay, itemDiscountTotal, promoDiscount,
+  totalDiscountDisplay, itemDiscountTotal, promoDiscount, addOnsData = [], showDoubleQueueStub = true,
+  isReprint = false,
+  vatType = 'vat',  
 }: ReceiptPrintProps) => {
 
   return (
@@ -66,38 +72,88 @@ export const ReceiptPrint = ({
           <div className="mt-1">Cashier: {cashierName ?? 'Admin'}</div>
           {orderCharge && <div className="mt-1">Order Type: {orderCharge === 'grab' ? 'GRABFOOD' : 'FOODPANDA'}</div>}
         </div>
-{/* Items */}
-<div className="mt-3 mb-3 text-xs border-t border-dashed border-black pt-3">
-  {cart.map((item, i) => (
-    <div key={i} className="mb-2">
-      <div className="uppercase">{item.name} {item.cupSizeLabel ? `(${item.cupSizeLabel})` : ''}</div>
-      <div className="flex justify-between w-full mt-0.5">
-        <span>{item.qty} X {(item.finalPrice / item.qty).toFixed(2)}</span>
-        <span>{item.finalPrice.toFixed(2)}</span>
-      </div>
-      {item.discountLabel && (
-        <div className="flex justify-between w-full text-[10px] italic">
-          <span>  • Discount: {item.discountLabel}</span>
+
+        {isReprint && (
+          <div className="text-center mb-2 border-t border-dashed border-black pt-2">
+            <p className="text-[15px] font-black uppercase tracking-widest">*** REPRINT ***</p>
+          </div>
+        )}
+        
+        {/* Items */}
+        <div className="mt-3 mb-3 text-xs border-t border-dashed border-black pt-3">
+        {cart.map((item, i) => (
+          <div key={i} className="mb-2">
+            {/* Main item row */}
+            <div className="uppercase">{item.name} {item.cupSizeLabel ? `(${item.cupSizeLabel})` : ''}</div>
+            <div className="flex justify-between w-full mt-0.5">
+              <span>
+                {(() => {
+                  const surcharge = item.charges?.grab ? Number(item.grab_price ?? 0) : item.charges?.panda ? Number(item.panda_price ?? 0) : 0;
+                  return `${item.qty} X ${(Number(item.price) + surcharge).toFixed(2)}`;
+                })()}
+              </span>
+              <span>
+                {(() => {
+                  const addOnCost = (item.addOns ?? []).reduce((sum, addonName) => {
+                    const a = addOnsData.find(x => x.name === addonName);
+                    if (!a) return sum;
+                    return sum + (item.charges?.grab && Number(a.grab_price ?? 0) > 0
+                      ? Number(a.grab_price)
+                      : item.charges?.panda && Number(a.panda_price ?? 0) > 0
+                      ? Number(a.panda_price)
+                      : Number(a.price));
+                  }, 0);
+                  const surcharge = item.charges?.grab ? Number(item.grab_price ?? 0) * item.qty : item.charges?.panda ? Number(item.panda_price ?? 0) * item.qty : 0;
+                  return (item.finalPrice - addOnCost * item.qty + surcharge).toFixed(2);
+                })()}
+              </span>
+            </div>
+            {item.discountLabel && (
+              <div className="flex justify-between w-full text-[10px] italic">
+                <span>  • Discount: {item.discountLabel}</span>
+              </div>
+            )}
+
+            {/* Sugar / options / remarks (no add-ons here) */}
+            {item.size === 'none' && item.sugarLevel != null ? (
+              <>
+                <div className="pl-2 text-[10px]">• Classic Pearl</div>
+                <div className="pl-4 text-[10px]">• Sugar {item.sugarLevel}</div>
+                {item.options?.map(o => <div key={o} className="pl-4 text-[10px]">• {o}</div>)}
+              </>
+            ) : (
+              <>
+                {item.sugarLevel != null && <div className="pl-2 text-[10px]">• Sugar {item.sugarLevel}</div>}
+                {item.options?.map(o => <div key={o} className="pl-2 text-[10px]">• {o}</div>)}
+                {item.remarks && <div className="pl-2 text-[10px] italic">• {item.remarks}</div>}
+              </>
+            )}
+
+        {/* Add-ons as separate line items */}
+        {item.addOns && item.addOns.length > 0 && item.addOns.map((addonName, ai) => {
+          const addonData = addOnsData.find((a: { id: number; name: string; price: number; grab_price?: number; panda_price?: number }) => a.name === addonName);
+          const addonUnitPrice = addonData
+            ? (item.charges?.grab && Number(addonData.grab_price ?? 0) > 0
+                ? Number(addonData.grab_price)
+                : item.charges?.panda && Number(addonData.panda_price ?? 0) > 0
+                ? Number(addonData.panda_price)
+                : Number(addonData.price))
+            : 0;
+          const addonTotal = addonUnitPrice * item.qty;
+
+          return (
+            <div key={ai} className="mt-2 pt-1 border-t border-dashed border-gray-300">
+              <div className="uppercase font-medium">{addonName}</div>
+              <div className="flex justify-between w-full mt-0.5">
+                <span>{item.qty} X {addonUnitPrice.toFixed(2)}</span>
+                <span>{addonTotal.toFixed(2)}</span>
+              </div>
+            </div>
+          );
+        })}
+          </div>
+        ))}
         </div>
-      )}
-      {item.size === 'none' && item.sugarLevel != null ? (
-        <>
-          <div className="pl-2 text-[10px]">• Classic Pearl</div>
-          <div className="pl-4 text-[10px]">• Sugar {item.sugarLevel}</div>
-          {item.options?.map(o => <div key={o} className="pl-4 text-[10px]">• {o}</div>)}
-          {item.addOns?.map(a  => <div key={a} className="pl-4 text-[10px]">• + {a}</div>)}
-        </>
-      ) : (
-        <>
-          {item.sugarLevel != null && <div className="pl-2 text-[10px]">• Sugar {item.sugarLevel}</div>}
-          {item.options?.map(o => <div key={o} className="pl-2 text-[10px]">• {o}</div>)}
-          {item.addOns?.map(a  => <div key={a} className="pl-2 text-[10px]">• + {a}</div>)}
-          {item.remarks && <div className="pl-2 text-[10px] italic">• {item.remarks}</div>}
-        </>
-      )}
-    </div>
-  ))}
-</div>
 
         {/* Totals */}
         <div className="text-xs space-y-1 border-t border-dashed border-black pt-2">
@@ -135,10 +191,21 @@ export const ReceiptPrint = ({
 
         {/* VAT breakdown */}
         <div className="text-[11px] mt-3 space-y-1">
-          <div className="flex justify-between"><span>VATable Sales(V)</span><span>{Number(vatableSales || 0).toFixed(2)}</span></div>
-          <div className="flex justify-between"><span>VAT Amount</span><span>{Number(vatAmount || 0).toFixed(2)}</span></div>
-          <div className="flex justify-between"><span>VAT Exempt Sales(E)</span><span>0.00</span></div>
-          <div className="flex justify-between"><span>Zero-Rated Sales(Z)</span><span>0.00</span></div>
+          {vatType === 'non_vat' ? (
+            <>
+              <div className="flex justify-between"><span>VATable Sales(V)</span><span>0.00</span></div>
+              <div className="flex justify-between"><span>VAT Amount</span><span>0.00</span></div>
+              <div className="flex justify-between"><span>VAT Exempt Sales(E)</span><span>{Number(amtDue || 0).toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>Zero-Rated Sales(Z)</span><span>0.00</span></div>
+            </>
+          ) : (
+            <>
+              <div className="flex justify-between"><span>VATable Sales(V)</span><span>{Number(vatableSales || 0).toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>VAT Amount</span><span>{Number(vatAmount || 0).toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>VAT Exempt Sales(E)</span><span>0.00</span></div>
+              <div className="flex justify-between"><span>Zero-Rated Sales(Z)</span><span>0.00</span></div>
+            </>
+          )}
         </div>
 
         {/* Signature fields */}
@@ -155,12 +222,21 @@ export const ReceiptPrint = ({
           FOR FRANCHISE<br />EMAIL OR CONTACT US ON<br />luckyboba.franchise@gmail.com<br />0917199894
         </div>
 
-        {/* Queue number */}
+        {/* Queue number stub 1 — flows naturally after receipt, no page break */}
         <div className="mt-6 py-4 text-center">
           <p className="text-sm tracking-widest uppercase mb-1">Your Order Number Is:</p>
           <h2 className="font-black text-4xl">#{queueNumber}</h2>
           <p className="text-[10px] mt-2 uppercase text-gray-500">Please wait for your number to be called</p>
         </div>
+
+        {/* Queue number stub 2 — on its own page */}
+        {showDoubleQueueStub && (
+          <div className="py-4 text-center queue-stub" style={{ pageBreakBefore: 'always', breakBefore: 'page' }}>
+            <p className="text-sm tracking-widest uppercase mb-1">Your Order Number Is:</p>
+            <h2 className="font-black text-4xl">#{queueNumber}</h2>
+            <p className="text-[10px] mt-2 uppercase text-gray-500">Please wait for your number to be called</p>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -195,33 +271,54 @@ export const KitchenPrint = ({
         <p className="text-sm mt-1">{formattedDate} {formattedTime}</p>
       </div>
 
-      <div className="mt-2">
-        {cart.map((item, i) => (
-          <div key={i} className="mb-4 border-b-2 border-dashed border-gray-400 pb-3">
-            <div className="flex items-start">
-              <span className="font-bold text-m mr-3">{item.qty}x</span>
-              <div className="flex-1">
-                <div className="uppercase text-sm leading-tight mb-1">{item.name} {item.cupSizeLabel ? `(${item.cupSizeLabel})` : ''}</div>
-                {item.size === 'none' && item.sugarLevel != null ? (
-                  <>
-                    <div className="text-sm font-bold mt-1">• Classic Pearl</div>
-                    <div className="text-sm pl-3">Sugar: {item.sugarLevel}</div>
-                    {item.options && item.options.length > 0 && <div className="text-sm pl-3">Options: {item.options.join(', ')}</div>}
-                    {item.addOns  && item.addOns.length  > 0 && <div className="text-sm pl-3">Add: {item.addOns.join(', ')}</div>}
-                  </>
-                ) : (
-                  <>
-                    {item.sugarLevel != null && <div className="text-sm mt-1">Sugar: {item.sugarLevel}</div>}
-                    {item.options && item.options.length > 0 && <div className="text-sm">Options: {item.options.join(', ')}</div>}
-                    {item.addOns  && item.addOns.length  > 0 && <div className="text-sm">Add: {item.addOns.join(', ')}</div>}
-                    {item.remarks && <div className="text-sm italic mt-2 border-t border-gray-200 pt-1">{item.remarks}</div>}
-                  </>
-                )}
-              </div>
-            </div>
+<div className="mt-2">
+  {cart.map((item, i) => (
+    <div key={i} className="mb-4 border-b-2 border-dashed border-gray-400 pb-3">
+      <div className="flex items-start">
+        <span className="font-bold text-m mr-3">{item.qty}x</span>
+        <div className="flex-1">
+          <div className="uppercase text-sm leading-tight mb-1">
+            {item.name} {item.cupSizeLabel ? `(${item.cupSizeLabel})` : ''}
           </div>
-        ))}
+
+          {item.size === 'none' && item.sugarLevel != null ? (
+            <>
+              <div className="text-sm font-bold mt-1">• Classic Pearl</div>
+              <div className="text-sm pl-3">Sugar: {item.sugarLevel}</div>
+              {item.options && item.options.length > 0 && (
+                <div className="text-sm pl-3">Options: {item.options.join(', ')}</div>
+              )}
+              {item.addOns && item.addOns.length > 0 && item.addOns.map((a, ai) => (
+                <div key={ai} className="text-sm pl-3 font-bold">+ {a}</div>
+              ))}
+            </>
+          ) : (
+            <>
+              {item.sugarLevel != null && (
+                <div className="text-sm mt-1">Sugar: {item.sugarLevel}</div>
+              )}
+              {item.options && item.options.length > 0 && (
+                <div className="text-sm">Options: {item.options.join(', ')}</div>
+              )}
+              {item.addOns && item.addOns.length > 0 && (
+                <div className="mt-1 border-t border-dashed border-gray-300 pt-1">
+                  {item.addOns.map((a, ai) => (
+                    <div key={ai} className="text-sm font-bold">+ {a}</div>
+                  ))}
+                </div>
+              )}
+              {item.remarks && (
+                <div className="text-sm italic mt-2 border-t border-gray-200 pt-1">
+                  {item.remarks}
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
+    </div>
+  ))}
+</div>
 
       <div className="text-center text-sm mt-4 uppercase tracking-widest">--- END OF TICKET ---</div>
     </div>
@@ -313,9 +410,10 @@ export const StickerPrint = ({
     if (item.isBundle) {
       return acc + (item.bundleComponents?.reduce((s, c) => s + c.quantity, 0) ?? 0) * item.qty;
     }
-    const isSticker   = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
-    const waffleCount = (item.addOns?.filter(a => a.toLowerCase().includes('waffle combo')).length ?? 0) * item.qty;
-    return acc + (isSticker ? item.qty : 0) + (!isSticker ? waffleCount : 0);
+    const isSticker    = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
+    const isMixMatch   = item.remarks?.startsWith('[Drink:') ?? false;
+    const waffleCount  = (item.addOns?.filter(a => a.toLowerCase().includes('waffle combo')).length ?? 0) * item.qty;
+    return acc + (isSticker ? item.qty : 0) + (!isSticker && isMixMatch ? item.qty : 0) + (!isSticker ? waffleCount : 0);
   }, 0);
 
   const sharedProps = { branchName, orNumber, queueNumber, customerName, totalDrinks, formattedDate, formattedTime };
@@ -378,6 +476,49 @@ export const StickerPrint = ({
           );
           drinkIndex++;
         });
+      }
+      return;
+    }
+
+    const isMixMatch = item.remarks?.startsWith('[Drink:') ?? false;
+
+    if (!isSticker && isMixMatch) {
+      for (let i = 0; i < item.qty; i++) {
+        // Parse drink details from remarks: "[Drink: NAME | Sugar: LEVEL | ...]"
+        const remarksContent = item.remarks?.replace(/^\[|\]$/g, '') ?? '';
+        const parts = remarksContent.split(' | ');
+        const drinkName = parts.find(p => p.startsWith('Drink:'))?.replace('Drink: ', '') ?? '';
+        const sugarPart = parts.find(p => p.startsWith('Sugar:'))?.replace('Sugar: ', '') ?? '';
+        const options   = parts.filter(p => !p.startsWith('Drink:') && !p.startsWith('Sugar:') && !p.startsWith('+'));
+        const addOns    = parts.filter(p => p.startsWith('+')).map(p => p.replace('+', '').trim());
+
+        const extraCount = options.length + addOns.length;
+        const cls = getStickerClasses(extraCount);
+
+        stickers.push(
+          <div
+            key={`sticker-mixmatch-${cartIndex}-${i}`}
+            className={`sticker-area page-break bg-white text-black flex flex-col justify-between items-center h-full w-full ${cls.paddingClass}`}
+            style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
+          >
+            <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls} />
+            <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
+              <div className="text-[7px] font-bold uppercase text-zinc-400 leading-none mb-0.5 tracking-wider">
+                Mix & Match — {item.name}
+              </div>
+              <div className={`w-full font-black uppercase leading-tight ${cls.nameSize} ${cls.marginClass}`}>
+                {drinkName}
+              </div>
+              <div className={`w-full text-center font-bold ${cls.addOnSize} ${cls.gapClass}`}>
+                {sugarPart && <div>Sugar: {sugarPart}</div>}
+                {options.map(opt => <div key={opt}>{opt}</div>)}
+                {addOns.map(a => <div key={a}>+ {a}</div>)}
+              </div>
+            </div>
+            <StickerFooter cls={cls} formattedDate={formattedDate} formattedTime={formattedTime} />
+          </div>
+        );
+        drinkIndex++;
       }
       return;
     }

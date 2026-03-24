@@ -14,16 +14,22 @@ class Bundle extends Model
         'name',
         'display_name',
         'category',
+        'category_id',
+        'bundle_type',
         'barcode',
         'price',
+        'grab_price',   // ← add
+        'panda_price',  // ← add
         'size',
         'cup_id',
         'is_active',
     ];
- 
+
     protected $casts = [
-        'price'     => 'float',
-        'is_active' => 'boolean',
+        'price'       => 'float',
+        'grab_price'  => 'float',   // ← add
+        'panda_price' => 'float',   // ← add
+        'is_active'   => 'boolean',
     ];
  
     public function cup(): BelongsTo

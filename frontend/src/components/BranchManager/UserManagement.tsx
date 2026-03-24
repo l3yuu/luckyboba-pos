@@ -16,16 +16,17 @@ type VariantKey = 'primary' | 'secondary' | 'danger' | 'ghost';
 type SizeKey    = 'sm' | 'md' | 'lg';
 
 interface User {
-  id:           number;
-  name:         string;
-  email:        string;
-  role:         string;
-  branch:       string;
-  branch_id:    number | null;
-  status:       string;
-  lastLogin?:   string;
-  login_count?: number;
-  created_at?:  string;
+  id:          number;
+  name:        string;
+  email:       string;
+  role:        string;
+  branch:      string;
+  branch_id:   number | null;
+  status:      string;
+  lastLogin?:  string;
+  login_count: number;
+  created_at:  string;
+  has_pin:     boolean; // ← add this
 }
 
 interface FormState {
@@ -66,7 +67,8 @@ const mapUser = (u: any): User => ({
       })
     : undefined,
   login_count:  u.login_count,
-  created_at:   u.created_at,
+  created_at: u.created_at,
+  has_pin: u.has_pin ?? false,
 });
 
 const blankForm = (): FormState => ({

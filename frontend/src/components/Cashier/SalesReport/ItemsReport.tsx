@@ -99,11 +99,10 @@ const ItemsReport = () => {
     }
   }, [fromDate, toDate, reportType, getCacheKey]);
 
-  // ✅ FIX: Now properly tracks fetchReport without causing an infinite loop
-  useEffect(() => {
-    setData(null);
-    fetchReport();
-  }, [fetchReport]);
+useEffect(() => {
+  setData(null);
+  fetchReport();
+}, [fromDate, toDate, reportType, fetchReport]);
 
   const generateExcel = useCallback(() => {
     if (!data || data.items.length === 0) {

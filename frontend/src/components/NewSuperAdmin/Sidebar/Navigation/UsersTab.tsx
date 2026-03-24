@@ -20,6 +20,7 @@ interface User {
   branch_id: number | null;
   status:    string;
   lastLogin?: string;
+  has_pin:   boolean;
 }
 
 interface StatCardProps {
@@ -71,6 +72,7 @@ const mapUser = (u: any): User => ({
   branch_id: u.branch_id ?? null,
   status:    u.status,
   lastLogin: u.last_login_at ?? undefined,
+  has_pin:   u.has_pin ?? false,
 });
 
 const ROLE_LABELS: Record<string, string> = {
@@ -79,8 +81,9 @@ const ROLE_LABELS: Record<string, string> = {
   branch_manager: "Branch Manager",
   cashier:        "Cashier",
   customer:       "Customer",
+  team_leader:    "Team Leader",
 };
-const ALL_ROLES = ["superadmin", "system_admin", "branch_manager", "cashier"];
+const ALL_ROLES = ['superadmin', 'system_admin', 'branch_manager', 'team_leader', 'cashier', 'customer'];
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
 const Avatar: React.FC<{ name: string; size?: string }> = ({ name, size = "w-7 h-7 text-[10px]" }) => (
@@ -104,6 +107,63 @@ const Badge: React.FC<{ status: string }> = ({ status }) => {
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${map[status] ?? "badge-inactive"}`}>
       {status}
     </span>
+  );
+};
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+type ToastType = "success" | "error" | "warning";
+
+interface ToastProps { message: string; type?: ToastType; onDone: () => void; }
+
+const Toast: React.FC<ToastProps> = ({ message, type = "success", onDone }) => {
+  useEffect(() => {
+    const t = setTimeout(onDone, 3000);
+    return () => clearTimeout(t);
+  }, [onDone]);
+
+  const styles: Record<ToastType, { bar: string; icon: string; iconBg: string }> = {
+    success: { bar: "bg-emerald-500", iconBg: "bg-emerald-500", icon: "text-white" },
+    error:   { bar: "bg-red-500",     iconBg: "bg-red-500",     icon: "text-white" },
+    warning: { bar: "bg-amber-500",   iconBg: "bg-amber-500",   icon: "text-white" },
+  };
+  const s = styles[type];
+
+  const icons: Record<ToastType, React.ReactNode> = {
+    success: (
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="20 6 9 17 4 12" />
+      </svg>
+    ),
+    error: (
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+      </svg>
+    ),
+    warning: (
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" />
+      </svg>
+    ),
+  };
+
+  return createPortal(
+    <div className="fixed bottom-6 right-6 z-[99999]"
+      style={{ animation: "slideUpFade 0.25s ease forwards" }}>
+      <style>{`@keyframes slideUpFade { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }`}</style>
+      <div className="relative flex items-center gap-3 bg-[#1a0f2e] text-white pl-4 pr-3 py-3 rounded-xl shadow-2xl border border-white/10 min-w-[220px] max-w-xs overflow-hidden">
+        {/* accent bar */}
+        <div className={`absolute left-0 top-0 bottom-0 w-1 ${s.bar} rounded-l-xl`} />
+        {/* icon */}
+        <div className={`w-5 h-5 ${s.iconBg} rounded-full flex items-center justify-center shrink-0 ${s.icon}`}>
+          {icons[type]}
+        </div>
+        <p className="text-xs font-semibold flex-1 leading-snug">{message}</p>
+        <button onClick={onDone} className="ml-1 text-white/40 hover:text-white transition-colors shrink-0">
+          <X size={13} />
+        </button>
+      </div>
+    </div>,
+    document.body
   );
 };
 
@@ -238,10 +298,16 @@ const ViewUserModal: React.FC<ViewUserModalProps> = ({ onClose, user }) => {
 
 // ── Add User Modal ────────────────────────────────────────────────────────────
 const AddUserModal: React.FC<AddUserModalProps> = ({ onClose, onSaved, branches }) => {
-  const [form,     setForm]     = useState({ name: "", email: "", password: "", role: "cashier", branch: "", status: "ACTIVE" });
+  const [form, setForm] = useState({
+    name: "", email: "", password: "", role: "cashier",
+    branch: "", status: "ACTIVE",
+    manager_pin: "", manager_pin_confirmation: "",
+  });
   const [errors,   setErrors]   = useState<Record<string, string>>({});
   const [loading,  setLoading]  = useState(false);
   const [apiError, setApiError] = useState("");
+  const PIN_ROLES = ['branch_manager', 'team_leader'];
+  const showPin = PIN_ROLES.includes(form.role);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -249,6 +315,14 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ onClose, onSaved, branches 
     if (!form.email.trim())    e.email    = "Email is required.";
     if (!form.password.trim()) e.password = "Password is required.";
     if (form.password && form.password.length < 6) e.password = "Password must be at least 6 characters.";
+    if (showPin) {
+      if (!form.manager_pin.trim())
+        e.manager_pin = "PIN is required for this role.";
+      else if (form.manager_pin.length < 4)
+        e.manager_pin = "PIN must be at least 4 digits.";
+      else if (form.manager_pin !== form.manager_pin_confirmation)
+        e.manager_pin_confirmation = "PINs do not match.";
+    }
     return e;
   };
 
@@ -257,9 +331,17 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ onClose, onSaved, branches 
     if (Object.keys(e).length) { setErrors(e); return; }
     setLoading(true); setApiError("");
     try {
+      const payload: Record<string, string | null> = {
+        ...form,
+        branch: form.branch || null,
+      };
+      if (!showPin) {
+        delete payload.manager_pin;
+        delete payload.manager_pin_confirmation;
+      }
       const res  = await fetch("/api/users", {
         method: "POST", headers: authHeaders(),
-        body: JSON.stringify({ ...form, branch: form.branch || null }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -330,22 +412,65 @@ const AddUserModal: React.FC<AddUserModalProps> = ({ onClose, onSaved, branches 
           {branches.map(b => <option key={b} value={b}>{b}</option>)}
         </select>
       </Field>
+
+      {showPin && (
+        <div className="rounded-lg border border-violet-200 bg-violet-50 p-3 space-y-3">
+          <div className="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              className="text-violet-600 shrink-0">
+              <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            <p className="text-[10px] font-black uppercase tracking-widest text-violet-700">
+              Branch Manager PIN
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="PIN" required error={errors.manager_pin}>
+              <input {...f("manager_pin")} type="password" placeholder="Min. 4 digits" maxLength={8} className={inputCls(errors.manager_pin)} />
+            </Field>
+            <Field label="Confirm PIN" required error={errors.manager_pin_confirmation}>
+              <input {...f("manager_pin_confirmation")} type="password" placeholder="Re-enter PIN" maxLength={8} className={inputCls(errors.manager_pin_confirmation)} />
+            </Field>
+          </div>
+          <p className="text-[10px] text-violet-500 font-medium">
+            This PIN is used to authorize sensitive actions at the POS.
+          </p>
+        </div>
+      )}
     </ModalShell>
   );
 };
 
 // ── Edit User Modal ───────────────────────────────────────────────────────────
 const EditUserModal: React.FC<EditUserModalProps> = ({ onClose, onUpdated, user, branches }) => {
-  const [form,     setForm]     = useState({ name: user.name, email: user.email, password: "", role: user.role, branch: user.branch === "—" ? "" : user.branch, status: user.status });
+  const [form, setForm] = useState({
+    name: user.name, email: user.email, password: "",
+    role: user.role, branch: user.branch === "—" ? "" : user.branch,
+    status: user.status,
+    manager_pin: "", manager_pin_confirmation: "",
+  });
   const [errors,   setErrors]   = useState<Record<string, string>>({});
   const [loading,  setLoading]  = useState(false);
   const [apiError, setApiError] = useState("");
+
+  const PIN_ROLES = ['branch_manager', 'team_leader'];
+  const showPin = PIN_ROLES.includes(form.role) && !user.has_pin;
 
   const validate = () => {
     const e: Record<string, string> = {};
     if (!form.name.trim())  e.name  = "Name is required.";
     if (!form.email.trim()) e.email = "Email is required.";
     if (form.password && form.password.length < 6) e.password = "Password must be at least 6 characters.";
+    if (showPin) {
+      if (!form.manager_pin.trim())
+        e.manager_pin = "PIN is required for this role.";
+      else if (form.manager_pin.length < 4)
+        e.manager_pin = "PIN must be at least 4 digits.";
+      else if (form.manager_pin !== form.manager_pin_confirmation)
+        e.manager_pin_confirmation = "PINs do not match.";
+    }
     return e;
   };
 
@@ -359,7 +484,10 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ onClose, onUpdated, user,
         status: form.status, branch: form.branch || null,
       };
       if (form.password) payload.password = form.password;
-
+      if (showPin) {
+        payload.manager_pin              = form.manager_pin;
+        payload.manager_pin_confirmation = form.manager_pin_confirmation;
+      }
       const res  = await fetch(`/api/users/${user.id}`, {
         method: "PUT", headers: authHeaders(), body: JSON.stringify(payload),
       });
@@ -393,7 +521,9 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ onClose, onUpdated, user,
         <>
           <Btn variant="secondary" onClick={onClose} disabled={loading}>Cancel</Btn>
           <Btn onClick={handleSubmit} disabled={loading}>
-            {loading ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</span> : "Save Changes"}
+            {loading
+              ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</span>
+              : "Save Changes"}
           </Btn>
         </>
       }>
@@ -431,6 +561,33 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ onClose, onUpdated, user,
           {branches.map(b => <option key={b} value={b}>{b}</option>)}
         </select>
       </Field>
+
+      {showPin && (
+        <div className="rounded-lg border border-violet-200 bg-violet-50 p-3 space-y-3">
+          <div className="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              className="text-violet-600 shrink-0">
+              <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            <p className="text-[10px] font-black uppercase tracking-widest text-violet-700">
+              Branch Manager PIN
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="PIN" required error={errors.manager_pin}>
+              <input {...f("manager_pin")} type="password" placeholder="Min. 4 digits" maxLength={8} className={inputCls(errors.manager_pin)} />
+            </Field>
+            <Field label="Confirm PIN" required error={errors.manager_pin_confirmation}>
+              <input {...f("manager_pin_confirmation")} type="password" placeholder="Re-enter PIN" maxLength={8} className={inputCls(errors.manager_pin_confirmation)} />
+            </Field>
+          </div>
+          <p className="text-[10px] text-violet-500 font-medium">
+            This PIN is used to authorize sensitive actions at the POS.
+          </p>
+        </div>
+      )}
     </ModalShell>
   );
 };
@@ -477,7 +634,6 @@ const ToggleStatusModal: React.FC<ToggleUserProps> = ({ onClose, onToggled, user
             </div>
           )}
         </div>
-        {/* User pill */}
         <div className="mx-6 mb-5 flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl">
           <Avatar name={user.name} size="w-8 h-8 text-xs" />
           <div className="min-w-0 flex-1">
@@ -581,6 +737,10 @@ const UsersTab: React.FC = () => {
   const [toggleTarget, setToggleTarget] = useState<User | null>(null);
   const [delTarget,    setDelTarget]    = useState<User | null>(null);
 
+  // ── Toast state ─────────────────────────────────────────────────────────────
+  const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+  const showToast = (message: string, type: ToastType = "success") => setToast({ message, type });
+
   const fetchUsers = async () => {
     setLoading(true); setFetchError("");
     try {
@@ -600,15 +760,18 @@ const UsersTab: React.FC = () => {
 
       const lastLoginMap: Record<number, string> = auditData.last_logins ?? {};
 
-      setUsers((usersData.data as RawUser[]).map(u => ({
-        ...mapUser(u),
-        lastLogin: lastLoginMap[u.id]
-          ? new Date(lastLoginMap[u.id]).toLocaleString('en-PH', {
-              month: 'short', day: 'numeric', year: 'numeric',
-              hour: '2-digit', minute: '2-digit',
-            })
-          : undefined,
-      })));
+      setUsers((usersData.data as RawUser[]).map(u => {
+        const mapped = mapUser(u);
+        return {
+          ...mapped,
+          lastLogin: lastLoginMap[u.id]
+            ? new Date(lastLoginMap[u.id]).toLocaleString('en-PH', {
+                month: 'short', day: 'numeric', year: 'numeric',
+                hour: '2-digit', minute: '2-digit',
+              })
+            : undefined,
+        };
+      }));
 
       if (branchesData.success) {
         setBranches((branchesData.data as RawBranch[]).map(b => b.name));
@@ -749,11 +912,41 @@ const UsersTab: React.FC = () => {
       </div>
 
       {/* Modals */}
-      {addOpen      && <AddUserModal    onClose={() => setAddOpen(false)}      onSaved={u => setUsers(p => [u, ...p])}                                          branches={branches} />}
-      {viewTarget   && <ViewUserModal   onClose={() => setViewTarget(null)}    user={viewTarget} />}
-      {editTarget   && <EditUserModal   onClose={() => setEditTarget(null)}    onUpdated={u => { setUsers(p => p.map(x => x.id === u.id ? u : x)); setEditTarget(null); }}   user={editTarget}   branches={branches} />}
-      {toggleTarget && <ToggleStatusModal onClose={() => setToggleTarget(null)} onToggled={u => { setUsers(p => p.map(x => x.id === u.id ? u : x)); setToggleTarget(null); }} user={toggleTarget} />}
-      {delTarget    && <DeleteUserModal  onClose={() => setDelTarget(null)}    onDeleted={id => { setUsers(p => p.filter(x => x.id !== id)); setDelTarget(null); }}           user={delTarget}    />}
+      {addOpen && (
+        <AddUserModal
+          onClose={() => setAddOpen(false)}
+          onSaved={u => { setUsers(p => [u, ...p]); showToast(`${u.name} has been created.`); }}
+          branches={branches}
+        />
+      )}
+      {viewTarget && (
+        <ViewUserModal onClose={() => setViewTarget(null)} user={viewTarget} />
+      )}
+      {editTarget && (
+        <EditUserModal
+          onClose={() => setEditTarget(null)}
+          onUpdated={u => { setUsers(p => p.map(x => x.id === u.id ? u : x)); setEditTarget(null); showToast(`${u.name} has been updated.`); }}
+          user={editTarget}
+          branches={branches}
+        />
+      )}
+      {toggleTarget && (
+        <ToggleStatusModal
+          onClose={() => setToggleTarget(null)}
+          onToggled={u => { setUsers(p => p.map(x => x.id === u.id ? u : x)); setToggleTarget(null); showToast(`${u.name} has been ${u.status === "ACTIVE" ? "activated" : "deactivated"}.`, u.status === "ACTIVE" ? "success" : "warning"); }}
+          user={toggleTarget}
+        />
+      )}
+      {delTarget && (
+        <DeleteUserModal
+          onClose={() => setDelTarget(null)}
+          onDeleted={id => { setUsers(p => p.filter(x => x.id !== id)); setDelTarget(null); showToast("User deleted successfully.", "error"); }}
+          user={delTarget}
+        />
+      )}
+
+      {/* Toast */}
+      {toast && <Toast message={toast.message} type={toast.type} onDone={() => setToast(null)} />}
     </div>
   );
 };

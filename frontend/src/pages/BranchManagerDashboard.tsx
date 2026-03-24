@@ -40,7 +40,7 @@ import BM_InventorySuppliers     from '../components/BranchManager/Inventory/BM_
 import BM_AddCustomers       from '../components/BranchManager/Settings/BM_AddCustomers';
 import BM_AddVouchers        from '../components/BranchManager/Settings/BM_AddVouchers';
 import BM_BackupSystem       from '../components/BranchManager/Settings/BM_BackupSystem';
-import BM_CustomerReport     from '../components/BranchManager/Settings/BM_CustomerReport'; 6
+import BM_CustomerReport     from '../components/BranchManager/Settings/BM_CustomerReport';
 import BM_ImportData         from '../components/BranchManager/Settings/BM_ImportData';
 import BM_SalesSettings      from '../components/BranchManager/Settings/BM_SalesSettings';
 import BM_Settings           from '../components/BranchManager/Settings/BM_Settings';

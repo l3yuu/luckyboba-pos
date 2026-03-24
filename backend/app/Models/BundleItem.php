@@ -11,6 +11,7 @@ class BundleItem extends Model
         'bundle_id',
         'menu_item_id',
         'custom_name',
+        'display_name', 
         'quantity',
         'size',
     ];
