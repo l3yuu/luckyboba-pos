@@ -62,7 +62,6 @@ class UserController extends Controller
             }
 
             // IT Admins only see non-superadmin users
-            // (they can manage users but cannot touch superadmin accounts)
             if ($authUser->role === 'it_admin') {
                 $query->where('role', '!=', 'superadmin');
             }
@@ -136,7 +135,6 @@ class UserController extends Controller
                 }
             }
 
-            // IT Admin cannot view superadmin accounts
             if ($authUser->role === 'it_admin' && $user->role === 'superadmin') {
                 return response()->json([
                     'success' => false,
@@ -170,7 +168,6 @@ class UserController extends Controller
             $request->merge(['role' => 'cashier']);
         }
 
-        // IT Admin cannot create superadmin accounts
         if ($authUser->role === 'it_admin' && $request->role === 'superadmin') {
             return response()->json([
                 'success' => false,
@@ -182,9 +179,8 @@ class UserController extends Controller
             'name'        => 'required|string|max:255',
             'email'       => 'required|email|max:255|unique:users,email',
             'password'    => 'required|string|min:6',
-            // ← it_admin added to allowed roles
             'role'        => 'required|in:superadmin,system_admin,branch_manager,team_leader,cashier,customer,it_admin',
-            'branch'      => 'nullable|string|max:255',
+            'branch_id'   => 'nullable|integer|exists:branches,id',
             'status'      => 'required|in:ACTIVE,INACTIVE',
             'manager_pin' => 'nullable|string|min:4|max:20',
         ]);
@@ -201,26 +197,23 @@ class UserController extends Controller
             $branchId   = null;
             $branchName = null;
 
+            // Branch managers always create under their own branch
             if ($authUser->role === 'branch_manager') {
                 $branchId   = $authUser->branch_id;
                 $branchName = $authUser->branch_name;
-            } elseif ($request->filled('branch')) {
-                $branch = Branch::where('name', $request->branch)->first();
+            } elseif ($request->filled('branch_id')) {
+                $branch = Branch::find($request->branch_id);
 
                 if (! $branch) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'Branch not found',
-                        'error'   => "No branch found with the name: {$request->branch}",
+                        'message' => 'Branch not found.',
                     ], 404);
                 }
 
                 $branchId   = $branch->id;
                 $branchName = $branch->name;
             }
-
-            $branch     = \App\Models\Branch::find($request->branch_id);
-            $branchName = $branch?->name ?? null;
 
             $user = User::create([
                 'name'        => $request->name,
@@ -266,7 +259,6 @@ class UserController extends Controller
             $request->merge(['role' => 'cashier']);
         }
 
-        // IT Admin cannot edit superadmin accounts
         if ($authUser->role === 'it_admin' && $target->role === 'superadmin') {
             return response()->json([
                 'success' => false,
@@ -278,10 +270,9 @@ class UserController extends Controller
             'name'        => 'sometimes|required|string|max:255',
             'email'       => 'sometimes|required|email|max:255|unique:users,email,' . $id,
             'password'    => 'nullable|string|min:6',
-            // ← it_admin added to allowed roles
             'role'        => 'sometimes|required|in:superadmin,system_admin,branch_manager,team_leader,cashier,customer,it_admin',
             'status'      => 'sometimes|required|in:ACTIVE,INACTIVE',
-            'branch'      => 'nullable|string|max:255',
+            'branch_id'   => 'nullable|integer|exists:branches,id',
             'manager_pin' => 'nullable|string|min:4|max:20',
         ]);
 
@@ -309,23 +300,24 @@ class UserController extends Controller
                 $updateData['manager_pin'] = Hash::make($request->manager_pin);
             }
 
-            if ($request->has('branch')) {
-                if (! empty($request->branch)) {
-                    $branch = Branch::where('name', $request->branch)->first();
+            // Handle branch update via branch_id
+            if ($request->has('branch_id')) {
+                if ($request->filled('branch_id')) {
+                    $branch = Branch::find($request->branch_id);
 
                     if (! $branch) {
                         return response()->json([
                             'success' => false,
-                            'message' => 'Branch not found',
-                            'error'   => "No branch found with the name: {$request->branch}",
+                            'message' => 'Branch not found.',
                         ], 404);
                     }
 
-                    $updateData['branch_name'] = $branch->name;
                     $updateData['branch_id']   = $branch->id;
+                    $updateData['branch_name'] = $branch->name;
                 } else {
-                    $updateData['branch_name'] = null;
+                    // Explicitly clearing the branch
                     $updateData['branch_id']   = null;
+                    $updateData['branch_name'] = null;
                 }
             }
 
@@ -364,7 +356,6 @@ class UserController extends Controller
                 }
             }
 
-            // IT Admin cannot delete superadmin accounts
             if ($authUser->role === 'it_admin' && $user->role === 'superadmin') {
                 return response()->json([
                     'success' => false,
@@ -440,7 +431,6 @@ class UserController extends Controller
                 }
             }
 
-            // IT Admin cannot toggle superadmin status
             if ($authUser->role === 'it_admin' && $user->role === 'superadmin') {
                 return response()->json([
                     'success' => false,
@@ -484,7 +474,7 @@ class UserController extends Controller
                     'team_leader'    => User::where('role', 'team_leader')->count(),
                     'cashier'        => User::where('role', 'cashier')->count(),
                     'customer'       => User::where('role', 'customer')->count(),
-                    'it_admin'       => User::where('role', 'it_admin')->count(), // ← added
+                    'it_admin'       => User::where('role', 'it_admin')->count(),
                 ],
             ];
 
@@ -534,7 +524,7 @@ class UserController extends Controller
     {
         $request->validate(['pin' => 'required|string']);
 
-        $admins = User::whereIn('role', ['superadmin', 'system_admin', 'branch_manager', 'team_leader', 'it_admin']) // ← it_admin added
+        $admins = User::whereIn('role', ['superadmin', 'system_admin', 'branch_manager', 'team_leader', 'it_admin'])
             ->where('status', 'ACTIVE')
             ->whereNotNull('manager_pin')
             ->get();

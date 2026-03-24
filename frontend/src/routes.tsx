@@ -10,6 +10,8 @@ import Calendar                from './pages/Calendar';
 import { ProtectedRoute }      from './components/ProtectedRoute';
 import { PublicRoute }         from './components/PublicRoute';
 import { ErrorFallback }       from './components/ErrorFallback';
+import PosDeviceManager from        './pages/PosDeviceManager';
+
 
 export const router = createBrowserRouter([
 
@@ -19,7 +21,7 @@ export const router = createBrowserRouter([
     errorElement: <ErrorFallback />,
     children: [
       { path: '/login', element: <Login /> },
-    ],
+    ],    
   },
 
   // ── Super Admin only ─────────────────────────────────────────────────────
@@ -30,6 +32,7 @@ export const router = createBrowserRouter([
       {
         children: [
           { path: '/super-admin', element: <SuperAdminDashboard /> },
+          { path: '/pos-devices',  element: <PosDeviceManager /> },
         ],
       },
     ],

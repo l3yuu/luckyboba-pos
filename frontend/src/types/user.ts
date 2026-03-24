@@ -9,7 +9,7 @@ export type UserRole =
   | 'team_leader'
   | 'cashier'
   | 'customer'
-  | 'it_admin';       // ← added
+  | 'it_admin';
 
 export type UserStatus = 'ACTIVE' | 'INACTIVE';
 
@@ -26,9 +26,10 @@ export interface User {
 }
 
 export interface LoginCredentials {
-  email:     string;
-  password:  string;
-  remember?: boolean;
+  email:       string;
+  password:    string;
+  device_name: string;    // ← ADDED
+  remember?:   boolean;
 }
 
 export interface CreateUserData {
@@ -65,5 +66,5 @@ export const ROLE_HOME: Record<string, string> = {
   team_leader:    '/team-leader',
   cashier:        '/cashier',
   customer:       '/customer',
-  it_admin:       '/it-admin',   // ← added
+  it_admin:       '/it-admin',
 };
