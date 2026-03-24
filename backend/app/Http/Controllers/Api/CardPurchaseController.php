@@ -20,27 +20,40 @@ class CardPurchaseController extends Controller
 
         if ($existingCard) {
             return response()->json([
-                'status'  => 'error',
+                'success' => false,
                 'message' => 'You already have an active card!'
             ], 400);
         }
 
-        // 2. Insert new card — expires in 30 days
+        // 2. Check if they already have a pending request so they don't spam
+        $existingPending = DB::table('user_cards')
+            ->where('user_id', $request->user_id)
+            ->where('status', 'pending')
+            ->first();
+
+        if ($existingPending) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You already have a pending card request. Please wait for admin approval.',
+            ], 400);
+        }
+
+        // 3. Insert new card as PENDING — waiting for Admin to approve
         DB::table('user_cards')->insert([
             'user_id'        => $request->user_id,
             'card_id'        => $request->card_id,
-            'status'         => 'active',
+            'status'         => 'pending',                  // ⬅ Changed to pending
             'payment_method' => $request->payment_method,
-            'transaction_id' => 'ADMIN-TEST-' . rand(1000, 9999),
-            'expires_at'     => Carbon::now()->addDays(30),
+            'transaction_id' => $request->reference_number, // ⬅ Saves the real GCash/Maya ref number from Flutter
+            'expires_at'     => null,                       // ⬅ Expiration starts only AFTER admin approves
             'created_at'     => Carbon::now(),
             'updated_at'     => Carbon::now(),
         ]);
 
         return response()->json([
-            'status'  => 'success',
-            'message' => 'Card successfully activated for 30 days!'
-        ]);
+            'success' => true,
+            'message' => 'Payment submitted for admin review.'
+        ], 201);
     }
 
     public function checkStatus($userId)
@@ -62,7 +75,7 @@ class CardPurchaseController extends Controller
                 'has_active_card'      => true,
                 'card_id'              => $activeCard->card_id,
                 'expires_at'           => $expiresAt->toDateString(),
-                'expires_at_formatted' => $expiresAt->format('F d, Y'),
+                'expires_at_formatted' => $expiresAt->format('M d, Y'),
                 'days_remaining'       => max(0, $daysRemaining),
             ]);
         }

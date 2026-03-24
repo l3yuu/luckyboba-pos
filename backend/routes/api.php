@@ -10,6 +10,10 @@ use App\Http\Controllers\Api\RecipeController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\CacheController;
 use App\Http\Controllers\Api\NotificationController;
+// ── NEW CONTROLLERS FOR CARDS ──
+use App\Http\Controllers\Api\CardController;
+use App\Http\Controllers\PaymentSettingController;
+
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +23,9 @@ use Illuminate\Support\Facades\Route;
 Route::post('/login',  [AuthController::class, 'login'])->middleware('throttle:5,2');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 
+// ── CUSTOMER APP ROUTES (CARDS & PAYMENTS) ───────────────────────────────────
+Route::get('/cards',                      [CardController::class, 'index']);
+Route::get('/payment-settings',           [PaymentSettingController::class, 'index']);
 Route::post('/purchase-card',             [CardPurchaseController::class, 'purchase']);
 Route::get('/check-card-status/{userId}', [CardPurchaseController::class, 'checkStatus']);
 
@@ -215,12 +222,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
         Route::apiResource('expenses', ExpenseController::class)->only(['store']);
 
-        // FIX: Removed duplicate Route::patch('/discounts/{discount}/toggle') and
-        // the conflicting Route::apiResource('discounts') that was re-declaring
-        // routes already defined in the cashier group above. Discount write
-        // operations (store/update/delete/toggle) are already covered in the
-        // cashier group's prefix block which all three roles can access.
-
         Route::get('/branch/audit-logs', [AuditLogController::class, 'branchIndex']);
         Route::apiResource('discounts', DiscountController::class)->except(['show', 'update', 'index']); // ← 'index' removed, handled above
         Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
@@ -279,6 +280,15 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
         Route::get('/audit-logs',       [AuditLogController::class, 'index']);
         Route::get('/audit-logs/stats', [AuditLogController::class, 'stats']);
+
+        // ── ADMIN CARD MANAGEMENT ────────────────────────────────────────────
+        Route::prefix('cards')->group(function () {
+            Route::get   ('/',             [CardController::class, 'adminIndex']);
+            Route::post  ('/',             [CardController::class, 'store']);
+            Route::post  ('/{id}',         [CardController::class, 'update']); // Use POST with _method=PUT for multipart
+            Route::patch ('/{id}/toggle',  [CardController::class, 'toggle']);
+            Route::delete('/{id}',         [CardController::class, 'destroy']);
+        });
 
         Route::prefix('reports')->group(function () {
             Route::get('/admin-sales-summary', [SuperAdminReportController::class, 'salesSummary']);
