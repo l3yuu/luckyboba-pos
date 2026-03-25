@@ -193,6 +193,9 @@ interface ZReadingReport {
   net_total?: number;
   vat_type?:   string;
   vat_exempt?: number;
+  is_vat?: boolean;           // ← add
+  vat_exempt_sales?: number;  // ← add
+  other_discount?: number;
 }
 
 const Row = ({ label, value, indent = false }: { label: string; value: string | number; indent?: boolean }) => (
@@ -219,8 +222,8 @@ const ZReading = () => {
   const [rawApiResponse, setRawApiResponse] = useState<Record<string, unknown> | unknown[] | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const phCurrency = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
-  const vatType = (reportData?.vat_type ?? localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat';
-  const isVat = vatType === 'vat';
+  const localVatType = (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat';
+  const isVat = reportData?.is_vat !== undefined ? reportData.is_vat : localVatType === 'vat';
   const [cashierName, setCashierName] = useState("ADMIN USER");
   const [invoiceQuery, setInvoiceQuery] = useState("");
 
@@ -501,8 +504,43 @@ const ZReading = () => {
       <div className="my-2">
         {reportData?.categories && reportData.categories.length > 0 && (<><Divider /><div className="flex text-[11px] border-b border-black pb-0.5 mb-0.5"><span className="w-[55%] uppercase">DESCRIPTION</span><span className="w-[15%] text-center uppercase">QTY</span><span className="w-[30%] text-right uppercase">AMOUNT</span></div>{reportData.categories.map((cat, catIdx) => { const hasSizes = cat.products.some(p => p.size !== null && p.size !== undefined); const sizeGroups = new Map<string | null, typeof cat.products>(); for (const product of cat.products) { const key = product.size ?? null; if (!sizeGroups.has(key)) sizeGroups.set(key, []); sizeGroups.get(key)!.push(product); } const orderedKeys: (string | null)[] = [...SIZE_ORDER.filter(s => sizeGroups.has(s)), ...(sizeGroups.has(null) ? [null] : [])]; return (<div key={catIdx} className="mb-1"><p className="text-[11px] font-bold uppercase mt-1">{cat.category_name}</p>{orderedKeys.map((sizeKey, si) => { const products = sizeGroups.get(sizeKey) ?? []; return (<div key={si}>{hasSizes && sizeKey !== null && <p className="text-[11px] uppercase pl-2">{sizeKey}:</p>}{products.map((item, i) => (<React.Fragment key={i}><div className="flex text-[11px] leading-snug"><span className={`w-[55%] uppercase leading-tight ${hasSizes && sizeKey !== null ? 'pl-4' : 'pl-2'}`}>{item.product_name}{item.size ? ` (${item.size})` : ''}</span><span className="w-[15%] text-center">{item.total_qty}</span><span className="w-[30%] text-right">{phCurrency.format(item.total_sales)}</span></div>{item.add_ons?.map((addon, aIdx) => (<div key={aIdx} className="flex text-[10px] pl-4 leading-snug"><span className="w-[70%]">+ {addon.name}</span><span className="w-[30%] text-right">x{addon.qty}</span></div>))}</React.Fragment>))}</div>); })}<div className="flex justify-between text-[11px] border-t border-dashed border-zinc-800 mt-1 pt-1"><span className="uppercase">T. PER: {cat.category_name}</span><span>{phCurrency.format(cat.category_total || 0)}</span></div><Divider /></div>); })}{reportData.all_addons_summary && reportData.all_addons_summary.length > 0 && (<div className="mt-1"><p className="text-[11px] uppercase">ADD ONS</p>{reportData.all_addons_summary.map((addon, idx) => (<div key={idx} className="flex text-[11px] leading-snug"><span className="w-[70%] uppercase pl-2">{addon.name}</span><span className="w-[30%] text-right">x{addon.qty}</span></div>))}<div className="flex justify-between text-[11px] border-t border-dashed border-zinc-800 mt-1 pt-1"><span className="uppercase">T. PER: ADD ONS</span><span>QTY: {reportData.all_addons_summary.reduce((a, b) => a + b.qty, 0)}</span></div></div>)}</>)}
         <Divider />
-        <div className="flex text-[11px] justify-end gap-2 mb-0.5"><span className="uppercase">TOTAL:</span><span className="w-[35%] text-right font-bold">{phCurrency.format(reportData?.gross_sales || 0)}</span></div>
+        <div className="flex text-[11px] justify-end gap-2 mb-0.5">
+          <span className="uppercase">TOTAL:</span>
+          <span className="w-[35%] text-right font-bold">{phCurrency.format(reportData?.gross_sales || 0)}</span>
+        </div>
         <Divider />
+
+          {(() => {
+            const gross        = reportData?.gross_sales || 0;
+            const vatAmt       = reportData?.vat_amount  || 0;
+            const vatableSales = reportData?.vatable_sales || 0;
+            const scDiscount   = reportData?.sc_discount   || 0;
+            const pwdDiscount  = reportData?.pwd_discount  || 0;
+            const diplomat     = reportData?.diplomat_discount || 0;
+            const otherDisc    = reportData?.other_discount    || 0;
+            const voids        = reportData?.total_void_amount || 0;
+            const summaryIsVat = reportData?.is_vat !== undefined ? reportData.is_vat : isVat;
+            return (
+              <>
+                {[
+                  { label: 'VATABLE SALES:',    value: phCurrency.format(summaryIsVat ? vatableSales : 0) },
+                  { label: 'VAT AMOUNT:',       value: phCurrency.format(summaryIsVat ? vatAmt : 0) },
+                  { label: 'VAT EXEMPT SALES:', value: phCurrency.format(summaryIsVat ? 0 : (reportData?.vat_exempt_sales || gross)) },
+                  { label: 'ZERO RATED SALES:', value: phCurrency.format(0) },
+                ].map((r, i) => (
+                  <div key={i} className="flex text-[11px] leading-snug">
+                    <span className="flex-1 text-right uppercase pr-1">{r.label}</span>
+                    <span className="w-[35%] text-right">{r.value}</span>
+                  </div>
+                ))}
+                <Divider />
+                <div className="flex text-[11px] leading-snug"><span className="flex-1 text-right uppercase pr-1">SC AND PWD AMOUNT:</span><span className="w-[35%] text-right">{phCurrency.format(scDiscount + pwdDiscount)}</span></div>
+                <div className="flex text-[11px] leading-snug"><span className="flex-1 text-right uppercase pr-1">DIPLOMAT:</span><span className="w-[35%] text-right">{phCurrency.format(diplomat)}</span></div>
+                <div className="flex text-[11px] leading-snug"><span className="flex-1 text-right uppercase pr-1">OTHER DISC:</span><span className="w-[35%] text-right">{phCurrency.format(otherDisc)}</span></div>
+                <div className="flex text-[11px] leading-snug"><span className="flex-1 text-right uppercase pr-1">TOTAL VOIDS:</span><span className="w-[35%] text-right">{phCurrency.format(voids)}</span></div>
+              </>
+            );
+          })()}
       </div>
     );
   };
@@ -589,7 +627,7 @@ const ZReading = () => {
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">BREAKDOWN OF SALES</p>
         <Row label="VATable Sales"    value={phCurrency.format(isVat ? vatableSales : 0)} />
         <Row label="VAT Amount"       value={phCurrency.format(isVat ? vatAmount : 0)} />
-        <Row label="VAT Exempt Sales" value={phCurrency.format(isVat ? 0 : gross)} />
+        <Row label="VAT Exempt Sales" value={phCurrency.format(isVat ? 0 : (reportData?.vat_exempt_sales || gross))} />
         <Row label="Zero-Rated Sales" value={phCurrency.format(0)} />
         <Divider />
         <Row label="Service Charge" value={phCurrency.format(0)} />

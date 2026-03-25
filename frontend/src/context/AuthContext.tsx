@@ -12,6 +12,7 @@ const AUTH_KEYS = [
   'lucky_boba_user_branch',
   'lucky_boba_user_branch_id',
   'lucky_boba_user_id',
+  'lucky_boba_user_branch_vat',   
   'dashboard_stats',
   'dashboard_stats_timestamp',
 ];
@@ -55,6 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('lucky_boba_user_role',      userData.role || 'cashier');
       localStorage.setItem('lucky_boba_user_branch',    userData.branch_name ?? '');
       localStorage.setItem('lucky_boba_user_branch_id', String(userData.branch_id ?? ''));
+      localStorage.setItem('lucky_boba_user_branch_vat', userData.branch_vat_type ?? 'vat');
       setUser(userData);
     } catch {
       clearSession();
@@ -101,6 +103,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.setItem('lucky_boba_user_branch',    userData.branch_name ?? '');
       localStorage.setItem('lucky_boba_user_branch_id', String(userData.branch_id ?? ''));
       localStorage.setItem('lucky_boba_user_id',        String(userData.id));
+      localStorage.setItem('lucky_boba_user_branch_vat', userData.branch_vat_type ?? 'vat');
       localStorage.removeItem('login_attempts');
       localStorage.removeItem('login_lockout_end');
 

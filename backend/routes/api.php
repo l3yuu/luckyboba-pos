@@ -87,7 +87,16 @@ Route::post('/register', function (Request $request) {
 
 Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
-    Route::get('/user', fn (Request $request) => $request->user());
+    Route::get('/user', function (Request $request) {
+        $user = $request->user();
+        $branch = $user->branch_id
+            ? \App\Models\Branch::select('id', 'vat_type')->find($user->branch_id)
+            : null;
+
+        return array_merge($user->toArray(), [
+            'branch_vat_type' => $branch?->vat_type ?? 'vat',
+        ]);
+    });
 
     // ── NO ROLE RESTRICTION — any authenticated user can call this ────────────
     // Placed outside all role middleware groups so cashiers can call it.

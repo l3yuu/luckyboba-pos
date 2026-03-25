@@ -87,6 +87,8 @@ interface XReadingReport {
   cash_drop?: number;
   cash_in_drawer?: number;
   cash_in?: number;
+  is_vat?: boolean;           // ← add
+  vat_exempt_sales?: number;  // ← add
 }
 
 const Row = ({ label, value, indent = false }: { label: string; value: string | number; indent?: boolean }) => (
@@ -646,7 +648,7 @@ const XReading = () => {
             { label: 'LESS SC DISCOUNT:', value: scDiscount > 0 ? `-${phCurrency.format(scDiscount)}` : phCurrency.format(0) },
             { label: 'LESS DIPLOMAT:', value: diplomat > 0 ? `-${phCurrency.format(diplomat)}` : phCurrency.format(0) },
             { label: 'LESS OTHER DISC:', value: otherDisc > 0 ? `-${phCurrency.format(otherDisc)}` : phCurrency.format(0) },
-            { label: 'LESS 12% VAT:', value: isVat && vatAmt > 0 ? `-${phCurrency.format(vatAmt)}` : phCurrency.format(0) },
+            { label: 'LESS 12% VAT:', value: (reportData?.is_vat ?? isVat) && vatAmt > 0 ? `-${phCurrency.format(vatAmt)}` : phCurrency.format(0) },
           ];
           return (
             <>
@@ -662,9 +664,9 @@ const XReading = () => {
               </div>
               <Divider />
               {[
-              { label: 'VATABLE SALES:',    value: phCurrency.format(isVat ? vatableSales : 0) },
-              { label: 'VAT AMOUNT:',       value: phCurrency.format(isVat ? vatAmt : 0) },
-              { label: 'VAT EXEMPT SALES:', value: phCurrency.format(isVat ? 0 : gross) },
+              { label: 'VATABLE SALES:',    value: phCurrency.format((reportData?.is_vat ?? isVat) ? vatableSales : 0) },
+              { label: 'VAT AMOUNT:',       value: phCurrency.format((reportData?.is_vat ?? isVat) ? vatAmt : 0) },
+              { label: 'VAT EXEMPT SALES:', value: phCurrency.format((reportData?.is_vat ?? isVat) ? 0 : (reportData?.vat_exempt_sales || gross)) },
               { label: 'ZERO RATED SALES:', value: phCurrency.format(0) },
               ].map((r, i) => (
                 <div key={i} className="flex text-[11px] leading-snug">
@@ -697,8 +699,10 @@ const XReading = () => {
     const diplomat     = reportData?.diplomat_discount || 0;
     const otherDisc    = reportData?.other_discount    || 0;
     const totalDisc    = scDiscount + pwdDiscount + diplomat + otherDisc;
-    const vatableSales = reportData?.vatable_sales || 0;
-    const vatAmount = reportData?.vat_amount || 0;
+    const reportIsVat  = reportData?.is_vat !== undefined ? reportData.is_vat : isVat;
+    const vatableSales = reportData?.vatable_sales    || 0;
+    const vatAmount    = reportData?.vat_amount       || 0;
+    const vatExempt    = reportData?.vat_exempt_sales || 0;
     const voids = reportData?.total_void_amount || 0;
     const PAYMENT_METHODS = ['food panda', 'grab', 'gcash', 'visa', 'mastercard', 'cash'];
     const METHOD_ALIASES: Record<string, string> = { 'panda': 'food panda', 'foodpanda': 'food panda', 'food_panda': 'food panda', 'grabfood': 'grab', 'grab food': 'grab', 'master card': 'mastercard', 'master': 'mastercard', 'visa card': 'visa', 'e-wallet': 'gcash' };
@@ -721,9 +725,9 @@ const XReading = () => {
         <Row label="END. SI #" value={reportData?.end_si || '0000000000'} />
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">BREAKDOWN OF SALES</p>
-        <Row label="VATABLE SALES"    value={phCurrency.format(isVat ? vatableSales : 0)} />
-        <Row label="VAT AMOUNT"       value={phCurrency.format(isVat ? vatAmount : 0)} />
-        <Row label="VAT EXEMPT SALES" value={phCurrency.format(isVat ? 0 : gross)} />
+        <Row label="VATABLE SALES"    value={phCurrency.format(reportIsVat ? vatableSales : 0)} />
+        <Row label="VAT AMOUNT"       value={phCurrency.format(reportIsVat ? vatAmount : 0)} />
+        <Row label="VAT EXEMPT SALES" value={phCurrency.format(reportIsVat ? 0 : vatExempt || gross)} />
         <Row label="ZERO-RATED SALES" value={phCurrency.format(0)} />
         <Divider />
         <Row label="SERVICE CHARGE" value={phCurrency.format(0)} />
