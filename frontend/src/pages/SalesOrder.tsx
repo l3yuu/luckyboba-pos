@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOfflineQueue } from '../hooks/useOfflineQueue';
 import OfflineQueueBanner  from '../components/Cashier/SalesOrderComponents/OfflineQueueBanner';
+import { SUGAR_LEVELS } from '../types/index';
 
 import {
   type MenuItem, type Category, type CartItem,
@@ -1361,6 +1362,7 @@ const updated: CartItem = {
             onOpenAddOns={() => setIsAddOnModalOpen(true)}
             onAddToOrder={addToOrder}
             onClose={() => { setSelectedItem(null); setIsAddOnModalOpen(false); }}
+            sugarLevels={isDrink ? SUGAR_LEVELS.map((v, i) => ({ id: i, label: v, value: v })) : []}
           />
         )}
 
@@ -1585,7 +1587,7 @@ const updated: CartItem = {
       </div>
 
       {/* Print templates */}
-      {printTarget === 'receipt' && <ReceiptPrint {...printProps} {...branchDetails} vatType={vatType} addOnsData={addOnsData} orderCharge={orderCharge} totalCount={totalCount} subtotal={grossSubtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount}/>}
+      {printTarget === 'receipt' && <ReceiptPrint {...printProps} {...branchDetails} vatType={vatType} addOnsData={addOnsData} orderCharge={orderCharge} totalCount={totalCount} subtotal={grossSubtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} vatExemptSales={vatExemptSales} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount}/>}
       {printTarget === 'kitchen'  && <KitchenPrint  {...printProps} />}
       {printTarget === 'stickers' && <StickerPrint  {...printProps} customerName={customerName} />}
     </>
