@@ -895,7 +895,7 @@ const AssignDeviceModal: React.FC<{
       } catch { setApiError("Failed to load devices."); }
       finally { setLoading(false); }
     })();
-  }, [user.id]);
+  }, [user.branch_id, user.id]);
 
   const handleAssign = async () => {
     if (!selectedId) return;

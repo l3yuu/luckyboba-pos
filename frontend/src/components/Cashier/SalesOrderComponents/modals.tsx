@@ -147,19 +147,19 @@ export const CartItemEditModal = ({
   onRemove,
   onClose,
 }: CartItemEditModalProps) => {
-const discountOptions = [
+const buildDiscountOptions = () => [
   { id: null, label: 'No Discount', type: 'none' as const, value: 0, badge: null },
-  ...discounts
-    .filter(d => d.type === 'Item-Percent')
-    .map(d => ({
-      id:    d.id,
-      label: d.name,
-      type:  'percent' as const,
-      value: Number(d.amount),
-      badge: `${d.amount}% OFF`,
-    })),
-  ];
-  
+  ...discounts.map(d => ({
+    id:    d.id,
+    label: d.name,
+    type:  'percent' as const,
+    value: Number(d.amount),
+    badge: `${d.amount}% OFF`,
+  })),
+];
+
+const discountOptions       = buildDiscountOptions();
+
   return (
     <div className="fixed inset-0 z-150 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white w-full max-w-md rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -218,27 +218,27 @@ const discountOptions = [
             />
           </div>
 
-          {/* Item discount */}
-          <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-2">Item Discount</label>
-            <div className="border-2 border-zinc-200 rounded-[0.625rem] overflow-hidden divide-y divide-zinc-100">
-              {discountOptions.map(option => {
-                const isSelected = editingItemDiscountId === option.id;
-                const isNone     = option.id === null;
-                return (
-                  <button
-                    key={String(option.id)}
-                    onClick={() => {
-                      onSetDiscountId(option.id);
-                      onSetDiscountType(option.type);
-                      onSetDiscountValue(option.value || '');
-                    }}
-                    className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors
-                      ${isSelected
-                        ? isNone ? 'bg-red-500 text-white' : 'bg-[#7c14d4] text-white'
-                        : 'bg-white text-zinc-600 hover:bg-zinc-50'
-                      }`}
-                  >
+        {/* Item discount */}
+<div>
+  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-2">Item Discount</label>
+  <div className="border-2 border-zinc-200 rounded-[0.625rem] overflow-hidden divide-y divide-zinc-100">
+    {discountOptions.map(option => {
+      const isSelected = editingItemDiscountId === option.id;
+      const isNone     = option.id === null;
+      return (
+        <button
+          key={String(option.id)}
+          onClick={() => {
+            onSetDiscountId(option.id);
+            onSetDiscountType(option.type);
+            onSetDiscountValue(option.value || '');
+          }}
+          className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors
+            ${isSelected
+              ? isNone ? 'bg-red-500 text-white' : 'bg-[#7c14d4] text-white'
+              : 'bg-white text-zinc-600 hover:bg-zinc-50'
+            }`}
+        >
                     <div className="flex items-center gap-3">
                       <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'border-white bg-white' : 'border-zinc-300'}`}>
                         {isSelected && <div className={`w-2 h-2 rounded-full ${isNone ? 'bg-red-500' : 'bg-[#7c14d4]'}`} />}
@@ -1338,7 +1338,7 @@ export const ConfirmOrderModal = ({
                           ${!selectedDiscount ? 'bg-red-500 text-white border-red-500 shadow-md' : 'bg-zinc-50 text-red-500 border-red-100 hover:border-red-300'}`}>
                         Remove Promo
                       </button>
-                     {discounts.filter(d => d.type === 'Global-Percent' && !['SENIOR', 'PWD', 'DIPLOMAT'].some(x => d.name.toUpperCase().includes(x))).map(d => (
+                {discounts.filter(d => !['SENIOR', 'PWD', 'DIPLOMAT'].some(x => d.name.toUpperCase().includes(x))).map(d => (
                         <button key={d.id} onClick={() => onDiscountChange(d)}
                           className={`p-3 rounded-[0.625rem] text-sm font-black uppercase transition-all border-2 flex items-center justify-center text-center
                             ${selectedDiscount?.id === d.id ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-emerald-300'}`}>
