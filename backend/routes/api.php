@@ -8,7 +8,7 @@ use App\Http\Controllers\Api\CupController;
 use App\Http\Controllers\Api\ItemsReportController;
 use App\Http\Controllers\Api\MenuItemOptionController;
 use App\Http\Controllers\Api\NotificationController;
-use App\Http\Controllers\Api\PosDeviceController;   // ← NEW
+use App\Http\Controllers\Api\PosDeviceController;
 use App\Http\Controllers\Api\RawMaterialController;
 use App\Http\Controllers\Api\RecipeController;
 use App\Http\Controllers\Auth\UserController;
@@ -31,10 +31,6 @@ Route::post('/purchase-card',             [CardPurchaseController::class, 'purch
 Route::get('/check-card-status/{userId}', [CardPurchaseController::class, 'checkStatus']);
 
 // ── PUBLIC MENU ───────────────────────────────────────────────────────────────
-// Returns all menu items with full image URL for the Flutter customer app.
-// Uses Laravel's url() helper so it works correctly in both local and production.
-// Local:      http://10.0.2.2:8000/storage/menu/foods/photo.png
-// Production: https://luckybobastores.com/storage/menu/foods/photo.png
 Route::get('/public-menu', function () {
     $items = DB::table('menu_items')
         ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
@@ -49,12 +45,10 @@ Route::get('/public-menu', function () {
         )
         ->get()
         ->filter(function ($item) {
-            // Skip items with null/empty category to prevent JSON corruption
             return !is_null($item->category) && $item->category !== '';
         })
         ->values()
         ->map(function ($item) {
-            // url() automatically uses APP_URL from .env
             $item->image = $item->image
                 ? url('storage/' . $item->image)
                 : null;
@@ -64,6 +58,7 @@ Route::get('/public-menu', function () {
     return response()->json($items);
 });
 // ─────────────────────────────────────────────────────────────────────────────
+
 Route::post('/google-login', [AuthController::class, 'googleLogin']);
 Route::post('/register', function (Request $request) {
     $request->validate([
@@ -82,16 +77,11 @@ Route::post('/register', function (Request $request) {
 });
 
 // ── Authenticated routes ─────────────────────────────────────────────────────
-// FIX: Added 'active' middleware so any account set to INACTIVE in the DB is
-// immediately blocked on every request — tokens are revoked on the spot.
-
 Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     Route::get('/user', fn (Request $request) => $request->user());
 
-    // ── NO ROLE RESTRICTION — any authenticated user can call this ────────────
-    // Placed outside all role middleware groups so cashiers can call it.
-    // The PIN itself is what determines authorization, not the caller's role.
+    // ── NO ROLE RESTRICTION ───────────────────────────────────────────────────
     Route::post('/auth/verify-manager-pin', [UserController::class, 'verifyManagerPin']);
 
     // ── CASHIER + BRANCH MANAGER + SUPERADMIN ────────────────────────────────
@@ -190,6 +180,12 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::get('/export-sales',      [ReportController::class, 'exportSales']);
             Route::get('/export-items',      [ReportController::class, 'exportItems']);
         });
+
+        // ── BRANCH SHOW — cashiers need this to load VAT type and branch info ──
+        // Placed here (not in the branch_manager group) so cashiers can access it.
+        // Read-only: only exposes BranchController@show, no write operations.
+        Route::get('/branches/{id}', [BranchController::class, 'show']);
+        // ──────────────────────────────────────────────────────────────────────
     });
 
     // ── BRANCH MANAGER + SUPERADMIN ──────────────────────────────────────────
@@ -259,7 +255,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::get('/{id}/daily-sales',   [BranchController::class, 'dailySales']);
             Route::get('/{id}/sales-summary', [BranchController::class, 'salesSummary']);
             Route::get('/{id}/analytics',     [BranchController::class, 'analytics']);
-            Route::get('/{id}',               [BranchController::class, 'show']);
         });
 
         Route::post('/raw-materials/{rawMaterial}/adjust', [RawMaterialController::class, 'adjust']);
@@ -316,8 +311,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::get   ('/',                [PosDeviceController::class, 'index']);
             Route::post  ('/',                [PosDeviceController::class, 'register']);
             Route::patch ('/{id}/toggle',     [PosDeviceController::class, 'toggleStatus']);
-            Route::patch ('/{id}/assign',     [PosDeviceController::class, 'assignUser']);    // ← ADD
-            Route::delete('/{id}/unassign',   [PosDeviceController::class, 'unassignUser']); // ← ADD
+            Route::patch ('/{id}/assign',     [PosDeviceController::class, 'assignUser']);
+            Route::delete('/{id}/unassign',   [PosDeviceController::class, 'unassignUser']);
             Route::delete('/{id}',            [PosDeviceController::class, 'destroy']);
         });
         // ─────────────────────────────────────────────────────────────────────

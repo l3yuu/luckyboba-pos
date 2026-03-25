@@ -19,6 +19,12 @@ import { type CartItem, type BundleComponentCustomization } from '../../../types
 interface ReceiptPrintProps {
   cart: CartItem[];
   branchName: string;
+  brand?: string;
+  companyName?: string;
+  storeAddress?: string;
+  vatRegTin?: string;
+  minNumber?: string;
+  serialNumber?: string;
   orNumber: string;
   queueNumber: string;
   cashierName: string;
@@ -47,7 +53,8 @@ interface ReceiptPrintProps {
 }
 
 export const ReceiptPrint = ({
-  cart, branchName, orNumber, queueNumber, cashierName,
+  cart, branchName, brand, companyName, storeAddress, vatRegTin, minNumber, serialNumber,
+  orNumber, queueNumber, cashierName,
   formattedDate, formattedTime, orderCharge, totalCount,
   subtotal, amtDue, vatableSales, vatAmount, change, cashTendered,
   referenceNumber, paymentMethod, selectedDiscount,
@@ -65,8 +72,13 @@ export const ReceiptPrint = ({
         {/* Store header */}
         <div className="text-center mb-4 border-b border-black pb-3">
           <img src={logo} alt="Lucky Boba Logo" className="w-48 h-auto mx-auto mb-2 grayscale" style={{ filter: 'grayscale(100%) contrast(1.2)' }} />
-          <h1 className="uppercase leading-tight font-bold text-xl">LUCKY BOBA MILKTEA</h1>
+          <h1 className="uppercase leading-tight font-bold text-xl">{brand || 'LUCKY BOBA MILKTEA'}</h1>
+          {companyName && <p className="text-xs mt-0.5 font-semibold">{companyName}</p>}
           <p className="text-base mt-1">{branchName}</p>
+          {storeAddress && <p className="text-xs mt-0.5">{storeAddress}</p>}
+          {vatRegTin && <p className="text-xs mt-0.5">VAT Reg TIN: {vatRegTin}</p>}
+          {minNumber && <p className="text-xs mt-0.5">MIN: {minNumber}</p>}
+          {serialNumber && <p className="text-xs mt-0.5">SN: {serialNumber}</p>}
           <h2 className="text-sm mt-2">{orNumber}</h2>
           <p className="text-sm mt-1">{formattedDate} {formattedTime}</p>
         </div>
@@ -232,7 +244,7 @@ export const ReceiptPrint = ({
 
         {/* Franchise info */}
         <div className="mt-6 mb-4 text-center text-xs">
-          FOR FRANCHISE<br />EMAIL OR CONTACT US ON<br />luckyboba.franchise@gmail.com<br />0917199894
+          FOR FRANCHISE<br />EMAIL OR CONTACT US ON<br />luckyboba.franchise@gmail.com<br />09171699894
         </div>
 
         {/* Queue number stub 1 — flows naturally after receipt, no page break */}

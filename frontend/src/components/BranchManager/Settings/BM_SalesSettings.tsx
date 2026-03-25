@@ -349,7 +349,7 @@ const BM_SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
                   <p className="bm-label" style={{ color: '#a1a1aa' }}>For Franchise</p>
                   <p className="bm-label" style={{ color: '#a1a1aa' }}>Email or contact us on</p>
                   <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#3b2063' }}>luckyboba.franchise@gmail.com</p>
-                  <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#3b2063' }}>0917199894</p>
+                  <p style={{ fontSize: '0.78rem', fontWeight: 700, color: '#3b2063' }}>09171699894</p>
                 </div>
               </div>
             </div>

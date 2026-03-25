@@ -320,6 +320,7 @@ const buildPrintProps = (payload: ReprintPayload) => {
     itemDiscountTotal,
     promoDiscount,
     vatType: (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat',
+    orderType: ((sale as unknown as { order_type?: string }).order_type ?? 'dine-in') as 'dine-in' | 'take-out',
   };
 };
 

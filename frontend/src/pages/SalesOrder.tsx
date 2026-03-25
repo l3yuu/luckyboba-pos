@@ -66,9 +66,9 @@ const SalesOrder = () => {
 
   const branchId   = user?.branch_id   ?? null;
   const branchName = user?.branch_name ?? localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch';
-  const [vatType] = useState<'vat' | 'non_vat'>(
-    () => (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat'
-  );
+const [vatType, setVatType] = useState<'vat' | 'non_vat'>(
+  () => (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat'
+);
 
   const handleNavClick = (label: string) => {
     if (label !== 'Home') return;
@@ -78,6 +78,10 @@ const SalesOrder = () => {
   };
 
   // ── State ───────────────────────────────────────────────────────────────────
+  const [branchDetails, setBranchDetails] = useState<{
+  brand?: string; companyName?: string; storeAddress?: string;
+  vatRegTin?: string; minNumber?: string; serialNumber?: string;
+}>({});
   const [orderType, setOrderType] = useState<'dine-in' | 'take-out' | null>(null);
   const [cashierName, setCashierName] = useState<string>(() =>
     localStorage.getItem('lucky_boba_user_name') ?? 'Admin'
@@ -340,6 +344,29 @@ const SalesOrder = () => {
     boot();
     syncNextSequence();
 
+     if (branchId) {
+    api.get(`/branches/${branchId}`).then(({ data }) => {
+      const b = data.data ?? data;
+      setBranchDetails({
+        brand:        b.brand,
+        companyName:  b.company_name,
+        storeAddress: b.store_address,
+        vatRegTin:    b.vat_reg_tin,
+        minNumber:    b.min_number,
+        serialNumber: b.serial_number,
+      });
+
+       if (b.vat_type) {
+      setVatType(b.vat_type as 'vat' | 'non_vat');
+         localStorage.setItem('lucky_boba_user_branch_vat', b.vat_type);
+          console.log('VAT Type synced:', b.vat_type);
+      }
+      
+      console.log('Branch details fetched:', b);  // ✅ TEMP
+  }).catch((err) => {
+  console.error('Branch fetch failed:', err.response?.status, err.response?.data);
+});
+}
     api.get('/discounts').then(({ data }) => {
       localStorage.setItem('pos_discounts_cache', JSON.stringify(data));
       const seen = new Set<string>();
@@ -367,7 +394,7 @@ const SalesOrder = () => {
     const onCashIn = () => { setMenuAvailable(true); setCheckingCashIn(false); };
     window.addEventListener('cash-in-completed', onCashIn);
     return () => window.removeEventListener('cash-in-completed', onCashIn);
-  }, []);
+  }, [branchId]);
 
   useEffect(() => {
     api.get('/user').then(({ data: u }) => {
@@ -1491,7 +1518,7 @@ if (!orderType) {
       </div>
 
       {/* Print templates */}
-      {printTarget === 'receipt' && <ReceiptPrint {...printProps} vatType={vatType} addOnsData={addOnsData} orderCharge={orderCharge} totalCount={totalCount} subtotal={subtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount}/>}
+      {printTarget === 'receipt' && <ReceiptPrint {...printProps} {...branchDetails} vatType={vatType} addOnsData={addOnsData} orderCharge={orderCharge} totalCount={totalCount} subtotal={subtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount}/>}
       {printTarget === 'kitchen'  && <KitchenPrint  {...printProps} />}
       {printTarget === 'stickers' && <StickerPrint  {...printProps} customerName={customerName} />}
     </>

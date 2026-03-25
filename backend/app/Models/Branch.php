@@ -10,21 +10,33 @@ class Branch extends Model
     use HasFactory;
 
     protected $fillable = [
-        'name',
-        'location',
-        'status',
-        'total_sales',
-        'today_sales',
-        'ownership_type',
-        'vat_type',
-    ];
+    'name',
+    'location',
+    'status',
+    'total_sales',
+    'today_sales',
+    'ownership_type',
+    'vat_type',
+    'brand',
+    'company_name',
+    'store_address',
+    'vat_reg_tin',
+    'min_number',
+    'serial_number',
+];
 
-    protected $casts = [
-        'total_sales'    => 'decimal:2',
-        'today_sales'    => 'decimal:2',
-        'ownership_type' => 'string',
-        'vat_type'       => 'string',
-    ];
+protected $casts = [
+    'total_sales'    => 'decimal:2',
+    'today_sales'    => 'decimal:2',
+    'ownership_type' => 'string',
+    'vat_type'       => 'string',
+    'brand'          => 'string',
+    'company_name'   => 'string',
+    'store_address'  => 'string',
+    'vat_reg_tin'    => 'string',
+    'min_number'     => 'string',
+    'serial_number'  => 'string',
+];
 
     public function users()
     {

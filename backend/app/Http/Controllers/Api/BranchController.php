@@ -44,40 +44,54 @@ class BranchController extends Controller
     /**
      * POST /api/branches
      */
-    public function store(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'name'           => 'required|string|max:255|unique:branches,name',
-            'location'       => 'required|string|max:255',
-            'status'         => 'required|in:active,inactive',
-            'ownership_type' => 'sometimes|in:company,franchise',        // 👈 add
-            'vat_type'       => 'sometimes|in:vat,non_vat',              // 👈 add
-        ], [
-            'name.required'     => 'Branch name is required.',
-            'name.unique'       => 'A branch with this name already exists.',
-            'location.required' => 'Location is required.',
-            'status.required'   => 'Status is required.',
-            'status.in'         => 'Status must be active or inactive.',
+public function store(Request $request)
+{
+    $validator = Validator::make($request->all(), [
+        'name'           => 'required|string|max:255|unique:branches,name',
+        'location'       => 'required|string|max:255',
+        'status'         => 'required|in:active,inactive',
+        'ownership_type' => 'sometimes|in:company,franchise',
+        'vat_type'       => 'sometimes|in:vat,non_vat',
+        // ✅ Add these
+        'brand'          => 'sometimes|string|max:255',
+        'company_name'   => 'sometimes|string|max:255',
+        'store_address'  => 'sometimes|string|max:500',
+        'vat_reg_tin'    => 'sometimes|string|max:255',
+        'min_number'     => 'sometimes|string|max:255',
+        'serial_number'  => 'sometimes|string|max:255',
+    ], [
+        'name.required'     => 'Branch name is required.',
+        'name.unique'       => 'A branch with this name already exists.',
+        'location.required' => 'Location is required.',
+        'status.required'   => 'Status is required.',
+        'status.in'         => 'Status must be active or inactive.',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Validation failed',
+            'errors'  => $validator->errors(),
+        ], 422);
+    }
+
+    try {
+        $branch = Branch::create([
+            'name'           => $request->name,
+            'location'       => $request->location,
+            'status'         => $request->status,
+            'ownership_type' => $request->ownership_type ?? 'company',
+            'vat_type'       => $request->vat_type       ?? 'vat',
+            'total_sales'    => 0.00,
+            'today_sales'    => 0.00,
+            // ✅ Add these
+            'brand'          => $request->brand          ?? 'Lucky Boba Milk Tea',
+            'company_name'   => $request->company_name   ?? '',
+            'store_address'  => $request->store_address  ?? '',
+            'vat_reg_tin'    => $request->vat_reg_tin    ?? '',
+            'min_number'     => $request->min_number     ?? '',
+            'serial_number'  => $request->serial_number  ?? '',
         ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation failed',
-                'errors'  => $validator->errors(),
-            ], 422);
-        }
-
-        try {
-            $branch = Branch::create([
-                'name'           => $request->name,
-                'location'       => $request->location,
-                'status'         => $request->status,
-                'ownership_type' => $request->ownership_type ?? 'company',   // 👈 add
-                'vat_type'       => $request->vat_type ?? 'vat',             // 👈 add
-                'total_sales'    => 0.00,
-                'today_sales'    => 0.00,
-            ]);
 
             AuditHelper::log('branch', "Created branch: {$branch->name}");
 
@@ -150,12 +164,18 @@ class BranchController extends Controller
             $oldName = $branch->name;
 
             $branch->update($request->only([
-                'name',
-                'location',
-                'status',
-                'ownership_type',
-                'vat_type',          // 👈 add
-            ]));
+    'name',
+    'location',
+    'status',
+    'ownership_type',
+    'vat_type',
+    'brand',
+    'company_name',
+    'store_address',
+    'vat_reg_tin',
+    'min_number',
+    'serial_number',
+]));
 
             // Sync users.branch_name whenever branch name changes
             if ($request->has('name') && $oldName !== $branch->name) {

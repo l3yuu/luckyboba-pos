@@ -1247,7 +1247,14 @@ export const ConfirmOrderModal = ({
                           <input
                             type="text"
                             value={referenceNumber}
-                            onChange={e => onReferenceNumberChange(e.target.value)}
+                            onChange={e => {
+                            const value = e.target.value;
+                            // ✅ allow only numbers and max 13 digits
+                            if (/^\d{0,13}$/.test(value)) {
+                            onReferenceNumberChange(value);
+                            }
+                            }}
+                            maxLength={13}
                             className="w-full bg-zinc-50 border-2 border-zinc-300 rounded-[0.625rem] py-4 px-5 text-xl font-black outline-none focus:border-[#3b2063] focus:bg-white transition-colors"
                             placeholder={paymentMethod === 'grab' ? 'GRAB-XXXXXX' : paymentMethod === 'food_panda' ? 'FP-XXXXXX' : 'REF#'}
                           />

@@ -217,7 +217,7 @@ const SalesSettings = ({ isOpen, onClose, userRole }: SalesSettingsProps) => {
               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">For Franchise</p>
               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Email or Contact us on</p>
               <p className="text-xs text-slate-700 font-bold">luckyboba.franchise@gmail.com</p>
-              <p className="text-xs text-slate-700 font-bold">0917199894</p>
+              <p className="text-xs text-slate-700 font-bold">09171699894</p>
             </div>
           </div>
         </div>
