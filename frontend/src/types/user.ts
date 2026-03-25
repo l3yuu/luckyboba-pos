@@ -1,58 +1,70 @@
 // src/types/user.ts
 
 // Must match Laravel's Rule::in() exactly:
-// 'in:superadmin,system_admin,branch_manager,team_leader,cashier,customer'
+// 'in:superadmin,system_admin,branch_manager,team_leader,cashier,customer,it_admin'
 export type UserRole =
   | 'superadmin'
   | 'system_admin'
   | 'branch_manager'
-  | 'team_leader'    // ← add
+  | 'team_leader'
   | 'cashier'
-  | 'customer';       // was 'manager' ← fixed
+  | 'customer'
+  | 'it_admin';
 
 export type UserStatus = 'ACTIVE' | 'INACTIVE';
 
 export interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: UserRole;
-  status: UserStatus;
-  branch?: string;
-  branch_name?: string | null; 
-  branch_id?: number | null; 
+  id:                 number;
+  name:               string;
+  email:              string;
+  role:               UserRole;
+  status:             UserStatus;
+  branch?:            string;
+  branch_name?:       string | null;
+  branch_id?:         number | null;
   email_verified_at?: string | null;
 }
 
 export interface LoginCredentials {
-  email: string;
-  password: string;
-  remember?: boolean;
+  email:       string;
+  password:    string;
+  device_name: string;    // ← ADDED
+  remember?:   boolean;
 }
 
 export interface CreateUserData {
-  name: string;
-  email: string;
-  role: UserRole;
+  name:     string;
+  email:    string;
+  role:     UserRole;
   password: string;
-  branch?: string;
-  status?: UserStatus;
+  branch?:  string;
+  status?:  UserStatus;
 }
 
 export interface UpdateUserData {
-  name?: string;
-  email?: string;
+  name?:     string;
+  email?:    string;
   password?: string;
-  role?: UserRole;
-  branch?: string;
-  status?: UserStatus;
+  role?:     UserRole;
+  branch?:   string;
+  status?:   UserStatus;
 }
 
 export interface Branch {
-  id: number;
-  name: string;
-  location: string;
-  status: 'active' | 'inactive';
+  id:          number;
+  name:        string;
+  location:    string;
+  status:      'active' | 'inactive';
   total_sales: number | string;
   today_sales: number | string;
 }
+
+export const ROLE_HOME: Record<string, string> = {
+  superadmin:     '/super-admin',
+  system_admin:   '/super-admin',
+  branch_manager: '/branch-manager',
+  team_leader:    '/team-leader',
+  cashier:        '/cashier',
+  customer:       '/customer',
+  it_admin:       '/it-admin',
+};

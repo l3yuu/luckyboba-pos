@@ -5,7 +5,7 @@
 // ProtectedRoute, and any other component all use the exact same keys.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type UserRole = 'superadmin' | 'admin' | 'manager' | 'cashier';
+export type UserRole = 'superadmin' | 'admin' | 'manager' | 'cashier' | 'it_admin';
 
 /** Where each role's dashboard lives */
 export const ROLE_HOME: Record<string, string> = {
