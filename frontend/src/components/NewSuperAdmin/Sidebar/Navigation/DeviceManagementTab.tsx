@@ -4,7 +4,7 @@ import {
   Monitor, Plus, Trash2, AlertCircle, RefreshCw,
   X, CheckCircle, ToggleLeft, ToggleRight,
   MonitorCheck, MonitorOff, Search, Laptop,
-  Unlink, Link,
+  Link,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 
@@ -15,15 +15,16 @@ interface Branch {
 }
 
 interface PosDevice {
-  id:          number;
-  device_name: string;
-  pos_number:  string;
-  branch_id:   number;
-  status:      "ACTIVE" | "INACTIVE";
-  last_seen?:  string | null;
-  user_id:     number | null;
-  user?:       { id: number; name: string } | null;
-  branch?:     { id: number; name: string } | null;
+  id:              number;
+  device_name:     string;
+  pos_number:      string;
+  branch_id:       number;
+  status:          "ACTIVE" | "INACTIVE";
+  last_seen?:      string | null;
+  user_id:         number | null;
+  user?:           { id: number; name: string } | null;
+  assigned_users?: { id: number; name: string }[];  // ← ADD
+  branch?:         { id: number; name: string } | null;
 }
 
 interface Cashier {
@@ -245,23 +246,44 @@ const AssignCashierModal: React.FC<{
   onAssigned: (deviceId: number, userId: number | null, user: { id: number; name: string } | null) => void;
   device: PosDevice;
 }> = ({ onClose, onAssigned, device }) => {
-  const [cashiers, setCashiers] = useState<Cashier[]>([]);
-  const [selectedId, setSelectedId] = useState<string>(device.user_id ? String(device.user_id) : "");
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [apiError, setApiError] = useState("");
-  const [success, setSuccess] = useState(false);
+  const [cashiers,    setCashiers]    = useState<Cashier[]>([]);
+  const [selectedId,  setSelectedId]  = useState<string>("");
+  const [assigned,    setAssigned]    = useState<Cashier[]>([]);  // multiple assigned cashiers
+  const [loading,     setLoading]     = useState(true);
+  const [saving,      setSaving]      = useState(false);
+  const [apiError,    setApiError]    = useState("");
+  const [success,     setSuccess]     = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res  = await fetch(`/api/users?role=cashier&branch_id=${device.branch_id}`, { headers: authHeaders() });
-        const data = await res.json();
-        setCashiers((data.data ?? []).filter((u: { status: string }) => u.status === "ACTIVE"));
-      } catch { setApiError("Failed to load cashiers."); }
-      finally { setLoading(false); }
-    })();
-  }, [device.branch_id]);
+useEffect(() => {
+  (async () => {
+    try {
+      const res  = await fetch(
+        `/api/users?role=cashier&branch_id=${device.branch_id}&status=ACTIVE`,
+        { headers: authHeaders() }
+      );
+      const data = await res.json();
+      const list = (data.data ?? data.users ?? data ?? []) as {
+        id: number; name: string; email: string;
+        status: string; role: string; branch_id: number | null;
+      }[];
+      const filtered = list.filter(u =>
+        u.status    === "ACTIVE" &&
+        u.role      === "cashier" &&
+        u.branch_id === device.branch_id
+      );
+      setCashiers(filtered);
+
+      // Use assigned_users from the device object directly (populated by backend)
+      const alreadyAssigned = (device.assigned_users ?? (device.user ? [device.user] : []))
+        .map(u => filtered.find(c => c.id === u.id))
+        .filter(Boolean) as Cashier[];
+      setAssigned(alreadyAssigned);
+    } catch { setApiError("Failed to load cashiers."); }
+    finally { setLoading(false); }
+  })();
+}, [device.branch_id, device.id]);
+
+  const isAlreadyAssigned = (id: number) => assigned.some(a => a.id === id);
 
   const handleAssign = async () => {
     if (!selectedId) return;
@@ -274,90 +296,117 @@ const AssignCashierModal: React.FC<{
       const data = await res.json();
       if (!res.ok) { setApiError(data.message ?? "Failed to assign cashier."); return; }
       const cashier = cashiers.find(c => String(c.id) === selectedId);
+      if (cashier) setAssigned(p => [...p.filter(a => a.id !== cashier.id), cashier]);
       onAssigned(device.id, cashier?.id ?? null, cashier ? { id: cashier.id, name: cashier.name } : null);
-      setSuccess(true); setTimeout(onClose, 1500);
+      setSelectedId("");
+      setSuccess(true); setTimeout(() => setSuccess(false), 2000);
     } catch { setApiError("Network error."); }
     finally { setSaving(false); }
   };
 
-  const handleUnassign = async () => {
+  const handleUnassign = async (cashierId: number) => {
     setSaving(true); setApiError("");
     try {
-      const res  = await fetch(`/api/pos-devices/${device.id}/unassign`, { method: "DELETE", headers: authHeaders() });
+      const res  = await fetch(`/api/pos-devices/${device.id}/unassign`, {
+        method: "DELETE", headers: authHeaders(),
+        body: JSON.stringify({ user_id: cashierId }),
+      });
       const data = await res.json();
       if (!res.ok) { setApiError(data.message ?? "Failed to unassign."); return; }
+      setAssigned(p => p.filter(a => a.id !== cashierId));
       onAssigned(device.id, null, null);
-      setSuccess(true); setTimeout(onClose, 1500);
     } catch { setApiError("Network error."); }
     finally { setSaving(false); }
   };
 
   return (
     <ModalShell onClose={onClose} icon={<Link size={15} className="text-violet-600" />}
-      title="Assign Cashier" sub={`Link a cashier to ${device.pos_number}`}
-      footer={success ? null : (
+      title="Assign Cashiers" sub={`Manage cashiers for ${device.pos_number}`}
+      footer={
         <>
-          <Btn variant="secondary" onClick={onClose} disabled={saving}>Cancel</Btn>
-          {device.user_id && (
-            <Btn variant="danger" onClick={handleUnassign} disabled={saving}>
-              {saving ? "Removing..." : <><Unlink size={13} /> Unassign</>}
-            </Btn>
-          )}
+          <Btn variant="secondary" onClick={onClose} disabled={saving}>Close</Btn>
           <Btn onClick={handleAssign} disabled={saving || loading || !selectedId}>
-            {saving ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Assigning...</span> : <><Link size={13} /> Assign</>}
+            {saving
+              ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Assigning...</span>
+              : <><Link size={13} /> Assign</>}
           </Btn>
         </>
-      )}>
-      {success ? (
-        <div className="flex flex-col items-center py-4 gap-3">
-          <div className="w-12 h-12 bg-emerald-50 border border-emerald-200 rounded-full flex items-center justify-center">
-            <CheckCircle size={24} className="text-emerald-500" />
-          </div>
-          <p className="text-sm font-bold text-[#1a0f2e]">Cashier assignment updated</p>
+      }>
+
+      {/* Device info */}
+      <div className="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl">
+        <div className="w-9 h-9 bg-violet-50 border border-violet-200 rounded-lg flex items-center justify-center shrink-0">
+          <Monitor size={16} className="text-violet-600" />
         </div>
-      ) : (
-        <>
-          {apiError && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <AlertCircle size={14} className="text-red-500 shrink-0" />
-              <p className="text-xs text-red-600 font-medium">{apiError}</p>
-            </div>
-          )}
-          <div className="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl">
-            <div className="w-9 h-9 bg-violet-50 border border-violet-200 rounded-lg flex items-center justify-center shrink-0">
-              <Monitor size={16} className="text-violet-600" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-bold text-[#1a0f2e]">{device.pos_number}</p>
-              <p className="text-[10px] text-zinc-400">{device.branch?.name ?? "—"}</p>
-            </div>
-            {device.user ? (
-              <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                <MonitorCheck size={9} />{device.user.name}
-              </span>
-            ) : (
-              <span className="text-[10px] font-bold bg-zinc-100 text-zinc-400 border border-zinc-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                <MonitorOff size={9} />Unassigned
-              </span>
-            )}
-          </div>
-          <Field label="Select Cashier" required>
-            {loading ? (
-              <div className="h-10 bg-zinc-100 rounded-lg animate-pulse" />
-            ) : cashiers.length === 0 ? (
-              <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                <AlertCircle size={13} className="text-amber-500 shrink-0" />
-                <p className="text-xs text-amber-700 font-medium">No active cashiers found for this branch.</p>
-              </div>
-            ) : (
-              <select value={selectedId} onChange={e => setSelectedId(e.target.value)} className={inputCls()}>
-                <option value="">— Select a cashier —</option>
-                {cashiers.map(c => <option key={c.id} value={String(c.id)}>{c.name} — {c.email}</option>)}
-              </select>
-            )}
-          </Field>
-        </>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-bold text-[#1a0f2e]">{device.pos_number}</p>
+          <p className="text-[10px] text-zinc-400">{device.branch?.name ?? "—"}</p>
+        </div>
+        <span className="text-[10px] font-bold bg-violet-50 text-violet-700 border border-violet-200 px-2 py-0.5 rounded-full">
+          {assigned.length} assigned
+        </span>
+      </div>
+
+      {apiError && (
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <AlertCircle size={14} className="text-red-500 shrink-0" />
+          <p className="text-xs text-red-600 font-medium">{apiError}</p>
+        </div>
       )}
+
+      {success && (
+        <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+          <CheckCircle size={14} className="text-emerald-500 shrink-0" />
+          <p className="text-xs text-emerald-700 font-medium">Cashier assigned successfully.</p>
+        </div>
+      )}
+
+      {/* Currently assigned list */}
+      {assigned.length > 0 && (
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-2">Currently Assigned</p>
+          <div className="flex flex-col gap-1.5">
+            {assigned.map(c => (
+              <div key={c.id} className="flex items-center gap-2.5 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <MonitorCheck size={12} className="text-emerald-600 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-emerald-800 truncate">{c.name}</p>
+                  <p className="text-[10px] text-emerald-600 truncate">{c.email}</p>
+                </div>
+                <button
+                  onClick={() => handleUnassign(c.id)}
+                  disabled={saving}
+                  className="p-1 hover:bg-red-100 rounded text-emerald-400 hover:text-red-500 transition-colors disabled:opacity-40"
+                  title="Unassign">
+                  <X size={11} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Add new cashier */}
+      <Field label="Add Cashier" required>
+        {loading ? (
+          <div className="h-10 bg-zinc-100 rounded-lg animate-pulse" />
+        ) : cashiers.length === 0 ? (
+          <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+            <AlertCircle size={13} className="text-amber-500 shrink-0" />
+            <p className="text-xs text-amber-700 font-medium">No active cashiers found for this branch.</p>
+          </div>
+        ) : (
+          <select value={selectedId} onChange={e => setSelectedId(e.target.value)} className={inputCls()}>
+            <option value="">— Select a cashier to add —</option>
+            {cashiers.map(c => (
+              <option key={c.id} value={String(c.id)}>
+                {c.name} — {c.email}
+                {isAlreadyAssigned(c.id) ? " ✓ assigned" : ""}
+              </option>
+            ))}
+          </select>
+        )}
+      </Field>
     </ModalShell>
   );
 };
@@ -452,7 +501,7 @@ const DeviceManagementTab: React.FC = () => {
   const handleToggle = async (device: PosDevice) => {
     setTogglingId(device.id);
     try {
-      const res  = await fetch(`/api/pos-devices/${device.id}/toggle-status`, { method: "PATCH", headers: authHeaders() });
+      const res = await fetch(`/api/pos-devices/${device.id}/toggle`, { method: "PATCH", headers: authHeaders() });
       const data = await res.json();
       if (!res.ok) { showToast(data.message ?? "Failed to toggle status.", "error"); return; }
       setDevices(prev => prev.map(d => d.id === device.id ? { ...d, status: data.device?.status ?? (d.status === "ACTIVE" ? "INACTIVE" : "ACTIVE") } : d));
@@ -470,7 +519,7 @@ const DeviceManagementTab: React.FC = () => {
 
   const total    = devices.length;
   const active   = devices.filter(d => d.status === "ACTIVE").length;
-  const assigned = devices.filter(d => d.user_id !== null).length;
+  const assigned = devices.filter(d => (d.assigned_users?.length ?? (d.user_id ? 1 : 0)) > 0).length;
 
   return (
     <div className="p-6 md:p-8 fade-in">
@@ -585,18 +634,22 @@ const DeviceManagementTab: React.FC = () => {
                   </td>
                   {/* Branch */}
                   <td className="px-5 py-3.5 text-zinc-600 text-xs font-medium">{d.branch?.name ?? "—"}</td>
-                  {/* Cashier */}
-                  <td className="px-5 py-3.5">
-                    {d.user ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
-                        <MonitorCheck size={9} />{d.user.name}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-zinc-100 text-zinc-400 border border-zinc-200 px-2 py-0.5 rounded-full">
-                        <MonitorOff size={9} />Unassigned
-                      </span>
-                    )}
-                  </td>
+{/* Cashier */}
+<td className="px-5 py-3.5">
+  {(d.assigned_users ?? (d.user ? [d.user] : [])).length > 0 ? (
+    <div className="flex flex-wrap gap-1">
+      {(d.assigned_users ?? (d.user ? [d.user] : [])).map(u => (
+        <span key={u.id} className="inline-flex items-center gap-1 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full whitespace-nowrap">
+          <MonitorCheck size={10} />{u.name}
+        </span>
+      ))}
+    </div>
+  ) : (
+    <span className="inline-flex items-center gap-1 text-xs font-semibold bg-zinc-100 text-zinc-400 border border-zinc-200 px-2 py-0.5 rounded-full">
+      <MonitorOff size={10} />Unassigned
+    </span>
+  )}
+</td>
                   {/* Last Seen */}
                   <td className="px-5 py-3.5 text-zinc-400 text-xs">{d.last_seen ? new Date(d.last_seen).toLocaleString() : "—"}</td>
                   {/* Status */}
@@ -645,17 +698,28 @@ const DeviceManagementTab: React.FC = () => {
           branches={branches}
         />
       )}
-      {assignTarget && (
-        <AssignCashierModal
-          onClose={() => setAssignTarget(null)}
-          onAssigned={(deviceId, userId, user) => {
-            setDevices(p => p.map(d => d.id === deviceId ? { ...d, user_id: userId, user } : d));
-            setAssignTarget(null);
-            showToast(userId ? "Cashier assigned successfully." : "Cashier unassigned.");
-          }}
-          device={assignTarget}
-        />
-      )}
+    {assignTarget && (
+    <AssignCashierModal
+        onClose={() => setAssignTarget(null)}
+        onAssigned={(deviceId, userId, user) => {
+        setDevices(p => p.map(d => {
+            if (d.id !== deviceId) return d;
+            const currentAssigned = d.assigned_users ?? (d.user ? [d.user] : []);
+            const newAssigned = userId && user
+            ? [...currentAssigned.filter(u => u.id !== userId), user]
+            : currentAssigned.filter(u => u.id !== (user?.id ?? -1));
+            return {
+            ...d,
+            assigned_users: newAssigned,
+            user_id: newAssigned[0]?.id ?? null,
+            user:    newAssigned[0] ?? null,
+            };
+        }));
+        // Don't close modal — let user keep assigning multiple
+        }}
+        device={assignTarget}
+    />
+    )}
       {deleteTarget && (
         <DeleteDeviceModal
           onClose={() => setDeleteTarget(null)}

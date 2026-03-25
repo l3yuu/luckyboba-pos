@@ -32,14 +32,15 @@ interface Branch {
 }
 
 interface PosDevice {
-  id:          number;
-  device_name: string;
-  pos_number:  string;
-  branch_id:   number;
-  status:      string;
-  user_id:     number | null;
-  user?:       { id: number; name: string } | null;
-  branch?:     { id: number; name: string } | null;
+  id:              number;
+  device_name:     string;
+  pos_number:      string;
+  branch_id:       number;
+  status:          string;
+  user_id:         number | null;
+  user?:           { id: number; name: string } | null;
+  assigned_users?: { id: number; name: string }[];  // ← ADD
+  branch?:         { id: number; name: string } | null;
 }
 
 interface StatCardProps {
@@ -865,7 +866,11 @@ const AssignDeviceModal: React.FC<{
   const [apiError,   setApiError]   = useState("");
   const [success,    setSuccess]    = useState(false);
 
-  const currentDevice = devices.find(d => d.user_id === user.id);
+  const currentDevice = devices.find(d =>
+    d.assigned_users
+      ? d.assigned_users.some(u => u.id === user.id)
+      : d.user_id === user.id
+  );
 
   useEffect(() => {
     (async () => {
@@ -878,8 +883,14 @@ const AssignDeviceModal: React.FC<{
         const res  = await fetch(url, { headers: authHeaders() });
         const data = await res.json();
         const list: PosDevice[] = data?.devices ?? data?.data ?? data ?? [];
-        setDevices(list.filter(d => d.status === "ACTIVE"));
-        const assigned = list.find(d => d.user_id === user.id);
+        const activeList = list.filter(d => d.status === "ACTIVE");
+        setDevices(activeList);
+        // Find device where this user is in assigned_users (or legacy user_id)
+        const assigned = activeList.find(d =>
+          d.assigned_users
+            ? d.assigned_users.some(u => u.id === user.id)
+            : d.user_id === user.id
+        );
         if (assigned) setSelectedId(String(assigned.id));
       } catch { setApiError("Failed to load devices."); }
       finally { setLoading(false); }
@@ -908,8 +919,9 @@ const AssignDeviceModal: React.FC<{
     setSaving(true); setApiError("");
     try {
       // FIX: unassign uses DELETE method to match the route definition
-      const res  = await fetch(`/api/pos-devices/${currentDevice.id}/unassign`, {
+      const res = await fetch(`/api/pos-devices/${currentDevice.id}/unassign`, {
         method: "DELETE", headers: authHeaders(),
+        body: JSON.stringify({ user_id: user.id }),  // ← ADD
       });
       const data = await res.json();
       if (!res.ok) { setApiError(data.message ?? "Failed to unassign device."); return; }
@@ -1000,9 +1012,14 @@ const AssignDeviceModal: React.FC<{
                   <option key={d.id} value={String(d.id)}>
                     {d.pos_number}
                     {d.branch?.name ? ` — ${d.branch.name}` : ""}
-                    {d.user_id && d.user_id !== user.id
-                      ? ` ⚠ assigned to ${d.user?.name ?? "another cashier"}`
-                      : d.user_id === user.id ? " ✓ current" : ""}
+                    {(() => {
+                      const assignedUsers = d.assigned_users ?? (d.user_id ? [{ id: d.user_id }] : []);
+                      const isCurrentUser = assignedUsers.some(u => u.id === user.id);
+                      const otherCount    = assignedUsers.filter(u => u.id !== user.id).length;
+                      if (isCurrentUser) return " ✓ current";
+                      if (otherCount > 0) return ` · ${otherCount} cashier${otherCount > 1 ? "s" : ""} assigned`;
+                      return "";
+                    })()}
                   </option>
                 ))}
               </select>
@@ -1053,23 +1070,41 @@ const UsersTab: React.FC = () => {
   const fetchUsers = async () => {
     setLoading(true); setFetchError("");
     try {
-      const [usersRes, branchesRes] = await Promise.all([
-        fetch("/api/users",    { headers: authHeaders() }),
-        fetch("/api/branches", { headers: authHeaders() }),
+      const [usersRes, branchesRes, devicesRes] = await Promise.all([
+        fetch("/api/users",       { headers: authHeaders() }),
+        fetch("/api/branches",    { headers: authHeaders() }),
+        fetch("/api/pos-devices", { headers: authHeaders() }),
       ]);
       const usersData    = await usersRes.json();
       const branchesData = await branchesRes.json();
+      const devicesData  = await devicesRes.json();
 
       if (!usersRes.ok || !usersData.success) {
         setFetchError(usersData.message ?? "Failed to load users.");
         return;
       }
 
-      setUsers((usersData.data as RawUser[]).map(mapUser));
+      // Build a map of user_id → device for quick lookup
+      const deviceList: PosDevice[] = devicesData?.data ?? devicesData?.devices ?? devicesData ?? [];
+      const deviceByUserId = new Map<number, PosDevice>();
+      deviceList.forEach(d => {
+        // Support both old single user_id and new assigned_users array
+        const assignedUsers = d.assigned_users ?? (d.user_id ? [{ id: d.user_id, name: d.user?.name ?? "" }] : []);
+        assignedUsers.forEach(u => deviceByUserId.set(u.id, d));
+      });
 
-      if (branchesData.success) {
-        setBranches(branchesData.data as Branch[]);
-      }
+      const mapped = (usersData.data as RawUser[]).map(u => {
+        const user = mapUser(u);
+        const device = deviceByUserId.get(user.id);
+        if (device) {
+          user.device_id     = device.id;
+          user.device_number = device.pos_number;
+        }
+        return user;
+      });
+
+      setUsers(mapped);
+      if (branchesData.success) setBranches(branchesData.data as Branch[]);
     } catch {
       setFetchError("Network error. Could not reach the server.");
     } finally {
