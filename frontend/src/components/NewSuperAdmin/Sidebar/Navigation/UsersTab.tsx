@@ -4,7 +4,7 @@ import {
   Search, Plus, Eye, Edit2, Trash2, Lock, UserCheck, XCircle,
   Users, ArrowUpRight, ArrowDownRight, X, AlertCircle,
   RefreshCw, Mail, MapPin, ShieldCheck, Trash, CheckCircle, Laptop,
-  MonitorCheck, MonitorOff, Monitor,
+  MonitorCheck, MonitorOff,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 
@@ -1018,133 +1018,6 @@ const AssignDeviceModal: React.FC<{
   );
 };
 
-// ── Register Device Modal (superadmin only) ───────────────────────────────────
-const RegisterDeviceModal: React.FC<{
-  onClose:      () => void;
-  onRegistered: (device: PosDevice) => void;
-  branches:     Branch[];
-}> = ({ onClose, onRegistered, branches }) => {
-  const [form, setForm] = useState({ device_name: "", pos_number: "", branch_id: "" });
-  const [errors,   setErrors]   = useState<Record<string, string>>({});
-  const [saving,   setSaving]   = useState(false);
-  const [apiError, setApiError] = useState("");
-  const [success,  setSuccess]  = useState(false);
-
-  const validate = () => {
-    const e: Record<string, string> = {};
-    if (!form.device_name.trim()) e.device_name = "Device ID is required.";
-    if (!form.pos_number.trim())  e.pos_number  = "POS number is required.";
-    if (!form.branch_id)          e.branch_id   = "Branch is required.";
-    return e;
-  };
-
-  const handleSubmit = async () => {
-    const e = validate();
-    if (Object.keys(e).length) { setErrors(e); return; }
-    setSaving(true); setApiError("");
-    try {
-      const res  = await fetch("/api/pos-devices", {
-        method: "POST", headers: authHeaders(),
-        body: JSON.stringify({
-          device_name: form.device_name.trim(),
-          pos_number:  form.pos_number.trim(),
-          branch_id:   Number(form.branch_id),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        if (data.errors) {
-          const mapped: Record<string, string> = {};
-          Object.entries(data.errors).forEach(([k, v]) => { mapped[k] = Array.isArray(v) ? v[0] : String(v); });
-          setErrors(mapped);
-        } else { setApiError(data.message ?? "Failed to register device."); }
-        return;
-      }
-      onRegistered(data.device);
-      setSuccess(true);
-      setTimeout(onClose, 1500);
-    } catch { setApiError("Network error. Please try again."); }
-    finally { setSaving(false); }
-  };
-
-  const f = (key: keyof typeof form) => ({
-    value: form[key],
-    onChange: (ev: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-      setForm(p => ({ ...p, [key]: ev.target.value }));
-      setErrors(p => { const n = { ...p }; delete n[key]; return n; });
-    },
-  });
-
-  return (
-    <ModalShell onClose={onClose} icon={<Monitor size={15} className="text-violet-600" />}
-      title="Register POS Device" sub="Add a new terminal to the system"
-      footer={
-        success ? null : (
-          <>
-            <Btn variant="secondary" onClick={onClose} disabled={saving}>Cancel</Btn>
-            <Btn onClick={handleSubmit} disabled={saving}>
-              {saving
-                ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Registering...</span>
-                : <><Plus size={13} /> Register Device</>}
-            </Btn>
-          </>
-        )
-      }>
-      {success ? (
-        <div className="flex flex-col items-center py-4 gap-3">
-          <div className="w-12 h-12 bg-emerald-50 border border-emerald-200 rounded-full flex items-center justify-center">
-            <CheckCircle size={24} className="text-emerald-500" />
-          </div>
-          <p className="text-sm font-bold text-[#1a0f2e]">Device registered successfully</p>
-          <p className="text-xs text-zinc-400">You can now assign it to a cashier.</p>
-        </div>
-      ) : (
-        <>
-          {apiError && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <AlertCircle size={14} className="text-red-500 shrink-0" />
-              <p className="text-xs text-red-600 font-medium">{apiError}</p>
-            </div>
-          )}
-          <div className="flex items-start gap-3 p-3 bg-violet-50 border border-violet-200 rounded-lg">
-            <Laptop size={14} className="text-violet-500 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-violet-700 mb-0.5">How to get the Device ID</p>
-              <p className="text-xs text-violet-600 leading-relaxed">
-                On the POS terminal, open the app. If unregistered it shows a <span className="font-bold">"Device Not Registered"</span> screen with the Device ID. The cashier copies it and sends it to you.
-              </p>
-            </div>
-          </div>
-          {/* hint prop now works — added to Field component above */}
-          <Field label="Device ID" required error={errors.device_name}
-            hint="Paste the ID shown on the terminal's unregistered screen.">
-            <input {...f("device_name")} placeholder="e.g. DEV-3700E18D-2001-4E36-9270-ABCD1234..." className={inputCls(errors.device_name)} />
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="POS Number" required error={errors.pos_number}
-              hint="Friendly label used in reports.">
-              <input {...f("pos_number")} placeholder="e.g. POS-001" className={inputCls(errors.pos_number)} />
-            </Field>
-            <Field label="Branch" required error={errors.branch_id}>
-              {branches.length === 0 ? (
-                <div className="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
-                  <AlertCircle size={12} className="text-amber-500 shrink-0" />
-                  <p className="text-xs text-amber-700">No branches found.</p>
-                </div>
-              ) : (
-                <select {...f("branch_id")} className={inputCls(errors.branch_id)}>
-                  <option value="">— Select branch —</option>
-                  {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                </select>
-              )}
-            </Field>
-          </div>
-        </>
-      )}
-    </ModalShell>
-  );
-};
-
 // ── Device pill ───────────────────────────────────────────────────────────────
 const DevicePill: React.FC<{ deviceNumber?: string | null }> = ({ deviceNumber }) =>
   deviceNumber ? (
@@ -1173,7 +1046,6 @@ const UsersTab: React.FC = () => {
   const [delTarget,    setDelTarget]    = useState<User | null>(null);
   const [pinTarget,    setPinTarget]    = useState<User | null>(null);
   const [deviceTarget, setDeviceTarget] = useState<User | null>(null);
-  const [registerOpen, setRegisterOpen] = useState(false);
 
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
   const showToast = (message: string, type: ToastType = "success") => setToast({ message, type });
@@ -1231,9 +1103,6 @@ const UsersTab: React.FC = () => {
           <div className="flex items-center gap-2">
             <Btn variant="secondary" onClick={fetchUsers} disabled={loading}>
               <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
-            </Btn>
-            <Btn variant="secondary" onClick={() => setRegisterOpen(true)} disabled={loading}>
-              <Monitor size={13} /> Register Device
             </Btn>
             <Btn onClick={() => setAddOpen(true)} disabled={loading}>
               <Plus size={13} /> Add User
@@ -1379,13 +1248,6 @@ const UsersTab: React.FC = () => {
       {pinTarget    && <ResetPinModal     onClose={() => setPinTarget(null)}     user={pinTarget} />}
       {deviceTarget && <AssignDeviceModal onClose={() => setDeviceTarget(null)}  onAssigned={handleDeviceAssigned} user={deviceTarget} />}
 
-      {registerOpen && (
-        <RegisterDeviceModal
-          onClose={() => setRegisterOpen(false)}
-          onRegistered={() => { setRegisterOpen(false); showToast("Device registered. You can now assign it to a cashier."); }}
-          branches={branches}
-        />
-      )}
       {toast && <Toast message={toast.message} type={toast.type} onDone={() => setToast(null)} />}
     </div>
   );
