@@ -50,7 +50,7 @@ interface ReceiptPrintProps {
   isReprint?: boolean;
   vatType?: 'vat' | 'non_vat';
   customerName: string;
-  orderType: 'dine-in' | 'take-out'; 
+  orderType: 'dine-in' | 'take-out' | 'delivery'; 
   paxSenior?: number;
   paxPwd?: number;
   seniorId?: string;

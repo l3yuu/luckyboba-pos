@@ -85,7 +85,7 @@ const [vatType, setVatType] = useState<'vat' | 'non_vat'>(
     brand?: string; companyName?: string; storeAddress?: string;
     vatRegTin?: string; minNumber?: string; serialNumber?: string;
   }>({});
-  const [orderType, setOrderType] = useState<'dine-in' | 'take-out' | null>(null);
+  const [orderType, setOrderType] = useState<'dine-in' | 'take-out' | 'delivery' | null>(null);
   const [cashierName, setCashierName] = useState<string>(() =>
     localStorage.getItem('lucky_boba_user_name') ?? 'Admin'
   );
@@ -1591,7 +1591,7 @@ if (itemDiscountType === 'percent' && discountValNum > 0) {
       </div>
 
       {/* Print templates */}
-      {printTarget === 'receipt' && <ReceiptPrint {...printProps} vatType={vatType} addOnsData={addOnsData} orderCharge={orderCharge} totalCount={totalCount} subtotal={subtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount}/>}
+      {printTarget === 'receipt' && <ReceiptPrint {...printProps} {...branchDetails} vatType={vatType} addOnsData={addOnsData} orderCharge={orderCharge} totalCount={totalCount} subtotal={subtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount}/>}
       {printTarget === 'kitchen'  && <KitchenPrint  {...printProps} />}
       {printTarget === 'stickers' && <StickerPrint  {...printProps} customerName={customerName} />}
     </>

@@ -165,6 +165,7 @@ const OrderTypeModal: React.FC<Props> = ({ onSelect, onClose }) => {
 
         </div>
 
+
         {/* Footer */}
         <div className="px-5 pb-5">
           <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest text-center">
