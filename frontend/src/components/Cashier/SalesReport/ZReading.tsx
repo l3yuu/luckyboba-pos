@@ -502,7 +502,43 @@ const ZReading = () => {
     const SIZE_ORDER = ['SM', 'UM', 'PCM', 'JR', 'SL', 'UL', 'PCL'];
     return (
       <div className="my-2">
-        {reportData?.categories && reportData.categories.length > 0 && (<><Divider /><div className="flex text-[11px] border-b border-black pb-0.5 mb-0.5"><span className="w-[55%] uppercase">DESCRIPTION</span><span className="w-[15%] text-center uppercase">QTY</span><span className="w-[30%] text-right uppercase">AMOUNT</span></div>{reportData.categories.map((cat, catIdx) => { const hasSizes = cat.products.some(p => p.size !== null && p.size !== undefined); const sizeGroups = new Map<string | null, typeof cat.products>(); for (const product of cat.products) { const key = product.size ?? null; if (!sizeGroups.has(key)) sizeGroups.set(key, []); sizeGroups.get(key)!.push(product); } const orderedKeys: (string | null)[] = [...SIZE_ORDER.filter(s => sizeGroups.has(s)), ...(sizeGroups.has(null) ? [null] : [])]; return (<div key={catIdx} className="mb-1"><p className="text-[11px] font-bold uppercase mt-1">{cat.category_name}</p>{orderedKeys.map((sizeKey, si) => { const products = sizeGroups.get(sizeKey) ?? []; return (<div key={si}>{hasSizes && sizeKey !== null && <p className="text-[11px] uppercase pl-2">{sizeKey}:</p>}{products.map((item, i) => (<React.Fragment key={i}><div className="flex text-[11px] leading-snug"><span className={`w-[55%] uppercase leading-tight ${hasSizes && sizeKey !== null ? 'pl-4' : 'pl-2'}`}>{item.product_name}{item.size ? ` (${item.size})` : ''}</span><span className="w-[15%] text-center">{item.total_qty}</span><span className="w-[30%] text-right">{phCurrency.format(item.total_sales)}</span></div>{item.add_ons?.map((addon, aIdx) => (<div key={aIdx} className="flex text-[10px] pl-4 leading-snug"><span className="w-[70%]">+ {addon.name}</span><span className="w-[30%] text-right">x{addon.qty}</span></div>))}</React.Fragment>))}</div>); })}<div className="flex justify-between text-[11px] border-t border-dashed border-zinc-800 mt-1 pt-1"><span className="uppercase">T. PER: {cat.category_name}</span><span>{phCurrency.format(cat.category_total || 0)}</span></div><Divider /></div>); })}{reportData.all_addons_summary && reportData.all_addons_summary.length > 0 && (<div className="mt-1"><p className="text-[11px] uppercase">ADD ONS</p>{reportData.all_addons_summary.map((addon, idx) => (<div key={idx} className="flex text-[11px] leading-snug"><span className="w-[70%] uppercase pl-2">{addon.name}</span><span className="w-[30%] text-right">x{addon.qty}</span></div>))}<div className="flex justify-between text-[11px] border-t border-dashed border-zinc-800 mt-1 pt-1"><span className="uppercase">T. PER: ADD ONS</span><span>QTY: {reportData.all_addons_summary.reduce((a, b) => a + b.qty, 0)}</span></div></div>)}</>)}
+        {reportData?.categories && reportData.categories.length > 0 && (<><Divider /><div className="flex text-[11px] border-b border-black pb-0.5 mb-0.5"><span className="w-[55%] uppercase">DESCRIPTION</span><span className="w-[15%] text-center uppercase">QTY</span><span className="w-[30%] text-right uppercase">AMOUNT</span></div>{reportData.categories.map((cat, catIdx) => { const hasSizes = cat.products.some(p => p.size !== null && p.size !== undefined); const sizeGroups = new Map<string | null, typeof cat.products>(); for (const product of cat.products) { const key = product.size ?? null; if (!sizeGroups.has(key)) sizeGroups.set(key, []); sizeGroups.get(key)!.push(product); } const orderedKeys: (string | null)[] = [...SIZE_ORDER.filter(s => sizeGroups.has(s)), ...(sizeGroups.has(null) ? [null] : [])]; return (<div key={catIdx} className="mb-1"><p className="text-[11px] font-bold uppercase mt-1">{cat.category_name}</p>{orderedKeys.map((sizeKey, si) => { const products = sizeGroups.get(sizeKey) ?? []; return (<div key={si}>{hasSizes && sizeKey !== null && <p className="text-[11px] uppercase pl-2">{sizeKey}:</p>}{products.map((item, i) => (<React.Fragment key={i}><div className="flex text-[11px] leading-snug"><span className={`w-[55%] uppercase leading-tight ${hasSizes && sizeKey !== null ? 'pl-4' : 'pl-2'}`}>{item.product_name}{item.size ? ` (${item.size})` : ''}</span><span className="w-[15%] text-center">{item.total_qty}</span><span className="w-[30%] text-right">{phCurrency.format(item.total_sales)}</span></div>{item.add_ons?.map((addon, aIdx) => (<div key={aIdx} className="flex text-[10px] pl-4 leading-snug"><span className="w-[70%]">+ {addon.name}</span><span className="w-[30%] text-right">x{addon.qty}</span></div>))}</React.Fragment>))}</div>); })}<div className="flex justify-between text-[11px] border-t border-dashed border-zinc-800 mt-1 pt-1"><span className="uppercase">T. PER: {cat.category_name}</span><span>{phCurrency.format(cat.category_total || 0)}</span></div><Divider /></div>); })}
+        {reportData.all_addons_summary && reportData.all_addons_summary.length > 0 && (<div className="mt-1"><p className="text-[11px] uppercase">ADD ONS</p>{reportData.all_addons_summary.map((addon, idx) => (<div key={idx} className="flex text-[11px] leading-snug"><span className="w-[70%] uppercase pl-2">{addon.name}</span><span className="w-[30%] text-right">x{addon.qty}</span></div>))}<div className="flex justify-between text-[11px] border-t border-dashed border-zinc-800 mt-1 pt-1"><span className="uppercase">T. PER: ADD ONS</span><span>QTY: {reportData.all_addons_summary.reduce((a, b) => a + b.qty, 0)}</span></div></div>)}</>)}
+        {(() => {
+          const sizeTotals = new Map<string, number>();
+          let noSizeTotal = 0;
+          reportData?.categories?.forEach(cat => {
+            cat.products.forEach(product => {
+              if (product.size) sizeTotals.set(product.size, (sizeTotals.get(product.size) ?? 0) + product.total_qty);
+              else noSizeTotal += product.total_qty;
+            });
+          });
+          const SIZE_ORDER2 = ['SM', 'UM', 'PCM', 'JR', 'SL', 'UL', 'PCL'];
+          const orderedSizes = [...SIZE_ORDER2.filter(s => sizeTotals.has(s)), ...[...sizeTotals.keys()].filter(s => !SIZE_ORDER2.includes(s)).sort()];
+          const grandTotalQty = orderedSizes.reduce((a, s) => a + (sizeTotals.get(s) ?? 0), 0) + noSizeTotal;
+          if (orderedSizes.length === 0 && noSizeTotal === 0) return null;
+          return (
+            <>
+              <p className="text-[11px] uppercase font-bold mb-0.5">CUP SIZE TOTALS</p>
+              {orderedSizes.map(size => (
+                <div key={size} className="flex text-[11px] leading-snug">
+                  <span className="w-[65%] uppercase pl-2">{size}</span>
+                  <span className="w-[35%] text-right">{sizeTotals.get(size) ?? 0} cups</span>
+                </div>
+              ))}
+              {noSizeTotal > 0 && (
+                <div className="flex text-[11px] leading-snug">
+                  <span className="w-[65%] uppercase pl-2">OTHER / NO SIZE</span>
+                  <span className="w-[35%] text-right">{noSizeTotal} pcs</span>
+                </div>
+              )}
+              <div className="flex text-[11px] border-t border-dashed border-zinc-800 mt-0.5 pt-0.5">
+                <span className="w-[65%] uppercase font-bold">TOTAL CUPS SOLD</span>
+                <span className="w-[35%] text-right font-bold">{grandTotalQty}</span>
+              </div>
+            </>
+          );
+        })()}
         <Divider />
         <div className="flex text-[11px] justify-end gap-2 mb-0.5">
           <span className="uppercase">TOTAL:</span>
