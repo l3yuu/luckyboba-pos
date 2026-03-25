@@ -69,17 +69,26 @@ public function check(Request $request)
     ]);
 }
     // ── SUPERADMIN — list all devices ─────────────────────────────────────────
-    public function index()
+    public function index(Request $request)
     {
-        $devices = PosDevice::with(['branch', 'user'])  // ← load user too
-            ->orderBy('branch_id')
-            ->orderBy('pos_number')
-            ->get();
+        try {
+            $query = PosDevice::with(['user:id,name,branch_id', 'branch:id,name'])
+                ->orderBy('created_at', 'desc');
 
-        return response()->json([
-            'success' => true,
-            'devices' => $devices,
-        ]);
+            // Filter by branch_id if provided (for cashier/branch-level views)
+            if ($request->filled('branch_id')) {
+                $query->where('branch_id', $request->branch_id);
+            }
+
+            $devices = $query->get();
+
+            return response()->json([
+                'success' => true,
+                'data'    => $devices,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
     // ── SUPERADMIN — register device ─────────────────────────────────────────
