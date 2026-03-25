@@ -12,9 +12,9 @@ export default defineConfig({
 
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,jpg,png,svg,woff2}'],
-
-        // ── Raise the precache size limit to 5 MB ──────────────────────────
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
+        cleanupOutdatedCaches: true,
+        navigationPreload: false,
 
         runtimeCaching: [
           {
@@ -76,16 +76,13 @@ export default defineConfig({
   ],
 
   build: {
-    // ── Suppress the chunk size warning ────────────────────────────────────
     chunkSizeWarningLimit: 3000,
-
     rollupOptions: {
       output: {
-        // ── Split large vendor chunks so SW can cache them separately ───────
         manualChunks: {
-          'react-vendor':  ['react', 'react-dom', 'react-router-dom'],
-          'ui-vendor':     ['lucide-react'],
-          'chart-vendor':  ['recharts'],
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui-vendor':    ['lucide-react'],
+          'chart-vendor': ['recharts'],
         },
       },
     },

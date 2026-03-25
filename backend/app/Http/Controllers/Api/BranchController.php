@@ -47,9 +47,11 @@ class BranchController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name'     => 'required|string|max:255|unique:branches,name',
-            'location' => 'required|string|max:255',
-            'status'   => 'required|in:active,inactive',
+            'name'           => 'required|string|max:255|unique:branches,name',
+            'location'       => 'required|string|max:255',
+            'status'         => 'required|in:active,inactive',
+            'ownership_type' => 'sometimes|in:company,franchise',        // 👈 add
+            'vat_type'       => 'sometimes|in:vat,non_vat',              // 👈 add
         ], [
             'name.required'     => 'Branch name is required.',
             'name.unique'       => 'A branch with this name already exists.',
@@ -68,11 +70,13 @@ class BranchController extends Controller
 
         try {
             $branch = Branch::create([
-                'name'        => $request->name,
-                'location'    => $request->location,
-                'status'      => $request->status,
-                'total_sales' => 0.00,
-                'today_sales' => 0.00,
+                'name'           => $request->name,
+                'location'       => $request->location,
+                'status'         => $request->status,
+                'ownership_type' => $request->ownership_type ?? 'company',   // 👈 add
+                'vat_type'       => $request->vat_type ?? 'vat',             // 👈 add
+                'total_sales'    => 0.00,
+                'today_sales'    => 0.00,
             ]);
 
             AuditHelper::log('branch', "Created branch: {$branch->name}");
@@ -126,9 +130,11 @@ class BranchController extends Controller
     public function update(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
-            'name'     => 'sometimes|required|string|max:255|unique:branches,name,' . $id,
-            'location' => 'sometimes|required|string|max:255',
-            'status'   => 'sometimes|required|in:active,inactive',
+            'name'           => 'sometimes|required|string|max:255|unique:branches,name,' . $id,
+            'location'       => 'sometimes|required|string|max:255',
+            'status'         => 'sometimes|required|in:active,inactive',
+            'ownership_type' => 'sometimes|required|in:company,franchise',
+            'vat_type'       => 'sometimes|required|in:vat,non_vat',     // 👈 add
         ]);
 
         if ($validator->fails()) {
@@ -140,12 +146,26 @@ class BranchController extends Controller
         }
 
         try {
-            $branch = Branch::findOrFail($id);
-            $branch->update($request->only(['name', 'location', 'status']));
+            $branch  = Branch::findOrFail($id);
+            $oldName = $branch->name;
+
+            $branch->update($request->only([
+                'name',
+                'location',
+                'status',
+                'ownership_type',
+                'vat_type',          // 👈 add
+            ]));
+
+            // Sync users.branch_name whenever branch name changes
+            if ($request->has('name') && $oldName !== $branch->name) {
+                DB::table('users')
+                    ->where('branch_id', $branch->id)
+                    ->update(['branch_name' => $branch->name]);
+            }
 
             AuditHelper::log('branch', "Updated branch: {$branch->name}");
 
-            // Return fresh with manager and staff count
             $fresh = Branch::withCount('users as staff_count')
                 ->with(['manager:id,name,branch_id,role'])
                 ->findOrFail($id);
@@ -160,6 +180,7 @@ class BranchController extends Controller
                 'data'    => $data,
                 'message' => 'Branch updated successfully',
             ], 200);
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

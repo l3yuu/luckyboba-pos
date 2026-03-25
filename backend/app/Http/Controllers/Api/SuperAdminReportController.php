@@ -88,7 +88,7 @@ class SuperAdminReportController extends Controller
             DB::raw('SUM(total_amount) as grand_total'),
             DB::raw('COUNT(id)         as total_orders'),
             DB::raw('AVG(total_amount) as avg_order_value'),
-            DB::raw('SUM(pax)          as total_customers')
+            DB::raw('0                 as total_customers')  // ← was SUM(pax)
         )->first();
 
         return response()->json([
@@ -123,28 +123,26 @@ class SuperAdminReportController extends Controller
 
         [$startDate, $endDate] = $this->resolveDateRange($period, $anchor);
 
-        $branches = DB::table('branches')
-            ->where('status', 'active')
-            ->get(['id', 'name', 'location']);
+    $branches = DB::table('branches')->get(['id', 'name']);
 
-        $metrics = DB::table('sales')
-            ->join('branches', 'sales.branch_id', '=', 'branches.id')
-            ->select(
-                'branches.id            as branch_id',
-                'branches.name          as branch_name',
-                'branches.location',
-                DB::raw('SUM(sales.total_amount)   as total_revenue'),
-                DB::raw('COUNT(sales.id)            as total_orders'),
-                DB::raw('AVG(sales.total_amount)    as avg_order_value'),
-                DB::raw('SUM(sales.pax)             as total_customers'),
-                DB::raw('AVG(sales.pax)             as avg_pax_per_order')
-            )
-            ->where('sales.status', 'completed')
-            ->where('branches.status', 'active')
-            ->whereBetween('sales.created_at', [$startDate, $endDate])
-            ->groupBy('branches.id', 'branches.name', 'branches.location')
-            ->orderByDesc('total_revenue')
-            ->get();
+    $metrics = DB::table('sales')
+        ->join('branches', 'sales.branch_id', '=', 'branches.id')
+        ->select(
+            'branches.id            as branch_id',
+            'branches.name          as branch_name',
+            DB::raw("'' as location"),
+            DB::raw('SUM(sales.total_amount)   as total_revenue'),
+            DB::raw('COUNT(sales.id)            as total_orders'),
+            DB::raw('AVG(sales.total_amount)    as avg_order_value'),
+            DB::raw('0                          as total_customers'),   // ← was SUM(sales.pax)
+            DB::raw('0                          as avg_pax_per_order')  // ← was AVG(sales.pax)
+        )
+        ->where('sales.status', 'completed')
+        // ← removed ->where('branches.status', 'active')
+        ->whereBetween('sales.created_at', [$startDate, $endDate])
+        ->groupBy('branches.id', 'branches.name')
+        ->orderByDesc('total_revenue')
+        ->get();
 
         $topProductPerBranch = DB::table('sale_items')
             ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
@@ -162,21 +160,21 @@ class SuperAdminReportController extends Controller
             ->groupBy('branch_id')
             ->map(fn($items) => $items->first());
 
-        $paymentBreakdown = DB::table('sales')
-            ->join('branches', 'sales.branch_id', '=', 'branches.id')
-            ->select(
-                'sales.branch_id',
-                'branches.name as branch_name',
-                'sales.payment_method',
-                DB::raw('COUNT(*) as count'),
-                DB::raw('SUM(total_amount) as revenue')
-            )
-            ->where('sales.status', 'completed')
-            ->where('branches.status', 'active')
-            ->whereBetween('sales.created_at', [$startDate, $endDate])
-            ->groupBy('sales.branch_id', 'branches.name', 'sales.payment_method')
-            ->get()
-            ->groupBy('branch_id');
+    $paymentBreakdown = DB::table('sales')
+        ->join('branches', 'sales.branch_id', '=', 'branches.id')
+        ->select(
+            'sales.branch_id',
+            'branches.name as branch_name',
+            'sales.payment_method',
+            DB::raw('COUNT(*) as count'),
+            DB::raw('SUM(total_amount) as revenue')
+        )
+        ->where('sales.status', 'completed')
+        // ← removed branches.status = active
+        ->whereBetween('sales.created_at', [$startDate, $endDate])
+        ->groupBy('sales.branch_id', 'branches.name', 'sales.payment_method')
+        ->get()
+        ->groupBy('branch_id');
 
         $comparison = $metrics->map(function ($branch) use ($topProductPerBranch, $paymentBreakdown) {
             $branch->top_product     = $topProductPerBranch->get($branch->branch_id);

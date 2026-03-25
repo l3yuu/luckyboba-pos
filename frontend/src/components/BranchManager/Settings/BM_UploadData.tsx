@@ -380,7 +380,7 @@ const BM_UploadData = ({ onBack }: { onBack: () => void }) => {
 
       {/* ── Summary Modal ── */}
       {summary && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-150 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="bg-white w-full max-w-md rounded-2xl border border-gray-100 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
             <div className="flex items-center justify-between px-7 py-5 border-b border-gray-50">
               <div className="flex items-center gap-2">

@@ -16,10 +16,16 @@ use Illuminate\Support\Facades\Validator;
 class UserController extends Controller
 {
     /**
-     * Transform user to return branch as a plain string (not object)
+     * Transform user to return branch as a plain string (not object).
+     * Also includes active card info for the Flutter app.
      */
     private function transformUser(User $user, ?string $lastLoginAt = null, int $loginCount = 0): array
     {
+        $activeCard = DB::table('user_cards')
+            ->where('user_id', $user->id)
+            ->where('status', 'active')
+            ->first();
+
         return [
             'id'                => $user->id,
             'name'              => $user->name,
@@ -31,8 +37,12 @@ class UserController extends Controller
             'email_verified_at' => $user->email_verified_at,
             'created_at'        => $user->created_at,
             'updated_at'        => $user->updated_at,
-            'last_login_at'     => $lastLoginAt,   // ← new
-            'login_count'       => $loginCount,    // ← new
+            'last_login_at'     => $lastLoginAt,
+            'login_count'       => $loginCount,
+            'has_active_card'   => $activeCard !== null,
+            'card_id'           => $activeCard?->card_id ?? null,
+            'card_expires_at'   => $activeCard?->expires_at ?? null,
+            'has_pin'           => ! is_null($user->manager_pin),
         ];
     }
 
@@ -43,11 +53,17 @@ class UserController extends Controller
     {
         try {
             $authUser = $request->user();
-            $query = User::orderBy('created_at', 'desc');
+            $query    = User::orderBy('created_at', 'desc');
 
+            // Branch managers only see cashiers in their branch
             if ($authUser->role === 'branch_manager') {
                 $query->where('role', 'cashier')
-                    ->where('branch_name', $authUser->branch_name);
+                      ->where('branch_name', $authUser->branch_name);
+            }
+
+            // IT Admins only see non-superadmin users
+            if ($authUser->role === 'it_admin') {
+                $query->where('role', '!=', 'superadmin');
             }
 
             if ($request->query('status')) $query->where('status', $request->query('status'));
@@ -57,13 +73,12 @@ class UserController extends Controller
                 $search = $request->query('search');
                 $query->where(function ($q) use ($search) {
                     $q->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
+                      ->orWhere('email', 'like', "%{$search}%");
                 });
             }
 
             $users = $query->get();
 
-            // ── Pull login audit data for all fetched users in one query ──
             $userIds = $users->pluck('id');
 
             $loginStats = DB::table('audit_logs')
@@ -71,12 +86,12 @@ class UserController extends Controller
                 ->whereIn('user_id', $userIds)
                 ->where(function ($q) {
                     $q->where('action', 'like', '%logged in%')
-                    ->orWhere('action', 'like', '%User logged%')
-                    ->orWhere('action', 'like', '%login%');
+                      ->orWhere('action', 'like', '%User logged%')
+                      ->orWhere('action', 'like', '%login%');
                 })
                 ->groupBy('user_id')
                 ->get()
-                ->keyBy('user_id'); // keyed by user_id for O(1) lookup
+                ->keyBy('user_id');
 
             $transformed = $users->map(function ($u) use ($loginStats) {
                 $stat = $loginStats->get($u->id);
@@ -90,14 +105,14 @@ class UserController extends Controller
             return response()->json([
                 'success' => true,
                 'data'    => $transformed,
-                'message' => 'Users retrieved successfully'
+                'message' => 'Users retrieved successfully',
             ], 200);
 
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve users',
-                'error'   => $e->getMessage()
+                'error'   => $e->getMessage(),
             ], 500);
         }
     }
@@ -109,9 +124,8 @@ class UserController extends Controller
     {
         try {
             $authUser = $request->user();
-            $user = User::findOrFail($id);
+            $user     = User::findOrFail($id);
 
-            // Branch managers can only view cashiers in their branch
             if ($authUser->role === 'branch_manager') {
                 if ($user->role !== 'cashier' || $user->branch_name !== $authUser->branch_name) {
                     return response()->json([
@@ -121,17 +135,24 @@ class UserController extends Controller
                 }
             }
 
+            if ($authUser->role === 'it_admin' && $user->role === 'superadmin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access denied. IT Admin cannot view superadmin accounts.',
+                ], 403);
+            }
+
             return response()->json([
                 'success' => true,
                 'data'    => $this->transformUser($user),
-                'message' => 'User retrieved successfully'
+                'message' => 'User retrieved successfully',
             ], 200);
 
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'User not found',
-                'error'   => $e->getMessage()
+                'error'   => $e->getMessage(),
             ], 404);
         }
     }
@@ -139,67 +160,60 @@ class UserController extends Controller
     /**
      * POST /api/users
      */
-    
     public function store(Request $request)
     {
-
-    
         $authUser = $request->user();
 
-        // Branch managers can only create cashiers — force the role
         if ($authUser->role === 'branch_manager') {
             $request->merge(['role' => 'cashier']);
+        }
+
+        if ($authUser->role === 'it_admin' && $request->role === 'superadmin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Access denied. IT Admin cannot create superadmin accounts.',
+            ], 403);
         }
 
         $validator = Validator::make($request->all(), [
             'name'        => 'required|string|max:255',
             'email'       => 'required|email|max:255|unique:users,email',
             'password'    => 'required|string|min:6',
-            'role'        => 'required|in:superadmin,system_admin,branch_manager,cashier,customer',
-            'branch'      => 'nullable|string|max:255',
+            'role'        => 'required|in:superadmin,system_admin,branch_manager,team_leader,cashier,customer,it_admin',
+            'branch_id'   => 'nullable|integer|exists:branches,id',
             'status'      => 'required|in:ACTIVE,INACTIVE',
-            'manager_pin' => 'nullable|string|min:4|max:20',  // ← add
+            'manager_pin' => 'nullable|string|min:4|max:20',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors'  => $validator->errors()
+                'errors'  => $validator->errors(),
             ], 422);
         }
 
         try {
-
-        \Log::info('UserController@store payload', [
-        'all'        => $request->all(),
-        'branch'     => $request->branch,
-        'has_branch' => $request->has('branch'),
-        'filled'     => $request->filled('branch'),
-    ]);
-            $isBranchManager = $authUser->role === 'branch_manager';
-
             $branchId   = null;
             $branchName = null;
 
-            if ($isBranchManager) {
-                // Always inherit branch from the branch manager
+            // Branch managers always create under their own branch
+            if ($authUser->role === 'branch_manager') {
                 $branchId   = $authUser->branch_id;
                 $branchName = $authUser->branch_name;
-            } elseif ($request->has('branch') && $request->branch !== '' && $request->branch !== null) {
-    $branch = Branch::where('name', $request->branch)->first();  // ← this line is missing!
+            } elseif ($request->filled('branch_id')) {
+                $branch = Branch::find($request->branch_id);
 
-    if (! $branch) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Branch not found',
-            'error'   => "No branch found with the name: {$request->branch}"
-        ], 404);
-    }
+                if (! $branch) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Branch not found.',
+                    ], 404);
+                }
 
-    $branchId   = $branch->id;
-    $branchName = $branch->name;
-}
+                $branchId   = $branch->id;
+                $branchName = $branch->name;
+            }
 
             $user = User::create([
                 'name'        => $request->name,
@@ -209,20 +223,20 @@ class UserController extends Controller
                 'status'      => $request->status,
                 'branch_name' => $branchName,
                 'branch_id'   => $branchId,
-                'manager_pin' => $request->filled('manager_pin') ? Hash::make($request->manager_pin) : null,  // ← add
+                'manager_pin' => $request->filled('manager_pin') ? Hash::make($request->manager_pin) : null,
             ]);
 
             return response()->json([
                 'success' => true,
                 'data'    => $this->transformUser($user),
-                'message' => 'User created successfully'
+                'message' => 'User created successfully',
             ], 201);
 
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create user',
-                'error'   => $e->getMessage()
+                'error'   => $e->getMessage(),
             ], 500);
         }
     }
@@ -235,7 +249,6 @@ class UserController extends Controller
         $authUser = $request->user();
         $target   = User::findOrFail($id);
 
-        // Branch managers can only edit cashiers in their own branch
         if ($authUser->role === 'branch_manager') {
             if ($target->role !== 'cashier' || $target->branch_name !== $authUser->branch_name) {
                 return response()->json([
@@ -243,25 +256,31 @@ class UserController extends Controller
                     'message' => 'Access denied. Branch managers can only edit cashiers in their branch.',
                 ], 403);
             }
-            // Prevent role escalation
             $request->merge(['role' => 'cashier']);
+        }
+
+        if ($authUser->role === 'it_admin' && $target->role === 'superadmin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Access denied. IT Admin cannot edit superadmin accounts.',
+            ], 403);
         }
 
         $validator = Validator::make($request->all(), [
             'name'        => 'sometimes|required|string|max:255',
             'email'       => 'sometimes|required|email|max:255|unique:users,email,' . $id,
             'password'    => 'nullable|string|min:6',
-            'role'        => 'sometimes|required|in:superadmin,system_admin,branch_manager,cashier,customer',
+            'role'        => 'sometimes|required|in:superadmin,system_admin,branch_manager,team_leader,cashier,customer,it_admin',
             'status'      => 'sometimes|required|in:ACTIVE,INACTIVE',
-            'branch'      => 'nullable|string|max:255',
-            'manager_pin' => 'nullable|string|min:4|max:20',  // ← add
+            'branch_id'   => 'nullable|integer|exists:branches,id',
+            'manager_pin' => 'nullable|string|min:4|max:20',
         ]);
 
         if ($validator->fails()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation failed',
-                'errors'  => $validator->errors()
+                'errors'  => $validator->errors(),
             ], 422);
         }
 
@@ -278,26 +297,27 @@ class UserController extends Controller
             }
 
             if ($request->filled('manager_pin')) {
-                $updateData['manager_pin'] = Hash::make($request->manager_pin);  // ← missing
+                $updateData['manager_pin'] = Hash::make($request->manager_pin);
             }
 
-            if ($request->has('branch')) {
-                $updateData['branch_name'] = $request->branch;
-
-                if (! empty($request->branch)) {
-                    $branch = Branch::where('name', $request->branch)->first();
+            // Handle branch update via branch_id
+            if ($request->has('branch_id')) {
+                if ($request->filled('branch_id')) {
+                    $branch = Branch::find($request->branch_id);
 
                     if (! $branch) {
                         return response()->json([
                             'success' => false,
-                            'message' => 'Branch not found',
-                            'error'   => "No branch found with the name: {$request->branch}"
+                            'message' => 'Branch not found.',
                         ], 404);
                     }
 
-                    $updateData['branch_id'] = $branch->id;
+                    $updateData['branch_id']   = $branch->id;
+                    $updateData['branch_name'] = $branch->name;
                 } else {
-                    $updateData['branch_id'] = null;
+                    // Explicitly clearing the branch
+                    $updateData['branch_id']   = null;
+                    $updateData['branch_name'] = null;
                 }
             }
 
@@ -306,14 +326,14 @@ class UserController extends Controller
             return response()->json([
                 'success' => true,
                 'data'    => $this->transformUser($target->fresh()),
-                'message' => 'User updated successfully'
+                'message' => 'User updated successfully',
             ], 200);
 
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update user',
-                'error'   => $e->getMessage()
+                'error'   => $e->getMessage(),
             ], 500);
         }
     }
@@ -327,7 +347,6 @@ class UserController extends Controller
             $authUser = $request->user();
             $user     = User::findOrFail($id);
 
-            // Branch managers can only delete cashiers in their own branch
             if ($authUser->role === 'branch_manager') {
                 if ($user->role !== 'cashier' || $user->branch_name !== $authUser->branch_name) {
                     return response()->json([
@@ -337,7 +356,13 @@ class UserController extends Controller
                 }
             }
 
-            // Block deleting superadmin
+            if ($authUser->role === 'it_admin' && $user->role === 'superadmin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access denied. IT Admin cannot delete superadmin accounts.',
+                ], 403);
+            }
+
             if ($user->role === 'superadmin') {
                 return response()->json([
                     'success' => false,
@@ -345,7 +370,6 @@ class UserController extends Controller
                 ], 403);
             }
 
-            // Block self-deletion
             if (Auth::id() === $user->id) {
                 return response()->json([
                     'success' => false,
@@ -354,7 +378,6 @@ class UserController extends Controller
             }
 
             DB::transaction(function () use ($user) {
-
                 DB::table('personal_access_tokens')
                     ->where('tokenable_type', get_class($user))
                     ->where('tokenable_id', $user->id)
@@ -378,14 +401,14 @@ class UserController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'User deleted successfully'
+                'message' => 'User deleted successfully',
             ], 200);
 
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete user',
-                'error'   => $e->getMessage()
+                'error'   => $e->getMessage(),
             ], 500);
         }
     }
@@ -399,7 +422,6 @@ class UserController extends Controller
             $authUser = $request->user();
             $user     = User::findOrFail($id);
 
-            // Branch managers can only toggle cashiers in their own branch
             if ($authUser->role === 'branch_manager') {
                 if ($user->role !== 'cashier' || $user->branch_name !== $authUser->branch_name) {
                     return response()->json([
@@ -409,23 +431,30 @@ class UserController extends Controller
                 }
             }
 
+            if ($authUser->role === 'it_admin' && $user->role === 'superadmin') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Access denied. IT Admin cannot change status of superadmin accounts.',
+                ], 403);
+            }
+
             $user->status = $user->status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
             $user->save();
+
+            AuditHelper::log('user', "Toggled status for user: {$user->name}", "New status: {$user->status}");
 
             return response()->json([
                 'success' => true,
                 'data'    => $this->transformUser($user),
-                'message' => 'User status updated successfully'
+                'message' => 'User status updated successfully',
             ], 200);
 
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
-
-        AuditHelper::log('user', "Toggled status for user: {$user->name}", "New status: {$user->status}");
     }
 
     /**
@@ -442,43 +471,70 @@ class UserController extends Controller
                     'superadmin'     => User::where('role', 'superadmin')->count(),
                     'system_admin'   => User::where('role', 'system_admin')->count(),
                     'branch_manager' => User::where('role', 'branch_manager')->count(),
+                    'team_leader'    => User::where('role', 'team_leader')->count(),
                     'cashier'        => User::where('role', 'cashier')->count(),
                     'customer'       => User::where('role', 'customer')->count(),
+                    'it_admin'       => User::where('role', 'it_admin')->count(),
                 ],
             ];
 
             return response()->json([
                 'success' => true,
                 'data'    => $stats,
-                'message' => 'User statistics retrieved successfully'
+                'message' => 'User statistics retrieved successfully',
             ], 200);
 
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to retrieve statistics',
-                'error'   => $e->getMessage()
+                'error'   => $e->getMessage(),
             ], 500);
         }
     }
-public function updatePin(Request $request, $id)
-{
-    $user = User::findOrFail($id);
 
-    \Log::info('updatePin called', [
-        'user_id' => $user->id,
-        'pin'     => $request->pin,
-    ]);
+    /**
+     * PATCH /api/users/{id}/pin
+     */
+    public function updatePin(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
 
-    $request->validate([
-        'pin'              => ['required', 'digits_between:4,8', 'confirmed'],
-        'pin_confirmation' => ['required'],
-    ]);
+        \Log::info('updatePin called', [
+            'user_id' => $user->id,
+            'pin'     => $request->pin,
+        ]);
 
-    \DB::table('users')
-        ->where('id', $user->id)
-        ->update(['manager_pin' => bcrypt($request->pin)]);
+        $request->validate([
+            'pin'              => ['required', 'digits_between:4,8', 'confirmed'],
+            'pin_confirmation' => ['required'],
+        ]);
 
-    return response()->json(['message' => 'PIN updated successfully.']);
-}
+        DB::table('users')
+            ->where('id', $user->id)
+            ->update(['manager_pin' => bcrypt($request->pin)]);
+
+        return response()->json(['message' => 'PIN updated successfully.']);
+    }
+
+    /**
+     * POST /api/auth/verify-manager-pin
+     */
+    public function verifyManagerPin(Request $request)
+    {
+        $request->validate(['pin' => 'required|string']);
+
+        $admins = User::whereIn('role', ['superadmin', 'system_admin', 'branch_manager', 'team_leader', 'it_admin'])
+            ->where('status', 'ACTIVE')
+            ->whereNotNull('manager_pin')
+            ->get();
+
+        foreach ($admins as $admin) {
+            if (Hash::check($request->pin, $admin->manager_pin)) {
+                return response()->json(['success' => true, 'message' => 'Authorized']);
+            }
+        }
+
+        return response()->json(['success' => false, 'message' => 'Incorrect PIN.']);
+    }
 }

@@ -23,9 +23,6 @@ class SalesController extends Controller
         $this->dashboardService = $dashboardService;
     }
 
-    /**
-     * Store a newly created sale in storage.
-     */
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -46,22 +43,32 @@ class SalesController extends Controller
             'items.*.charges'        => 'nullable|array',
             'items.*.charges.grab'   => 'nullable|boolean',
             'items.*.charges.panda'  => 'nullable|boolean',
+            'items.*.discount_id'    => 'nullable|integer',
+            'items.*.discount_label' => 'nullable|string',
+            'items.*.discount_type'  => 'nullable|string',
+            'items.*.discount_value' => 'nullable|numeric|min:0',
             'subtotal'               => 'required|numeric|min:0',
             'total'                  => 'required|numeric|min:0',
             'cashier_name'           => 'nullable|string',
             'payment_method'         => 'nullable|string',
             'reference_number'       => 'nullable|string',
-            'pax_regular'            => 'required|integer|min:0',
-            'pax_senior'             => 'required|integer|min:0',
-            'pax_pwd'                => 'required|integer|min:0',
-            'pax_diplomat'           => 'required|integer|min:0',
-            'senior_id'              => 'nullable|string',
-            'pwd_id'                 => 'nullable|string',
-            'diplomat_id'            => 'nullable|string',
+            'discount_id'            => 'nullable|exists:discounts,id',
+            'discount_amount'        => 'nullable|numeric|min:0',
+            'sc_discount_amount'     => 'nullable|numeric|min:0',
+            'pwd_discount_amount'    => 'nullable|numeric|min:0',
+            'diplomat_discount_amount' => 'nullable|numeric|min:0',
+            'other_discount_amount'  => 'nullable|numeric|min:0',
             'discount_remarks'       => 'nullable|string',
             'vatable_sales'          => 'required|numeric',
             'vat_amount'             => 'required|numeric',
-            'customer_name' => 'nullable|string',
+            'vat_type'               => 'nullable|in:vat,non_vat',
+            'customer_name'          => 'nullable|string',
+            'cash_tendered'          => 'nullable|numeric|min:0',
+            'pax_discount_ids'       => 'nullable|string',
+            'pax_senior'             => 'nullable|integer|min:0',
+            'pax_pwd'                => 'nullable|integer|min:0',
+            'senior_id'              => 'nullable|string',
+            'pwd_id'                 => 'nullable|string',
         ]);
 
         $user        = auth('sanctum')->user();
@@ -73,63 +80,99 @@ class SalesController extends Controller
         try {
             DB::beginTransaction();
 
-            // ── Determine order-level charge type ─────────────────────────────────
-            $chargeType = null;
-            foreach ($validated['items'] as $item) {
-                if (!empty($item['charges']['grab']))  { $chargeType = 'grab';  break; }
-                if (!empty($item['charges']['panda'])) { $chargeType = 'panda'; break; }
+            // ── Determine order-level charge type ─────────────────────────────
+            $paymentMethod = $request->input('payment_method', 'cash');
+
+            $chargeType = match(true) {
+                in_array($paymentMethod, ['grab', 'food_panda']) => $paymentMethod,
+                default => (function() use ($validated) {
+                    foreach ($validated['items'] as $item) {
+                        if (!empty($item['charges']['grab']))  return 'grab';
+                        if (!empty($item['charges']['panda'])) return 'panda';
+                    }
+                    return null;
+                })(),
+            };
+
+            // ── Resolve effective discount_id ──────────────────────────────────
+            $effectiveDiscountId = $request->input('discount_id');
+            $paxIds              = array_filter(explode(',', $request->input('pax_discount_ids', '')));
+
+            if (!$effectiveDiscountId && count($paxIds) === 1) {
+                $effectiveDiscountId = (int) $paxIds[0];
             }
 
-            // ── 1. Create Sale (total_amount = 0, recalculated after items) ───────
+            // ── Use frontend pre-calculated split amounts ──────────────────────
+            $scDiscountAmount       = (float) $request->input('sc_discount_amount',       0);
+            $pwdDiscountAmount      = (float) $request->input('pwd_discount_amount',       0);
+            $diplomatDiscountAmount = (float) $request->input('diplomat_discount_amount',  0);
+            $otherDiscountAmount    = (float) $request->input('other_discount_amount',     0);
+
+            // ── 1. Create Sale ─────────────────────────────────────────────────
             $sale = Sale::create([
-                'user_id'          => $userId,
-                'branch_id'        => $branchId,
-                'total_amount'     => 0,
-                'invoice_number'   => $officialOR,
-                'status'           => 'completed',
-                'payment_method'   => $request->input('payment_method', 'cash'),
-                'reference_number' => $request->input('reference_number'),
-                'charge_type'      => $chargeType,
-                'pax_regular'      => $validated['pax_regular'],
-                'pax_senior'       => $validated['pax_senior'],
-                'pax_pwd'          => $validated['pax_pwd'],
-                'pax_diplomat'     => $validated['pax_diplomat'],
-                'senior_id'        => $validated['senior_id']        ?? null,
-                'pwd_id'           => $validated['pwd_id']           ?? null,
-                'diplomat_id'      => $validated['diplomat_id']      ?? null,
-                'discount_remarks' => $validated['discount_remarks'] ?? null,
-                'vatable_sales'    => $validated['vatable_sales'],
-                'vat_amount'       => $validated['vat_amount'],
-                'customer_name'    => $validated['customer_name']    ?? null,
-                'pax'              => $validated['pax_regular'] + $validated['pax_senior']
-                                    + $validated['pax_pwd']     + $validated['pax_diplomat'],
-                'is_synced'        => false,
+                'user_id'                  => $userId,
+                'branch_id'                => $branchId,
+                'total_amount'             => 0,
+                'invoice_number'           => $officialOR,
+                'status'                   => 'completed',
+                'payment_method'           => $request->input('payment_method', 'cash'),
+                'reference_number'         => $request->input('reference_number'),
+                'charge_type'              => $chargeType,
+                'discount_id'              => $effectiveDiscountId,
+                'discount_amount'          => (float) $request->input('discount_amount', 0),
+                'sc_discount_amount'       => $scDiscountAmount,
+                'pwd_discount_amount'      => $pwdDiscountAmount,
+                'diplomat_discount_amount' => $diplomatDiscountAmount,
+                'other_discount_amount'    => $otherDiscountAmount,
+                'discount_remarks'         => $validated['discount_remarks'] ?? null,
+                'vatable_sales'            => $validated['vatable_sales'],
+                'vat_amount'               => $validated['vat_amount'],
+                'vat_type'                 => $request->input('vat_type', 'vat'),
+                'customer_name'            => $validated['customer_name'] ?? null,
+                'is_synced'                => false,
+                'cash_tendered'            => (float) $request->input('cash_tendered', 0),
+                'pax_senior'               => $request->input('pax_senior'),
+                'pax_pwd'                  => $request->input('pax_pwd'),
+                'senior_id'                => $request->input('senior_id'),
+                'pwd_id'                   => $request->input('pwd_id'),
+                'pax_discount_ids'         => $request->input('pax_discount_ids'),
             ]);
 
-            // ── 2. Create Sale Items (backend enforces surcharge) ─────────────────
+            // ── 2. Create Sale Items ───────────────────────────────────────────
             $totalQty = 0;
 
             foreach ($validated['items'] as $item) {
                 $hasCharge  = !empty($item['charges']['grab']) || !empty($item['charges']['panda']);
-                $surcharge  = $hasCharge ? 30 * $item['quantity'] : 0;
                 $basePrice  = (float) $item['unit_price'];
-                $finalPrice = ($basePrice * $item['quantity']) + $surcharge;
+                $totalPrice = (float) $item['total_price'];
 
-                $totalQty += $item['quantity'];
+                $surcharge  = $hasCharge
+                    ? round($totalPrice - ($basePrice * $item['quantity']), 2)
+                    : 0;
+
+                $finalPrice = $totalPrice;
+                $totalQty  += $item['quantity'];
+
+                $itemDiscountAmount = 0;
+                if (!empty($item['discount_type']) && isset($item['discount_value'])) {
+                    $itemDiscountAmount = $item['discount_type'] === 'percent'
+                        ? round($basePrice * $item['quantity'] * ($item['discount_value'] / 100), 2)
+                        : round((float) $item['discount_value'] * $item['quantity'], 2);
+                }
 
                 SaleItem::create([
                     'sale_id'           => $sale->id,
-                    'menu_item_id'      => $item['menu_item_id']      ?? null,
-                    'bundle_id'         => $item['bundle_id']         ?? null,
+                    'menu_item_id'      => $item['menu_item_id']  ?? null,
+                    'bundle_id'         => $item['bundle_id']     ?? null,
                     'product_name'      => $item['name'],
                     'quantity'          => $item['quantity'],
                     'price'             => $basePrice,
                     'final_price'       => $finalPrice,
-                    'size'              => $item['size']               ?? null,
-                    'cup_size_label'    => $item['cup_size_label']     ?? null,
-                    'sugar_level'       => $item['sugar_level']        ?? null,
-                    'options'           => $item['options']            ?? null,
-                    'add_ons'           => $item['add_ons']            ?? null,
+                    'size'              => $item['size']           ?? null,
+                    'cup_size_label'    => $item['cup_size_label'] ?? null,
+                    'sugar_level'       => $item['sugar_level']    ?? null,
+                    'options'           => $item['options']        ?? null,
+                    'add_ons'           => $item['add_ons']        ?? null,
                     'bundle_components' => isset($item['bundle_components'])
                                             ? json_encode($item['bundle_components'])
                                             : null,
@@ -137,9 +180,13 @@ class SalesController extends Controller
                                             ? ($item['charges']['grab'] ? 'grab' : 'panda')
                                             : null,
                     'surcharge'         => $surcharge,
+                    'discount_id'       => $item['discount_id']    ?? null,
+                    'discount_label'    => $item['discount_label'] ?? null,
+                    'discount_type'     => $item['discount_type']  ?? null,
+                    'discount_value'    => $item['discount_value'] ?? null,
+                    'discount_amount'   => $itemDiscountAmount,
                 ]);
 
-                // Only decrement stock for regular menu items, not bundles
                 if (!empty($item['menu_item_id'])) {
                     $menuItem = MenuItem::find($item['menu_item_id']);
                     if ($menuItem) {
@@ -148,14 +195,21 @@ class SalesController extends Controller
                 }
             }
 
-            // ── 3. Recalculate total from actual saved items ──────────────────────
+            // ── 3. Recalculate total from saved items ──────────────────────────
             $recalculatedTotal = DB::table('sale_items')
                 ->where('sale_id', $sale->id)
                 ->sum('final_price');
 
-            $sale->update(['total_amount' => $recalculatedTotal]);
+            $itemDiscountTotal = DB::table('sale_items')
+                ->where('sale_id', $sale->id)
+                ->sum('discount_amount');
 
-            // ── 4. Create Receipt ─────────────────────────────────────────────────
+            $discountApplied = (float) $request->input('discount_amount', 0);
+            $finalTotal      = max(0, $recalculatedTotal - $itemDiscountTotal - $discountApplied);
+
+            $sale->update(['total_amount' => $finalTotal]);
+
+            // ── 4. Create Receipt ──────────────────────────────────────────────
             Receipt::create([
                 'si_number'    => $officialOR,
                 'terminal'     => '01',
@@ -166,10 +220,37 @@ class SalesController extends Controller
                 'branch_id'    => $branchId,
             ]);
 
-            // ── 5. Deduct Raw Materials ───────────────────────────────────────────
+            // ── 5. Deduct Raw Materials ────────────────────────────────────────
             app(SaleObserver::class)->deductStock($sale);
 
             DB::commit();
+
+            // ── 6. Increment discount used_count ──────────────────────────────
+            if ($effectiveDiscountId) {
+                \App\Models\Discount::where('id', $effectiveDiscountId)
+                    ->increment('used_count');
+            }
+
+            if ($request->input('pax_discount_ids')) {
+                $allPaxIds = array_filter(explode(',', $request->input('pax_discount_ids')));
+                foreach ($allPaxIds as $paxId) {
+                    if ((int) $paxId !== (int) $effectiveDiscountId) {
+                        \App\Models\Discount::where('id', (int) $paxId)
+                            ->increment('used_count');
+                    }
+                }
+            }
+
+            $itemDiscountIds = collect($validated['items'])
+                ->pluck('discount_id')
+                ->filter()
+                ->unique();
+
+            foreach ($itemDiscountIds as $discountId) {
+                \App\Models\Discount::where('id', $discountId)
+                    ->increment('used_count');
+            }
+
             $this->dashboardService->clearTodayCache($sale->branch_id);
 
             return response()->json([
@@ -185,9 +266,6 @@ class SalesController extends Controller
         }
     }
 
-    /**
-     * List all sales.
-     */
     public function index()
     {
         $user  = auth('sanctum')->user();
@@ -200,9 +278,6 @@ class SalesController extends Controller
         return response()->json($query->paginate(20));
     }
 
-    /**
-     * Void/Cancel a sale.
-     */
     public function cancel(Request $request, $id)
     {
         $request->validate([
@@ -218,7 +293,6 @@ class SalesController extends Controller
                 return response()->json(['message' => 'Sale already cancelled'], 400);
             }
 
-            // ── Restore MenuItem quantities ───────────────────────────────────────
             foreach ($sale->items as $item) {
                 $menuItem = MenuItem::find($item->menu_item_id);
                 if ($menuItem) {
@@ -228,7 +302,6 @@ class SalesController extends Controller
                 }
             }
 
-            // ── Update Sale Status ────────────────────────────────────────────────
             $sale->update([
                 'status'              => 'cancelled',
                 'cancellation_reason' => $request->reason,

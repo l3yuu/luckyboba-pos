@@ -11,29 +11,11 @@ class SalesDashboardService
 {
     // ─── Analytics (BranchManagerDashboard) ──────────────────────────────────
 
-    /**
-     * GET /api/sales-analytics
-     *
-     * Returns the full analytics payload consumed by BranchManagerDashboard.
-     * Pass $branchId = null for superadmin (all branches).
-     *
-     * Response shape:
-     * {
-     *   weekly: [{ date, day, value }],
-     *   stats: {
-     *     cash_in_today, cash_out_today,
-     *     total_sales_today, total_orders_today, voided_sales_today,
-     *     top_seller_today:    [{ product_name, total_qty }],
-     *     top_seller_all_time: [{ product_name, total_qty }],
-     *   }
-     * }
-     */
     public function getAnalyticsData(?int $branchId = null): array
     {
         $today       = Carbon::today();
-        $startOfWeek = Carbon::now()->subDays(6)->startOfDay(); // last 7 days incl. today
+        $startOfWeek = Carbon::now()->subDays(6)->startOfDay();
 
-        // ── 7-day chart (daily points) ────────────────────────────────────────
         $weekly = Sale::where('created_at', '>=', $startOfWeek)
             ->where('status', 'completed')
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
@@ -51,7 +33,6 @@ class SalesDashboardService
                 'value' => (float) $row->value,
             ]);
 
-        // ── 30-day chart (daily points) ───────────────────────────────────────
         $start30 = Carbon::now()->subDays(29)->startOfDay();
         $monthly = Sale::where('created_at', '>=', $start30)
             ->where('status', 'completed')
@@ -69,13 +50,11 @@ class SalesDashboardService
                 'value' => (float) $row->value,
             ]);
 
-        // ── 3-month chart (weekly buckets, Mon–Sun) ───────────────────────────
         $start3m = Carbon::now()->subMonths(3)->startOfDay();
         $quarterly = Sale::where('created_at', '>=', $start3m)
             ->where('status', 'completed')
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->select(
-                // ISO week start (Monday) as the bucket key
                 DB::raw('DATE(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY)) as week_start'),
                 DB::raw('SUM(total_amount) as value')
             )
@@ -88,81 +67,54 @@ class SalesDashboardService
                 'value' => (float) $row->value,
             ]);
 
-        // ── Today base query (reused below) ───────────────────────────────────
         $baseToday = fn() => DB::table('sales')
             ->whereDate('created_at', $today)
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
 
-        // ── Yesterday base queries (for "vs yesterday" trends) ────────────────
-        $yesterday         = Carbon::yesterday();
-        $baseYest          = fn() => DB::table('sales')
+        $yesterday        = Carbon::yesterday();
+        $baseYest         = fn() => DB::table('sales')
             ->whereDate('created_at', $yesterday)
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
-        $baseCashYest      = fn() => DB::table('cash_transactions')
+        $baseCashYest     = fn() => DB::table('cash_transactions')
             ->whereDate('created_at', $yesterday)
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
 
-        $cashInYesterday   = (float) ($baseCashYest)()->where('type', 'cash_in')->sum('amount');
-        $cashOutYesterday  = (float) ($baseCashYest)()->whereIn('type', ['cash_out', 'cash_drop'])->sum('amount');
-        $salesYesterday    = (float) ($baseYest)()->where('status', 'completed')->sum('total_amount');
-        $voidedYesterday   = (float) ($baseYest)()->where('status', 'cancelled')->sum('total_amount');
+        $cashInYesterday  = (float) ($baseCashYest)()->where('type', 'cash_in')->sum('amount');
+        $cashOutYesterday = (float) ($baseCashYest)()->whereIn('type', ['cash_out', 'cash_drop'])->sum('amount');
+        $salesYesterday   = (float) ($baseYest)()->where('status', 'completed')->sum('total_amount');
+        $voidedYesterday  = (float) ($baseYest)()->where('status', 'cancelled')->sum('total_amount');
 
-        // ── Cash in / out today ───────────────────────────────────────────────
         $baseCash = fn() => DB::table('cash_transactions')
             ->whereDate('created_at', $today)
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
 
-        $cashInToday = (float) ($baseCash)()
-            ->where('type', 'cash_in')
-            ->sum('amount');
+        $cashInToday      = (float) ($baseCash)()->where('type', 'cash_in')->sum('amount');
+        $cashOutToday     = (float) ($baseCash)()->whereIn('type', ['cash_out', 'cash_drop'])->sum('amount');
+        $totalSalesToday  = (float) ($baseToday)()->where('status', 'completed')->sum('total_amount');
+        $totalOrdersToday = (int)   ($baseToday)()->where('status', 'completed')->count();
+        $voidedSalesToday = (float) ($baseToday)()->where('status', 'cancelled')->sum('total_amount');
 
-        $cashOutToday = (float) ($baseCash)()
-            ->whereIn('type', ['cash_out', 'cash_drop'])
-            ->sum('amount');
-
-        // ── Sales totals today ────────────────────────────────────────────────
-        $totalSalesToday = (float) ($baseToday)()
-            ->where('status', 'completed')
-            ->sum('total_amount');
-
-        $totalOrdersToday = (int) ($baseToday)()
-            ->where('status', 'completed')
-            ->count();
-
-        $voidedSalesToday = (float) ($baseToday)()
-            ->where('status', 'cancelled')
-            ->sum('total_amount');
-
-        // ── Top sellers today ─────────────────────────────────────────────────
         $topSellerToday = DB::table('sale_items')
             ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
             ->whereDate('sales.created_at', $today)
             ->where('sales.status', 'completed')
             ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
-            ->select(
-                'sale_items.product_name',
-                DB::raw('SUM(sale_items.quantity) as total_qty')
-            )
+            ->select('sale_items.product_name', DB::raw('SUM(sale_items.quantity) as total_qty'))
             ->groupBy('sale_items.product_name')
             ->orderByDesc('total_qty')
             ->limit(10)
             ->get();
 
-        // ── Top sellers all-time ──────────────────────────────────────────────
         $topSellerAllTime = DB::table('sale_items')
             ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
             ->where('sales.status', 'completed')
             ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
-            ->select(
-                'sale_items.product_name',
-                DB::raw('SUM(sale_items.quantity) as total_qty')
-            )
+            ->select('sale_items.product_name', DB::raw('SUM(sale_items.quantity) as total_qty'))
             ->groupBy('sale_items.product_name')
             ->orderByDesc('total_qty')
             ->limit(10)
             ->get();
 
-        // ── 7-day sparkline series ────────────────────────────────────────────
         $last7Dates = collect(range(6, 0))->map(
             fn($d) => Carbon::now()->subDays($d)->toDateString()
         );
@@ -206,33 +158,33 @@ class SalesDashboardService
             'monthly'   => $monthly,
             'quarterly' => $quarterly,
             'stats'  => [
-                'cash_in_today'       => $cashInToday,
-                'cash_out_today'      => $cashOutToday,
-                'total_sales_today'   => $totalSalesToday,
-                'total_orders_today'  => $totalOrdersToday,
-                'voided_sales_today'  => $voidedSalesToday,
-                'overall_cash_today'  => $cashInToday + $totalSalesToday - $cashOutToday,
-                'top_seller_today'    => $topSellerToday,
-                'top_seller_all_time' => $topSellerAllTime,
-                'spark_cash_in'  => $sparkCashIn,
-                'spark_cash_out' => $sparkCashOut,
-                'spark_sales'    => $sparkSales,
-                'spark_voided'   => $sparkVoided,
-                'spark_overall'  => $sparkOverall,
+                'cash_in_today'          => $cashInToday,
+                'cash_out_today'         => $cashOutToday,
+                'total_sales_today'      => $totalSalesToday,
+                'total_orders_today'     => $totalOrdersToday,
+                'voided_sales_today'     => $voidedSalesToday,
+                'overall_cash_today'     => $cashInToday + $totalSalesToday - $cashOutToday,
+                'top_seller_today'       => $topSellerToday,
+                'top_seller_all_time'    => $topSellerAllTime,
+                'spark_cash_in'          => $sparkCashIn,
+                'spark_cash_out'         => $sparkCashOut,
+                'spark_sales'            => $sparkSales,
+                'spark_voided'           => $sparkVoided,
+                'spark_overall'          => $sparkOverall,
                 'cash_in_yesterday'      => $cashInYesterday,
                 'cash_out_yesterday'     => $cashOutYesterday,
                 'sales_yesterday'        => $salesYesterday,
                 'voided_yesterday'       => $voidedYesterday,
                 'overall_cash_yesterday' => $cashInYesterday + $salesYesterday - $cashOutYesterday,
-                'total_revenue'   => (float) $weekly->sum('value'),
-                'today_sales'     => $totalSalesToday,
-                'cancelled_sales' => $voidedSalesToday,
-                'beginning_or'    => Sale::whereDate('created_at', $today)
-                                        ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-                                        ->min('invoice_number') ?? '---',
-                'ending_or'       => Sale::whereDate('created_at', $today)
-                                        ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-                                        ->max('invoice_number') ?? '---',
+                'total_revenue'          => (float) $weekly->sum('value'),
+                'today_sales'            => $totalSalesToday,
+                'cancelled_sales'        => $voidedSalesToday,
+                'beginning_or'           => Sale::whereDate('created_at', $today)
+                                               ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                                               ->min('invoice_number') ?? '---',
+                'ending_or'              => Sale::whereDate('created_at', $today)
+                                               ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                                               ->max('invoice_number') ?? '---',
             ],
         ];
     }
@@ -279,12 +231,15 @@ class SalesDashboardService
         $grossSales       = (float) $sales->sum('total_amount');
         $transactionCount = $sales->count();
 
-        // ── FIX: True cash = rows where charge_type is null or empty ──────────
         $cashSales = (float) DB::table('sales')
             ->whereBetween('created_at', [$from, $to])
             ->where('status', 'completed')
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->where(fn($q) => $q->whereNull('charge_type')->orWhere('charge_type', ''))
+            ->whereNotIn(DB::raw('LOWER(TRIM(payment_method))'), [
+                'gcash', 'e-wallet', 'ewallet', 'visa', 'mastercard',
+                'master card', 'master', 'visa card',
+            ])
             ->sum('total_amount');
 
         $otherSales = $grossSales - $cashSales;
@@ -316,52 +271,10 @@ class SalesDashboardService
         $vatableSales = round($grossSales / 1.12, 2);
         $vatAmount    = round($grossSales - $vatableSales, 2);
 
-        $baseDiscountQuery = DB::table('sales')
-            ->whereBetween('created_at', [$from, $to])
-            ->where('status', 'completed')
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
+        // ── Discounts via shared helper ───────────────────────────────────────
+        $discounts = $this->computeDiscounts($from, $to, $branchId);
 
-        $scDiscount = (float) (clone $baseDiscountQuery)
-            ->where('pax_senior', '>', 0)
-            ->sum(DB::raw('(COALESCE(vatable_sales, total_amount / 1.12) / GREATEST(pax_regular + pax_senior + pax_pwd + pax_diplomat, 1)) * pax_senior * 0.20'));
-
-        $pwdDiscount = (float) (clone $baseDiscountQuery)
-            ->where('pax_pwd', '>', 0)
-            ->sum(DB::raw('(COALESCE(vatable_sales, total_amount / 1.12) / GREATEST(pax_regular + pax_senior + pax_pwd + pax_diplomat, 1)) * pax_pwd * 0.20'));
-
-        $diplomatDiscount = (float) (clone $baseDiscountQuery)
-            ->where('pax_diplomat', '>', 0)
-            ->sum(DB::raw('total_amount * 0.20'));
-
-        // ── FIX: Use charge_type when set, fallback to payment_method ─────────
-        $branchCondition = $branchId ? "AND branch_id = {$branchId}" : "";
-
-        $paymentBreakdown = collect(DB::select("
-            SELECT method, SUM(total_amount) as amount
-            FROM (
-                SELECT 
-                    CASE
-                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('panda','foodpanda','food_panda','food panda') THEN 'food panda'
-                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('grab','grabfood','grab food')                THEN 'grab'
-                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('master','master card','mastercard')          THEN 'mastercard'
-                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('visa','visa card')                           THEN 'visa'
-                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('gcash','e-wallet','ewallet')                 THEN 'gcash'
-                        WHEN charge_type IS NOT NULL AND charge_type != ''                                                                                THEN LOWER(TRIM(charge_type))
-                        WHEN LOWER(TRIM(payment_method)) IN ('panda','foodpanda','food_panda','food panda') THEN 'food panda'
-                        WHEN LOWER(TRIM(payment_method)) IN ('grab','grabfood','grab food')                THEN 'grab'
-                        WHEN LOWER(TRIM(payment_method)) IN ('master','master card','mastercard')          THEN 'mastercard'
-                        WHEN LOWER(TRIM(payment_method)) IN ('visa','visa card')                           THEN 'visa'
-                        WHEN LOWER(TRIM(payment_method)) IN ('gcash','e-wallet','ewallet')                 THEN 'gcash'
-                        ELSE LOWER(TRIM(payment_method))
-                    END as method,
-                    total_amount
-                FROM sales
-                WHERE created_at BETWEEN ? AND ?
-                AND status = 'completed'
-                {$branchCondition}
-            ) as t
-            GROUP BY method
-        ", [$from, $to]));
+        $paymentBreakdown = $this->computePaymentBreakdown($from, $to, $branchId);
 
         $hourly = DB::table('sales')
             ->whereBetween('created_at', [$from, $to])
@@ -414,9 +327,10 @@ class SalesDashboardService
             'total_void_amount' => $voidAmount,
             'vatable_sales'     => $vatableSales,
             'vat_amount'        => $vatAmount,
-            'sc_discount'       => round($scDiscount,       2),
-            'pwd_discount'      => round($pwdDiscount,      2),
-            'diplomat_discount' => round($diplomatDiscount, 2),
+            'sc_discount'       => $discounts['sc_discount'],
+            'pwd_discount'      => $discounts['pwd_discount'],
+            'diplomat_discount' => $discounts['diplomat_discount'],
+            'other_discount'    => $discounts['other_discount'],
             'payment_breakdown' => $paymentBreakdown,
             'total_qty_sold'    => $totalQtySold,
             'cash_in'           => $cashIn,
@@ -440,12 +354,15 @@ class SalesDashboardService
 
         $gross = (float) $sales->sum('total_amount');
 
-        // ── FIX: True cash = rows where charge_type is null or empty ──────────
         $cash = (float) DB::table('sales')
             ->whereBetween('created_at', [$start, $end])
             ->where('status', 'completed')
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->where(fn($q) => $q->whereNull('charge_type')->orWhere('charge_type', ''))
+            ->whereNotIn(DB::raw('LOWER(TRIM(payment_method))'), [
+                'gcash', 'e-wallet', 'ewallet', 'visa', 'mastercard',
+                'master card', 'master', 'visa card',
+            ])
             ->sum('total_amount');
 
         $voidAmount = (float) DB::table('sales')
@@ -457,7 +374,6 @@ class SalesDashboardService
         $vatableSales = round($gross / 1.12, 2);
         $vatAmount    = round($gross - $vatableSales, 2);
 
-        // ── SI# from receipts table ──────────────────────────────────────────
         $begSI = DB::table('receipts')
             ->whereBetween('created_at', [$start, $end])
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
@@ -470,55 +386,10 @@ class SalesDashboardService
             ->orderBy('id', 'desc')
             ->value('si_number') ?? '0000000000';
 
-        // ── FIX: Use charge_type when set, fallback to payment_method ─────────
-        $branchCondition = $branchId ? "AND branch_id = {$branchId}" : "";
+        // ── Discounts & payment via shared helpers ────────────────────────────
+        $discounts        = $this->computeDiscounts($start, $end, $branchId);
+        $paymentBreakdown = $this->computePaymentBreakdown($start, $end, $branchId);
 
-        $paymentBreakdown = collect(DB::select("
-            SELECT method, SUM(total_amount) as amount
-            FROM (
-                SELECT 
-                    CASE
-                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('panda','foodpanda','food_panda','food panda') THEN 'food panda'
-                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('grab','grabfood','grab food')                THEN 'grab'
-                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('master','master card','mastercard')          THEN 'mastercard'
-                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('visa','visa card')                           THEN 'visa'
-                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('gcash','e-wallet','ewallet')                 THEN 'gcash'
-                        WHEN charge_type IS NOT NULL AND charge_type != ''                                                                                THEN LOWER(TRIM(charge_type))
-                        WHEN LOWER(TRIM(payment_method)) IN ('panda','foodpanda','food_panda','food panda') THEN 'food panda'
-                        WHEN LOWER(TRIM(payment_method)) IN ('grab','grabfood','grab food')                THEN 'grab'
-                        WHEN LOWER(TRIM(payment_method)) IN ('master','master card','mastercard')          THEN 'mastercard'
-                        WHEN LOWER(TRIM(payment_method)) IN ('visa','visa card')                           THEN 'visa'
-                        WHEN LOWER(TRIM(payment_method)) IN ('gcash','e-wallet','ewallet')                 THEN 'gcash'
-                        ELSE LOWER(TRIM(payment_method))
-                    END as method,
-                    total_amount
-                FROM sales
-                WHERE created_at BETWEEN ? AND ?
-                AND status = 'completed'
-                {$branchCondition}
-            ) as t
-            GROUP BY method
-        ", [$from, $to]));
-
-        // ── Discount breakdown ───────────────────────────────────────────────
-        $baseDiscount = fn() => DB::table('sales')
-            ->whereBetween('created_at', [$start, $end])
-            ->where('status', 'completed')
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
-
-        $scDiscount = (float) ($baseDiscount)()
-            ->where('pax_senior', '>', 0)
-            ->sum(DB::raw('(COALESCE(vatable_sales, total_amount / 1.12) / GREATEST(pax_regular + pax_senior + pax_pwd + pax_diplomat, 1)) * pax_senior * 0.20'));
-
-        $pwdDiscount = (float) ($baseDiscount)()
-            ->where('pax_pwd', '>', 0)
-            ->sum(DB::raw('(COALESCE(vatable_sales, total_amount / 1.12) / GREATEST(pax_regular + pax_senior + pax_pwd + pax_diplomat, 1)) * pax_pwd * 0.20'));
-
-        $diplomatDiscount = (float) ($baseDiscount)()
-            ->where('pax_diplomat', '>', 0)
-            ->sum(DB::raw('total_amount * 0.20'));
-
-        // ── Total qty sold ───────────────────────────────────────────────────
         $totalQtySold = (int) DB::table('sale_items')
             ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
             ->whereBetween('sales.created_at', [$start, $end])
@@ -526,7 +397,6 @@ class SalesDashboardService
             ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
             ->sum('sale_items.quantity');
 
-        // ── Cash in / drop ───────────────────────────────────────────────────
         $cashIn = (float) DB::table('cash_transactions')
             ->whereBetween('created_at', [$start, $end])
             ->where('type', 'cash_in')
@@ -539,7 +409,6 @@ class SalesDashboardService
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->sum('amount');
 
-        // ── Category breakdown ───────────────────────────────────────────────
         $categoryBreakdown = DB::table('sale_items')
             ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
             ->whereBetween('sales.created_at', [$start, $end])
@@ -569,9 +438,10 @@ class SalesDashboardService
             'beg_si'             => $begSI,
             'end_si'             => $endSI,
             'payment_breakdown'  => $paymentBreakdown,
-            'sc_discount'        => round($scDiscount, 2),
-            'pwd_discount'       => round($pwdDiscount, 2),
-            'diplomat_discount'  => round($diplomatDiscount, 2),
+            'sc_discount'        => $discounts['sc_discount'],
+            'pwd_discount'       => $discounts['pwd_discount'],
+            'diplomat_discount'  => $discounts['diplomat_discount'],
+            'other_discount'     => $discounts['other_discount'],
             'total_qty_sold'     => $totalQtySold,
             'cash_in'            => $cashIn,
             'cash_drop'          => $cashDrop,
@@ -618,5 +488,192 @@ class SalesDashboardService
             'tenant_id'         => 'LUCKYBOBA-001',
             'generated_at'      => now()->toDateTimeString(),
         ];
+    }
+
+    // ─── Discount summary (standalone public report) ──────────────────────────
+
+    public function getDiscountSummary(string $fromDate, string $toDate, ?int $branchId = null): array
+    {
+        $from = Carbon::parse($fromDate)->startOfDay();
+        $to   = Carbon::parse($toDate)->endOfDay();
+
+        $discounts = $this->computeDiscounts($from, $to, $branchId);
+
+        // ── Per-label breakdown of "other" item-level discounts ───────────────
+        $otherItemLevelBreakdown = DB::table('sale_items')
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->whereBetween('sales.created_at', [$from, $to])
+            ->where('sales.status', 'completed')
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+            ->where('sale_items.discount_label', 'NOT LIKE', '%SENIOR%')
+            ->where('sale_items.discount_label', 'NOT LIKE', '%PWD%')
+            ->where('sale_items.discount_label', 'NOT LIKE', '%DIPLOMAT%')
+            ->whereNotNull('sale_items.discount_label')
+            ->where('sale_items.discount_label', '!=', '')
+            ->select(
+                'sale_items.discount_label as label',
+                DB::raw('SUM(sale_items.discount_amount) as total_discount'),
+                DB::raw('COUNT(DISTINCT sales.id) as transaction_count')
+            )
+            ->groupBy('sale_items.discount_label')
+            ->orderByDesc('total_discount')
+            ->get();
+
+        // ── Order-level promo discount breakdown by discount name ─────────────
+        $orderLevelBreakdown = DB::table('sales')
+            ->join('discounts', 'sales.discount_id', '=', 'discounts.id')
+            ->whereBetween('sales.created_at', [$from, $to])
+            ->where('sales.status', 'completed')
+            ->whereNotNull('sales.discount_id')
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+            ->select(
+                'discounts.name as label',
+                'discounts.type',
+                'discounts.amount as rate',
+                DB::raw('SUM(sales.discount_amount) as total_discount'),
+                DB::raw('COUNT(sales.id) as transaction_count')
+            )
+            ->groupBy('discounts.id', 'discounts.name', 'discounts.type', 'discounts.amount')
+            ->orderByDesc('total_discount')
+            ->get();
+
+        // ── PAX counts ────────────────────────────────────────────────────────
+        $paxTotals = DB::table('sales')
+            ->whereBetween('created_at', [$from, $to])
+            ->where('status', 'completed')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->selectRaw('SUM(pax_senior) as total_senior_pax, SUM(pax_pwd) as total_pwd_pax')
+            ->first();
+
+        // ── Gross sales (for discount rate context) ───────────────────────────
+        $grossSales = (float) DB::table('sales')
+            ->whereBetween('created_at', [$from, $to])
+            ->where('status', 'completed')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->sum('total_amount');
+
+        $grandTotal = $discounts['sc_discount']
+            + $discounts['pwd_discount']
+            + $discounts['diplomat_discount']
+            + $discounts['other_discount'];
+
+        return [
+            'from_date'   => $from->toDateString(),
+            'to_date'     => $to->toDateString(),
+            'branch_id'   => $branchId,
+            'gross_sales' => $grossSales,
+            'sc_discount' => [
+                'total'      => $discounts['sc_discount'],
+                'pax_count'  => (int) ($paxTotals->total_senior_pax ?? 0),
+            ],
+            'pwd_discount' => [
+                'total'      => $discounts['pwd_discount'],
+                'pax_count'  => (int) ($paxTotals->total_pwd_pax ?? 0),
+            ],
+            'diplomat_discount' => [
+                'total'      => $discounts['diplomat_discount'],
+            ],
+            'other_discount' => [
+                'total'               => $discounts['other_discount'],
+                'item_level_breakdown'  => $otherItemLevelBreakdown,
+                'order_level_breakdown' => $orderLevelBreakdown,
+            ],
+            'grand_total_discount' => round($grandTotal, 2),
+            'discount_rate_pct'    => $grossSales > 0
+                ? round(($grandTotal / $grossSales) * 100, 2)
+                : 0.0,
+        ];
+    }
+
+    // ─── Private helpers ──────────────────────────────────────────────────────
+
+    /**
+     * Shared discount computation used by getXReading, generateZReading,
+     * and getDiscountSummary so the logic lives in exactly one place.
+     */
+    private function computeDiscounts(
+    Carbon $from,
+    Carbon $to,
+    ?int $branchId
+): array {
+    // ── Item-level discounts (from sale_items.discount_label) ─────────────
+    $base = DB::table('sale_items')
+        ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+        ->whereBetween('sales.created_at', [$from, $to])
+        ->where('sales.status', 'completed')
+        ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId));
+
+    $scItem = (float) (clone $base)
+        ->where('sale_items.discount_label', 'LIKE', '%SENIOR%')
+        ->sum('sale_items.discount_amount');
+
+    $pwdItem = (float) (clone $base)
+        ->where('sale_items.discount_label', 'LIKE', '%PWD%')
+        ->sum('sale_items.discount_amount');
+
+    $diplomatItem = (float) (clone $base)
+        ->where('sale_items.discount_label', 'LIKE', '%DIPLOMAT%')
+        ->sum('sale_items.discount_amount');
+
+    $itemLevelOther = (float) (clone $base)
+        ->where('sale_items.discount_label', 'NOT LIKE', '%SENIOR%')
+        ->where('sale_items.discount_label', 'NOT LIKE', '%PWD%')
+        ->where('sale_items.discount_label', 'NOT LIKE', '%DIPLOMAT%')
+        ->whereNotNull('sale_items.discount_label')
+        ->where('sale_items.discount_label', '!=', '')
+        ->sum('sale_items.discount_amount');
+
+    // ── Order-level discounts (use pre-split columns saved at transaction time)
+    $orderBase = DB::table('sales')
+        ->whereBetween('created_at', [$from, $to])
+        ->where('status', 'completed')
+        ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
+
+    $scOrder       = (float) (clone $orderBase)->sum('sc_discount_amount');
+    $pwdOrder      = (float) (clone $orderBase)->sum('pwd_discount_amount');
+    $diplomatOrder = (float) (clone $orderBase)->sum('diplomat_discount_amount');
+    $otherOrder    = (float) (clone $orderBase)->sum('other_discount_amount');
+
+    return [
+        'sc_discount'       => round($scItem      + $scOrder,        2),
+        'pwd_discount'      => round($pwdItem      + $pwdOrder,       2),
+        'diplomat_discount' => round($diplomatItem + $diplomatOrder,  2),
+        'other_discount'    => round($itemLevelOther + $otherOrder,   2),
+    ];
+}
+
+    /**
+     * Shared payment breakdown used by getXReading and generateZReading.
+     */
+    private function computePaymentBreakdown(Carbon $from, Carbon $to, ?int $branchId): \Illuminate\Support\Collection
+    {
+        $branchCondition = $branchId ? "AND branch_id = {$branchId}" : "";
+
+        return collect(DB::select("
+            SELECT method, SUM(total_amount) as amount
+            FROM (
+                SELECT
+                    CASE
+                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('panda','foodpanda','food_panda','food panda') THEN 'food panda'
+                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('grab','grabfood','grab food')                THEN 'grab'
+                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('master','master card','mastercard')          THEN 'mastercard'
+                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('visa','visa card')                           THEN 'visa'
+                        WHEN charge_type IS NOT NULL AND charge_type != '' AND LOWER(TRIM(charge_type)) IN ('gcash','e-wallet','ewallet')                 THEN 'gcash'
+                        WHEN charge_type IS NOT NULL AND charge_type != ''                                                                                THEN LOWER(TRIM(charge_type))
+                        WHEN LOWER(TRIM(payment_method)) IN ('panda','foodpanda','food_panda','food panda') THEN 'food panda'
+                        WHEN LOWER(TRIM(payment_method)) IN ('grab','grabfood','grab food')                THEN 'grab'
+                        WHEN LOWER(TRIM(payment_method)) IN ('master','master card','mastercard')          THEN 'mastercard'
+                        WHEN LOWER(TRIM(payment_method)) IN ('visa','visa card')                           THEN 'visa'
+                        WHEN LOWER(TRIM(payment_method)) IN ('gcash','e-wallet','ewallet')                 THEN 'gcash'
+                        ELSE LOWER(TRIM(payment_method))
+                    END as method,
+                    total_amount
+                FROM sales
+                WHERE created_at BETWEEN ? AND ?
+                AND status = 'completed'
+                {$branchCondition}
+            ) as t
+            GROUP BY method
+        ", [$from, $to]));
     }
 }

@@ -23,15 +23,15 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $middleware->append(\App\Http\Middleware\ContentSecurityPolicy::class);
 
-        // Role-based access control
+        // Role-based access control + active status guard
         $middleware->alias([
-            'role' => \App\Http\Middleware\CheckRole::class,
+            'role'   => \App\Http\Middleware\CheckRole::class,
+            'active' => \App\Http\Middleware\CheckUserActive::class, // ✅ blocks INACTIVE users on every protected request
         ]);
     })
-    ->withSchedule(function (Schedule $schedule) {          
-        $schedule->command('sanctum:prune-expired --hours=8')->daily();
-    })
-    ->withSchedule(function (Schedule $schedule) {          
+    // FIX: withSchedule() was duplicated — Laravel was registering the prune
+    // command twice, causing it to run twice every day.
+    ->withSchedule(function (Schedule $schedule) {
         $schedule->command('sanctum:prune-expired --hours=8')->daily();
     })
     ->withExceptions(function (Exceptions $exceptions) {

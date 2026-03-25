@@ -10,9 +10,7 @@ import {
   Printer, 
   Database, 
   ChevronDown,
-  Activity,
-  Terminal
-} from 'lucide-react';
+  Activity} from 'lucide-react';
 
 // ============================================================
 // TYPE DEFINITIONS
@@ -78,12 +76,18 @@ const ItemsReport = () => {
   );
 
   const fetchReport = useCallback(async () => {
-    const key = getCacheKey(fromDate, toDate, reportType);
     setLoading(true);
     try {
       const response = await api.get('/reports/items-report', {
         params: { from: fromDate, to: toDate, type: reportType },
       });
+
+      // Clear ALL items report cache keys to avoid serving stale data
+      Object.keys(localStorage)
+        .filter(k => k.startsWith(CACHE_KEY_PREFIX))
+        .forEach(k => localStorage.removeItem(k));
+
+      const key = getCacheKey(fromDate, toDate, reportType);
       localStorage.setItem(key, JSON.stringify(response.data));
       setData(response.data);
     } catch (error) {
@@ -93,13 +97,10 @@ const ItemsReport = () => {
     }
   }, [fromDate, toDate, reportType, getCacheKey]);
 
-  useEffect(() => {
-    setData(null);
-    const key = getCacheKey(fromDate, toDate, reportType);
-    const saved = localStorage.getItem(key);
-    if (saved) setData(JSON.parse(saved));
-    else fetchReport();
-  }, [fromDate, toDate, reportType, getCacheKey, fetchReport]);
+useEffect(() => {
+  setData(null);
+  fetchReport();
+}, [fromDate, toDate, reportType, fetchReport]);
 
   const generateExcel = useCallback(() => {
     if (!data || data.items.length === 0) {
@@ -327,7 +328,7 @@ const ItemsReport = () => {
             {/* Table Body */}
             <div className="flex-1 overflow-auto">
               <table className="w-full text-left">
-                <thead className="sticky top-0 bg-white z-10 border-b border-[#e9d5ff] bg-[#f5f0ff]">
+                <thead className="sticky top-0 bg-white z-10 border-b border-[#e9d5ff]">
                   <tr>
                     <th className="px-8 py-4 text-[9px] font-black text-zinc-400 uppercase tracking-[0.3em]">
                       {reportType === 'category-summary' ? 'Category Classification' : 'Item Description'}
@@ -359,7 +360,6 @@ const ItemsReport = () => {
             {/* GRAND TOTAL BAR */}
             <div className="bg-[#7c14d4] text-white flex justify-between items-center px-8 py-6">
               <div className="flex items-center gap-3">
-                <Terminal size={16} className="text-purple-300/50" />
                 <span className="text-[11px] font-black uppercase tracking-[0.3em] text-purple-300">Shift Total Settlement</span>
               </div>
               <div className="flex gap-12 text-right">

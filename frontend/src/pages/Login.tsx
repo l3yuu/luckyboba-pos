@@ -7,6 +7,7 @@ import type { LoginCredentials } from '../types/user';
 import { useToast } from '../hooks/useToast';
 import { ROLE_HOME } from '../utils/roleRoutes';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
+import { getDeviceId } from '../utils/deviceId';   // ← NEW
 
 import logo from '../assets/logo.png';
 
@@ -62,7 +63,11 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const credentials: LoginCredentials = { email, password };
+    const credentials: LoginCredentials = {
+      email,
+      password,
+      device_name: getDeviceId(),   // ← NEW
+    };
     try {
       const loggedInUser = await login(credentials);
       if (loggedInUser) {
@@ -89,15 +94,11 @@ const Login: React.FC = () => {
           font-family: 'DM Sans', sans-serif;
         }
 
-        /* ── Page layout ── */
         .lb-page {
           min-height: 100vh;
           display: flex;
         }
 
-        /* ══════════════════════════════
-           LEFT — purple branding column
-        ══════════════════════════════ */
         .lb-left {
           display: none;
           flex-direction: column;
@@ -120,7 +121,6 @@ const Login: React.FC = () => {
           .lb-left { display: flex; flex: 1; }
         }
 
-        /* corner blobs */
         .lb-blob {
           position: absolute;
           border-radius: 50%;
@@ -131,7 +131,6 @@ const Login: React.FC = () => {
         .lb-blob-tl { width: 380px; height: 380px; background: #a020f0; top: -160px; left: -160px; }
         .lb-blob-br { width: 340px; height: 340px; background: #4b0eaa; bottom: -140px; right: -140px; }
 
-        /* ── TOP: small brand wordmark (top-left) ── */
         .lb-brand {
           display: flex;
           align-items: center;
@@ -152,7 +151,6 @@ const Login: React.FC = () => {
           text-transform: uppercase;
         }
 
-        /* ── CENTER: logo hero + pills ── */
         .lb-left-center {
           display: flex;
           flex-direction: column;
@@ -164,7 +162,6 @@ const Login: React.FC = () => {
           margin-top: -50px;
         }
 
-        /* Logo block */
         .lb-logo-hero {
           display: flex;
           flex-direction: column;
@@ -180,7 +177,6 @@ const Login: React.FC = () => {
           filter: drop-shadow(0 8px 24px rgba(0,0,0,0.35));
         }
 
-        /* Responsive logo for 1366x768 screens */
         @media (min-width: 1300px) and (max-width: 1400px) and (max-height: 800px) {
           .lb-logo-hero {
             margin-top: 0;
@@ -224,7 +220,6 @@ const Login: React.FC = () => {
           text-transform: uppercase;
         }
 
-        /* Feature pills */
         .lb-pills {
           display: flex;
           flex-direction: column;
@@ -262,7 +257,6 @@ const Login: React.FC = () => {
           margin-top: 1px;
         }
 
-        /* ── BOTTOM: quote ── */
         .lb-quote {
           position: relative;
           z-index: 1;
@@ -283,9 +277,6 @@ const Login: React.FC = () => {
           text-transform: uppercase;
         }
 
-        /* ══════════════════════════════
-           RIGHT — white form column
-        ══════════════════════════════ */
         .lb-right {
           flex: 1;
           background: #ffffff;
@@ -296,7 +287,6 @@ const Login: React.FC = () => {
           overflow: hidden;
         }
 
-        /* top bar */
         .lb-right-top {
           display: flex;
           align-items: center;
@@ -313,7 +303,6 @@ const Login: React.FC = () => {
           text-transform: uppercase;
         }
 
-        /* main content area */
         .lb-right-body {
           flex: 1;
           display: flex;
@@ -323,7 +312,6 @@ const Login: React.FC = () => {
           padding: 2.5rem 2.5rem;
         }
 
-        /* form container */
         .lb-form-wrap {
           width: 100%;
           max-width: 400px;
@@ -335,7 +323,6 @@ const Login: React.FC = () => {
           to   { opacity: 1; transform: translateY(0); }
         }
 
-        /* mobile logo */
         .lb-mobile-logo {
           display: flex;
           flex-direction: column;
@@ -350,7 +337,6 @@ const Login: React.FC = () => {
           letter-spacing: 0.28em; text-transform: uppercase; color: #7c14d4;
         }
 
-        /* form header */
         .lb-form-title {
           font-size: 1.75rem;
           font-weight: 800;
@@ -368,7 +354,6 @@ const Login: React.FC = () => {
           font-style: italic;
         }
 
-        /* fields */
         .lb-field { margin-bottom: 1.1rem; }
 
         .lb-label {
@@ -414,7 +399,6 @@ const Login: React.FC = () => {
         }
         .lb-eye:hover { color: #7c14d4; }
 
-        /* sign-in button */
         .lb-btn-wrap { margin-top: 1.4rem; }
 
         .lb-btn {
@@ -454,7 +438,6 @@ const Login: React.FC = () => {
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* terms */
         .lb-terms {
           margin-top: 1.4rem;
           font-size: 0.62rem;
@@ -463,7 +446,6 @@ const Login: React.FC = () => {
           line-height: 1.65;
         }
 
-        /* bottom bar */
         .lb-right-bottom {
           padding: 1.1rem 2.5rem;
           border-top: 1.5px solid #f4f4f5;
@@ -505,13 +487,11 @@ const Login: React.FC = () => {
           <div className="lb-blob lb-blob-tl" />
           <div className="lb-blob lb-blob-br" />
 
-          {/* top-left: tiny wordmark */}
           <div className="lb-brand">
             <div className="lb-brand-dot" />
             <span className="lb-brand-name">Lucky Boba POS</span>
           </div>
 
-          {/* center: logo hero + feature pills */}
           <div className="lb-left-center">
             <div className="lb-logo-hero">
               <img src={logo} alt="Lucky Boba" />
@@ -557,7 +537,6 @@ const Login: React.FC = () => {
             </div>
           </div>
 
-          {/* bottom: quote */}
           <div className="lb-quote">
             <p className="lb-quote-text">
               "Streamlined operations, real-time insights, and effortless management — everything your boba business needs in one place."
@@ -569,16 +548,13 @@ const Login: React.FC = () => {
         {/* ── RIGHT — white form ── */}
         <div className="lb-right">
 
-          {/* top bar */}
           <div className="lb-right-top">
             <span className="lb-top-link">Staff Portal</span>
           </div>
 
-          {/* body */}
           <div className="lb-right-body">
             <div className="lb-form-wrap">
 
-              {/* mobile-only logo */}
               <div className="lb-mobile-logo">
                 <img src={logo} alt="Lucky Boba" />
                 <span className="lb-mobile-logo-tag">Point of Sale System</span>
@@ -651,7 +627,6 @@ const Login: React.FC = () => {
             </div>
           </div>
 
-          {/* bottom bar */}
           <div className="lb-right-bottom">
             <span className="lb-bottom-copy">Lucky Boba &copy; 2026</span>
             <div className="lb-secure">

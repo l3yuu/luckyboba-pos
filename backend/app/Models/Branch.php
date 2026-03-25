@@ -15,56 +15,42 @@ class Branch extends Model
         'status',
         'total_sales',
         'today_sales',
+        'ownership_type',
+        'vat_type',
     ];
 
     protected $casts = [
-        'total_sales' => 'decimal:2',
-        'today_sales' => 'decimal:2',
+        'total_sales'    => 'decimal:2',
+        'today_sales'    => 'decimal:2',
+        'ownership_type' => 'string',
+        'vat_type'       => 'string',
     ];
 
-    /**
-     * Get all users assigned to this branch.
-     */
     public function users()
     {
         return $this->hasMany(User::class);
     }
 
-    /**
-     * Get the branch manager (single user with branch_manager role).
-     */
     public function manager()
     {
         return $this->hasOne(User::class)->where('role', 'branch_manager');
     }
 
-    /**
-     * Get all branch managers (in case multiple are assigned).
-     */
     public function managers()
     {
         return $this->users()->where('role', 'branch_manager');
     }
 
-    /**
-     * Get active users only.
-     */
     public function activeUsers()
     {
         return $this->users()->where('status', 'ACTIVE');
     }
 
-    /**
-     * Get cashiers of this branch.
-     */
     public function cashiers()
     {
         return $this->users()->where('role', 'cashier');
     }
 
-    /**
-     * Get all sales for this branch.
-     */
     public function sales()
     {
         return $this->hasMany(Sale::class);
