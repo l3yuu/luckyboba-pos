@@ -2,22 +2,71 @@
 "use client";
 
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 interface Props {
   onSelect: (type: "dine_in" | "take_out") => void;
   onClose?: () => void;
 }
 
-const OrderTypeModal: React.FC<Props> = ({ onSelect }) => {
+const OrderTypeModal: React.FC<Props> = ({ onSelect, onClose }) => {
+  const navigate = useNavigate();
+
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    }
+    navigate("/dashboard");
+  };
 
   return (
-    <div className="fixed inset-0 z-200 bg-black/60 flex items-center justify-center">
-      <div className="bg-white rounded-2xl shadow-xl p-10 text-center w-105">
-        <h1 className="text-2xl font-bold text-[#7c14d4] mb-6">
-          Select Order Type
-        </h1>
+    <div
+      className="fixed inset-0 z-200 flex items-center justify-center p-6"
+      style={{
+        backdropFilter: "blur(6px)",
+        WebkitBackdropFilter: "blur(6px)",
+        backgroundColor: "rgba(0,0,0,0.45)",
+      }}
+    >
+      <div className="relative bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] shadow-2xl overflow-hidden">
 
-        <div className="flex flex-col gap-4">
+        {/* Header */}
+        <div className="relative px-6 py-5 border-b border-zinc-100 bg-[#f5f0ff]">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-[#7c14d4] rounded-lg flex items-center justify-center shrink-0">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+                <rect x="9" y="3" width="6" height="4" rx="2"/>
+                <path d="M9 12h6M9 16h4"/>
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-black uppercase tracking-wide text-[#1a0f2e]">
+                Order Type
+              </p>
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                Select how the order will be served
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={handleClose}
+            className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-md hover:bg-[#7c14d4]/20 transition-colors text-[#1a0f2e] hover:text-[#7c14d4]"
+            aria-label="Close"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Buttons */}
+        <div className="p-5 flex flex-col gap-3">
+
+          {/* Dine In */}
           <button
             onClick={() => onSelect("dine_in")}
             className="group w-full flex items-center gap-4 p-4 rounded-xl border-2 border-[#e9d5ff] bg-[#f5f0ff] hover:bg-[#7c14d4] hover:border-[#7c14d4] transition-all duration-200 active:scale-[0.98]"
