@@ -276,14 +276,27 @@ class SalesDashboardService
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->sum('total_amount');
 
-        // ── VAT calculation based on branch type ──────────────────────────────
-        $vatableSales   = $isVat ? round($grossSales / 1.12, 2) : 0.0;
-        $vatAmount      = $isVat ? round($grossSales - $vatableSales, 2) : 0.0;
-        $vatExemptSales = $isVat ? 0.0 : $grossSales;
-        // ─────────────────────────────────────────────────────────────────────
-
-        // ── Discounts via shared helper ───────────────────────────────────────
+        // ── Discounts via shared helper (MUST come before VAT calculation) ────
         $discounts = $this->computeDiscounts($from, $to, $branchId);
+
+        // ── VAT calculation based on branch type ──────────────────────────────
+        // BIR rule: SC/PWD discount is applied on VAT-EXCLUSIVE price.
+        // Step 1 — remove VAT from the SC/PWD covered amount: covered / 1.12
+        // Step 2 — the VAT-exclusive amount becomes VAT-exempt
+        // Example: ₱240 gross with full SC/PWD coverage
+        //   - VAT-exclusive base = 240 / 1.12 = 214.29
+        //   - Discount (20%) = 214.29 × 0.20 = 42.86
+        //   - VAT-exempt sales = 214.29 (the VAT-exclusive base)
+        //   - Vatable base = 240 - 214.29 = 25.71 (remaining VATable)
+        $scPwdDiscount  = $discounts['sc_discount'] + $discounts['pwd_discount'];
+        // Reconstruct the gross amount covered by SC/PWD: discount / 0.20 = VAT-exclusive base
+        $scPwdVatExclBase = $scPwdDiscount > 0 ? round($scPwdDiscount / 0.20, 2) : 0.0;
+        // VAT-exempt = the VAT-exclusive base of the SC/PWD covered amount
+        $vatExemptSales = $isVat && $scPwdDiscount > 0 ? $scPwdVatExclBase : 0.0;
+        $vatableBase    = $isVat ? max(0.0, $grossSales - ($scPwdVatExclBase * 1.12)) : 0.0;
+        $vatableSales   = $isVat ? round($vatableBase / 1.12, 2) : 0.0;
+        $vatAmount      = $isVat ? round($vatableBase - $vatableSales, 2) : 0.0;
+        // ─────────────────────────────────────────────────────────────────────
 
         $paymentBreakdown = $this->computePaymentBreakdown($from, $to, $branchId);
 
@@ -338,8 +351,8 @@ class SalesDashboardService
             'total_void_amount' => $voidAmount,
             'vatable_sales'     => $vatableSales,
             'vat_amount'        => $vatAmount,
-            'vat_exempt_sales'  => $vatExemptSales,   // ← new
-            'is_vat'            => $isVat,             // ← new
+            'vat_exempt_sales'  => $vatExemptSales,
+            'is_vat'            => $isVat,
             'sc_discount'       => $discounts['sc_discount'],
             'pwd_discount'      => $discounts['pwd_discount'],
             'diplomat_discount' => $discounts['diplomat_discount'],
@@ -392,10 +405,27 @@ class SalesDashboardService
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->sum('total_amount');
 
+        // ── Discounts & payment via shared helpers ────────────────────────────
+        $discounts        = $this->computeDiscounts($start, $end, $branchId);
+        $paymentBreakdown = $this->computePaymentBreakdown($start, $end, $branchId);
+
         // ── VAT calculation based on branch type ──────────────────────────────
-        $vatableSales   = $isVat ? round($gross / 1.12, 2) : 0.0;
-        $vatAmount      = $isVat ? round($gross - $vatableSales, 2) : 0.0;
-        $vatExemptSales = $isVat ? 0.0 : $gross;
+        // BIR rule: SC/PWD discount is applied on VAT-EXCLUSIVE price.
+        // Step 1 — remove VAT from the SC/PWD covered amount: covered / 1.12
+        // Step 2 — the VAT-exclusive amount becomes VAT-exempt
+        // Example: ₱240 gross with full SC/PWD coverage
+        //   - VAT-exclusive base = 240 / 1.12 = 214.29
+        //   - Discount (20%) = 214.29 × 0.20 = 42.86
+        //   - VAT-exempt sales = 214.29 (the VAT-exclusive base)
+        //   - Vatable base = 240 - 214.29 = 25.71 (remaining VATable)
+        $scPwdDiscount  = $discounts['sc_discount'] + $discounts['pwd_discount'];
+        // Reconstruct the VAT-exclusive base covered by SC/PWD: discount / 0.20
+        $scPwdVatExclBase = $scPwdDiscount > 0 ? round($scPwdDiscount / 0.20, 2) : 0.0;
+        // VAT-exempt = the VAT-exclusive base of the SC/PWD covered amount
+        $vatExemptSales = $isVat && $scPwdDiscount > 0 ? $scPwdVatExclBase : 0.0;
+        $vatableBase    = $isVat ? max(0.0, $gross - ($scPwdVatExclBase * 1.12)) : 0.0;
+        $vatableSales   = $isVat ? round($vatableBase / 1.12, 2) : 0.0;
+        $vatAmount      = $isVat ? round($vatableBase - $vatableSales, 2) : 0.0;
         // ─────────────────────────────────────────────────────────────────────
 
         $begSI = DB::table('receipts')
@@ -409,10 +439,6 @@ class SalesDashboardService
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->orderBy('id', 'desc')
             ->value('si_number') ?? '0000000000';
-
-        // ── Discounts & payment via shared helpers ────────────────────────────
-        $discounts        = $this->computeDiscounts($start, $end, $branchId);
-        $paymentBreakdown = $this->computePaymentBreakdown($start, $end, $branchId);
 
         $totalQtySold = (int) DB::table('sale_items')
             ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
@@ -459,8 +485,8 @@ class SalesDashboardService
             'total_void_amount'  => $voidAmount,
             'vatable_sales'      => $vatableSales,
             'vat_amount'         => $vatAmount,
-            'vat_exempt_sales'   => $vatExemptSales,   // ← new
-            'is_vat'             => $isVat,             // ← new
+            'vat_exempt_sales'   => $vatExemptSales,
+            'is_vat'             => $isVat,
             'beg_si'             => $begSI,
             'end_si'             => $endSI,
             'payment_breakdown'  => $paymentBreakdown,
@@ -600,7 +626,7 @@ class SalesDashboardService
                 'total'      => $discounts['diplomat_discount'],
             ],
             'other_discount' => [
-                'total'               => $discounts['other_discount'],
+                'total'                 => $discounts['other_discount'],
                 'item_level_breakdown'  => $otherItemLevelBreakdown,
                 'order_level_breakdown' => $orderLevelBreakdown,
             ],
@@ -616,57 +642,63 @@ class SalesDashboardService
     /**
      * Shared discount computation used by getXReading, generateZReading,
      * and getDiscountSummary so the logic lives in exactly one place.
+     *
+     * SC/PWD discounts are NOT divided by 1.12 — per BIR rules they are
+     * applied on the VAT-inclusive price BEFORE VAT is separated.
      */
     private function computeDiscounts(
-    Carbon $from,
-    Carbon $to,
-    ?int $branchId
-): array {
-    // ── Item-level discounts (from sale_items.discount_label) ─────────────
-    $base = DB::table('sale_items')
-        ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
-        ->whereBetween('sales.created_at', [$from, $to])
-        ->where('sales.status', 'completed')
-        ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId));
+        Carbon $from,
+        Carbon $to,
+        ?int $branchId
+    ): array {
+        // ── Item-level discounts (from sale_items.discount_label) ─────────────
+        $base = DB::table('sale_items')
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->whereBetween('sales.created_at', [$from, $to])
+            ->where('sales.status', 'completed')
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId));
 
-    $scItem = (float) (clone $base)
-        ->where('sale_items.discount_label', 'LIKE', '%SENIOR%')
-        ->sum('sale_items.discount_amount');
+        // SC/PWD item-level: discount_amount stored in DB is already the final discount value
+        // (i.e. 20% of VAT-exclusive price). Sum it directly — do NOT divide by 1.12 again.
+        $scItem = round((float) (clone $base)
+            ->where('sale_items.discount_label', 'LIKE', '%SENIOR%')
+            ->sum('sale_items.discount_amount'), 2);
 
-    $pwdItem = (float) (clone $base)
-        ->where('sale_items.discount_label', 'LIKE', '%PWD%')
-        ->sum('sale_items.discount_amount');
+        $pwdItem = round((float) (clone $base)
+            ->where('sale_items.discount_label', 'LIKE', '%PWD%')
+            ->sum('sale_items.discount_amount'), 2);
 
-    $diplomatItem = (float) (clone $base)
-        ->where('sale_items.discount_label', 'LIKE', '%DIPLOMAT%')
-        ->sum('sale_items.discount_amount');
+        $diplomatItem = (float) (clone $base)
+            ->where('sale_items.discount_label', 'LIKE', '%DIPLOMAT%')
+            ->sum('sale_items.discount_amount');
 
-    $itemLevelOther = (float) (clone $base)
-        ->where('sale_items.discount_label', 'NOT LIKE', '%SENIOR%')
-        ->where('sale_items.discount_label', 'NOT LIKE', '%PWD%')
-        ->where('sale_items.discount_label', 'NOT LIKE', '%DIPLOMAT%')
-        ->whereNotNull('sale_items.discount_label')
-        ->where('sale_items.discount_label', '!=', '')
-        ->sum('sale_items.discount_amount');
+        $itemLevelOther = (float) (clone $base)
+            ->where('sale_items.discount_label', 'NOT LIKE', '%SENIOR%')
+            ->where('sale_items.discount_label', 'NOT LIKE', '%PWD%')
+            ->where('sale_items.discount_label', 'NOT LIKE', '%DIPLOMAT%')
+            ->whereNotNull('sale_items.discount_label')
+            ->where('sale_items.discount_label', '!=', '')
+            ->sum('sale_items.discount_amount');
 
-    // ── Order-level discounts (use pre-split columns saved at transaction time)
-    $orderBase = DB::table('sales')
-        ->whereBetween('created_at', [$from, $to])
-        ->where('status', 'completed')
-        ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
+        // ── Order-level discounts (pre-split columns saved at transaction time)
+        $orderBase = DB::table('sales')
+            ->whereBetween('created_at', [$from, $to])
+            ->where('status', 'completed')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
 
-    $scOrder       = (float) (clone $orderBase)->sum('sc_discount_amount');
-    $pwdOrder      = (float) (clone $orderBase)->sum('pwd_discount_amount');
-    $diplomatOrder = (float) (clone $orderBase)->sum('diplomat_discount_amount');
-    $otherOrder    = (float) (clone $orderBase)->sum('other_discount_amount');
+        // SC/PWD order-level: no /1.12 for the same reason
+        $scOrder       = round((float) (clone $orderBase)->sum('sc_discount_amount'), 2);
+        $pwdOrder      = round((float) (clone $orderBase)->sum('pwd_discount_amount'), 2);
+        $diplomatOrder = (float) (clone $orderBase)->sum('diplomat_discount_amount');
+        $otherOrder    = (float) (clone $orderBase)->sum('other_discount_amount');
 
-    return [
-        'sc_discount'       => round($scItem      + $scOrder,        2),
-        'pwd_discount'      => round($pwdItem      + $pwdOrder,       2),
-        'diplomat_discount' => round($diplomatItem + $diplomatOrder,  2),
-        'other_discount'    => round($itemLevelOther + $otherOrder,   2),
-    ];
-}
+        return [
+            'sc_discount'       => round($scItem       + $scOrder,       2),
+            'pwd_discount'      => round($pwdItem       + $pwdOrder,      2),
+            'diplomat_discount' => round($diplomatItem  + $diplomatOrder, 2),
+            'other_discount'    => round($itemLevelOther + $otherOrder,   2),
+        ];
+    }
 
     /**
      * Shared payment breakdown used by getXReading and generateZReading.

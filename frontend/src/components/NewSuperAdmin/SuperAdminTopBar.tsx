@@ -14,6 +14,7 @@ const PAGE_TITLES: Record<TabId, { label: string; desc: string }> = {
   overview:  { label: "Dashboard Overview",     desc: "Real-time summary across all branches"    },
   branches:  { label: "Branch Management",      desc: "Full control over all branches"           },
   users:     { label: "User Management",        desc: "Staff accounts, roles & permissions"      },
+  devices:   { label: "Device Management",      desc: "POS terminals & connected devices"        },
 
   sales_report:         { label: "Sales Report",         desc: "Daily & periodic sales breakdown"         },
   analytics:            { label: "Analytics & Sales",    desc: "Revenue trends & performance data"        },
@@ -60,7 +61,7 @@ const SuperAdminTopBar: React.FC<SuperAdminTopBarProps> = ({
     return () => clearInterval(t);
   }, []);
 
-  const page = PAGE_TITLES[active];
+  const page = PAGE_TITLES[active] ?? { label: active, desc: "" };
 
   return (
     <>

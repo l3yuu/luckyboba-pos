@@ -10,9 +10,9 @@ class PosDevice extends Model
         'device_name',
         'pos_number',
         'branch_id',
-        'user_id',      // ← ADD
         'status',
         'last_seen',
+        // user_id removed — now handled via pivot table
     ];
 
     protected function casts(): array
@@ -29,9 +29,16 @@ class PosDevice extends Model
         return $this->belongsTo(Branch::class);
     }
 
-    public function user()                          // ← ADD
+    // Legacy single-user relationship (kept for backwards compat)
+    public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    // New many-to-many relationship
+    public function users()
+    {
+        return $this->belongsToMany(User::class, 'pos_device_users')->withTimestamps();
     }
 
     public function isActive(): bool

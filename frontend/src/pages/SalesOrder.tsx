@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOfflineQueue } from '../hooks/useOfflineQueue';
 import OfflineQueueBanner  from '../components/Cashier/SalesOrderComponents/OfflineQueueBanner';
+import { SUGAR_LEVELS } from '../types/index';
 
 import {
   type MenuItem, type Category, type CartItem,
@@ -33,7 +34,10 @@ import { ReceiptPrint, KitchenPrint, StickerPrint }
   from '../components/Cashier/SalesOrderComponents/print';
 
 import OrderTypeModal from '../components/Cashier/OrderTypeModal';
-  
+
+// ── Utility ───────────────────────────────────────────────────────────────────
+const round = (n: number, d = 2) => Math.round(n * 10 ** d) / 10 ** d;
+
 // ── Local type ────────────────────────────────────────────────────────────────
 interface Discount {
   id: number;
@@ -79,17 +83,16 @@ const [vatType, setVatType] = useState<'vat' | 'non_vat'>(
 
   // ── State ───────────────────────────────────────────────────────────────────
   const [branchDetails, setBranchDetails] = useState<{
-  brand?: string; companyName?: string; storeAddress?: string;
-  vatRegTin?: string; minNumber?: string; serialNumber?: string;
-}>({});
-  const [orderType, setOrderType] = useState<'dine-in' | 'take-out' | null>(null);
+    brand?: string; companyName?: string; storeAddress?: string;
+    vatRegTin?: string; minNumber?: string; serialNumber?: string;
+  }>({});
+  const [orderType, setOrderType] = useState<'dine-in' | 'take-out' | 'delivery' | null>(null);
   const [cashierName, setCashierName] = useState<string>(() =>
     localStorage.getItem('lucky_boba_user_name') ?? 'Admin'
   );
   const [currentDate, setCurrentDate] = useState(new Date());
 
 
-  
   // Cash-in gate
   const [menuAvailable,   setMenuAvailable]   = useState(false);
   const [checkingCashIn,  setCheckingCashIn]  = useState(true);
@@ -261,26 +264,35 @@ const grossSubtotal = cart.reduce((acc, item) =>
     .filter(item => !item.discountId)
     .reduce((acc, item) => acc + (Number(item.price) * item.qty) + getItemSurcharge(item), 0);
 
-  // ── PAX-based multi-discount calculation ────────────────────────────────────
-  // Each selected pax discount (Senior / PWD) applies independently based on its pax count.
-  // Senior discount → applies to paxSenior number of items (highest priced first).
-  // PWD discount    → applies to paxPwd    number of items (continuing from where Senior left off).
+  const isVat = vatType === 'vat';
+
+  // ── PAX-based SC/PWD discount (BIR formula) ─────────────────────────────────
+  // BIR rule: SC/PWD discount is 20% of the VAT-EXCLUSIVE price.
+  // Step 1 — remove VAT from each unit:  unitPrice / 1.12
+  // Step 2 — apply 20% (or fixed) on that VAT-exclusive base
+  // This means for ₱240 gross:  240/1.12 = 214.29  →  214.29 × 20% = 42.86 discount  →  171.43 due
+  //
+  // Senior discount → highest-priced paxSenior units first.
+  // PWD discount    → next paxPwd units (picks up where Senior left off).
+
+  // Flatten cart into per-unit VAT-EXCLUSIVE prices, sorted descending
+  const allUnitsVatExcl = cart
+    .flatMap(item =>
+      Array(item.qty).fill(
+        isVat
+          ? (Number(item.price) + getItemSurcharge(item) / item.qty) / 1.12
+          : (Number(item.price) + getItemSurcharge(item) / item.qty)
+      )
+    )
+    .sort((a: number, b: number) => b - a);
 
   const totalPaxDiscount = selectedDiscounts.reduce((total, d) => {
-    const isSenior = d.name.toUpperCase().includes('SENIOR');
-    const isPwd    = d.name.toUpperCase().includes('PWD') || d.name.toUpperCase().includes('DIPLOMAT');
-    const pax      = isSenior ? (paxSenior || 0) : isPwd ? (paxPwd || 0) : 0;
+    const isSenior  = d.name.toUpperCase().includes('SENIOR');
+    const isPwd     = d.name.toUpperCase().includes('PWD') || d.name.toUpperCase().includes('DIPLOMAT');
+    const pax       = isSenior ? (paxSenior || 0) : isPwd ? (paxPwd || 0) : 0;
 
     if (pax === 0) return total;
 
-    // Flatten all cart units sorted by price descending
-    const allUnits = cart
-      .flatMap(item =>
-        Array(item.qty).fill(Number(item.price) + getItemSurcharge(item) / item.qty)
-      )
-      .sort((a, b) => b - a);
-
-    // How many units are already consumed by previously processed discounts
     const alreadyUsed = selectedDiscounts
       .slice(0, selectedDiscounts.indexOf(d))
       .reduce((used, prev) => {
@@ -289,17 +301,18 @@ const grossSubtotal = cart.reduce((acc, item) =>
         return used + (prevIsSenior ? (paxSenior || 0) : prevIsPwd ? (paxPwd || 0) : 0);
       }, 0);
 
-    const discountedUnits = allUnits.slice(alreadyUsed, alreadyUsed + pax);
-    const base = discountedUnits.reduce((sum, price) => sum + price, 0);
+    const discountedUnits = allUnitsVatExcl.slice(alreadyUsed, alreadyUsed + pax);
+    const vatExclBase     = discountedUnits.reduce((sum, p) => sum + p, 0);
 
+    // Discount is applied on the VAT-exclusive base
     const discountAmt = d.type.includes('Percent')
-      ? base * (Number(d.amount) / 100)
+      ? vatExclBase * (Number(d.amount) / 100)
       : Number(d.amount) * pax;
 
     return total + discountAmt;
   }, 0);
 
-  // ── Single promo discount (Promo tab) ───────────────────────────────────────
+  // ── Single promo discount (Promo tab) — stays on VAT-inclusive base ─────────
   const promoDiscount = selectedDiscount
     ? selectedDiscount.type.includes('Percent')
       ? eligibleForPromo * (Number(selectedDiscount.amount) / 100)
@@ -309,11 +322,44 @@ const grossSubtotal = cart.reduce((acc, item) =>
   // Total discount = item-level + pax discounts + promo discount
   const orderLevelDiscount = totalPaxDiscount + promoDiscount;
 
+  // ── VAT split (must be computed before amtDue) ────────────────────────────────
+  // The units covered by SC/PWD are VAT-exempt (their VAT-exclusive price is the exempt amount).
+  // Everything else remains VATable.
+  const hasPaxDiscount = selectedDiscounts.some(d =>
+    d.name.toUpperCase().includes('SENIOR') ||
+    d.name.toUpperCase().includes('PWD')    ||
+    d.name.toUpperCase().includes('DIPLOMAT')
+  );
+
+  // How many units are covered by SC/PWD pax
+  const totalPaxUnits = selectedDiscounts.reduce((used, d) => {
+    const isSenior = d.name.toUpperCase().includes('SENIOR');
+    const isPwd    = d.name.toUpperCase().includes('PWD') || d.name.toUpperCase().includes('DIPLOMAT');
+    return used + (isSenior ? (paxSenior || 0) : isPwd ? (paxPwd || 0) : 0);
+  }, 0);
+
+  // VAT-exempt = sum of VAT-exclusive prices of the covered units
+  const vatExemptUnits = allUnitsVatExcl.slice(0, totalPaxUnits);
+  const vatExemptSales = isVat && hasPaxDiscount
+    ? round(vatExemptUnits.reduce((s, p) => s + p, 0))
+    : 0;
+
   // 5. Final Totals
-  const amtDue        = Math.max(0, grossSubtotal - itemDiscountTotal - totalPaxDiscount - promoDiscount);
-  const isVat         = vatType === 'vat';
-  const vatableSales  = isVat ? amtDue / 1.12 : amtDue;
-  const vatAmount     = isVat ? amtDue - vatableSales : 0;
+  // amtDue = gross - item discounts - SC/PWD discount - promo discount
+  // For SC/PWD: the covered portion becomes VAT-exempt, so we subtract the VAT amount as well
+  // Formula: amtDue = (grossSubtotal - vatExemptSales) + (vatExemptSales - totalPaxDiscount) - itemDiscountTotal - promoDiscount
+  // Simplified: amtDue = grossSubtotal - vatExemptSales - totalPaxDiscount - itemDiscountTotal - promoDiscount + vatExemptSales
+  // Further simplified: When full SC/PWD coverage, amtDue = vatExemptSales - totalPaxDiscount (VAT-excl base minus discount)
+  const amtDue = hasPaxDiscount
+    ? Math.max(0, round(vatExemptSales - totalPaxDiscount + (grossSubtotal - vatExemptSales * 1.12) - itemDiscountTotal - promoDiscount))
+    : Math.max(0, grossSubtotal - itemDiscountTotal - totalPaxDiscount - promoDiscount);
+
+  // VATable base = amtDue minus the VAT-exempt portion
+  const vatableBase  = isVat ? Math.max(0, amtDue - vatExemptSales) : 0;
+  const vatableSales = isVat ? round(vatableBase / 1.12) : 0;
+  const vatAmount    = isVat ? round(vatableBase - vatableSales) : 0;
+  // ─────────────────────────────────────────────────────────────────────────────
+
   const totalDiscountDisplay = itemDiscountTotal + totalPaxDiscount + promoDiscount;
   const change        = typeof cashTendered === 'number' ? Math.max(0, cashTendered - amtDue) : 0;
   const subtotal      = grossSubtotal - itemDiscountTotal;
@@ -371,7 +417,7 @@ const grossSubtotal = cart.reduce((acc, item) =>
           console.log('VAT Type synced:', b.vat_type);
       }
       
-      console.log('Branch details fetched:', b);  // ✅ TEMP
+      console.log('Branch details fetched:', b);  // TEMP
   }).catch((err) => {
   console.error('Branch fetch failed:', err.response?.status, err.response?.data);
 });
@@ -916,6 +962,7 @@ const grossSubtotal = cart.reduce((acc, item) =>
 const saveCartItemEdit = () => {
   if (editingCartIndex === null || !editingCartItem) return;
 
+  // ── Compute total add-on cost per unit ────────────────────────
   const addOnCostPerUnit = (editingCartItem.addOns ?? []).reduce((sum, addonName) => {
     const addon = addOnsData.find(a => a.name === addonName);
     if (!addon) return sum;
@@ -1010,9 +1057,16 @@ const updated: CartItem = {
   const handleSubmitOrder = async (nameOverride?: string) => {
     setSubmitting(true);
 
-    // ── Pre-calculate split discount amounts ──────────────────────────────
-    const allUnits = cart
-      .flatMap(item => Array(item.qty).fill(Number(item.price) + getItemSurcharge(item) / item.qty))
+    // ── Pre-calculate split discount amounts (BIR formula) ───────────────
+    // SC/PWD discount = 20% of VAT-EXCLUSIVE unit price (unitPrice / 1.12)
+    const submitUnitsVatExcl = cart
+      .flatMap(item =>
+        Array(item.qty).fill(
+          isVat
+            ? (Number(item.price) + getItemSurcharge(item) / item.qty) / 1.12
+            : (Number(item.price) + getItemSurcharge(item) / item.qty)
+        )
+      )
       .sort((a: number, b: number) => b - a);
 
     let alreadyUsed = 0;
@@ -1021,18 +1075,20 @@ const updated: CartItem = {
     let diplomatDiscountAmount = 0;
 
     for (const d of selectedDiscounts) {
-      const name      = d.name.toUpperCase();
-      const isSenior  = name.includes('SENIOR');
-      const isPwd     = name.includes('PWD');
+      const name       = d.name.toUpperCase();
+      const isSenior   = name.includes('SENIOR');
+      const isPwd      = name.includes('PWD');
       const isDiplomat = name.includes('DIPLOMAT');
-      const pax       = isSenior ? (paxSenior || 0) : (isPwd || isDiplomat) ? (paxPwd || 0) : 0;
+      const pax        = isSenior ? (paxSenior || 0) : (isPwd || isDiplomat) ? (paxPwd || 0) : 0;
 
       if (pax === 0) continue;
 
-      const units = allUnits.slice(alreadyUsed, alreadyUsed + pax);
-      const base  = units.reduce((s: number, p: number) => s + p, 0);
-      const amt   = d.type.includes('Percent')
-        ? base * (Number(d.amount) / 100)
+      const units        = submitUnitsVatExcl.slice(alreadyUsed, alreadyUsed + pax);
+      const vatExclBase  = units.reduce((s: number, p: number) => s + p, 0);
+
+      // Discount is applied on the VAT-exclusive base
+      const amt = d.type.includes('Percent')
+        ? vatExclBase * (Number(d.amount) / 100)
         : Number(d.amount) * pax;
 
       if (isSenior)        scDiscountAmount       += amt;
@@ -1047,13 +1103,6 @@ const updated: CartItem = {
         ? eligibleForPromo * (Number(selectedDiscount.amount) / 100)
         : Number(selectedDiscount.amount)
       : 0;
-
-    // ── DEBUG — remove after fixing ───────────────────────────────────────
-    console.log('allUnits:', allUnits);
-    console.log('selectedDiscounts:', selectedDiscounts.map(d => d.name));
-    console.log('paxSenior:', paxSenior, 'paxPwd:', paxPwd);
-    console.log('sc:', scDiscountAmount, 'pwd:', pwdDiscountAmount);
-    // ─────────────────────────────────────────────────────────────────────
 
     const orderData = {
       // ... rest unchanged
@@ -1098,6 +1147,7 @@ const updated: CartItem = {
       discount_remarks: discountRemarks || null,
       vatable_sales:    vatableSales,
       vat_amount:       vatAmount,
+      vat_exempt_sales: vatExemptSales,
       customer_name:    nameOverride ?? customerName ?? null,
       cash_tendered:    typeof cashTendered === 'number' ? cashTendered : 0,
       pax_senior:       paxSenior || 0,
@@ -1176,7 +1226,7 @@ const updated: CartItem = {
     setPaymentMethod('cash');
     setReferenceNumber('');
     setSelectedDiscount(null);
-    setSelectedDiscounts([]);       // ← reset multi-select pax discounts
+    setSelectedDiscounts([]);       // reset multi-select pax discounts
     setIsSuccessModalOpen(false);
     setPrintTarget(null);
     setPrintedReceipt(false);
@@ -1225,27 +1275,26 @@ const updated: CartItem = {
 
   // ── Shared print props ──────────────────────────────────────────────────────
 
-const printProps = {
-  cart, branchName, orNumber, queueNumber, cashierName,
-  formattedDate, formattedTime, terminalNumber,
-  orderType: orderType ?? 'take-out',
-  customerName,
-  paxSenior, paxPwd, seniorId, pwdId,
-};
+  const printProps = {
+    cart, branchName, orNumber, queueNumber, cashierName,
+    formattedDate, formattedTime, terminalNumber,
+    orderType: orderType ?? 'take-out',
+    customerName,
+    paxSenior, paxPwd, seniorId, pwdId,
+  };
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
-    // ── FORCE ORDER TYPE MODAL ─────────────────────────────────────────────
-if (!orderType) {
-  return (
-    <OrderTypeModal
-  onSelect={(type: "dine_in" | "take_out") => {
-    const mapped = type === 'dine_in' ? 'dine-in' : 'take-out';
-    setOrderType(mapped);
-    localStorage.setItem("order_type", mapped);
-  }}
-/>
-  );
+  // ── FORCE ORDER TYPE MODAL ─────────────────────────────────────────────
+  if (!orderType) {
+    return (
+      <OrderTypeModal
+        onSelect={(type) => {
+          setOrderType(type);
+          localStorage.setItem("order_type", type);
+        }}
+      />
+    );
   }
   
   return (
@@ -1313,6 +1362,7 @@ if (!orderType) {
             onOpenAddOns={() => setIsAddOnModalOpen(true)}
             onAddToOrder={addToOrder}
             onClose={() => { setSelectedItem(null); setIsAddOnModalOpen(false); }}
+            sugarLevels={isDrink ? SUGAR_LEVELS.map((v, i) => ({ id: i, label: v, value: v })) : []}
           />
         )}
 
@@ -1417,11 +1467,12 @@ if (!orderType) {
             amtDue={amtDue}
             vatableSales={vatableSales}
             vatAmount={vatAmount}
+            vatExemptSales={vatExemptSales}
             change={change}
             totalDiscountDisplay={totalDiscountDisplay}
             orderCharge={orderCharge}
             selectedDiscount={selectedDiscount}
-            selectedDiscounts={selectedDiscounts}         // ← new
+            selectedDiscounts={selectedDiscounts}
             paymentMethod={paymentMethod}
             cashTendered={cashTendered}
             referenceNumber={referenceNumber}
@@ -1438,7 +1489,7 @@ if (!orderType) {
             onCashTenderedChange={setCashTendered}
             onReferenceNumberChange={setReferenceNumber}
             onDiscountChange={setSelectedDiscount}
-            onDiscountsChange={setSelectedDiscounts}     // ← new
+            onDiscountsChange={setSelectedDiscounts}
             onDiscountRemarksChange={setDiscountRemarks}
             onPaxSeniorChange={setPaxSenior}
             onPaxPwdChange={setPaxPwd}
@@ -1536,7 +1587,7 @@ if (!orderType) {
       </div>
 
       {/* Print templates */}
-      {printTarget === 'receipt' && <ReceiptPrint {...printProps} {...branchDetails} vatType={vatType} addOnsData={addOnsData} orderCharge={orderCharge} totalCount={totalCount} subtotal={grossSubtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount}/>}
+      {printTarget === 'receipt' && <ReceiptPrint {...printProps} {...branchDetails} vatType={vatType} addOnsData={addOnsData} orderCharge={orderCharge} totalCount={totalCount} subtotal={grossSubtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} vatExemptSales={vatExemptSales} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount}/>}
       {printTarget === 'kitchen'  && <KitchenPrint  {...printProps} />}
       {printTarget === 'stickers' && <StickerPrint  {...printProps} customerName={customerName} />}
     </>

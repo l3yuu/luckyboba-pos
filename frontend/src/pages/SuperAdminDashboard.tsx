@@ -8,6 +8,7 @@ import type { TabId }    from "../components/NewSuperAdmin/SuperAdminSidebar";
 import OverviewTab   from "../components/NewSuperAdmin/Sidebar/Navigation/OverviewTab";
 import BranchesTab   from "../components/NewSuperAdmin/Sidebar/Navigation/BranchesTab";
 import UsersTab      from "../components/NewSuperAdmin/Sidebar/Navigation/UsersTab";
+import DeviceManagementTab from "../components/NewSuperAdmin/Sidebar/Navigation/DeviceManagementTab";
 import AuditLogsTab  from "../components/NewSuperAdmin/Sidebar/System/AuditLogsTab";
 import PromotionsTab from "../components/NewSuperAdmin/Sidebar/System/PromotionsTab";
 import SettingsTab   from "../components/NewSuperAdmin/Sidebar/SettingsTab";
@@ -80,6 +81,7 @@ const SuperAdminDashboard: React.FC = () => {
       case "overview":  return <OverviewTab />;
       case "branches":  return <BranchesTab />;
       case "users":     return <UsersTab    />;
+      case "devices": return <DeviceManagementTab />;
 
       // ── Reports ───────────────────────────────────────────────────────────
       case "sales_report":         return <SalesReportTab />;
