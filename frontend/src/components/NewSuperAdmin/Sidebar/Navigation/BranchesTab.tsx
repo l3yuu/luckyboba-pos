@@ -952,9 +952,7 @@ const BranchesTab: React.FC = () => {
                   <td className="px-5 py-3.5 text-zinc-600">{b.manager}</td>
                   <td className="px-5 py-3.5"><OwnershipBadge type={b.ownership_type} /></td>
                   <td className="px-5 py-3.5">
-                    {b.ownership_type === 'franchise'
-                      ? <VatBadge type={b.vat_type} />
-                      : <span className="text-zinc-300 text-xs">—</span>}
+                  <VatBadge type={b.vat_type} />
                   </td>
                   <td className="px-5 py-3.5 font-bold text-emerald-600">{b.status === "active" ? fmt(b.today) : "—"}</td>
                   <td className="px-5 py-3.5 font-bold text-[#3b2063]">{fmt(b.total)}</td>

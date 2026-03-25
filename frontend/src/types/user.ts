@@ -26,10 +26,10 @@ export interface User {
 }
 
 export interface LoginCredentials {
-  email:       string;
-  password:    string;
-  device_name: string;    // ← ADDED
-  remember?:   boolean;
+  email:        string;
+  password:     string;
+  device_name?: string; // ← optional — AuthContext resolves it via getDeviceIdAsync()
+  remember?:    boolean;
 }
 
 export interface CreateUserData {
