@@ -4,7 +4,7 @@ import {
   Search, Plus, Eye, Edit2, Trash2, Lock, UserCheck, XCircle,
   Users, ArrowUpRight, ArrowDownRight, X, AlertCircle,
   RefreshCw, Mail, MapPin, ShieldCheck, Trash, CheckCircle, Laptop,
-  MonitorCheck, MonitorOff, Monitor,
+  MonitorCheck, MonitorOff,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 
@@ -32,14 +32,15 @@ interface Branch {
 }
 
 interface PosDevice {
-  id:          number;
-  device_name: string;
-  pos_number:  string;
-  branch_id:   number;
-  status:      string;
-  user_id:     number | null;
-  user?:       { id: number; name: string } | null;
-  branch?:     { id: number; name: string } | null;
+  id:              number;
+  device_name:     string;
+  pos_number:      string;
+  branch_id:       number;
+  status:          string;
+  user_id:         number | null;
+  user?:           { id: number; name: string } | null;
+  assigned_users?: { id: number; name: string }[];  // ← ADD
+  branch?:         { id: number; name: string } | null;
 }
 
 interface StatCardProps {
@@ -143,9 +144,9 @@ const Toast: React.FC<ToastProps> = ({ message, type = "success", onDone }) => {
   };
 
   return createPortal(
-    <div className="fixed bottom-6 right-6 z-[99999]" style={{ animation: "slideUpFade 0.25s ease forwards" }}>
+    <div className="fixed bottom-6 right-6 z-99999" style={{ animation: "slideUpFade 0.25s ease forwards" }}>
       <style>{`@keyframes slideUpFade { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }`}</style>
-      <div className="relative flex items-center gap-3 bg-[#1a0f2e] text-white pl-4 pr-3 py-3 rounded-xl shadow-2xl border border-white/10 min-w-[220px] max-w-xs overflow-hidden">
+      <div className="relative flex items-center gap-3 bg-[#1a0f2e] text-white pl-4 pr-3 py-3 rounded-xl shadow-2xl border border-white/10 min-w-55 max-w-xs overflow-hidden">
         <div className={`absolute left-0 top-0 bottom-0 w-1 ${s.bar} rounded-l-xl`} />
         <div className={`w-5 h-5 ${s.iconBg} rounded-full flex items-center justify-center shrink-0 ${s.icon}`}>{icons[type]}</div>
         <p className="text-xs font-semibold flex-1 leading-snug">{message}</p>
@@ -865,17 +866,31 @@ const AssignDeviceModal: React.FC<{
   const [apiError,   setApiError]   = useState("");
   const [success,    setSuccess]    = useState(false);
 
-  const currentDevice = devices.find(d => d.user_id === user.id);
+  const currentDevice = devices.find(d =>
+    d.assigned_users
+      ? d.assigned_users.some(u => u.id === user.id)
+      : d.user_id === user.id
+  );
 
   useEffect(() => {
     (async () => {
       setLoading(true);
       try {
-        const res  = await fetch("/api/pos-devices", { headers: authHeaders() });
+        const branchId = user.branch_id;
+        const url = branchId
+          ? `/api/pos-devices?branch_id=${branchId}`
+          : '/api/pos-devices';
+        const res  = await fetch(url, { headers: authHeaders() });
         const data = await res.json();
-        const list: PosDevice[] = data?.devices ?? data ?? [];
-        setDevices(list.filter(d => d.status === "ACTIVE"));
-        const assigned = list.find(d => d.user_id === user.id);
+        const list: PosDevice[] = data?.devices ?? data?.data ?? data ?? [];
+        const activeList = list.filter(d => d.status === "ACTIVE");
+        setDevices(activeList);
+        // Find device where this user is in assigned_users (or legacy user_id)
+        const assigned = activeList.find(d =>
+          d.assigned_users
+            ? d.assigned_users.some(u => u.id === user.id)
+            : d.user_id === user.id
+        );
         if (assigned) setSelectedId(String(assigned.id));
       } catch { setApiError("Failed to load devices."); }
       finally { setLoading(false); }
@@ -904,8 +919,9 @@ const AssignDeviceModal: React.FC<{
     setSaving(true); setApiError("");
     try {
       // FIX: unassign uses DELETE method to match the route definition
-      const res  = await fetch(`/api/pos-devices/${currentDevice.id}/unassign`, {
+      const res = await fetch(`/api/pos-devices/${currentDevice.id}/unassign`, {
         method: "DELETE", headers: authHeaders(),
+        body: JSON.stringify({ user_id: user.id }),  // ← ADD
       });
       const data = await res.json();
       if (!res.ok) { setApiError(data.message ?? "Failed to unassign device."); return; }
@@ -996,9 +1012,14 @@ const AssignDeviceModal: React.FC<{
                   <option key={d.id} value={String(d.id)}>
                     {d.pos_number}
                     {d.branch?.name ? ` — ${d.branch.name}` : ""}
-                    {d.user_id && d.user_id !== user.id
-                      ? ` ⚠ assigned to ${d.user?.name ?? "another cashier"}`
-                      : d.user_id === user.id ? " ✓ current" : ""}
+                    {(() => {
+                      const assignedUsers = d.assigned_users ?? (d.user_id ? [{ id: d.user_id }] : []);
+                      const isCurrentUser = assignedUsers.some(u => u.id === user.id);
+                      const otherCount    = assignedUsers.filter(u => u.id !== user.id).length;
+                      if (isCurrentUser) return " ✓ current";
+                      if (otherCount > 0) return ` · ${otherCount} cashier${otherCount > 1 ? "s" : ""} assigned`;
+                      return "";
+                    })()}
                   </option>
                 ))}
               </select>
@@ -1008,133 +1029,6 @@ const AssignDeviceModal: React.FC<{
           <p className="text-[10px] text-zinc-400 font-medium">
             Only <span className="font-bold">ACTIVE</span> devices are shown. Reassigning a device from another cashier will remove it from them.
           </p>
-        </>
-      )}
-    </ModalShell>
-  );
-};
-
-// ── Register Device Modal (superadmin only) ───────────────────────────────────
-const RegisterDeviceModal: React.FC<{
-  onClose:      () => void;
-  onRegistered: (device: PosDevice) => void;
-  branches:     Branch[];
-}> = ({ onClose, onRegistered, branches }) => {
-  const [form, setForm] = useState({ device_name: "", pos_number: "", branch_id: "" });
-  const [errors,   setErrors]   = useState<Record<string, string>>({});
-  const [saving,   setSaving]   = useState(false);
-  const [apiError, setApiError] = useState("");
-  const [success,  setSuccess]  = useState(false);
-
-  const validate = () => {
-    const e: Record<string, string> = {};
-    if (!form.device_name.trim()) e.device_name = "Device ID is required.";
-    if (!form.pos_number.trim())  e.pos_number  = "POS number is required.";
-    if (!form.branch_id)          e.branch_id   = "Branch is required.";
-    return e;
-  };
-
-  const handleSubmit = async () => {
-    const e = validate();
-    if (Object.keys(e).length) { setErrors(e); return; }
-    setSaving(true); setApiError("");
-    try {
-      const res  = await fetch("/api/pos-devices", {
-        method: "POST", headers: authHeaders(),
-        body: JSON.stringify({
-          device_name: form.device_name.trim(),
-          pos_number:  form.pos_number.trim(),
-          branch_id:   Number(form.branch_id),
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        if (data.errors) {
-          const mapped: Record<string, string> = {};
-          Object.entries(data.errors).forEach(([k, v]) => { mapped[k] = Array.isArray(v) ? v[0] : String(v); });
-          setErrors(mapped);
-        } else { setApiError(data.message ?? "Failed to register device."); }
-        return;
-      }
-      onRegistered(data.device);
-      setSuccess(true);
-      setTimeout(onClose, 1500);
-    } catch { setApiError("Network error. Please try again."); }
-    finally { setSaving(false); }
-  };
-
-  const f = (key: keyof typeof form) => ({
-    value: form[key],
-    onChange: (ev: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-      setForm(p => ({ ...p, [key]: ev.target.value }));
-      setErrors(p => { const n = { ...p }; delete n[key]; return n; });
-    },
-  });
-
-  return (
-    <ModalShell onClose={onClose} icon={<Monitor size={15} className="text-violet-600" />}
-      title="Register POS Device" sub="Add a new terminal to the system"
-      footer={
-        success ? null : (
-          <>
-            <Btn variant="secondary" onClick={onClose} disabled={saving}>Cancel</Btn>
-            <Btn onClick={handleSubmit} disabled={saving}>
-              {saving
-                ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Registering...</span>
-                : <><Plus size={13} /> Register Device</>}
-            </Btn>
-          </>
-        )
-      }>
-      {success ? (
-        <div className="flex flex-col items-center py-4 gap-3">
-          <div className="w-12 h-12 bg-emerald-50 border border-emerald-200 rounded-full flex items-center justify-center">
-            <CheckCircle size={24} className="text-emerald-500" />
-          </div>
-          <p className="text-sm font-bold text-[#1a0f2e]">Device registered successfully</p>
-          <p className="text-xs text-zinc-400">You can now assign it to a cashier.</p>
-        </div>
-      ) : (
-        <>
-          {apiError && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <AlertCircle size={14} className="text-red-500 shrink-0" />
-              <p className="text-xs text-red-600 font-medium">{apiError}</p>
-            </div>
-          )}
-          <div className="flex items-start gap-3 p-3 bg-violet-50 border border-violet-200 rounded-lg">
-            <Laptop size={14} className="text-violet-500 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-violet-700 mb-0.5">How to get the Device ID</p>
-              <p className="text-xs text-violet-600 leading-relaxed">
-                On the POS terminal, open the app. If unregistered it shows a <span className="font-bold">"Device Not Registered"</span> screen with the Device ID. The cashier copies it and sends it to you.
-              </p>
-            </div>
-          </div>
-          {/* hint prop now works — added to Field component above */}
-          <Field label="Device ID" required error={errors.device_name}
-            hint="Paste the ID shown on the terminal's unregistered screen.">
-            <input {...f("device_name")} placeholder="e.g. DEV-3700E18D-2001-4E36-9270-ABCD1234..." className={inputCls(errors.device_name)} />
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="POS Number" required error={errors.pos_number}
-              hint="Friendly label used in reports.">
-              <input {...f("pos_number")} placeholder="e.g. POS-001" className={inputCls(errors.pos_number)} />
-            </Field>
-            <Field label="Branch" required error={errors.branch_id}>
-              {branches.length === 0 ? (
-                <div className="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
-                  <AlertCircle size={12} className="text-amber-500 shrink-0" />
-                  <p className="text-xs text-amber-700">No branches found.</p>
-                </div>
-              ) : (
-                <select {...f("branch_id")} className={inputCls(errors.branch_id)}>
-                  <option value="">— Select branch —</option>
-                  {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                </select>
-              )}
-            </Field>
-          </div>
         </>
       )}
     </ModalShell>
@@ -1169,7 +1063,6 @@ const UsersTab: React.FC = () => {
   const [delTarget,    setDelTarget]    = useState<User | null>(null);
   const [pinTarget,    setPinTarget]    = useState<User | null>(null);
   const [deviceTarget, setDeviceTarget] = useState<User | null>(null);
-  const [registerOpen, setRegisterOpen] = useState(false);
 
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
   const showToast = (message: string, type: ToastType = "success") => setToast({ message, type });
@@ -1177,23 +1070,41 @@ const UsersTab: React.FC = () => {
   const fetchUsers = async () => {
     setLoading(true); setFetchError("");
     try {
-      const [usersRes, branchesRes] = await Promise.all([
-        fetch("/api/users",    { headers: authHeaders() }),
-        fetch("/api/branches", { headers: authHeaders() }),
+      const [usersRes, branchesRes, devicesRes] = await Promise.all([
+        fetch("/api/users",       { headers: authHeaders() }),
+        fetch("/api/branches",    { headers: authHeaders() }),
+        fetch("/api/pos-devices", { headers: authHeaders() }),
       ]);
       const usersData    = await usersRes.json();
       const branchesData = await branchesRes.json();
+      const devicesData  = await devicesRes.json();
 
       if (!usersRes.ok || !usersData.success) {
         setFetchError(usersData.message ?? "Failed to load users.");
         return;
       }
 
-      setUsers((usersData.data as RawUser[]).map(mapUser));
+      // Build a map of user_id → device for quick lookup
+      const deviceList: PosDevice[] = devicesData?.data ?? devicesData?.devices ?? devicesData ?? [];
+      const deviceByUserId = new Map<number, PosDevice>();
+      deviceList.forEach(d => {
+        // Support both old single user_id and new assigned_users array
+        const assignedUsers = d.assigned_users ?? (d.user_id ? [{ id: d.user_id, name: d.user?.name ?? "" }] : []);
+        assignedUsers.forEach(u => deviceByUserId.set(u.id, d));
+      });
 
-      if (branchesData.success) {
-        setBranches(branchesData.data as Branch[]);
-      }
+      const mapped = (usersData.data as RawUser[]).map(u => {
+        const user = mapUser(u);
+        const device = deviceByUserId.get(user.id);
+        if (device) {
+          user.device_id     = device.id;
+          user.device_number = device.pos_number;
+        }
+        return user;
+      });
+
+      setUsers(mapped);
+      if (branchesData.success) setBranches(branchesData.data as Branch[]);
     } catch {
       setFetchError("Network error. Could not reach the server.");
     } finally {
@@ -1227,9 +1138,6 @@ const UsersTab: React.FC = () => {
           <div className="flex items-center gap-2">
             <Btn variant="secondary" onClick={fetchUsers} disabled={loading}>
               <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
-            </Btn>
-            <Btn variant="secondary" onClick={() => setRegisterOpen(true)} disabled={loading}>
-              <Monitor size={13} /> Register Device
             </Btn>
             <Btn onClick={() => setAddOpen(true)} disabled={loading}>
               <Plus size={13} /> Add User
@@ -1375,13 +1283,6 @@ const UsersTab: React.FC = () => {
       {pinTarget    && <ResetPinModal     onClose={() => setPinTarget(null)}     user={pinTarget} />}
       {deviceTarget && <AssignDeviceModal onClose={() => setDeviceTarget(null)}  onAssigned={handleDeviceAssigned} user={deviceTarget} />}
 
-      {registerOpen && (
-        <RegisterDeviceModal
-          onClose={() => setRegisterOpen(false)}
-          onRegistered={() => { setRegisterOpen(false); showToast("Device registered. You can now assign it to a cashier."); }}
-          branches={branches}
-        />
-      )}
       {toast && <Toast message={toast.message} type={toast.type} onDone={() => setToast(null)} />}
     </div>
   );

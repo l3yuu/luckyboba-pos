@@ -40,7 +40,7 @@ interface ReceiptPrintProps {
   cashTendered: number | '';
   referenceNumber: string;
   paymentMethod: string;
-  selectedDiscount: { name: string } | null;
+  selectedDiscount: { id?: number; name: string; amount?: number; type?: string } | null;
   totalDiscountDisplay: number;
   itemDiscountTotal: number;
   promoDiscount: number;
@@ -65,13 +65,31 @@ export const ReceiptPrint = ({
   orderType,
   customerName, 
   totalDiscountDisplay, itemDiscountTotal, promoDiscount, addOnsData = [], showDoubleQueueStub = true,
-    isReprint: _isReprint = false,
+  isReprint: _isReprint = false,
   vatType = 'vat',  
     paxSenior = 0,
   paxPwd = 0,
   seniorId = '',
   pwdId = '',
 }: ReceiptPrintProps) => {
+
+  // ← console.log goes HERE, inside the function body
+  console.log('=== ReceiptPrint props ===');
+  console.log('subtotal:', subtotal);
+  console.log('itemDiscountTotal:', itemDiscountTotal);
+  console.log('totalDiscountDisplay:', totalDiscountDisplay);
+  console.log('amtDue:', amtDue);
+  console.log('cart items:', cart.map(i => ({
+    name: i.name,
+    qty: i.qty,
+    price: i.price,
+    finalPrice: i.finalPrice,
+    originalPrice: i.originalPrice,
+    discountLabel: i.discountLabel,
+    discountType: i.discountType,
+    discountValue: i.discountValue,
+  })));
+  console.log('=========================');
 
   return (
     <div className="printable-receipt-container hidden print:block">
@@ -146,26 +164,35 @@ export const ReceiptPrint = ({
                 })()}
               </span>
               <span>
-                {(() => {
-                  const addOnCost = (item.addOns ?? []).reduce((sum, addonName) => {
-                    const a = addOnsData.find(x => x.name === addonName);
-                    if (!a) return sum;
-                    return sum + (item.charges?.grab && Number(a.grab_price ?? 0) > 0
-                      ? Number(a.grab_price)
-                      : item.charges?.panda && Number(a.panda_price ?? 0) > 0
-                      ? Number(a.panda_price)
-                      : Number(a.price));
-                  }, 0);
-                  const surcharge = item.charges?.grab ? Number(item.grab_price ?? 0) * item.qty : item.charges?.panda ? Number(item.panda_price ?? 0) * item.qty : 0;
-                  return (item.finalPrice - addOnCost * item.qty + surcharge).toFixed(2);
-                })()}
-              </span>
+  {(() => {
+    const addOnCost = (item.addOns ?? []).reduce((sum, addonName) => {
+      const a = addOnsData.find(x => x.name === addonName);
+      if (!a) return sum;
+      return sum + (item.charges?.grab && Number(a.grab_price ?? 0) > 0
+        ? Number(a.grab_price)
+        : item.charges?.panda && Number(a.panda_price ?? 0) > 0
+        ? Number(a.panda_price)
+        : Number(a.price));
+    }, 0);
+    const surcharge = item.charges?.grab ? Number(item.grab_price ?? 0) * item.qty : item.charges?.panda ? Number(item.panda_price ?? 0) * item.qty : 0;
+    const basePrice = item.originalPrice ?? item.finalPrice;
+    return (basePrice - addOnCost * item.qty + surcharge).toFixed(2);
+  })()}
+</span>
             </div>
-            {item.discountLabel && (
-              <div className="flex justify-between w-full text-[10px] italic">
-                <span>  • Discount: {item.discountLabel}</span>
-              </div>
-            )}
+            {item.discountLabel && item.discountType && item.discountValue && Number(item.discountValue) > 0 && (() => {
+  const unitPrice = Number(item.price ?? 0);
+const discountAmt = item.discountType === 'percent'
+  ? unitPrice * (Number(item.discountValue) / 100)
+  : Math.min(Number(item.discountValue), unitPrice);
+
+  return (
+    <div className="flex justify-between w-full text-[10px] italic text-gray-600">
+      <span>  • {item.discountLabel}</span>
+      <span>- {discountAmt.toFixed(2)}</span>
+    </div>
+  );
+})()}
 
             {/* Sugar / options / remarks (no add-ons here) */}
             {item.size === 'none' && item.sugarLevel != null ? (
@@ -215,18 +242,32 @@ export const ReceiptPrint = ({
           <div className="flex justify-between"><span>Total Items</span><span>{totalCount}</span></div>
           <div className="flex justify-between"><span>Sub Total</span><span>{subtotal.toFixed(2)}</span></div>
           {totalDiscountDisplay > 0 && (
-            <>
-              {itemDiscountTotal > 0 && (
-                <div className="flex justify-between"><span>Item Discounts</span><span>- {itemDiscountTotal.toFixed(2)}</span></div>
-              )}
-              {selectedDiscount && (
-                <div className="flex justify-between w-full font-bold"><span>Promo: {selectedDiscount.name}</span><span>- {promoDiscount.toFixed(2)}</span></div>
-              )}
-              <div className="flex justify-between font-bold border-t border-dashed border-black pt-1 mt-1">
-                <span>Total Discount</span><span>- {totalDiscountDisplay.toFixed(2)}</span>
-              </div>
-            </>
-          )}
+  <>
+    {itemDiscountTotal > 0 && (
+      <div className="flex justify-between">
+        <span>Item Discount(s)</span>
+        <span>- {itemDiscountTotal.toFixed(2)}</span>
+      </div>
+    )}
+    {selectedDiscount && promoDiscount > 0 && (
+      <div className="flex justify-between">
+        <span>
+          Promo: {selectedDiscount.name}
+          {(selectedDiscount as { name: string; amount?: number; type?: string }).type?.includes('Percent')
+            ? ` (${(selectedDiscount as { name: string; amount?: number; type?: string }).amount}%)`
+            : (selectedDiscount as { name: string; amount?: number; type?: string }).amount
+            ? ` (-₱${(selectedDiscount as { name: string; amount?: number; type?: string }).amount})`
+            : ''}
+        </span>
+        <span>- {promoDiscount.toFixed(2)}</span>
+      </div>
+    )}
+    <div className="flex justify-between font-bold border-t border-dashed border-black pt-1 mt-1">
+      <span>Total Discount</span>
+      <span>- {totalDiscountDisplay.toFixed(2)}</span>
+    </div>
+  </>
+)}
           <div className="flex justify-between text-base font-bold mt-1"><span>TOTAL DUE</span><span>{amtDue.toFixed(2)}</span></div>
         </div>
 
@@ -420,13 +461,19 @@ interface StickerClasses {
   isVeryCrowded: boolean;
 }
 
-const getStickerClasses = (extraCount: number): StickerClasses => {
+const getStickerClasses = (extraCount: number, nameLength = 0): StickerClasses => {
   const isCrowded     = extraCount >= 3;
   const isVeryCrowded = extraCount >= 5;
+  const isLongName    = nameLength > 14;
+  const isVeryLongName = nameLength > 22;
   return {
     paddingClass:  isVeryCrowded ? 'p-0.5' : 'p-1',
     titleSize:     isVeryCrowded ? 'text-[10px]' : isCrowded ? 'text-[11px]' : 'text-[12px]',
-    nameSize:      isVeryCrowded ? 'text-[8.5px]' : isCrowded ? 'text-[10px]' : 'text-xs',
+    nameSize:      isVeryCrowded || isVeryLongName
+                     ? 'text-[8px]'
+                     : (isCrowded || isLongName)
+                     ? 'text-[9.5px]'
+                     : 'text-xs',
     addOnSize:     isVeryCrowded ? 'text-[6px]' : isCrowded ? 'text-[7px]' : 'text-[9px]',
     gapClass:      isVeryCrowded ? 'space-y-0 leading-none' : 'space-y-0.5 leading-tight',
     marginClass:   isVeryCrowded ? 'mb-0' : 'mb-1',
@@ -496,9 +543,9 @@ export const StickerPrint = ({
     // ── Bundle stickers ─────────────────────────────────────────────────────
     if (item.isBundle && item.bundleComponents && item.bundleComponents.length > 0) {
       for (let q = 0; q < item.qty; q++) {
-        item.bundleComponents.forEach((component: BundleComponentCustomization, compIdx: number) => {
+      item.bundleComponents.forEach((component: BundleComponentCustomization, compIdx: number) => {
           for (let cq = 0; cq < component.quantity; cq++) {
-            const cls = getStickerClasses(component.options.length + component.addOns.length);
+            const cls = getStickerClasses(component.options.length + component.addOns.length, component.name.length);
             stickers.push(
               <div
                 key={`bundle-sticker-${cartIndex}-${q}-${compIdx}-${cq}`}
@@ -510,7 +557,9 @@ export const StickerPrint = ({
                   <div className="text-[7px] font-bold uppercase text-zinc-400 leading-none mb-0.5 tracking-wider">{item.name}</div>
                   <div className={`w-full font-black uppercase leading-tight ${cls.nameSize} ${cls.marginClass}`}>{component.name}</div>
                   <div className={`w-full text-center font-bold ${cls.addOnSize} ${cls.gapClass}`}>
-                    <div>Sugar: {component.sugarLevel}</div>
+                    {component.sugarLevel && component.sugarLevel.trim() !== '' && (
+                      <div>Sugar: {component.sugarLevel}</div>
+                    )}
                     {component.options.map(opt => <div key={opt}>{opt}</div>)}
                     {component.addOns.map(a => <div key={a}>+ {a}</div>)}
                   </div>

@@ -5,12 +5,12 @@ import {
   UtensilsCrossed, Layers, List, Package,
   TrendingUp, FileText, ClipboardList, Receipt, Repeat2,
   Truck, ScanLine, Hash, ShoppingCart, ArrowLeftRight,
-  DollarSign, BookOpen, FlaskConical, Wallet, X, ChevronDown,
+  DollarSign, BookOpen, FlaskConical, Wallet, X, ChevronDown, Monitor
 } from "lucide-react";
 
 // ── Tab IDs ───────────────────────────────────────────────────────────────────
 export type TabId =
-  | "overview" | "branches" | "users"
+  | "overview" | "branches" | "users" | "devices"
   | "sales_report" | "analytics" | "items_report"
   | "cross_branch_reports" | "x_reading" | "z_reading"
   | "menu_items" | "categories" | "subcategories"
@@ -191,6 +191,7 @@ const NAV_ITEMS:       { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "overview",  label: "Overview",          icon: <LayoutGrid size={14} /> },
   { id: "branches",  label: "Branch Management", icon: <GitBranch  size={14} /> },
   { id: "users",     label: "User Management",   icon: <Users      size={14} /> },
+  { id: "devices", label: "Device Management", icon: <Monitor size={14} /> },
 ];
 const REPORTS_ITEMS:   { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "sales_report",         label: "Sales Report",         icon: <Receipt       size={13} /> },

@@ -148,7 +148,7 @@ public function store(Request $request)
             'location'       => 'sometimes|required|string|max:255',
             'status'         => 'sometimes|required|in:active,inactive',
             'ownership_type' => 'sometimes|required|in:company,franchise',
-            'vat_type'       => 'sometimes|required|in:vat,non_vat',     // 👈 add
+            'vat_type'       => 'sometimes|required|in:vat,non_vat',
         ]);
 
         if ($validator->fails()) {

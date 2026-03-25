@@ -235,17 +235,26 @@ const [vatType, setVatType] = useState<'vat' | 'non_vat'>(
   // 1. Basic counts
   const totalCount = cart.reduce((acc, item) => acc + item.qty, 0);
 
-  // 2. Gross Calculation
-  const grossSubtotal = cart.reduce((acc, item) =>
-    acc + item.finalPrice + getItemSurcharge(item), 0
-  );
+  // 2. Gross Calculation (always use base price × qty, never finalPrice)
+const grossSubtotal = cart.reduce((acc, item) =>
+  acc + (Number(item.price) * item.qty) + getItemSurcharge(item), 0
+);
 
   // 3. Item-Level Discounts
   const itemDiscountTotal = cart.reduce((acc, item) => {
-    const baseTotal      = item.finalPrice;
-    const discountedTotal = item.finalPrice;
-    return acc + Math.max(0, baseTotal - discountedTotal);
-  }, 0);
+  if (!item.discountType || item.discountType === 'none') return acc;
+  if (!item.discountValue || Number(item.discountValue) === 0) return acc;
+
+  const drinkUnitPrice = Number(item.price ?? 0);
+  const qty = item.qty;
+  const discountVal = Number(item.discountValue);
+
+  const discountAmt = item.discountType === 'percent'
+    ? drinkUnitPrice * qty * (discountVal / 100)
+    : Math.min(discountVal, drinkUnitPrice) * qty;
+
+  return acc + discountAmt;
+}, 0);
 
   // 4. Promo Eligibility (Vouchers — Promo tab only)
   const eligibleForPromo = cart
@@ -904,62 +913,54 @@ const [vatType, setVatType] = useState<'vat' | 'non_vat'>(
     setEditingCartItem({ ...editingCartItem, qty: newQty, finalPrice: unitPrice * newQty });
   };
 
-  const saveCartItemEdit = () => {
+const saveCartItemEdit = () => {
   if (editingCartIndex === null || !editingCartItem) return;
 
-  // ── Compute total add-on cost per unit ────────────────────────────────
   const addOnCostPerUnit = (editingCartItem.addOns ?? []).reduce((sum, addonName) => {
     const addon = addOnsData.find(a => a.name === addonName);
     if (!addon) return sum;
-
-    // Determine which price to use based on current charges
     const price = editingCartItem.charges?.grab && Number(addon.grab_price ?? 0) > 0
       ? Number(addon.grab_price)
       : editingCartItem.charges?.panda && Number(addon.panda_price ?? 0) > 0
       ? Number(addon.panda_price)
       : Number(addon.price ?? 0);
-
     return sum + price;
   }, 0);
 
-  // ── Base drink price ────────────────────────────────────────────────
   const drinkUnitPrice = Number(editingCartItem.price ?? 0);
+  const qty = Number(editingCartItem.qty ?? 1);
+  const discountValNum = Number(itemDiscountValue ?? 0);
+  let discountLabel: string | undefined = undefined;
+
+  // ── Discount applies to exactly 1 unit, rest stay full price ──────────
+  // ── Discount applies to the drink price only (not add-ons), all qty ──
   let discountedDrinkUnit = drinkUnitPrice;
 
-  // ── Determine discount ──────────────────────────────────────────────
-let discountLabel: string | undefined = undefined; // ✅ use undefined
-const discountValNum = Number(itemDiscountValue ?? 0);
+  if (itemDiscountType === 'percent' && discountValNum > 0) {
+    discountedDrinkUnit = drinkUnitPrice * (1 - discountValNum / 100);
+    const d = discounts.find(d => d.id === editingItemDiscountId);
+    if (d) discountLabel = `${d.name} (${d.amount}%)`;
 
-if (itemDiscountType === 'percent' && discountValNum > 0) {
-  discountedDrinkUnit = drinkUnitPrice * (1 - discountValNum / 100);
+  } else if (itemDiscountType === 'fixed' && discountValNum > 0) {
+    discountedDrinkUnit = Math.max(0, drinkUnitPrice - discountValNum);
+    const d = discounts.find(d => d.id === editingItemDiscountId);
+    if (d) discountLabel = `${d.name} (-₱${d.amount})`;
+  }
 
-  const d = discounts.find(d => d.id === editingItemDiscountId);
-  if (d) discountLabel = `${d.name} (${d.amount}%)`;
-} else if (itemDiscountType === 'fixed' && discountValNum > 0) {
-  discountedDrinkUnit = Math.max(0, drinkUnitPrice - discountValNum);
-
-  const d = discounts.find(d => d.id === editingItemDiscountId);
-  if (d) discountLabel = `${d.name} (-₱${d.amount})`;
-}
-
-  // ── Compute final price with add-ons and quantity ───────────────────
-  const qty = Number(editingCartItem.qty ?? 1);
   const newFinalPrice = (discountedDrinkUnit + addOnCostPerUnit) * qty;
 
-  // ── Create updated cart item ────────────────────────────────────────
-  const updated: CartItem = {
+const updated: CartItem = {
     ...editingCartItem,
-    finalPrice:    newFinalPrice,
-    discountLabel,                  // string or null
-    discountId:    editingItemDiscountId,
-    discountType:  itemDiscountType,
-    discountValue: discountValNum,
+    finalPrice:      newFinalPrice,
+    originalPrice:   (drinkUnitPrice + addOnCostPerUnit) * qty, // pre-discount total
+    discountLabel,
+    discountId:      editingItemDiscountId,
+    discountType:    itemDiscountType,
+    discountValue:   discountValNum,
   };
 
-  // ── Update cart state ───────────────────────────────────────────────
   setCart(prev => prev.map((item, i) => i === editingCartIndex ? updated : item));
-
-  showToast('Item updated & Pax adjusted', 'success');
+  showToast('Item updated', 'success');
   closeCartItemEdit();
 };
 
@@ -1312,7 +1313,6 @@ if (!orderType) {
             onOpenAddOns={() => setIsAddOnModalOpen(true)}
             onAddToOrder={addToOrder}
             onClose={() => { setSelectedItem(null); setIsAddOnModalOpen(false); }}
-            sugarLevels={selectedItem?.sugar_levels}
           />
         )}
 
@@ -1376,12 +1376,6 @@ if (!orderType) {
             onConfirm={confirmComboDrink}
             onClose={() => { setIsCombodrinkModalOpen(false); setPendingComboCart(null); }}
             orderCharge={orderCharge}
-            sugarLevels={
-              categories
-                .flatMap(c => c.menu_items)
-                .find(m => m.name === 'CLASSIC PEARL' && m.size === 'M')
-                ?.sugar_levels
-            }
           />
         )}
 
@@ -1393,7 +1387,6 @@ if (!orderType) {
             drinkSugar={mixMatchDrinkSugar}
             drinkOptions={mixMatchDrinkOptions}
             drinkAddOns={mixMatchDrinkAddOns}
-            drinkSugarLevels={selectedMixMatchDrink?.sugar_levels}
             filteredAddOns={filteredAddOns}
             drinkAddOnModalOpen={mixMatchDrinkAddOnOpen}
             orderCharge={orderCharge}
@@ -1543,7 +1536,7 @@ if (!orderType) {
       </div>
 
       {/* Print templates */}
-      {printTarget === 'receipt' && <ReceiptPrint {...printProps} {...branchDetails} vatType={vatType} addOnsData={addOnsData} orderCharge={orderCharge} totalCount={totalCount} subtotal={subtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount}/>}
+      {printTarget === 'receipt' && <ReceiptPrint {...printProps} {...branchDetails} vatType={vatType} addOnsData={addOnsData} orderCharge={orderCharge} totalCount={totalCount} subtotal={grossSubtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount}/>}
       {printTarget === 'kitchen'  && <KitchenPrint  {...printProps} />}
       {printTarget === 'stickers' && <StickerPrint  {...printProps} customerName={customerName} />}
     </>
