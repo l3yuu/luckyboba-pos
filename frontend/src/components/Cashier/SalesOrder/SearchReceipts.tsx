@@ -54,6 +54,7 @@ interface ReprintPayload {
     vatable_sales?:   number;
     vat_amount?:      number;
     discount_amount?: number;
+    vat_type?:        string;   // ← add this
     branch?: { name?: string };
     sale_items?: RawSaleItem[];
   };

@@ -26,6 +26,12 @@ class UserController extends Controller
             ->where('status', 'active')
             ->first();
 
+        // ── ADD THIS ──────────────────────────────────────────────────────────
+        $branch = $user->branch_id
+            ? \App\Models\Branch::select('id', 'vat_type')->find($user->branch_id)
+            : null;
+        // ─────────────────────────────────────────────────────────────────────
+
         return [
             'id'                => $user->id,
             'name'              => $user->name,
@@ -34,6 +40,7 @@ class UserController extends Controller
             'status'            => $user->status,
             'branch'            => $user->branch_name ?? null,
             'branch_id'         => $user->branch_id,
+            'branch_vat_type'   => $branch?->vat_type ?? 'vat',   // ← ADD THIS
             'email_verified_at' => $user->email_verified_at,
             'created_at'        => $user->created_at,
             'updated_at'        => $user->updated_at,

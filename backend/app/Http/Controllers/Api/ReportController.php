@@ -431,11 +431,22 @@ class ReportController extends Controller
                 ->groupBy('payment_method')
                 ->get();
 
-            $gross        = $data['gross_sales'];
-            $vatableSales = round($gross / 1.12, 2);
-            $vatAmount    = round($gross - $vatableSales, 2);
+            $gross = $data['gross_sales'];
 
-            // ── Discount calculations from sale_items (no pax columns needed) ──
+            // ── VAT type check ────────────────────────────────────────────────
+            $user     = auth('sanctum')->user();
+            $branchId = $user?->branch_id;
+            $isVat    = true;
+            if ($branchId) {
+                $branch = \App\Models\Branch::select('vat_type')->find($branchId);
+                $isVat  = $branch?->vat_type !== 'non_vat';
+            }
+            // ─────────────────────────────────────────────────────────────────
+
+            $vatableSales   = $isVat ? round($gross / 1.12, 2) : 0.0;
+            $vatAmount      = $isVat ? round($gross - $vatableSales, 2) : 0.0;
+            $vatExemptSales = $isVat ? 0.0 : $gross;
+
             $scDiscount = DB::table('sale_items')
                 ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
                 ->whereBetween('sales.created_at', [$from, $to])
@@ -478,10 +489,12 @@ class ReportController extends Controller
                 'payment_breakdown'  => $paymentBreakdown,
                 'vatable_sales'      => $vatableSales,
                 'vat_amount'         => $vatAmount,
+                'vat_exempt_sales'   => $vatExemptSales,   // ← new
+                'is_vat'             => $isVat,             // ← new
                 'sc_discount'        => round((float)$scDiscount,       2),
                 'pwd_discount'       => round((float)$pwdDiscount,      2),
                 'diplomat_discount'  => round((float)$diplomatDiscount, 2),
-                'other_discount'     => round((float)$otherDiscount + (float)$orderLevelOtherDiscount, 2), // ADD THIS
+                'other_discount'     => round((float)$otherDiscount + (float)$orderLevelOtherDiscount, 2),
                 'sc_pwd_discount'    => round((float)$scDiscount + (float)$pwdDiscount, 2),
                 'total_senior_pax'   => 0,
                 'total_pwd_pax'      => 0,

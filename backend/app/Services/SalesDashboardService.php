@@ -222,6 +222,14 @@ class SalesDashboardService
         $from = Carbon::parse($date)->startOfDay();
         $to   = $toDate ? Carbon::parse($toDate)->endOfDay() : Carbon::parse($date)->endOfDay();
 
+        // ── VAT type check ────────────────────────────────────────────────────
+        $isVat = true;
+        if ($branchId) {
+            $branch = \App\Models\Branch::select('vat_type')->find($branchId);
+            $isVat  = $branch?->vat_type !== 'non_vat';
+        }
+        // ─────────────────────────────────────────────────────────────────────
+
         $salesQuery = DB::table('sales')
             ->whereBetween('created_at', [$from, $to])
             ->where('status', 'completed')
@@ -268,8 +276,11 @@ class SalesDashboardService
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->sum('total_amount');
 
-        $vatableSales = round($grossSales / 1.12, 2);
-        $vatAmount    = round($grossSales - $vatableSales, 2);
+        // ── VAT calculation based on branch type ──────────────────────────────
+        $vatableSales   = $isVat ? round($grossSales / 1.12, 2) : 0.0;
+        $vatAmount      = $isVat ? round($grossSales - $vatableSales, 2) : 0.0;
+        $vatExemptSales = $isVat ? 0.0 : $grossSales;
+        // ─────────────────────────────────────────────────────────────────────
 
         // ── Discounts via shared helper ───────────────────────────────────────
         $discounts = $this->computeDiscounts($from, $to, $branchId);
@@ -327,6 +338,8 @@ class SalesDashboardService
             'total_void_amount' => $voidAmount,
             'vatable_sales'     => $vatableSales,
             'vat_amount'        => $vatAmount,
+            'vat_exempt_sales'  => $vatExemptSales,   // ← new
+            'is_vat'            => $isVat,             // ← new
             'sc_discount'       => $discounts['sc_discount'],
             'pwd_discount'      => $discounts['pwd_discount'],
             'diplomat_discount' => $discounts['diplomat_discount'],
@@ -345,6 +358,14 @@ class SalesDashboardService
     {
         $start = Carbon::parse($from)->startOfDay();
         $end   = Carbon::parse($to)->endOfDay();
+
+        // ── VAT type check ────────────────────────────────────────────────────
+        $isVat = true;
+        if ($branchId) {
+            $branch = \App\Models\Branch::select('vat_type')->find($branchId);
+            $isVat  = $branch?->vat_type !== 'non_vat';
+        }
+        // ─────────────────────────────────────────────────────────────────────
 
         $sales = DB::table('sales')
             ->whereBetween('created_at', [$start, $end])
@@ -371,8 +392,11 @@ class SalesDashboardService
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->sum('total_amount');
 
-        $vatableSales = round($gross / 1.12, 2);
-        $vatAmount    = round($gross - $vatableSales, 2);
+        // ── VAT calculation based on branch type ──────────────────────────────
+        $vatableSales   = $isVat ? round($gross / 1.12, 2) : 0.0;
+        $vatAmount      = $isVat ? round($gross - $vatableSales, 2) : 0.0;
+        $vatExemptSales = $isVat ? 0.0 : $gross;
+        // ─────────────────────────────────────────────────────────────────────
 
         $begSI = DB::table('receipts')
             ->whereBetween('created_at', [$start, $end])
@@ -435,6 +459,8 @@ class SalesDashboardService
             'total_void_amount'  => $voidAmount,
             'vatable_sales'      => $vatableSales,
             'vat_amount'         => $vatAmount,
+            'vat_exempt_sales'   => $vatExemptSales,   // ← new
+            'is_vat'             => $isVat,             // ← new
             'beg_si'             => $begSI,
             'end_si'             => $endSI,
             'payment_breakdown'  => $paymentBreakdown,
