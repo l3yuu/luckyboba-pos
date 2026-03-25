@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class MenuItem extends Model
 {
@@ -73,5 +74,10 @@ class MenuItem extends Model
     public function hasSugarOption(): bool
     {
         return $this->options->contains('option_type', 'sugar');
+    }
+
+    public function sugarLevels(): BelongsToMany
+    {
+        return $this->belongsToMany(SugarLevel::class, 'menu_item_sugar_levels');
     }
 }
