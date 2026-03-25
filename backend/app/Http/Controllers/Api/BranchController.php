@@ -51,7 +51,7 @@ class BranchController extends Controller
             'location'       => 'required|string|max:255',
             'status'         => 'required|in:active,inactive',
             'ownership_type' => 'sometimes|in:company,franchise',        // 👈 add
-            'vat_type'       => 'sometimes|in:vat,non_vat',              // 👈 add
+            'vat_type'       => 'sometimes|required|in:vat,non_vat',              // 👈 add
         ], [
             'name.required'     => 'Branch name is required.',
             'name.unique'       => 'A branch with this name already exists.',
