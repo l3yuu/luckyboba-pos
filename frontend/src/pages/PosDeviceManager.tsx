@@ -87,9 +87,9 @@ const Toast: React.FC<{ message: string; type: ToastType; onDone: () => void }> 
     : <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>;
 
   return createPortal(
-    <div className="fixed bottom-6 right-6 z-[99999]" style={{ animation: 'slideUpFade .25s ease forwards' }}>
+    <div className="fixed bottom-6 right-6 z-99999" style={{ animation: 'slideUpFade .25s ease forwards' }}>
       <style>{`@keyframes slideUpFade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}`}</style>
-      <div className="relative flex items-center gap-3 bg-[#1a0f2e] text-white pl-4 pr-3 py-3 rounded-xl shadow-2xl border border-white/10 min-w-[220px] max-w-xs overflow-hidden">
+      <div className="relative flex items-center gap-3 bg-[#1a0f2e] text-white pl-4 pr-3 py-3 rounded-xl shadow-2xl border border-white/10 min-w-55 max-w-xs overflow-hidden">
         <div className={`absolute left-0 top-0 bottom-0 w-1 ${bar} rounded-l-xl`} />
         <div className={`w-5 h-5 ${bar} rounded-full flex items-center justify-center shrink-0 text-white`}>{icon}</div>
         <p className="text-xs font-semibold flex-1 leading-snug">{message}</p>
@@ -107,7 +107,7 @@ const ModalShell: React.FC<{
   children: React.ReactNode; footer: React.ReactNode; maxWidth?: string;
 }> = ({ onClose, icon, title, sub, children, footer, maxWidth = 'max-w-md' }) =>
   createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6"
+    <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
       style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.45)' }}>
       <div className="absolute inset-0" onClick={onClose} />
       <div className={`relative bg-white w-full ${maxWidth} border border-zinc-200 rounded-[1.25rem] shadow-2xl`}>
@@ -276,7 +276,7 @@ const DeleteDeviceModal: React.FC<{
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6"
+    <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
       style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.45)' }}>
       <div className="absolute inset-0" onClick={onClose} />
       <div className="relative bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] shadow-2xl">
@@ -301,7 +301,7 @@ const DeleteDeviceModal: React.FC<{
             <Hash size={11} className="text-zinc-400" />
             <span className="font-bold text-[#1a0f2e]">{device.pos_number}</span>
             <span className="text-zinc-400">·</span>
-            <span className="font-mono text-[10px] text-zinc-400 truncate max-w-[160px]">{device.device_name}</span>
+            <span className="font-mono text-[10px] text-zinc-400 truncate max-w-40">{device.device_name}</span>
           </div>
           <div className="flex items-center gap-2 text-xs text-zinc-500">
             <MapPin size={11} className="text-zinc-400" />
@@ -532,7 +532,7 @@ export default function PosDeviceManager() {
 
                   {/* Device ID */}
                   <td className="px-5 py-3.5">
-                    <span className="font-mono text-[10px] text-zinc-400 bg-zinc-100 px-2 py-1 rounded max-w-[160px] truncate block" title={device.device_name}>
+                    <span className="font-mono text-[10px] text-zinc-400 bg-zinc-100 px-2 py-1 rounded max-w-40 truncate block" title={device.device_name}>
                       {device.device_name}
                     </span>
                   </td>

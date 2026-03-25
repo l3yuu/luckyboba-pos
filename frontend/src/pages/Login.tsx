@@ -7,7 +7,6 @@ import type { LoginCredentials } from '../types/user';
 import { useToast } from '../hooks/useToast';
 import { ROLE_HOME } from '../utils/roleRoutes';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
-import { getDeviceId } from '../utils/deviceId';   // ← NEW
 
 import logo from '../assets/logo.png';
 
@@ -63,10 +62,10 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // device_name is resolved inside AuthContext via getDeviceIdAsync()
     const credentials: LoginCredentials = {
       email,
       password,
-      device_name: getDeviceId(),   // ← NEW
     };
     try {
       const loggedInUser = await login(credentials);

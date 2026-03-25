@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getDeviceId } from '../utils/deviceId';
+import { getDeviceIdAsync } from '../utils/deviceId'; // ← updated import
 import api from '../services/api';
 
 type DeviceStatus = 'checking' | 'registered' | 'unregistered';
@@ -22,7 +22,7 @@ export function useDeviceCheck(enabled: boolean = true) {
   const [branchId,  setBranchId]  = useState<number | null>(null);
   const [branch,    setBranch]    = useState<DeviceBranch | null>(null);
   const [message,   setMessage]   = useState('');
-  const [deviceId]                = useState(() => getDeviceId());
+  const [deviceId,  setDeviceId]  = useState(''); // ← no longer sync-initialized
 
   const hasFetched = useRef(false);
 
@@ -32,11 +32,14 @@ export function useDeviceCheck(enabled: boolean = true) {
 
     void (async () => {
       try {
-        // ── Pull user id from localStorage for cashier pairing check ─────────
+        // ── Resolve stable hardware-derived device ID ─────────────────────
+        const id = await getDeviceIdAsync(); // ← replaces getDeviceId()
+        setDeviceId(id);
+
         const storedUserId = localStorage.getItem('lucky_boba_user_id');
 
         const res = await api.post('/devices/check', {
-          device_name: deviceId,
+          device_name: id,  // ← use id directly, not deviceId state
           user_id: storedUserId ? parseInt(storedUserId) : undefined,
         });
 
@@ -57,7 +60,7 @@ export function useDeviceCheck(enabled: boolean = true) {
         setStatus('unregistered');
       }
     })();
-  }, [enabled, deviceId]);
+  }, [enabled]); // ← removed deviceId from deps (it's resolved inside now)
 
   return { status, posNumber, branchId, branch, message, deviceId };
 }
