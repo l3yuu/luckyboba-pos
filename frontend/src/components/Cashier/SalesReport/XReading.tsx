@@ -779,14 +779,52 @@ const XReading = () => {
           .flex-between { display: flex; justify-content: space-between; width: 100%; align-items: flex-end; }
           .receipt-divider { border-top: 1px dashed #000; margin: 6px 0; width: 100%; display: block; }
           @media print {
-            @page { size: 80mm auto; margin: 0 !important; }
+            @page { 
+              size: 80mm 2000mm;
+              margin: 3mm 2mm !important; 
+            }
             body * { visibility: hidden; }
             nav, header, aside, button, .print\\:hidden, .TopNavbar, .TopNavbar * { display: none !important; }
-            html, body { width: 80mm !important; margin: 0 !important; padding: 0 !important; background: white !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            html, body { 
+              width: 80mm !important; 
+              margin: 0 !important; 
+              padding: 0 !important; 
+              background: white !important; 
+              -webkit-print-color-adjust: exact !important; 
+              print-color-adjust: exact !important; 
+            }
             .printable-receipt-container, .printable-receipt-container * { visibility: visible !important; }
-            .printable-receipt-container { position: absolute !important; left: 0 !important; top: 0 !important; width: 80mm !important; display: flex !important; justify-content: center !important; margin: 0 !important; padding: 0 !important; }
-            .receipt-area { width: 64mm !important; max-width: 64mm !important; margin: 0 !important; padding: 2mm 0 !important; box-sizing: border-box !important; background: white !important; color: #000 !important; font-family: Arial, Helvetica, sans-serif !important; font-size: 11px !important; line-height: 1.35 !important; box-shadow: none !important; border: none !important; border-radius: 0 !important; overflow: hidden !important; }
-            p, div, tr, td, th, span { page-break-inside: avoid !important; break-inside: avoid !important; }
+            .printable-receipt-container { 
+              position: absolute !important; 
+              left: 0 !important; 
+              top: 0 !important; 
+              width: 80mm !important; 
+              display: block !important; 
+              margin: 0 !important; 
+              padding: 0 !important; 
+            }
+            .receipt-area { 
+              width: 76mm !important; 
+              max-width: 76mm !important; 
+              margin: 0 auto !important; 
+              padding: 2mm !important; 
+              box-sizing: border-box !important; 
+              background: white !important; 
+              color: #000 !important; 
+              font-family: Arial, Helvetica, sans-serif !important; 
+              font-size: 11px !important; 
+              line-height: 1.4 !important; 
+              box-shadow: none !important; 
+              border: none !important; 
+              border-radius: 0 !important; 
+              overflow: visible !important;
+              page-break-after: auto !important;
+            }
+            .receipt-area * { overflow: visible !important; }
+            .receipt-area > div > div {
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+            }
             .flex-between { display: flex !important; justify-content: space-between !important; width: 100% !important; align-items: flex-end !important; }
             table { width: 100% !important; max-width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; font-size: 11px !important; }
             th { text-align: left !important; border-bottom: 1px solid #000 !important; padding-bottom: 2px !important; text-transform: uppercase !important; font-weight: 500 !important; font-size: 11px !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
@@ -890,18 +928,12 @@ const XReading = () => {
             </div>
           ) : reportData ? (
             <div className="printable-receipt-container">
-              <div className="receipt-area bg-white w-full max-w-[65mm] p-4 text-black" style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
+              <div className="receipt-area bg-white w-full text-black shadow-md" style={{ fontFamily: "Arial, Helvetica, sans-serif", fontSize: '13px', maxWidth: '180mm', padding: '1.5rem' }}>
                 <div className="text-center">
                   <p className="uppercase text-[13px] font-bold leading-tight">LUCKY BOBA MILKTEA<br />FOOD AND BEVERAGE TRADING</p>
                   <p className="uppercase text-[11px] mt-0.5">{localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'}</p>
                   <Divider />
                   <p className="uppercase text-[12px] font-bold tracking-widest">{reportData.report_type?.replace(/_/g, ' ') || 'REPORT'}</p>
-                  <Divider />
-                  <div className="text-left text-[11px] mt-1">
-                    <Row label="DATE" value={selectedDate} />
-                    <Row label="REPORT TIME" value={new Date().toLocaleTimeString()} />
-                    <Row label="TERMINAL" value="POS-01" />
-                  </div>
                 </div>
                 {(() => {
                   switch (reportData.report_type) {
