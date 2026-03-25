@@ -147,17 +147,19 @@ export const CartItemEditModal = ({
   onRemove,
   onClose,
 }: CartItemEditModalProps) => {
-  const discountOptions = [
-    { id: null,  label: 'No Discount',  type: 'none'    as const, value: 0,  badge: null },
-    ...discounts.map(d => ({
+const discountOptions = [
+  { id: null, label: 'No Discount', type: 'none' as const, value: 0, badge: null },
+  ...discounts
+    .filter(d => d.type === 'Item-Percent')
+    .map(d => ({
       id:    d.id,
       label: d.name,
-      type:  d.type.includes('Percent') ? 'percent' as const : 'fixed' as const,
+      type:  'percent' as const,
       value: Number(d.amount),
-      badge: d.type.includes('Percent') ? `${d.amount}% OFF` : `₱${d.amount} OFF`,
+      badge: `${d.amount}% OFF`,
     })),
   ];
-
+  
   return (
     <div className="fixed inset-0 z-150 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white w-full max-w-md rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -1316,7 +1318,7 @@ export const ConfirmOrderModal = ({
                           ${!selectedDiscount ? 'bg-red-500 text-white border-red-500 shadow-md' : 'bg-zinc-50 text-red-500 border-red-100 hover:border-red-300'}`}>
                         Remove Promo
                       </button>
-                      {discounts.filter(d => !['SENIOR', 'PWD', 'DIPLOMAT'].some(x => d.name.toUpperCase().includes(x))).map(d => (
+                     {discounts.filter(d => d.type === 'Global-Percent' && !['SENIOR', 'PWD', 'DIPLOMAT'].some(x => d.name.toUpperCase().includes(x))).map(d => (
                         <button key={d.id} onClick={() => onDiscountChange(d)}
                           className={`p-3 rounded-[0.625rem] text-sm font-black uppercase transition-all border-2 flex items-center justify-center text-center
                             ${selectedDiscount?.id === d.id ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-emerald-300'}`}>
