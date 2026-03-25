@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOfflineQueue } from '../hooks/useOfflineQueue';
 import OfflineQueueBanner  from '../components/Cashier/SalesOrderComponents/OfflineQueueBanner';
-import { SUGAR_LEVELS } from '../types/index';
 
 import {
   type MenuItem, type Category, type CartItem,
@@ -111,7 +110,13 @@ const [vatType, setVatType] = useState<'vat' | 'non_vat'>(
   const [selectedItem,     setSelectedItem]     = useState<MenuItem | null>(null);
   const [qty,              setQty]              = useState(1);
   const [remarks,          setRemarks]          = useState('');
-  const [sugarLevel,       setSugarLevel]       = useState('');
+  const [sugarLevel, setSugarLevel] = useState('');
+  const [sugarLevels, setSugarLevels] = useState<{ id: number; label: string; value: string }[]>(() => {
+    try {
+      const c = localStorage.getItem('pos_sugar_levels_cache');
+      return c ? JSON.parse(c) : [];
+    } catch { return []; }
+  });
   const [size,             setSize]             = useState<'M' | 'L' | 'none'>('M');
   const [selectedOptions,  setSelectedOptions]  = useState<string[]>([]);
   const [selectedAddOns,   setSelectedAddOns]   = useState<string[]>([]);
@@ -240,7 +245,7 @@ const [vatType, setVatType] = useState<'vat' | 'non_vat'>(
 
   // 2. Gross Calculation (always use base price × qty, never finalPrice)
 const grossSubtotal = cart.reduce((acc, item) =>
-  acc + (Number(item.price) * item.qty) + getItemSurcharge(item), 0
+  acc + item.finalPrice + getItemSurcharge(item), 0
 );
 
   // 3. Item-Level Discounts
@@ -441,6 +446,12 @@ const grossSubtotal = cart.reduce((acc, item) =>
       setAddOnsData(data);
     }).catch(() => {});
 
+    api.get('/sugar-levels').then(({ data }) => {
+      const levels = data.data ?? data; // handles { success, data: [...] } or plain array
+      localStorage.setItem('pos_sugar_levels_cache', JSON.stringify(levels));
+      setSugarLevels(levels);
+    }).catch(() => {});
+
     api.get('/bundles').then(({ data }) => {
       localStorage.setItem('pos_bundles_cache', JSON.stringify(data));
       setBundlesData(data);
@@ -548,7 +559,7 @@ const grossSubtotal = cart.reduce((acc, item) =>
     return items;
   };
 
-  const handleItemClick = async (item: MenuItem) => {
+const handleItemClick = async (item: MenuItem) => {
     const actualCategory = categories.find(cat =>
       cat.menu_items.some(mi => mi.id === item.id)
     ) ?? selectedCategory;
@@ -633,6 +644,26 @@ const grossSubtotal = cart.reduce((acc, item) =>
       const cupSizeL = actualCategory?.cup?.size_l || 'L';
       setSize(categorySize === cupSizeL ? 'L' : 'M');
     }
+
+    // ── Fetch sugar levels specific to this menu item ──────────────────────
+  const isDrinkItem = catType === 'drink' || catType === 'combo';
+  if (isDrinkItem) {
+    try {
+      const { data } = await api.get(`/sugar-levels/by-item/${item.id}`);
+      const levels = data.data ?? [];
+      // Only update if this item has assigned sugar levels;
+      // otherwise reset to empty so the selector is hidden
+      setSugarLevels(levels);
+      setSugarLevel(''); // always reset the selected value
+    } catch {
+      setSugarLevels([]);
+      setSugarLevel('');
+    }
+  } else {
+    // Non-drink items never show sugar level
+    setSugarLevels([]);
+    setSugarLevel('');
+  }
   };
 
   // ── Order charge toggle ─────────────────────────────────────────────────────
@@ -1362,7 +1393,7 @@ const updated: CartItem = {
             onOpenAddOns={() => setIsAddOnModalOpen(true)}
             onAddToOrder={addToOrder}
             onClose={() => { setSelectedItem(null); setIsAddOnModalOpen(false); }}
-            sugarLevels={isDrink ? SUGAR_LEVELS.map((v, i) => ({ id: i, label: v, value: v })) : []}
+            sugarLevels={isDrink ? sugarLevels : []}
           />
         )}
 
@@ -1389,6 +1420,7 @@ const updated: CartItem = {
               bundleComponentSugar={bundleComponentSugar}
               bundleComponentOptions={bundleComponentOptions}
               bundleComponentAddOns={bundleComponentAddOns}
+              sugarLevels={sugarLevels}
               filteredAddOns={filteredAddOns}
               bundleComponentAddOnModalOpen={bundleComponentAddOnModalOpen}
               onSugarChange={setBundleComponentSugar}
@@ -1411,6 +1443,7 @@ const updated: CartItem = {
         {isCombodrinkModalOpen && pendingComboCart && (
           <ComboDrinkModal
             pendingComboCart={pendingComboCart}
+            sugarLevels={sugarLevels}
             comboDrinkSugar={comboDrinkSugar}
             comboDrinkOptions={comboDrinkOptions}
             comboDrinkAddOns={comboDrinkAddOns}
@@ -1434,6 +1467,7 @@ const updated: CartItem = {
             pendingMixMatchCart={pendingMixMatchCart}
             drinkItems={mixMatchDrinkItems}
             selectedDrink={selectedMixMatchDrink}
+            drinkSugarLevels={sugarLevels}
             drinkSugar={mixMatchDrinkSugar}
             drinkOptions={mixMatchDrinkOptions}
             drinkAddOns={mixMatchDrinkAddOns}
@@ -1465,6 +1499,7 @@ const updated: CartItem = {
             totalCount={totalCount}
             subtotal={grossSubtotal}
             amtDue={amtDue}
+            addOnsData={addOnsData}
             vatableSales={vatableSales}
             vatAmount={vatAmount}
             vatExemptSales={vatExemptSales}

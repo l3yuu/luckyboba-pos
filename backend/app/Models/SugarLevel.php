@@ -29,4 +29,13 @@ class SugarLevel extends Model
     {
         return $query->orderBy('sort_order')->orderBy('id');
     }
+    public function menuItems()
+    {
+        return $this->belongsToMany(
+            \App\Models\MenuItem::class,
+            'menu_item_sugar_levels',  // pivot table
+            'sugar_level_id',
+            'menu_item_id'
+        );
+    }
 }

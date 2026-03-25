@@ -119,4 +119,19 @@ class SugarLevelController extends Controller
             'data'    => SugarLevel::ordered()->get(),
         ]);
     }
+    // In SugarLevelController.php
+public function byMenuItem($menuItemId)
+{
+    $levels = SugarLevel::active()
+        ->ordered()
+        ->whereHas('menuItems', function ($q) use ($menuItemId) {
+            $q->where('menu_items.id', $menuItemId);
+        })
+        ->get();
+
+    return response()->json([
+        'success' => true,
+        'data'    => $levels, // empty array if none assigned — no fallback
+    ]);
+}
 }

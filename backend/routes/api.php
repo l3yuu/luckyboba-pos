@@ -144,7 +144,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::apiResource('sub-categories', SubCategoryController::class);
         Route::get('/sub-categories/filter/{categoryId}', [SubCategoryController::class, 'getByCategory']);
         Route::get('/cups', [CupController::class, 'index']);
-        Route::get('/sugar-levels', [SugarLevelController::class, 'index']);
+        Route::get('/sugar-levels',                          [SugarLevelController::class, 'index']);
+        Route::get('/sugar-levels/by-item/{menuItemId}',     [SugarLevelController::class, 'byMenuItem']);
 
         Route::prefix('inventory')->group(function () {
             Route::get('/',             [InventoryController::class, 'index']);
@@ -333,11 +334,11 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         });
 
         Route::prefix('sugar-levels')->group(function () {
-            Route::get    ('/',          [SugarLevelController::class, 'adminIndex']);
-            Route::post   ('/',          [SugarLevelController::class, 'store']);
-            Route::put    ('/{id}',      [SugarLevelController::class, 'update']);
-            Route::delete ('/{id}',      [SugarLevelController::class, 'destroy']);
-            Route::patch  ('/reorder',   [SugarLevelController::class, 'reorder']);
+            Route::get    ('/all',           [SugarLevelController::class, 'adminIndex']);
+            Route::post   ('/',              [SugarLevelController::class, 'store']);
+            Route::put    ('/{id}',          [SugarLevelController::class, 'update']);
+            Route::delete ('/{id}',          [SugarLevelController::class, 'destroy']);
+            Route::patch  ('/reorder',       [SugarLevelController::class, 'reorder']);
         });
 
         // ── POS DEVICE MANAGEMENT ─────────────────────────────────────────────
