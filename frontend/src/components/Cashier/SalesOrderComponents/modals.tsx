@@ -147,17 +147,19 @@ export const CartItemEditModal = ({
   onRemove,
   onClose,
 }: CartItemEditModalProps) => {
-  const discountOptions = [
-    { id: null,  label: 'No Discount',  type: 'none'    as const, value: 0,  badge: null },
-    ...discounts.map(d => ({
+const discountOptions = [
+  { id: null, label: 'No Discount', type: 'none' as const, value: 0, badge: null },
+  ...discounts
+    .filter(d => d.type === 'Item-Percent')
+    .map(d => ({
       id:    d.id,
       label: d.name,
-      type:  d.type.includes('Percent') ? 'percent' as const : 'fixed' as const,
+      type:  'percent' as const,
       value: Number(d.amount),
-      badge: d.type.includes('Percent') ? `${d.amount}% OFF` : `₱${d.amount} OFF`,
+      badge: `${d.amount}% OFF`,
     })),
   ];
-
+  
   return (
     <div className="fixed inset-0 z-150 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white w-full max-w-md rounded-[0.625rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -1266,7 +1268,14 @@ export const ConfirmOrderModal = ({
                           <input
                             type="text"
                             value={referenceNumber}
-                            onChange={e => onReferenceNumberChange(e.target.value)}
+                            onChange={e => {
+                            const value = e.target.value;
+                            // ✅ allow only numbers and max 13 digits
+                            if (/^\d{0,13}$/.test(value)) {
+                            onReferenceNumberChange(value);
+                            }
+                            }}
+                            maxLength={13}
                             className="w-full bg-zinc-50 border-2 border-zinc-300 rounded-[0.625rem] py-4 px-5 text-xl font-black outline-none focus:border-[#3b2063] focus:bg-white transition-colors"
                             placeholder={paymentMethod === 'grab' ? 'GRAB-XXXXXX' : paymentMethod === 'food_panda' ? 'FP-XXXXXX' : 'REF#'}
                           />
@@ -1328,7 +1337,7 @@ export const ConfirmOrderModal = ({
                           ${!selectedDiscount ? 'bg-red-500 text-white border-red-500 shadow-md' : 'bg-zinc-50 text-red-500 border-red-100 hover:border-red-300'}`}>
                         Remove Promo
                       </button>
-                      {discounts.filter(d => !['SENIOR', 'PWD', 'DIPLOMAT'].some(x => d.name.toUpperCase().includes(x))).map(d => (
+                     {discounts.filter(d => d.type === 'Global-Percent' && !['SENIOR', 'PWD', 'DIPLOMAT'].some(x => d.name.toUpperCase().includes(x))).map(d => (
                         <button key={d.id} onClick={() => onDiscountChange(d)}
                           className={`p-3 rounded-[0.625rem] text-sm font-black uppercase transition-all border-2 flex items-center justify-center text-center
                             ${selectedDiscount?.id === d.id ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-emerald-300'}`}>

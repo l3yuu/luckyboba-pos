@@ -15,13 +15,14 @@ public function check(Request $request)
 {
     $request->validate([
         'device_name' => 'required|string',
-        'user_id'     => 'nullable|exists:users,id',  // ← pass from frontend on login
+        'user_id'     => 'nullable|exists:users,id',
     ]);
 
     $device = PosDevice::where('device_name', $request->device_name)
         ->with(['branch', 'user'])
         ->first();
 
+    // Case 1: Device not in DB at all — branch has no registered devices
     if (! $device) {
         return response()->json([
             'success'    => false,
@@ -30,6 +31,7 @@ public function check(Request $request)
         ], 403);
     }
 
+    // Case 2: Device is deactivated
     if ($device->status === 'INACTIVE') {
         return response()->json([
             'success'    => false,
@@ -38,13 +40,11 @@ public function check(Request $request)
         ], 403);
     }
 
-    // ── Cashier-device pairing enforcement ───────────────────────────────
-    // Only applies when a user_id is provided and the logging-in user is a cashier.
     if ($request->filled('user_id')) {
         $user = User::find($request->user_id);
 
         if ($user && $user->role === 'cashier') {
-            // Device must belong to the same branch as the cashier
+            // Case 3: Device belongs to a different branch
             if ($device->branch_id !== null && $user->branch_id !== null
                 && $device->branch_id !== $user->branch_id) {
                 return response()->json([
@@ -53,9 +53,36 @@ public function check(Request $request)
                     'message'    => 'This device belongs to a different branch. Access denied.',
                 ], 403);
             }
+
+            // Case 4: Cashier has a different device assigned to them
+            $assignedDevice = PosDevice::where('user_id', $user->id)->first();
+            if ($assignedDevice && $assignedDevice->device_name !== $request->device_name) {
+                return response()->json([
+                    'success'    => false,
+                    'registered' => false,
+                    'message'    => 'This is not your assigned device. Please use your designated terminal.',
+                ], 403);
+            }
+
+            // Case 5: Device exists in branch but no cashier assigned to it yet
+            if (! $device->user_id) {
+                return response()->json([
+                    'success'    => false,
+                    'registered' => false,
+                    'message'    => 'This device has no cashier assigned. Contact your administrator.',
+                ], 403);
+            }
+
+            // Case 6: Device is assigned to a different cashier
+            if ($device->user_id !== $user->id) {
+                return response()->json([
+                    'success'    => false,
+                    'registered' => false,
+                    'message'    => 'This device is assigned to another cashier.',
+                ], 403);
+            }
         }
     }
-    // ─────────────────────────────────────────────────────────────────────
 
     $device->update(['last_seen' => now()]);
 
@@ -69,17 +96,26 @@ public function check(Request $request)
     ]);
 }
     // ── SUPERADMIN — list all devices ─────────────────────────────────────────
-    public function index()
+    public function index(Request $request)
     {
-        $devices = PosDevice::with(['branch', 'user'])  // ← load user too
-            ->orderBy('branch_id')
-            ->orderBy('pos_number')
-            ->get();
+        try {
+            $query = PosDevice::with(['user:id,name,branch_id', 'branch:id,name'])
+                ->orderBy('created_at', 'desc');
 
-        return response()->json([
-            'success' => true,
-            'devices' => $devices,
-        ]);
+            // Filter by branch_id if provided (for cashier/branch-level views)
+            if ($request->filled('branch_id')) {
+                $query->where('branch_id', $request->branch_id);
+            }
+
+            $devices = $query->get();
+
+            return response()->json([
+                'success' => true,
+                'data'    => $devices,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
     // ── SUPERADMIN — register device ─────────────────────────────────────────

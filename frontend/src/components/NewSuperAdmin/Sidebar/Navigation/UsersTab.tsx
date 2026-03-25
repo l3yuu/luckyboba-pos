@@ -143,9 +143,9 @@ const Toast: React.FC<ToastProps> = ({ message, type = "success", onDone }) => {
   };
 
   return createPortal(
-    <div className="fixed bottom-6 right-6 z-[99999]" style={{ animation: "slideUpFade 0.25s ease forwards" }}>
+    <div className="fixed bottom-6 right-6 z-99999" style={{ animation: "slideUpFade 0.25s ease forwards" }}>
       <style>{`@keyframes slideUpFade { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }`}</style>
-      <div className="relative flex items-center gap-3 bg-[#1a0f2e] text-white pl-4 pr-3 py-3 rounded-xl shadow-2xl border border-white/10 min-w-[220px] max-w-xs overflow-hidden">
+      <div className="relative flex items-center gap-3 bg-[#1a0f2e] text-white pl-4 pr-3 py-3 rounded-xl shadow-2xl border border-white/10 min-w-55 max-w-xs overflow-hidden">
         <div className={`absolute left-0 top-0 bottom-0 w-1 ${s.bar} rounded-l-xl`} />
         <div className={`w-5 h-5 ${s.iconBg} rounded-full flex items-center justify-center shrink-0 ${s.icon}`}>{icons[type]}</div>
         <p className="text-xs font-semibold flex-1 leading-snug">{message}</p>
@@ -871,9 +871,13 @@ const AssignDeviceModal: React.FC<{
     (async () => {
       setLoading(true);
       try {
-        const res  = await fetch("/api/pos-devices", { headers: authHeaders() });
+        const branchId = user.branch_id;
+        const url = branchId
+          ? `/api/pos-devices?branch_id=${branchId}`
+          : '/api/pos-devices';
+        const res  = await fetch(url, { headers: authHeaders() });
         const data = await res.json();
-        const list: PosDevice[] = data?.devices ?? data ?? [];
+        const list: PosDevice[] = data?.devices ?? data?.data ?? data ?? [];
         setDevices(list.filter(d => d.status === "ACTIVE"));
         const assigned = list.find(d => d.user_id === user.id);
         if (assigned) setSelectedId(String(assigned.id));

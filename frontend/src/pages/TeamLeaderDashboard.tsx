@@ -4,14 +4,15 @@ import { useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 import logo from '../assets/logo.png';
 import {
-  Users, ShoppingBag, AlertTriangle, Clock, TrendingUp,
+  Users, ShoppingBag, AlertTriangle, Clock, TrendingUp, TrendingDown,
   CheckCircle2, XCircle, Package, Zap, ChevronRight,
   ArrowUpRight, ArrowDownRight, RefreshCw, Activity,
   Coffee, Eye, Bell, Menu, MapPin, LogOut,
+  DollarSign, AlertCircle, Wallet,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer,
+  Tooltip, ResponsiveContainer, BarChart, Bar, Cell,
 } from 'recharts';
 import TeamLeaderSidebar from '../components/TeamLeader/TeamLeaderSidebar';
 
@@ -48,6 +49,22 @@ const STYLES = `
   .tl-shift-ring { width: 56px; height: 56px; border-radius: 50%; background: conic-gradient(#3b2063 0%, #3b2063 var(--pct), #f0edf8 var(--pct), #f0edf8 100%); display: flex; align-items: center; justify-content: center; position: relative; }
   .tl-shift-ring::before { content: ''; position: absolute; width: 40px; height: 40px; border-radius: 50%; background: #fff; }
   .tl-shift-ring-text { position: relative; z-index: 1; font-size: 0.6rem; font-weight: 800; color: #3b2063; letter-spacing: -0.02em; }
+  .bm-label { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #3f3f46; }
+  .bm-sub   { font-size: 0.65rem; font-weight: 400; color: #71717a; }
+  .bm-value { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.035em; line-height: 1; }
+  .bm-tab { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; padding: 6px 13px; border-radius: 0.4rem; border: none; cursor: pointer; transition: background 0.12s, color 0.12s; }
+  .bm-tab-on  { background: #1a0f2e; color: #fff; }
+  .bm-tab-off { background: transparent; color: #a1a1aa; }
+  .bm-tab-off:hover { background: #ede8ff; color: #3b2063; }
+  .bm-pill { font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 100px; padding: 3px 9px; border: 1px solid #e4e4e7; background: #f4f4f5; color: #71717a; }
+  .bm-live  { display: inline-flex; align-items: center; gap: 5px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 100px; padding: 4px 10px; }
+  .bm-live-dot  { width: 5px; height: 5px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 5px rgba(34,197,94,0.6); animation: bm-pulse 2s infinite; }
+  .bm-live-text { font-size: 0.55rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #16a34a; }
+  @keyframes bm-pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  .section-divider { display: flex; align-items: center; gap: 12px; margin: 8px 0 16px; }
+  .section-divider-line { flex: 1; height: 1px; background: linear-gradient(to right, #ede8f5, transparent); }
+  .section-divider-label { font-size: 0.58rem; font-weight: 800; letter-spacing: 0.22em; text-transform: uppercase; color: #a78bfa; display: flex; align-items: center; gap: 6px; }
+  .readonly-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 0.52rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; background: #f5f3ff; color: #7c3aed; border: 1px solid #ddd6fe; border-radius: 100px; padding: 2px 8px; }
 `;
 
 // ─── Confirm Modal ────────────────────────────────────────────────────────────
@@ -55,7 +72,6 @@ interface ConfirmModalProps {
   show: boolean; icon?: React.ReactNode; title: string; desc?: string;
   action: () => void; btnText?: string; cancel: () => void; danger?: boolean;
 }
-
 const ConfirmModal: React.FC<ConfirmModalProps> = ({ show, icon, title, desc, action, btnText = 'Confirm', cancel, danger = false }) => {
   if (!show) return null;
   return (
@@ -87,27 +103,91 @@ interface PendingVoid    { id: number; invoice: string; amount: number; cashier:
 interface HourlyStat     { hour: number; total: number; count: number; }
 interface AuthUser       { id: number; name: string; email: string; role: string; branch_id: number | null; branch?: { id: number; name: string }; }
 
+// BM Analytics types
+interface TopSellerItem { product_name: string; total_qty: number; }
+interface BMStatsData {
+  cash_in_today:       number;
+  cash_out_today:      number;
+  total_sales_today:   number;
+  total_orders_today:  number;
+  voided_sales_today:  number;
+  top_seller_today:    TopSellerItem[];
+  top_seller_all_time: TopSellerItem[];
+  spark_cash_in?:      number[];
+  spark_cash_out?:     number[];
+  spark_sales?:        number[];
+  spark_voided?:       number[];
+  spark_overall?:      number[];
+  cash_in_yesterday?:      number;
+  cash_out_yesterday?:     number;
+  sales_yesterday?:        number;
+  voided_yesterday?:       number;
+  overall_cash_yesterday?: number;
+  overall_cash_today?:     number;
+}
+interface SalesAnalyticsResponse {
+  weekly:    { date: string; day: string; value: number }[];
+  monthly:   { date: string; day: string; value: number }[];
+  quarterly: { date: string; day: string; value: number }[];
+  stats:     BMStatsData;
+}
+
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-const fmt = (v?: number) => `₱${Number(v ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
+const fmt    = (v?: number) => `₱${Number(v ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
+const fmtS   = (v?: number | string) => { const n = Number(v ?? 0); if (n >= 1_000_000) return `₱${(n/1_000_000).toFixed(1)}M`; if (n >= 1_000) return `₱${(n/1_000).toFixed(1)}K`; return `₱${n.toFixed(0)}`; };
+const fmtTip = (v: number): string => { if (v >= 1_000_000) return `₱${(v/1_000_000).toFixed(2)}M`; if (v >= 1_000) return `₱${(v/1_000).toFixed(1)}K`; return `₱${v.toFixed(2)}`; };
 const HOUR_LABELS = ['12a','1a','2a','3a','4a','5a','6a','7a','8a','9a','10a','11a','12p','1p','2p','3p','4p','5p','6p','7p','8p','9p','10p','11p'];
+const ALL_SPARK_LABELS = ['6d ago','5d ago','4d ago','3d ago','2d ago','Yesterday','Today'];
+const getSparkLabels = (len: number) => ALL_SPARK_LABELS.slice(ALL_SPARK_LABELS.length - len);
+
+// ─── Mini sparkline bar (from BM) ────────────────────────────────────────────
+const MiniBar = ({ values, color, formatter }: { values: number[]; color: string; formatter: (v: number) => string; }) => {
+  const max = Math.max(...values, 1);
+  const labels = getSparkLabels(values.length);
+  const [hovered, setHovered] = useState<number | null>(null);
+  const [pinned,  setPinned]  = useState<number | null>(null);
+  const activeTip = hovered ?? pinned;
+  return (
+    <div style={{ display:'flex', alignItems:'flex-end', gap:'2px', height:'2rem', position:'relative' }}>
+      {values.map((v, i) => {
+        const isActive = activeTip === i; const isPinned = pinned === i; const isZero = v === 0;
+        const barH = isZero ? 0 : Math.max((v / max) * 100, 8);
+        return (
+          <div key={i} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'flex-end', height:'100%', position:'relative', cursor:'pointer' }}
+            onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)}
+            onClick={() => setPinned(isPinned ? null : i)}>
+            {isActive && (
+              <div style={{ position:'absolute', bottom:'calc(100% + 7px)', left:'50%', transform:'translateX(-50%)', zIndex:30, background:'#1a0f2e', color:'#fff', borderRadius:'0.45rem', padding:'5px 10px', whiteSpace:'nowrap', pointerEvents:'none', boxShadow:'0 4px 16px rgba(0,0,0,0.2)', minWidth:'70px', textAlign:'center' }}>
+                <p style={{ fontSize:'0.5rem', fontWeight:700, letterSpacing:'0.12em', textTransform:'uppercase', opacity:0.55, margin:0, marginBottom:2 }}>{labels[i] ?? `Day ${i+1}`}</p>
+                <p style={{ fontSize:'0.76rem', fontWeight:800, margin:0, letterSpacing:'-0.015em' }}>{formatter(v)}</p>
+                <div style={{ position:'absolute', top:'100%', left:'50%', transform:'translateX(-50%)', width:0, height:0, borderLeft:'5px solid transparent', borderRight:'5px solid transparent', borderTop:'5px solid #1a0f2e' }} />
+              </div>
+            )}
+            {isZero
+              ? <div style={{ width:'100%', height:'2px', background:color, borderRadius:'1px', opacity:0.12 }} />
+              : <div style={{ width:'100%', height:`${barH}%`, background: isPinned ? '#1a0f2e' : color, borderRadius:'2px', opacity: isActive ? 1 : 0.3 + (i / values.length) * 0.5, transform: isActive ? 'scaleX(1.2)' : 'scaleX(1)', transition:'opacity 0.08s, transform 0.08s, background 0.08s', outline: isPinned ? `2px solid ${color}` : 'none', outlineOffset:'1px' }} />
+            }
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 const StatusDot = ({ status }: { status: 'active' | 'idle' | 'break' }) => (
-  <span className={`${status === 'active' ? 'tl-pulse' : status === 'idle' ? 'tl-pulse tl-pulse-amber' : 'tl-pulse tl-pulse-red'}`} style={{ display: 'inline-block', flexShrink: 0 }} />
+  <span className={`${status === 'active' ? 'tl-pulse' : status === 'idle' ? 'tl-pulse tl-pulse-amber' : 'tl-pulse tl-pulse-red'}`} style={{ display:'inline-block', flexShrink:0 }} />
 );
-
 const ShiftRing = ({ pct }: { pct: number }) => (
   <div className="tl-shift-ring" style={{ '--pct': `${Math.min(100, Math.max(0, pct))}%` } as React.CSSProperties}>
     <span className="tl-shift-ring-text">{Math.round(pct)}%</span>
   </div>
 );
-
 const VelocityBars = ({ data }: { data: HourlyStat[] }) => {
-  const now = new Date().getHours();
-  const max = Math.max(...data.map(d => d.count), 1);
+  const now = new Date().getHours(); const max = Math.max(...data.map(d => d.count), 1);
   const [tip, setTip] = useState<number | null>(null);
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position:'relative' }}>
       {tip !== null && (
         <div style={{ position:'absolute', bottom:'calc(100% + 8px)', left:`${(tip / 24) * 100}%`, transform:'translateX(-50%)', background:'#0f0a1a', color:'#fff', borderRadius:'0.5rem', padding:'5px 10px', fontSize:'0.65rem', fontWeight:700, whiteSpace:'nowrap', zIndex:10, pointerEvents:'none' }}>
           {HOUR_LABELS[data[tip]?.hour ?? tip]}: {data[tip]?.count ?? 0} orders
@@ -128,8 +208,286 @@ const VelocityBars = ({ data }: { data: HourlyStat[] }) => {
   );
 };
 
+// ─── Section Divider ─────────────────────────────────────────────────────────
+const SectionDivider = ({ label, icon }: { label: string; icon?: React.ReactNode }) => (
+  <div className="section-divider">
+    <div className="section-divider-line" />
+    <div className="section-divider-label">{icon}{label}</div>
+    <div className="section-divider-line" style={{ background:'linear-gradient(to left, #ede8f5, transparent)' }} />
+  </div>
+);
+
+// ─── BM Analytics Panel (read-only view for TL) ───────────────────────────────
+const BMAnalyticsView = ({ branchId }: { branchId: number | null }) => {
+  const CACHE_KEY = `lucky_boba_analytics_v4_branch_${branchId ?? 'all'}`;
+  const [analytics,  setAnalytics]  = useState<SalesAnalyticsResponse | null>(() => {
+    try { const c = localStorage.getItem(CACHE_KEY); return c ? JSON.parse(c) : null; } catch { return null; }
+  });
+  const [loading,    setLoading]    = useState(!analytics);
+  const [timeFilter, setTimeFilter] = useState('7days');
+
+  useEffect(() => {
+    setLoading(true);
+    (async () => {
+      try {
+        const res = await api.get<SalesAnalyticsResponse>('/sales-analytics');
+        setAnalytics(res.data);
+        localStorage.setItem(CACHE_KEY, JSON.stringify(res.data));
+      } catch (e) { console.error('analytics fetch', e); }
+      finally { setLoading(false); }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [branchId]);
+
+  if (loading && !analytics) return (
+    <div style={{ padding:'24px 0', display:'flex', justifyContent:'center' }}>
+      <div className="w-6 h-6 border-2 border-[#3b2063] border-t-transparent rounded-full tl-spin" />
+    </div>
+  );
+
+  const sd = analytics?.stats;
+
+  const toSpark = (apiSpark: number[] | undefined, todayVal: number): number[] => {
+    if (!apiSpark || apiSpark.length === 0) return [todayVal];
+    const arr = [...apiSpark]; arr[arr.length - 1] = todayVal; return arr;
+  };
+  const sparklines = {
+    cashIn:  toSpark(sd?.spark_cash_in,  Number(sd?.cash_in_today     ?? 0)),
+    cashOut: toSpark(sd?.spark_cash_out, Number(sd?.cash_out_today    ?? 0)),
+    sales:   toSpark(sd?.spark_sales,    Number(sd?.total_sales_today  ?? 0)),
+    voided:  toSpark(sd?.spark_voided,   Number(sd?.voided_sales_today ?? 0)),
+    overall: toSpark(sd?.spark_overall,  Number(sd?.overall_cash_today ?? 0)),
+  };
+
+  const computeTrend = (today: number, yesterday: number) => {
+    if (yesterday === 0 && today === 0) return { label:'—', up: null };
+    if (yesterday === 0) return { label:'New', up: true };
+    const pct = ((today - yesterday) / yesterday) * 100;
+    return { label:`${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`, up: pct >= 0 };
+  };
+  const trendCashIn  = computeTrend(Number(sd?.cash_in_today      ?? 0), Number(sd?.cash_in_yesterday      ?? 0));
+  const trendCashOut = computeTrend(Number(sd?.cash_out_today      ?? 0), Number(sd?.cash_out_yesterday     ?? 0));
+  const trendSales   = computeTrend(Number(sd?.total_sales_today   ?? 0), Number(sd?.sales_yesterday        ?? 0));
+  const trendVoided  = computeTrend(Number(sd?.voided_sales_today  ?? 0), Number(sd?.voided_yesterday       ?? 0));
+  const trendOverall = computeTrend(Number(sd?.overall_cash_today  ?? 0), Number(sd?.overall_cash_yesterday ?? 0));
+  const overallCash  = Number(sd?.cash_in_today ?? 0) + Number(sd?.total_sales_today ?? 0) - Number(sd?.cash_out_today ?? 0);
+
+  const statCards = [
+    { label:'Cash In',      sub:'Opening float today',    value:fmt(sd?.cash_in_today),      compact:fmtS(sd?.cash_in_today),      icon:<TrendingUp   size={14} strokeWidth={2.5}/>, iconBg:'#dcfce7', iconColor:'#16a34a', valueColor:'#1a0f2e', trend:trendCashIn.label,  trendUp:trendCashIn.up  ?? true,  sparkColor:'#16a34a', spark:sparklines.cashIn  },
+    { label:'Cash Out',     sub:'Total disbursed today',  value:fmt(sd?.cash_out_today),     compact:fmtS(sd?.cash_out_today),     icon:<TrendingDown size={14} strokeWidth={2.5}/>, iconBg:'#fee2e2', iconColor:'#dc2626', valueColor:'#1a0f2e', trend:trendCashOut.label, trendUp:trendCashOut.up ?? false, sparkColor:'#dc2626', spark:sparklines.cashOut },
+    { label:'Total Sales',  sub:'Gross revenue today',    value:fmt(sd?.total_sales_today),  compact:fmtS(sd?.total_sales_today),  icon:<DollarSign   size={14} strokeWidth={2.5}/>, iconBg:'#ede9fe', iconColor:'#7c3aed', valueColor:'#3b2063', trend:trendSales.label,   trendUp:trendSales.up   ?? true,  sparkColor:'#7c3aed', spark:sparklines.sales   },
+    { label:'Voided Sales', sub:'Cancelled transactions', value:fmt(sd?.voided_sales_today), compact:fmtS(sd?.voided_sales_today), icon:<AlertCircle  size={14} strokeWidth={2.5}/>, iconBg:'#fef9c3', iconColor:'#ca8a04', valueColor:'#1a0f2e', trend:trendVoided.label,  trendUp:trendVoided.up  ?? false, sparkColor:'#ca8a04', spark:sparklines.voided  },
+    { label:'Overall Cash', sub:'Cash In + Sales − Drop', value:fmt(overallCash),            compact:fmtS(overallCash),            icon:<Wallet       size={14} strokeWidth={2.5}/>, iconBg:'#e0f2fe', iconColor:'#0284c7', valueColor:'#0c4a6e', trend:trendOverall.label, trendUp:trendOverall.up ?? true,  sparkColor:'#0284c7', spark:sparklines.overall },
+  ];
+
+  const quickStats = [
+    { label:'Total Orders',    value:String(Number(sd?.total_orders_today ?? 0)),                                                                                    icon:<ShoppingBag size={12}/>, color:'#3b82f6' },
+    { label:'Avg Order Value', value:fmt(Number(sd?.total_sales_today ?? 0) / Math.max(Number(sd?.total_orders_today ?? 1), 1)),                                     icon:<Activity    size={12}/>, color:'#8b5cf6' },
+    { label:'Net Cash Flow',   value:fmt(Number(sd?.cash_in_today ?? 0) - Number(sd?.cash_out_today ?? 0)),                                                          icon:<ArrowUpRight size={12}/>, color:'#10b981' },
+    { label:'Void Rate',       value:`${((Number(sd?.voided_sales_today ?? 0) / Math.max(Number(sd?.total_sales_today ?? 1), 1)) * 100).toFixed(1)}%`,               icon:<AlertCircle size={12}/>, color:'#f59e0b' },
+  ];
+
+  const chartData = (() => {
+    const raw = timeFilter === '30days' ? (analytics?.monthly ?? []) : timeFilter === '3months' ? (analytics?.quarterly ?? []) : (analytics?.weekly ?? []);
+    return raw.map(d => {
+      const o = new Date(d.date);
+      const label = timeFilter === '3months'
+        ? (isNaN(o.getTime()) ? d.day : `Wk ${o.toLocaleDateString('en-US', { month:'short', day:'numeric' })}`)
+        : (isNaN(o.getTime()) ? d.date : o.toLocaleDateString('en-US', { month:'short', day:'numeric' }));
+      return { name: label, value: d.value };
+    });
+  })();
+
+  const totalRevenue = chartData.reduce((a, b) => a + b.value, 0);
+  const avgRevenue   = chartData.length ? totalRevenue / chartData.length : 0;
+  const maxDay       = chartData.reduce((a, b) => b.value > a.value ? b : a, chartData[0] || { name:'—', value:0 });
+  const maxVal       = Math.max(...chartData.map(d => d.value), 1);
+  const stepSize     = timeFilter === '3months' ? 10_000 : 2_000;
+  const niceMax      = Math.ceil(maxVal / stepSize) * stepSize;
+  const yTicks       = Array.from({ length: Math.min(Math.ceil(niceMax / stepSize) + 1, 7) }, (_, i) => i * stepSize);
+  const yFmt = (v: number) => { if (v === 0) return '₱0'; if (v >= 1_000_000) return `₱${(v/1_000_000).toFixed(1)}M`; if (v >= 1_000) return `₱${(v/1_000).toFixed(0)}k`; return `₱${v}`; };
+
+  const sellersToday   = sd?.top_seller_today    ?? [];
+  const sellersAllTime = sd?.top_seller_all_time ?? [];
+  const allTimeMax = Math.max(...sellersAllTime.map(x => x.total_qty), 1);
+  const todayMax   = Math.max(...sellersToday.map(x => x.total_qty), 1);
+  const purples    = ['#3b2063','#6d28d9','#7c3aed','#a78bfa','#c4b5fd','#ede9fe'];
+
+  interface ChartTipProps { active?: boolean; payload?: { value: number; payload: { name: string } }[]; }
+  const ChartTip = ({ active, payload }: ChartTipProps) => {
+    if (!active || !payload?.length) return null;
+    const val = payload[0].value; const diff = val - avgRevenue; const pct = avgRevenue ? ((diff / avgRevenue) * 100).toFixed(1) : '0';
+    return (
+      <div style={{ background:'#fff', border:'1.5px solid #ebebed', borderRadius:'0.625rem', padding:'10px 14px', boxShadow:'0 4px 20px rgba(0,0,0,0.07)' }}>
+        <p className="bm-label" style={{ color:'#a1a1aa', marginBottom:4 }}>{payload[0].payload.name}</p>
+        <p style={{ fontSize:'0.95rem', fontWeight:800, color:'#1a0f2e', letterSpacing:'-0.025em' }}>₱ {val.toLocaleString()}</p>
+        <p style={{ fontSize:'0.6rem', fontWeight:700, marginTop:4, color: diff >= 0 ? '#16a34a' : '#be2525' }}>{diff >= 0 ? '▲' : '▼'} {Math.abs(Number(pct))}% vs avg</p>
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:16 }}>
+
+      {/* ── STAT CARDS ── */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(160px, 1fr))', gap:12 }}>
+        {statCards.map((s, i) => (
+          <div key={i} className="tl-card tl-animate p-5 flex flex-col gap-3" style={{ animationDelay:`${i * 0.04}s` }}>
+            <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
+              <div>
+                <p className="bm-label">{s.label}</p>
+                <p className="bm-sub" style={{ marginTop:2 }}>{s.sub}</p>
+              </div>
+              <div style={{ width:32, height:32, borderRadius:'0.625rem', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, background:s.iconBg, color:s.iconColor }}>{s.icon}</div>
+            </div>
+            <div>
+              <p className="bm-value" style={{ color:s.valueColor }}>{s.compact}</p>
+              <p className="bm-sub" style={{ marginTop:4 }}>{s.value}</p>
+            </div>
+            <MiniBar values={s.spark} color={s.sparkColor} formatter={fmtTip} />
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', paddingTop:8, borderTop:'1px solid #f4f4f5' }}>
+              <span className="bm-sub">vs yesterday</span>
+              {s.trend === '—'
+                ? <span style={{ fontSize:'0.62rem', fontWeight:700, color:'#a1a1aa' }}>—</span>
+                : <span style={{ fontSize:'0.62rem', fontWeight:700, display:'flex', alignItems:'center', gap:3, color: s.trendUp ? '#16a34a' : '#be2525' }}>
+                    {s.trendUp ? <ArrowUpRight size={10}/> : <ArrowDownRight size={10}/>}{s.trend}
+                  </span>
+              }
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── QUICK METRICS ── */}
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(140px, 1fr))', gap:10 }}>
+        {quickStats.map((o, i) => (
+          <div key={i} className="tl-card" style={{ padding:'12px 16px', display:'flex', alignItems:'center', gap:12 }}>
+            <div style={{ width:28, height:28, borderRadius:'0.5rem', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0, background:o.color+'18', color:o.color }}>{o.icon}</div>
+            <div style={{ minWidth:0 }}>
+              <p className="bm-label" style={{ color:'#a1a1aa' }}>{o.label}</p>
+              <p style={{ fontSize:'0.92rem', fontWeight:800, color:'#1a0f2e', letterSpacing:'-0.025em', lineHeight:1.25 }}>{o.value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── CHART + TODAY TOP SELLERS ── */}
+      <div style={{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:12 }}>
+        <div className="tl-card p-5">
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:12, marginBottom:16, flexWrap:'wrap' }}>
+            <div>
+              <h3 style={{ fontSize:'0.88rem', fontWeight:800, color:'#0f0a1a', margin:0 }}>Revenue Overview</h3>
+              <div style={{ display:'flex', alignItems:'center', gap:16, marginTop:6 }}>
+                {([['Total', `₱${totalRevenue.toLocaleString()}`], ['Daily Avg', `₱${avgRevenue.toFixed(0)}`], ['Peak', maxDay?.name]] as [string, string][]).map(([lbl, val], j) => (
+                  <div key={j}>
+                    <span className="bm-label" style={{ color:'#a1a1aa' }}>{lbl}</span>
+                    <span style={{ fontSize:'0.78rem', fontWeight:700, color: j===2 ? '#7c3aed' : '#1a0f2e', marginLeft:6, letterSpacing:'-0.01em' }}>{val}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div style={{ display:'flex', gap:2, padding:4, background:'#f4f4f5', border:'1px solid #ede8f5', borderRadius:'0.5rem' }}>
+              {([{ key:'7days', label:'7D' }, { key:'30days', label:'30D' }, { key:'3months', label:'3M' }] as const).map(({ key, label }) => (
+                <button key={key} onClick={() => setTimeFilter(key)} className={`bm-tab ${timeFilter === key ? 'bm-tab-on' : 'bm-tab-off'}`}>{label}</button>
+              ))}
+            </div>
+          </div>
+          <div style={{ height:200 }}>
+            {chartData.length === 0
+              ? <div style={{ height:'100%', display:'flex', alignItems:'center', justifyContent:'center' }}><p className="bm-label" style={{ color:'#d4d4d8' }}>No data for this period</p></div>
+              : <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData} margin={{ top:5, right:5, left:-20, bottom:0 }}>
+                    <defs><linearGradient id="tlBmGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#7c3aed" stopOpacity={0.22}/><stop offset="95%" stopColor="#7c3aed" stopOpacity={0}/></linearGradient></defs>
+                    <CartesianGrid vertical={false} stroke="#f4f4f5"/>
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} dy={8} minTickGap={20} tick={{ fontSize:9, fill:'#a1a1aa', fontWeight:700 }}/>
+                    <YAxis axisLine={false} tickLine={false} ticks={yTicks} domain={[0, niceMax]} tick={{ fontSize:9, fill:'#a1a1aa', fontWeight:600 }} tickFormatter={yFmt}/>
+                    <Tooltip content={<ChartTip/>} cursor={{ stroke:'#ddd6f7', strokeWidth:1, strokeDasharray:'3 3' }}/>
+                    <Area type="monotone" dataKey="value" stroke="#3b2063" strokeWidth={2} fillOpacity={1} fill="url(#tlBmGrad)" activeDot={{ r:4, fill:'#3b2063', stroke:'#fff', strokeWidth:2 }}/>
+                  </AreaChart>
+                </ResponsiveContainer>
+            }
+          </div>
+        </div>
+
+        <div className="tl-card p-5" style={{ display:'flex', flexDirection:'column' }}>
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
+            <div><h3 style={{ fontSize:'0.88rem', fontWeight:800, color:'#0f0a1a', margin:0 }}>Top Sellers</h3><p className="bm-label" style={{ marginTop:2, color:'#a1a1aa' }}>Today's performance</p></div>
+            <div className="bm-live"><div className="bm-live-dot"/><span className="bm-live-text">Live</span></div>
+          </div>
+          <div style={{ flex:1, display:'flex', flexDirection:'column', gap:10 }}>
+            {sellersToday.length > 0 ? sellersToday.slice(0,6).map((item, i) => (
+              <div key={i}>
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4 }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <span style={{ width:20, height:20, borderRadius:'0.3rem', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.55rem', fontWeight:800, background: i===0?'#3b2063':'#f4f4f5', color: i===0?'#fff':'#71717a', flexShrink:0 }}>{i+1}</span>
+                    <span style={{ fontSize:'0.75rem', fontWeight:600, color:'#0f0a1a', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:'90px' }}>{item.product_name}</span>
+                  </div>
+                  <span style={{ fontSize:'0.68rem', fontWeight:700, color:'#71717a', flexShrink:0, marginLeft:6 }}>{item.total_qty}</span>
+                </div>
+                <div className="tl-progress-bar"><div className="tl-progress-fill" style={{ width:`${(item.total_qty/todayMax)*100}%`, background: purples[i] || '#ede9fe' }}/></div>
+              </div>
+            )) : <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center' }}><p className="bm-label" style={{ color:'#d4d4d8' }}>No sales yet today</p></div>}
+          </div>
+          {sellersToday.length > 0 && (
+            <div style={{ marginTop:12, paddingTop:10, borderTop:'1px solid #f4f4f5' }}>
+              <p className="bm-label" style={{ color:'#a1a1aa' }}>Total sold: <span style={{ color:'#0f0a1a' }}>{sellersToday.slice(0,6).reduce((a,b) => a + Number(b.total_qty), 0)} items</span></p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── ALL-TIME + RANK ── */}
+      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+        <div className="tl-card p-5">
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
+            <div><h3 style={{ fontSize:'0.88rem', fontWeight:800, color:'#0f0a1a', margin:0 }}>All-Time Best Sellers</h3><p className="bm-label" style={{ marginTop:2, color:'#a1a1aa' }}>Cumulative rankings</p></div>
+            <span className="bm-pill">Overall</span>
+          </div>
+          <div style={{ height:180, minHeight:180 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={sellersAllTime.slice(0,6).map(x => ({ name:x.product_name.split(' ')[0], qty:x.total_qty }))} margin={{ top:0, right:0, left:-25, bottom:0 }}>
+                <CartesianGrid vertical={false} stroke="#f4f4f5"/>
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize:9, fill:'#a1a1aa', fontWeight:700 }}/>
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize:9, fill:'#a1a1aa', fontWeight:600 }}/>
+                <Tooltip formatter={v => [`${v} sold`, 'Qty']} contentStyle={{ borderRadius:'0.625rem', border:'1.5px solid #ede8f5', fontSize:11 }}/>
+                <Bar dataKey="qty" radius={[4,4,0,0]}>
+                  {sellersAllTime.slice(0,6).map((_, i) => (<Cell key={i} fill={i===0 ? '#3b2063' : `hsl(${265-i*15},${70-i*8}%,${60+i*5}%)`}/>))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="tl-card p-5">
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
+            <div><h3 style={{ fontSize:'0.88rem', fontWeight:800, color:'#0f0a1a', margin:0 }}>Rank Breakdown</h3><p className="bm-label" style={{ marginTop:2, color:'#a1a1aa' }}>Share of total volume</p></div>
+          </div>
+          <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+            {sellersAllTime.length > 0 ? sellersAllTime.slice(0,6).map((item, i) => {
+              const pct = Math.round((item.total_qty / allTimeMax) * 100);
+              return (
+                <div key={i} style={{ display:'flex', alignItems:'center', gap:10 }}>
+                  <span style={{ width:22, height:22, borderRadius:'0.35rem', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.52rem', fontWeight:800, flexShrink:0, background: i===0?'#3b2063':i===1?'#ede8ff':'#f4f4f5', color: i===0?'#fff':i===1?'#3b2063':'#71717a' }}>{i+1}</span>
+                  <div style={{ flex:1, minWidth:0 }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4 }}>
+                      <span style={{ fontSize:'0.75rem', fontWeight:600, color:'#0f0a1a', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{item.product_name}</span>
+                      <span style={{ fontSize:'0.68rem', fontWeight:700, color:'#71717a', flexShrink:0, marginLeft:8 }}>{item.total_qty.toLocaleString()}</span>
+                    </div>
+                    <div className="tl-progress-bar"><div className="tl-progress-fill" style={{ width:`${pct}%`, background: i===0?'#3b2063':'#d4d4d8' }}/></div>
+                  </div>
+                  <span className="bm-label" style={{ color:'#a1a1aa', flexShrink:0, width:28, textAlign:'right' }}>{pct}%</span>
+                </div>
+              );
+            }) : <div style={{ textAlign:'center', padding:'16px 0' }}><p className="bm-label" style={{ color:'#d4d4d8' }}>No records found</p></div>}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ─── Dashboard Panel ──────────────────────────────────────────────────────────
-const DashboardPanel = () => {
+const DashboardPanel = ({ branchId }: { branchId: number | null }) => {
   const [stats,        setStats]        = useState<DashStats | null>(null);
   const [cashiers,     setCashiers]     = useState<ActiveCashier[]>([]);
   const [lowStock,     setLowStock]     = useState<LowStockItem[]>([]);
@@ -227,6 +585,10 @@ const DashboardPanel = () => {
 
       <div style={{ padding:'0 20px', marginTop:-36, position:'relative', zIndex:2 }}>
 
+        {/* ══════════════════════════════════════════════════════════════════ */}
+        {/* SECTION A: FLOOR OPS (TL-native) */}
+        {/* ══════════════════════════════════════════════════════════════════ */}
+
         {/* ROW 1: KPIs */}
         <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(160px, 1fr))', gap:12, marginBottom:16 }}>
           <div className="tl-card tl-animate p-5">
@@ -237,7 +599,6 @@ const DashboardPanel = () => {
             <p className="tl-value">{totalOrders.toLocaleString()}</p>
             <p className="tl-label" style={{ color:'#a1a1aa', marginTop:8 }}>{ordersPerHour} / hr avg</p>
           </div>
-
           <div className="tl-card tl-animate p-5" style={{ animationDelay:'0.05s' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10 }}>
               <div className="tl-label">Sales Today</div>
@@ -246,7 +607,6 @@ const DashboardPanel = () => {
             <p className="tl-value" style={{ fontSize:'1.4rem' }}>{fmt(totalSales)}</p>
             <p className="tl-label" style={{ color:'#a1a1aa', marginTop:8 }}>{totalOrders > 0 ? `${fmt(totalSales / totalOrders)} avg/order` : '—'}</p>
           </div>
-
           <div className="tl-card tl-animate p-5" style={{ animationDelay:'0.1s' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10 }}>
               <div className="tl-label">Void Rate</div>
@@ -259,7 +619,6 @@ const DashboardPanel = () => {
               </span>
             </div>
           </div>
-
           <div className="tl-card tl-animate p-5" style={{ animationDelay:'0.15s' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10 }}>
               <div className="tl-label">Active Staff</div>
@@ -268,7 +627,6 @@ const DashboardPanel = () => {
             <p className="tl-value">{activeCnt}<span style={{ fontSize:'1rem', fontWeight:500, color:'#a1a1aa' }}>/{cashiers.length}</span></p>
             <p className="tl-label" style={{ color:'#a1a1aa', marginTop:8 }}>cashiers on floor</p>
           </div>
-
           <div className="tl-card tl-animate p-5" style={{ animationDelay:'0.2s' }}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10 }}>
               <div className="tl-label">Shift Progress</div>
@@ -293,7 +651,6 @@ const DashboardPanel = () => {
             </div>
             {hourly.length > 0 ? <VelocityBars data={hourly} /> : <div style={{ height:56, display:'flex', alignItems:'center', justifyContent:'center' }}><p className="tl-label" style={{ color:'#d4d4d8' }}>No hourly data yet</p></div>}
           </div>
-
           <div className="tl-card p-5">
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
               <div><h3 style={{ fontSize:'0.88rem', fontWeight:800, color:'#0f0a1a', margin:0 }}>Sales Trend</h3><p className="tl-label" style={{ marginTop:2 }}>Past 7 days</p></div>
@@ -345,7 +702,6 @@ const DashboardPanel = () => {
               ))}
             </div>
           </div>
-
           <div className="tl-card p-5">
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
               <h3 style={{ fontSize:'0.88rem', fontWeight:800, color:'#0f0a1a', margin:0 }}>Top Items</h3>
@@ -369,7 +725,6 @@ const DashboardPanel = () => {
                 </div>
             }
           </div>
-
           <div className="tl-card p-5">
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
               <h3 style={{ fontSize:'0.88rem', fontWeight:800, color:'#0f0a1a', margin:0 }}>Low Stock</h3>
@@ -396,7 +751,7 @@ const DashboardPanel = () => {
         </div>
 
         {/* ROW 4: VOID LOG */}
-        <div className="tl-card p-5">
+        <div className="tl-card p-5" style={{ marginBottom:16 }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
             <div><h3 style={{ fontSize:'0.88rem', fontWeight:800, color:'#0f0a1a', margin:0 }}>Void Log</h3><p className="tl-label" style={{ marginTop:2 }}>Today's cancelled transactions</p></div>
             {pendingVoids.length > 0 && <span className="tl-badge tl-badge-amber"><Zap size={9} /> {pendingVoids.length} voids</span>}
@@ -422,6 +777,33 @@ const DashboardPanel = () => {
           }
         </div>
 
+        {/* ══════════════════════════════════════════════════════════════════ */}
+        {/* SECTION B: BRANCH ANALYTICS (read-only mirror from BM) */}
+        {/* ══════════════════════════════════════════════════════════════════ */}
+
+        <SectionDivider
+          label="Branch Analytics · Read-only View"
+          icon={
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+              <path d="M5 1L5 9M1 5L9 5" stroke="#a78bfa" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+          }
+        />
+
+        {/* Read-only notice */}
+        <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:14, padding:'10px 14px', background:'#f5f3ff', borderRadius:'0.75rem', border:'1px solid #ddd6fe' }}>
+          <div style={{ width:28, height:28, borderRadius:'0.5rem', background:'#ede8ff', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+            <Eye size={13} color="#7c3aed" strokeWidth={2} />
+          </div>
+          <div>
+            <p style={{ fontSize:'0.72rem', fontWeight:700, color:'#3b2063', margin:0 }}>Branch Manager Analytics — Read-Only</p>
+            <p style={{ fontSize:'0.62rem', fontWeight:500, color:'#7c3aed', margin:0, marginTop:2 }}>This is a live mirror of the branch financial data. No actions can be taken from this view.</p>
+          </div>
+          <span className="readonly-badge" style={{ marginLeft:'auto', flexShrink:0 }}>View Only</span>
+        </div>
+
+        <BMAnalyticsView branchId={branchId} />
+
       </div>
     </div>
   );
@@ -445,7 +827,6 @@ const TeamLeaderDashboard = () => {
   }, []);
 
   const branchLabel = authUser?.branch?.name ?? null;
-
   const handleLogoutClick = () => setLogoutModalOpen(true);
   const confirmLogout = async () => {
     setIsLoggingOut(true);
@@ -461,8 +842,6 @@ const TeamLeaderDashboard = () => {
     <>
       <style>{STYLES}</style>
       <div className="tl-root flex flex-col md:flex-row h-screen bg-[#f5f4f8] overflow-hidden">
-
-        {/* Mobile top bar */}
         <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 shrink-0">
           <img src={logo} alt="Lucky Boba" className="h-8 w-auto object-contain" />
           <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-2 rounded-md text-[#3b2063] hover:bg-[#f5f3ff] transition-colors">
@@ -471,17 +850,12 @@ const TeamLeaderDashboard = () => {
         </div>
 
         <TeamLeaderSidebar
-          isSidebarOpen={isSidebarOpen}
-          setSidebarOpen={setSidebarOpen}
-          logo={logo}
-          currentTab={activeTab}
-          setCurrentTab={setActiveTab}
-          onLogout={handleLogoutClick}
-          isLoggingOut={isLoggingOut}
+          isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen}
+          logo={logo} currentTab={activeTab} setCurrentTab={setActiveTab}
+          onLogout={handleLogoutClick} isLoggingOut={isLoggingOut}
         />
 
         <main className="flex-1 flex flex-col overflow-hidden">
-          {/* Top bar */}
           <div className="shrink-0 flex items-center justify-between px-6 md:px-10 py-4 bg-white border-b border-gray-200 shadow-sm">
             <div className="flex items-center gap-3 min-w-0">
               <h1 style={{ fontSize:'0.95rem', fontWeight:800, color:'#1a0f2e', letterSpacing:'-0.03em', margin:0, flexShrink:0 }}>{pageTitle}</h1>
@@ -507,7 +881,10 @@ const TeamLeaderDashboard = () => {
           </div>
 
           <div className="flex-1 overflow-auto">
-            {activeTab === 'dashboard' ? <DashboardPanel /> : <DashboardPanel />}
+            {activeTab === 'dashboard'
+              ? <DashboardPanel branchId={authUser?.branch_id ?? null} />
+              : <DashboardPanel branchId={authUser?.branch_id ?? null} />
+            }
           </div>
         </main>
       </div>

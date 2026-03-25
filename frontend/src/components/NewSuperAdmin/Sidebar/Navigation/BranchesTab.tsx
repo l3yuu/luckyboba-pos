@@ -21,7 +21,14 @@ interface Branch {
   staff:          number;
   manager:        string;
   ownership_type: 'company' | 'franchise';
-  vat_type:       'vat' | 'non_vat';  // 👈 add
+  vat_type:       'vat' | 'non_vat';
+  // Receipt / BIR fields
+  brand:          string;
+  company_name:   string;
+  store_address:  string;
+  vat_reg_tin:    string;
+  min_number:     string;
+  serial_number:  string;
 }
 interface StatCardProps {
   icon: React.ReactNode; label: string; value: string | number;
@@ -44,7 +51,13 @@ interface RawBranch {
   location:        string;
   status:          string;
   ownership_type?: string;
-  vat_type?:       'vat' | 'non_vat';  // 👈 add
+  vat_type?:       'vat' | 'non_vat';
+  brand?:          string;
+  company_name?:   string;
+  store_address?:  string;
+  vat_reg_tin?:    string;
+  min_number?:     string;
+  serial_number?:  string;
   today_sales?:    number | string;
   total_sales?:    number | string;
   staff_count?:    number;
@@ -73,7 +86,13 @@ const mapBranch = (b: RawBranch): Branch => ({
                   ?? b.users?.find(u => u.role === "branch_manager")?.name
                   ?? "—",
   ownership_type: b.ownership_type === 'franchise' ? 'franchise' : 'company',
-  vat_type:       b.vat_type === 'non_vat' ? 'non_vat' : 'vat',  // 👈 add
+  vat_type:       b.vat_type === 'non_vat' ? 'non_vat' : 'vat',
+  brand:          b.brand          ?? 'Lucky Boba Milk Tea',
+  company_name:   b.company_name   ?? '',
+  store_address:  b.store_address  ?? '',
+  vat_reg_tin:    b.vat_reg_tin    ?? '',
+  min_number:     b.min_number     ?? '',
+  serial_number:  b.serial_number  ?? '',
 });
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
@@ -169,6 +188,25 @@ const Btn: React.FC<BtnProps> = ({
   );
 };
 
+// ── Field label helper ────────────────────────────────────────────────────────
+const FieldLabel: React.FC<{ label: string; required?: boolean }> = ({ label, required }) => (
+  <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
+    {label} {required && <span className="text-red-400">*</span>}
+  </label>
+);
+
+// ── Input helper ──────────────────────────────────────────────────────────────
+const inputCls = (hasError?: boolean) =>
+  `w-full text-sm font-medium text-zinc-700 bg-zinc-50 border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all ${hasError ? "border-red-300 bg-red-50" : "border-zinc-200"}`;
+
+// ── Section divider ───────────────────────────────────────────────────────────
+const FormSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
+  <div className="flex flex-col gap-3">
+    <p className="text-[10px] font-bold uppercase tracking-widest text-violet-500 border-b border-violet-100 pb-1">{title}</p>
+    {children}
+  </div>
+);
+
 // ── Modal shell ───────────────────────────────────────────────────────────────
 const ModalShell: React.FC<{
   onClose: () => void;
@@ -185,8 +223,8 @@ const ModalShell: React.FC<{
       style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", backgroundColor: "rgba(0,0,0,0.45)" }}
     >
       <div className="absolute inset-0" onClick={onClose} />
-      <div className={`relative bg-white w-full ${maxWidth} border border-zinc-200 rounded-[1.25rem] shadow-2xl`}>
-        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
+      <div className={`relative bg-white w-full ${maxWidth} border border-zinc-200 rounded-[1.25rem] shadow-2xl flex flex-col max-h-[90vh]`}>
+        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-violet-50 border border-violet-200 rounded-lg flex items-center justify-center">
               {icon}
@@ -200,8 +238,8 @@ const ModalShell: React.FC<{
             <X size={16} />
           </button>
         </div>
-        <div className="px-6 py-5 flex flex-col gap-4">{children}</div>
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-100">{footer}</div>
+        <div className="px-6 py-5 flex flex-col gap-4 overflow-y-auto">{children}</div>
+        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-100 shrink-0">{footer}</div>
       </div>
     </div>,
     document.body
@@ -216,12 +254,18 @@ const ViewBranchModal: React.FC<ViewBranchModalProps> = ({ onClose, branch }) =>
     ["Location",      <span className="flex items-center gap-1"><MapPin size={11} />{branch.location}</span>],
     ["Manager",       branch.manager],
     ["Type",          <OwnershipBadge type={branch.ownership_type} />],
-    // 👇 add this
-    ["VAT Setting", <VatBadge type={branch.vat_type} />] as [string, React.ReactNode],
+    ["VAT Setting", <VatBadge type={branch.vat_type} />],
     ["Status",        <Badge status={branch.status} />],
     ["Staff Count",   branch.staff || "—"],
     ["Today's Sales", <span className="font-bold text-emerald-600">{branch.status === "active" ? fmt(branch.today) : "—"}</span>],
     ["Total Sales",   <span className="font-bold text-[#3b2063]">{fmt(branch.total)}</span>],
+    // Receipt / BIR fields
+    ["Brand",         branch.brand        || "—"],
+    ["Company Name",  branch.company_name || "—"],
+    ["Store Address", branch.store_address || "—"],
+    ["VAT Reg TIN",   branch.vat_reg_tin  || "—"],
+    ["MIN",           branch.min_number   || "—"],
+    ["Serial No.",    branch.serial_number || "—"],
   ];
   return (
     <ModalShell
@@ -229,6 +273,7 @@ const ViewBranchModal: React.FC<ViewBranchModalProps> = ({ onClose, branch }) =>
       icon={<Eye size={15} className="text-violet-600" />}
       title={branch.name}
       sub="Branch details"
+      maxWidth="max-w-lg"
       footer={<Btn variant="secondary" onClick={onClose}>Close</Btn>}
     >
       <div className="flex flex-col divide-y divide-zinc-100 -my-1">
@@ -250,7 +295,13 @@ const EditBranchModal: React.FC<EditBranchModalProps> = ({ onClose, onUpdated, b
     location:       branch.location,
     status:         branch.status,
     ownership_type: branch.ownership_type,
-    vat_type:       branch.vat_type,  // 👈 add
+    vat_type:       branch.vat_type,
+    brand:          branch.brand         ?? 'Lucky Boba Milk Tea',
+    company_name:   branch.company_name  ?? '',
+    store_address:  branch.store_address ?? '',
+    vat_reg_tin:    branch.vat_reg_tin   ?? '',
+    min_number:     branch.min_number    ?? '',
+    serial_number:  branch.serial_number ?? '',
   });
   const [errors,   setErrors]   = useState<Record<string, string>>({});
   const [loading,  setLoading]  = useState(false);
@@ -308,6 +359,7 @@ const EditBranchModal: React.FC<EditBranchModalProps> = ({ onClose, onUpdated, b
       icon={<Edit2 size={15} className="text-violet-600" />}
       title="Edit Branch"
       sub={`Updating ${branch.name}`}
+      maxWidth="max-w-lg"
       footer={
         <>
           <Btn variant="secondary" onClick={onClose} disabled={loading}>Cancel</Btn>
@@ -325,52 +377,72 @@ const EditBranchModal: React.FC<EditBranchModalProps> = ({ onClose, onUpdated, b
           <p className="text-xs text-red-600 font-medium">{apiError}</p>
         </div>
       )}
-      <div>
-        <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
-          Branch Name <span className="text-red-400">*</span>
-        </label>
-        <input {...field("name")}
-          className={`w-full text-sm font-medium text-zinc-700 bg-zinc-50 border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all ${errors.name ? "border-red-300 bg-red-50" : "border-zinc-200"}`}
-        />
-        {errors.name && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.name}</p>}
-      </div>
-      <div>
-        <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
-          Location <span className="text-red-400">*</span>
-        </label>
-        <input {...field("location")}
-          className={`w-full text-sm font-medium text-zinc-700 bg-zinc-50 border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all ${errors.location ? "border-red-300 bg-red-50" : "border-zinc-200"}`}
-        />
-        {errors.location && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.location}</p>}
-      </div>
-      <div>
-        <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">Status</label>
-        <select {...field("status")}
-          className="w-full text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all"
-        >
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
-      </div>
-      <div>
-        <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">Branch Type</label>
-        <select {...field("ownership_type")}
-          className="w-full text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all"
-        >
-          <option value="company">Company-Owned</option>
-          <option value="franchise">Franchise</option>
-        </select>
-      </div>
-      <div>
-        <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">VAT Setting</label>
-        <select {...field("vat_type")}
-          className="w-full text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all"
-        >
-          <option value="vat">VAT (12%)</option>
-          <option value="non_vat">Non-VAT</option>
-        </select>
-        <p className="text-[10px] text-zinc-400 mt-1">Controls whether this branch applies VAT to transactions.</p>
-      </div>
+
+      {/* ── Branch Info ── */}
+      <FormSection title="Branch Info">
+        <div>
+          <FieldLabel label="Branch Name" required />
+          <input {...field("name")} className={inputCls(!!errors.name)} />
+          {errors.name && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.name}</p>}
+        </div>
+        <div>
+          <FieldLabel label="Location" required />
+          <input {...field("location")} className={inputCls(!!errors.location)} />
+          {errors.location && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.location}</p>}
+        </div>
+        <div>
+          <FieldLabel label="Status" />
+          <select {...field("status")} className={inputCls()}>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+        <div>
+          <FieldLabel label="Branch Type" />
+          <select {...field("ownership_type")} className={inputCls()}>
+            <option value="company">Company-Owned</option>
+            <option value="franchise">Franchise</option>
+          </select>
+        </div>
+        <div>
+          <FieldLabel label="VAT Setting" />
+          <select {...field("vat_type")} className={inputCls()}>
+            <option value="vat">VAT (12%)</option>
+            <option value="non_vat">Non-VAT</option>
+          </select>
+          <p className="text-[10px] text-zinc-400 mt-1">Controls whether this branch applies VAT to transactions.</p>
+        </div>
+      </FormSection>
+
+      {/* ── Receipt / BIR Info ── */}
+      <FormSection title="Receipt / BIR Info">
+        <div>
+          <FieldLabel label="Brand" />
+          <input {...field("brand")} placeholder="e.g. Lucky Boba Milk Tea" className={inputCls()} />
+        </div>
+        <div>
+          <FieldLabel label="Company Name" />
+          <input {...field("company_name")} placeholder="Registered company name" className={inputCls()} />
+        </div>
+        <div>
+          <FieldLabel label="Store Address" />
+          <input {...field("store_address")} placeholder="Full store address" className={inputCls()} />
+        </div>
+        <div>
+          <FieldLabel label="VAT Reg TIN" />
+          <input {...field("vat_reg_tin")} placeholder="e.g. 000-000-000-000" className={inputCls()} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <FieldLabel label="MIN" />
+            <input {...field("min_number")} placeholder="Machine Identification No." className={inputCls()} />
+          </div>
+          <div>
+            <FieldLabel label="Serial Number" />
+            <input {...field("serial_number")} placeholder="POS Serial No." className={inputCls()} />
+          </div>
+        </div>
+      </FormSection>
     </ModalShell>
   );
 };
@@ -459,7 +531,13 @@ const AddBranchModal: React.FC<AddBranchModalProps> = ({ onClose, onSaved }) => 
     location:       "",
     status:         "active",
     ownership_type: "company",
-    vat_type:       "vat",  // 👈 add
+    vat_type:       "vat",
+    brand:          "Lucky Boba Milk Tea",
+    company_name:   "",
+    store_address:  "",
+    vat_reg_tin:    "",
+    min_number:     "",
+    serial_number:  "",
   });
   const [errors,   setErrors]   = useState<Record<string, string>>({});
   const [loading,  setLoading]  = useState(false);
@@ -517,6 +595,7 @@ const AddBranchModal: React.FC<AddBranchModalProps> = ({ onClose, onSaved }) => 
       icon={<Store size={15} className="text-violet-600" />}
       title="Add Branch"
       sub="Register a new branch location"
+      maxWidth="max-w-lg"
       footer={
         <>
           <Btn variant="secondary" onClick={onClose} disabled={loading}>Cancel</Btn>
@@ -534,52 +613,72 @@ const AddBranchModal: React.FC<AddBranchModalProps> = ({ onClose, onSaved }) => 
           <p className="text-xs text-red-600 font-medium">{apiError}</p>
         </div>
       )}
-      <div>
-        <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
-          Branch Name <span className="text-red-400">*</span>
-        </label>
-        <input {...field("name")} placeholder="e.g. SM City North"
-          className={`w-full text-sm font-medium text-zinc-700 bg-zinc-50 border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all ${errors.name ? "border-red-300 bg-red-50" : "border-zinc-200"}`}
-        />
-        {errors.name && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.name}</p>}
-      </div>
-      <div>
-        <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
-          Location <span className="text-red-400">*</span>
-        </label>
-        <input {...field("location")} placeholder="e.g. SM City Cebu, North Wing"
-          className={`w-full text-sm font-medium text-zinc-700 bg-zinc-50 border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all ${errors.location ? "border-red-300 bg-red-50" : "border-zinc-200"}`}
-        />
-        {errors.location && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.location}</p>}
-      </div>
-      <div>
-        <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">Status</label>
-        <select {...field("status")}
-          className="w-full text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all"
-        >
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
-      </div>
-      <div>
-        <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">Branch Type</label>
-        <select {...field("ownership_type")}
-          className="w-full text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all"
-        >
-          <option value="company">Company-Owned</option>
-          <option value="franchise">Franchise</option>
-        </select>
-      </div>
-      <div>
-        <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">VAT Setting</label>
-        <select {...field("vat_type")}
-          className="w-full text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all"
-        >
-          <option value="vat">VAT (12%)</option>
-          <option value="non_vat">Non-VAT</option>
-        </select>
-        <p className="text-[10px] text-zinc-400 mt-1">Controls whether this branch applies VAT to transactions.</p>
-      </div>
+
+      {/* ── Branch Info ── */}
+      <FormSection title="Branch Info">
+        <div>
+          <FieldLabel label="Branch Name" required />
+          <input {...field("name")} placeholder="e.g. SM City North" className={inputCls(!!errors.name)} />
+          {errors.name && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.name}</p>}
+        </div>
+        <div>
+          <FieldLabel label="Location" required />
+          <input {...field("location")} placeholder="e.g. SM City Cebu, North Wing" className={inputCls(!!errors.location)} />
+          {errors.location && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.location}</p>}
+        </div>
+        <div>
+          <FieldLabel label="Status" />
+          <select {...field("status")} className={inputCls()}>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+        <div>
+          <FieldLabel label="Branch Type" />
+          <select {...field("ownership_type")} className={inputCls()}>
+            <option value="company">Company-Owned</option>
+            <option value="franchise">Franchise</option>
+          </select>
+        </div>
+        <div>
+          <FieldLabel label="VAT Setting" />
+          <select {...field("vat_type")} className={inputCls()}>
+            <option value="vat">VAT (12%)</option>
+            <option value="non_vat">Non-VAT</option>
+          </select>
+          <p className="text-[10px] text-zinc-400 mt-1">Controls whether this branch applies VAT to transactions.</p>
+        </div>
+      </FormSection>
+
+      {/* ── Receipt / BIR Info ── */}
+      <FormSection title="Receipt / BIR Info">
+        <div>
+          <FieldLabel label="Brand" />
+          <input {...field("brand")} placeholder="e.g. Lucky Boba Milk Tea" className={inputCls()} />
+        </div>
+        <div>
+          <FieldLabel label="Company Name" />
+          <input {...field("company_name")} placeholder="Registered company name" className={inputCls()} />
+        </div>
+        <div>
+          <FieldLabel label="Store Address" />
+          <input {...field("store_address")} placeholder="Full store address for receipt" className={inputCls()} />
+        </div>
+        <div>
+          <FieldLabel label="VAT Reg TIN" />
+          <input {...field("vat_reg_tin")} placeholder="e.g. 000-000-000-000" className={inputCls()} />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <FieldLabel label="MIN" />
+            <input {...field("min_number")} placeholder="Machine Identification No." className={inputCls()} />
+          </div>
+          <div>
+            <FieldLabel label="Serial Number" />
+            <input {...field("serial_number")} placeholder="POS Serial No." className={inputCls()} />
+          </div>
+        </div>
+      </FormSection>
     </ModalShell>
   );
 };
@@ -684,13 +783,13 @@ const ToggleStatusModal: React.FC<ToggleStatusProps> = ({ onClose, onToggled, br
 
 // ── Main Tab ──────────────────────────────────────────────────────────────────
 const BranchesTab: React.FC = () => {
-  const [branches,      setBranches]      = useState<Branch[]>([]);
-  const [loading,       setLoading]       = useState(true);
-  const [fetchError,    setFetchError]    = useState("");
-  const [search,        setSearch]        = useState("");
-  const [filterStatus,  setFilterStatus]  = useState<string>("all");
+  const [branches,        setBranches]        = useState<Branch[]>([]);
+  const [loading,         setLoading]         = useState(true);
+  const [fetchError,      setFetchError]      = useState("");
+  const [search,          setSearch]          = useState("");
+  const [filterStatus,    setFilterStatus]    = useState<string>("all");
   const [filterOwnership, setFilterOwnership] = useState<string>("all");
-  const [toggleTarget,  setToggleTarget]  = useState<Branch | null>(null);
+  const [toggleTarget,    setToggleTarget]    = useState<Branch | null>(null);
 
   // modal state
   const [addOpen,    setAddOpen]    = useState(false);
@@ -702,7 +801,7 @@ const BranchesTab: React.FC = () => {
     setLoading(true);
     setFetchError("");
     try {
-      const res  = await fetch("/api/branches?include=manager,staff", { headers: authHeaders() });
+      const res = await fetch("/api/branches", { headers: authHeaders() });
       const data = await res.json();
       if (!res.ok || !data.success) { setFetchError(data.message ?? "Failed to load branches."); return; }
       setBranches((data.data as RawBranch[]).map(mapBranch));
@@ -845,9 +944,7 @@ const BranchesTab: React.FC = () => {
                   <td className="px-5 py-3.5 font-semibold text-[#1a0f2e]">{b.name}</td>
                   <td className="px-5 py-3.5 text-zinc-500">{b.location}</td>
                   <td className="px-5 py-3.5 text-zinc-600">{b.manager}</td>
-                  <td className="px-5 py-3.5">
-                    <OwnershipBadge type={b.ownership_type} />
-                  </td>
+                  <td className="px-5 py-3.5"><OwnershipBadge type={b.ownership_type} /></td>
                   <td className="px-5 py-3.5">
                   <VatBadge type={b.vat_type} />
                   </td>
@@ -882,7 +979,6 @@ const BranchesTab: React.FC = () => {
           </table>
         </div>
 
-        {/* Results count */}
         {!loading && !fetchError && filtered.length > 0 && (
           <div className="px-5 py-3 border-t border-zinc-50 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
             Showing {filtered.length} of {branches.length} branches
@@ -891,43 +987,27 @@ const BranchesTab: React.FC = () => {
       </div>
 
       {/* Modals */}
-      {addOpen && (
-        <AddBranchModal
-          onClose={() => setAddOpen(false)}
-          onSaved={b => setBranches(prev => [b, ...prev])}
-        />
-      )}
-      {viewTarget && (
-        <ViewBranchModal branch={viewTarget} onClose={() => setViewTarget(null)} />
-      )}
+      {addOpen    && <AddBranchModal onClose={() => setAddOpen(false)} onSaved={b => setBranches(prev => [b, ...prev])} />}
+      {viewTarget && <ViewBranchModal branch={viewTarget} onClose={() => setViewTarget(null)} />}
       {editTarget && (
         <EditBranchModal
           branch={editTarget}
           onClose={() => setEditTarget(null)}
-          onUpdated={updated => {
-            setBranches(prev => prev.map(b => b.id === updated.id ? updated : b));
-            setEditTarget(null);
-          }}
+          onUpdated={updated => { setBranches(prev => prev.map(b => b.id === updated.id ? updated : b)); setEditTarget(null); }}
         />
       )}
       {delTarget && (
         <DeleteConfirmModal
           branch={delTarget}
           onClose={() => setDelTarget(null)}
-          onDeleted={id => {
-            setBranches(prev => prev.filter(b => b.id !== id));
-            setDelTarget(null);
-          }}
+          onDeleted={id => { setBranches(prev => prev.filter(b => b.id !== id)); setDelTarget(null); }}
         />
       )}
       {toggleTarget && (
         <ToggleStatusModal
           branch={toggleTarget}
           onClose={() => setToggleTarget(null)}
-          onToggled={updated => {
-            setBranches(prev => prev.map(b => b.id === updated.id ? updated : b));
-            setToggleTarget(null);
-          }}
+          onToggled={updated => { setBranches(prev => prev.map(b => b.id === updated.id ? updated : b)); setToggleTarget(null); }}
         />
       )}
     </div>

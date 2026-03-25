@@ -19,6 +19,12 @@ import { type CartItem, type BundleComponentCustomization } from '../../../types
 interface ReceiptPrintProps {
   cart: CartItem[];
   branchName: string;
+  brand?: string;
+  companyName?: string;
+  storeAddress?: string;
+  vatRegTin?: string;
+  minNumber?: string;
+  serialNumber?: string;
   orNumber: string;
   queueNumber: string;
   cashierName: string;
@@ -44,10 +50,15 @@ interface ReceiptPrintProps {
   vatType?: 'vat' | 'non_vat';
   customerName: string;                   // add this
   orderType: 'dine-in' | 'take-out'; 
+  paxSenior?: number;
+  paxPwd?: number;
+  seniorId?: string;
+  pwdId?: string;
 }
 
 export const ReceiptPrint = ({
-  cart, branchName, orNumber, queueNumber, cashierName,
+  cart, branchName, brand, companyName, storeAddress, vatRegTin, minNumber, serialNumber,
+  orNumber, queueNumber, cashierName,
   formattedDate, formattedTime, orderCharge, totalCount,
   subtotal, amtDue, vatableSales, vatAmount, change, cashTendered,
   referenceNumber, paymentMethod, selectedDiscount,
@@ -56,6 +67,10 @@ export const ReceiptPrint = ({
   totalDiscountDisplay, itemDiscountTotal, promoDiscount, addOnsData = [], showDoubleQueueStub = true,
   isReprint: _isReprint = false,
   vatType = 'vat',  
+    paxSenior = 0,
+  paxPwd = 0,
+  seniorId = '',
+  pwdId = '',
 }: ReceiptPrintProps) => {
 
   // ← console.log goes HERE, inside the function body
@@ -83,8 +98,13 @@ export const ReceiptPrint = ({
         {/* Store header */}
         <div className="text-center mb-4 border-b border-black pb-3">
           <img src={logo} alt="Lucky Boba Logo" className="w-48 h-auto mx-auto mb-2 grayscale" style={{ filter: 'grayscale(100%) contrast(1.2)' }} />
-          <h1 className="uppercase leading-tight font-bold text-xl">LUCKY BOBA MILKTEA</h1>
+          <h1 className="uppercase leading-tight font-bold text-xl">{brand || 'LUCKY BOBA MILKTEA'}</h1>
+          {companyName && <p className="text-xs mt-0.5 font-semibold">{companyName}</p>}
           <p className="text-base mt-1">{branchName}</p>
+          {storeAddress && <p className="text-xs mt-0.5">{storeAddress}</p>}
+          {vatRegTin && <p className="text-xs mt-0.5">VAT Reg TIN: {vatRegTin}</p>}
+          {minNumber && <p className="text-xs mt-0.5">MIN: {minNumber}</p>}
+          {serialNumber && <p className="text-xs mt-0.5">SN: {serialNumber}</p>}
           <h2 className="text-sm mt-2">{orNumber}</h2>
           <p className="text-sm mt-1">{formattedDate} {formattedTime}</p>
         </div>
@@ -103,7 +123,32 @@ export const ReceiptPrint = ({
       Order Type: {orderCharge === 'grab' ? 'GRABFOOD' : 'FOODPANDA'}
     </div>
   )}
-</div>
+        </div>
+        
+                {/* Discount Details */}
+{(paxSenior > 0 || paxPwd > 0) && (
+  <div>
+    
+    {paxSenior > 0 && (
+      <>
+        <div className="flex justify-between">
+          <span>Senior PAX</span>
+          <span>{paxSenior}</span>
+        </div>
+      </>
+    )}
+
+    {paxPwd > 0 && (
+      <>
+        <div className="flex justify-between">
+          <span>PWD PAX</span>
+          <span>{paxPwd}</span>
+        </div>
+      </>
+    )}
+
+  </div>
+)}
         
         {/* Items */}
         <div className="mt-3 mb-3 text-xs border-t border-dashed border-black pt-3">
@@ -190,6 +235,8 @@ const discountAmt = item.discountType === 'percent'
         ))}
         </div>
 
+
+
         {/* Totals */}
         <div className="text-xs space-y-1 border-t border-dashed border-black pt-2">
           <div className="flex justify-between"><span>Total Items</span><span>{totalCount}</span></div>
@@ -259,21 +306,24 @@ const discountAmt = item.discountType === 'percent'
 
         {/* Signature fields */}
         <div className="text-xs mt-5 space-y-2">
-          {['Name:', 'TIN/ID/SC:', 'Address:', 'Signature:'].map(label => (
-            <div key={label} className="flex justify-between items-end w-full">
-              <span>{label}</span>
-              <span className="border-b border-black w-[70%] relative">
-                {label === 'Name:' && customerName && (
-                  <span className="absolute left-1 bottom-0 text-[10px]">{customerName}</span>
-                )}
-              </span>
-            </div>
-          ))}
-        </div>
+  {['Name:', 'TIN/ID/SC:', 'Address:', 'Signature:'].map(label => (
+    <div key={label} className="flex justify-between items-end w-full">
+      <span>{label}</span>
+      <span className="border-b border-black w-[70%] relative">
+        {label === 'Name:' && customerName && (
+          <span className="absolute left-1 bottom-0 text-[10px]">{customerName}</span>
+        )}
+        {label === 'TIN/ID/SC:' && (seniorId || pwdId) && (
+          <span className="absolute left-1 bottom-0 text-[10px]">{seniorId || pwdId}</span>
+        )}
+      </span>
+    </div>
+  ))}
+</div>
 
         {/* Franchise info */}
         <div className="mt-6 mb-4 text-center text-xs">
-          FOR FRANCHISE<br />EMAIL OR CONTACT US ON<br />luckyboba.franchise@gmail.com<br />0917199894
+          FOR FRANCHISE<br />EMAIL OR CONTACT US ON<br />luckyboba.franchise@gmail.com<br />09171699894
         </div>
 
         {/* Queue number stub 1 — flows naturally after receipt, no page break */}
@@ -411,13 +461,19 @@ interface StickerClasses {
   isVeryCrowded: boolean;
 }
 
-const getStickerClasses = (extraCount: number): StickerClasses => {
+const getStickerClasses = (extraCount: number, nameLength = 0): StickerClasses => {
   const isCrowded     = extraCount >= 3;
   const isVeryCrowded = extraCount >= 5;
+  const isLongName    = nameLength > 14;
+  const isVeryLongName = nameLength > 22;
   return {
     paddingClass:  isVeryCrowded ? 'p-0.5' : 'p-1',
     titleSize:     isVeryCrowded ? 'text-[10px]' : isCrowded ? 'text-[11px]' : 'text-[12px]',
-    nameSize:      isVeryCrowded ? 'text-[8.5px]' : isCrowded ? 'text-[10px]' : 'text-xs',
+    nameSize:      isVeryCrowded || isVeryLongName
+                     ? 'text-[8px]'
+                     : (isCrowded || isLongName)
+                     ? 'text-[9.5px]'
+                     : 'text-xs',
     addOnSize:     isVeryCrowded ? 'text-[6px]' : isCrowded ? 'text-[7px]' : 'text-[9px]',
     gapClass:      isVeryCrowded ? 'space-y-0 leading-none' : 'space-y-0.5 leading-tight',
     marginClass:   isVeryCrowded ? 'mb-0' : 'mb-1',
@@ -487,9 +543,9 @@ export const StickerPrint = ({
     // ── Bundle stickers ─────────────────────────────────────────────────────
     if (item.isBundle && item.bundleComponents && item.bundleComponents.length > 0) {
       for (let q = 0; q < item.qty; q++) {
-        item.bundleComponents.forEach((component: BundleComponentCustomization, compIdx: number) => {
+      item.bundleComponents.forEach((component: BundleComponentCustomization, compIdx: number) => {
           for (let cq = 0; cq < component.quantity; cq++) {
-            const cls = getStickerClasses(component.options.length + component.addOns.length);
+            const cls = getStickerClasses(component.options.length + component.addOns.length, component.name.length);
             stickers.push(
               <div
                 key={`bundle-sticker-${cartIndex}-${q}-${compIdx}-${cq}`}
@@ -501,7 +557,9 @@ export const StickerPrint = ({
                   <div className="text-[7px] font-bold uppercase text-zinc-400 leading-none mb-0.5 tracking-wider">{item.name}</div>
                   <div className={`w-full font-black uppercase leading-tight ${cls.nameSize} ${cls.marginClass}`}>{component.name}</div>
                   <div className={`w-full text-center font-bold ${cls.addOnSize} ${cls.gapClass}`}>
-                    <div>Sugar: {component.sugarLevel}</div>
+                    {component.sugarLevel && component.sugarLevel.trim() !== '' && (
+                      <div>Sugar: {component.sugarLevel}</div>
+                    )}
                     {component.options.map(opt => <div key={opt}>{opt}</div>)}
                     {component.addOns.map(a => <div key={a}>+ {a}</div>)}
                   </div>

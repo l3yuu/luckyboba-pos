@@ -21,6 +21,13 @@ class Receipt extends Model
     'total_amount',
     'sale_id',
     'branch_id', 
+    'brand',
+    'company_name',
+    'store_address',
+    'vat_reg_tin',
+    'min_number',
+    'serial_number',
+    'vat_type',
 ];
 
     /**

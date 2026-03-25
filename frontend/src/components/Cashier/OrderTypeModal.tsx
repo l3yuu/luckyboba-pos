@@ -1,12 +1,24 @@
+ 
 "use client";
 
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
 interface Props {
   onSelect: (type: "dine_in" | "take_out") => void;
+  onClose?: () => void;
 }
 
-const OrderTypeModal: React.FC<Props> = ({ onSelect }) => {
+const OrderTypeModal: React.FC<Props> = ({ onSelect, onClose }) => {
+  const navigate = useNavigate();
+
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    }
+    navigate("/dashboard");
+  };
+
   return (
     <div
       className="fixed inset-0 z-200 flex items-center justify-center p-6"
@@ -19,7 +31,7 @@ const OrderTypeModal: React.FC<Props> = ({ onSelect }) => {
       <div className="relative bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] shadow-2xl overflow-hidden">
 
         {/* Header */}
-        <div className="px-6 py-5 border-b border-zinc-100 bg-[#f5f0ff]">
+        <div className="relative px-6 py-5 border-b border-zinc-100 bg-[#f5f0ff]">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-[#7c14d4] rounded-lg flex items-center justify-center shrink-0">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -38,6 +50,17 @@ const OrderTypeModal: React.FC<Props> = ({ onSelect }) => {
               </p>
             </div>
           </div>
+          <button
+            onClick={handleClose}
+            className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-md hover:bg-[#7c14d4]/20 transition-colors text-[#1a0f2e] hover:text-[#7c14d4]"
+            aria-label="Close"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
         </div>
 
         {/* Buttons */}
