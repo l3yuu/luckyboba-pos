@@ -905,47 +905,63 @@ const [vatType, setVatType] = useState<'vat' | 'non_vat'>(
   };
 
   const saveCartItemEdit = () => {
-    if (editingCartIndex === null || !editingCartItem) return;
+  if (editingCartIndex === null || !editingCartItem) return;
 
-    const addOnCostPerUnit = (editingCartItem.addOns ?? []).reduce((sum, addonName) => {
-      const a = addOnsData.find(x => x.name === addonName);
-      if (!a) return sum;
-      return sum + (editingCartItem.charges?.grab && Number(a.grab_price ?? 0) > 0
-        ? Number(a.grab_price)
-        : editingCartItem.charges?.panda && Number(a.panda_price ?? 0) > 0
-        ? Number(a.panda_price)
-        : Number(a.price));
-    }, 0);
+  // ── Compute total add-on cost per unit ────────────────────────────────
+  const addOnCostPerUnit = (editingCartItem.addOns ?? []).reduce((sum, addonName) => {
+    const addon = addOnsData.find(a => a.name === addonName);
+    if (!addon) return sum;
 
-    const drinkUnitPrice = Number(editingCartItem.price);
-    let discountedDrinkUnit = drinkUnitPrice;
-    let discountLabel: string | undefined;
+    // Determine which price to use based on current charges
+    const price = editingCartItem.charges?.grab && Number(addon.grab_price ?? 0) > 0
+      ? Number(addon.grab_price)
+      : editingCartItem.charges?.panda && Number(addon.panda_price ?? 0) > 0
+      ? Number(addon.panda_price)
+      : Number(addon.price ?? 0);
 
-    if (itemDiscountType === 'percent' && itemDiscountValue !== '') {
-      discountedDrinkUnit = drinkUnitPrice * (1 - Number(itemDiscountValue) / 100);
-      const d = discounts.find(d => d.id === editingItemDiscountId);
-      if (d) discountLabel = `${d.name} (${d.amount}%)`;
-    } else if (itemDiscountType === 'fixed' && itemDiscountValue !== '') {
-      discountedDrinkUnit = Math.max(0, drinkUnitPrice - Number(itemDiscountValue));
-      const d = discounts.find(d => d.id === editingItemDiscountId);
-      if (d) discountLabel = `${d.name} (-₱${d.amount})`;
-    }
+    return sum + price;
+  }, 0);
 
-    const newFinalPrice = (discountedDrinkUnit + addOnCostPerUnit) * editingCartItem.qty;
+  // ── Base drink price ────────────────────────────────────────────────
+  const drinkUnitPrice = Number(editingCartItem.price ?? 0);
+  let discountedDrinkUnit = drinkUnitPrice;
 
-    const updated: CartItem = {
-      ...editingCartItem,
-      finalPrice:    newFinalPrice,
-      discountLabel,
-      discountId:    editingItemDiscountId,
-      discountType:  itemDiscountType,
-      discountValue: itemDiscountValue,
-    };
+  // ── Determine discount ──────────────────────────────────────────────
+let discountLabel: string | undefined = undefined; // ✅ use undefined
+const discountValNum = Number(itemDiscountValue ?? 0);
 
-    setCart(prev => prev.map((item, i) => i === editingCartIndex ? updated : item));
-    showToast('Item updated & Pax adjusted', 'success');
-    closeCartItemEdit();
+if (itemDiscountType === 'percent' && discountValNum > 0) {
+  discountedDrinkUnit = drinkUnitPrice * (1 - discountValNum / 100);
+
+  const d = discounts.find(d => d.id === editingItemDiscountId);
+  if (d) discountLabel = `${d.name} (${d.amount}%)`;
+} else if (itemDiscountType === 'fixed' && discountValNum > 0) {
+  discountedDrinkUnit = Math.max(0, drinkUnitPrice - discountValNum);
+
+  const d = discounts.find(d => d.id === editingItemDiscountId);
+  if (d) discountLabel = `${d.name} (-₱${d.amount})`;
+}
+
+  // ── Compute final price with add-ons and quantity ───────────────────
+  const qty = Number(editingCartItem.qty ?? 1);
+  const newFinalPrice = (discountedDrinkUnit + addOnCostPerUnit) * qty;
+
+  // ── Create updated cart item ────────────────────────────────────────
+  const updated: CartItem = {
+    ...editingCartItem,
+    finalPrice:    newFinalPrice,
+    discountLabel,                  // string or null
+    discountId:    editingItemDiscountId,
+    discountType:  itemDiscountType,
+    discountValue: discountValNum,
   };
+
+  // ── Update cart state ───────────────────────────────────────────────
+  setCart(prev => prev.map((item, i) => i === editingCartIndex ? updated : item));
+
+  showToast('Item updated & Pax adjusted', 'success');
+  closeCartItemEdit();
+};
 
   const removeEditingItem = () => {
     if (editingCartIndex === null) return;
