@@ -653,35 +653,43 @@ export const StickerPrint = ({
       return;
     }
 
-    if (!isSticker) return;
+// ── Non-drink items on take-out/delivery get a simple food sticker ──────────
+if (!isSticker) {
+  // Only print food stickers for take-out or delivery
+  if (orderType === 'dine-in') return;
 
-    // ── Regular drink stickers ───────────────────────────────────────────────
-    const cls      = getStickerClasses((item.options?.length || 0) + (item.addOns?.length || 0) + (item.remarks ? 1 : 0));
-    const sizeLabel = item.cupSizeLabel ? `(${item.cupSizeLabel})` : '';
+  const cls = getStickerClasses(0, item.name.length);
 
-    for (let i = 0; i < item.qty; i++) {
-      stickers.push(
-        <div
-          key={`sticker-${cartIndex}-${i}`}
-          className={`sticker-area page-break bg-white text-black flex flex-col justify-between items-center h-full w-full ${cls.paddingClass}`}
-          style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
-        >
-          <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls} />
-          <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
-            <div className={`w-full font-black uppercase leading-tight ${cls.nameSize} ${cls.marginClass}`}>
-              {item.size === 'none' && item.sugarLevel != null ? 'CLASSIC PEARL' : `${item.name} ${sizeLabel}`}
+  for (let i = 0; i < item.qty; i++) {
+    stickers.push(
+      <div
+        key={`sticker-food-${cartIndex}-${i}`}
+        className={`sticker-area page-break bg-white text-black flex flex-col justify-between items-center h-full w-full ${cls.paddingClass}`}
+        style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
+      >
+        <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls} />
+        <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
+          {item.cupSizeLabel && (
+            <div className="text-[7px] font-bold uppercase text-zinc-400 leading-none mb-0.5 tracking-wider">
+              {item.cupSizeLabel}
             </div>
-            <div className={`w-full text-center font-bold ${cls.addOnSize} ${cls.gapClass}`}>
-              {item.sugarLevel != null && <div>Sugar: {item.sugarLevel}</div>}
-              {item.options?.map(opt => <div key={opt}>{opt}</div>)}
-              {item.addOns?.map(a => <div key={a}>+ {a}</div>)}
-            </div>
+          )}
+          <div className={`w-full font-black uppercase leading-tight ${cls.nameSize} ${cls.marginClass}`}>
+            {item.name}
           </div>
-          <StickerFooter cls={cls} formattedDate={formattedDate} formattedTime={formattedTime} />
+          {item.remarks && (
+            <div className={`w-full text-center font-bold italic ${cls.addOnSize} mt-0.5`}>
+              {item.remarks}
+            </div>
+          )}
         </div>
-      );
-      drinkIndex++;
-    }
+        <StickerFooter cls={cls} formattedDate={formattedDate} formattedTime={formattedTime} />
+      </div>
+    );
+    drinkIndex++;   // ← increment INSIDE the loop, after each sticker
+  }
+  return;
+}
   });
 
   return (

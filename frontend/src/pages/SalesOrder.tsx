@@ -373,13 +373,21 @@ const itemDiscountTotal = cart.reduce((acc, item) => {
   const subtotal      = grossSubtotal - itemDiscountTotal;
 
   // 6. Sticker Logic
-  const hasStickers = cart.some(item =>
-    item.sugarLevel !== undefined ||
-    item.size === 'M' || item.size === 'L' ||
-    (item.addOns?.some(a => a.toLowerCase().includes('waffle combo')) ?? false) ||
-    (item.isBundle && (item.bundleComponents?.length ?? 0) > 0) ||
-    (item.remarks?.startsWith('[Drink:') ?? false)
-  );
+const hasStickers = cart.some(item =>
+  item.sugarLevel !== undefined ||
+  item.size === 'M' || item.size === 'L' ||
+  (item.addOns?.some(a => a.toLowerCase().includes('waffle combo')) ?? false) ||
+  (item.isBundle && (item.bundleComponents?.length ?? 0) > 0) ||
+  (item.remarks?.startsWith('[Drink:') ?? false) ||
+  // Food items on take-out/delivery always get a sticker
+(
+    (orderType === 'take-out' || orderType === 'delivery') &&
+    item.sugarLevel === undefined &&
+    item.size === 'none' &&
+    !item.isBundle &&
+    !(item.remarks?.startsWith('[Drink:') ?? false)
+  )
+);
 
   const formattedDate = currentDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
   const formattedTime = currentDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
