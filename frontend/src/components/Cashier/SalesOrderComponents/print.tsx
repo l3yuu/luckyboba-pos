@@ -420,13 +420,19 @@ interface StickerClasses {
   isVeryCrowded: boolean;
 }
 
-const getStickerClasses = (extraCount: number): StickerClasses => {
+const getStickerClasses = (extraCount: number, nameLength = 0): StickerClasses => {
   const isCrowded     = extraCount >= 3;
   const isVeryCrowded = extraCount >= 5;
+  const isLongName    = nameLength > 14;
+  const isVeryLongName = nameLength > 22;
   return {
     paddingClass:  isVeryCrowded ? 'p-0.5' : 'p-1',
     titleSize:     isVeryCrowded ? 'text-[10px]' : isCrowded ? 'text-[11px]' : 'text-[12px]',
-    nameSize:      isVeryCrowded ? 'text-[8.5px]' : isCrowded ? 'text-[10px]' : 'text-xs',
+    nameSize:      isVeryCrowded || isVeryLongName
+                     ? 'text-[8px]'
+                     : (isCrowded || isLongName)
+                     ? 'text-[9.5px]'
+                     : 'text-xs',
     addOnSize:     isVeryCrowded ? 'text-[6px]' : isCrowded ? 'text-[7px]' : 'text-[9px]',
     gapClass:      isVeryCrowded ? 'space-y-0 leading-none' : 'space-y-0.5 leading-tight',
     marginClass:   isVeryCrowded ? 'mb-0' : 'mb-1',
@@ -496,9 +502,9 @@ export const StickerPrint = ({
     // ── Bundle stickers ─────────────────────────────────────────────────────
     if (item.isBundle && item.bundleComponents && item.bundleComponents.length > 0) {
       for (let q = 0; q < item.qty; q++) {
-        item.bundleComponents.forEach((component: BundleComponentCustomization, compIdx: number) => {
+      item.bundleComponents.forEach((component: BundleComponentCustomization, compIdx: number) => {
           for (let cq = 0; cq < component.quantity; cq++) {
-            const cls = getStickerClasses(component.options.length + component.addOns.length);
+            const cls = getStickerClasses(component.options.length + component.addOns.length, component.name.length);
             stickers.push(
               <div
                 key={`bundle-sticker-${cartIndex}-${q}-${compIdx}-${cq}`}
@@ -510,7 +516,9 @@ export const StickerPrint = ({
                   <div className="text-[7px] font-bold uppercase text-zinc-400 leading-none mb-0.5 tracking-wider">{item.name}</div>
                   <div className={`w-full font-black uppercase leading-tight ${cls.nameSize} ${cls.marginClass}`}>{component.name}</div>
                   <div className={`w-full text-center font-bold ${cls.addOnSize} ${cls.gapClass}`}>
-                    <div>Sugar: {component.sugarLevel}</div>
+                    {component.sugarLevel && component.sugarLevel.trim() !== '' && (
+                      <div>Sugar: {component.sugarLevel}</div>
+                    )}
                     {component.options.map(opt => <div key={opt}>{opt}</div>)}
                     {component.addOns.map(a => <div key={a}>+ {a}</div>)}
                   </div>

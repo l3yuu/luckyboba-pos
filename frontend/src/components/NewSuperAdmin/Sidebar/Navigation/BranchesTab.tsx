@@ -254,9 +254,7 @@ const ViewBranchModal: React.FC<ViewBranchModalProps> = ({ onClose, branch }) =>
     ["Location",      <span className="flex items-center gap-1"><MapPin size={11} />{branch.location}</span>],
     ["Manager",       branch.manager],
     ["Type",          <OwnershipBadge type={branch.ownership_type} />],
-    ...(branch.ownership_type === 'franchise'
-      ? [["VAT Setting", <VatBadge type={branch.vat_type} />] as [string, React.ReactNode]]
-      : []),
+    ["VAT Setting", <VatBadge type={branch.vat_type} />],
     ["Status",        <Badge status={branch.status} />],
     ["Staff Count",   branch.staff || "—"],
     ["Today's Sales", <span className="font-bold text-emerald-600">{branch.status === "active" ? fmt(branch.today) : "—"}</span>],
@@ -406,16 +404,14 @@ const EditBranchModal: React.FC<EditBranchModalProps> = ({ onClose, onUpdated, b
             <option value="franchise">Franchise</option>
           </select>
         </div>
-        {form.ownership_type === 'franchise' && (
-          <div>
-            <FieldLabel label="VAT Setting" />
-            <select {...field("vat_type")} className={inputCls()}>
-              <option value="vat">VAT (12%)</option>
-              <option value="non_vat">Non-VAT</option>
-            </select>
-            <p className="text-[10px] text-zinc-400 mt-1">Controls whether this franchise applies VAT to transactions.</p>
-          </div>
-        )}
+        <div>
+          <FieldLabel label="VAT Setting" />
+          <select {...field("vat_type")} className={inputCls()}>
+            <option value="vat">VAT (12%)</option>
+            <option value="non_vat">Non-VAT</option>
+          </select>
+          <p className="text-[10px] text-zinc-400 mt-1">Controls whether this branch applies VAT to transactions.</p>
+        </div>
       </FormSection>
 
       {/* ── Receipt / BIR Info ── */}
@@ -644,16 +640,14 @@ const AddBranchModal: React.FC<AddBranchModalProps> = ({ onClose, onSaved }) => 
             <option value="franchise">Franchise</option>
           </select>
         </div>
-        {form.ownership_type === 'franchise' && (
-          <div>
-            <FieldLabel label="VAT Setting" />
-            <select {...field("vat_type")} className={inputCls()}>
-              <option value="vat">VAT (12%)</option>
-              <option value="non_vat">Non-VAT</option>
-            </select>
-            <p className="text-[10px] text-zinc-400 mt-1">Controls whether this franchise applies VAT to transactions.</p>
-          </div>
-        )}
+        <div>
+          <FieldLabel label="VAT Setting" />
+          <select {...field("vat_type")} className={inputCls()}>
+            <option value="vat">VAT (12%)</option>
+            <option value="non_vat">Non-VAT</option>
+          </select>
+          <p className="text-[10px] text-zinc-400 mt-1">Controls whether this branch applies VAT to transactions.</p>
+        </div>
       </FormSection>
 
       {/* ── Receipt / BIR Info ── */}
