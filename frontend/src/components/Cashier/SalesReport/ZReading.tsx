@@ -674,7 +674,40 @@ const ZReading = () => {
         <Row label="Cash In" value={phCurrency.format(cashIn)} />
         <Row label="Cash Drop" value={phCurrency.format(cashDrop)} />
         {cashDenominations.length > 0 && (<><Divider /><p className="text-[11px] uppercase text-center font-bold mb-0.5">CASH COUNT</p>{cashDenominations.map((d, i) => (<div key={i} className="flex text-[11px] leading-snug"><span className="w-[30%] uppercase">{d.label}</span><span className="w-[10%] text-center">X</span><span className="w-[25%] text-center">{d.qty}</span><span className="w-[35%] text-right">{phCurrency.format(d.total)}</span></div>))}<Divider /><Row label="TOTAL CASH COUNT" value={phCurrency.format(totalCashCount)} /><Row label="EXPECTED EOD CASH" value={phCurrency.format(expectedEOD)} />{overShort >= 0 ? <div className="flex justify-between text-[11px] leading-snug font-bold"><span className="uppercase w-[60%]">OVER</span><span className="text-right w-[40%] text-green-700">{phCurrency.format(overShort)}</span></div> : <div className="flex justify-between text-[11px] leading-snug font-bold"><span className="uppercase w-[60%]">SHORT</span><span className="text-right w-[40%] text-red-600">-{phCurrency.format(Math.abs(overShort))}</span></div>}<Row label="DISCREPANCY" value={phCurrency.format(Math.abs(overShort))} /></>)}
-        {reportData?.categories && reportData.categories.length > 0 && (<><Divider /><p className="text-[11px] uppercase text-center font-bold mb-0.5">ITEM BREAKDOWN</p><div className="flex text-[9px] font-bold border-b border-black pb-0.5 mb-0.5 uppercase"><span className="w-[50%]">Item</span><span className="w-[15%] text-center">Size</span><span className="w-[15%] text-center">Qty</span><span className="w-[20%] text-right">Total</span></div>{reportData.categories.map((cat, catIdx) => (<React.Fragment key={catIdx}><p className="text-[9px] font-bold uppercase mt-0.5">{cat.category_name}</p>{cat.products.map((item, i) => (<div key={i} className="flex text-[9px] leading-snug border-b border-dotted border-zinc-200"><span className="w-[50%] uppercase leading-tight pl-1">{item.product_name}</span><span className="w-[15%] text-center">{item.size ?? '—'}</span><span className="w-[15%] text-center">{item.total_qty}</span><span className="w-[20%] text-right">{phCurrency.format(item.total_sales)}</span></div>))}</React.Fragment>))}<Divider /><div className="flex text-[10px] font-bold justify-between"><span className="uppercase">GROSS TOTAL</span><span>{phCurrency.format(gross)}</span></div><div className="flex text-[10px] font-bold justify-between"><span className="uppercase">NET TOTAL</span><span>{phCurrency.format(netTotal)}</span></div></>)}
+        {reportData?.categories && reportData.categories.length > 0 && (
+          <>
+            <Divider />
+            <p className="text-[11px] uppercase text-center font-bold mb-0.5">ITEM BREAKDOWN</p>
+            <div className="flex text-[11px] font-bold border-b border-black pb-0.5 mb-0.5 uppercase">
+              <span className="w-[50%]">Item</span>
+              <span className="w-[15%] text-center">Size</span>
+              <span className="w-[15%] text-center">Qty</span>
+              <span className="w-[20%] text-right">Total</span>
+            </div>
+            {reportData.categories.map((cat, catIdx) => (
+              <React.Fragment key={catIdx}>
+                <p className="text-[15px] font-bold uppercase mt-0.5">{cat.category_name}</p>
+                {cat.products.map((item, i) => (
+                  <div key={i} className="flex text-[11px] leading-snug border-b border-dotted border-zinc-200">
+                    <span className="w-[50%] uppercase leading-tight pl-1">{item.product_name}</span>
+                    <span className="w-[15%] text-center">{item.size ?? '—'}</span>
+                    <span className="w-[15%] text-center">{item.total_qty}</span>
+                    <span className="w-[20%] text-right">{phCurrency.format(item.total_sales)}</span>
+                  </div>
+                ))}
+              </React.Fragment>
+            ))}
+            <Divider />
+            <div className="flex text-[11px] font-bold justify-between">
+              <span className="uppercase">GROSS TOTAL</span>
+              <span>{phCurrency.format(gross)}</span>
+            </div>
+            <div className="flex text-[11px] font-bold justify-between">
+              <span className="uppercase">NET TOTAL</span>
+              <span>{phCurrency.format(netTotal)}</span>
+            </div>
+          </>
+        )}
       </div>
     );
   };
