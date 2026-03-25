@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOfflineQueue } from '../hooks/useOfflineQueue';
 import OfflineQueueBanner  from '../components/Cashier/SalesOrderComponents/OfflineQueueBanner';
+import { SUGAR_LEVELS } from '../types/index';
 
 import {
   type MenuItem, type Category, type CartItem,
@@ -1361,6 +1362,7 @@ const updated: CartItem = {
             onOpenAddOns={() => setIsAddOnModalOpen(true)}
             onAddToOrder={addToOrder}
             onClose={() => { setSelectedItem(null); setIsAddOnModalOpen(false); }}
+            sugarLevels={isDrink ? SUGAR_LEVELS.map((v, i) => ({ id: i, label: v, value: v })) : []}
           />
         )}
 
