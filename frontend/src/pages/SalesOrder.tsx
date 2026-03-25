@@ -91,6 +91,14 @@ const [vatType, setVatType] = useState<'vat' | 'non_vat'>(
   );
   const [currentDate, setCurrentDate] = useState(new Date());
 
+  // Cart
+const [cart, setCart] = useState<CartItem[]>(() => {
+  try {
+    const saved = localStorage.getItem('pos_cart_cache');
+    return saved ? JSON.parse(saved) : [];
+  } catch { return []; }
+});
+
 
   // Cash-in gate
   const [menuAvailable,   setMenuAvailable]   = useState(false);
@@ -151,9 +159,6 @@ const [vatType, setVatType] = useState<'vat' | 'non_vat'>(
   const [bundleComponentOptions,         setBundleComponentOptions]         = useState<string[]>([]);
   const [bundleComponentAddOns,          setBundleComponentAddOns]          = useState<string[]>([]);
   const [bundleComponentAddOnModalOpen,  setBundleComponentAddOnModalOpen]  = useState(false);
-
-  // Cart
-  const [cart, setCart] = useState<CartItem[]>([]);
 
   // Cart item editing
   const [editingCartIndex,      setEditingCartIndex]      = useState<number | null>(null);
@@ -469,6 +474,12 @@ const itemDiscountTotal = cart.reduce((acc, item) => {
     const timer = setInterval(() => setCurrentDate(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+  try {
+    localStorage.setItem('pos_cart_cache', JSON.stringify(cart));
+  } catch {}
+}, [cart]);
 
   // ── Sequence helpers ────────────────────────────────────────────────────────
 
@@ -1201,6 +1212,7 @@ const computeDiscountedTotal = () => {
     if (navigator.onLine) {
       try {
         await api.post('/sales', orderData);
+        localStorage.removeItem('pos_cart_cache');
 
         const currentSeq = parseInt(orNumber.split('-').pop() ?? '0', 10);
         if (!isNaN(currentSeq)) localStorage.setItem('last_or_sequence', String(currentSeq));
@@ -1231,6 +1243,7 @@ const computeDiscountedTotal = () => {
         const axiosErr = err as { response?: { data?: unknown } };
         console.error('422 detail:', axiosErr?.response?.data);
         enqueue(orderData);
+        localStorage.removeItem('pos_cart_cache');
         setPrintedReceipt(false);
         setPrintedKitchen(false);
         setPrintedStickers(false);
@@ -1262,6 +1275,7 @@ const computeDiscountedTotal = () => {
 
   const handleNewOrder = async () => {
     setCart([]);
+    localStorage.removeItem('pos_cart_cache');
     setOrderType(null);
     setOrderCharge(null);
     setCashTendered('');
