@@ -475,10 +475,12 @@ const itemDiscountTotal = cart.reduce((acc, item) => {
     return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
+useEffect(() => {
   try {
     localStorage.setItem('pos_cart_cache', JSON.stringify(cart));
-  } catch {}
+  } catch (e) {
+    console.warn('Failed to persist cart:', e);
+  }
 }, [cart]);
 
   // ── Sequence helpers ────────────────────────────────────────────────────────
@@ -995,15 +997,14 @@ const handleItemClick = async (item: MenuItem) => {
 const adjustEditQty = (delta: number) => {
   if (!editingCartItem) return;
   const newQty = Math.max(1, editingCartItem.qty + delta);
-  
-  // Always derive unit price from the original pre-discount price
+
   const originalUnitPrice = (editingCartItem.originalPrice ?? editingCartItem.finalPrice)
     / editingCartItem.qty;
-  
+
   setEditingCartItem({
     ...editingCartItem,
-    qty,
-    finalPrice: originalUnitPrice * newQty, // gross total, discount reapplied on save
+    qty: newQty,                          // ← was `qty` (wrong variable)
+    finalPrice: originalUnitPrice * newQty,
   });
 };
 
