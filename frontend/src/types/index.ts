@@ -104,6 +104,7 @@ export interface CartItem extends MenuItem {
     options?: string[];
     addOns?: string[];
     finalPrice: number;
+    originalPrice?: number;
     discountLabel?: string;
 
     // ── Discount Metadata ──────────────────────────────────────────────────

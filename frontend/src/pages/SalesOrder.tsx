@@ -66,9 +66,9 @@ const SalesOrder = () => {
 
   const branchId   = user?.branch_id   ?? null;
   const branchName = user?.branch_name ?? localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch';
-  const [vatType] = useState<'vat' | 'non_vat'>(
-    () => (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat'
-  );
+const [vatType, setVatType] = useState<'vat' | 'non_vat'>(
+  () => (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat'
+);
 
   const handleNavClick = (label: string) => {
     if (label !== 'Home') return;
@@ -78,6 +78,10 @@ const SalesOrder = () => {
   };
 
   // ── State ───────────────────────────────────────────────────────────────────
+  const [branchDetails, setBranchDetails] = useState<{
+  brand?: string; companyName?: string; storeAddress?: string;
+  vatRegTin?: string; minNumber?: string; serialNumber?: string;
+}>({});
   const [orderType, setOrderType] = useState<'dine-in' | 'take-out' | null>(null);
   const [cashierName, setCashierName] = useState<string>(() =>
     localStorage.getItem('lucky_boba_user_name') ?? 'Admin'
@@ -231,17 +235,26 @@ const SalesOrder = () => {
   // 1. Basic counts
   const totalCount = cart.reduce((acc, item) => acc + item.qty, 0);
 
-  // 2. Gross Calculation
-  const grossSubtotal = cart.reduce((acc, item) =>
-    acc + item.finalPrice + getItemSurcharge(item), 0
-  );
+  // 2. Gross Calculation (always use base price × qty, never finalPrice)
+const grossSubtotal = cart.reduce((acc, item) =>
+  acc + (Number(item.price) * item.qty) + getItemSurcharge(item), 0
+);
 
   // 3. Item-Level Discounts
   const itemDiscountTotal = cart.reduce((acc, item) => {
-    const baseTotal      = item.finalPrice;
-    const discountedTotal = item.finalPrice;
-    return acc + Math.max(0, baseTotal - discountedTotal);
-  }, 0);
+  if (!item.discountType || item.discountType === 'none') return acc;
+  if (!item.discountValue || Number(item.discountValue) === 0) return acc;
+
+  const drinkUnitPrice = Number(item.price ?? 0);
+  const qty = item.qty;
+  const discountVal = Number(item.discountValue);
+
+  const discountAmt = item.discountType === 'percent'
+    ? drinkUnitPrice * qty * (discountVal / 100)
+    : Math.min(discountVal, drinkUnitPrice) * qty;
+
+  return acc + discountAmt;
+}, 0);
 
   // 4. Promo Eligibility (Vouchers — Promo tab only)
   const eligibleForPromo = cart
@@ -340,6 +353,29 @@ const SalesOrder = () => {
     boot();
     syncNextSequence();
 
+     if (branchId) {
+    api.get(`/branches/${branchId}`).then(({ data }) => {
+      const b = data.data ?? data;
+      setBranchDetails({
+        brand:        b.brand,
+        companyName:  b.company_name,
+        storeAddress: b.store_address,
+        vatRegTin:    b.vat_reg_tin,
+        minNumber:    b.min_number,
+        serialNumber: b.serial_number,
+      });
+
+       if (b.vat_type) {
+      setVatType(b.vat_type as 'vat' | 'non_vat');
+         localStorage.setItem('lucky_boba_user_branch_vat', b.vat_type);
+          console.log('VAT Type synced:', b.vat_type);
+      }
+      
+      console.log('Branch details fetched:', b);  // ✅ TEMP
+  }).catch((err) => {
+  console.error('Branch fetch failed:', err.response?.status, err.response?.data);
+});
+}
     api.get('/discounts').then(({ data }) => {
       localStorage.setItem('pos_discounts_cache', JSON.stringify(data));
       const seen = new Set<string>();
@@ -367,7 +403,7 @@ const SalesOrder = () => {
     const onCashIn = () => { setMenuAvailable(true); setCheckingCashIn(false); };
     window.addEventListener('cash-in-completed', onCashIn);
     return () => window.removeEventListener('cash-in-completed', onCashIn);
-  }, []);
+  }, [branchId]);
 
   useEffect(() => {
     api.get('/user').then(({ data: u }) => {
@@ -877,48 +913,56 @@ const SalesOrder = () => {
     setEditingCartItem({ ...editingCartItem, qty: newQty, finalPrice: unitPrice * newQty });
   };
 
-  const saveCartItemEdit = () => {
-    if (editingCartIndex === null || !editingCartItem) return;
+const saveCartItemEdit = () => {
+  if (editingCartIndex === null || !editingCartItem) return;
 
-    const addOnCostPerUnit = (editingCartItem.addOns ?? []).reduce((sum, addonName) => {
-      const a = addOnsData.find(x => x.name === addonName);
-      if (!a) return sum;
-      return sum + (editingCartItem.charges?.grab && Number(a.grab_price ?? 0) > 0
-        ? Number(a.grab_price)
-        : editingCartItem.charges?.panda && Number(a.panda_price ?? 0) > 0
-        ? Number(a.panda_price)
-        : Number(a.price));
-    }, 0);
+  const addOnCostPerUnit = (editingCartItem.addOns ?? []).reduce((sum, addonName) => {
+    const addon = addOnsData.find(a => a.name === addonName);
+    if (!addon) return sum;
+    const price = editingCartItem.charges?.grab && Number(addon.grab_price ?? 0) > 0
+      ? Number(addon.grab_price)
+      : editingCartItem.charges?.panda && Number(addon.panda_price ?? 0) > 0
+      ? Number(addon.panda_price)
+      : Number(addon.price ?? 0);
+    return sum + price;
+  }, 0);
 
-    const drinkUnitPrice = Number(editingCartItem.price);
-    let discountedDrinkUnit = drinkUnitPrice;
-    let discountLabel: string | undefined;
+  const drinkUnitPrice = Number(editingCartItem.price ?? 0);
+  const qty = Number(editingCartItem.qty ?? 1);
+  const discountValNum = Number(itemDiscountValue ?? 0);
+  let discountLabel: string | undefined = undefined;
 
-    if (itemDiscountType === 'percent' && itemDiscountValue !== '') {
-      discountedDrinkUnit = drinkUnitPrice * (1 - Number(itemDiscountValue) / 100);
-      const d = discounts.find(d => d.id === editingItemDiscountId);
-      if (d) discountLabel = `${d.name} (${d.amount}%)`;
-    } else if (itemDiscountType === 'fixed' && itemDiscountValue !== '') {
-      discountedDrinkUnit = Math.max(0, drinkUnitPrice - Number(itemDiscountValue));
-      const d = discounts.find(d => d.id === editingItemDiscountId);
-      if (d) discountLabel = `${d.name} (-₱${d.amount})`;
-    }
+  // ── Discount applies to exactly 1 unit, rest stay full price ──────────
+  // ── Discount applies to the drink price only (not add-ons), all qty ──
+  let discountedDrinkUnit = drinkUnitPrice;
 
-    const newFinalPrice = (discountedDrinkUnit + addOnCostPerUnit) * editingCartItem.qty;
+  if (itemDiscountType === 'percent' && discountValNum > 0) {
+    discountedDrinkUnit = drinkUnitPrice * (1 - discountValNum / 100);
+    const d = discounts.find(d => d.id === editingItemDiscountId);
+    if (d) discountLabel = `${d.name} (${d.amount}%)`;
 
-    const updated: CartItem = {
-      ...editingCartItem,
-      finalPrice:    newFinalPrice,
-      discountLabel,
-      discountId:    editingItemDiscountId,
-      discountType:  itemDiscountType,
-      discountValue: itemDiscountValue,
-    };
+  } else if (itemDiscountType === 'fixed' && discountValNum > 0) {
+    discountedDrinkUnit = Math.max(0, drinkUnitPrice - discountValNum);
+    const d = discounts.find(d => d.id === editingItemDiscountId);
+    if (d) discountLabel = `${d.name} (-₱${d.amount})`;
+  }
 
-    setCart(prev => prev.map((item, i) => i === editingCartIndex ? updated : item));
-    showToast('Item updated & Pax adjusted', 'success');
-    closeCartItemEdit();
+  const newFinalPrice = (discountedDrinkUnit + addOnCostPerUnit) * qty;
+
+const updated: CartItem = {
+    ...editingCartItem,
+    finalPrice:      newFinalPrice,
+    originalPrice:   (drinkUnitPrice + addOnCostPerUnit) * qty, // pre-discount total
+    discountLabel,
+    discountId:      editingItemDiscountId,
+    discountType:    itemDiscountType,
+    discountValue:   discountValNum,
   };
+
+  setCart(prev => prev.map((item, i) => i === editingCartIndex ? updated : item));
+  showToast('Item updated', 'success');
+  closeCartItemEdit();
+};
 
   const removeEditingItem = () => {
     if (editingCartIndex === null) return;
@@ -1268,7 +1312,6 @@ if (!orderType) {
             onOpenAddOns={() => setIsAddOnModalOpen(true)}
             onAddToOrder={addToOrder}
             onClose={() => { setSelectedItem(null); setIsAddOnModalOpen(false); }}
-            sugarLevels={selectedItem?.sugar_levels}
           />
         )}
 
@@ -1332,12 +1375,6 @@ if (!orderType) {
             onConfirm={confirmComboDrink}
             onClose={() => { setIsCombodrinkModalOpen(false); setPendingComboCart(null); }}
             orderCharge={orderCharge}
-            sugarLevels={
-              categories
-                .flatMap(c => c.menu_items)
-                .find(m => m.name === 'CLASSIC PEARL' && m.size === 'M')
-                ?.sugar_levels
-            }
           />
         )}
 
@@ -1349,7 +1386,6 @@ if (!orderType) {
             drinkSugar={mixMatchDrinkSugar}
             drinkOptions={mixMatchDrinkOptions}
             drinkAddOns={mixMatchDrinkAddOns}
-            drinkSugarLevels={selectedMixMatchDrink?.sugar_levels}
             filteredAddOns={filteredAddOns}
             drinkAddOnModalOpen={mixMatchDrinkAddOnOpen}
             orderCharge={orderCharge}
@@ -1499,7 +1535,7 @@ if (!orderType) {
       </div>
 
       {/* Print templates */}
-      {printTarget === 'receipt' && <ReceiptPrint {...printProps} vatType={vatType} addOnsData={addOnsData} orderCharge={orderCharge} totalCount={totalCount} subtotal={subtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount}/>}
+      {printTarget === 'receipt' && <ReceiptPrint {...printProps} {...branchDetails} vatType={vatType} addOnsData={addOnsData} orderCharge={orderCharge} totalCount={totalCount} subtotal={grossSubtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount}/>}
       {printTarget === 'kitchen'  && <KitchenPrint  {...printProps} />}
       {printTarget === 'stickers' && <StickerPrint  {...printProps} customerName={customerName} />}
     </>
