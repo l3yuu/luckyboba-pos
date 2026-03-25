@@ -42,6 +42,8 @@ interface ReceiptPrintProps {
   showDoubleQueueStub?: boolean;
   isReprint?: boolean;
   vatType?: 'vat' | 'non_vat';
+  customerName: string;                   // add this
+  orderType: 'dine-in' | 'take-out'; 
 }
 
 export const ReceiptPrint = ({
@@ -49,8 +51,10 @@ export const ReceiptPrint = ({
   formattedDate, formattedTime, orderCharge, totalCount,
   subtotal, amtDue, vatableSales, vatAmount, change, cashTendered,
   referenceNumber, paymentMethod, selectedDiscount,
+  orderType,       // add here
+  customerName, 
   totalDiscountDisplay, itemDiscountTotal, promoDiscount, addOnsData = [], showDoubleQueueStub = true,
-  isReprint = false,
+    isReprint: _isReprint = false,
   vatType = 'vat',  
 }: ReceiptPrintProps) => {
 
@@ -69,15 +73,19 @@ export const ReceiptPrint = ({
 
         {/* Guest info */}
         <div className="text-xs space-y-1 mb-3">
-          <div className="mt-1">Cashier: {cashierName ?? 'Admin'}</div>
-          {orderCharge && <div className="mt-1">Order Type: {orderCharge === 'grab' ? 'GRABFOOD' : 'FOODPANDA'}</div>}
-        </div>
+  <div className="mt-1">Cashier: {cashierName ?? 'Admin'}</div>
 
-        {isReprint && (
-          <div className="text-center mb-2 border-t border-dashed border-black pt-2">
-            <p className="text-[15px] font-black uppercase tracking-widest">*** REPRINT ***</p>
-          </div>
-        )}
+  {/* NEW: Order Type */}
+  <div className="mt-1">
+    Order Mode: {orderType === 'dine-in' ? 'DINE IN' : 'TAKE OUT'}
+  </div>
+
+  {orderCharge && (
+    <div className="mt-1">
+      Order Type: {orderCharge === 'grab' ? 'GRABFOOD' : 'FOODPANDA'}
+    </div>
+  )}
+</div>
         
         {/* Items */}
         <div className="mt-3 mb-3 text-xs border-t border-dashed border-black pt-3">
@@ -212,7 +220,12 @@ export const ReceiptPrint = ({
         <div className="text-xs mt-5 space-y-2">
           {['Name:', 'TIN/ID/SC:', 'Address:', 'Signature:'].map(label => (
             <div key={label} className="flex justify-between items-end w-full">
-              <span>{label}</span><span className="border-b border-black w-[70%]" />
+              <span>{label}</span>
+              <span className="border-b border-black w-[70%] relative">
+                {label === 'Name:' && customerName && (
+                  <span className="absolute left-1 bottom-0 text-[10px]">{customerName}</span>
+                )}
+              </span>
             </div>
           ))}
         </div>
@@ -253,16 +266,23 @@ interface KitchenPrintProps {
   queueNumber: string;
   formattedDate: string;
   formattedTime: string;
+  customerName: string;                   // add this
+  orderType: 'dine-in' | 'take-out';  
 }
 
 export const KitchenPrint = ({
-  cart, branchName, orNumber, queueNumber, formattedDate, formattedTime,
+  cart, branchName, orNumber, queueNumber, formattedDate, formattedTime, orderType,       // add here
+  customerName, 
 }: KitchenPrintProps) => (
   <div className="printable-receipt-container hidden print:block">
     <div className="receipt-area bg-white text-black">
       <div className="text-center mb-4 border-b-4 border-black pb-3">
         <h1 className="uppercase leading-tight font-black text-3xl mb-1">ORDER TICKET</h1>
         <h2 className="font-bold text-lg uppercase tracking-widest">{branchName}</h2>
+        <div className="mt-2 text-sm uppercase">
+  <div>Customer: {customerName || 'N/A'}</div>
+  <div>Mode: {orderType === 'dine-in' ? 'DINE IN' : 'TAKE OUT'}</div>
+</div>
         <div className="py-3 my-3">
           <p className="text-sm tracking-widest uppercase">Queue</p>
           <h2 className="font-black text-4xl tracking-widest">#{queueNumber}</h2>
@@ -337,6 +357,7 @@ interface StickerPrintProps {
   customerName: string;
   formattedDate: string;
   formattedTime: string;
+  orderType: 'dine-in' | 'take-out';
 }
 
 interface StickerClasses {
@@ -364,11 +385,12 @@ const getStickerClasses = (extraCount: number): StickerClasses => {
 };
 
 const StickerHeader = ({
-  branchName, orNumber, queueNumber, customerName, drinkIndex, totalDrinks, cls,
+  branchName, orNumber, queueNumber, customerName, drinkIndex, totalDrinks, cls, orderType,
 }: {
   branchName: string; orNumber: string; queueNumber: string;
   customerName: string; drinkIndex: number; totalDrinks: number;
-  cls: StickerClasses;
+    cls: StickerClasses;
+  orderType: 'dine-in' | 'take-out';
 }) => (
   <div className="w-full text-center flex flex-col items-center">
     <div className={`font-black uppercase leading-none ${cls.titleSize}`}>LUCKY BOBA</div>
@@ -379,11 +401,12 @@ const StickerHeader = ({
       <span>Q: {queueNumber} | SI: {orNumber.slice(-6)}</span>
       <span>{drinkIndex}/{totalDrinks}</span>
     </div>
-    {customerName && (
-      <div className={`w-full text-center font-black uppercase px-1 ${cls.isVeryCrowded ? 'text-[9px] pb-0 mb-0.5 mt-0' : 'text-[10px] pb-0.5 mb-1 mt-0'}`}>
-        {customerName}
-      </div>
-    )}
+    {(customerName || orderType) && (
+  <div className={`w-full text-center font-black uppercase px-1 ${cls.isVeryCrowded ? 'text-[9px] pb-0 mb-0.5 mt-0' : 'text-[10px] pb-0.5 mb-1 mt-0'}`}>
+    {customerName && <div>{customerName}</div>}
+    <div>{orderType === 'dine-in' ? 'DINE IN' : 'TAKE OUT'}</div>
+  </div>
+)}
   </div>
 );
 
@@ -401,7 +424,7 @@ const StickerFooter = ({ cls, formattedDate, formattedTime }: { cls: StickerClas
 );
 
 export const StickerPrint = ({
-  cart, branchName, orNumber, queueNumber, customerName, formattedDate, formattedTime,
+  cart, branchName, orNumber, queueNumber, customerName, formattedDate, formattedTime, orderType
 }: StickerPrintProps) => {
   const stickers: React.ReactNode[] = [];
   let drinkIndex = 1;
@@ -416,7 +439,7 @@ export const StickerPrint = ({
     return acc + (isSticker ? item.qty : 0) + (!isSticker && isMixMatch ? item.qty : 0) + (!isSticker ? waffleCount : 0);
   }, 0);
 
-  const sharedProps = { branchName, orNumber, queueNumber, customerName, totalDrinks, formattedDate, formattedTime };
+  const sharedProps = { branchName, orNumber, queueNumber, customerName, totalDrinks, formattedDate, formattedTime, orderType,  };
 
   cart.forEach((item, cartIndex) => {
 
@@ -432,7 +455,7 @@ export const StickerPrint = ({
                 className={`sticker-area page-break bg-white text-black flex flex-col justify-between items-center h-full w-full ${cls.paddingClass}`}
                 style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
               >
-                <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls} />
+                <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls}  />
                 <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
                   <div className="text-[7px] font-bold uppercase text-zinc-400 leading-none mb-0.5 tracking-wider">{item.name}</div>
                   <div className={`w-full font-black uppercase leading-tight ${cls.nameSize} ${cls.marginClass}`}>{component.name}</div>
@@ -466,7 +489,7 @@ export const StickerPrint = ({
               className={`sticker-area page-break bg-white text-black flex flex-col justify-between items-center h-full w-full ${cls.paddingClass}`}
               style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
             >
-              <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls} />
+              <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls}  />
               <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
                 <div className="w-full font-black uppercase leading-tight text-xs mb-1">{addonName}</div>
                 <div className="w-full text-center font-bold text-[9px]"><div>Waffle Combo</div></div>

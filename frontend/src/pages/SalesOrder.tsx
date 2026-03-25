@@ -32,6 +32,8 @@ import {
 import { ReceiptPrint, KitchenPrint, StickerPrint }
   from '../components/Cashier/SalesOrderComponents/print';
 
+import OrderTypeModal from '../components/Cashier/OrderTypeModal';
+  
 // ── Local type ────────────────────────────────────────────────────────────────
 interface Discount {
   id: number;
@@ -41,8 +43,9 @@ interface Discount {
   status: 'ON' | 'OFF';
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
 
+
+// ── Component ─────────────────────────────────────────────────────────────────
 const SalesOrder = () => {
   const navigate      = useNavigate();
   const { showToast } = useToast();
@@ -75,12 +78,14 @@ const SalesOrder = () => {
   };
 
   // ── State ───────────────────────────────────────────────────────────────────
-
+  const [orderType, setOrderType] = useState<'dine-in' | 'take-out' | null>(null);
   const [cashierName, setCashierName] = useState<string>(() =>
     localStorage.getItem('lucky_boba_user_name') ?? 'Admin'
   );
   const [currentDate, setCurrentDate] = useState(new Date());
 
+
+  
   // Cash-in gate
   const [menuAvailable,   setMenuAvailable]   = useState(false);
   const [checkingCashIn,  setCheckingCashIn]  = useState(true);
@@ -319,7 +324,6 @@ const SalesOrder = () => {
       details: `Cashier: ${cashierName} | Branch: ${branchName} | ${new Date().toLocaleString('en-PH', { timeZone: 'Asia/Manila', hour12: true })}`,
     }).catch(() => {});
   };
-
   // ── Effects ─────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -1010,7 +1014,8 @@ const SalesOrder = () => {
     const orderData = {
       // ... rest unchanged
       si_number:        orNumber,
-      branch_id:        branchId,
+      branch_id: branchId,
+      order_type: orderType ?? 'take-out',
       items: cart.map(item => ({
         menu_item_id:      item.isBundle ? null : item.id,
         bundle_id:         item.isBundle ? Number(item.bundleId) : null,
@@ -1029,7 +1034,8 @@ const SalesOrder = () => {
         discount_id:       item.discountId    ?? null,
         discount_label:    item.discountLabel ?? null,
         discount_type:     item.discountType  ?? null,
-        discount_value:    item.discountValue !== '' ? item.discountValue : null,
+        discount_value: item.discountValue !== '' ? item.discountValue : null,
+        
       })),
       subtotal,
       discount_amount:          orderLevelDiscount,
@@ -1175,12 +1181,27 @@ const SalesOrder = () => {
   // ── Shared print props ──────────────────────────────────────────────────────
 
   const printProps = {
-    cart, branchName, orNumber, queueNumber, cashierName,
-    formattedDate, formattedTime, terminalNumber,
-  };
+  cart, branchName, orNumber, queueNumber, cashierName,
+  formattedDate, formattedTime, terminalNumber,
+  orderType: orderType ?? 'take-out',
+  customerName,
+};
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
+    // ── FORCE ORDER TYPE MODAL ─────────────────────────────────────────────
+if (!orderType) {
+  return (
+    <OrderTypeModal
+  onSelect={(type: "dine_in" | "take_out") => {
+    const mapped = type === 'dine_in' ? 'dine-in' : 'take-out';
+    setOrderType(mapped);
+    localStorage.setItem("order_type", mapped);
+  }}
+/>
+  );
+  }
+  
   return (
     <>
       {/* Print CSS */}
