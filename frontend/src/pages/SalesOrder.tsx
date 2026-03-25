@@ -1224,11 +1224,12 @@ if (itemDiscountType === 'percent' && discountValNum > 0) {
 
   // ── Shared print props ──────────────────────────────────────────────────────
 
-  const printProps = {
+const printProps = {
   cart, branchName, orNumber, queueNumber, cashierName,
   formattedDate, formattedTime, terminalNumber,
   orderType: orderType ?? 'take-out',
   customerName,
+  paxSenior, paxPwd, seniorId, pwdId,
 };
 
   // ── Render ──────────────────────────────────────────────────────────────────

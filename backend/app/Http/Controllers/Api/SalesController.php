@@ -265,10 +265,13 @@ Receipt::create([
             $this->dashboardService->clearTodayCache($sale->branch_id);
 
             return response()->json([
-                'status'    => 'success',
-                'si_number' => $officialOR,
-                'sale'      => $sale->load('items'),
-            ], 201);
+    'status'    => 'success',
+    'si_number' => $officialOR,
+    'sale'      => $sale->makeVisible([
+        'pax_senior','pax_pwd','senior_id','pwd_id',
+        'sc_discount_amount','pwd_discount_amount','diplomat_discount_amount','other_discount_amount'
+    ])->load('items'),
+], 201);
 
         } catch (\Exception $e) {
             DB::rollBack();

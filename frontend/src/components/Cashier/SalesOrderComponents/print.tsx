@@ -50,6 +50,10 @@ interface ReceiptPrintProps {
   vatType?: 'vat' | 'non_vat';
   customerName: string;                   // add this
   orderType: 'dine-in' | 'take-out'; 
+  paxSenior?: number;
+  paxPwd?: number;
+  seniorId?: string;
+  pwdId?: string;
 }
 
 export const ReceiptPrint = ({
@@ -58,11 +62,15 @@ export const ReceiptPrint = ({
   formattedDate, formattedTime, orderCharge, totalCount,
   subtotal, amtDue, vatableSales, vatAmount, change, cashTendered,
   referenceNumber, paymentMethod, selectedDiscount,
-  orderType,       // add here
+  orderType,
   customerName, 
   totalDiscountDisplay, itemDiscountTotal, promoDiscount, addOnsData = [], showDoubleQueueStub = true,
     isReprint: _isReprint = false,
   vatType = 'vat',  
+    paxSenior = 0,
+  paxPwd = 0,
+  seniorId = '',
+  pwdId = '',
 }: ReceiptPrintProps) => {
 
   return (
@@ -97,7 +105,32 @@ export const ReceiptPrint = ({
       Order Type: {orderCharge === 'grab' ? 'GRABFOOD' : 'FOODPANDA'}
     </div>
   )}
-</div>
+        </div>
+        
+                {/* Discount Details */}
+{(paxSenior > 0 || paxPwd > 0) && (
+  <div>
+    
+    {paxSenior > 0 && (
+      <>
+        <div className="flex justify-between">
+          <span>Senior PAX</span>
+          <span>{paxSenior}</span>
+        </div>
+      </>
+    )}
+
+    {paxPwd > 0 && (
+      <>
+        <div className="flex justify-between">
+          <span>PWD PAX</span>
+          <span>{paxPwd}</span>
+        </div>
+      </>
+    )}
+
+  </div>
+)}
         
         {/* Items */}
         <div className="mt-3 mb-3 text-xs border-t border-dashed border-black pt-3">
@@ -175,6 +208,8 @@ export const ReceiptPrint = ({
         ))}
         </div>
 
+
+
         {/* Totals */}
         <div className="text-xs space-y-1 border-t border-dashed border-black pt-2">
           <div className="flex justify-between"><span>Total Items</span><span>{totalCount}</span></div>
@@ -230,17 +265,20 @@ export const ReceiptPrint = ({
 
         {/* Signature fields */}
         <div className="text-xs mt-5 space-y-2">
-          {['Name:', 'TIN/ID/SC:', 'Address:', 'Signature:'].map(label => (
-            <div key={label} className="flex justify-between items-end w-full">
-              <span>{label}</span>
-              <span className="border-b border-black w-[70%] relative">
-                {label === 'Name:' && customerName && (
-                  <span className="absolute left-1 bottom-0 text-[10px]">{customerName}</span>
-                )}
-              </span>
-            </div>
-          ))}
-        </div>
+  {['Name:', 'TIN/ID/SC:', 'Address:', 'Signature:'].map(label => (
+    <div key={label} className="flex justify-between items-end w-full">
+      <span>{label}</span>
+      <span className="border-b border-black w-[70%] relative">
+        {label === 'Name:' && customerName && (
+          <span className="absolute left-1 bottom-0 text-[10px]">{customerName}</span>
+        )}
+        {label === 'TIN/ID/SC:' && (seniorId || pwdId) && (
+          <span className="absolute left-1 bottom-0 text-[10px]">{seniorId || pwdId}</span>
+        )}
+      </span>
+    </div>
+  ))}
+</div>
 
         {/* Franchise info */}
         <div className="mt-6 mb-4 text-center text-xs">
