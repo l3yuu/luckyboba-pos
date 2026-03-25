@@ -1585,7 +1585,7 @@ const updated: CartItem = {
       </div>
 
       {/* Print templates */}
-      {printTarget === 'receipt' && <ReceiptPrint {...printProps} {...branchDetails} vatType={vatType} addOnsData={addOnsData} orderCharge={orderCharge} totalCount={totalCount} subtotal={grossSubtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount}/>}
+      {printTarget === 'receipt' && <ReceiptPrint {...printProps} {...branchDetails} vatType={vatType} addOnsData={addOnsData} orderCharge={orderCharge} totalCount={totalCount} subtotal={grossSubtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} vatExemptSales={vatExemptSales} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount}/>}
       {printTarget === 'kitchen'  && <KitchenPrint  {...printProps} />}
       {printTarget === 'stickers' && <StickerPrint  {...printProps} customerName={customerName} />}
     </>
