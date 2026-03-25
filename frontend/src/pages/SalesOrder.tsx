@@ -1126,6 +1126,7 @@ const SalesOrder = () => {
 
   const handleNewOrder = async () => {
     setCart([]);
+    setOrderType(null);
     setOrderCharge(null);
     setCashTendered('');
     setPaymentMethod('cash');
