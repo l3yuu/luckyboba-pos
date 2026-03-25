@@ -44,21 +44,13 @@ public function check(Request $request)
         $user = User::find($request->user_id);
 
         if ($user && $user->role === 'cashier') {
-            // Device has an assigned cashier but it's not this one → block
-            if ($device->user_id !== null && $device->user_id !== $user->id) {
+            // Device must belong to the same branch as the cashier
+            if ($device->branch_id !== null && $user->branch_id !== null
+                && $device->branch_id !== $user->branch_id) {
                 return response()->json([
                     'success'    => false,
                     'registered' => false,
-                    'message'    => 'This device is assigned to a different cashier account. Access denied.',
-                ], 403);
-            }
-
-            // Device has no assigned cashier → block (must be assigned by admin first)
-            if ($device->user_id === null) {
-                return response()->json([
-                    'success'    => false,
-                    'registered' => false,
-                    'message'    => 'No cashier is assigned to this device. Contact your administrator.',
+                    'message'    => 'This device belongs to a different branch. Access denied.',
                 ], 403);
             }
         }
