@@ -245,21 +245,19 @@ const [vatType, setVatType] = useState<'vat' | 'non_vat'>(
 
   // 2. Gross Calculation (always use base price × qty, never finalPrice)
 const grossSubtotal = cart.reduce((acc, item) =>
-  acc + item.finalPrice + getItemSurcharge(item), 0
+  acc + (item.originalPrice ?? item.finalPrice) + getItemSurcharge(item), 0
 );
 
   // 3. Item-Level Discounts
-  const itemDiscountTotal = cart.reduce((acc, item) => {
+const itemDiscountTotal = cart.reduce((acc, item) => {
   if (!item.discountType || item.discountType === 'none') return acc;
   if (!item.discountValue || Number(item.discountValue) === 0) return acc;
 
-  const drinkUnitPrice = Number(item.price ?? 0);
-  const qty = item.qty;
   const discountVal = Number(item.discountValue);
 
   const discountAmt = item.discountType === 'percent'
-    ? drinkUnitPrice * qty * (discountVal / 100)
-    : Math.min(discountVal, drinkUnitPrice) * qty;
+    ? Number(item.price) * item.qty * (discountVal / 100)
+    : Math.min(discountVal, Number(item.price) * item.qty);
 
   return acc + discountAmt;
 }, 0);
@@ -983,17 +981,24 @@ const handleItemClick = async (item: MenuItem) => {
     setEditingItemDiscountId(null);
   };
 
-  const adjustEditQty = (delta: number) => {
-    if (!editingCartItem) return;
-    const newQty    = Math.max(1, editingCartItem.qty + delta);
-    const unitPrice = editingCartItem.finalPrice / editingCartItem.qty;
-    setEditingCartItem({ ...editingCartItem, qty: newQty, finalPrice: unitPrice * newQty });
-  };
+const adjustEditQty = (delta: number) => {
+  if (!editingCartItem) return;
+  const newQty = Math.max(1, editingCartItem.qty + delta);
+  
+  // Always derive unit price from the original pre-discount price
+  const originalUnitPrice = (editingCartItem.originalPrice ?? editingCartItem.finalPrice)
+    / editingCartItem.qty;
+  
+  setEditingCartItem({
+    ...editingCartItem,
+    qty,
+    finalPrice: originalUnitPrice * newQty, // gross total, discount reapplied on save
+  });
+};
 
 const saveCartItemEdit = () => {
   if (editingCartIndex === null || !editingCartItem) return;
 
-  // ── Compute total add-on cost per unit ────────────────────────
   const addOnCostPerUnit = (editingCartItem.addOns ?? []).reduce((sum, addonName) => {
     const addon = addOnsData.find(a => a.name === addonName);
     if (!addon) return sum;
@@ -1010,31 +1015,34 @@ const saveCartItemEdit = () => {
   const discountValNum = Number(itemDiscountValue ?? 0);
   let discountLabel: string | undefined = undefined;
 
-  // ── Discount applies to exactly 1 unit, rest stay full price ──────────
-  // ── Discount applies to the drink price only (not add-ons), all qty ──
-  let discountedDrinkUnit = drinkUnitPrice;
+  // ── Total price before any discount ──────────────────────────────────────
+  const grossTotal = (drinkUnitPrice + addOnCostPerUnit) * qty;
+
+  let totalDiscount = 0;
 
   if (itemDiscountType === 'percent' && discountValNum > 0) {
-    discountedDrinkUnit = drinkUnitPrice * (1 - discountValNum / 100);
+    // Percent applies across all units
+    totalDiscount = drinkUnitPrice * qty * (discountValNum / 100);
     const d = discounts.find(d => d.id === editingItemDiscountId);
     if (d) discountLabel = `${d.name} (${d.amount}%)`;
 
   } else if (itemDiscountType === 'fixed' && discountValNum > 0) {
-    discountedDrinkUnit = Math.max(0, drinkUnitPrice - discountValNum);
+    // Fixed discount = deduct exact amount once from the total (e.g. BOGO = deduct 1 unit price)
+    totalDiscount = Math.min(discountValNum, drinkUnitPrice * qty);
     const d = discounts.find(d => d.id === editingItemDiscountId);
     if (d) discountLabel = `${d.name} (-₱${d.amount})`;
   }
 
-  const newFinalPrice = (discountedDrinkUnit + addOnCostPerUnit) * qty;
+  const newFinalPrice = Math.max(0, grossTotal - totalDiscount);
 
-const updated: CartItem = {
+  const updated: CartItem = {
     ...editingCartItem,
-    finalPrice:      newFinalPrice,
-    originalPrice:   (drinkUnitPrice + addOnCostPerUnit) * qty, // pre-discount total
+    finalPrice:    newFinalPrice,
+    originalPrice: grossTotal,
     discountLabel,
-    discountId:      editingItemDiscountId,
-    discountType:    itemDiscountType,
-    discountValue:   discountValNum,
+    discountId:    editingItemDiscountId,
+    discountType:  itemDiscountType,
+    discountValue: discountValNum,
   };
 
   setCart(prev => prev.map((item, i) => i === editingCartIndex ? updated : item));
@@ -1052,29 +1060,32 @@ const updated: CartItem = {
     closeCartItemEdit();
   };
 
-  const computeDiscountedTotal = () => {
-    if (!editingCartItem) return 0;
+const computeDiscountedTotal = () => {
+  if (!editingCartItem) return 0;
 
-    const addOnCostPerUnit = (editingCartItem.addOns ?? []).reduce((sum, addonName) => {
-      const a = addOnsData.find(x => x.name === addonName);
-      if (!a) return sum;
-      return sum + (editingCartItem.charges?.grab && Number(a.grab_price ?? 0) > 0
-        ? Number(a.grab_price)
-        : editingCartItem.charges?.panda && Number(a.panda_price ?? 0) > 0
-        ? Number(a.panda_price)
-        : Number(a.price));
-    }, 0);
+  const addOnCostPerUnit = (editingCartItem.addOns ?? []).reduce((sum, addonName) => {
+    const a = addOnsData.find(x => x.name === addonName);
+    if (!a) return sum;
+    return sum + (editingCartItem.charges?.grab && Number(a.grab_price ?? 0) > 0
+      ? Number(a.grab_price)
+      : editingCartItem.charges?.panda && Number(a.panda_price ?? 0) > 0
+      ? Number(a.panda_price)
+      : Number(a.price));
+  }, 0);
 
-    const drinkUnitPrice = Number(editingCartItem.price);
-    let discountedDrink = drinkUnitPrice;
+  const drinkUnitPrice = Number(editingCartItem.price);
+  const qty = editingCartItem.qty;
+  const grossTotal = (drinkUnitPrice + addOnCostPerUnit) * qty;
 
-    if (itemDiscountType === 'percent' && itemDiscountValue !== '')
-      discountedDrink = drinkUnitPrice * (1 - Number(itemDiscountValue) / 100);
-    else if (itemDiscountType === 'fixed' && itemDiscountValue !== '')
-      discountedDrink = Math.max(0, drinkUnitPrice - Number(itemDiscountValue));
+  let totalDiscount = 0;
 
-    return (discountedDrink + addOnCostPerUnit) * editingCartItem.qty;
-  };
+  if (itemDiscountType === 'percent' && itemDiscountValue !== '')
+    totalDiscount = drinkUnitPrice * qty * (Number(itemDiscountValue) / 100);
+  else if (itemDiscountType === 'fixed' && itemDiscountValue !== '')
+    totalDiscount = Math.min(Number(itemDiscountValue), drinkUnitPrice * qty);
+
+  return Math.max(0, grossTotal - totalDiscount);
+};
 
   // ── Confirm order ───────────────────────────────────────────────────────────
 
