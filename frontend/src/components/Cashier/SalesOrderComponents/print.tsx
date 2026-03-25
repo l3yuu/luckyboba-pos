@@ -464,22 +464,26 @@ interface StickerClasses {
 }
 
 const getStickerClasses = (extraCount: number, nameLength = 0): StickerClasses => {
-  const isCrowded     = extraCount >= 3;
-  const isVeryCrowded = extraCount >= 5;
-  const isLongName    = nameLength > 14;
-  const isVeryLongName = nameLength > 22;
+  const isCrowded      = extraCount >= 2;
+  const isVeryCrowded  = extraCount >= 4;
+  const isUltraCrowded = extraCount >= 6;
+  const isLongName     = nameLength > 12;
+  const isVeryLongName = nameLength > 18;
+  const isUltraLongName = nameLength > 25;
   return {
-    paddingClass:  isVeryCrowded ? 'p-0.5' : 'p-1',
-    titleSize:     isVeryCrowded ? 'text-[10px]' : isCrowded ? 'text-[11px]' : 'text-[12px]',
-    nameSize:      isVeryCrowded || isVeryLongName
+    paddingClass:  isUltraCrowded ? 'p-0' : isVeryCrowded ? 'p-0.5' : 'p-1',
+    titleSize:     isUltraCrowded ? 'text-[8px]' : isVeryCrowded ? 'text-[9px]' : isCrowded ? 'text-[10px]' : 'text-[11px]',
+    nameSize:      isUltraCrowded || isUltraLongName
+                     ? 'text-[7px]'
+                     : isVeryCrowded || isVeryLongName
                      ? 'text-[8px]'
-                     : (isCrowded || isLongName)
-                     ? 'text-[9.5px]'
-                     : 'text-xs',
-    addOnSize:     isVeryCrowded ? 'text-[6px]' : isCrowded ? 'text-[7px]' : 'text-[9px]',
-    gapClass:      isVeryCrowded ? 'space-y-0 leading-none' : 'space-y-0.5 leading-tight',
-    marginClass:   isVeryCrowded ? 'mb-0' : 'mb-1',
-    isVeryCrowded,
+                     : isCrowded || isLongName
+                     ? 'text-[9px]'
+                     : 'text-[11px]',
+    addOnSize:     isUltraCrowded ? 'text-[5.5px]' : isVeryCrowded ? 'text-[6px]' : isCrowded ? 'text-[7px]' : 'text-[8px]',
+    gapClass:      isUltraCrowded ? 'space-y-0 leading-none' : isVeryCrowded ? 'space-y-0 leading-tight' : 'space-y-0.5 leading-tight',
+    marginClass:   isUltraCrowded || isVeryCrowded ? 'mb-0' : 'mb-0.5',
+    isVeryCrowded: isVeryCrowded || isUltraCrowded,
   };
 };
 
@@ -488,35 +492,37 @@ const StickerHeader = ({
 }: {
   branchName: string; orNumber: string; queueNumber: string;
   customerName: string; drinkIndex: number; totalDrinks: number;
-    cls: StickerClasses;
+  cls: StickerClasses;
   orderType: 'dine-in' | 'take-out' | 'delivery';
 }) => (
   <div className="w-full text-center flex flex-col items-center">
-    <div className={`font-black uppercase leading-none ${cls.titleSize}`}>LUCKY BOBA</div>
-    <div className={`font-bold uppercase leading-none tracking-widest ${cls.isVeryCrowded ? 'text-[5px] mt-0.5' : 'text-[6.5px] mt-1'}`}>
+    <div className={`font-black uppercase leading-none ${cls.isVeryCrowded ? 'text-[9px]' : 'text-[11px]'}`}>
+      LUCKY BOBA
+    </div>
+    <div className={`font-bold uppercase leading-none tracking-widest ${cls.isVeryCrowded ? 'text-[4.5px] mt-0' : 'text-[6px] mt-0.5'}`}>
       {branchName.toUpperCase()}
     </div>
-    <div className={`w-full flex justify-between items-center font-bold border-b-[1.5px] border-black px-1 ${cls.isVeryCrowded ? 'text-[10px] pb-0 mb-0 mt-0.5' : 'text-[10px] pb-0.5 mb-0 mt-1'}`}>
-      <span>Q: {queueNumber} | SI: {orNumber.slice(-6)}</span>
+    <div className={`w-full flex justify-between items-center font-bold border-b-[1.5px] border-black px-1 ${cls.isVeryCrowded ? 'text-[8px] pb-0 mb-0 mt-0' : 'text-[9px] pb-0.5 mb-0 mt-0.5'}`}>
+      <span>Q:{queueNumber} SI:{orNumber.slice(-5)}</span>
       <span>{drinkIndex}/{totalDrinks}</span>
     </div>
     {(customerName || orderType) && (
-  <div className={`w-full text-center font-black uppercase px-1 ${cls.isVeryCrowded ? 'text-[9px] pb-0 mb-0.5 mt-0' : 'text-[10px] pb-0.5 mb-1 mt-0'}`}>
-    {customerName && <div>{customerName}</div>}
-    <div>{orderType === 'dine-in' ? 'DINE IN' : 'TAKE OUT'}</div>
-  </div>
-)}
+      <div className={`w-full text-center font-black uppercase px-1 leading-none ${cls.isVeryCrowded ? 'text-[7px] mt-0' : 'text-[8px] mt-0.5'}`}>
+        {customerName && <div className="truncate">{customerName}</div>}
+        <div>{orderType === 'dine-in' ? 'DINE IN' : 'TAKE OUT'}</div>
+      </div>
+    )}
   </div>
 );
 
 const StickerFooter = ({ cls, formattedDate, formattedTime }: { cls: StickerClasses; formattedDate: string; formattedTime: string }) => (
   <>
-    <div className="w-full text-center mt-auto mb-0.5">
-      <p className={`font-black uppercase whitespace-nowrap tracking-tighter ${cls.isVeryCrowded ? 'text-[5.5px]' : 'text-[7px]'}`}>
+    <div className="w-full text-center mt-auto">
+      <p className={`font-black uppercase whitespace-nowrap tracking-tighter ${cls.isVeryCrowded ? 'text-[4.5px]' : 'text-[6px]'}`}>
         Best consume within 30 minutes
       </p>
     </div>
-    <div className={`w-full font-bold text-center border-t border-zinc-800 ${cls.isVeryCrowded ? 'text-[8.5px] pt-0.5 mt-0.5' : 'text-[8.5px] pt-1 mt-1'}`}>
+    <div className={`w-full font-bold text-center border-t border-zinc-800 ${cls.isVeryCrowded ? 'text-[7px] pt-0 mt-0' : 'text-[8px] pt-0.5 mt-0.5'}`}>
       {formattedDate} {formattedTime}
     </div>
   </>

@@ -240,7 +240,7 @@ const [vatType, setVatType] = useState<'vat' | 'non_vat'>(
 
   // 2. Gross Calculation (always use base price × qty, never finalPrice)
 const grossSubtotal = cart.reduce((acc, item) =>
-  acc + (Number(item.price) * item.qty) + getItemSurcharge(item), 0
+  acc + item.finalPrice + getItemSurcharge(item), 0
 );
 
   // 3. Item-Level Discounts
@@ -1465,6 +1465,7 @@ const updated: CartItem = {
             totalCount={totalCount}
             subtotal={grossSubtotal}
             amtDue={amtDue}
+            addOnsData={addOnsData}
             vatableSales={vatableSales}
             vatAmount={vatAmount}
             vatExemptSales={vatExemptSales}

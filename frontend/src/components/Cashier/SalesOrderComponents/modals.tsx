@@ -4,7 +4,7 @@
 import React from 'react';
 import {
   type CartItem, type Bundle, type MenuItem,
-  SUGAR_LEVELS, EXTRA_OPTIONS,
+  EXTRA_OPTIONS,
 } from '../../../types/index';
 import {
   CloseIcon, QtyControl, AddOnModalShell,
@@ -397,26 +397,28 @@ export const ItemSelectionModal = ({
 
           {/* Drink-specific options */}
           {isDrink && sugarLevels && sugarLevels.length > 0 && (
-            <>
-              <div>
-                <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
-                <div className="flex gap-2">
-                {(sugarLevels && sugarLevels.length > 0 ? sugarLevels : SUGAR_LEVELS.map(v => ({ id: 0, label: v, value: v }))).map((lvl) => (
+            <div>
+              <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
+              <div className="flex gap-2">
+                {sugarLevels.map((lvl) => (
                   <button key={lvl.value} onClick={() => onSugarChange(lvl.value)}
                     className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${sugarLevel === lvl.value ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
                     {lvl.label}
                   </button>
                 ))}
-                </div>
-                {sugarLevel === '' && (
-                  <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1.5 ml-1">⚠ Please select sugar level</p>
-                )}
               </div>
-              <div>
-                <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Extra</label>
-                <AddOnTriggerButton count={selectedAddOns.length} onClick={onOpenAddOns} />
-              </div>
-            </>
+              {sugarLevel === '' && (
+                <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1.5 ml-1">⚠ Please select sugar level</p>
+              )}
+            </div>
+          )}
+
+          {/* Add-ons — always shown for drinks, not gated by sugar levels */}
+          {isDrink && (
+            <div>
+              <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Extra</label>
+              <AddOnTriggerButton count={selectedAddOns.length} onClick={onOpenAddOns} />
+            </div>
           )}
 
           {/* Options (Free) — outside sugar block so it shows even with no sugar levels */}
@@ -1061,6 +1063,7 @@ interface ConfirmOrderModalProps {
   onClose: () => void;
   onResetOrder?: () => void;
   vatType?: 'vat' | 'non_vat';
+  addOnsData?: { id: number; name: string; price: number; grab_price?: number; panda_price?: number }[];
 }
 
 export const ConfirmOrderModal = ({
@@ -1068,7 +1071,7 @@ export const ConfirmOrderModal = ({
  vatableSales, vatAmount, vatExemptSales: _vatExemptSales = 0, change, totalDiscountDisplay,
   orderCharge, selectedDiscount, selectedDiscounts, paymentMethod, cashTendered,
   referenceNumber, discountRemarks, paxSenior, paxPwd, seniorId, pwdId, discounts,
-  activeTab, submitting, vatType = 'vat',
+  activeTab, submitting, vatType = 'vat', addOnsData = [],
   onTabChange, onPaymentMethodChange, onCashTenderedChange,
   onReferenceNumberChange, onDiscountChange, onDiscountsChange, onDiscountRemarksChange,
   onPaxSeniorChange, onPaxPwdChange, onSeniorIdChange, onPwdIdChange,
@@ -1122,26 +1125,60 @@ export const ConfirmOrderModal = ({
             <div className="flex-1 p-6 overflow-y-auto">
               <h3 className="font-black text-sm text-black uppercase mb-4 tracking-wider">Cart Items</h3>
               <div className="space-y-4">
-                {cart.map((item, i) => (
-                  <div key={i} onClick={() => onEditCartItem(i)}
-                    className="flex justify-between items-start pb-3 border-b border-[#e9d5ff] last:border-0 mb-2 cursor-pointer hover:bg-[#f5f0ff] rounded-lg px-2 -mx-2 transition-colors">
-                    <div>
-                      <p className="font-bold text-sm text-black">
-                        {item.qty}x {item.name}
-                        {item.cupSizeLabel && <span className="ml-1 opacity-60">({item.cupSizeLabel})</span>}
-                      </p>
-                      <div className="text-[10px] text-zinc-500 mt-1 ml-2">
-                        {item.sugarLevel != null && <p>• Sugar {item.sugarLevel}</p>}
-                        {item.options?.map(o => <p key={o}>• {o}</p>)}
-                        {item.addOns?.map(a => <p key={a}>• + {a}</p>)}
-                        {item.remarks && <p className="italic">• {item.remarks}</p>}
-                      </div>
-                    </div>
-                    <p className="font-black text-sm text-black">
-                      ₱ {(item.finalPrice + getItemSurcharge(item)).toFixed(2)}
-                    </p>
-                  </div>
-                ))}
+{/* Cart Items */}
+{cart.map((item, i) => (
+  <div key={i} onClick={() => onEditCartItem(i)}
+    className="pb-3 border-b border-[#e9d5ff] last:border-0 mb-2 cursor-pointer hover:bg-[#f5f0ff] rounded-lg px-2 -mx-2 transition-colors">
+    
+    {/* Main item row */}
+    <div className="flex justify-between items-start">
+      <div>
+        <p className="font-bold text-sm text-black">
+          {item.qty}x {item.name}
+          {item.cupSizeLabel && <span className="ml-1 opacity-60">({item.cupSizeLabel})</span>}
+        </p>
+        <div className="text-[10px] text-zinc-500 mt-1 ml-2">
+          {item.sugarLevel != null && <p>• Sugar {item.sugarLevel}</p>}
+          {item.options?.map(o => <p key={o}>• {o}</p>)}
+          {item.remarks && <p className="italic">• {item.remarks}</p>}
+        </div>
+      </div>
+      <p className="font-black text-sm text-black shrink-0 ml-2">
+        ₱ {(item.finalPrice - (item.addOns ?? []).reduce((sum, addonName) => {
+          const a = addOnsData?.find((x: { name: string; price: number; grab_price?: number; panda_price?: number }) => x.name === addonName);
+          if (!a) return sum;
+          return sum + (item.charges?.grab && Number(a.grab_price ?? 0) > 0
+            ? Number(a.grab_price)
+            : item.charges?.panda && Number(a.panda_price ?? 0) > 0
+            ? Number(a.panda_price)
+            : Number(a.price)) * item.qty;
+        }, 0) + getItemSurcharge(item)).toFixed(2)}
+      </p>
+    </div>
+
+    {/* Add-ons as separate line items */}
+    {(item.addOns ?? []).map((addonName, ai) => {
+      const a = addOnsData?.find((x: { name: string; price: number; grab_price?: number; panda_price?: number }) => x.name === addonName);
+      if (!a) return null;
+      const addonUnitPrice = item.charges?.grab && Number(a.grab_price ?? 0) > 0
+        ? Number(a.grab_price)
+        : item.charges?.panda && Number(a.panda_price ?? 0) > 0
+        ? Number(a.panda_price)
+        : Number(a.price);
+      const addonTotal = addonUnitPrice * item.qty;
+      return (
+        <div key={ai} className="flex justify-between items-center mt-1.5 pt-1.5 border-t border-dashed border-[#e9d5ff] ml-2">
+          <p className="text-xs text-zinc-600 font-semibold">
+            {item.qty}x {addonName}
+          </p>
+          <p className="text-xs font-bold text-zinc-700 shrink-0 ml-2">
+            ₱ {addonTotal.toFixed(2)}
+          </p>
+        </div>
+      );
+    })}
+  </div>
+))}
               </div>
             </div>
 
