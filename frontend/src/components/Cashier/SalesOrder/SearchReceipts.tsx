@@ -54,6 +54,7 @@ interface ReprintPayload {
     vatable_sales?:   number;
     vat_amount?:      number;
     discount_amount?: number;
+    vat_type?:        string;   // ← add this
     branch?: { name?: string };
     sale_items?: RawSaleItem[];
   };
@@ -319,7 +320,7 @@ const buildPrintProps = (payload: ReprintPayload) => {
     totalDiscountDisplay,
     itemDiscountTotal,
     promoDiscount,
-    vatType: (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat',
+    vatType: (sale.vat_type === 'non_vat' ? 'non_vat' : (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat')) as 'vat' | 'non_vat',
     orderType: 'dine-in' as 'dine-in' | 'take-out',
   };
 };

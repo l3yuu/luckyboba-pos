@@ -217,9 +217,7 @@ const ViewBranchModal: React.FC<ViewBranchModalProps> = ({ onClose, branch }) =>
     ["Manager",       branch.manager],
     ["Type",          <OwnershipBadge type={branch.ownership_type} />],
     // 👇 add this
-    ...(branch.ownership_type === 'franchise'
-      ? [["VAT Setting", <VatBadge type={branch.vat_type} />] as [string, React.ReactNode]]
-      : []),
+    ["VAT Setting", <VatBadge type={branch.vat_type} />] as [string, React.ReactNode],
     ["Status",        <Badge status={branch.status} />],
     ["Staff Count",   branch.staff || "—"],
     ["Today's Sales", <span className="font-bold text-emerald-600">{branch.status === "active" ? fmt(branch.today) : "—"}</span>],
@@ -363,22 +361,16 @@ const EditBranchModal: React.FC<EditBranchModalProps> = ({ onClose, onUpdated, b
           <option value="franchise">Franchise</option>
         </select>
       </div>
-
-      {/* 👇 add this */}
-      {form.ownership_type === 'franchise' && (
-        <div>
-          <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
-            VAT Setting
-          </label>
-          <select {...field("vat_type")}
-            className="w-full text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all"
-          >
-            <option value="vat">VAT (12%)</option>
-            <option value="non_vat">Non-VAT</option>
-          </select>
-          <p className="text-[10px] text-zinc-400 mt-1">Controls whether this franchise applies VAT to transactions.</p>
-        </div>
-      )}
+      <div>
+        <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">VAT Setting</label>
+        <select {...field("vat_type")}
+          className="w-full text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all"
+        >
+          <option value="vat">VAT (12%)</option>
+          <option value="non_vat">Non-VAT</option>
+        </select>
+        <p className="text-[10px] text-zinc-400 mt-1">Controls whether this branch applies VAT to transactions.</p>
+      </div>
     </ModalShell>
   );
 };
@@ -577,20 +569,16 @@ const AddBranchModal: React.FC<AddBranchModalProps> = ({ onClose, onSaved }) => 
           <option value="company">Company-Owned</option>
           <option value="franchise">Franchise</option>
         </select>
-        {form.ownership_type === 'franchise' && (
-          <div>
-            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
-              VAT Setting
-            </label>
-            <select {...field("vat_type")}
-              className="w-full text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all"
-            >
-              <option value="vat">VAT (12%)</option>
-              <option value="non_vat">Non-VAT</option>
-            </select>
-            <p className="text-[10px] text-zinc-400 mt-1">Controls whether this franchise applies VAT to transactions.</p>
-          </div>
-        )}
+      </div>
+      <div>
+        <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">VAT Setting</label>
+        <select {...field("vat_type")}
+          className="w-full text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all"
+        >
+          <option value="vat">VAT (12%)</option>
+          <option value="non_vat">Non-VAT</option>
+        </select>
+        <p className="text-[10px] text-zinc-400 mt-1">Controls whether this branch applies VAT to transactions.</p>
       </div>
     </ModalShell>
   );
@@ -861,9 +849,7 @@ const BranchesTab: React.FC = () => {
                     <OwnershipBadge type={b.ownership_type} />
                   </td>
                   <td className="px-5 py-3.5">
-                    {b.ownership_type === 'franchise'
-                      ? <VatBadge type={b.vat_type} />
-                      : <span className="text-zinc-300 text-xs">—</span>}
+                  <VatBadge type={b.vat_type} />
                   </td>
                   <td className="px-5 py-3.5 font-bold text-emerald-600">{b.status === "active" ? fmt(b.today) : "—"}</td>
                   <td className="px-5 py-3.5 font-bold text-[#3b2063]">{fmt(b.total)}</td>
