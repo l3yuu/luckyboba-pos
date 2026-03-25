@@ -36,6 +36,7 @@ interface ReceiptPrintProps {
   amtDue: number;
   vatableSales: number;
   vatAmount: number;
+  vatExemptSales?: number;
   change: number;
   cashTendered: number | '';
   referenceNumber: string;
@@ -48,7 +49,7 @@ interface ReceiptPrintProps {
   showDoubleQueueStub?: boolean;
   isReprint?: boolean;
   vatType?: 'vat' | 'non_vat';
-  customerName: string;                   // add this
+  customerName: string;
   orderType: 'dine-in' | 'take-out'; 
   paxSenior?: number;
   paxPwd?: number;
@@ -56,11 +57,12 @@ interface ReceiptPrintProps {
   pwdId?: string;
 }
 
+// REPLACE with:
 export const ReceiptPrint = ({
   cart, branchName, brand, companyName, storeAddress, vatRegTin, minNumber, serialNumber,
   orNumber, queueNumber, cashierName,
   formattedDate, formattedTime, orderCharge, totalCount,
-  subtotal, amtDue, vatableSales, vatAmount, change, cashTendered,
+  subtotal, amtDue, vatableSales, vatAmount, vatExemptSales = 0, change, cashTendered,
   referenceNumber, paymentMethod, selectedDiscount,
   orderType,
   customerName, 
@@ -257,7 +259,7 @@ export const ReceiptPrint = ({
             <>
               <div className="flex justify-between"><span>VATable Sales(V)</span><span>{Number(vatableSales || 0).toFixed(2)}</span></div>
               <div className="flex justify-between"><span>VAT Amount</span><span>{Number(vatAmount || 0).toFixed(2)}</span></div>
-              <div className="flex justify-between"><span>VAT Exempt Sales(E)</span><span>0.00</span></div>
+             <div className="flex justify-between"><span>VAT Exempt Sales(E)</span><span>{Number(vatExemptSales || 0).toFixed(2)}</span></div>
               <div className="flex justify-between"><span>Zero-Rated Sales(Z)</span><span>0.00</span></div>
             </>
           )}
@@ -317,7 +319,7 @@ interface KitchenPrintProps {
   formattedDate: string;
   formattedTime: string;
   customerName: string;                   // add this
-  orderType: 'dine-in' | 'take-out';  
+  orderType: 'dine-in' | 'take-out' | 'delivery'; 
 }
 
 export const KitchenPrint = ({
@@ -407,7 +409,7 @@ interface StickerPrintProps {
   customerName: string;
   formattedDate: string;
   formattedTime: string;
-  orderType: 'dine-in' | 'take-out';
+  orderType: 'dine-in' | 'take-out' | 'delivery';
 }
 
 interface StickerClasses {
@@ -446,7 +448,7 @@ const StickerHeader = ({
   branchName: string; orNumber: string; queueNumber: string;
   customerName: string; drinkIndex: number; totalDrinks: number;
     cls: StickerClasses;
-  orderType: 'dine-in' | 'take-out';
+  orderType: 'dine-in' | 'take-out' | 'delivery';
 }) => (
   <div className="w-full text-center flex flex-col items-center">
     <div className={`font-black uppercase leading-none ${cls.titleSize}`}>LUCKY BOBA</div>
