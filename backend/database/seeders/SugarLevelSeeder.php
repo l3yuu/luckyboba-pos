@@ -14,12 +14,11 @@ class SugarLevelSeeder extends Seeder
         // ── 1. Seed the sugar levels ──────────────────────────────────────────
 
         $levels = [
-            ['label' => 'No Sugar',      'value' => '0%',   'sort_order' => 1],
-            ['label' => '25% Sugar',     'value' => '25%',  'sort_order' => 2],
-            ['label' => '50% Sugar',     'value' => '50%',  'sort_order' => 3],
-            ['label' => '75% Sugar',     'value' => '75%',  'sort_order' => 4],
-            ['label' => 'Regular Sugar', 'value' => '100%', 'sort_order' => 5],
-            ['label' => 'Extra Sugar',   'value' => '125%', 'sort_order' => 6],
+            ['label' => '0%',   'value' => '0%',   'sort_order' => 1],
+            ['label' => '25%',  'value' => '25%',  'sort_order' => 2],
+            ['label' => '50%',  'value' => '50%',  'sort_order' => 3],
+            ['label' => '75%',  'value' => '75%',  'sort_order' => 4],
+            ['label' => '100%', 'value' => '100%', 'sort_order' => 5],
         ];
 
         foreach ($levels as $level) {
@@ -32,6 +31,10 @@ class SugarLevelSeeder extends Seeder
                 ]
             );
         }
+
+        // Delete old/unwanted levels
+        SugarLevel::whereIn('value', ['125%'])->delete();
+        SugarLevel::whereIn('label', ['No Sugar', '25% Sugar', '50% Sugar', '75% Sugar', 'Regular Sugar', 'Extra Sugar'])->delete();
 
         $this->command->info('Sugar levels seeded: ' . count($levels) . ' levels.');
 
@@ -67,10 +70,6 @@ class SugarLevelSeeder extends Seeder
 
         // ── 3. Attach sugar levels to drink items ─────────────────────────────
 
-        // Check if the pivot table exists — if your app uses a different
-        // relationship name, adjust the method call below accordingly.
-        // This assumes MenuItem has a `sugarLevels()` belongsToMany relation.
-
         $allSugarLevelIds = SugarLevel::where('is_active', true)
             ->orderBy('sort_order')
             ->pluck('id')
@@ -90,7 +89,6 @@ class SugarLevelSeeder extends Seeder
             $items = MenuItem::where('category_id', $category->id)->get();
 
             foreach ($items as $item) {
-                // Only attach if the model supports the relationship
                 if (method_exists($item, 'sugarLevels')) {
                     $item->sugarLevels()->sync($allSugarLevelIds);
                     $attachedCount++;
@@ -122,7 +120,7 @@ class SugarLevelSeeder extends Seeder
         }
 
         if ($skippedCount > 0) {
-            $this->command->warn("{$skippedCount} items skipped — sugarLevels() relationship not found on MenuItem. Add the relationship first.");
+            $this->command->warn("{$skippedCount} items skipped — sugarLevels() relationship not found on MenuItem.");
         }
 
         $this->command->info("Done. {$attachedCount} items received sugar levels.");
