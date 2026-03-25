@@ -1,5 +1,5 @@
 // components/NewSuperAdmin/Tabs/MenuManagement/MenuItemsTab.tsx
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, startTransition } from "react";
 import {
   Search, Plus, Edit2, Trash2, RefreshCw,
   AlertCircle, X, Package, ChevronDown,
@@ -60,6 +60,14 @@ interface CategoryDrink {
   name:         string;
   size:         string;
   price:        number;
+}
+
+interface SugarLevel {
+  id:         number;
+  label:      string;
+  value:      string;
+  sort_order: number;
+  is_active:  boolean;
 }
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
@@ -588,6 +596,51 @@ const CategoryDrinksManager: React.FC<CategoryDrinksManagerProps> = ({
   );
 };
 
+const SugarLevelToggle: React.FC<{
+  allLevels: SugarLevel[];
+  selected:  number[];
+  onChange:  (ids: number[]) => void;
+}> = ({ allLevels, selected, onChange }) => {
+  const toggle = (id: number) => {
+    onChange(selected.includes(id)
+      ? selected.filter(s => s !== id)
+      : [...selected, id]
+    );
+  };
+
+  if (allLevels.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-2 p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Sugar Levels</p>
+      <div className="flex flex-wrap gap-1.5">
+        {allLevels.map(lvl => {
+          const isOn = selected.includes(lvl.id);
+          return (
+            <button
+              key={lvl.id}
+              type="button"
+              onClick={() => toggle(lvl.id)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                isOn
+                  ? "bg-violet-50 border-violet-300 text-violet-700"
+                  : "bg-white border-zinc-200 text-zinc-400"
+              }`}
+            >
+              <span>%</span>
+              <span>{lvl.label}</span>
+              {isOn
+                ? <ToggleRight size={16} className="text-violet-500" />
+                : <ToggleLeft  size={16} className="text-zinc-300" />}
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-[9px] text-zinc-400">Selected sugar levels will appear as choices at the cashier.</p>
+    </div>
+  );
+};
+
 // ── Add / Edit Modal ──────────────────────────────────────────────────────────
 
 interface MenuItemFormProps {
@@ -595,11 +648,12 @@ interface MenuItemFormProps {
   allItems:      MenuItem[];   // ✅ for combo picker
   categories:    Category[];
   subcategories: SubCategory[];
+  sugarLevels:   SugarLevel[]; 
   onClose:       () => void;
   onSaved:       (item: MenuItem) => void;
 }
 
-const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories, subcategories, onClose, onSaved }) => {
+const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories, subcategories, sugarLevels, onClose, onSaved }) => {
   const isEdit = !!item;
 
   const [form, setForm] = useState({
@@ -621,8 +675,9 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
 
   const [options, setOptions] = useState<ItemOptions>({ pearl: false, ice: false });
   // Mix & Match bundle items for edit mode display
-const [mmBundleItems, setMmBundleItems] = useState<{ name: string; quantity: number; size: string }[] | null>(null);
-const [mmBundleLoading, setMmBundleLoading] = useState(false);
+  const [mmBundleItems, setMmBundleItems] = useState<{ name: string; quantity: number; size: string }[] | null>(null);
+  const [mmBundleLoading, setMmBundleLoading] = useState(false);
+  const [selectedSugarLevelIds, setSelectedSugarLevelIds] = useState<number[]>([]);
 
 // Pre-load Mix & Match bundle components when editing
 
@@ -640,6 +695,19 @@ const [mmBundleLoading, setMmBundleLoading] = useState(false);
           pearl: rows.some(r => r.option_type === "pearl"),
           ice:   rows.some(r => r.option_type === "ice"),
         });
+      })
+      .catch(() => {});
+  }, [isEdit, item]);
+
+  useEffect(() => {
+    if (!isEdit || !item) return;
+    const isDrink = ["drink"].includes(item.category_type ?? "");
+    if (!isDrink) return;
+    fetch(`/api/menu-item-sugar-levels?menu_item_id=${item.id}`, { headers: authHeaders() })
+      .then(r => r.json())
+      .then(data => {
+        const rows: { sugar_level_id: number }[] = data.data ?? [];
+        setSelectedSugarLevelIds(rows.map(r => r.sugar_level_id));
       })
       .catch(() => {});
   }, [isEdit, item]);
@@ -761,6 +829,11 @@ const validate = () => {
         await fetch(`/api/menu-item-options/${savedItem.id}`, {
           method: "PUT", headers: authHeaders(),
           body: JSON.stringify({ options: optList }),
+        }).catch(() => {});
+
+        await fetch(`/api/menu-item-sugar-levels/${savedItem.id}`, {
+          method: "PUT", headers: authHeaders(),
+          body: JSON.stringify({ sugar_level_ids: selectedSugarLevelIds }),
         }).catch(() => {});
       }
 
@@ -1186,9 +1259,16 @@ const validate = () => {
     </p>
   </div>
 )}
-      {/* ✅ Drink Options — pearl & ice toggles */}
+      {/* Drink Options + Sugar Levels — only for drink category */}
       {["drink"].includes(selectedCategory?.category_type ?? "") && (
-        <OptionsToggle value={options} onChange={setOptions} />
+        <>
+          <OptionsToggle value={options} onChange={setOptions} />
+          <SugarLevelToggle
+            allLevels={sugarLevels}
+            selected={selectedSugarLevelIds}
+            onChange={setSelectedSugarLevelIds}
+          />
+        </>
       )}
 
       <div className="flex items-center justify-between p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
@@ -1267,6 +1347,7 @@ const MenuItemsTab: React.FC = () => {
   const [bundleInfo, setBundleInfo] = useState<Record<number, { name: string; quantity: number; size: string }[]>>({});
   const [itemOptions, setItemOptions] = useState<Record<number, ItemOptions>>({});
   const [drinkPoolTarget, setDrinkPoolTarget] = useState<Category | null>(null);
+  const [sugarLevels, setSugarLevels] = useState<SugarLevel[]>([]);
 
   // Fetch all item options in bulk when items load
   const fetchAllOptions = useCallback(async (loadedItems: MenuItem[]) => {
@@ -1292,39 +1373,17 @@ const MenuItemsTab: React.FC = () => {
     } catch { /* silent */ }
   }, []);
 
-
-  const fetchBundleItems = async (itemId: number, categoryType: string, barcode: string | null) => {
-    if (bundleInfo[itemId] !== undefined || !["combo", "bundle"].includes(categoryType) || !barcode) return;
-    try {
-      const res  = await fetch(`/api/bundles?barcode=${encodeURIComponent(barcode)}`, { headers: authHeaders() });
-      const data = await res.json();
-      const bundles = Array.isArray(data) ? data : (data.data ?? []);
-      if (bundles.length > 0) {
-        const rawItems = bundles[0].items ?? bundles[0].bundle_items ?? [];
-        setBundleInfo(prev => ({
-          ...prev,
-          [itemId]: rawItems.map((i: BundleItemRaw) => ({
-            name:     i.custom_name ?? i.name ?? "—",
-            quantity: i.quantity    ?? 1,
-            size:     i.size        ?? "—",
-          })),
-        }));
-      } else {
-        setBundleInfo(prev => ({ ...prev, [itemId]: [] }));
-      }
-    } catch { setBundleInfo(prev => ({ ...prev, [itemId]: [] })); }
-  };
-
   const fetchAll = useCallback(async () => {
     setLoading(true); setError("");
     try {
-      const [itemsRes, catsRes, subsRes] = await Promise.all([
+      const [itemsRes, catsRes, subsRes, sugarRes] = await Promise.all([
         fetch("/api/menu-items",     { headers: authHeaders() }),
         fetch("/api/categories",     { headers: authHeaders() }),
         fetch("/api/sub-categories", { headers: authHeaders() }),
+        fetch("/api/sugar-levels",   { headers: authHeaders() }),
       ]);
-      const [itemsData, catsData, subsData] = await Promise.all([
-        itemsRes.json(), catsRes.json(), subsRes.json(),
+      const [itemsData, catsData, subsData, sugarData] = await Promise.all([
+        itemsRes.json(), catsRes.json(), subsRes.json(), sugarRes.json(),
       ]);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1354,7 +1413,7 @@ const MenuItemsTab: React.FC = () => {
 
       const mapped = (Array.isArray(itemsData) ? itemsData : (itemsData.data ?? [])).map(mapItem);
       setItems(mapped);
-      fetchAllOptions(mapped); // ✅ fetch drink options right after items are mapped
+      fetchAllOptions(mapped);
 
       setCategories((Array.isArray(catsData) ? catsData : (catsData.data ?? [])).map(mapCat));
 
@@ -1364,9 +1423,15 @@ const MenuItemsTab: React.FC = () => {
         name:        s.name,
         category_id: s.category_id,
       })));
+
+      setSugarLevels(
+        (Array.isArray(sugarData) ? sugarData : (sugarData.data ?? []))
+          .filter((s: SugarLevel) => s.is_active)
+      );
+
     } catch { setError("Failed to load menu items."); }
     finally { setLoading(false); }
-  }, [fetchAllOptions]); // ✅ add fetchAllOptions to dependency array
+  }, [fetchAllOptions]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -1379,7 +1444,7 @@ const MenuItemsTab: React.FC = () => {
   return () => window.removeEventListener('open-drink-pool', handler);
 }, []);
 
-  const toggleAvailable = async (item: MenuItem) => {
+  const toggleAvailable = useCallback(async (item: MenuItem) => {
     try {
       const res  = await fetch(`/api/menu-items/${item.id}`, {
         method: "PUT", headers: authHeaders(),
@@ -1389,21 +1454,45 @@ const MenuItemsTab: React.FC = () => {
       if (res.ok && data.success)
         setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_available: !i.is_available } : i));
     } catch { /* silent */ }
-  };
+  }, []);
 
-  const filtered = items.filter(i => {
+  const fetchBundleItems = useCallback(async (itemId: number, categoryType: string, barcode: string | null) => {
+    if (bundleInfo[itemId] !== undefined || !["combo", "bundle"].includes(categoryType) || !barcode) return;
+    try {
+      const res  = await fetch(`/api/bundles?barcode=${encodeURIComponent(barcode)}`, { headers: authHeaders() });
+      const data = await res.json();
+      const bundles = Array.isArray(data) ? data : (data.data ?? []);
+      if (bundles.length > 0) {
+        const rawItems = bundles[0].items ?? bundles[0].bundle_items ?? [];
+        setBundleInfo(prev => ({
+          ...prev,
+          [itemId]: rawItems.map((i: BundleItemRaw) => ({
+            name:     i.custom_name ?? i.name ?? "—",
+            quantity: i.quantity    ?? 1,
+            size:     i.size        ?? "—",
+          })),
+        }));
+      } else {
+        setBundleInfo(prev => ({ ...prev, [itemId]: [] }));
+      }
+    } catch { setBundleInfo(prev => ({ ...prev, [itemId]: [] })); }
+  }, [bundleInfo]);
+
+  const filtered = useMemo(() => items.filter(i => {
     const matchSearch = i.name.toLowerCase().includes(search.toLowerCase()) ||
                         (i.barcode ?? "").toLowerCase().includes(search.toLowerCase());
     const matchCat   = !filterCat   || String(i.category_id) === filterCat;
     const matchAvail = !filterAvail || String(i.is_available) === filterAvail;
     const matchType  = !filterType  || i.category_type === filterType;
-    return matchSearch && matchCat && matchAvail && matchType; // ✅ add matchType here
-  });
+    return matchSearch && matchCat && matchAvail && matchType;
+  }), [items, search, filterCat, filterAvail, filterType]);
 
-  const fmt = (v: number) => `₱${Number(v).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+  const fmt = useCallback(
+    (v: number) => `₱${Number(v).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+    []
+  );
 
-  // ✅ Badge for category_type in table
-  const catTypeBadge: Record<string, string> = {
+  const catTypeBadge = useMemo<Record<string, string>>(() => ({
     food:          "bg-amber-50 text-amber-700 border-amber-200",
     drink:         "bg-blue-50 text-blue-700 border-blue-200",
     promo:         "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -1412,7 +1501,7 @@ const MenuItemsTab: React.FC = () => {
     combo:         "bg-purple-50 text-purple-700 border-purple-200",
     bundle:        "bg-indigo-50 text-indigo-700 border-indigo-200",
     mix_and_match: "bg-rose-50 text-rose-700 border-rose-200",
-  };
+  }), []);
 
   return (
     <div className="p-6 md:p-8 fade-in">
@@ -1434,7 +1523,7 @@ const MenuItemsTab: React.FC = () => {
               <Coffee size={13} /> Manage Drinks
             </Btn>
           )}
-          <Btn onClick={() => setAddOpen(true)} disabled={loading}>
+          <Btn onClick={() => startTransition(() => setAddOpen(true))} disabled={loading}>
             <Plus size={13} /> Add Item
           </Btn>
         </div>
@@ -1518,7 +1607,7 @@ const MenuItemsTab: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100">
-                {["Item", "Category", "Type", "Sub-Category", "Price", "Barcode", "Options", "Available", "Actions"].map(h => (
+                {["Item", "Category", "Type", "Sub-Category", "Price", "Barcode", "Options", "Sugar Levels", "Available", "Actions"].map(h => (
                   <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
                 ))}
               </tr>
@@ -1526,13 +1615,13 @@ const MenuItemsTab: React.FC = () => {
             <tbody>
               {loading && [...Array(6)].map((_, i) => (
                 <tr key={i} className="border-b border-zinc-50">
-                  {[...Array(9)].map((_, j) => (
+                  {[...Array(10)].map((_, j) => (
                     <td key={j} className="px-5 py-4"><SkeletonBar h="h-3" /></td>
                   ))}
                 </tr>
               ))}
               {!loading && filtered.length === 0 && (
-                <tr><td colSpan={9} className="px-5 py-12 text-center text-zinc-400 text-xs font-medium">
+                <tr><td colSpan={10} className="px-5 py-12 text-center text-zinc-400 text-xs font-medium">
                   {search || filterCat || filterAvail || filterType ? "No items match your filters." : "No menu items found."}
                 </td></tr>
               )}
@@ -1573,6 +1662,33 @@ const MenuItemsTab: React.FC = () => {
                         ? <OptionsBadge opts={itemOptions[item.id] ?? { pearl: false, ice: false }} />
                         : <span className="text-zinc-300 text-xs">—</span>
                       }
+                    </td>
+
+                    {/* Sugar Levels column */}
+                    <td className="px-5 py-3.5">
+                      {["drink"].includes(item.category_type) ? (
+                        sugarLevels.length === 0
+                          ? <span className="text-zinc-300 text-xs">—</span>
+                          : (
+                            <div className="flex flex-wrap gap-1 max-w-40">
+                              {sugarLevels.slice(0, 3).map(lvl => (
+                                <span
+                                  key={lvl.id}
+                                  className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-violet-50 text-violet-700 border border-violet-200"
+                                >
+                                  {lvl.value}
+                                </span>
+                              ))}
+                              {sugarLevels.length > 3 && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-zinc-100 text-zinc-500 border border-zinc-200">
+                                  +{sugarLevels.length - 3}
+                                </span>
+                              )}
+                            </div>
+                          )
+                      ) : (
+                        <span className="text-zinc-300 text-xs">—</span>
+                      )}
                     </td>
 
                     <td className="px-5 py-3.5">
@@ -1644,11 +1760,11 @@ const MenuItemsTab: React.FC = () => {
       ) : null;
     })()}
 
-    <button onClick={() => setEditTarget(item)}
+    <button onClick={() => startTransition(() => setEditTarget(item))}
       className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors" title="Edit">
       <Edit2 size={13} />
     </button>
-    <button onClick={() => setDelTarget(item)}
+    <button onClick={() => startTransition(() => setDelTarget(item))}
       className="p-1.5 hover:bg-red-50 rounded-[0.4rem] text-zinc-400 hover:text-red-500 transition-colors" title="Delete">
       <Trash2 size={13} />
     </button>
@@ -1673,7 +1789,8 @@ const MenuItemsTab: React.FC = () => {
           allItems={items}
           categories={categories}
           subcategories={subcategories}
-          onClose={() => setAddOpen(false)}
+          sugarLevels={sugarLevels}   // ← add
+          onClose={() => startTransition(() => setAddOpen(false))}
           onSaved={item => { setItems(p => [item, ...p]); setAddOpen(false); }}
         />
       )}
@@ -1683,12 +1800,13 @@ const MenuItemsTab: React.FC = () => {
           allItems={items}
           categories={categories}
           subcategories={subcategories}
-          onClose={() => setEditTarget(null)}
+          sugarLevels={sugarLevels}   // ← add
+          onClose={() => startTransition(() => setEditTarget(null))}
           onSaved={updated => { setItems(p => p.map(i => i.id === updated.id ? updated : i)); setEditTarget(null); }}
         />
       )}
       {delTarget && (
-        <DeleteModal item={delTarget} onClose={() => setDelTarget(null)}
+        <DeleteModal item={delTarget} onClose={() => startTransition(() => setDelTarget(null))}
           onDeleted={id => { setItems(p => p.filter(i => i.id !== id)); setDelTarget(null); }} />
       )}
       {drinkPoolTarget && (
