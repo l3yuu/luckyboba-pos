@@ -8,7 +8,9 @@ use App\Http\Controllers\Api\CupController;
 use App\Http\Controllers\Api\ItemsReportController;
 use App\Http\Controllers\Api\MenuItemOptionController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\PosDeviceController;
 use App\Http\Controllers\Api\RawMaterialController;
+use App\Http\Controllers\Api\SugarLevelController;
 use App\Http\Controllers\Api\RecipeController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\CacheController;
@@ -22,14 +24,14 @@ use Illuminate\Support\Facades\Route;
 Route::post('/login',  [AuthController::class, 'login'])->middleware('throttle:5,2');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 
+// ── DEVICE CHECK — public, no auth, called before login ──────────────────────
+Route::post('/devices/check', [PosDeviceController::class, 'check']);
+// ─────────────────────────────────────────────────────────────────────────────
+
 Route::post('/purchase-card',             [CardPurchaseController::class, 'purchase']);
 Route::get('/check-card-status/{userId}', [CardPurchaseController::class, 'checkStatus']);
 
 // ── PUBLIC MENU ───────────────────────────────────────────────────────────────
-// Returns all menu items with full image URL for the Flutter customer app.
-// Uses Laravel's url() helper so it works correctly in both local and production.
-// Local:      http://10.0.2.2:8000/storage/menu/foods/photo.png
-// Production: https://luckybobastores.com/storage/menu/foods/photo.png
 Route::get('/public-menu', function () {
     $items = DB::table('menu_items')
         ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
@@ -44,12 +46,10 @@ Route::get('/public-menu', function () {
         )
         ->get()
         ->filter(function ($item) {
-            // Skip items with null/empty category to prevent JSON corruption
             return !is_null($item->category) && $item->category !== '';
         })
         ->values()
         ->map(function ($item) {
-            // url() automatically uses APP_URL from .env
             $item->image = $item->image
                 ? url('storage/' . $item->image)
                 : null;
@@ -59,6 +59,7 @@ Route::get('/public-menu', function () {
     return response()->json($items);
 });
 // ─────────────────────────────────────────────────────────────────────────────
+
 Route::post('/google-login', [AuthController::class, 'googleLogin']);
 Route::post('/register', function (Request $request) {
     $request->validate([
@@ -77,20 +78,24 @@ Route::post('/register', function (Request $request) {
 });
 
 // ── Authenticated routes ─────────────────────────────────────────────────────
-// FIX: Added 'active' middleware so any account set to INACTIVE in the DB is
-// immediately blocked on every request — tokens are revoked on the spot.
-
 Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
-    Route::get('/user', fn (Request $request) => $request->user());
+    Route::get('/user', function (Request $request) {
+        $user = $request->user();
+        $branch = $user->branch_id
+            ? \App\Models\Branch::select('id', 'vat_type')->find($user->branch_id)
+            : null;
 
-    // ── NO ROLE RESTRICTION — any authenticated user can call this ────────────
-    // Placed outside all role middleware groups so cashiers can call it.
-    // The PIN itself is what determines authorization, not the caller's role.
+        return array_merge($user->toArray(), [
+            'branch_vat_type' => $branch?->vat_type ?? 'vat',
+        ]);
+    });
+
+    // ── NO ROLE RESTRICTION ───────────────────────────────────────────────────
     Route::post('/auth/verify-manager-pin', [UserController::class, 'verifyManagerPin']);
 
     // ── CASHIER + BRANCH MANAGER + SUPERADMIN ────────────────────────────────
-    Route::middleware(['role:superadmin,branch_manager,cashier'])->group(function () {
+    Route::middleware(['role:superadmin,branch_manager,cashier,team_leader'])->group(function () {
 
         Route::get('/dashboard/stats', [DashboardController::class, 'index']);
         Route::get('/app-init',        [DashboardController::class, 'init']);
@@ -110,11 +115,11 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::post('/cash-in', [CashCountController::class, 'storeCashIn']);
         });
 
-        Route::get('/receipts/search',        [ReceiptController::class, 'search']);
-        Route::get('/receipts/next-sequence', [ReceiptController::class, 'getNextSequence']);
+        Route::get('/receipts/search',              [ReceiptController::class, 'search']);
+        Route::get('/receipts/next-sequence',       [ReceiptController::class, 'getNextSequence']);
         Route::post('/receipts/{id}/void-request',  [ReceiptController::class, 'voidRequest']);
         Route::post('/void-requests/{id}/approve',  [ReceiptController::class, 'approveVoid']);
-        Route::get('/receipts/{id}/reprint', [ReceiptController::class, 'reprint']);
+        Route::get('/receipts/{id}/reprint',        [ReceiptController::class, 'reprint']);
 
         Route::prefix('cash-counts')->group(function () {
             Route::post('/',       [CashCountController::class, 'store']);
@@ -122,23 +127,24 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::get('/summary', [ReportController::class, 'getCashCountSummary']);
         });
 
-        Route::get('/cache/all',         [CacheController::class, 'all']);
-        Route::get('/menu',              [MenuController::class, 'index']);
-        Route::post('/menu/clear-cache', [MenuController::class, 'clearCache']);
+        Route::get('/cache/all',             [CacheController::class, 'all']);
+        Route::get('/menu',                  [MenuController::class, 'index']);
+        Route::post('/menu/clear-cache',     [MenuController::class, 'clearCache']);
         Route::get('/notifications/summary', [NotificationController::class, 'summary']);
         Route::post('/audit-logs',           [AuditLogController::class, 'store']);
         Route::apiResource('menu-list',  MenuListController::class)->only(['index', 'store']);
         Route::apiResource('menu-items', MenuItemController::class);
-        Route::get('/menu-item-options',        [MenuItemOptionController::class, 'index']);
-        Route::get('/menu-item-options/bulk',   [MenuItemOptionController::class, 'bulk']);
-        Route::put('/menu-item-options/{id}',   [MenuItemOptionController::class, 'update']);
-        Route::get('/add-ons',           [AddOnController::class, 'index']);
-        Route::get('/bundles', [BundleController::class, 'index']);
+        Route::get('/menu-item-options',       [MenuItemOptionController::class, 'index']);
+        Route::get('/menu-item-options/bulk',  [MenuItemOptionController::class, 'bulk']);
+        Route::put('/menu-item-options/{id}',  [MenuItemOptionController::class, 'update']);
+        Route::get('/add-ons',     [AddOnController::class, 'index']);
+        Route::get('/bundles',     [BundleController::class, 'index']);
         Route::get('/category-drinks', [CategoryDrinkController::class, 'index']);
         Route::apiResource('categories',     CategoryController::class);
         Route::apiResource('sub-categories', SubCategoryController::class);
         Route::get('/sub-categories/filter/{categoryId}', [SubCategoryController::class, 'getByCategory']);
         Route::get('/cups', [CupController::class, 'index']);
+        Route::get('/sugar-levels', [SugarLevelController::class, 'index']);
 
         Route::prefix('inventory')->group(function () {
             Route::get('/',             [InventoryController::class, 'index']);
@@ -154,13 +160,10 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/purchase-orders', [PurchaseOrderController::class, 'index']);
         Route::get('/item-serials',    [ItemSerialController::class, 'index']);
 
-        Route::get('/recipes',  [RecipeController::class, 'index']);
+        Route::get('/recipes',   [RecipeController::class, 'index']);
         Route::get('/expenses',  [ExpenseController::class, 'index']);
         Route::post('/expenses', [ExpenseController::class, 'store']);
 
-        // FIX: Removed duplicate GET /discounts that was defined both here and
-        // in the discounts prefix block below — kept only the one in the prefix
-        // group to avoid Laravel silently ignoring one of them.
         Route::prefix('discounts')->group(function () {
             Route::get   ('/',                    [DiscountController::class, 'index']);
             Route::post  ('/',                    [DiscountController::class, 'store']);
@@ -188,6 +191,12 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::get('/export-sales',      [ReportController::class, 'exportSales']);
             Route::get('/export-items',      [ReportController::class, 'exportItems']);
         });
+
+        // ── BRANCH SHOW — cashiers need this to load VAT type and branch info ──
+        // Placed here (not in the branch_manager group) so cashiers can access it.
+        // Read-only: only exposes BranchController@show, no write operations.
+        Route::get('/branches/{id}', [BranchController::class, 'show']);
+        // ──────────────────────────────────────────────────────────────────────
     });
 
     // ── BRANCH MANAGER + SUPERADMIN ──────────────────────────────────────────
@@ -215,17 +224,11 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
         Route::apiResource('expenses', ExpenseController::class)->only(['store']);
 
-        // FIX: Removed duplicate Route::patch('/discounts/{discount}/toggle') and
-        // the conflicting Route::apiResource('discounts') that was re-declaring
-        // routes already defined in the cashier group above. Discount write
-        // operations (store/update/delete/toggle) are already covered in the
-        // cashier group's prefix block which all three roles can access.
-
         Route::get('/branch/audit-logs', [AuditLogController::class, 'branchIndex']);
-        Route::apiResource('discounts', DiscountController::class)->except(['show', 'update', 'index']); // ← 'index' removed, handled above
+        Route::apiResource('discounts', DiscountController::class)->except(['show', 'update', 'index']);
         Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
-        Route::apiResource('vouchers', VoucherController::class)->only(['index', 'store']);
-        Route::apiResource('suppliers', SupplierController::class)->only(['index','store','update','destroy']);
+        Route::apiResource('vouchers',  VoucherController::class)->only(['index', 'store']);
+        Route::apiResource('suppliers', SupplierController::class)->only(['index', 'store', 'update', 'destroy']);
 
         Route::prefix('stock-transfers')->group(function () {
             Route::get ('/',                        [StockTransferController::class, 'index']);
@@ -245,25 +248,24 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/item-checker/{barcode}', [ItemCheckerController::class, 'lookup']);
 
         Route::prefix('users')->group(function () {
-    Route::get('/',                     [UserController::class, 'index']);
-    Route::post('/',                    [UserController::class, 'store']);
-    Route::get('/stats',                [UserController::class, 'stats']);   // ← static before /{id}
-    Route::get('/{id}',                 [UserController::class, 'show']);
-    Route::put('/{id}',                 [UserController::class, 'update']);
-    Route::delete('/{id}',              [UserController::class, 'destroy']);
-    Route::patch('/{id}/toggle-status', [UserController::class, 'toggleStatus']);
-    Route::patch('/{id}/pin',           [UserController::class, 'updatePin']);
-});
+            Route::get('/',                     [UserController::class, 'index']);
+            Route::post('/',                    [UserController::class, 'store']);
+            Route::get('/stats',                [UserController::class, 'stats']);
+            Route::get('/{id}',                 [UserController::class, 'show']);
+            Route::put('/{id}',                 [UserController::class, 'update']);
+            Route::delete('/{id}',              [UserController::class, 'destroy']);
+            Route::patch('/{id}/toggle-status', [UserController::class, 'toggleStatus']);
+            Route::patch('/{id}/pin',           [UserController::class, 'updatePin']);
+        });
 
         Route::prefix('branches')->group(function () {
-            Route::get('/performance',         [BranchController::class, 'performance']);
-            Route::get('/today-sales',         [BranchController::class, 'todaySales']);
-            Route::get('/ownership-summary',   [BranchController::class, 'ownershipSummary']);
-            Route::get('/',                    [BranchController::class, 'index']);
-            Route::get('/{id}/daily-sales',    [BranchController::class, 'dailySales']);
-            Route::get('/{id}/sales-summary',  [BranchController::class, 'salesSummary']);
-            Route::get('/{id}/analytics',      [BranchController::class, 'analytics']);
-            Route::get('/{id}',                [BranchController::class, 'show']);
+            Route::get('/performance',        [BranchController::class, 'performance']);
+            Route::get('/today-sales',        [BranchController::class, 'todaySales']);
+            Route::get('/ownership-summary',  [BranchController::class, 'ownershipSummary']);
+            Route::get('/',                   [BranchController::class, 'index']);
+            Route::get('/{id}/daily-sales',   [BranchController::class, 'dailySales']);
+            Route::get('/{id}/sales-summary', [BranchController::class, 'salesSummary']);
+            Route::get('/{id}/analytics',     [BranchController::class, 'analytics']);
         });
 
         Route::post('/raw-materials/{rawMaterial}/adjust', [RawMaterialController::class, 'adjust']);
@@ -303,7 +305,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         });
 
         Route::prefix('bundles')->group(function () {
-            Route::get   ('/all',         [BundleController::class, 'all']);       // all including inactive
+            Route::get   ('/all',         [BundleController::class, 'all']);
             Route::get   ('/{id}',        [BundleController::class, 'show']);
             Route::post  ('/',            [BundleController::class, 'store']);
             Route::put   ('/{id}',        [BundleController::class, 'update']);
@@ -314,5 +316,24 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::prefix('category-drinks')->group(function () {
             Route::post('/', [CategoryDrinkController::class, 'store']);
         });
+
+        Route::prefix('sugar-levels')->group(function () {
+            Route::get    ('/',          [SugarLevelController::class, 'adminIndex']);
+            Route::post   ('/',          [SugarLevelController::class, 'store']);
+            Route::put    ('/{id}',      [SugarLevelController::class, 'update']);
+            Route::delete ('/{id}',      [SugarLevelController::class, 'destroy']);
+            Route::patch  ('/reorder',   [SugarLevelController::class, 'reorder']);
+        });
+
+        // ── POS DEVICE MANAGEMENT ─────────────────────────────────────────────
+        Route::prefix('pos-devices')->group(function () {
+            Route::get   ('/',                [PosDeviceController::class, 'index']);
+            Route::post  ('/',                [PosDeviceController::class, 'register']);
+            Route::patch ('/{id}/toggle',     [PosDeviceController::class, 'toggleStatus']);
+            Route::patch ('/{id}/assign',     [PosDeviceController::class, 'assignUser']);
+            Route::delete('/{id}/unassign',   [PosDeviceController::class, 'unassignUser']);
+            Route::delete('/{id}',            [PosDeviceController::class, 'destroy']);
+        });
+        // ─────────────────────────────────────────────────────────────────────
     });
 });

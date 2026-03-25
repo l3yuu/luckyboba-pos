@@ -5,4 +5,5 @@ export const ROLE_HOME: Record<string, string> = {
   team_leader:    '/team-leader',   // ← add
   cashier:        '/cashier',
   customer:       '/customer',
+  it_admin:       '/it-admin',
 };
