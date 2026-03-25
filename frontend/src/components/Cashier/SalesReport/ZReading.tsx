@@ -547,7 +547,6 @@ const ZReading = () => {
         <Divider />
 
           {(() => {
-            const gross        = reportData?.gross_sales || 0;
             const vatAmt       = reportData?.vat_amount  || 0;
             const vatableSales = reportData?.vatable_sales || 0;
             const scDiscount   = reportData?.sc_discount   || 0;
@@ -561,7 +560,7 @@ const ZReading = () => {
                 {[
                   { label: 'VATABLE SALES:',    value: phCurrency.format(summaryIsVat ? vatableSales : 0) },
                   { label: 'VAT AMOUNT:',       value: phCurrency.format(summaryIsVat ? vatAmt : 0) },
-                  { label: 'VAT EXEMPT SALES:', value: phCurrency.format(summaryIsVat ? 0 : (reportData?.vat_exempt_sales || gross)) },
+                  { label: 'VAT EXEMPT SALES:', value: phCurrency.format(reportData?.vat_exempt_sales || 0) },
                   { label: 'ZERO RATED SALES:', value: phCurrency.format(0) },
                 ].map((r, i) => (
                   <div key={i} className="flex text-[11px] leading-snug">
@@ -663,7 +662,7 @@ const ZReading = () => {
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">BREAKDOWN OF SALES</p>
         <Row label="VATable Sales"    value={phCurrency.format(isVat ? vatableSales : 0)} />
         <Row label="VAT Amount"       value={phCurrency.format(isVat ? vatAmount : 0)} />
-        <Row label="VAT Exempt Sales" value={phCurrency.format(isVat ? 0 : (reportData?.vat_exempt_sales || gross))} />
+        <Row label="VAT Exempt Sales" value={phCurrency.format(reportData?.vat_exempt_sales || 0)} />
         <Row label="Zero-Rated Sales" value={phCurrency.format(0)} />
         <Divider />
         <Row label="Service Charge" value={phCurrency.format(0)} />
