@@ -314,6 +314,7 @@ interface ItemSelectionModalProps {
   onOpenAddOns: () => void;
   onAddToOrder: () => void;
   onClose: () => void;
+  sugarLevels?: { id: number; label: string; value: string }[]; 
 }
 
 export const ItemSelectionModal = ({
@@ -335,6 +336,7 @@ export const ItemSelectionModal = ({
   onOpenAddOns,
   onAddToOrder,
   onClose,
+  sugarLevels,
 }: ItemSelectionModalProps) => {
   const itemOpts = (selectedItem as { options?: string[] })?.options ?? [];
   const visibleOpts = EXTRA_OPTIONS.filter((opt: string) => {
@@ -396,12 +398,12 @@ export const ItemSelectionModal = ({
               <div>
                 <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
                 <div className="flex gap-2">
-                  {SUGAR_LEVELS.map((level: string) => (
-                    <button key={level} onClick={() => onSugarChange(level)}
-                      className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${sugarLevel === level && sugarLevel !== '' ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
-                      {level}
-                    </button>
-                  ))}
+                {(sugarLevels && sugarLevels.length > 0 ? sugarLevels : SUGAR_LEVELS.map(v => ({ id: 0, label: v, value: v }))).map((lvl) => (
+                  <button key={lvl.value} onClick={() => onSugarChange(lvl.value)}
+                    className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${sugarLevel === lvl.value ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+                    {lvl.label}
+                  </button>
+                ))}
                 </div>
                 {sugarLevel === '' && (
                   <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1.5 ml-1">⚠ Please select sugar level</p>
@@ -513,6 +515,7 @@ interface BundleModalProps {
     panda_price?: number;
   }[];
   bundleComponentAddOnModalOpen: boolean;
+  sugarLevels?: { id: number; label: string; value: string }[];
   onSugarChange: (s: string) => void;
   onToggleOption: (opt: string) => void;
   onOpenAddOns: () => void;
@@ -536,6 +539,7 @@ export const BundleModal = ({
   bundlePandaPrice,
   filteredAddOns,
   bundleComponentAddOnModalOpen,
+  sugarLevels,
   onSugarChange,
   onToggleOption,
   onOpenAddOns,
@@ -591,12 +595,12 @@ export const BundleModal = ({
             <div>
               <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
               <div className="flex gap-2">
-                {SUGAR_LEVELS.map((level: string) => (
-                  <button key={level} onClick={() => onSugarChange(level)}
-                    className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${bundleComponentSugar === level && bundleComponentSugar !== '' ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
-                    {level}
-                  </button>
-                ))}
+              {(sugarLevels && sugarLevels.length > 0 ? sugarLevels : SUGAR_LEVELS.map(v => ({ id: 0, label: v, value: v }))).map((lvl: { id: number; label: string; value: string }) => (
+                <button key={lvl.value} onClick={() => onSugarChange(lvl.value)}
+                  className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${bundleComponentSugar === lvl.value ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+                  {lvl.label}
+                </button>
+              ))}
               </div>
               {bundleComponentSugar === '' && (
                 <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1.5 ml-1">⚠ Please select sugar level</p>
@@ -691,6 +695,7 @@ interface ComboDrinkModalProps {
   onToggleAddOn: (name: string) => void;
   onConfirm: () => void;
   onClose: () => void;
+  sugarLevels?: { id: number; label: string; value: string }[];
 }
 
 export const ComboDrinkModal = ({
@@ -708,6 +713,7 @@ export const ComboDrinkModal = ({
   onConfirm,
   onClose,
   orderCharge,
+  sugarLevels,
 }: ComboDrinkModalProps) => {
 
   return (
@@ -730,12 +736,12 @@ export const ComboDrinkModal = ({
             <div>
               <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
               <div className="flex gap-2">
-                {SUGAR_LEVELS.map((level: string) => (
-                  <button key={level} onClick={() => onSugarChange(level)}
-                    className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${comboDrinkSugar === level && comboDrinkSugar !== '' ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
-                    {level}
-                  </button>
-                ))}
+              {(sugarLevels && sugarLevels.length > 0 ? sugarLevels : SUGAR_LEVELS.map(v => ({ id: 0, label: v, value: v }))).map((lvl: { id: number; label: string; value: string }) => (
+                <button key={lvl.value} onClick={() => onSugarChange(lvl.value)}
+                  className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${comboDrinkSugar === lvl.value ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+                  {lvl.label}
+                </button>
+              ))}
               </div>
               {comboDrinkSugar === '' && (
                 <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1.5 ml-1">⚠ Please select sugar level</p>
@@ -811,6 +817,7 @@ interface MixAndMatchDrinkModalProps {
   onConfirm: () => void;
   onClose: () => void;
   onToggleOrderCharge: (type: 'grab' | 'panda') => void;
+  drinkSugarLevels?: { id: number; label: string; value: string }[];
 }
 
 export const MixAndMatchDrinkModal = ({
@@ -832,6 +839,7 @@ export const MixAndMatchDrinkModal = ({
   onToggleOrderCharge,
   onConfirm,
   onClose,
+  drinkSugarLevels,
 }: MixAndMatchDrinkModalProps) => {
   const drinkOpts        = (selectedDrink as unknown as { options?: string[] })?.options ?? [];
   const hasPearlOption   = drinkOpts.includes('pearl');
@@ -895,12 +903,12 @@ export const MixAndMatchDrinkModal = ({
                 <div>
                   <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
                   <div className="flex gap-2">
-                    {SUGAR_LEVELS.map((level: string) => (
-                      <button key={level} onClick={() => onSugarChange(level)}
-                        className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${drinkSugar === level ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
-                        {level}
-                      </button>
-                    ))}
+                  {(drinkSugarLevels && drinkSugarLevels.length > 0 ? drinkSugarLevels : SUGAR_LEVELS.map(v => ({ id: 0, label: v, value: v }))).map((lvl: { id: number; label: string; value: string }) => (
+                    <button key={lvl.value} onClick={() => onSugarChange(lvl.value)}
+                      className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${drinkSugar === lvl.value ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+                      {lvl.label}
+                    </button>
+                  ))}
                   </div>
                   {drinkSugar === '' && (
                     <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1.5 ml-1">⚠ Please select sugar level</p>

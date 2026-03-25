@@ -1268,6 +1268,7 @@ if (!orderType) {
             onOpenAddOns={() => setIsAddOnModalOpen(true)}
             onAddToOrder={addToOrder}
             onClose={() => { setSelectedItem(null); setIsAddOnModalOpen(false); }}
+            sugarLevels={selectedItem?.sugar_levels}
           />
         )}
 
@@ -1331,6 +1332,12 @@ if (!orderType) {
             onConfirm={confirmComboDrink}
             onClose={() => { setIsCombodrinkModalOpen(false); setPendingComboCart(null); }}
             orderCharge={orderCharge}
+            sugarLevels={
+              categories
+                .flatMap(c => c.menu_items)
+                .find(m => m.name === 'CLASSIC PEARL' && m.size === 'M')
+                ?.sugar_levels
+            }
           />
         )}
 
@@ -1342,6 +1349,7 @@ if (!orderType) {
             drinkSugar={mixMatchDrinkSugar}
             drinkOptions={mixMatchDrinkOptions}
             drinkAddOns={mixMatchDrinkAddOns}
+            drinkSugarLevels={selectedMixMatchDrink?.sugar_levels}
             filteredAddOns={filteredAddOns}
             drinkAddOnModalOpen={mixMatchDrinkAddOnOpen}
             orderCharge={orderCharge}
