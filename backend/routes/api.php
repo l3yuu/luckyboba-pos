@@ -195,7 +195,22 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         // ── BRANCH SHOW — cashiers need this to load VAT type and branch info ──
         // Placed here (not in the branch_manager group) so cashiers can access it.
         // Read-only: only exposes BranchController@show, no write operations.
-        Route::get('/branches/{id}', [BranchController::class, 'show']);
+            Route::get('/branches/ownership-summary', [BranchController::class, 'ownershipSummary']);
+            Route::get('/branches/performance',       [BranchController::class, 'performance']);
+            Route::get('/branches/today-sales',       [BranchController::class, 'todaySales']);
+
+            // ── Parameterized routes AFTER ────────────────────────────────────────
+            Route::get('/branches/{id}',              [BranchController::class, 'show']);
+            Route::put('/branches/{id}',              [BranchController::class, 'update']);
+            Route::delete('/branches/{id}',           [BranchController::class, 'destroy']);
+            Route::get('/branches/{id}/daily-sales',  [BranchController::class, 'dailySales']);
+            Route::get('/branches/{id}/analytics',    [BranchController::class, 'analytics']);
+            Route::get('/branches/{id}/sales-summary',[BranchController::class, 'salesSummary']);
+            Route::post('/branches/{id}/refresh-totals', [BranchController::class, 'refreshTotals']);
+
+            // ── Resource (index + store) ──────────────────────────────────────────
+            Route::get('/branches',  [BranchController::class, 'index']);
+            Route::post('/branches', [BranchController::class, 'store']);
         // ──────────────────────────────────────────────────────────────────────
     });
 
