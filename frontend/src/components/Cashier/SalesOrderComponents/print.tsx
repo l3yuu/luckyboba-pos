@@ -7,12 +7,6 @@ import logo from '../../../assets/logo.png';
 import { type CartItem, type BundleComponentCustomization } from '../../../types/index';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Shared helpers
-// ─────────────────────────────────────────────────────────────────────────────
-
-
-
-// ─────────────────────────────────────────────────────────────────────────────
 // ReceiptPrint
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -42,6 +36,7 @@ interface ReceiptPrintProps {
   referenceNumber: string;
   paymentMethod: string;
   selectedDiscount: { id?: number; name: string; amount?: number; type?: string } | null;
+  selectedDiscounts?: { id: number; name: string; amount: number; type: string }[];
   totalDiscountDisplay: number;
   itemDiscountTotal: number;
   promoDiscount: number;
@@ -50,48 +45,79 @@ interface ReceiptPrintProps {
   isReprint?: boolean;
   vatType?: 'vat' | 'non_vat';
   customerName: string;
-  orderType: 'dine-in' | 'take-out' | 'delivery'; 
+  orderType: 'dine-in' | 'take-out' | 'delivery';
   paxSenior?: number;
   paxPwd?: number;
   seniorId?: string;
   pwdId?: string;
+  itemPaxAssignments?: Record<string, ('none' | 'sc' | 'pwd')[]>;
 }
 
-// REPLACE with:
 export const ReceiptPrint = ({
   cart, branchName, brand, companyName, storeAddress, vatRegTin, minNumber, serialNumber,
   orNumber, queueNumber, cashierName,
   formattedDate, formattedTime, orderCharge, totalCount,
   subtotal, amtDue, vatableSales, vatAmount, vatExemptSales = 0, change, cashTendered,
   referenceNumber, paymentMethod, selectedDiscount,
+  selectedDiscounts = [],
   orderType,
-  customerName, 
+  customerName,
   totalDiscountDisplay, itemDiscountTotal, promoDiscount, addOnsData = [], showDoubleQueueStub = true,
   isReprint: _isReprint = false,
-  vatType = 'vat',  
-    paxSenior = 0,
+  vatType = 'vat',
+  paxSenior = 0,
   paxPwd = 0,
   seniorId = '',
   pwdId = '',
+  itemPaxAssignments = {},
 }: ReceiptPrintProps) => {
 
-  // ← console.log goes HERE, inside the function body
-  console.log('=== ReceiptPrint props ===');
-  console.log('subtotal:', subtotal);
-  console.log('itemDiscountTotal:', itemDiscountTotal);
-  console.log('totalDiscountDisplay:', totalDiscountDisplay);
-  console.log('amtDue:', amtDue);
-  console.log('cart items:', cart.map(i => ({
-    name: i.name,
-    qty: i.qty,
-    price: i.price,
-    finalPrice: i.finalPrice,
-    originalPrice: i.originalPrice,
-    discountLabel: i.discountLabel,
-    discountType: i.discountType,
-    discountValue: i.discountValue,
-  })));
-  console.log('=========================');
+  // ── Build per-item SC/PWD coverage map ──────────────────────────────────────
+  // Mirrors the exact same sorted-descending logic used in SalesOrder.tsx
+  const isVat = vatType === 'vat';
+
+  const allUnitsVatExcl: { itemIndex: number; unitVatExcl: number }[] = cart
+    .flatMap((item, idx) =>
+      Array(item.qty).fill({
+        itemIndex: idx,
+        unitVatExcl: isVat ? Number(item.price) / 1.12 : Number(item.price),
+      })
+    )
+    .sort((a, b) => b.unitVatExcl - a.unitVatExcl);
+
+  // Map: unitPosition → { discountName, discountPct }
+  const coveredUnitMap = new Map<number, { discountName: string; discountPct: number }>();
+  let alreadyUsed = 0;
+
+  for (const d of selectedDiscounts) {
+    const name       = d.name.toUpperCase();
+    const isSenior   = name.includes('SENIOR');
+    const isPwd      = name.includes('PWD');
+    const isDiplomat = name.includes('DIPLOMAT');
+    if (!isSenior && !isPwd && !isDiplomat) continue;
+
+    const pax   = isSenior ? (paxSenior ?? 0) : (paxPwd ?? 0);
+    const pct   = d.type?.includes('Percent') ? Number(d.amount) : 20;
+    const label = isSenior ? 'SC' : isPwd ? 'PWD' : 'Diplomat';
+
+    for (let u = alreadyUsed; u < alreadyUsed + pax && u < allUnitsVatExcl.length; u++) {
+      coveredUnitMap.set(u, { discountName: label, discountPct: pct });
+    }
+    alreadyUsed += pax;
+  }
+
+  // Map: cartItemIndex → { discountName, discountPct, count }
+  const itemCoverageMap = new Map<number, { discountName: string; discountPct: number; count: number }>();
+  coveredUnitMap.forEach((info, unitPos) => {
+    const { itemIndex } = allUnitsVatExcl[unitPos];
+    const existing = itemCoverageMap.get(itemIndex);
+    if (existing) {
+      existing.count++;
+    } else {
+      itemCoverageMap.set(itemIndex, { ...info, count: 1 });
+    }
+  });
+  // ───────────────────────────────────────────────────────────────────────────
 
   return (
     <div className="printable-receipt-container hidden print:block">
@@ -113,163 +139,239 @@ export const ReceiptPrint = ({
 
         {/* Guest info */}
         <div className="text-xs space-y-1 mb-3">
-  <div className="mt-1">Cashier: {cashierName ?? 'Admin'}</div>
-
-  {/* NEW: Order Type */}
-  <div className="mt-1">
-    Order Mode: {orderType === 'dine-in' ? 'DINE IN' : 'TAKE OUT'}
-  </div>
-
-  {orderCharge && (
-    <div className="mt-1">
-      Order Type: {orderCharge === 'grab' ? 'GRABFOOD' : 'FOODPANDA'}
-    </div>
-  )}
-        </div>
-        
-                {/* Discount Details */}
-{(paxSenior > 0 || paxPwd > 0) && (
-  <div>
-    
-    {paxSenior > 0 && (
-      <>
-        <div className="flex justify-between">
-          <span>Senior PAX</span>
-          <span>{paxSenior}</span>
-        </div>
-      </>
-    )}
-
-    {paxPwd > 0 && (
-      <>
-        <div className="flex justify-between">
-          <span>PWD PAX</span>
-          <span>{paxPwd}</span>
-        </div>
-      </>
-    )}
-
-  </div>
-)}
-        
-        {/* Items */}
-        <div className="mt-3 mb-3 text-xs border-t border-dashed border-black pt-3">
-        {cart.map((item, i) => (
-          <div key={i} className="mb-2">
-            {/* Main item row */}
-            <div className="uppercase">{item.name} {item.cupSizeLabel ? `(${item.cupSizeLabel})` : ''}</div>
-            <div className="flex justify-between w-full mt-0.5">
-              <span>
-                {(() => {
-                  const surcharge = item.charges?.grab ? Number(item.grab_price ?? 0) : item.charges?.panda ? Number(item.panda_price ?? 0) : 0;
-                  return `${item.qty} X ${(Number(item.price) + surcharge).toFixed(2)}`;
-                })()}
-              </span>
-              <span>
-  {(() => {
-    const addOnCost = (item.addOns ?? []).reduce((sum, addonName) => {
-      const a = addOnsData.find(x => x.name === addonName);
-      if (!a) return sum;
-      return sum + (item.charges?.grab && Number(a.grab_price ?? 0) > 0
-        ? Number(a.grab_price)
-        : item.charges?.panda && Number(a.panda_price ?? 0) > 0
-        ? Number(a.panda_price)
-        : Number(a.price));
-    }, 0);
-    const surcharge = item.charges?.grab ? Number(item.grab_price ?? 0) * item.qty : item.charges?.panda ? Number(item.panda_price ?? 0) * item.qty : 0;
-    const basePrice = item.originalPrice ?? item.finalPrice;
-    return (basePrice - addOnCost * item.qty + surcharge).toFixed(2);
-  })()}
-</span>
-            </div>
-            {item.discountLabel && item.discountType && item.discountValue && Number(item.discountValue) > 0 && (() => {
-  const unitPrice = Number(item.price ?? 0);
-const discountAmt = item.discountType === 'percent'
-  ? unitPrice * (Number(item.discountValue) / 100)
-  : Math.min(Number(item.discountValue), unitPrice);
-
-  return (
-    <div className="flex justify-between w-full text-[10px] italic text-gray-600">
-      <span>  • {item.discountLabel}</span>
-      <span>- {discountAmt.toFixed(2)}</span>
-    </div>
-  );
-})()}
-
-            {/* Sugar / options / remarks (no add-ons here) */}
-            {item.size === 'none' && item.sugarLevel != null ? (
-              <>
-                <div className="pl-2 text-[10px]">• Classic Pearl</div>
-                <div className="pl-4 text-[10px]">• Sugar {item.sugarLevel}</div>
-                {item.options?.map(o => <div key={o} className="pl-4 text-[10px]">• {o}</div>)}
-              </>
-            ) : (
-              <>
-                {item.sugarLevel != null && <div className="pl-2 text-[10px]">• Sugar {item.sugarLevel}</div>}
-                {item.options?.map(o => <div key={o} className="pl-2 text-[10px]">• {o}</div>)}
-                {item.remarks && <div className="pl-2 text-[10px] italic">• {item.remarks}</div>}
-              </>
-            )}
-
-        {/* Add-ons as separate line items */}
-        {item.addOns && item.addOns.length > 0 && item.addOns.map((addonName, ai) => {
-          const addonData = addOnsData.find((a: { id: number; name: string; price: number; grab_price?: number; panda_price?: number }) => a.name === addonName);
-          const addonUnitPrice = addonData
-            ? (item.charges?.grab && Number(addonData.grab_price ?? 0) > 0
-                ? Number(addonData.grab_price)
-                : item.charges?.panda && Number(addonData.panda_price ?? 0) > 0
-                ? Number(addonData.panda_price)
-                : Number(addonData.price))
-            : 0;
-          const addonTotal = addonUnitPrice * item.qty;
-
-          return (
-            <div key={ai} className="mt-2 pt-1 border-t border-dashed border-gray-300">
-              <div className="uppercase font-medium">{addonName}</div>
-              <div className="flex justify-between w-full mt-0.5">
-                <span>{item.qty} X {addonUnitPrice.toFixed(2)}</span>
-                <span>{addonTotal.toFixed(2)}</span>
-              </div>
-            </div>
-          );
-        })}
+          <div className="mt-1">Cashier: {cashierName ?? 'Admin'}</div>
+          <div className="mt-1">
+            Order Mode: {orderType === 'dine-in' ? 'DINE IN' : 'TAKE OUT'}
           </div>
-        ))}
+          {orderCharge && (
+            <div className="mt-1">
+              Order Type: {orderCharge === 'grab' ? 'GRABFOOD' : 'FOODPANDA'}
+            </div>
+          )}
         </div>
 
+        {/* Discount Details */}
+        {(paxSenior > 0 || paxPwd > 0) && (
+          <div>
+            {paxSenior > 0 && (
+              <div className="flex justify-between text-xs">
+                <span>Senior PAX</span>
+                <span>{paxSenior}</span>
+              </div>
+            )}
+            {paxPwd > 0 && (
+              <div className="flex justify-between text-xs">
+                <span>PWD PAX</span>
+                <span>{paxPwd}</span>
+              </div>
+            )}
+          </div>
+        )}
 
+        {/* Items - Split by discount type */}
+        <div className="mt-3 mb-3 text-xs border-t border-dashed border-black pt-3">
+          {(() => {
+            // Build split item groups from itemPaxAssignments
+            const splitGroups: {
+              cartIndex: number;
+              item: CartItem;
+              discountType: 'none' | 'sc' | 'pwd';
+              discountLabel: string;
+              discountPct: number;
+              count: number;
+            }[] = [];
+
+            const getDiscountInfo = (type: 'sc' | 'pwd' | 'none') => {
+              if (type === 'none') return { label: '', pct: 0 };
+              const d = selectedDiscounts.find(x =>
+                (type === 'sc' && x.name.toUpperCase().includes('SENIOR')) ||
+                (type === 'pwd' && (x.name.toUpperCase().includes('PWD') || x.name.toUpperCase().includes('DIPLOMAT')))
+              );
+              return {
+                label: type === 'sc' ? 'SC' : 'PWD',
+                pct: d ? (d.type?.includes('Percent') ? Number(d.amount) : 20) : 20,
+              };
+            };
+
+            cart.forEach((item, cartIndex) => {
+              const assignments = itemPaxAssignments[String(cartIndex)] ?? Array(item.qty).fill('none');
+              const groups: Record<'none' | 'sc' | 'pwd', number> = { none: 0, sc: 0, pwd: 0 };
+              assignments.forEach((a: 'none' | 'sc' | 'pwd') => groups[a]++);
+
+              (['sc', 'pwd', 'none'] as const).forEach(discountType => {
+                const count = groups[discountType];
+                if (count === 0) return;
+                const info = getDiscountInfo(discountType);
+                splitGroups.push({
+                  cartIndex,
+                  item,
+                  discountType,
+                  discountLabel: info.label,
+                  discountPct: info.pct,
+                  count,
+                });
+              });
+            });
+
+            const shownAddOns = new Set<number>();
+
+            return splitGroups.map((group, gi) => {
+              const { cartIndex, item, discountType, discountLabel, discountPct, count } = group;
+              const hasPaxDiscount = discountType !== 'none' && isVat;
+              const isFirstGroupForItem = splitGroups.findIndex(g => g.cartIndex === cartIndex) === gi;
+              const showAddOns = !shownAddOns.has(cartIndex);
+              if (showAddOns) shownAddOns.add(cartIndex);
+
+              const surchargePerUnit = item.charges?.grab
+                ? Number(item.grab_price ?? 0)
+                : item.charges?.panda
+                ? Number(item.panda_price ?? 0)
+                : 0;
+
+              const unitGross = Number(item.price) + surchargePerUnit;
+              const unitVatExcl = unitGross / 1.12;
+              const discountAmt = hasPaxDiscount ? unitVatExcl * (discountPct / 100) : 0;
+              const netPrice = hasPaxDiscount ? unitVatExcl - discountAmt : unitGross;
+
+              return (
+                <div key={gi} className="mb-3">
+                  {/* Item name + badge */}
+                  <div className="uppercase flex items-center gap-1 flex-wrap">
+                    <span>{item.name}{item.cupSizeLabel ? ` (${item.cupSizeLabel})` : ''}</span>
+                    {hasPaxDiscount && (
+                      <span className="text-[9px] border border-black px-0.5 font-bold leading-tight">
+                        {discountLabel} {discountPct}%
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Qty × unit price row */}
+                  <div className="flex justify-between w-full mt-0.5">
+                    <span>
+                      {count} X {unitGross.toFixed(2)}
+                    </span>
+                    <span>
+                      {(() => {
+                        const addOnCost = (item.addOns ?? []).reduce((sum, addonName) => {
+                          const a = addOnsData.find(x => x.name === addonName);
+                          if (!a) return sum;
+                          return sum + (item.charges?.grab && Number(a.grab_price ?? 0) > 0
+                            ? Number(a.grab_price)
+                            : item.charges?.panda && Number(a.panda_price ?? 0) > 0
+                            ? Number(a.panda_price)
+                            : Number(a.price));
+                        }, 0);
+                        const basePrice = (Number(item.price) + addOnCost) * count;
+                        return basePrice.toFixed(2);
+                      })()}
+                    </span>
+                  </div>
+
+                  {/* ── Per-item SC/PWD VAT breakdown ── */}
+                  {hasPaxDiscount && (
+                    <div className="mt-1 pl-1 text-[10px] border-t border-dashed border-gray-400 pt-1 space-y-0.5">
+                      <div className="flex justify-between">
+                        <span>{discountLabel} Discount ({discountPct}%)</span>
+                        <span>-₱{(discountAmt * count).toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between font-bold border-t border-dashed border-gray-400 pt-0.5">
+                        <span>Net Price (VAT Exempt)</span>
+                        <span>₱{(netPrice * count).toFixed(2)}</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Item-level discount label (e.g. BOGO, promo) */}
+                  {isFirstGroupForItem && item.discountLabel && item.discountType && item.discountValue && Number(item.discountValue) > 0 && (() => {
+                    const unitPrice = Number(item.price ?? 0);
+                    const discAmt = item.discountType === 'percent'
+                      ? unitPrice * (Number(item.discountValue) / 100)
+                      : Math.min(Number(item.discountValue), unitPrice);
+                    return (
+                      <div className="flex justify-between w-full text-[10px] italic text-gray-600">
+                        <span>  • {item.discountLabel}</span>
+                        <span>- {discAmt.toFixed(2)}</span>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Sugar / options / remarks - only on first group per item */}
+                  {isFirstGroupForItem && (
+                    <>
+                      {item.size === 'none' && item.sugarLevel != null ? (
+                        <>
+                          <div className="pl-2 text-[10px]">• Classic Pearl</div>
+                          <div className="pl-4 text-[10px]">• Sugar {item.sugarLevel}</div>
+                          {item.options?.map(o => <div key={o} className="pl-4 text-[10px]">• {o}</div>)}
+                        </>
+                      ) : (
+                        <>
+                          {item.sugarLevel != null && <div className="pl-2 text-[10px]">• Sugar {item.sugarLevel}</div>}
+                          {item.options?.map(o => <div key={o} className="pl-2 text-[10px]">• {o}</div>)}
+                          {item.remarks && <div className="pl-2 text-[10px] italic">• {item.remarks}</div>}
+                        </>
+                      )}
+                    </>
+                  )}
+
+                  {/* Add-ons as separate line items - only once per original item */}
+                  {showAddOns && item.addOns && item.addOns.length > 0 && item.addOns.map((addonName, ai) => {
+                    const addonData = addOnsData.find(a => a.name === addonName);
+                    const addonUnitPrice = addonData
+                      ? (item.charges?.grab && Number(addonData.grab_price ?? 0) > 0
+                          ? Number(addonData.grab_price)
+                          : item.charges?.panda && Number(addonData.panda_price ?? 0) > 0
+                          ? Number(addonData.panda_price)
+                          : Number(addonData.price))
+                      : 0;
+                    const addonTotal = addonUnitPrice * item.qty;
+                    return (
+                      <div key={ai} className="mt-2 pt-1 border-t border-dashed border-gray-300">
+                        <div className="uppercase font-medium">{addonName}</div>
+                        <div className="flex justify-between w-full mt-0.5">
+                          <span>{item.qty} X {addonUnitPrice.toFixed(2)}</span>
+                          <span>{addonTotal.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            });
+          })()}
+        </div>
 
         {/* Totals */}
         <div className="text-xs space-y-1 border-t border-dashed border-black pt-2">
           <div className="flex justify-between"><span>Total Items</span><span>{totalCount}</span></div>
           <div className="flex justify-between"><span>Sub Total</span><span>{subtotal.toFixed(2)}</span></div>
           {totalDiscountDisplay > 0 && (
-  <>
-    {itemDiscountTotal > 0 && (
-      <div className="flex justify-between">
-        <span>Item Discount(s)</span>
-        <span>- {itemDiscountTotal.toFixed(2)}</span>
-      </div>
-    )}
-    {selectedDiscount && promoDiscount > 0 && (
-      <div className="flex justify-between">
-        <span>
-          Promo: {selectedDiscount.name}
-          {(selectedDiscount as { name: string; amount?: number; type?: string }).type?.includes('Percent')
-            ? ` (${(selectedDiscount as { name: string; amount?: number; type?: string }).amount}%)`
-            : (selectedDiscount as { name: string; amount?: number; type?: string }).amount
-            ? ` (-₱${(selectedDiscount as { name: string; amount?: number; type?: string }).amount})`
-            : ''}
-        </span>
-        <span>- {promoDiscount.toFixed(2)}</span>
-      </div>
-    )}
-    <div className="flex justify-between font-bold border-t border-dashed border-black pt-1 mt-1">
-      <span>Total Discount</span>
-      <span>- {totalDiscountDisplay.toFixed(2)}</span>
-    </div>
-  </>
-)}
+            <>
+              {itemDiscountTotal > 0 && (
+                <div className="flex justify-between">
+                  <span>Item Discount(s)</span>
+                  <span>- {itemDiscountTotal.toFixed(2)}</span>
+                </div>
+              )}
+              {selectedDiscount && promoDiscount > 0 && (
+                <div className="flex justify-between">
+                  <span>
+                    Promo: {selectedDiscount.name}
+                    {(selectedDiscount as { name: string; amount?: number; type?: string }).type?.includes('Percent')
+                      ? ` (${(selectedDiscount as { name: string; amount?: number; type?: string }).amount}%)`
+                      : (selectedDiscount as { name: string; amount?: number; type?: string }).amount
+                      ? ` (-₱${(selectedDiscount as { name: string; amount?: number; type?: string }).amount})`
+                      : ''}
+                  </span>
+                  <span>- {promoDiscount.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between font-bold border-t border-dashed border-black pt-1 mt-1">
+                <span>Total Discount</span>
+                <span>- {totalDiscountDisplay.toFixed(2)}</span>
+              </div>
+            </>
+          )}
           <div className="flex justify-between text-base font-bold mt-1"><span>TOTAL DUE</span><span>{amtDue.toFixed(2)}</span></div>
         </div>
 
@@ -300,7 +402,7 @@ const discountAmt = item.discountType === 'percent'
             <>
               <div className="flex justify-between"><span>VATable Sales(V)</span><span>{Number(vatableSales || 0).toFixed(2)}</span></div>
               <div className="flex justify-between"><span>VAT Amount</span><span>{Number(vatAmount || 0).toFixed(2)}</span></div>
-             <div className="flex justify-between"><span>VAT Exempt Sales(E)</span><span>{Number(vatExemptSales || 0).toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>VAT Exempt Sales(E)</span><span>{Number(vatExemptSales || 0).toFixed(2)}</span></div>
               <div className="flex justify-between"><span>Zero-Rated Sales(Z)</span><span>0.00</span></div>
             </>
           )}
@@ -308,28 +410,28 @@ const discountAmt = item.discountType === 'percent'
 
         {/* Signature fields */}
         <div className="text-xs mt-5 space-y-2">
-  {['Name:', 'TIN/ID/SC:', 'Address:', 'Signature:'].map(label => (
-    <div key={label} className="flex justify-between items-end w-full">
-      <span>{label}</span>
-      <span className="border-b border-black w-[70%] relative">
-        {label === 'Name:' && customerName && (
-          <span className="absolute left-1 bottom-0 text-[10px]">{customerName}</span>
-        )}
-        {label === 'TIN/ID/SC:' && (seniorId || pwdId) && (
-          <span className="absolute left-1 bottom-0 text-[10px]">{seniorId || pwdId}</span>
-        )}
-      </span>
-    </div>
-  ))}
-</div>
+          {['Name:', 'TIN/ID/SC:', 'Address:', 'Signature:'].map(label => (
+            <div key={label} className="flex justify-between items-end w-full">
+              <span>{label}</span>
+              <span className="border-b border-black w-[70%] relative">
+                {label === 'Name:' && customerName && (
+                  <span className="absolute left-1 bottom-0 text-[10px]">{customerName}</span>
+                )}
+                {label === 'TIN/ID/SC:' && (seniorId || pwdId) && (
+                  <span className="absolute left-1 bottom-0 text-[10px]">{seniorId || pwdId}</span>
+                )}
+              </span>
+            </div>
+          ))}
+        </div>
 
         {/* Franchise info */}
         <div className="mt-6 mb-4 text-center text-xs">
           FOR FRANCHISE<br />EMAIL OR CONTACT US ON<br />luckyboba.franchise@gmail.com<br />09171699894
         </div>
 
-        {/* Queue number stub 1 — flows naturally after receipt, no page break */}
-        <div className="mt-6 py-4 text-center">
+        {/* Queue number stub 1 */}
+        <div className="mt-6 py-4 text-center" style={{ pageBreakAfter: 'always' }}>
           <p className="text-sm tracking-widest uppercase mb-1">Your Order Number Is:</p>
           <h2 className="font-black text-4xl">#{queueNumber}</h2>
           <p className="text-[10px] mt-2 uppercase text-gray-500">Please wait for your number to be called</p>
@@ -359,13 +461,13 @@ interface KitchenPrintProps {
   queueNumber: string;
   formattedDate: string;
   formattedTime: string;
-  customerName: string;                   // add this
-  orderType: 'dine-in' | 'take-out' | 'delivery'; 
+  customerName: string;
+  orderType: 'dine-in' | 'take-out' | 'delivery';
 }
 
 export const KitchenPrint = ({
-  cart, branchName, orNumber, queueNumber, formattedDate, formattedTime, orderType,       // add here
-  customerName, 
+  cart, branchName, orNumber, queueNumber, formattedDate, formattedTime, orderType,
+  customerName,
 }: KitchenPrintProps) => (
   <div className="printable-receipt-container hidden print:block">
     <div className="receipt-area bg-white text-black">
@@ -373,9 +475,9 @@ export const KitchenPrint = ({
         <h1 className="uppercase leading-tight font-black text-3xl mb-1">ORDER TICKET</h1>
         <h2 className="font-bold text-lg uppercase tracking-widest">{branchName}</h2>
         <div className="mt-2 text-sm uppercase">
-  <div>Customer: {customerName || 'N/A'}</div>
-  <div>Mode: {orderType === 'dine-in' ? 'DINE IN' : 'TAKE OUT'}</div>
-</div>
+          <div>Customer: {customerName || 'N/A'}</div>
+          <div>Mode: {orderType === 'dine-in' ? 'DINE IN' : 'TAKE OUT'}</div>
+        </div>
         <div className="py-3 my-3">
           <p className="text-sm tracking-widest uppercase">Queue</p>
           <h2 className="font-black text-4xl tracking-widest">#{queueNumber}</h2>
@@ -384,54 +486,54 @@ export const KitchenPrint = ({
         <p className="text-sm mt-1">{formattedDate} {formattedTime}</p>
       </div>
 
-<div className="mt-2">
-  {cart.map((item, i) => (
-    <div key={i} className="mb-4 border-b-2 border-dashed border-gray-400 pb-3">
-      <div className="flex items-start">
-        <span className="font-bold text-m mr-3">{item.qty}x</span>
-        <div className="flex-1">
-          <div className="uppercase text-sm leading-tight mb-1">
-            {item.name} {item.cupSizeLabel ? `(${item.cupSizeLabel})` : ''}
-          </div>
+      <div className="mt-2">
+        {cart.map((item, i) => (
+          <div key={i} className="mb-4 border-b-2 border-dashed border-gray-400 pb-3">
+            <div className="flex items-start">
+              <span className="font-bold text-m mr-3">{item.qty}x</span>
+              <div className="flex-1">
+                <div className="uppercase text-sm leading-tight mb-1">
+                  {item.name} {item.cupSizeLabel ? `(${item.cupSizeLabel})` : ''}
+                </div>
 
-          {item.size === 'none' && item.sugarLevel != null ? (
-            <>
-              <div className="text-sm font-bold mt-1">• Classic Pearl</div>
-              <div className="text-sm pl-3">Sugar: {item.sugarLevel}</div>
-              {item.options && item.options.length > 0 && (
-                <div className="text-sm pl-3">Options: {item.options.join(', ')}</div>
-              )}
-              {item.addOns && item.addOns.length > 0 && item.addOns.map((a, ai) => (
-                <div key={ai} className="text-sm pl-3 font-bold">+ {a}</div>
-              ))}
-            </>
-          ) : (
-            <>
-              {item.sugarLevel != null && (
-                <div className="text-sm mt-1">Sugar: {item.sugarLevel}</div>
-              )}
-              {item.options && item.options.length > 0 && (
-                <div className="text-sm">Options: {item.options.join(', ')}</div>
-              )}
-              {item.addOns && item.addOns.length > 0 && (
-                <div className="mt-1 border-t border-dashed border-gray-300 pt-1">
-                  {item.addOns.map((a, ai) => (
-                    <div key={ai} className="text-sm font-bold">+ {a}</div>
-                  ))}
-                </div>
-              )}
-              {item.remarks && (
-                <div className="text-sm italic mt-2 border-t border-gray-200 pt-1">
-                  {item.remarks}
-                </div>
-              )}
-            </>
-          )}
-        </div>
+                {item.size === 'none' && item.sugarLevel != null ? (
+                  <>
+                    <div className="text-sm font-bold mt-1">• Classic Pearl</div>
+                    <div className="text-sm pl-3">Sugar: {item.sugarLevel}</div>
+                    {item.options && item.options.length > 0 && (
+                      <div className="text-sm pl-3">Options: {item.options.join(', ')}</div>
+                    )}
+                    {item.addOns && item.addOns.length > 0 && item.addOns.map((a, ai) => (
+                      <div key={ai} className="text-sm pl-3 font-bold">+ {a}</div>
+                    ))}
+                  </>
+                ) : (
+                  <>
+                    {item.sugarLevel != null && (
+                      <div className="text-sm mt-1">Sugar: {item.sugarLevel}</div>
+                    )}
+                    {item.options && item.options.length > 0 && (
+                      <div className="text-sm">Options: {item.options.join(', ')}</div>
+                    )}
+                    {item.addOns && item.addOns.length > 0 && (
+                      <div className="mt-1 border-t border-dashed border-gray-300 pt-1">
+                        {item.addOns.map((a, ai) => (
+                          <div key={ai} className="text-sm font-bold">+ {a}</div>
+                        ))}
+                      </div>
+                    )}
+                    {item.remarks && (
+                      <div className="text-sm italic mt-2 border-t border-gray-200 pt-1">
+                        {item.remarks}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
-    </div>
-  ))}
-</div>
 
       <div className="text-center text-sm mt-4 uppercase tracking-widest">--- END OF TICKET ---</div>
     </div>
@@ -464,11 +566,11 @@ interface StickerClasses {
 }
 
 const getStickerClasses = (extraCount: number, nameLength = 0): StickerClasses => {
-  const isCrowded      = extraCount >= 2;
-  const isVeryCrowded  = extraCount >= 4;
-  const isUltraCrowded = extraCount >= 6;
-  const isLongName     = nameLength > 12;
-  const isVeryLongName = nameLength > 18;
+  const isCrowded       = extraCount >= 2;
+  const isVeryCrowded   = extraCount >= 4;
+  const isUltraCrowded  = extraCount >= 6;
+  const isLongName      = nameLength > 12;
+  const isVeryLongName  = nameLength > 18;
   const isUltraLongName = nameLength > 25;
   return {
     paddingClass:  isUltraCrowded ? 'p-0' : isVeryCrowded ? 'p-0.5' : 'p-1',
@@ -538,20 +640,20 @@ export const StickerPrint = ({
     if (item.isBundle) {
       return acc + (item.bundleComponents?.reduce((s, c) => s + c.quantity, 0) ?? 0) * item.qty;
     }
-    const isSticker    = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
-    const isMixMatch   = item.remarks?.startsWith('[Drink:') ?? false;
-    const waffleCount  = (item.addOns?.filter(a => a.toLowerCase().includes('waffle combo')).length ?? 0) * item.qty;
+    const isSticker   = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
+    const isMixMatch  = item.remarks?.startsWith('[Drink:') ?? false;
+    const waffleCount = (item.addOns?.filter(a => a.toLowerCase().includes('waffle combo')).length ?? 0) * item.qty;
     return acc + (isSticker ? item.qty : 0) + (!isSticker && isMixMatch ? item.qty : 0) + (!isSticker ? waffleCount : 0);
   }, 0);
 
-  const sharedProps = { branchName, orNumber, queueNumber, customerName, totalDrinks, formattedDate, formattedTime, orderType,  };
+  const sharedProps = { branchName, orNumber, queueNumber, customerName, totalDrinks, formattedDate, formattedTime, orderType };
 
   cart.forEach((item, cartIndex) => {
 
-    // ── Bundle stickers ─────────────────────────────────────────────────────
+    // ── Bundle stickers ───────────────────────────────────────────────────────
     if (item.isBundle && item.bundleComponents && item.bundleComponents.length > 0) {
       for (let q = 0; q < item.qty; q++) {
-      item.bundleComponents.forEach((component: BundleComponentCustomization, compIdx: number) => {
+        item.bundleComponents.forEach((component: BundleComponentCustomization, compIdx: number) => {
           for (let cq = 0; cq < component.quantity; cq++) {
             const cls = getStickerClasses(component.options.length + component.addOns.length, component.name.length);
             stickers.push(
@@ -560,7 +662,7 @@ export const StickerPrint = ({
                 className={`sticker-area page-break bg-white text-black flex flex-col justify-between items-center h-full w-full ${cls.paddingClass}`}
                 style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
               >
-                <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls}  />
+                <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls} />
                 <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
                   <div className="text-[7px] font-bold uppercase text-zinc-400 leading-none mb-0.5 tracking-wider">{item.name}</div>
                   <div className={`w-full font-black uppercase leading-tight ${cls.nameSize} ${cls.marginClass}`}>{component.name}</div>
@@ -582,8 +684,8 @@ export const StickerPrint = ({
       return;
     }
 
-    // ── Waffle combo add-on stickers ─────────────────────────────────────────
-    const isSticker       = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
+    // ── Waffle combo add-on stickers ──────────────────────────────────────────
+    const isSticker         = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
     const waffleComboAddOns = item.addOns?.filter(a => a.toLowerCase().includes('waffle combo')) ?? [];
 
     if (!isSticker && waffleComboAddOns.length > 0) {
@@ -596,7 +698,7 @@ export const StickerPrint = ({
               className={`sticker-area page-break bg-white text-black flex flex-col justify-between items-center h-full w-full ${cls.paddingClass}`}
               style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
             >
-              <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls}  />
+              <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls} />
               <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
                 <div className="w-full font-black uppercase leading-tight text-xs mb-1">{addonName}</div>
                 <div className="w-full text-center font-bold text-[9px]"><div>Waffle Combo</div></div>
@@ -614,16 +716,14 @@ export const StickerPrint = ({
 
     if (!isSticker && isMixMatch) {
       for (let i = 0; i < item.qty; i++) {
-        // Parse drink details from remarks: "[Drink: NAME | Sugar: LEVEL | ...]"
         const remarksContent = item.remarks?.replace(/^\[|\]$/g, '') ?? '';
-        const parts = remarksContent.split(' | ');
-        const drinkName = parts.find(p => p.startsWith('Drink:'))?.replace('Drink: ', '') ?? '';
-        const sugarPart = parts.find(p => p.startsWith('Sugar:'))?.replace('Sugar: ', '') ?? '';
-        const options   = parts.filter(p => !p.startsWith('Drink:') && !p.startsWith('Sugar:') && !p.startsWith('+'));
-        const addOns    = parts.filter(p => p.startsWith('+')).map(p => p.replace('+', '').trim());
-
+        const parts      = remarksContent.split(' | ');
+        const drinkName  = parts.find(p => p.startsWith('Drink:'))?.replace('Drink: ', '') ?? '';
+        const sugarPart  = parts.find(p => p.startsWith('Sugar:'))?.replace('Sugar: ', '') ?? '';
+        const options    = parts.filter(p => !p.startsWith('Drink:') && !p.startsWith('Sugar:') && !p.startsWith('+'));
+        const addOns     = parts.filter(p => p.startsWith('+')).map(p => p.replace('+', '').trim());
         const extraCount = options.length + addOns.length;
-        const cls = getStickerClasses(extraCount);
+        const cls        = getStickerClasses(extraCount);
 
         stickers.push(
           <div
@@ -653,43 +753,75 @@ export const StickerPrint = ({
       return;
     }
 
-// ── Non-drink items on take-out/delivery get a simple food sticker ──────────
-if (!isSticker) {
-  // Only print food stickers for take-out or delivery
-  if (orderType === 'dine-in') return;
+    // ── Non-drink food stickers (take-out / delivery only) ────────────────────
+    if (!isSticker) {
+      if (orderType === 'dine-in') return;
 
-  const cls = getStickerClasses(0, item.name.length);
-
-  for (let i = 0; i < item.qty; i++) {
-    stickers.push(
-      <div
-        key={`sticker-food-${cartIndex}-${i}`}
-        className={`sticker-area page-break bg-white text-black flex flex-col justify-between items-center h-full w-full ${cls.paddingClass}`}
-        style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
-      >
-        <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls} />
-        <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
-          {item.cupSizeLabel && (
-            <div className="text-[7px] font-bold uppercase text-zinc-400 leading-none mb-0.5 tracking-wider">
-              {item.cupSizeLabel}
+      const cls = getStickerClasses(0, item.name.length);
+      for (let i = 0; i < item.qty; i++) {
+        stickers.push(
+          <div
+            key={`sticker-food-${cartIndex}-${i}`}
+            className={`sticker-area page-break bg-white text-black flex flex-col justify-between items-center h-full w-full ${cls.paddingClass}`}
+            style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
+          >
+            <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls} />
+            <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
+              {item.cupSizeLabel && (
+                <div className="text-[7px] font-bold uppercase text-zinc-400 leading-none mb-0.5 tracking-wider">
+                  {item.cupSizeLabel}
+                </div>
+              )}
+              <div className={`w-full font-black uppercase leading-tight ${cls.nameSize} ${cls.marginClass}`}>
+                {item.name}
+              </div>
+              {item.remarks && (
+                <div className={`w-full text-center font-bold italic ${cls.addOnSize} mt-0.5`}>
+                  {item.remarks}
+                </div>
+              )}
             </div>
-          )}
-          <div className={`w-full font-black uppercase leading-tight ${cls.nameSize} ${cls.marginClass}`}>
-            {item.name}
+            <StickerFooter cls={cls} formattedDate={formattedDate} formattedTime={formattedTime} />
           </div>
-          {item.remarks && (
-            <div className={`w-full text-center font-bold italic ${cls.addOnSize} mt-0.5`}>
-              {item.remarks}
+        );
+        drinkIndex++;
+      }
+      return;
+    }
+
+    // ── Standard drink stickers ───────────────────────────────────────────────
+    for (let i = 0; i < item.qty; i++) {
+      const extraCount = (item.options?.length ?? 0) + (item.addOns?.length ?? 0);
+      const cls        = getStickerClasses(extraCount, item.name.length);
+
+      stickers.push(
+        <div
+          key={`sticker-drink-${cartIndex}-${i}`}
+          className={`sticker-area page-break bg-white text-black flex flex-col justify-between items-center h-full w-full ${cls.paddingClass}`}
+          style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
+        >
+          <StickerHeader {...sharedProps} drinkIndex={drinkIndex} cls={cls} />
+          <div className="w-full text-center flex-1 flex flex-col justify-center items-center px-1 overflow-hidden">
+            {item.cupSizeLabel && (
+              <div className="text-[7px] font-bold uppercase text-zinc-400 leading-none mb-0.5 tracking-wider">
+                {item.cupSizeLabel}
+              </div>
+            )}
+            <div className={`w-full font-black uppercase leading-tight ${cls.nameSize} ${cls.marginClass}`}>
+              {item.name}
             </div>
-          )}
+            <div className={`w-full text-center font-bold ${cls.addOnSize} ${cls.gapClass}`}>
+              {item.sugarLevel && <div>Sugar: {item.sugarLevel}</div>}
+              {item.options?.map(opt => <div key={opt}>{opt}</div>)}
+              {item.addOns?.map(a => <div key={a}>+ {a}</div>)}
+              {item.remarks && <div className="italic">{item.remarks}</div>}
+            </div>
+          </div>
+          <StickerFooter cls={cls} formattedDate={formattedDate} formattedTime={formattedTime} />
         </div>
-        <StickerFooter cls={cls} formattedDate={formattedDate} formattedTime={formattedTime} />
-      </div>
-    );
-    drinkIndex++;   // ← increment INSIDE the loop, after each sticker
-  }
-  return;
-}
+      );
+      drinkIndex++;
+    }
   });
 
   return (
