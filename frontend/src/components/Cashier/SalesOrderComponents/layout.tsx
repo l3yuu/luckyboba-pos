@@ -1,7 +1,7 @@
 // ── layout.tsx ────────────────────────────────────────────────────────────────
 // Header, MenuArea, CartSidebar, and OnlineOrdersPanel.
 
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { type Category, type MenuItem, type CartItem, WINGS_QUANTITIES } from '../../../types/index';
 import { DrinkIcon, BASE_CARD, TYPE_BADGE } from './shared';
 import axios from 'axios';
