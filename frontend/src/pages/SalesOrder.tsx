@@ -32,6 +32,11 @@ import {
 import { ReceiptPrint, KitchenPrint, StickerPrint }
   from '../components/Cashier/SalesOrderComponents/print';
 
+import OrderTypeModal from '../components/Cashier/OrderTypeModal';
+
+// ── Utility ───────────────────────────────────────────────────────────────────
+const round = (n: number, d = 2) => Math.round(n * 10 ** d) / 10 ** d;
+
 // ── Local type ────────────────────────────────────────────────────────────────
 interface Discount {
   id: number;
@@ -41,8 +46,9 @@ interface Discount {
   status: 'ON' | 'OFF';
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
 
+
+// ── Component ─────────────────────────────────────────────────────────────────
 const SalesOrder = () => {
   const navigate      = useNavigate();
   const { showToast } = useToast();
@@ -63,9 +69,9 @@ const SalesOrder = () => {
 
   const branchId   = user?.branch_id   ?? null;
   const branchName = user?.branch_name ?? localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch';
-  const [vatType] = useState<'vat' | 'non_vat'>(
-    () => (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat'
-  );
+const [vatType, setVatType] = useState<'vat' | 'non_vat'>(
+  () => (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat'
+);
 
   const handleNavClick = (label: string) => {
     if (label !== 'Home') return;
@@ -75,11 +81,24 @@ const SalesOrder = () => {
   };
 
   // ── State ───────────────────────────────────────────────────────────────────
-
+  const [branchDetails, setBranchDetails] = useState<{
+    brand?: string; companyName?: string; storeAddress?: string;
+    vatRegTin?: string; minNumber?: string; serialNumber?: string;
+  }>({});
+  const [orderType, setOrderType] = useState<'dine-in' | 'take-out' | 'delivery' | null>(null);
   const [cashierName, setCashierName] = useState<string>(() =>
     localStorage.getItem('lucky_boba_user_name') ?? 'Admin'
   );
   const [currentDate, setCurrentDate] = useState(new Date());
+
+  // Cart
+const [cart, setCart] = useState<CartItem[]>(() => {
+  try {
+    const saved = localStorage.getItem('pos_cart_cache');
+    return saved ? JSON.parse(saved) : [];
+  } catch { return []; }
+});
+
 
   // Cash-in gate
   const [menuAvailable,   setMenuAvailable]   = useState(false);
@@ -99,7 +118,13 @@ const SalesOrder = () => {
   const [selectedItem,     setSelectedItem]     = useState<MenuItem | null>(null);
   const [qty,              setQty]              = useState(1);
   const [remarks,          setRemarks]          = useState('');
-  const [sugarLevel,       setSugarLevel]       = useState('');
+  const [sugarLevel, setSugarLevel] = useState('');
+  const [sugarLevels, setSugarLevels] = useState<{ id: number; label: string; value: string }[]>(() => {
+    try {
+      const c = localStorage.getItem('pos_sugar_levels_cache');
+      return c ? JSON.parse(c) : [];
+    } catch { return []; }
+  });
   const [size,             setSize]             = useState<'M' | 'L' | 'none'>('M');
   const [selectedOptions,  setSelectedOptions]  = useState<string[]>([]);
   const [selectedAddOns,   setSelectedAddOns]   = useState<string[]>([]);
@@ -134,9 +159,6 @@ const SalesOrder = () => {
   const [bundleComponentOptions,         setBundleComponentOptions]         = useState<string[]>([]);
   const [bundleComponentAddOns,          setBundleComponentAddOns]          = useState<string[]>([]);
   const [bundleComponentAddOnModalOpen,  setBundleComponentAddOnModalOpen]  = useState(false);
-
-  // Cart
-  const [cart, setCart] = useState<CartItem[]>([]);
 
   // Cart item editing
   const [editingCartIndex,      setEditingCartIndex]      = useState<number | null>(null);
@@ -226,43 +248,59 @@ const SalesOrder = () => {
   // 1. Basic counts
   const totalCount = cart.reduce((acc, item) => acc + item.qty, 0);
 
-  // 2. Gross Calculation
-  const grossSubtotal = cart.reduce((acc, item) =>
-    acc + item.finalPrice + getItemSurcharge(item), 0
-  );
+  // 2. Gross Calculation (always use base price × qty, never finalPrice)
+const grossSubtotal = cart.reduce((acc, item) =>
+  acc + (item.originalPrice ?? item.finalPrice) + getItemSurcharge(item), 0
+);
 
   // 3. Item-Level Discounts
-  const itemDiscountTotal = cart.reduce((acc, item) => {
-    const baseTotal      = item.finalPrice;
-    const discountedTotal = item.finalPrice;
-    return acc + Math.max(0, baseTotal - discountedTotal);
-  }, 0);
+const itemDiscountTotal = cart.reduce((acc, item) => {
+  if (!item.discountType || item.discountType === 'none') return acc;
+  if (!item.discountValue || Number(item.discountValue) === 0) return acc;
+
+  const discountVal = Number(item.discountValue);
+
+  const discountAmt = item.discountType === 'percent'
+    ? Number(item.price) * item.qty * (discountVal / 100)
+    : Math.min(discountVal, Number(item.price) * item.qty);
+
+  return acc + discountAmt;
+}, 0);
 
   // 4. Promo Eligibility (Vouchers — Promo tab only)
   const eligibleForPromo = cart
     .filter(item => !item.discountId)
     .reduce((acc, item) => acc + (Number(item.price) * item.qty) + getItemSurcharge(item), 0);
 
-  // ── PAX-based multi-discount calculation ────────────────────────────────────
-  // Each selected pax discount (Senior / PWD) applies independently based on its pax count.
-  // Senior discount → applies to paxSenior number of items (highest priced first).
-  // PWD discount    → applies to paxPwd    number of items (continuing from where Senior left off).
+  const isVat = vatType === 'vat';
+
+  // ── PAX-based SC/PWD discount (BIR formula) ─────────────────────────────────
+  // BIR rule: SC/PWD discount is 20% of the VAT-EXCLUSIVE price.
+  // Step 1 — remove VAT from each unit:  unitPrice / 1.12
+  // Step 2 — apply 20% (or fixed) on that VAT-exclusive base
+  // This means for ₱240 gross:  240/1.12 = 214.29  →  214.29 × 20% = 42.86 discount  →  171.43 due
+  //
+  // Senior discount → highest-priced paxSenior units first.
+  // PWD discount    → next paxPwd units (picks up where Senior left off).
+
+  // Flatten cart into per-unit VAT-EXCLUSIVE prices, sorted descending
+  const allUnitsVatExcl = cart
+    .flatMap(item =>
+      Array(item.qty).fill(
+        isVat
+          ? (Number(item.price) + getItemSurcharge(item) / item.qty) / 1.12
+          : (Number(item.price) + getItemSurcharge(item) / item.qty)
+      )
+    )
+    .sort((a: number, b: number) => b - a);
 
   const totalPaxDiscount = selectedDiscounts.reduce((total, d) => {
-    const isSenior = d.name.toUpperCase().includes('SENIOR');
-    const isPwd    = d.name.toUpperCase().includes('PWD') || d.name.toUpperCase().includes('DIPLOMAT');
-    const pax      = isSenior ? (paxSenior || 0) : isPwd ? (paxPwd || 0) : 0;
+    const isSenior  = d.name.toUpperCase().includes('SENIOR');
+    const isPwd     = d.name.toUpperCase().includes('PWD') || d.name.toUpperCase().includes('DIPLOMAT');
+    const pax       = isSenior ? (paxSenior || 0) : isPwd ? (paxPwd || 0) : 0;
 
     if (pax === 0) return total;
 
-    // Flatten all cart units sorted by price descending
-    const allUnits = cart
-      .flatMap(item =>
-        Array(item.qty).fill(Number(item.price) + getItemSurcharge(item) / item.qty)
-      )
-      .sort((a, b) => b - a);
-
-    // How many units are already consumed by previously processed discounts
     const alreadyUsed = selectedDiscounts
       .slice(0, selectedDiscounts.indexOf(d))
       .reduce((used, prev) => {
@@ -271,17 +309,18 @@ const SalesOrder = () => {
         return used + (prevIsSenior ? (paxSenior || 0) : prevIsPwd ? (paxPwd || 0) : 0);
       }, 0);
 
-    const discountedUnits = allUnits.slice(alreadyUsed, alreadyUsed + pax);
-    const base = discountedUnits.reduce((sum, price) => sum + price, 0);
+    const discountedUnits = allUnitsVatExcl.slice(alreadyUsed, alreadyUsed + pax);
+    const vatExclBase     = discountedUnits.reduce((sum, p) => sum + p, 0);
 
+    // Discount is applied on the VAT-exclusive base
     const discountAmt = d.type.includes('Percent')
-      ? base * (Number(d.amount) / 100)
+      ? vatExclBase * (Number(d.amount) / 100)
       : Number(d.amount) * pax;
 
     return total + discountAmt;
   }, 0);
 
-  // ── Single promo discount (Promo tab) ───────────────────────────────────────
+  // ── Single promo discount (Promo tab) — stays on VAT-inclusive base ─────────
   const promoDiscount = selectedDiscount
     ? selectedDiscount.type.includes('Percent')
       ? eligibleForPromo * (Number(selectedDiscount.amount) / 100)
@@ -291,23 +330,64 @@ const SalesOrder = () => {
   // Total discount = item-level + pax discounts + promo discount
   const orderLevelDiscount = totalPaxDiscount + promoDiscount;
 
+  // ── VAT split (must be computed before amtDue) ────────────────────────────────
+  // The units covered by SC/PWD are VAT-exempt (their VAT-exclusive price is the exempt amount).
+  // Everything else remains VATable.
+  const hasPaxDiscount = selectedDiscounts.some(d =>
+    d.name.toUpperCase().includes('SENIOR') ||
+    d.name.toUpperCase().includes('PWD')    ||
+    d.name.toUpperCase().includes('DIPLOMAT')
+  );
+
+  // How many units are covered by SC/PWD pax
+  const totalPaxUnits = selectedDiscounts.reduce((used, d) => {
+    const isSenior = d.name.toUpperCase().includes('SENIOR');
+    const isPwd    = d.name.toUpperCase().includes('PWD') || d.name.toUpperCase().includes('DIPLOMAT');
+    return used + (isSenior ? (paxSenior || 0) : isPwd ? (paxPwd || 0) : 0);
+  }, 0);
+
+  // VAT-exempt = sum of VAT-exclusive prices of the covered units
+  const vatExemptUnits = allUnitsVatExcl.slice(0, totalPaxUnits);
+  const vatExemptSales = isVat && hasPaxDiscount
+    ? round(vatExemptUnits.reduce((s, p) => s + p, 0))
+    : 0;
+
   // 5. Final Totals
-  const amtDue        = Math.max(0, grossSubtotal - itemDiscountTotal - totalPaxDiscount - promoDiscount);
-  const isVat         = vatType === 'vat';
-  const vatableSales  = isVat ? amtDue / 1.12 : amtDue;
-  const vatAmount     = isVat ? amtDue - vatableSales : 0;
+  // amtDue = gross - item discounts - SC/PWD discount - promo discount
+  // For SC/PWD: the covered portion becomes VAT-exempt, so we subtract the VAT amount as well
+  // Formula: amtDue = (grossSubtotal - vatExemptSales) + (vatExemptSales - totalPaxDiscount) - itemDiscountTotal - promoDiscount
+  // Simplified: amtDue = grossSubtotal - vatExemptSales - totalPaxDiscount - itemDiscountTotal - promoDiscount + vatExemptSales
+  // Further simplified: When full SC/PWD coverage, amtDue = vatExemptSales - totalPaxDiscount (VAT-excl base minus discount)
+  const amtDue = hasPaxDiscount
+    ? Math.max(0, round(vatExemptSales - totalPaxDiscount + (grossSubtotal - vatExemptSales * 1.12) - itemDiscountTotal - promoDiscount))
+    : Math.max(0, grossSubtotal - itemDiscountTotal - totalPaxDiscount - promoDiscount);
+
+  // VATable base = amtDue minus the VAT-exempt portion
+  const vatableBase  = isVat ? Math.max(0, amtDue - vatExemptSales) : 0;
+  const vatableSales = isVat ? round(vatableBase / 1.12) : 0;
+  const vatAmount    = isVat ? round(vatableBase - vatableSales) : 0;
+  // ─────────────────────────────────────────────────────────────────────────────
+
   const totalDiscountDisplay = itemDiscountTotal + totalPaxDiscount + promoDiscount;
   const change        = typeof cashTendered === 'number' ? Math.max(0, cashTendered - amtDue) : 0;
   const subtotal      = grossSubtotal - itemDiscountTotal;
 
   // 6. Sticker Logic
-  const hasStickers = cart.some(item =>
-    item.sugarLevel !== undefined ||
-    item.size === 'M' || item.size === 'L' ||
-    (item.addOns?.some(a => a.toLowerCase().includes('waffle combo')) ?? false) ||
-    (item.isBundle && (item.bundleComponents?.length ?? 0) > 0) ||
-    (item.remarks?.startsWith('[Drink:') ?? false)
-  );
+const hasStickers = cart.some(item =>
+  item.sugarLevel !== undefined ||
+  item.size === 'M' || item.size === 'L' ||
+  (item.addOns?.some(a => a.toLowerCase().includes('waffle combo')) ?? false) ||
+  (item.isBundle && (item.bundleComponents?.length ?? 0) > 0) ||
+  (item.remarks?.startsWith('[Drink:') ?? false) ||
+  // Food items on take-out/delivery always get a sticker
+(
+    (orderType === 'take-out' || orderType === 'delivery') &&
+    item.sugarLevel === undefined &&
+    item.size === 'none' &&
+    !item.isBundle &&
+    !(item.remarks?.startsWith('[Drink:') ?? false)
+  )
+);
 
   const formattedDate = currentDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
   const formattedTime = currentDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -319,7 +399,6 @@ const SalesOrder = () => {
       details: `Cashier: ${cashierName} | Branch: ${branchName} | ${new Date().toLocaleString('en-PH', { timeZone: 'Asia/Manila', hour12: true })}`,
     }).catch(() => {});
   };
-
   // ── Effects ─────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -336,6 +415,29 @@ const SalesOrder = () => {
     boot();
     syncNextSequence();
 
+     if (branchId) {
+    api.get(`/branches/${branchId}`).then(({ data }) => {
+      const b = data.data ?? data;
+      setBranchDetails({
+        brand:        b.brand,
+        companyName:  b.company_name,
+        storeAddress: b.store_address,
+        vatRegTin:    b.vat_reg_tin,
+        minNumber:    b.min_number,
+        serialNumber: b.serial_number,
+      });
+
+       if (b.vat_type) {
+      setVatType(b.vat_type as 'vat' | 'non_vat');
+         localStorage.setItem('lucky_boba_user_branch_vat', b.vat_type);
+          console.log('VAT Type synced:', b.vat_type);
+      }
+      
+      console.log('Branch details fetched:', b);  // TEMP
+  }).catch((err) => {
+  console.error('Branch fetch failed:', err.response?.status, err.response?.data);
+});
+}
     api.get('/discounts').then(({ data }) => {
       localStorage.setItem('pos_discounts_cache', JSON.stringify(data));
       const seen = new Set<string>();
@@ -355,6 +457,12 @@ const SalesOrder = () => {
       setAddOnsData(data);
     }).catch(() => {});
 
+    api.get('/sugar-levels').then(({ data }) => {
+      const levels = data.data ?? data; // handles { success, data: [...] } or plain array
+      localStorage.setItem('pos_sugar_levels_cache', JSON.stringify(levels));
+      setSugarLevels(levels);
+    }).catch(() => {});
+
     api.get('/bundles').then(({ data }) => {
       localStorage.setItem('pos_bundles_cache', JSON.stringify(data));
       setBundlesData(data);
@@ -363,7 +471,7 @@ const SalesOrder = () => {
     const onCashIn = () => { setMenuAvailable(true); setCheckingCashIn(false); };
     window.addEventListener('cash-in-completed', onCashIn);
     return () => window.removeEventListener('cash-in-completed', onCashIn);
-  }, []);
+  }, [branchId]);
 
   useEffect(() => {
     api.get('/user').then(({ data: u }) => {
@@ -374,6 +482,14 @@ const SalesOrder = () => {
     const timer = setInterval(() => setCurrentDate(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+useEffect(() => {
+  try {
+    localStorage.setItem('pos_cart_cache', JSON.stringify(cart));
+  } catch (e) {
+    console.warn('Failed to persist cart:', e);
+  }
+}, [cart]);
 
   // ── Sequence helpers ────────────────────────────────────────────────────────
 
@@ -462,7 +578,7 @@ const SalesOrder = () => {
     return items;
   };
 
-  const handleItemClick = async (item: MenuItem) => {
+const handleItemClick = async (item: MenuItem) => {
     const actualCategory = categories.find(cat =>
       cat.menu_items.some(mi => mi.id === item.id)
     ) ?? selectedCategory;
@@ -547,6 +663,26 @@ const SalesOrder = () => {
       const cupSizeL = actualCategory?.cup?.size_l || 'L';
       setSize(categorySize === cupSizeL ? 'L' : 'M');
     }
+
+    // ── Fetch sugar levels specific to this menu item ──────────────────────
+  const isDrinkItem = catType === 'drink' || catType === 'combo';
+  if (isDrinkItem) {
+    try {
+      const { data } = await api.get(`/sugar-levels/by-item/${item.id}`);
+      const levels = data.data ?? [];
+      // Only update if this item has assigned sugar levels;
+      // otherwise reset to empty so the selector is hidden
+      setSugarLevels(levels);
+      setSugarLevel(''); // always reset the selected value
+    } catch {
+      setSugarLevels([]);
+      setSugarLevel('');
+    }
+  } else {
+    // Non-drink items never show sugar level
+    setSugarLevels([]);
+    setSugarLevel('');
+  }
   };
 
   // ── Order charge toggle ─────────────────────────────────────────────────────
@@ -866,55 +1002,73 @@ const SalesOrder = () => {
     setEditingItemDiscountId(null);
   };
 
-  const adjustEditQty = (delta: number) => {
-    if (!editingCartItem) return;
-    const newQty    = Math.max(1, editingCartItem.qty + delta);
-    const unitPrice = editingCartItem.finalPrice / editingCartItem.qty;
-    setEditingCartItem({ ...editingCartItem, qty: newQty, finalPrice: unitPrice * newQty });
+const adjustEditQty = (delta: number) => {
+  if (!editingCartItem) return;
+  const newQty = Math.max(1, editingCartItem.qty + delta);
+
+  const originalUnitPrice = (editingCartItem.originalPrice ?? editingCartItem.finalPrice)
+    / editingCartItem.qty;
+
+  setEditingCartItem({
+    ...editingCartItem,
+    qty: newQty,                          // ← was `qty` (wrong variable)
+    finalPrice: originalUnitPrice * newQty,
+  });
+};
+
+const saveCartItemEdit = () => {
+  if (editingCartIndex === null || !editingCartItem) return;
+
+  const addOnCostPerUnit = (editingCartItem.addOns ?? []).reduce((sum, addonName) => {
+    const addon = addOnsData.find(a => a.name === addonName);
+    if (!addon) return sum;
+    const price = editingCartItem.charges?.grab && Number(addon.grab_price ?? 0) > 0
+      ? Number(addon.grab_price)
+      : editingCartItem.charges?.panda && Number(addon.panda_price ?? 0) > 0
+      ? Number(addon.panda_price)
+      : Number(addon.price ?? 0);
+    return sum + price;
+  }, 0);
+
+  const drinkUnitPrice = Number(editingCartItem.price ?? 0);
+  const qty = Number(editingCartItem.qty ?? 1);
+  const discountValNum = Number(itemDiscountValue ?? 0);
+  let discountLabel: string | undefined = undefined;
+
+  // ── Total price before any discount ──────────────────────────────────────
+  const grossTotal = (drinkUnitPrice + addOnCostPerUnit) * qty;
+
+  let totalDiscount = 0;
+
+  if (itemDiscountType === 'percent' && discountValNum > 0) {
+    // Percent applies across all units
+    totalDiscount = drinkUnitPrice * qty * (discountValNum / 100);
+    const d = discounts.find(d => d.id === editingItemDiscountId);
+    if (d) discountLabel = `${d.name} (${d.amount}%)`;
+
+  } else if (itemDiscountType === 'fixed' && discountValNum > 0) {
+    // Fixed discount = deduct exact amount once from the total (e.g. BOGO = deduct 1 unit price)
+    totalDiscount = Math.min(discountValNum, drinkUnitPrice * qty);
+    const d = discounts.find(d => d.id === editingItemDiscountId);
+    if (d) discountLabel = `${d.name} (-₱${d.amount})`;
+  }
+
+  const newFinalPrice = Math.max(0, grossTotal - totalDiscount);
+
+  const updated: CartItem = {
+    ...editingCartItem,
+    finalPrice:    newFinalPrice,
+    originalPrice: grossTotal,
+    discountLabel,
+    discountId:    editingItemDiscountId,
+    discountType:  itemDiscountType,
+    discountValue: discountValNum,
   };
 
-  const saveCartItemEdit = () => {
-    if (editingCartIndex === null || !editingCartItem) return;
-
-    const addOnCostPerUnit = (editingCartItem.addOns ?? []).reduce((sum, addonName) => {
-      const a = addOnsData.find(x => x.name === addonName);
-      if (!a) return sum;
-      return sum + (editingCartItem.charges?.grab && Number(a.grab_price ?? 0) > 0
-        ? Number(a.grab_price)
-        : editingCartItem.charges?.panda && Number(a.panda_price ?? 0) > 0
-        ? Number(a.panda_price)
-        : Number(a.price));
-    }, 0);
-
-    const drinkUnitPrice = Number(editingCartItem.price);
-    let discountedDrinkUnit = drinkUnitPrice;
-    let discountLabel: string | undefined;
-
-    if (itemDiscountType === 'percent' && itemDiscountValue !== '') {
-      discountedDrinkUnit = drinkUnitPrice * (1 - Number(itemDiscountValue) / 100);
-      const d = discounts.find(d => d.id === editingItemDiscountId);
-      if (d) discountLabel = `${d.name} (${d.amount}%)`;
-    } else if (itemDiscountType === 'fixed' && itemDiscountValue !== '') {
-      discountedDrinkUnit = Math.max(0, drinkUnitPrice - Number(itemDiscountValue));
-      const d = discounts.find(d => d.id === editingItemDiscountId);
-      if (d) discountLabel = `${d.name} (-₱${d.amount})`;
-    }
-
-    const newFinalPrice = (discountedDrinkUnit + addOnCostPerUnit) * editingCartItem.qty;
-
-    const updated: CartItem = {
-      ...editingCartItem,
-      finalPrice:    newFinalPrice,
-      discountLabel,
-      discountId:    editingItemDiscountId,
-      discountType:  itemDiscountType,
-      discountValue: itemDiscountValue,
-    };
-
-    setCart(prev => prev.map((item, i) => i === editingCartIndex ? updated : item));
-    showToast('Item updated & Pax adjusted', 'success');
-    closeCartItemEdit();
-  };
+  setCart(prev => prev.map((item, i) => i === editingCartIndex ? updated : item));
+  showToast('Item updated', 'success');
+  closeCartItemEdit();
+};
 
   const removeEditingItem = () => {
     if (editingCartIndex === null) return;
@@ -926,29 +1080,32 @@ const SalesOrder = () => {
     closeCartItemEdit();
   };
 
-  const computeDiscountedTotal = () => {
-    if (!editingCartItem) return 0;
+const computeDiscountedTotal = () => {
+  if (!editingCartItem) return 0;
 
-    const addOnCostPerUnit = (editingCartItem.addOns ?? []).reduce((sum, addonName) => {
-      const a = addOnsData.find(x => x.name === addonName);
-      if (!a) return sum;
-      return sum + (editingCartItem.charges?.grab && Number(a.grab_price ?? 0) > 0
-        ? Number(a.grab_price)
-        : editingCartItem.charges?.panda && Number(a.panda_price ?? 0) > 0
-        ? Number(a.panda_price)
-        : Number(a.price));
-    }, 0);
+  const addOnCostPerUnit = (editingCartItem.addOns ?? []).reduce((sum, addonName) => {
+    const a = addOnsData.find(x => x.name === addonName);
+    if (!a) return sum;
+    return sum + (editingCartItem.charges?.grab && Number(a.grab_price ?? 0) > 0
+      ? Number(a.grab_price)
+      : editingCartItem.charges?.panda && Number(a.panda_price ?? 0) > 0
+      ? Number(a.panda_price)
+      : Number(a.price));
+  }, 0);
 
-    const drinkUnitPrice = Number(editingCartItem.price);
-    let discountedDrink = drinkUnitPrice;
+  const drinkUnitPrice = Number(editingCartItem.price);
+  const qty = editingCartItem.qty;
+  const grossTotal = (drinkUnitPrice + addOnCostPerUnit) * qty;
 
-    if (itemDiscountType === 'percent' && itemDiscountValue !== '')
-      discountedDrink = drinkUnitPrice * (1 - Number(itemDiscountValue) / 100);
-    else if (itemDiscountType === 'fixed' && itemDiscountValue !== '')
-      discountedDrink = Math.max(0, drinkUnitPrice - Number(itemDiscountValue));
+  let totalDiscount = 0;
 
-    return (discountedDrink + addOnCostPerUnit) * editingCartItem.qty;
-  };
+  if (itemDiscountType === 'percent' && itemDiscountValue !== '')
+    totalDiscount = drinkUnitPrice * qty * (Number(itemDiscountValue) / 100);
+  else if (itemDiscountType === 'fixed' && itemDiscountValue !== '')
+    totalDiscount = Math.min(Number(itemDiscountValue), drinkUnitPrice * qty);
+
+  return Math.max(0, grossTotal - totalDiscount);
+};
 
   // ── Confirm order ───────────────────────────────────────────────────────────
 
@@ -962,9 +1119,16 @@ const SalesOrder = () => {
   const handleSubmitOrder = async (nameOverride?: string) => {
     setSubmitting(true);
 
-    // ── Pre-calculate split discount amounts ──────────────────────────────
-    const allUnits = cart
-      .flatMap(item => Array(item.qty).fill(Number(item.price) + getItemSurcharge(item) / item.qty))
+    // ── Pre-calculate split discount amounts (BIR formula) ───────────────
+    // SC/PWD discount = 20% of VAT-EXCLUSIVE unit price (unitPrice / 1.12)
+    const submitUnitsVatExcl = cart
+      .flatMap(item =>
+        Array(item.qty).fill(
+          isVat
+            ? (Number(item.price) + getItemSurcharge(item) / item.qty) / 1.12
+            : (Number(item.price) + getItemSurcharge(item) / item.qty)
+        )
+      )
       .sort((a: number, b: number) => b - a);
 
     let alreadyUsed = 0;
@@ -973,18 +1137,20 @@ const SalesOrder = () => {
     let diplomatDiscountAmount = 0;
 
     for (const d of selectedDiscounts) {
-      const name      = d.name.toUpperCase();
-      const isSenior  = name.includes('SENIOR');
-      const isPwd     = name.includes('PWD');
+      const name       = d.name.toUpperCase();
+      const isSenior   = name.includes('SENIOR');
+      const isPwd      = name.includes('PWD');
       const isDiplomat = name.includes('DIPLOMAT');
-      const pax       = isSenior ? (paxSenior || 0) : (isPwd || isDiplomat) ? (paxPwd || 0) : 0;
+      const pax        = isSenior ? (paxSenior || 0) : (isPwd || isDiplomat) ? (paxPwd || 0) : 0;
 
       if (pax === 0) continue;
 
-      const units = allUnits.slice(alreadyUsed, alreadyUsed + pax);
-      const base  = units.reduce((s: number, p: number) => s + p, 0);
-      const amt   = d.type.includes('Percent')
-        ? base * (Number(d.amount) / 100)
+      const units        = submitUnitsVatExcl.slice(alreadyUsed, alreadyUsed + pax);
+      const vatExclBase  = units.reduce((s: number, p: number) => s + p, 0);
+
+      // Discount is applied on the VAT-exclusive base
+      const amt = d.type.includes('Percent')
+        ? vatExclBase * (Number(d.amount) / 100)
         : Number(d.amount) * pax;
 
       if (isSenior)        scDiscountAmount       += amt;
@@ -1000,17 +1166,11 @@ const SalesOrder = () => {
         : Number(selectedDiscount.amount)
       : 0;
 
-    // ── DEBUG — remove after fixing ───────────────────────────────────────
-    console.log('allUnits:', allUnits);
-    console.log('selectedDiscounts:', selectedDiscounts.map(d => d.name));
-    console.log('paxSenior:', paxSenior, 'paxPwd:', paxPwd);
-    console.log('sc:', scDiscountAmount, 'pwd:', pwdDiscountAmount);
-    // ─────────────────────────────────────────────────────────────────────
-
     const orderData = {
       // ... rest unchanged
       si_number:        orNumber,
-      branch_id:        branchId,
+      branch_id: branchId,
+      order_type: orderType ?? 'take-out',
       items: cart.map(item => ({
         menu_item_id:      item.isBundle ? null : item.id,
         bundle_id:         item.isBundle ? Number(item.bundleId) : null,
@@ -1029,7 +1189,8 @@ const SalesOrder = () => {
         discount_id:       item.discountId    ?? null,
         discount_label:    item.discountLabel ?? null,
         discount_type:     item.discountType  ?? null,
-        discount_value:    item.discountValue !== '' ? item.discountValue : null,
+        discount_value: item.discountValue !== '' ? item.discountValue : null,
+        
       })),
       subtotal,
       discount_amount:          orderLevelDiscount,
@@ -1048,6 +1209,7 @@ const SalesOrder = () => {
       discount_remarks: discountRemarks || null,
       vatable_sales:    vatableSales,
       vat_amount:       vatAmount,
+      vat_exempt_sales: vatExemptSales,
       customer_name:    nameOverride ?? customerName ?? null,
       cash_tendered:    typeof cashTendered === 'number' ? cashTendered : 0,
       pax_senior:       paxSenior || 0,
@@ -1059,6 +1221,7 @@ const SalesOrder = () => {
     if (navigator.onLine) {
       try {
         await api.post('/sales', orderData);
+        localStorage.removeItem('pos_cart_cache');
 
         const currentSeq = parseInt(orNumber.split('-').pop() ?? '0', 10);
         if (!isNaN(currentSeq)) localStorage.setItem('last_or_sequence', String(currentSeq));
@@ -1089,6 +1252,7 @@ const SalesOrder = () => {
         const axiosErr = err as { response?: { data?: unknown } };
         console.error('422 detail:', axiosErr?.response?.data);
         enqueue(orderData);
+        localStorage.removeItem('pos_cart_cache');
         setPrintedReceipt(false);
         setPrintedKitchen(false);
         setPrintedStickers(false);
@@ -1120,12 +1284,14 @@ const SalesOrder = () => {
 
   const handleNewOrder = async () => {
     setCart([]);
+    localStorage.removeItem('pos_cart_cache');
+    setOrderType(null);
     setOrderCharge(null);
     setCashTendered('');
     setPaymentMethod('cash');
     setReferenceNumber('');
     setSelectedDiscount(null);
-    setSelectedDiscounts([]);       // ← reset multi-select pax discounts
+    setSelectedDiscounts([]);       // reset multi-select pax discounts
     setIsSuccessModalOpen(false);
     setPrintTarget(null);
     setPrintedReceipt(false);
@@ -1177,10 +1343,25 @@ const SalesOrder = () => {
   const printProps = {
     cart, branchName, orNumber, queueNumber, cashierName,
     formattedDate, formattedTime, terminalNumber,
+    orderType: orderType ?? 'take-out',
+    customerName,
+    paxSenior, paxPwd, seniorId, pwdId,
   };
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
+  // ── FORCE ORDER TYPE MODAL ─────────────────────────────────────────────
+  if (!orderType) {
+    return (
+      <OrderTypeModal
+        onSelect={(type) => {
+          setOrderType(type);
+          localStorage.setItem("order_type", type);
+        }}
+      />
+    );
+  }
+  
   return (
     <>
       {/* Print CSS */}
@@ -1246,6 +1427,7 @@ const SalesOrder = () => {
             onOpenAddOns={() => setIsAddOnModalOpen(true)}
             onAddToOrder={addToOrder}
             onClose={() => { setSelectedItem(null); setIsAddOnModalOpen(false); }}
+            sugarLevels={isDrink ? sugarLevels : []}
           />
         )}
 
@@ -1272,6 +1454,7 @@ const SalesOrder = () => {
               bundleComponentSugar={bundleComponentSugar}
               bundleComponentOptions={bundleComponentOptions}
               bundleComponentAddOns={bundleComponentAddOns}
+              sugarLevels={sugarLevels}
               filteredAddOns={filteredAddOns}
               bundleComponentAddOnModalOpen={bundleComponentAddOnModalOpen}
               onSugarChange={setBundleComponentSugar}
@@ -1294,6 +1477,7 @@ const SalesOrder = () => {
         {isCombodrinkModalOpen && pendingComboCart && (
           <ComboDrinkModal
             pendingComboCart={pendingComboCart}
+            sugarLevels={sugarLevels}
             comboDrinkSugar={comboDrinkSugar}
             comboDrinkOptions={comboDrinkOptions}
             comboDrinkAddOns={comboDrinkAddOns}
@@ -1317,6 +1501,7 @@ const SalesOrder = () => {
             pendingMixMatchCart={pendingMixMatchCart}
             drinkItems={mixMatchDrinkItems}
             selectedDrink={selectedMixMatchDrink}
+            drinkSugarLevels={sugarLevels}
             drinkSugar={mixMatchDrinkSugar}
             drinkOptions={mixMatchDrinkOptions}
             drinkAddOns={mixMatchDrinkAddOns}
@@ -1348,13 +1533,15 @@ const SalesOrder = () => {
             totalCount={totalCount}
             subtotal={grossSubtotal}
             amtDue={amtDue}
+            addOnsData={addOnsData}
             vatableSales={vatableSales}
             vatAmount={vatAmount}
+            vatExemptSales={vatExemptSales}
             change={change}
             totalDiscountDisplay={totalDiscountDisplay}
             orderCharge={orderCharge}
             selectedDiscount={selectedDiscount}
-            selectedDiscounts={selectedDiscounts}         // ← new
+            selectedDiscounts={selectedDiscounts}
             paymentMethod={paymentMethod}
             cashTendered={cashTendered}
             referenceNumber={referenceNumber}
@@ -1371,7 +1558,7 @@ const SalesOrder = () => {
             onCashTenderedChange={setCashTendered}
             onReferenceNumberChange={setReferenceNumber}
             onDiscountChange={setSelectedDiscount}
-            onDiscountsChange={setSelectedDiscounts}     // ← new
+            onDiscountsChange={setSelectedDiscounts}
             onDiscountRemarksChange={setDiscountRemarks}
             onPaxSeniorChange={setPaxSenior}
             onPaxPwdChange={setPaxPwd}
@@ -1469,7 +1656,7 @@ const SalesOrder = () => {
       </div>
 
       {/* Print templates */}
-      {printTarget === 'receipt' && <ReceiptPrint {...printProps} vatType={vatType} addOnsData={addOnsData} orderCharge={orderCharge} totalCount={totalCount} subtotal={subtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount}/>}
+      {printTarget === 'receipt' && <ReceiptPrint {...printProps} {...branchDetails} vatType={vatType} addOnsData={addOnsData} orderCharge={orderCharge} totalCount={totalCount} subtotal={grossSubtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} vatExemptSales={vatExemptSales} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount}/>}
       {printTarget === 'kitchen'  && <KitchenPrint  {...printProps} />}
       {printTarget === 'stickers' && <StickerPrint  {...printProps} customerName={customerName} />}
     </>

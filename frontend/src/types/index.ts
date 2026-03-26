@@ -35,6 +35,7 @@ export interface MenuItem {
     panda_price?: number;
     /** Flat array from API: e.g. ["pearl", "ice"] — populated from menu_item_options table */
     options?: string[];
+    sugar_levels?: { id: number; label: string; value: string }[];
 }
 
 export interface Category {
@@ -103,6 +104,7 @@ export interface CartItem extends MenuItem {
     options?: string[];
     addOns?: string[];
     finalPrice: number;
+    originalPrice?: number;
     discountLabel?: string;
 
     // ── Discount Metadata ──────────────────────────────────────────────────

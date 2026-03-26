@@ -11,18 +11,18 @@ class MenuController extends Controller
     public function index()
     {
         try {
-            return Cache::remember('menu_data_v4', 600, function () {
-                return Category::with(['cup', 'subCategories', 'menu_items.options'])
+            return Cache::remember('menu_data_v5', 600, function () {
+                return Category::with(['cup', 'subCategories', 'menu_items.options', 'menu_items.sugarLevels'])
                     ->orderBy('name', 'asc')
                     ->get()
                     ->map(function ($cat) {
                         $subCategories = $cat->subCategories->sortBy('name')->values();
-                        
+
                         return [
                             'id'             => $cat->id,
                             'name'           => $cat->name,
                             'type'           => $cat->type,
-                            'category_type'  => $cat->category_type,  // ✅ add this
+                            'category_type'  => $cat->category_type,
                             'cup'            => $cat->cup,
                             'sub_categories' => $subCategories->map(fn($s) => [
                                 'id'   => $s->id,
@@ -38,6 +38,15 @@ class MenuController extends Controller
                                 'size'            => $item->size,
                                 'sub_category_id' => $item->sub_category_id,
                                 'options'         => $item->options->pluck('option_type'),
+                                'sugar_levels'    => $item->sugarLevels
+                                    ->where('is_active', true)
+                                    ->sortBy('sort_order')
+                                    ->values()
+                                    ->map(fn($s) => [
+                                        'id'    => $s->id,
+                                        'label' => $s->label,
+                                        'value' => $s->value,
+                                    ]),
                             ]),
                         ];
                     });
@@ -57,6 +66,7 @@ class MenuController extends Controller
         Cache::forget('menu_data_v2');
         Cache::forget('menu_data_v3');
         Cache::forget('menu_data_v4');
+        Cache::forget('menu_data_v5');
         return response()->json(['message' => 'Menu cache cleared successfully']);
     }
 }

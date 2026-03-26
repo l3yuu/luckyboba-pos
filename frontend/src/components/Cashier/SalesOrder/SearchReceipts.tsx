@@ -45,7 +45,10 @@ interface ReprintPayload {
     invoice_number:   string;
     created_at:       string;
     cashier_name?:    string;
-    customer_name?:   string;
+    customer_name?: string;
+    tin?: string;
+    senior_id?: string;
+    pwd_id?: string;
     payment_method?:  string;
     reference_number?: string;
     queue_number?: string | number;
@@ -54,6 +57,7 @@ interface ReprintPayload {
     vatable_sales?:   number;
     vat_amount?:      number;
     discount_amount?: number;
+    vat_type?:        string;   // ← add this
     branch?: { name?: string };
     sale_items?: RawSaleItem[];
   };
@@ -295,32 +299,39 @@ const buildPrintProps = (payload: ReprintPayload) => {
   const vatableSales = sale.vatable_sales ?? amtDue / 1.12;
   const vatAmount    = sale.vat_amount    ?? (amtDue - vatableSales);
 
-  return {
-    cart,
-    branchName,
-    orNumber,
-    addOnsData, 
-    queueNumber:          String(sale.queue_number ?? ''),
-    customerName:         sale.customer_name?.trim() || '',
-    cashierName,
-    formattedDate:        dt.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
-    formattedTime:        dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-    paymentMethod:        sale.payment_method   ?? 'cash',
-    referenceNumber:      sale.reference_number ?? '',
-    orderCharge:          null as 'grab' | 'panda' | null,
-    totalCount:           cart.reduce((a, i) => a + i.qty, 0),
-    subtotal:             sale.subtotal ?? subtotal,
-    amtDue,
-    vatableSales,
-    vatAmount,
-    change:               0,
-    cashTendered:         '' as number | '',
-    selectedDiscount:     null,
-    totalDiscountDisplay,
-    itemDiscountTotal,
-    promoDiscount,
-    vatType: (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat',
-  };
+return {
+  cart,
+  branchName,
+  orNumber,
+  addOnsData,
+  queueNumber: String(sale.queue_number ?? ''),
+  customerName: sale.customer_name?.trim() || '',
+  cashierName,
+  formattedDate: dt.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
+  formattedTime: dt.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+  paymentMethod: sale.payment_method ?? 'cash',
+  referenceNumber: sale.reference_number ?? '',
+  orderCharge: null as 'grab' | 'panda' | null,
+  totalCount: cart.reduce((a, i) => a + i.qty, 0),
+  subtotal: sale.subtotal ?? subtotal,
+  amtDue,
+  vatableSales,
+  vatAmount,
+  change: 0,
+  cashTendered: '' as number | '',
+  selectedDiscount: null,
+  totalDiscountDisplay,
+  itemDiscountTotal,
+  promoDiscount,
+  vatType: (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat',
+  orderType: ((sale as unknown as { order_type?: string }).order_type ?? 'dine-in') as 'dine-in' | 'take-out',
+
+  // ✅ ADD THESE
+  paxSenior: 0,
+  paxPwd: 0,
+  seniorId: sale.tin ?? sale.senior_id ?? '',
+pwdId: sale.pwd_id ?? '',
+};
 };
 
   // ── Reprint button list ───────────────────────────────────────────────────

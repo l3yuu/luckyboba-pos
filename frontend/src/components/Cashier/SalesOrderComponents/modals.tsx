@@ -4,7 +4,7 @@
 import React from 'react';
 import {
   type CartItem, type Bundle, type MenuItem,
-  SUGAR_LEVELS, EXTRA_OPTIONS,
+  EXTRA_OPTIONS,
 } from '../../../types/index';
 import {
   CloseIcon, QtyControl, AddOnModalShell,
@@ -147,16 +147,18 @@ export const CartItemEditModal = ({
   onRemove,
   onClose,
 }: CartItemEditModalProps) => {
-  const discountOptions = [
-    { id: null,  label: 'No Discount',  type: 'none'    as const, value: 0,  badge: null },
-    ...discounts.map(d => ({
-      id:    d.id,
-      label: d.name,
-      type:  d.type.includes('Percent') ? 'percent' as const : 'fixed' as const,
-      value: Number(d.amount),
-      badge: d.type.includes('Percent') ? `${d.amount}% OFF` : `₱${d.amount} OFF`,
-    })),
-  ];
+const buildDiscountOptions = () => [
+  { id: null, label: 'No Discount', type: 'none' as const, value: 0, badge: null },
+  ...discounts.map(d => ({
+    id:    d.id,
+    label: d.name,
+    type:  'percent' as const,
+    value: Number(d.amount),
+    badge: `${d.amount}% OFF`,
+  })),
+];
+
+const discountOptions       = buildDiscountOptions();
 
   return (
     <div className="fixed inset-0 z-150 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -216,27 +218,27 @@ export const CartItemEditModal = ({
             />
           </div>
 
-          {/* Item discount */}
-          <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-2">Item Discount</label>
-            <div className="border-2 border-zinc-200 rounded-[0.625rem] overflow-hidden divide-y divide-zinc-100">
-              {discountOptions.map(option => {
-                const isSelected = editingItemDiscountId === option.id;
-                const isNone     = option.id === null;
-                return (
-                  <button
-                    key={String(option.id)}
-                    onClick={() => {
-                      onSetDiscountId(option.id);
-                      onSetDiscountType(option.type);
-                      onSetDiscountValue(option.value || '');
-                    }}
-                    className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors
-                      ${isSelected
-                        ? isNone ? 'bg-red-500 text-white' : 'bg-[#7c14d4] text-white'
-                        : 'bg-white text-zinc-600 hover:bg-zinc-50'
-                      }`}
-                  >
+        {/* Item discount */}
+<div>
+  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-2">Item Discount</label>
+  <div className="border-2 border-zinc-200 rounded-[0.625rem] overflow-hidden divide-y divide-zinc-100">
+    {discountOptions.map(option => {
+      const isSelected = editingItemDiscountId === option.id;
+      const isNone     = option.id === null;
+      return (
+        <button
+          key={String(option.id)}
+          onClick={() => {
+            onSetDiscountId(option.id);
+            onSetDiscountType(option.type);
+            onSetDiscountValue(option.value || '');
+          }}
+          className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors
+            ${isSelected
+              ? isNone ? 'bg-red-500 text-white' : 'bg-[#7c14d4] text-white'
+              : 'bg-white text-zinc-600 hover:bg-zinc-50'
+            }`}
+        >
                     <div className="flex items-center gap-3">
                       <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'border-white bg-white' : 'border-zinc-300'}`}>
                         {isSelected && <div className={`w-2 h-2 rounded-full ${isNone ? 'bg-red-500' : 'bg-[#7c14d4]'}`} />}
@@ -314,6 +316,7 @@ interface ItemSelectionModalProps {
   onOpenAddOns: () => void;
   onAddToOrder: () => void;
   onClose: () => void;
+  sugarLevels?: { id: number; label: string; value: string }[]; 
 }
 
 export const ItemSelectionModal = ({
@@ -335,6 +338,7 @@ export const ItemSelectionModal = ({
   onOpenAddOns,
   onAddToOrder,
   onClose,
+  sugarLevels,
 }: ItemSelectionModalProps) => {
   const itemOpts = (selectedItem as { options?: string[] })?.options ?? [];
   const visibleOpts = EXTRA_OPTIONS.filter((opt: string) => {
@@ -347,7 +351,8 @@ export const ItemSelectionModal = ({
   });
 
   const hasPearlOption = (selectedItem as { options?: string[] })?.options?.includes('pearl') ?? false;
-  const sugarSelected  = !isDrink || sugarLevel !== '';
+  const hasSugarLevels = sugarLevels && sugarLevels.length > 0;
+  const sugarSelected  = !isDrink || !hasSugarLevels || sugarLevel !== '';
   const canAdd = sugarSelected && (isCombo || !isDrink || !hasPearlOption || selectedOptions.some((o: string) => ['NO PRL', 'W/ PRL'].includes(o)));
 
   return (
@@ -391,40 +396,44 @@ export const ItemSelectionModal = ({
           </div>
 
           {/* Drink-specific options */}
-          {isDrink && (
-            <>
-              <div>
-                <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
-                <div className="flex gap-2">
-                  {SUGAR_LEVELS.map((level: string) => (
-                    <button key={level} onClick={() => onSugarChange(level)}
-                      className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${sugarLevel === level && sugarLevel !== '' ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
-                      {level}
-                    </button>
-                  ))}
-                </div>
-                {sugarLevel === '' && (
-                  <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1.5 ml-1">⚠ Please select sugar level</p>
-                )}
+          {isDrink && sugarLevels && sugarLevels.length > 0 && (
+            <div>
+              <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
+              <div className="flex gap-2">
+                {sugarLevels.map((lvl) => (
+                  <button key={lvl.value} onClick={() => onSugarChange(lvl.value)}
+                    className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${sugarLevel === lvl.value ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+                    {lvl.label}
+                  </button>
+                ))}
               </div>
-              <div>
-                <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Extra</label>
-                <AddOnTriggerButton count={selectedAddOns.length} onClick={onOpenAddOns} />
-              </div>
-              {visibleOpts.length > 0 && (
-                <div>
-                  <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Options (Free)</label>
-                  <div className="flex flex-wrap gap-2">
-                    {visibleOpts.map((opt: string) => (
-                      <button key={opt} onClick={() => onToggleOption(opt)}
-                        className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${selectedOptions.includes(opt) ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
-                        {opt}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              {sugarLevel === '' && (
+                <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1.5 ml-1">⚠ Please select sugar level</p>
               )}
-            </>
+            </div>
+          )}
+
+          {/* Add-ons — always shown for drinks, not gated by sugar levels */}
+          {isDrink && (
+            <div>
+              <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Extra</label>
+              <AddOnTriggerButton count={selectedAddOns.length} onClick={onOpenAddOns} />
+            </div>
+          )}
+
+          {/* Options (Free) — outside sugar block so it shows even with no sugar levels */}
+          {isDrink && visibleOpts.length > 0 && (
+            <div>
+              <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Options (Free)</label>
+              <div className="flex flex-wrap gap-2">
+                {visibleOpts.map((opt: string) => (
+                  <button key={opt} onClick={() => onToggleOption(opt)}
+                    className={`px-3 py-2 rounded-[0.625rem] text-sm font-bold uppercase transition-all ${selectedOptions.includes(opt) ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            </div>
           )}
 
           {/* Waffle add-ons */}
@@ -483,7 +492,7 @@ export const ItemSelectionModal = ({
           >
             {isCombo
               ? 'Next: Customize Drink →'
-              : !sugarSelected
+              : !sugarSelected && hasSugarLevels
                 ? '⚠ Select Sugar Level First'
                 : canAdd
                   ? 'Add Order'
@@ -513,6 +522,7 @@ interface BundleModalProps {
     panda_price?: number;
   }[];
   bundleComponentAddOnModalOpen: boolean;
+  sugarLevels?: { id: number; label: string; value: string }[];
   onSugarChange: (s: string) => void;
   onToggleOption: (opt: string) => void;
   onOpenAddOns: () => void;
@@ -536,6 +546,7 @@ export const BundleModal = ({
   bundlePandaPrice,
   filteredAddOns,
   bundleComponentAddOnModalOpen,
+  sugarLevels,
   onSugarChange,
   onToggleOption,
   onOpenAddOns,
@@ -552,7 +563,8 @@ export const BundleModal = ({
   const displayName = component.display_name ?? component.custom_name ?? '';
   const isMilkTea   = displayName.toLowerCase().includes('milk tea') || displayName.toLowerCase().includes('m.tea');
   const hasPearl    = bundleComponentOptions.some(o => ['NO PRL', 'W/ PRL'].includes(o));
-  const canNext     = bundleComponentSugar !== '' && (!isMilkTea || hasPearl);
+  const hasSugarLevels = sugarLevels && sugarLevels.length > 0;
+  const canNext = (!hasSugarLevels || bundleComponentSugar !== '') && (!isMilkTea || hasPearl);
 
   return (
     <>
@@ -588,20 +600,22 @@ export const BundleModal = ({
 
           {/* Body */}
           <div className="p-6 space-y-5 overflow-y-auto bg-white">
-            <div>
-              <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
-              <div className="flex gap-2">
-                {SUGAR_LEVELS.map((level: string) => (
-                  <button key={level} onClick={() => onSugarChange(level)}
-                    className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${bundleComponentSugar === level && bundleComponentSugar !== '' ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
-                    {level}
+            {sugarLevels && sugarLevels.length > 0 && (
+              <div>
+                <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
+                <div className="flex gap-2">
+                {sugarLevels.map((lvl: { id: number; label: string; value: string }) => (
+                  <button key={lvl.value} onClick={() => onSugarChange(lvl.value)}
+                    className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${bundleComponentSugar === lvl.value ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+                    {lvl.label}
                   </button>
                 ))}
+                </div>
+                {bundleComponentSugar === '' && (
+                  <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1.5 ml-1">⚠ Please select sugar level</p>
+                )}
               </div>
-              {bundleComponentSugar === '' && (
-                <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1.5 ml-1">⚠ Please select sugar level</p>
-              )}
-            </div>
+            )}
 
             <div>
               <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Options (Free)</label>
@@ -691,6 +705,7 @@ interface ComboDrinkModalProps {
   onToggleAddOn: (name: string) => void;
   onConfirm: () => void;
   onClose: () => void;
+  sugarLevels?: { id: number; label: string; value: string }[];
 }
 
 export const ComboDrinkModal = ({
@@ -708,6 +723,7 @@ export const ComboDrinkModal = ({
   onConfirm,
   onClose,
   orderCharge,
+  sugarLevels,
 }: ComboDrinkModalProps) => {
 
   return (
@@ -727,20 +743,22 @@ export const ComboDrinkModal = ({
             </button>
           </div>
           <div className="p-6 space-y-5 overflow-y-auto bg-white">
-            <div>
-              <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
-              <div className="flex gap-2">
-                {SUGAR_LEVELS.map((level: string) => (
-                  <button key={level} onClick={() => onSugarChange(level)}
-                    className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${comboDrinkSugar === level && comboDrinkSugar !== '' ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
-                    {level}
+            {sugarLevels && sugarLevels.length > 0 && (
+              <div>
+                <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
+                <div className="flex gap-2">
+                {sugarLevels.map((lvl: { id: number; label: string; value: string }) => (
+                  <button key={lvl.value} onClick={() => onSugarChange(lvl.value)}
+                    className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${comboDrinkSugar === lvl.value ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+                    {lvl.label}
                   </button>
                 ))}
+                </div>
+                {comboDrinkSugar === '' && (
+                  <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1.5 ml-1">⚠ Please select sugar level</p>
+                )}
               </div>
-              {comboDrinkSugar === '' && (
-                <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1.5 ml-1">⚠ Please select sugar level</p>
-              )}
-            </div>
+            )}
             <div>
               <label className="text-[10px] font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Extra</label>
               <AddOnTriggerButton count={comboDrinkAddOns.length} onClick={onOpenAddOns} />
@@ -811,6 +829,7 @@ interface MixAndMatchDrinkModalProps {
   onConfirm: () => void;
   onClose: () => void;
   onToggleOrderCharge: (type: 'grab' | 'panda') => void;
+  drinkSugarLevels?: { id: number; label: string; value: string }[];
 }
 
 export const MixAndMatchDrinkModal = ({
@@ -832,11 +851,13 @@ export const MixAndMatchDrinkModal = ({
   onToggleOrderCharge,
   onConfirm,
   onClose,
+  drinkSugarLevels,
 }: MixAndMatchDrinkModalProps) => {
   const drinkOpts        = (selectedDrink as unknown as { options?: string[] })?.options ?? [];
   const hasPearlOption   = drinkOpts.includes('pearl');
-  const hasPearlSelected = drinkOptions.some(o => ['NO PRL', 'W/ PRL'].includes(o));
-  const canConfirm       = selectedDrink !== null && drinkSugar !== '' && (!hasPearlOption || hasPearlSelected);
+  const hasPearlSelected    = drinkOptions.some(o => ['NO PRL', 'W/ PRL'].includes(o));
+  const hasDrinkSugarLevels = drinkSugarLevels && drinkSugarLevels.length > 0;
+  const canConfirm          = selectedDrink !== null && (!hasDrinkSugarLevels || drinkSugar !== '') && (!hasPearlOption || hasPearlSelected);
 
   return (
     <>
@@ -892,20 +913,22 @@ export const MixAndMatchDrinkModal = ({
                   </button>
                 </div>
 
-                <div>
-                  <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
-                  <div className="flex gap-2">
-                    {SUGAR_LEVELS.map((level: string) => (
-                      <button key={level} onClick={() => onSugarChange(level)}
-                        className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${drinkSugar === level ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
-                        {level}
+                {drinkSugarLevels && drinkSugarLevels.length > 0 && (
+                  <div>
+                    <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Sugar Level</label>
+                    <div className="flex gap-2">
+                    {drinkSugarLevels.map((lvl: { id: number; label: string; value: string }) => (
+                      <button key={lvl.value} onClick={() => onSugarChange(lvl.value)}
+                        className={`flex-1 py-2 rounded-[0.625rem] text-sm font-black transition-all ${drinkSugar === lvl.value ? 'bg-[#7c14d4] text-white shadow-md' : 'bg-white text-black border-2 border-[#e9d5ff] hover:bg-[#f5f0ff]'}`}>
+                        {lvl.label}
                       </button>
                     ))}
+                    </div>
+                    {drinkSugar === '' && (
+                      <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1.5 ml-1">⚠ Please select sugar level</p>
+                    )}
                   </div>
-                  {drinkSugar === '' && (
-                    <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1.5 ml-1">⚠ Please select sugar level</p>
-                  )}
-                </div>
+                )}
 
                 {(() => {
                   const drinkOpts = (selectedDrink as unknown as { options?: string[] })?.options ?? [];
@@ -972,7 +995,7 @@ export const MixAndMatchDrinkModal = ({
                   disabled={!canConfirm}
                   className={`w-full py-4 rounded-[0.625rem] font-black text-sm uppercase tracking-[0.2em] shadow-lg transition-colors ${canConfirm ? 'bg-[#7c14d4] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-black cursor-not-allowed'}`}
                 >
-                  {!drinkSugar ? '⚠ Select Sugar Level First' : hasPearlOption && !hasPearlSelected ? 'Select Pearl Option First' : '✓ Add Mix & Match to Order'}
+                {hasDrinkSugarLevels && !drinkSugar ? '⚠ Select Sugar Level First' : hasPearlOption && !hasPearlSelected ? 'Select Pearl Option First' : '✓ Add Mix & Match to Order'}
                 </button>
               </div>
             )}
@@ -1007,6 +1030,7 @@ interface ConfirmOrderModalProps {
   amtDue: number;
   vatableSales: number;
   vatAmount: number;
+  vatExemptSales?: number;
   change: number;
   totalDiscountDisplay: number;
   orderCharge: 'grab' | 'panda' | null;
@@ -1039,14 +1063,15 @@ interface ConfirmOrderModalProps {
   onClose: () => void;
   onResetOrder?: () => void;
   vatType?: 'vat' | 'non_vat';
+  addOnsData?: { id: number; name: string; price: number; grab_price?: number; panda_price?: number }[];
 }
 
 export const ConfirmOrderModal = ({
   cart, cashierName, totalCount, subtotal, amtDue,
-  vatableSales, vatAmount, change, totalDiscountDisplay,
+ vatableSales, vatAmount, vatExemptSales: _vatExemptSales = 0, change, totalDiscountDisplay,
   orderCharge, selectedDiscount, selectedDiscounts, paymentMethod, cashTendered,
   referenceNumber, discountRemarks, paxSenior, paxPwd, seniorId, pwdId, discounts,
-  activeTab, submitting, vatType = 'vat',
+  activeTab, submitting, vatType = 'vat', addOnsData = [],
   onTabChange, onPaymentMethodChange, onCashTenderedChange,
   onReferenceNumberChange, onDiscountChange, onDiscountsChange, onDiscountRemarksChange,
   onPaxSeniorChange, onPaxPwdChange, onSeniorIdChange, onPwdIdChange,
@@ -1100,26 +1125,60 @@ export const ConfirmOrderModal = ({
             <div className="flex-1 p-6 overflow-y-auto">
               <h3 className="font-black text-sm text-black uppercase mb-4 tracking-wider">Cart Items</h3>
               <div className="space-y-4">
-                {cart.map((item, i) => (
-                  <div key={i} onClick={() => onEditCartItem(i)}
-                    className="flex justify-between items-start pb-3 border-b border-[#e9d5ff] last:border-0 mb-2 cursor-pointer hover:bg-[#f5f0ff] rounded-lg px-2 -mx-2 transition-colors">
-                    <div>
-                      <p className="font-bold text-sm text-black">
-                        {item.qty}x {item.name}
-                        {item.cupSizeLabel && <span className="ml-1 opacity-60">({item.cupSizeLabel})</span>}
-                      </p>
-                      <div className="text-[10px] text-zinc-500 mt-1 ml-2">
-                        {item.sugarLevel != null && <p>• Sugar {item.sugarLevel}</p>}
-                        {item.options?.map(o => <p key={o}>• {o}</p>)}
-                        {item.addOns?.map(a => <p key={a}>• + {a}</p>)}
-                        {item.remarks && <p className="italic">• {item.remarks}</p>}
-                      </div>
-                    </div>
-                    <p className="font-black text-sm text-black">
-                      ₱ {(item.finalPrice + getItemSurcharge(item)).toFixed(2)}
-                    </p>
-                  </div>
-                ))}
+{/* Cart Items */}
+{cart.map((item, i) => (
+  <div key={i} onClick={() => onEditCartItem(i)}
+    className="pb-3 border-b border-[#e9d5ff] last:border-0 mb-2 cursor-pointer hover:bg-[#f5f0ff] rounded-lg px-2 -mx-2 transition-colors">
+    
+    {/* Main item row */}
+    <div className="flex justify-between items-start">
+      <div>
+        <p className="font-bold text-sm text-black">
+          {item.qty}x {item.name}
+          {item.cupSizeLabel && <span className="ml-1 opacity-60">({item.cupSizeLabel})</span>}
+        </p>
+        <div className="text-[10px] text-zinc-500 mt-1 ml-2">
+          {item.sugarLevel != null && <p>• Sugar {item.sugarLevel}</p>}
+          {item.options?.map(o => <p key={o}>• {o}</p>)}
+          {item.remarks && <p className="italic">• {item.remarks}</p>}
+        </div>
+      </div>
+      <p className="font-black text-sm text-black shrink-0 ml-2">
+        ₱ {(item.finalPrice - (item.addOns ?? []).reduce((sum, addonName) => {
+          const a = addOnsData?.find((x: { name: string; price: number; grab_price?: number; panda_price?: number }) => x.name === addonName);
+          if (!a) return sum;
+          return sum + (item.charges?.grab && Number(a.grab_price ?? 0) > 0
+            ? Number(a.grab_price)
+            : item.charges?.panda && Number(a.panda_price ?? 0) > 0
+            ? Number(a.panda_price)
+            : Number(a.price)) * item.qty;
+        }, 0) + getItemSurcharge(item)).toFixed(2)}
+      </p>
+    </div>
+
+    {/* Add-ons as separate line items */}
+    {(item.addOns ?? []).map((addonName, ai) => {
+      const a = addOnsData?.find((x: { name: string; price: number; grab_price?: number; panda_price?: number }) => x.name === addonName);
+      if (!a) return null;
+      const addonUnitPrice = item.charges?.grab && Number(a.grab_price ?? 0) > 0
+        ? Number(a.grab_price)
+        : item.charges?.panda && Number(a.panda_price ?? 0) > 0
+        ? Number(a.panda_price)
+        : Number(a.price);
+      const addonTotal = addonUnitPrice * item.qty;
+      return (
+        <div key={ai} className="flex justify-between items-center mt-1.5 pt-1.5 border-t border-dashed border-[#e9d5ff] ml-2">
+          <p className="text-xs text-zinc-600 font-semibold">
+            {item.qty}x {addonName}
+          </p>
+          <p className="text-xs font-bold text-zinc-700 shrink-0 ml-2">
+            ₱ {addonTotal.toFixed(2)}
+          </p>
+        </div>
+      );
+    })}
+  </div>
+))}
               </div>
             </div>
 
@@ -1247,7 +1306,14 @@ export const ConfirmOrderModal = ({
                           <input
                             type="text"
                             value={referenceNumber}
-                            onChange={e => onReferenceNumberChange(e.target.value)}
+                            onChange={e => {
+                            const value = e.target.value;
+                            // ✅ allow only numbers and max 13 digits
+                            if (/^\d{0,13}$/.test(value)) {
+                            onReferenceNumberChange(value);
+                            }
+                            }}
+                            maxLength={13}
                             className="w-full bg-zinc-50 border-2 border-zinc-300 rounded-[0.625rem] py-4 px-5 text-xl font-black outline-none focus:border-[#3b2063] focus:bg-white transition-colors"
                             placeholder={paymentMethod === 'grab' ? 'GRAB-XXXXXX' : paymentMethod === 'food_panda' ? 'FP-XXXXXX' : 'REF#'}
                           />
@@ -1309,7 +1375,7 @@ export const ConfirmOrderModal = ({
                           ${!selectedDiscount ? 'bg-red-500 text-white border-red-500 shadow-md' : 'bg-zinc-50 text-red-500 border-red-100 hover:border-red-300'}`}>
                         Remove Promo
                       </button>
-                      {discounts.filter(d => !['SENIOR', 'PWD', 'DIPLOMAT'].some(x => d.name.toUpperCase().includes(x))).map(d => (
+                {discounts.filter(d => !['SENIOR', 'PWD', 'DIPLOMAT'].some(x => d.name.toUpperCase().includes(x))).map(d => (
                         <button key={d.id} onClick={() => onDiscountChange(d)}
                           className={`p-3 rounded-[0.625rem] text-sm font-black uppercase transition-all border-2 flex items-center justify-center text-center
                             ${selectedDiscount?.id === d.id ? 'bg-emerald-600 text-white border-emerald-600 shadow-md' : 'bg-zinc-50 text-zinc-600 border-zinc-200 hover:border-emerald-300'}`}>
@@ -1549,7 +1615,7 @@ export const SuccessModal = ({
       icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M15.362 5.214A8.252 8.252 0 0 1 12 21 8.25 8.25 0 0 1 6.038 7.047 8.287 8.287 0 0 0 9 9.601a8.983 8.983 0 0 1 3.361-6.866 8.21 8.21 0 0 0 3 2.48Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 18a3.75 3.75 0 0 0 .495-7.468 5.99 5.99 0 0 0-1.925 3.547 5.975 5.975 0 0 1-2.133-1.001A3.75 3.75 0 0 0 12 18Z" /></svg>,
     },
     ...(hasStickers ? [{
-      label: 'Drink Stickers', done: printedStickers, onPrint: onPrintStickers,
+      label: 'Stickers', done: printedStickers, onPrint: onPrintStickers,
       icon: <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5 shrink-0"><path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6Z" /></svg>,
     }] : []),
   ];
@@ -1632,5 +1698,135 @@ export const AddOnTriggerButton = ({ count, onClick }: { count: number; onClick:
     </svg>
   </button>
 );
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Order Type Modal
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface OrderTypeModalProps {
+  onSelect: (type: 'dine-in' | 'take-out') => void;
+  onClose?: () => void;
+}
+
+export const OrderTypeModal = ({ onSelect, onClose }: OrderTypeModalProps) => {
+  return (
+    <div
+      className="fixed inset-0 z-200 flex items-center justify-center p-6"
+      style={{
+        backdropFilter: 'blur(6px)',
+        WebkitBackdropFilter: 'blur(6px)',
+        backgroundColor: 'rgba(0,0,0,0.45)',
+      }}
+    >
+      <div className="relative bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="relative px-6 py-5 border-b border-zinc-100 bg-[#f5f0ff]">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-[#7c14d4] rounded-lg flex items-center justify-center shrink-0">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/>
+                <rect x="9" y="3" width="6" height="4" rx="2"/>
+                <path d="M9 12h6M9 16h4"/>
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-black uppercase tracking-wide text-[#1a0f2e]">
+                Order Type
+              </p>
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+                Select how the order will be served
+              </p>
+            </div>
+          </div>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-md hover:bg-[#7c14d4]/20 transition-colors text-[#1a0f2e] hover:text-[#7c14d4]"
+              aria-label="Close"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          )}
+        </div>
+
+        {/* Buttons */}
+        <div className="p-5 flex flex-col gap-3">
+          {/* Dine In */}
+          <button
+            onClick={() => onSelect('dine-in')}
+            className="group w-full flex items-center gap-4 p-4 rounded-xl border-2 border-[#e9d5ff] bg-[#f5f0ff] hover:bg-[#7c14d4] hover:border-[#7c14d4] transition-all duration-200 active:scale-[0.98]"
+          >
+            <div className="w-12 h-12 rounded-xl bg-white border border-[#e9d5ff] group-hover:bg-white/20 group-hover:border-white/30 flex items-center justify-center shrink-0 transition-all">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                stroke="#7c14d4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+                className="group-hover:stroke-white transition-all">
+                <circle cx="12" cy="12" r="9"/>
+                <path d="M8 7v4a2 2 0 0 0 4 0V7"/>
+                <line x1="10" y1="11" x2="10" y2="17"/>
+                <line x1="16" y1="7" x2="16" y2="17"/>
+              </svg>
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-black uppercase tracking-widest text-[#1a0f2e] group-hover:text-white transition-colors">
+                Dine In
+              </p>
+              <p className="text-[10px] font-semibold text-zinc-400 group-hover:text-white/70 transition-colors mt-0.5">
+                Customer eats here
+              </p>
+            </div>
+            <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </div>
+          </button>
+
+          {/* Take Out */}
+          <button
+            onClick={() => onSelect('take-out')}
+            className="group w-full flex items-center gap-4 p-4 rounded-xl border-2 border-[#e9d5ff] bg-[#f5f0ff] hover:bg-[#7c14d4] hover:border-[#7c14d4] transition-all duration-200 active:scale-[0.98]"
+          >
+            <div className="w-12 h-12 rounded-xl bg-white border border-[#e9d5ff] group-hover:bg-white/20 group-hover:border-white/30 flex items-center justify-center shrink-0 transition-all">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+                stroke="#7c14d4" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+                className="group-hover:stroke-white transition-all">
+                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+                <line x1="3" y1="6" x2="21" y2="6"/>
+                <path d="M16 10a4 4 0 0 1-8 0"/>
+              </svg>
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-black uppercase tracking-widest text-[#1a0f2e] group-hover:text-white transition-colors">
+                Take Out
+              </p>
+              <p className="text-[10px] font-semibold text-zinc-400 group-hover:text-white/70 transition-colors mt-0.5">
+                Order to go
+              </p>
+            </div>
+            <div className="ml-auto opacity-0 group-hover:opacity-100 transition-opacity">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </div>
+          </button>
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 pb-5">
+          <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest text-center">
+            This selection applies to the entire order
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export { AddOnModalShell };

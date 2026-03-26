@@ -50,22 +50,22 @@ const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, trend, col
   const c = colors[color];
   return (
     <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center justify-between card">
-      <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 ${c.bg} border ${c.border} flex items-center justify-center rounded-[0.4rem]`}>
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className={`w-10 h-10 ${c.bg} border ${c.border} flex items-center justify-center rounded-[0.4rem] shrink-0`}>
           <span className={c.icon}>{icon}</span>
         </div>
-        <div>
+        <div className="flex-1 min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{label}</p>
-          <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">{value}</p>
+          <p className="text-lg font-bold text-[#1a0f2e] tabular-nums whitespace-nowrap">{value}</p>
         </div>
       </div>
       {trend !== undefined && (
-        <div className={`flex items-center gap-1 text-xs font-bold ${trend >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+        <div className={`flex items-center gap-1 text-xs font-bold shrink-0 ml-2 ${trend >= 0 ? "text-emerald-600" : "text-red-500"}`}>
           {trend >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
           {Math.abs(trend)}%
         </div>
       )}
-      {sub && <p className="text-xs text-zinc-400 font-medium">{sub}</p>}
+      {sub && <p className="text-xs text-zinc-400 font-medium shrink-0 ml-2">{sub}</p>}
     </div>
   );
 };
@@ -239,7 +239,7 @@ const OverviewTab: React.FC = () => {
       </div>
 
       {/* Stat Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard
           icon={<span className="font-black text-base">₱</span>}
           label="Total Revenue"

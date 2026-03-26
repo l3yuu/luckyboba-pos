@@ -3,7 +3,7 @@ import { useAuth } from '../hooks/useAuth';
 import { ROLE_HOME } from '../utils/roleRoutes';
 import logo from '../assets/logo.png';
 
-type Role = 'super_admin' | 'superadmin' | 'system_admin' | 'admin' | 'manager' | 'branch_manager' | 'team_leader' | 'cashier';
+type Role = 'super_admin' | 'superadmin' | 'system_admin' | 'admin' | 'manager' | 'branch_manager' | 'team_leader' | 'cashier' | 'it_admin';
 
 interface ProtectedRouteProps {
   allowedRoles?: Role[];

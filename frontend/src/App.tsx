@@ -1,8 +1,12 @@
+// frontend/src/App.tsx
+// Added <DeviceGate> — blocks unregistered devices before anything loads.
+
 import { useEffect } from 'react';
 import { RouterProvider } from 'react-router-dom';
 import { router } from './routes';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ToastProvider } from './context/ToastProvider';
+import { DeviceGate } from './components/DeviceGate.tsx';       // ← NEW
 import { prefetchAll } from './utils/prefetch';
 import { useAuth } from './hooks/useAuth';
 import { useServiceWorker } from './hooks/useServiceWorker';
@@ -33,8 +37,11 @@ function App() {
       }
     >
       <ToastProvider>
-        <RouterProvider router={router} />
-        <PWAUpdateBanner needsUpdate={needsUpdate} onUpdate={applyUpdate} />
+        {/* DeviceGate checks if this device is registered before rendering anything */}
+        <DeviceGate>
+          <RouterProvider router={router} />
+          <PWAUpdateBanner needsUpdate={needsUpdate} onUpdate={applyUpdate} />
+        </DeviceGate>
       </ToastProvider>
     </ErrorBoundary>
   );

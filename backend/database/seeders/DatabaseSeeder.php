@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             SubCategorySeeder::class,   // 2. then sub-categories (needs category IDs)
             VoucherSeeder::class,
             MenuSeeder::class,          // 3. then menu items (needs both)
+            SugarLevelSeeder::class,
             BundleSeeder::class, 
             AddOnSeeder::class,
             DiscountSeeder::class,

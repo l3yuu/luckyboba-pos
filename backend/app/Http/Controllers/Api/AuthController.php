@@ -14,8 +14,9 @@ class AuthController extends Controller
     public function login(Request $request)
     {
         $request->validate([
-            'email'    => 'required|email',
-            'password' => 'required',
+            'email'       => 'required|email',
+            'password'    => 'required',
+            'device_name' => 'nullable|string',
         ]);
 
         $user = User::where('email', $request->email)->first();
@@ -36,10 +37,7 @@ class AuthController extends Controller
             ], 401);
         }
 
-        // ── FIX 1: Block INACTIVE accounts before issuing a token ────────────
-        // Previously a token was issued first, then CheckUserActive blocked the
-        // very next request (/api/user), making the frontend think the session
-        // had expired rather than showing a proper "account deactivated" error.
+        // ── Block INACTIVE accounts ───────────────────────────────────────────
         if ($user->status === 'INACTIVE') {
             AuditLog::create([
                 'user_id'    => $user->id,
@@ -55,6 +53,12 @@ class AuthController extends Controller
             ], 403);
         }
 
+        // ── Issue token ───────────────────────────────────────────────────────
+        // NOTE: Device check for cashiers is intentionally NOT done here.
+        // After login the frontend DeviceGate component calls POST /device/check
+        // with the browser's stored Device ID. If the device is unregistered,
+        // the cashier sees the Device ID screen so they can send it to the admin.
+        // Blocking login here would prevent that screen from ever being reached.
         $user->load('branch');
         $token = $user->createToken('auth_token')->plainTextToken;
 
@@ -66,13 +70,14 @@ class AuthController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
-        // ── FIX 2: Wrap in success envelope so frontend can check success flag
         return response()->json([
             'success' => true,
             'user'    => array_merge($user->toArray(), [
                 'branch_vat_type' => $user->branch?->vat_type ?? 'vat',
             ]),
-            'token'   => $token,
+            'token'      => $token,
+            'pos_number' => null,  // set by DeviceGate via POST /device/check
+            'branch_id'  => null,  // set by DeviceGate via POST /device/check
         ]);
     }
 
@@ -97,8 +102,6 @@ class AuthController extends Controller
     }
 
     // ── GOOGLE SIGN-IN ────────────────────────────────────────────────────────
-    // Called by Flutter after Google Sign-In succeeds.
-    // Creates the user if they don't exist, then returns the user object.
     public function googleLogin(Request $request)
     {
         $request->validate([
@@ -106,7 +109,6 @@ class AuthController extends Controller
             'name'  => 'required|string|max:255',
         ]);
 
-        // Find existing user or create a new customer account
         $user = User::firstOrCreate(
             ['email' => $request->email],
             [
@@ -116,7 +118,6 @@ class AuthController extends Controller
             ]
         );
 
-        // Log the Google login
         AuditLog::create([
             'user_id'    => $user->id,
             'action'     => "User signed in via Google: {$user->name}",

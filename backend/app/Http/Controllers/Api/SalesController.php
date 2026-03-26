@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Helpers\AuditHelper;
 use App\Http\Controllers\Controller;
+use App\Models\Branch;        // ✅
 use App\Models\MenuItem;
 use App\Models\Receipt;
 use App\Models\Sale;
@@ -210,15 +211,25 @@ class SalesController extends Controller
             $sale->update(['total_amount' => $finalTotal]);
 
             // ── 4. Create Receipt ──────────────────────────────────────────────
-            Receipt::create([
-                'si_number'    => $officialOR,
-                'terminal'     => '01',
-                'items_count'  => $totalQty,
-                'cashier_name' => $cashierName,
-                'total_amount' => $recalculatedTotal,
-                'sale_id'      => $sale->id,
-                'branch_id'    => $branchId,
-            ]);
+$branch = Branch::find($branchId);
+
+Receipt::create([
+    'si_number'     => $officialOR,
+    'terminal'      => '01',
+    'items_count'   => $totalQty,
+    'cashier_name'  => $cashierName,
+    'total_amount'  => $recalculatedTotal,
+    'sale_id'       => $sale->id,
+    'branch_id'     => $branchId,
+    // ✅ BIR snapshot
+    'brand'         => $branch?->brand         ?? 'Lucky Boba Milk Tea',
+    'company_name'  => $branch?->company_name  ?? '',
+    'store_address' => $branch?->store_address ?? '',
+    'vat_reg_tin'   => $branch?->vat_reg_tin   ?? '',
+    'min_number'    => $branch?->min_number    ?? '',
+    'serial_number' => $branch?->serial_number ?? '',
+    'vat_type'      => $branch?->vat_type      ?? 'vat',
+]);
 
             // ── 5. Deduct Raw Materials ────────────────────────────────────────
             app(SaleObserver::class)->deductStock($sale);
@@ -254,10 +265,13 @@ class SalesController extends Controller
             $this->dashboardService->clearTodayCache($sale->branch_id);
 
             return response()->json([
-                'status'    => 'success',
-                'si_number' => $officialOR,
-                'sale'      => $sale->load('items'),
-            ], 201);
+    'status'    => 'success',
+    'si_number' => $officialOR,
+    'sale'      => $sale->makeVisible([
+        'pax_senior','pax_pwd','senior_id','pwd_id',
+        'sc_discount_amount','pwd_discount_amount','diplomat_discount_amount','other_discount_amount'
+    ])->load('items'),
+], 201);
 
         } catch (\Exception $e) {
             DB::rollBack();
