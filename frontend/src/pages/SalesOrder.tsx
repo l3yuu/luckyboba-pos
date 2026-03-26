@@ -302,23 +302,31 @@ const SalesOrder = () => {
   const orderLevelDiscount = totalPaxDiscount + promoDiscount;
 
   // ── VAT split ─────────────────────────────────────────────────────────────
-  const vatExemptSales = isVat && hasPaxDiscount ? totalVatExemptSales : 0;
+const vatExemptSales = isVat && hasPaxDiscount
+  ? Math.max(0, round(totalVatExemptSales - totalPaxDiscount))
+  : 0;
 
-  const amtDue = hasPaxDiscount
-    ? Math.max(0, round(
-        vatExemptSales - totalPaxDiscount +
-        (grossSubtotal - vatExemptSales * 1.12) -
-        itemDiscountTotal - promoDiscount
-      ))
-    : Math.max(0, grossSubtotal - itemDiscountTotal - totalPaxDiscount - promoDiscount);
+const vatableBase  = isVat ? Math.max(0, round(grossSubtotal - (totalVatExemptSales * 1.12) - itemDiscountTotal - promoDiscount)) : 0;
+const vatableSales = isVat ? round(vatableBase / 1.12) : 0;
+const vatAmount    = isVat ? round(vatableBase - vatableSales) : 0;
 
-  const vatableBase  = isVat ? Math.max(0, amtDue - vatExemptSales) : 0;
-  const vatableSales = isVat ? round(vatableBase / 1.12) : 0;
-  const vatAmount    = isVat ? round(vatableBase - vatableSales) : 0;
+const amtDue = Math.max(0, round(vatableBase + vatExemptSales));
 
-  const totalDiscountDisplay = itemDiscountTotal + totalPaxDiscount + promoDiscount;
-  const change   = typeof cashTendered === 'number' ? Math.max(0, cashTendered - amtDue) : 0;
-  const subtotal = grossSubtotal - itemDiscountTotal;
+
+console.log({
+  grossSubtotal,
+  totalPaxDiscount,
+  totalVatExemptSales,
+  vatExemptSales,
+  amtDue,
+  vatableBase,
+  vatableSales,
+  vatAmount,
+});
+
+const totalDiscountDisplay = itemDiscountTotal + totalPaxDiscount + promoDiscount;
+const change   = typeof cashTendered === 'number' ? Math.max(0, cashTendered - amtDue) : 0;
+const subtotal = grossSubtotal - itemDiscountTotal;
 
   // ── Sync selectedDiscounts for backend/receipt ────────────────────────────
   useEffect(() => {
@@ -1124,6 +1132,7 @@ const SalesOrder = () => {
           html, body { margin: 0 !important; padding: 0 !important; }
           body * { visibility: hidden; }
           nav, header, aside, button, .print\\:hidden { display: none !important; }
+          img { display: block !important; }
           .printable-receipt-container, .printable-receipt-container * { visibility: visible !important; }
           .printable-receipt-container {
             position: static !important;
