@@ -125,6 +125,14 @@ class AuthController extends Controller
             'ip_address' => $request->ip(),
         ]);
 
-        return response()->json(['user' => $user], 200);
+        // 🚨 ADDED: Generate the Sanctum token for the Google user
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        // 🚨 ADDED: Return the token alongside the user data
+        return response()->json([
+            'success' => true,
+            'user'    => $user,
+            'token'   => $token 
+        ], 200);
     }
 }

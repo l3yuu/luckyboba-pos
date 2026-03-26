@@ -25,6 +25,7 @@ class User extends Authenticatable
         'branch_name',
         'branch_id',
         'manager_pin',
+        'avatar',
     ];
 
     // ── Relationships ─────────────────────────────────────────────────────────

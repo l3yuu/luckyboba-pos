@@ -6,6 +6,7 @@ import {
   TrendingUp, FileText, ClipboardList, Receipt, Repeat2,
   Truck, ScanLine, Hash, ShoppingCart, ArrowLeftRight,
   DollarSign, BookOpen, FlaskConical, Wallet, X, ChevronDown,
+  CreditCard 
 } from "lucide-react";
 
 // ── Tab IDs ───────────────────────────────────────────────────────────────────
@@ -18,6 +19,8 @@ export type TabId =
   | "recipes" | "supplier" | "item_checker"
   | "item_serials" | "purchase_order" | "stock_transfer"
   | "expenses"
+  | "card_approvals" 
+  | "card_users"
   | "promotions" | "audit" | "settings";
 
 export interface SuperAdminSidebarProps {
@@ -219,6 +222,13 @@ const INVENTORY_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
 const EXPENSES_ITEMS:  { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "expenses", label: "Expenses", icon: <Wallet size={13} /> },
 ];
+
+// ── NEW APP SECTION ──
+const APP_ITEMS:    { id: TabId; label: string; icon: React.ReactNode }[] = [
+  { id: "card_approvals", label: "Card Approvals",         icon: <CreditCard  size={14} /> }, 
+  { id: "card_users",     label: "Card Members",   icon: <Users size={14} /> },
+];
+
 const SYSTEM_ITEMS:    { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "promotions", label: "Promotions & Discounts", icon: <Tag         size={14} /> },
   { id: "audit",      label: "Audit Logs",             icon: <ShieldCheck size={14} /> },
@@ -238,25 +248,6 @@ const ROLE_LABELS: Record<string, string> = {
 
 const getToken = () =>
   localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
-
-// ── Desktop: sub item ─────────────────────────────────────────────────────────
-const SubItem = ({
-  item, active, onClick,
-}: {
-  item: { id: TabId; label: string; icon: React.ReactNode };
-  active: boolean;
-  onClick: () => void;
-}) => (
-  <button
-    onClick={onClick}
-    className={`sa-tab flex items-center gap-2 w-full pl-7 pr-2.5 py-1.5 text-[0.76rem] font-medium mb-0.5 text-left relative
-      ${active ? "active text-[#3b2063]" : "text-zinc-500"}`}
-  >
-    <span className="absolute left-4 top-1/2 -translate-y-1/2 w-px h-3 bg-zinc-200 rounded-full" />
-    <span className={`shrink-0 ${active ? "text-[#3b2063]" : "text-zinc-400"}`}>{item.icon}</span>
-    {item.label}
-  </button>
-);
 
 // ── Desktop: collapsible group ────────────────────────────────────────────────
 const NavGroup = ({
@@ -280,7 +271,16 @@ const NavGroup = ({
     <div className={`sa-accordion ${expanded ? "open" : ""}`}>
       <div className="sa-accordion-inner">
         {items.map(item => (
-          <SubItem key={item.id} item={item} active={activeTab === item.id} onClick={() => onNavigate(item.id)} />
+          <button
+            key={item.id}
+            onClick={() => onNavigate(item.id)}
+            className={`sa-tab flex items-center gap-2 w-full pl-7 pr-2.5 py-1.5 text-[0.76rem] font-medium mb-0.5 text-left relative
+              ${activeTab === item.id ? "active text-[#3b2063]" : "text-zinc-500"}`}
+          >
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 w-px h-3 bg-zinc-200 rounded-full" />
+            <span className={`shrink-0 ${activeTab === item.id ? "text-[#3b2063]" : "text-zinc-400"}`}>{item.icon}</span>
+            {item.label}
+          </button>
         ))}
       </div>
     </div>
@@ -325,29 +325,18 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
   const [showLogoutModal,    setShowLogoutModal]    = useState(false);
   const [internalLoggingOut, setInternalLoggingOut] = useState(false);
   const [authUser,           setAuthUser]           = useState<AuthUser | null>(null);
-  const [isClosing,          setIsClosing]           = useState(false);
+  const [isClosing,          setIsClosing]          = useState(false);
 
-  // Desktop accordion state
+  // Accordion state
   const [reportsExp,   setReportsExp]   = useState(false);
   const [menuExp,      setMenuExp]      = useState(false);
   const [inventoryExp, setInventoryExp] = useState(false);
   const [expensesExp,  setExpensesExp]  = useState(false);
 
-  // Mobile accordion state (separate so desktop and mobile don't share)
-  const [mReportsExp,   setMReportsExp]   = useState(false);
-  const [mMenuExp,      setMMenuExp]      = useState(false);
-  const [mInventoryExp, setMInventoryExp] = useState(false);
-  const [mExpensesExp,  setMExpensesExp]  = useState(false);
-
   const reportsOpen   = REPORTS_IDS.includes(active)   || reportsExp;
   const menuOpen      = MENU_IDS.includes(active)      || menuExp;
   const inventoryOpen = INVENTORY_IDS.includes(active) || inventoryExp;
   const expensesOpen  = EXPENSES_IDS.includes(active)  || expensesExp;
-
-  const mReportsOpen   = REPORTS_IDS.includes(active)   || mReportsExp;
-  const mMenuOpen      = MENU_IDS.includes(active)      || mMenuExp;
-  const mInventoryOpen = INVENTORY_IDS.includes(active) || mInventoryExp;
-  const mExpensesOpen  = EXPENSES_IDS.includes(active)  || mExpensesExp;
 
   const isLoggingOut = externalLoggingOut ?? internalLoggingOut;
 
@@ -398,12 +387,9 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
     <>
       <style>{STYLES}</style>
 
-      {/* ══════════════════════════════════════════════
-          DESKTOP SIDEBAR (md and above)
-      ══════════════════════════════════════════════ */}
+      {/* DESKTOP SIDEBAR */}
       <aside className="sa-sb-root fixed inset-y-0 left-0 z-50 w-60 bg-white border-r border-zinc-100 flex-col hidden md:flex md:relative md:translate-x-0">
-
-        {/* User profile */}
+        
         <div className="shrink-0 px-4 pt-6 pb-4 border-b border-zinc-100">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-[0.4rem] bg-[#3b2063] flex items-center justify-center shrink-0">
@@ -423,7 +409,6 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
           </div>
         </div>
 
-        {/* Desktop nav */}
         <div className="flex-1 sa-scroll px-3 py-2 min-h-0">
           <p className="px-2 pt-4 pb-1 text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">Navigation</p>
           {NAV_ITEMS.map(t => (
@@ -454,6 +439,16 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
             activeTab={active} isGroupActive={EXPENSES_IDS.includes(active)}
             expanded={expensesOpen} onToggle={() => setExpensesExp(v => !v)} onNavigate={go} />
 
+          {/* ── NEW APP SECTION HEADER ── */}
+          <p className="px-2 pt-4 pb-1 text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">App</p>
+          {APP_ITEMS.map(t => (
+            <button key={t.id} onClick={() => go(t.id)}
+              className={`sa-tab flex items-center gap-2 w-full px-2.5 py-1.5 text-[0.8rem] font-medium mb-0.5 text-left relative ${active === t.id ? "active" : "text-zinc-500"}`}>
+              <span className={`shrink-0 ${active === t.id ? "text-[#3b2063]" : "text-zinc-400"}`}>{t.icon}</span>
+              {t.label}
+            </button>
+          ))}
+
           <p className="px-2 pt-4 pb-1 text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">System</p>
           {SYSTEM_ITEMS.map(t => (
             <button key={t.id} onClick={() => go(t.id)}
@@ -465,7 +460,6 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
           <div className="pb-4" />
         </div>
 
-        {/* Desktop bottom */}
         <div className="shrink-0 px-3 pb-4 pt-2 border-t border-zinc-100">
           <button onClick={() => go("settings")}
             className={`sa-tab flex items-center gap-2 w-full px-2.5 py-1.5 text-[0.8rem] font-medium mb-0.5 text-left relative ${active === "settings" ? "active" : "text-zinc-500"}`}>
@@ -476,45 +470,19 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
           <button onClick={() => setShowLogoutModal(true)} disabled={isLoggingOut}
             className="sa-tab flex items-center gap-2 w-full px-2.5 py-1.5 text-[0.8rem] font-medium text-left"
             style={{ color: "#be2525" }}>
-            {isLoggingOut ? (
-              <>
-                <span className="shrink-0">
-                  <div className="relative w-3.5 h-3.5">
-                    <div className="absolute inset-0 rounded-full border-[1.5px] border-red-200" />
-                    <div className="sa-spin absolute inset-0 rounded-full border-[1.5px] border-transparent border-t-[#be2525]" />
-                  </div>
-                </span>
-                Logging out...
-              </>
-            ) : (
-              <>
-                <span className="shrink-0"><LogOut size={14} /></span>
-                Log out
-              </>
-            )}
+            <span className="shrink-0"><LogOut size={14} /></span>
+            {isLoggingOut ? "Logging out..." : "Log out"}
           </button>
           <p className="mt-3 text-[9px] font-bold uppercase tracking-widest text-zinc-300 text-center">Lucky Boba © 2026</p>
         </div>
       </aside>
 
-      {/* ══════════════════════════════════════════════
-          MOBILE — full-viewport panel
-      ══════════════════════════════════════════════ */}
+      {/* MOBILE SIDEBAR */}
       {(open || isClosing) && (
         <>
-          {/* Backdrop */}
-          <div
-            className={`${isClosing ? "sa-overlay-exit" : "sa-overlay-enter"} md:hidden`}
-            onClick={closePanel}
-            style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(3px)", zIndex: 40 }}
-          />
-
-          {/* Panel */}
-          <div
-            className={`sa-panel-enter${isClosing ? " sa-panel-exit" : ""} sa-sb-root md:hidden`}
-            style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "#fff", zIndex: 50, display: "flex", flexDirection: "column", overflow: "hidden" }}
-          >
-            {/* Profile header */}
+          <div className={`${isClosing ? "sa-overlay-exit" : "sa-overlay-enter"} md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40`} onClick={closePanel} />
+          <div className={`sa-panel-enter${isClosing ? " sa-panel-exit" : ""} sa-sb-root md:hidden fixed top-0 left-0 right-0 bottom-0 bg-white z-50 flex flex-col overflow-hidden`}>
+            
             <div style={{ flexShrink: 0, padding: "56px 20px 16px", paddingTop: "max(56px, calc(env(safe-area-inset-top) + 20px))" }}>
               <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -523,13 +491,11 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
                   </div>
                   <div>
                     <div style={{ fontSize: "0.65rem", color: "#a1a1aa", fontWeight: 500, marginBottom: 1 }}>Hello,</div>
-                    <div style={{ fontSize: "1rem", fontWeight: 700, color: "#1a0f2e", lineHeight: 1.2 }}>
-                      {authUser?.name ?? "Super Admin"}
-                    </div>
+                    <div style={{ fontSize: "1rem", fontWeight: 700, color: "#1a0f2e", lineHeight: 1.2 }}>{authUser?.name ?? "Super Admin"}</div>
                     <div style={{ fontSize: "0.68rem", color: "#a1a1aa", fontWeight: 500, marginTop: 1 }}>Lucky Boba</div>
                   </div>
                 </div>
-                <button onClick={closePanel} style={{ width: 32, height: 32, borderRadius: "50%", border: "none", background: "#f4f4f5", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <button onClick={closePanel} style={{ width: 32, height: 32, borderRadius: "50%", border: "none", background: "#f4f4f5", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
                   <X size={14} color="#71717a" />
                 </button>
               </div>
@@ -537,9 +503,7 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
 
             <div className="sa-divider" style={{ margin: "0 20px" }} />
 
-            {/* Scrollable nav */}
             <div className="sa-scroll" style={{ flex: 1, minHeight: 0, padding: "8px 14px" }}>
-
               <div className="sa-sec">Navigation</div>
               {NAV_ITEMS.map(t => (
                 <button key={t.id} onClick={() => go(t.id)} className={`sa-item ${active === t.id ? "active" : ""}`}>
@@ -549,24 +513,25 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
               ))}
 
               <div className="sa-sec">Reports</div>
-              <MobileGroup label="Reports" icon={<BarChart2 size={18} />}
-                items={REPORTS_ITEMS} activeTab={active} isGroupActive={REPORTS_IDS.includes(active)}
-                expanded={mReportsOpen} onToggle={() => setMReportsExp(v => !v)} onNavigate={go} />
+              <MobileGroup label="Reports" icon={<BarChart2 size={18} />} items={REPORTS_ITEMS} activeTab={active} isGroupActive={REPORTS_IDS.includes(active)} expanded={reportsOpen} onToggle={() => setReportsExp(v => !v)} onNavigate={go} />
 
               <div className="sa-sec">Menu Management</div>
-              <MobileGroup label="Menu Management" icon={<UtensilsCrossed size={18} />}
-                items={MENU_ITEMS} activeTab={active} isGroupActive={MENU_IDS.includes(active)}
-                expanded={mMenuOpen} onToggle={() => setMMenuExp(v => !v)} onNavigate={go} />
+              <MobileGroup label="Menu Management" icon={<UtensilsCrossed size={18} />} items={MENU_ITEMS} activeTab={active} isGroupActive={MENU_IDS.includes(active)} expanded={menuOpen} onToggle={() => setMenuExp(v => !v)} onNavigate={go} />
 
               <div className="sa-sec">Inventory</div>
-              <MobileGroup label="Inventory" icon={<Package size={18} />}
-                items={INVENTORY_ITEMS} activeTab={active} isGroupActive={INVENTORY_IDS.includes(active)}
-                expanded={mInventoryOpen} onToggle={() => setMInventoryExp(v => !v)} onNavigate={go} />
+              <MobileGroup label="Inventory" icon={<Package size={18} />} items={INVENTORY_ITEMS} activeTab={active} isGroupActive={INVENTORY_IDS.includes(active)} expanded={inventoryOpen} onToggle={() => setInventoryExp(v => !v)} onNavigate={go} />
 
               <div className="sa-sec">Expenses</div>
-              <MobileGroup label="Expenses" icon={<DollarSign size={18} />}
-                items={EXPENSES_ITEMS} activeTab={active} isGroupActive={EXPENSES_IDS.includes(active)}
-                expanded={mExpensesOpen} onToggle={() => setMExpensesExp(v => !v)} onNavigate={go} />
+              <MobileGroup label="Expenses" icon={<DollarSign size={18} />} items={EXPENSES_ITEMS} activeTab={active} isGroupActive={EXPENSES_IDS.includes(active)} expanded={expensesOpen} onToggle={() => setExpensesExp(v => !v)} onNavigate={go} />
+
+              {/* ── NEW APP SECTION MOBILE ── */}
+              <div className="sa-sec">App</div>
+              {APP_ITEMS.map(t => (
+                <button key={t.id} onClick={() => go(t.id)} className={`sa-item ${active === t.id ? "active" : ""}`}>
+                  <span className="sa-item-icon" style={{ color: active === t.id ? "#3b2063" : "#71717a" }}>{t.icon}</span>
+                  {t.label}
+                </button>
+              ))}
 
               <div className="sa-sec">System</div>
               {SYSTEM_ITEMS.map(t => (
@@ -575,70 +540,32 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
                   {t.label}
                 </button>
               ))}
-
             </div>
 
-            {/* Bottom actions */}
             <div style={{ flexShrink: 0, padding: "8px 14px", paddingBottom: "max(24px, env(safe-area-inset-bottom))", borderTop: "1px solid #f0f0f2" }}>
-              <button onClick={() => go("settings")} className={`sa-item ${active === "settings" ? "active" : ""}`} style={{ color: active === "settings" ? "#3b2063" : "#3f3f46" }}>
-                <span className="sa-item-icon" style={{ color: active === "settings" ? "#3b2063" : "#71717a" }}><Settings size={18} /></span>
+              <button onClick={() => go("settings")} className={`sa-item ${active === "settings" ? "active" : ""}`}>
+                <span className="sa-item-icon"><Settings size={18} /></span>
                 Settings
               </button>
               <button onClick={() => setShowLogoutModal(true)} disabled={isLoggingOut} className="sa-logout">
-                {isLoggingOut ? (
-                  <>
-                    <span className="sa-item-icon">
-                      <div style={{ position: "relative", width: 16, height: 16 }}>
-                        <div style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "1.5px solid #fca5a5" }} />
-                        <div className="sa-spin" style={{ position: "absolute", inset: 0, borderRadius: "50%", border: "1.5px solid transparent", borderTopColor: "#be2525" }} />
-                      </div>
-                    </span>
-                    Logging out...
-                  </>
-                ) : (
-                  <>
-                    <span className="sa-item-icon"><LogOut size={18} color="#be2525" /></span>
-                    Log out
-                  </>
-                )}
+                <span className="sa-item-icon"><LogOut size={18} color="#be2525" /></span>
+                {isLoggingOut ? "Logging out..." : "Log out"}
               </button>
-              <div style={{ marginTop: 14, fontSize: "0.56rem", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.18em", color: "#d4d4d8", textAlign: "center" }}>
-                Lucky Boba © 2026
-              </div>
             </div>
           </div>
         </>
       )}
 
-      {/* ── Logout Modal ── */}
+      {/* LOGOUT MODAL */}
       {showLogoutModal && (
-        <div className="fixed inset-0 z-200 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-          <div style={{ background: "#fff", width: "100%", maxWidth: 360, border: "1px solid #e4e4e7", borderRadius: "1.25rem", padding: 32, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", boxShadow: "0 24px 64px rgba(0,0,0,0.18)" }}>
-            <div style={{ width: 44, height: 44, borderRadius: "0.625rem", background: "#fff0f0", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 20 }}>
-              <LogOut size={19} color="#be2525" />
-            </div>
-            <h3 style={{ color: "#1a0f2e", fontWeight: 700, fontSize: "1rem", margin: "0 0 8px", letterSpacing: "-0.01em" }}>End Session?</h3>
-            <p style={{ color: "#71717a", fontSize: "0.85rem", fontWeight: 500, margin: "0 0 28px", lineHeight: 1.5 }}>
-              Are you sure you want to log out of the Super Admin panel?
-            </p>
-            {authUser && (
-              <div style={{ width: "100%", marginBottom: 20, display: "flex", alignItems: "center", gap: 12, padding: 12, background: "#f9f9f9", border: "1px solid #e4e4e7", borderRadius: "0.75rem", textAlign: "left" }}>
-                <div style={{ width: 32, height: 32, borderRadius: "50%", background: "#3b2063", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <span style={{ fontSize: "0.6rem", fontWeight: 700, color: "#fff" }}>{initials}</span>
-                </div>
-                <div style={{ minWidth: 0 }}>
-                  <p style={{ fontSize: "0.75rem", fontWeight: 700, color: "#1a0f2e", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{authUser.name}</p>
-                  <p style={{ fontSize: "0.65rem", color: "#71717a", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{authUser.email}</p>
-                </div>
-              </div>
-            )}
-            <div style={{ display: "flex", flexDirection: "column", width: "100%", gap: 8 }}>
-              <button onClick={handleLogoutConfirm} style={{ width: "100%", padding: "12px", fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: "#fff", background: "#be2525", border: "none", borderRadius: "0.625rem", cursor: "pointer" }}>
-                Logout
-              </button>
-              <button onClick={() => setShowLogoutModal(false)} style={{ width: "100%", padding: "12px", fontSize: "0.65rem", fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: "#71717a", background: "#fff", border: "1px solid #e4e4e7", borderRadius: "0.625rem", cursor: "pointer" }}>
-                Cancel
-              </button>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-[360px] border border-zinc-200 rounded-[1.25rem] p-8 flex flex-col items-center text-center shadow-2xl">
+            <div className="w-11 h-11 rounded-xl bg-red-50 flex items-center justify-center mb-5"><LogOut size={19} color="#be2525" /></div>
+            <h3 className="text-[#1a0f2e] font-bold text-base mb-2">End Session?</h3>
+            <p className="text-zinc-500 text-[0.85rem] mb-7 leading-relaxed">Are you sure you want to log out of the Super Admin panel?</p>
+            <div className="w-full flex flex-col gap-2">
+              <button onClick={handleLogoutConfirm} className="w-full py-3 bg-[#be2525] text-white text-[0.65rem] font-bold uppercase tracking-[0.18em] rounded-xl">Logout</button>
+              <button onClick={() => setShowLogoutModal(false)} className="w-full py-3 bg-white border border-zinc-200 text-zinc-500 text-[0.65rem] font-bold uppercase tracking-[0.18em] rounded-xl">Cancel</button>
             </div>
           </div>
         </div>

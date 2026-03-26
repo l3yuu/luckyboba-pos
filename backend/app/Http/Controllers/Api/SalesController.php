@@ -114,7 +114,7 @@ class SalesController extends Controller
                 'branch_id'                => $branchId,
                 'total_amount'             => 0,
                 'invoice_number'           => $officialOR,
-                'status'                   => 'completed',
+                'status'                   => 'pending',
                 'payment_method'           => $request->input('payment_method', 'cash'),
                 'reference_number'         => $request->input('reference_number'),
                 'charge_type'              => $chargeType,
@@ -276,6 +276,56 @@ class SalesController extends Controller
         }
 
         return response()->json($query->paginate(20));
+    }
+
+    public function myOrders(Request $request)
+    {
+        $user   = auth('sanctum')->user();
+        $orders = Sale::with('items')
+            ->where('user_id', $user->id)
+            ->latest()
+            ->paginate(20);
+        return response()->json($orders);
+    }
+
+    // ── Get pending online orders (placed via customer app) ───────────────────
+    public function onlineOrders(Request $request)
+    {
+        $user   = auth('sanctum')->user();
+        $orders = Sale::with('items')
+            ->where('branch_id', $user->branch_id)
+            ->whereNotNull('user_id')
+            ->whereIn('status', ['pending', 'fulfilled'])
+            ->latest()
+            ->get()
+            ->map(function ($order) {
+                return [
+                    'id'             => $order->id,
+                    'si_number'      => $order->invoice_number,
+                    'customer_name'  => $order->customer_name ?? 'App Customer',
+                    'total_amount'   => $order->total_amount,
+                    'payment_method' => $order->payment_method,
+                    'status'         => $order->status,
+                    'created_at'     => $order->created_at->format('h:i A'),
+                    'items'          => $order->items->map(function ($i) {
+                        return [
+                            'name'     => $i->product_name,
+                            'quantity' => $i->quantity,
+                            'price'    => $i->price,
+                        ];
+                    }),
+                ];
+            });
+
+        return response()->json($orders);
+    }
+
+    // ── Mark order as fulfilled by cashier ────────────────────────────────────
+    public function fulfill(Request $request, $id)
+    {
+        $sale = Sale::findOrFail($id);
+        $sale->update(['status' => 'fulfilled']);
+        return response()->json(['status' => 'success', 'message' => 'Order marked as fulfilled']);
     }
 
     public function cancel(Request $request, $id)

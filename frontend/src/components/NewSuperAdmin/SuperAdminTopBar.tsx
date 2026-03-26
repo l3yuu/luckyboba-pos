@@ -40,7 +40,11 @@ const PAGE_TITLES: Record<TabId, { label: string; desc: string }> = {
 
   promotions: { label: "Promotions & Discounts", desc: "Active campaigns & vouchers"            },
   audit:      { label: "Audit Logs",             desc: "Complete system activity trail"          },
-  settings:   { label: "System Settings",        desc: "Global configuration & preferences"     },
+  settings:   { label: "System Settings",        desc: "Global configuration & preferences"      },
+  
+  // ⬅️ ADDED THIS NEW ROW
+  card_approvals: { label: "Card Approvals",     desc: "Review and activate customer card purchases" }, 
+  card_users:     { label: "Card Members",       desc: "View active subscribers and daily promo usage" },
 };
 
 // ── Pulse animation ───────────────────────────────────────────────────────────
