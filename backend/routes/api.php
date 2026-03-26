@@ -128,12 +128,12 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/sales-analytics', [SalesDashboardController::class, 'index']);
 
         Route::prefix('sales')->group(function () {
-        Route::get('/',                    [SalesController::class, 'index']);
-        Route::get('/online-orders',       [SalesController::class, 'onlineOrders']); // 👈 add
-        Route::get('/{id}',                [SalesController::class, 'show']);
-        Route::patch('/{id}/cancel',       [SalesController::class, 'cancel']);
-        Route::patch('/{id}/fulfill',      [SalesController::class, 'fulfill']);      // 👈 add
-    });
+    Route::get('/',                [SalesController::class, 'index']);
+    Route::get('/online-orders',   [SalesController::class, 'onlineOrders']);
+    Route::get('/{id}',            [SalesController::class, 'show']);
+    Route::post('/{id}/cancel',    [SalesController::class, 'cancel']);   // ← post not patch
+    Route::post('/{id}/fulfill',   [SalesController::class, 'fulfill']);  // ← post not patch
+});
 
         Route::prefix('cash-transactions')->group(function () {
             Route::get('/',         [CashTransactionController::class, 'index']);
