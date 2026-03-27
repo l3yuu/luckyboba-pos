@@ -113,7 +113,7 @@ const VoidLogsPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
   const fetchLogs = useCallback(async () => {
     setLoading(true); setFetchError('');
     try {
-      const params: Record<string, any> = { date: selectedDate };
+      const params: Record<string, string | number> = { date: selectedDate };
       if (branchId) params.branch_id = branchId;   // ← scoped to this branch
 
       const res    = await api.get('/reports/sales-detailed', { params });
