@@ -152,6 +152,7 @@ const TeamLeaderSidebar: React.FC<TeamLeaderSidebarProps> = ({
     { tab: 'sales-dashboard', label: 'Sales Dashboard' },
     { tab: 'items-report',    label: 'Items Report'    },
     { tab: 'x-reading',       label: 'X-Reading'       },
+    { tab: 'z-reading',       label: 'Z-Reading'       },  
   ];
 
   // Floor ops: what a TL actually manages day-to-day

@@ -218,6 +218,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     // ── BRANCH MANAGER + SUPERADMIN ──────────────────────────────────────────
     Route::middleware(['role:superadmin,branch_manager'])->group(function () {
 
+        Route::get('/branch/audit-logs', [AuditLogController::class, 'branchIndex']);
+
         Route::prefix('inventory')->group(function () {
             Route::post('/',               [InventoryController::class, 'store']);
             Route::get('/check/{barcode}', [InventoryController::class, 'checkByBarcode']);
