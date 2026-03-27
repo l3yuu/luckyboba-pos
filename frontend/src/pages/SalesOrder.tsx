@@ -334,7 +334,7 @@ const subtotal = grossSubtotal - itemDiscountTotal;
     if (paxSenior > 0 && scDiscount)  applied.push(scDiscount);
     if (paxPwd    > 0 && pwdDiscount) applied.push(pwdDiscount);
     setSelectedDiscounts(applied);
-  }, [paxSenior, paxPwd]);
+  }, [paxSenior, paxPwd, scDiscount, pwdDiscount]);
 
   // ── Sticker logic ─────────────────────────────────────────────────────────
   const hasStickers = cart.some(item =>
@@ -451,7 +451,7 @@ const subtotal = grossSubtotal - itemDiscountTotal;
       });
       return updated;
     });
-  }, [cart.length]);
+  }, [cart]);
 
   // ── Sequence helpers ──────────────────────────────────────────────────────
 
