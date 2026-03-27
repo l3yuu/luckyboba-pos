@@ -186,8 +186,8 @@ const SalesOrder = () => {
 
   // Discounts
   const [discountRemarks,  setDiscountRemarks]  = useState('');
-  const [seniorId,         setSeniorId]         = useState('');
-  const [pwdId,            setPwdId]            = useState('');
+  const [seniorIds,        setSeniorIds]        = useState<string[]>([]);
+  const [pwdIds,           setPwdIds]           = useState<string[]>([]);
   const [discounts, setDiscounts] = useState<Discount[]>(() => {
     try {
       const c = localStorage.getItem('pos_discounts_cache');
@@ -995,8 +995,8 @@ const subtotal = grossSubtotal - itemDiscountTotal;
       cash_tendered:            typeof cashTendered === 'number' ? cashTendered : 0,
       pax_senior:               paxSenior,
       pax_pwd:                  paxPwd,
-      senior_id:                seniorId  || null,
-      pwd_id:                   pwdId     || null,
+      senior_id:                seniorIds.length > 0 ? seniorIds.join(',') : null,
+      pwd_id:                   pwdIds.length > 0 ? pwdIds.join(',') : null,
     };
 
     if (navigator.onLine) {
@@ -1076,8 +1076,8 @@ const subtotal = grossSubtotal - itemDiscountTotal;
     setMixMatchDrinkSugar('');
     setMixMatchDrinkOptions([]);
     setMixMatchDrinkAddOns([]);
-    setSeniorId('');
-    setPwdId('');
+    setSeniorIds([]);
+    setPwdIds([]);
     await syncNextSequence();
   };
 
@@ -1110,7 +1110,7 @@ const subtotal = grossSubtotal - itemDiscountTotal;
     formattedDate, formattedTime, terminalNumber,
     orderType: orderType ?? 'take-out',
     customerName,
-    paxSenior, paxPwd, seniorId, pwdId,
+    paxSenior, paxPwd, seniorIds, pwdIds,
   };
 
   if (!orderType) {
@@ -1252,7 +1252,7 @@ const subtotal = grossSubtotal - itemDiscountTotal;
             cashTendered={cashTendered} referenceNumber={referenceNumber}
             discountRemarks={discountRemarks}
             itemPaxAssignments={itemPaxAssignments}
-            seniorId={seniorId} pwdId={pwdId}
+            seniorIds={seniorIds} pwdIds={pwdIds}
             discounts={discounts} activeTab={activeTab as 'payment' | 'discount' | 'pax'}
             submitting={submitting}
             onTabChange={(t) => setActiveTab(t as 'payment' | 'discount' | 'pax')}
@@ -1260,11 +1260,10 @@ const subtotal = grossSubtotal - itemDiscountTotal;
             onCashTenderedChange={setCashTendered}
             onReferenceNumberChange={setReferenceNumber}
             onDiscountChange={setSelectedDiscount}
-            onDiscountsChange={setSelectedDiscounts}
             onDiscountRemarksChange={setDiscountRemarks}
             onItemPaxAssignmentsChange={setItemPaxAssignments}
-            onSeniorIdChange={setSeniorId}
-            onPwdIdChange={setPwdId}
+            onSeniorIdsChange={setSeniorIds}
+            onPwdIdsChange={setPwdIds}
             onEditCartItem={openCartItemEdit}
             onConfirm={handleConfirmOrder}
             onClose={() => setIsConfirmModalOpen(false)}

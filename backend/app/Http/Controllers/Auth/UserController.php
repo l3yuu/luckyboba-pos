@@ -64,8 +64,8 @@ class UserController extends Controller
 
             // Branch managers only see cashiers in their branch
             if ($authUser->role === 'branch_manager') {
-                $query->where('role', 'cashier')
-                      ->where('branch_name', $authUser->branch_name);
+                $query->whereIn('role', ['cashier', 'team_leader'])
+                    ->where('branch_name', $authUser->branch_name);
             }
 
             // IT Admins only see non-superadmin users

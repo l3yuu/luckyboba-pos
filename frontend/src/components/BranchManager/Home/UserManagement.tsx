@@ -7,7 +7,7 @@ import {
   Trash, CheckCircle, Laptop, MonitorCheck, MonitorOff, Monitor,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import api from '../../services/api';
+import api from '../../../services/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -792,7 +792,7 @@ const UserManagement: React.FC = () => {
       const list = raw
         .filter((u): u is Record<string, unknown> => !!u && typeof u === 'object' && 'id' in (u as object))
         .map(mapUser)
-        .filter(u => u.role === 'cashier');
+        .filter(u => u.role === 'cashier' || u.role === 'team_leader');
 
       setUsers(list);
 
@@ -838,9 +838,6 @@ const UserManagement: React.FC = () => {
           <Btn variant="secondary" onClick={fetchUsers} disabled={loading}>
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
           </Btn>
-          <Btn variant="secondary" onClick={() => setRegisterOpen(true)} disabled={loading}>
-            <Monitor size={13} /> Register Device
-          </Btn>
           <Btn onClick={() => setAddOpen(true)} disabled={loading}>
             <Plus size={13} /> Add Cashier
           </Btn>
@@ -854,7 +851,7 @@ const UserManagement: React.FC = () => {
             <Users size={16} className="text-violet-600" />
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Total Cashiers</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Total Staffs</p>
             <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">{loading ? '—' : users.length}</p>
           </div>
         </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Users, BarChart2, ShoppingBag,
-  Package, Settings as SettingsIcon, LogOut, HelpCircle, ChevronDown, Activity,
+  Package, Settings as SettingsIcon, LogOut, HelpCircle, ChevronDown, Activity, Monitor,
 } from 'lucide-react';
 
 // ── Sidebar styles ────────────────────────────────────────────────────────────
@@ -241,6 +241,11 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
           <button onClick={() => goTo('users')} className={`bm-sb-item ${isActive('users') ? 'active' : ''}`}>
             <span className="bm-sb-icon" style={{ color: iconColor('users') }}><Users size={14} /></span>
             User Management
+          </button>
+
+          <button onClick={() => goTo('device-management')} className={`bm-sb-item ${isActive('device-management') ? 'active' : ''}`}>
+            <span className="bm-sb-icon" style={{ color: iconColor('device-management') }}><Monitor size={14} /></span>
+            Device Management
           </button>
 
           {/* Sales Reports Group */}
