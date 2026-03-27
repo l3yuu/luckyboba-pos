@@ -288,14 +288,14 @@ class SalesDashboardService
         //   - Discount (20%) = 214.29 × 0.20 = 42.86
         //   - VAT-exempt sales = 214.29 (the VAT-exclusive base)
         //   - Vatable base = 240 - 214.29 = 25.71 (remaining VATable)
+        // ── VAT calculation based on branch type ──────────────────────────────
         $scPwdDiscount  = $discounts['sc_discount'] + $discounts['pwd_discount'];
-        // Reconstruct the gross amount covered by SC/PWD: discount / 0.20 = VAT-exclusive base
         $vatExemptSales = $isVat ? round($scPwdDiscount, 2) : 0.0;
-        $vatableBase    = $isVat ? max(0.0, $gross - $scPwdDiscount) : 0.0;
+        $vatableBase    = $isVat ? max(0.0, $grossSales - $scPwdDiscount) : 0.0;  // ← $grossSales
         $vatableSales   = $isVat ? round($vatableBase / 1.12, 2) : 0.0;
         $vatAmount      = $isVat ? round($vatableBase - $vatableSales, 2) : 0.0;
-        $vatableSales   = $isVat ? round($vatableBase / 1.12, 2) : 0.0;
-        $vatAmount      = $isVat ? round($vatableBase - $vatableSales, 2) : 0.0;
+        $vatableSales   = $isVat ? round($vatableBase / 1.12, 2) : 0.0;           // duplicate, can remove
+        $vatAmount      = $isVat ? round($vatableBase - $vatableSales, 2) : 0.0;  // duplicate, can remove
         // ─────────────────────────────────────────────────────────────────────
 
         $paymentBreakdown = $this->computePaymentBreakdown($from, $to, $branchId);
