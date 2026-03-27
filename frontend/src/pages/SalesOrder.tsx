@@ -12,7 +12,7 @@ import {
 import { useToast }  from '../hooks/useToast';
 import { useAuth }   from '../hooks/useAuth';
 import api           from '../services/api';
-import { Home, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 import {
   generateORNumber, generateQueueNumber, generateTerminalNumber,
@@ -1339,91 +1339,86 @@ const filteredCategories = categories
           isSyncing={isSyncing} syncNow={syncNow} remove={remove}
         />
 
-         {/* ── Category nav bar ─────────────────────────────────────────── */}
-<div className="flex flex-col bg-white/70 backdrop-blur-sm border-b border-[#7c14d4]/10 print:hidden z-10 shrink-0">
+        {/* ── Category nav bar ─────────────────────────────────────────── */}
+        <div className="flex flex-col bg-white border-b border-zinc-200 print:hidden z-10 shrink-0">
+          <div className="flex items-center gap-2 px-4 py-2 overflow-x-auto scrollbar-none">
 
-  {/* Row 1: POS Home + Breadcrumb */}
-  <div className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium">
-    <button
-      onClick={() => navigate('/pos')}
-      className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#7c14d4] text-white hover:bg-[#6010b0] active:scale-95 transition-all duration-150 shadow-sm mr-2 text-xs font-semibold"
-    >
-      <Home size={12} />
-      <span>POS Home</span>
-    </button>
-
-    <span
-      className="flex items-center gap-1 px-2 py-1 rounded-md text-[#7c14d4]/60 hover:text-[#7c14d4] hover:bg-[#7c14d4]/10 cursor-pointer transition-all duration-150"
-      onClick={() => { setSelectedCategory(null); setCategorySize(null); setActiveCategoryGroup(null); }}
-    >
-      <span>All Categories</span>
-    </span>
-
-    {selectedCategory && (
-      <>
-        <ChevronRight size={12} className="text-[#7c14d4]/30 shrink-0" />
-        <span
-          className={`flex items-center px-2 py-1 rounded-md transition-all duration-150 ${
-            !categorySize
-              ? 'text-[#7c14d4] font-semibold bg-[#7c14d4]/10'
-              : 'text-[#7c14d4]/60 hover:text-[#7c14d4] hover:bg-[#7c14d4]/10 cursor-pointer'
-          }`}
-          onClick={() => { if (categorySize && !categoryHasOnlyOneSize) setCategorySize(null); }}
-        >
-          {selectedCategory.name}
-        </span>
-      </>
-    )}
-
-    {selectedCategory && categorySize && !categoryHasOnlyOneSize && (
-      <>
-        <ChevronRight size={12} className="text-[#7c14d4]/30 shrink-0" />
-        <span className="px-2 py-1 rounded-md text-[#7c14d4] font-semibold bg-[#7c14d4]/10">
-          {categorySize}
-        </span>
-      </>
-    )}
-  </div>
-
-  {/* Row 2: Category group filter tabs — only when no category is selected */}
-  {!selectedCategory && (
-    <div className="flex items-center gap-1.5 px-3 pb-2 overflow-x-auto scrollbar-none">
-      {[
-        { key: null,            label: 'All',     types: null },
-        { key: 'drinks',        label: '🧋 Drinks',   types: ['drink'] },
-        { key: 'bundles',       label: '📦 Bundles',  types: ['bundle'] },
-        { key: 'food',          label: '🍕 Food',     types: ['food', 'combo', 'waffle', 'wings'] },
-        { key: 'mix_and_match', label: '🔀 Mix & Match', types: ['mix_and_match'] },
-        { key: 'others',        label: '✨ Others',   types: ['promo', 'other'] },
-      ].map(group => {
-        const isActive = activeCategoryGroup === group.key;
-        // Count matching categories
-        const count = group.types == null
-          ? filteredCategories.length
-          : filteredCategories.filter(c => group.types!.includes(c.category_type ?? c.type ?? '')).length;
-        if (count === 0 && group.key !== null) return null;
-        return (
-          <button
-            key={String(group.key)}
-            onClick={() => setActiveCategoryGroup(isActive ? null : group.key)}
-            className={`shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-all duration-150 border ${
-              isActive
-                ? 'bg-[#7c14d4] text-white border-[#7c14d4] shadow-sm'
-                : 'bg-white text-[#7c14d4] border-[#7c14d4]/20 hover:border-[#7c14d4]/50 hover:bg-[#7c14d4]/5'
+            {/* Breadcrumb — always visible */}
+            <span
+            className={`text-sm font-semibold shrink-0 cursor-pointer transition-colors px-3 py-2 rounded-lg ${
+              !selectedCategory
+                ? 'text-[#7c14d4] bg-[#7c14d4]/10'
+                : 'text-zinc-400 hover:text-[#7c14d4] hover:bg-zinc-100'
             }`}
-          >
-            {group.label}
-            <span className={`text-[10px] px-1 py-0.5 rounded-full ml-0.5 ${
-              isActive ? 'bg-white/20 text-white' : 'bg-[#7c14d4]/10 text-[#7c14d4]'
-            }`}>
-              {count}
+              onClick={() => { setSelectedCategory(null); setCategorySize(null); setActiveCategoryGroup(null); }}
+            >
+              All
             </span>
-          </button>
-        );
-      })}
-    </div>
-  )}
-</div>
+
+            {selectedCategory && (
+              <>
+                <ChevronRight size={11} className="text-zinc-300 shrink-0" />
+                <span
+                  className={`text-xs font-semibold shrink-0 px-2 py-1.5 rounded-lg transition-colors ${
+                    !categorySize
+                      ? 'text-[#7c14d4] bg-[#7c14d4]/10'
+                      : 'text-zinc-400 hover:text-[#7c14d4] hover:bg-zinc-100 cursor-pointer'
+                  }`}
+                  onClick={() => { if (categorySize && !categoryHasOnlyOneSize) setCategorySize(null); }}
+                >
+                  {selectedCategory.name}
+                </span>
+              </>
+            )}
+
+            {selectedCategory && categorySize && !categoryHasOnlyOneSize && (
+              <>
+                <ChevronRight size={11} className="text-zinc-300 shrink-0" />
+                <span className="text-xs font-bold text-[#7c14d4] bg-[#7c14d4]/10 px-2 py-1.5 rounded-lg shrink-0">
+                  {categorySize}
+                </span>
+              </>
+            )}
+
+            {/* Divider — only when no category selected and tabs are shown */}
+            {!selectedCategory && (
+              <div className="w-px h-4 bg-zinc-200 mx-1 shrink-0" />
+            )}
+
+            {/* Filter tabs — inline alongside breadcrumb when no category selected */}
+            {!selectedCategory && [
+              { key: 'drinks',        label: 'Drinks'},
+              { key: 'bundles',       label: 'Bundles'},
+              { key: 'food',          label: 'Food'},
+              { key: 'mix_and_match', label: 'Mix & Match'},
+              { key: 'others',        label: 'Others'},
+            ].map(group => {
+              const isActive = activeCategoryGroup === group.key;
+              const count = filteredCategories.filter(c =>
+                (GROUP_TYPES[group.key] ?? []).includes(c.category_type ?? c.type ?? '')
+              ).length;
+              if (count === 0) return null;
+              return (
+                <button
+                  key={group.key}
+                  onClick={() => setActiveCategoryGroup(isActive ? null : group.key)}
+                  className={`shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition-all border ${
+                    isActive
+                      ? 'bg-[#7c14d4] text-white border-[#7c14d4] shadow-sm'
+                      : 'bg-zinc-50 text-zinc-500 border-zinc-200 hover:border-[#7c14d4]/40 hover:text-[#7c14d4] hover:bg-violet-50'
+                  }`}
+                >
+                  <span>{group.label}</span>
+                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                    isActive ? 'bg-white/25 text-white' : 'bg-zinc-200 text-zinc-500'
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
 
         <div className="flex flex-1 overflow-hidden relative z-10">
           <MenuArea
