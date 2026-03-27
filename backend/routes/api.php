@@ -349,6 +349,13 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::patch  ('/reorder',       [SugarLevelController::class, 'reorder']);
         });
 
+        // ── ADD HERE ─────────────────────────────────────────────────────────────
+        Route::prefix('add-ons')->group(function () {
+            Route::post  ('/',        [AddOnController::class, 'store']);
+            Route::put   ('/{addOn}', [AddOnController::class, 'update']);
+            Route::delete('/{addOn}', [AddOnController::class, 'destroy']);
+        });
+
         // ── POS DEVICE MANAGEMENT ─────────────────────────────────────────────
         Route::prefix('pos-devices')->group(function () {
             Route::post  ('/',                [PosDeviceController::class, 'register']);
