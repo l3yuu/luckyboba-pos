@@ -1038,10 +1038,19 @@ export const ConfirmOrderModal = ({
                               {paymentMethod === 'grab' ? 'GrabFood Order Reference (Optional)' : paymentMethod === 'food_panda' ? 'FoodPanda Order Reference (Optional)' : 'Reference Number'}
                             </h3>
                             <input type="text" value={referenceNumber}
-                              onChange={e => { const v = e.target.value; if (/^\d{0,13}$/.test(v)) onReferenceNumberChange(v); }}
+                              onChange={e => {
+                                const v = e.target.value.replace(/\D/g, '').slice(0, 13);
+                                onReferenceNumberChange(v);
+                              }}
                               maxLength={13}
                               className="w-full bg-zinc-50 border-2 border-zinc-300 rounded-[0.625rem] py-4 px-5 text-xl font-black outline-none focus:border-[#3b2063] focus:bg-white transition-colors"
                               placeholder={paymentMethod === 'grab' ? 'GRAB-XXXXXX' : paymentMethod === 'food_panda' ? 'FP-XXXXXX' : 'REF#'} />
+
+                            {['gcash', 'paymaya', 'credit', 'debit'].includes(paymentMethod) && referenceNumber.length < 13 && (
+                              <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest mt-1 ml-1">
+                                ⚠ Reference number must be 13 digits ({referenceNumber.length}/13)
+                              </p>
+                            )}
                           </div>
                           {(paymentMethod === 'grab' || paymentMethod === 'food_panda') && (
                             <div className="space-y-2">
@@ -1230,7 +1239,11 @@ export const ConfirmOrderModal = ({
 
               <div className="p-6 bg-white border-t border-zinc-200 shrink-0">
                 <button onClick={onConfirm}
-                  disabled={submitting || (paymentMethod === 'cash' && (cashTendered === '' || cashTendered < amtDue))}
+                  disabled={
+                    submitting ||
+                    (paymentMethod === 'cash' && (cashTendered === '' || cashTendered < amtDue)) ||
+                    (['gcash', 'paymaya', 'credit', 'debit'].includes(paymentMethod) && referenceNumber.length < 13)
+                  }
                   className="w-full bg-[#7c14d4] hover:bg-[#6a12b8] transition-colors text-white py-4 rounded-[0.625rem] font-black uppercase tracking-widest shadow-lg disabled:bg-zinc-300 disabled:cursor-not-allowed">
                   {submitting ? 'Processing...' : 'Complete Transaction'}
                 </button>

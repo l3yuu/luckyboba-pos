@@ -158,8 +158,7 @@ const StatBox: React.FC<{ label: string; value: number; icon: React.ReactNode; i
 // ============================================================
 
 const SearchReceipts = () => {
-  const { user } = useAuth();
-  const isCashier = user?.role === 'cashier';
+  useAuth();
   const today = new Date().toISOString().split('T')[0];
 
   const [searchQuery,   setSearchQuery]   = useState('');
@@ -193,17 +192,6 @@ const SearchReceipts = () => {
     setPinError(''); setVoidSuccess(false); setSelectedSaleId(null);
   };
 
-  const openVoidModal = async (saleId: number) => {
-  resetVoidModal();
-  setSelectedSaleId(saleId);
-  setIsModalOpen(true);
-  setIsVoiding(true);
-  try {
-    const { data } = await api.post(`/receipts/${saleId}/void-request`, { reason: 'Voided by manager' });
-    setVoidRequestId(data.void_request_id);
-  } catch (err) { console.error(err); }
-  finally { setIsVoiding(false); }
-};
   const closeVoidModal = () => { setIsModalOpen(false); resetVoidModal(); };
 
   // ── Reprint helpers ───────────────────────────────────────────────────────
@@ -494,17 +482,7 @@ pwdId: sale.pwd_id ?? '',
                       </td>
                       <td className="px-7 py-4">
                         <div className="flex gap-2">
-<button
-  onClick={() => openVoidModal(item.sale_id)}
-  disabled={item.status === 'cancelled' || isCashier}
-  title={isCashier ? 'Cashiers cannot void orders. Only admin/managers can approve voids.' : ''}
-  className={`w-9 h-9 inline-flex items-center justify-center bg-white border transition-all rounded-[0.625rem]
-    ${item.status === 'cancelled' || isCashier
-      ? 'border-zinc-100 text-zinc-200 cursor-not-allowed'
-      : 'border-red-200 text-red-400 hover:bg-red-500 hover:text-white hover:border-red-500'
-    }`}>
-  <X size={14} strokeWidth={2.5} />
-</button>
+
                           <button onClick={() => openReprintModal(item)}
                             className="w-9 h-9 inline-flex items-center justify-center bg-white border border-[#e9d5ff] text-zinc-400 hover:bg-[#7c14d4] hover:text-white hover:border-[#7c14d4] transition-all rounded-[0.625rem]">
                             <Printer size={14} />
