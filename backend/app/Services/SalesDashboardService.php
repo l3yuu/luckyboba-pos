@@ -279,19 +279,23 @@ class SalesDashboardService
         // ── Discounts (MUST come before VAT calculation) ──────────────────────
         $discounts = $this->computeDiscounts($from, $to, $branchId);
 
-        // ── VAT calculation ───────────────────────────────────────────────────
-        // BIR rule: SC/PWD transactions are VAT-exempt.
-        // The VAT-exempt sales = VAT-exclusive base of those transactions.
-        // Formula:
-        //   vatExemptSales = scPwdDiscount / 0.20  (reconstructs the VAT-excl base)
-        //   vatableBase    = gross - vatExemptSales
-        //   vatableSales   = vatableBase / 1.12
-        //   vatAmount      = vatableBase - vatableSales
+        // ── VAT calculation based on branch type ──────────────────────────────
+        // BIR rule: SC/PWD discount is applied on VAT-EXCLUSIVE price.
+        // Step 1 — remove VAT from the SC/PWD covered amount: covered / 1.12
+        // Step 2 — the VAT-exclusive amount becomes VAT-exempt
+        // Example: ₱240 gross with full SC/PWD coverage
+        //   - VAT-exclusive base = 240 / 1.12 = 214.29
+        //   - Discount (20%) = 214.29 × 0.20 = 42.86
+        //   - VAT-exempt sales = 214.29 (the VAT-exclusive base)
+        //   - Vatable base = 240 - 214.29 = 25.71 (remaining VATable)
+        // ── VAT calculation based on branch type ──────────────────────────────
         $scPwdDiscount  = $discounts['sc_discount'] + $discounts['pwd_discount'];
-        $vatExemptSales = $isVat ? round($scPwdDiscount / 0.20, 2) : 0.0;
-        $vatableBase    = $isVat ? max(0.0, $grossSales - $vatExemptSales) : 0.0;
+        $vatExemptSales = $isVat ? round($scPwdDiscount, 2) : 0.0;
+        $vatableBase    = $isVat ? max(0.0, $grossSales - $scPwdDiscount) : 0.0;  // ← $grossSales
         $vatableSales   = $isVat ? round($vatableBase / 1.12, 2) : 0.0;
         $vatAmount      = $isVat ? round($vatableBase - $vatableSales, 2) : 0.0;
+        $vatableSales   = $isVat ? round($vatableBase / 1.12, 2) : 0.0;           // duplicate, can remove
+        $vatAmount      = $isVat ? round($vatableBase - $vatableSales, 2) : 0.0;  // duplicate, can remove
         // ─────────────────────────────────────────────────────────────────────
 
         // ── FIX: net_sales = gross - all discounts - voids ────────────────────

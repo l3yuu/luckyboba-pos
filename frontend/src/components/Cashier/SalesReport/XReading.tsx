@@ -933,7 +933,9 @@ const XReading = () => {
                   <p className="uppercase text-[13px] font-bold leading-tight">LUCKY BOBA MILKTEA<br />FOOD AND BEVERAGE TRADING</p>
                   <p className="uppercase text-[11px] mt-0.5">{localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'}</p>
                   <Divider />
-                  <p className="uppercase text-[12px] font-bold tracking-widest">{reportData.report_type?.replace(/_/g, ' ') || 'REPORT'}</p>
+                  <p className="uppercase text-[12px] font-bold tracking-widest">
+                    [X] {reportData.report_type === 'x_reading' ? 'X-READING' : reportData.report_type?.replace(/_/g, ' ') || 'REPORT'}
+                  </p>
                 </div>
                 {(() => {
                   switch (reportData.report_type) {

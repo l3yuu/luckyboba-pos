@@ -1,5 +1,5 @@
 // components/NewSuperAdmin/Tabs/MenuManagement/MenuItemsTab.tsx
-import { useState, useEffect, useCallback, useMemo, startTransition } from "react";
+import { useState, useEffect, useCallback, useMemo, startTransition, useRef } from "react";
 import {
   Search, Plus, Edit2, Trash2, RefreshCw,
   AlertCircle, X, Package, ChevronDown,
@@ -210,14 +210,39 @@ interface ComboBuilderProps {
   errors:        Record<string, string>;
 }
 
-const ComboBuilder: React.FC<ComboBuilderProps> = ({
-  allItems, foodItemId, drinkItemId, onFoodChange, onDrinkChange, errors,
-}) => {
 const FOOD_TYPES  = ["food", "wings", "waffle"];
 const DRINK_TYPES = ["drink"];
 
-const foodItems  = allItems.filter(i => FOOD_TYPES.includes(i.category_type));
-const drinkItems = allItems.filter(i => DRINK_TYPES.includes(i.category_type));
+const ComboBuilder: React.FC<ComboBuilderProps> = ({
+  allItems, foodItemId, drinkItemId, onFoodChange, onDrinkChange, errors,
+}) => {
+
+  const foodOptions = useMemo(() =>
+    allItems
+      .filter(i => FOOD_TYPES.includes(i.category_type))
+      .map(i => ({ value: String(i.id), label: `${i.name} — ${i.category} (₱${Number(i.price).toFixed(2)})` })),
+    [allItems]
+  );
+
+  const drinkOptions = useMemo(() => {
+    const drinks = allItems.filter(i => DRINK_TYPES.includes(i.category_type));
+    const nameCounts = drinks.reduce<Record<string, number>>((acc, d) => {
+      acc[d.name] = (acc[d.name] ?? 0) + 1; return acc;
+    }, {});
+    const nameIndex: Record<string, number> = {};
+    return drinks.map(i => {
+      const hasPair = nameCounts[i.name] > 1;
+      let sizeLabel = i.size && i.size !== "none" ? i.size : "";
+      if (!sizeLabel && hasPair) {
+        nameIndex[i.name] = (nameIndex[i.name] ?? 0) + 1;
+        sizeLabel = nameIndex[i.name] === 1 ? "M" : "L";
+      }
+      return {
+        value: String(i.id),
+        label: `${i.name}${sizeLabel ? ` (${sizeLabel})` : ""} — ${i.category} (₱${Number(i.price).toFixed(2)})`,
+      };
+    });
+  }, [allItems]);
 
   return (
     <div className="flex flex-col gap-3 p-4 bg-purple-50 border border-purple-200 rounded-xl">
@@ -234,25 +259,17 @@ const drinkItems = allItems.filter(i => DRINK_TYPES.includes(i.category_type));
         <label className="text-[10px] font-bold uppercase tracking-wider text-purple-600 mb-1.5 flex items-center gap-1.5">
           <Utensils size={10} /> Food Item <span className="text-red-400">*</span>
         </label>
-        <div className="relative">
-          <select
-            value={foodItemId}
-            onChange={e => onFoodChange(e.target.value)}
-            className={`w-full text-sm font-medium text-zinc-700 bg-white border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-purple-400 transition-all appearance-none pr-8 ${errors.food_item_id ? "border-red-300" : "border-purple-200"}`}
-          >
-            <option value="">Select food item...</option>
-            {foodItems.map(i => (
-              <option key={i.id} value={i.id}>
-                {i.name} — {i.category} (₱{Number(i.price).toFixed(2)})
-              </option>
-            ))}
-          </select>
-          <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-        </div>
+        <SearchableSelect
+          options={foodOptions}
+          value={foodItemId}
+          onChange={onFoodChange}
+          placeholder="Search food item..."
+          error={!!errors.food_item_id}
+          accentColor="purple"
+        />
         {errors.food_item_id && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.food_item_id}</p>}
       </div>
 
-      {/* Divider */}
       <div className="flex items-center gap-2">
         <div className="flex-1 h-px bg-purple-200" />
         <span className="text-[10px] font-bold text-purple-400">+</span>
@@ -264,36 +281,14 @@ const drinkItems = allItems.filter(i => DRINK_TYPES.includes(i.category_type));
         <label className="text-[10px] font-bold uppercase tracking-wider text-purple-600 mb-1.5 flex items-center gap-1.5">
           <Coffee size={10} /> Drink Item <span className="text-red-400">*</span>
         </label>
-        <div className="relative">
-          <select
-            value={drinkItemId}
-            onChange={e => onDrinkChange(e.target.value)}
-            className={`w-full text-sm font-medium text-zinc-700 bg-white border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-purple-400 transition-all appearance-none pr-8 ${errors.drink_item_id ? "border-red-300" : "border-purple-200"}`}
-          >
-            <option value="">Select drink item...</option>
-              {(() => {
-                const nameCounts = drinkItems.reduce<Record<string, number>>((acc, d) => {
-                  acc[d.name] = (acc[d.name] ?? 0) + 1;
-                  return acc;
-                }, {});
-                const nameIndex: Record<string, number> = {};
-                return drinkItems.map(i => {
-                  const hasPair = nameCounts[i.name] > 1;
-                  let sizeLabel = i.size && i.size !== 'none' ? i.size : '';
-                  if (!sizeLabel && hasPair) {
-                    nameIndex[i.name] = (nameIndex[i.name] ?? 0) + 1;
-                    sizeLabel = nameIndex[i.name] === 1 ? 'M' : 'L';
-                  }
-                  return (
-                    <option key={i.id} value={i.id}>
-                      {i.name}{sizeLabel ? ` (${sizeLabel})` : ''} — {i.category} (₱{Number(i.price).toFixed(2)})
-                    </option>
-                  );
-                });
-              })()}
-          </select>
-          <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-        </div>
+        <SearchableSelect
+          options={drinkOptions}
+          value={drinkItemId}
+          onChange={onDrinkChange}
+          placeholder="Search drink item..."
+          error={!!errors.drink_item_id}
+          accentColor="purple"
+        />
         {errors.drink_item_id && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.drink_item_id}</p>}
       </div>
 
@@ -316,17 +311,32 @@ interface BundleBuilderProps {
 const BundleBuilder: React.FC<BundleBuilderProps> = ({
   allItems, bundleItemIds, onItemsChange, errors,
 }) => {
-  const DRINK_TYPES = ["drink"];
-  const drinkItems  = allItems
-    .filter(i => DRINK_TYPES.includes(i.category_type))
-    .sort((a, b) => a.name.localeCompare(b.name) || (a.price - b.price));
+  const drinkOptions = useMemo(() => {
+    const drinks = allItems
+      .filter(i => i.category_type === "drink")
+      .sort((a, b) => a.name.localeCompare(b.name) || (a.price - b.price));
+    const nameCounts = drinks.reduce<Record<string, number>>((acc, d) => {
+      acc[d.name] = (acc[d.name] ?? 0) + 1; return acc;
+    }, {});
+    const nameIndex: Record<string, number> = {};
+    return drinks.map(i => {
+      const hasPair = nameCounts[i.name] > 1;
+      let sizeLabel = i.size && i.size !== "none" ? i.size : "";
+      if (!sizeLabel && hasPair) {
+        nameIndex[i.name] = (nameIndex[i.name] ?? 0) + 1;
+        sizeLabel = nameIndex[i.name] === 1 ? "M" : "L";
+      }
+      return {
+        value: String(i.id),
+        label: `${i.name}${sizeLabel ? ` (${sizeLabel})` : ""} — ${i.category} (₱${Number(i.price).toFixed(2)})`,
+      };
+    });
+  }, [allItems]);
 
   const addSlot    = () => onItemsChange([...bundleItemIds, ""]);
   const removeSlot = (idx: number) => onItemsChange(bundleItemIds.filter((_, i) => i !== idx));
   const setSlot    = (idx: number, val: string) => {
-    const next = [...bundleItemIds];
-    next[idx]  = val;
-    onItemsChange(next);
+    const next = [...bundleItemIds]; next[idx] = val; onItemsChange(next);
   };
 
   return (
@@ -339,19 +349,14 @@ const BundleBuilder: React.FC<BundleBuilderProps> = ({
           <p className="text-xs font-bold text-indigo-700 uppercase tracking-wider">Bundle Builder</p>
           <span className="text-[10px] text-indigo-400 font-medium">— pick 2+ drinks</span>
         </div>
-        <button
-          type="button"
-          onClick={addSlot}
-          className="flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-100 hover:bg-indigo-200 px-2 py-1 rounded-md transition-colors"
-        >
+        <button type="button" onClick={addSlot}
+          className="flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-100 hover:bg-indigo-200 px-2 py-1 rounded-md transition-colors">
           <Plus size={10} /> Add Item
         </button>
       </div>
 
       {bundleItemIds.length === 0 && (
-        <p className="text-[10px] text-indigo-400 italic text-center py-2">
-          Click "Add Item" to start building the bundle.
-        </p>
+        <p className="text-[10px] text-indigo-400 italic text-center py-2">Click "Add Item" to start building the bundle.</p>
       )}
 
       {bundleItemIds.map((itemId, idx) => (
@@ -369,47 +374,20 @@ const BundleBuilder: React.FC<BundleBuilderProps> = ({
                 <Coffee size={10} /> Item {idx + 1} <span className="text-red-400">*</span>
               </span>
               {bundleItemIds.length > 2 && (
-                <button
-                  type="button"
-                  onClick={() => removeSlot(idx)}
-                  className="text-[9px] font-bold text-red-400 hover:text-red-600 flex items-center gap-0.5 transition-colors"
-                >
+                <button type="button" onClick={() => removeSlot(idx)}
+                  className="text-[9px] font-bold text-red-400 hover:text-red-600 flex items-center gap-0.5 transition-colors">
                   <X size={9} /> Remove
                 </button>
               )}
             </label>
-            <div className="relative">
-              <select
-                value={itemId}
-                onChange={e => setSlot(idx, e.target.value)}
-                className={`w-full text-sm font-medium text-zinc-700 bg-white border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-indigo-400 transition-all appearance-none pr-8 ${errors[`bundle_item_${idx}`] ? "border-red-300" : "border-indigo-200"}`}
-              >
-                <option value="">Select drink item...</option>
-                {(() => {
-                  // For each drink, figure out if it has a sibling with same name (M/L pair)
-                  const nameCounts = drinkItems.reduce<Record<string, number>>((acc, d) => {
-                    acc[d.name] = (acc[d.name] ?? 0) + 1;
-                    return acc;
-                  }, {});
-                  // Track index per name to assign M/L
-                  const nameIndex: Record<string, number> = {};
-                  return drinkItems.map(i => {
-                    const hasPair = nameCounts[i.name] > 1;
-                    let sizeLabel = i.size && i.size !== 'none' ? i.size : '';
-                    if (!sizeLabel && hasPair) {
-                      nameIndex[i.name] = (nameIndex[i.name] ?? 0) + 1;
-                      sizeLabel = nameIndex[i.name] === 1 ? 'M' : 'L';
-                    }
-                    return (
-                      <option key={i.id} value={i.id}>
-                        {i.name}{sizeLabel ? ` (${sizeLabel})` : ''} — {i.category} (₱{Number(i.price).toFixed(2)})
-                      </option>
-                    );
-                  });
-                })()}
-              </select>
-              <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-            </div>
+            <SearchableSelect
+              options={drinkOptions}
+              value={itemId}
+              onChange={val => setSlot(idx, val)}
+              placeholder={`Search item ${idx + 1}...`}
+              error={!!errors[`bundle_item_${idx}`]}
+              accentColor="indigo"
+            />
             {errors[`bundle_item_${idx}`] && (
               <p className="text-[10px] text-red-500 mt-1 font-medium">{errors[`bundle_item_${idx}`]}</p>
             )}
@@ -641,6 +619,148 @@ const SugarLevelToggle: React.FC<{
   );
 };
 
+// ── Searchable Select ─────────────────────────────────────────────────────────
+
+interface SearchableSelectOption {
+  value: string;
+  label: string;
+}
+
+interface SearchableSelectProps {
+  options:      SearchableSelectOption[];
+  value:        string;
+  onChange:     (val: string) => void;
+  placeholder?: string;
+  error?:       boolean;
+  accentColor?: string; // e.g. "purple" | "indigo" | "rose"
+}
+
+const ACCENT: Record<string, { border: string; ring: string; icon: string; highlight: string }> = {
+  purple: { border: "border-purple-200", ring:  "focus-within:ring-purple-400", icon:  "text-purple-300", highlight: "bg-purple-50 text-purple-700" },
+  indigo: { border: "border-indigo-200", ring:  "focus-within:ring-indigo-400", icon:  "text-indigo-300", highlight: "bg-indigo-50 text-indigo-700" },
+  rose:   { border: "border-rose-200",   ring:  "focus-within:ring-rose-400",   icon:  "text-rose-300",   highlight: "bg-rose-50 text-rose-700"     },
+};
+
+const SearchableSelect: React.FC<SearchableSelectProps> = ({
+  options, value, onChange, placeholder = "Search or select...", error = false, accentColor = "purple",
+}) => {
+  const [query,  setQuery]  = useState("");
+  const [open,   setOpen]   = useState(false);
+  const ref                 = useRef<HTMLDivElement>(null);
+  const inputRef            = useRef<HTMLInputElement>(null);
+  const ac                  = ACCENT[accentColor] ?? ACCENT.purple;
+
+  const selected = options.find(o => o.value === value);
+
+  const filtered = useMemo(() => {
+    const q = query.toLowerCase().trim();
+    if (!q) return options;
+    return options.filter(o => o.label.toLowerCase().includes(q));
+  }, [options, query]);
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+        setQuery("");
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const handleSelect = (val: string) => {
+    onChange(val);
+    setOpen(false);
+    setQuery("");
+  };
+
+  const handleOpen = () => {
+    setOpen(true);
+    setQuery("");
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  return (
+    <div ref={ref} className="relative">
+      {/* Trigger */}
+      <button
+        type="button"
+        onClick={open ? () => { setOpen(false); setQuery(""); } : handleOpen}
+        className={`w-full flex items-center gap-2 bg-white border rounded-lg px-3 py-2.5 text-sm transition-all outline-none ring-2 ring-transparent ${ac.ring} ${error ? "border-red-300" : ac.border}`}
+      >
+        <Search size={13} className={`shrink-0 ${selected ? "text-zinc-400" : ac.icon}`} />
+        <span className={`flex-1 text-left truncate ${selected ? "font-medium text-zinc-700" : "text-zinc-400 font-normal"}`}>
+          {selected ? selected.label : placeholder}
+        </span>
+        {selected && (
+          <span
+            role="button"
+            onClick={e => { e.stopPropagation(); handleSelect(""); }}
+            className="text-zinc-300 hover:text-zinc-500 transition-colors"
+          >
+            <X size={12} />
+          </span>
+        )}
+        <ChevronDown
+          size={12}
+          className={`text-zinc-300 shrink-0 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {/* Dropdown */}
+      {open && (
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-zinc-200 rounded-xl shadow-xl flex flex-col overflow-hidden">
+          {/* Search input inside dropdown */}
+          <div className={`flex items-center gap-2 px-3 py-2 border-b border-zinc-100`}>
+            <Search size={12} className={ac.icon} />
+            <input
+              ref={inputRef}
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Type to filter..."
+              className="flex-1 text-xs text-zinc-600 bg-transparent outline-none placeholder:text-zinc-300"
+            />
+            {query && (
+              <button type="button" onClick={() => setQuery("")}>
+                <X size={11} className="text-zinc-300 hover:text-zinc-500" />
+              </button>
+            )}
+          </div>
+
+          {/* Options list */}
+          <div className="max-h-52 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <p className="text-[11px] text-zinc-400 text-center py-4 italic">No results found.</p>
+            ) : (
+              filtered.map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => handleSelect(opt.value)}
+                  className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors flex items-center gap-2 ${
+                    opt.value === value
+                      ? `${ac.highlight} font-bold`
+                      : "text-zinc-600 hover:bg-zinc-50"
+                  }`}
+                >
+                  {opt.value === value && (
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="shrink-0">
+                      <path d="M2 5L4 7L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                  <span className={opt.value === value ? "" : "pl-3.5"}>{opt.label}</span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ── Add / Edit Modal ──────────────────────────────────────────────────────────
 
 interface MenuItemFormProps {
@@ -666,6 +786,13 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
     barcode:        item?.barcode        ?? "",
     is_available:   item?.is_available   ?? true,
   });
+
+const mmFoodOptions = useMemo(() =>
+  allItems
+    .filter(i => ["food", "wings", "waffle"].includes(i.category_type))
+    .map(i => ({ value: String(i.id), label: `${i.name} — ${i.category} (₱${Number(i.price).toFixed(2)})` })),
+  [allItems]
+);
 
   // ✅ Combo-specific state
   const [foodItemId,        setFoodItemId]        = useState("");
@@ -1142,27 +1269,20 @@ const validate = () => {
     </div>
 
     {/* Food picker */}
-    <div>
-      <label className="text-[10px] font-bold uppercase tracking-wider text-rose-600 mb-1.5 flex items-center gap-1.5">
-        <Utensils size={10} /> Food Item <span className="text-red-400">*</span>
-      </label>
-      <div className="relative">
-        <select
-          value={mixMatchFoodId}
-          onChange={e => { setMixMatchFoodId(e.target.value); setErrors(ev => { const n = { ...ev }; delete n.food_item_id; return n; }); }}
-          className={`w-full text-sm font-medium text-zinc-700 bg-white border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-rose-400 transition-all appearance-none pr-8 ${errors.food_item_id ? "border-red-300" : "border-rose-200"}`}
-        >
-          <option value="">Select food item...</option>
-          {allItems.filter(i => ["food", "wings", "waffle"].includes(i.category_type)).map(i => (
-            <option key={i.id} value={i.id}>
-              {i.name} — {i.category} (₱{Number(i.price).toFixed(2)})
-            </option>
-          ))}
-        </select>
-        <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-      </div>
-      {errors.food_item_id && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.food_item_id}</p>}
-    </div>
+<div>
+  <label className="text-[10px] font-bold uppercase tracking-wider text-rose-600 mb-1.5 flex items-center gap-1.5">
+    <Utensils size={10} /> Food Item <span className="text-red-400">*</span>
+  </label>
+  <SearchableSelect
+    options={mmFoodOptions}
+    value={mixMatchFoodId}
+    onChange={val => { setMixMatchFoodId(val); setErrors(ev => { const n = { ...ev }; delete n.food_item_id; return n; }); }}
+    placeholder="Search food item..."
+    error={!!errors.food_item_id}
+    accentColor="rose"
+  />
+  {errors.food_item_id && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.food_item_id}</p>}
+</div>
 
 {/* Drinks auto-inherit notice */}
 <div className="flex items-start gap-2 p-2.5 bg-white border border-rose-200 rounded-lg">

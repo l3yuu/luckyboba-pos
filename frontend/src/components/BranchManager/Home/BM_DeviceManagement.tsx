@@ -254,8 +254,7 @@ const AssignCashierModal: React.FC<{
   const [apiError,    setApiError]    = useState("");
   const [success,     setSuccess]     = useState(false);
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const { branch_id, id, assigned_users, user } = device;
+  const { branch_id, id, assigned_users, user } = device;
 
 useEffect(() => {
   (async () => {
@@ -284,7 +283,7 @@ useEffect(() => {
     } catch { setApiError("Failed to load cashiers."); }
     finally { setLoading(false); }
   })();
-}, [device.assigned_users, device.branch_id, device.id, device.user]);
+}, [branch_id, id, assigned_users, user]);
 
   const isAlreadyAssigned = (id: number) => assigned.some(a => a.id === id);
 
@@ -307,20 +306,20 @@ useEffect(() => {
     finally { setSaving(false); }
   };
 
-const handleUnassign = async (cashierId: number) => {
-  setSaving(true); setApiError("");
-  try {
-    const res  = await fetch(`/api/pos-devices/${device.id}/unassign`, {
-      method: "DELETE", headers: authHeaders(),
-      body: JSON.stringify({ user_id: cashierId }),
-    });
-    const data = await res.json();
-    if (!res.ok) { setApiError(data.message ?? "Failed to unassign."); return; }
-    setAssigned(p => p.filter(a => a.id !== cashierId));
-    onAssigned(device.id, null, { id: cashierId, name: "" }); // ← pass id so parent can filter
-  } catch { setApiError("Network error."); }
-  finally { setSaving(false); }
-};
+  const handleUnassign = async (cashierId: number) => {
+    setSaving(true); setApiError("");
+    try {
+      const res  = await fetch(`/api/pos-devices/${device.id}/unassign`, {
+        method: "DELETE", headers: authHeaders(),
+        body: JSON.stringify({ user_id: cashierId }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setApiError(data.message ?? "Failed to unassign."); return; }
+      setAssigned(p => p.filter(a => a.id !== cashierId));
+      onAssigned(device.id, null, null);
+    } catch { setApiError("Network error."); }
+    finally { setSaving(false); }
+  };
 
   return (
     <ModalShell onClose={onClose} icon={<Link size={15} className="text-violet-600" />}
@@ -484,20 +483,35 @@ const DeviceManagementTab: React.FC = () => {
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
   const showToast = (message: string, type: ToastType = "success") => setToast({ message, type });
 
-  const fetchData = async () => {
-    setLoading(true); setFetchError("");
-    try {
-      const [devRes, brRes] = await Promise.all([
-        fetch("/api/pos-devices", { headers: authHeaders() }),
-        fetch("/api/branches",    { headers: authHeaders() }),
-      ]);
-      const devData = await devRes.json();
-      const brData  = await brRes.json();
-      setDevices(devData.data ?? devData.devices ?? devData ?? []);
-      if (brData.success) setBranches(brData.data ?? []);
-    } catch { setFetchError("Network error. Could not reach the server."); }
-    finally { setLoading(false); }
-  };
+const fetchData = async () => {
+  setLoading(true); setFetchError("");
+  try {
+    const [devRes, brRes] = await Promise.all([
+      fetch("/api/pos-devices", { headers: authHeaders() }),
+      fetch("/api/branches",    { headers: authHeaders() }),
+    ]);
+
+    if (!devRes.ok) {
+      const err = await devRes.json().catch(() => ({}));
+      setFetchError(err.message ?? `Error ${devRes.status}: Could not load devices.`);
+      setDevices([]); // ← keep it an array
+      return;         // ← bail before trying to parse the error body as data
+    }
+
+    const devData = await devRes.json();
+    const brData  = await brRes.json();
+
+    const raw = devData.data ?? devData.devices ?? devData;
+    setDevices(Array.isArray(raw) ? raw : []);
+
+    if (brData.success) setBranches(brData.data ?? []);
+  } catch {
+    setFetchError("Network error. Could not reach the server.");
+    setDevices([]); // ← also guard the catch path
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => { fetchData(); }, []);
 
@@ -704,22 +718,21 @@ const DeviceManagementTab: React.FC = () => {
     {assignTarget && (
     <AssignCashierModal
         onClose={() => setAssignTarget(null)}
-        onAssigned={(deviceId, userId, user) => {
-        setDevices(p => p.map(d => {
-            if (d.id !== deviceId) return d;
-            const currentAssigned = d.assigned_users ?? (d.user ? [d.user] : []);
-            const newAssigned = userId && user
-            ? [...currentAssigned.filter(u => u.id !== userId), user]
-            : currentAssigned.filter(u => u.id !== (user?.id ?? -1));
-            return {
-            ...d,
-            assigned_users: newAssigned,
-            user_id: newAssigned[0]?.id ?? null,
-            user:    newAssigned[0] ?? null,
-            };
-        }));
-        // Don't close modal — let user keep assigning multiple
-        }}
+onAssigned={(deviceId, userId, user) => {
+  setDevices(p => p.map(d => {
+    if (d.id !== deviceId) return d;
+    const currentAssigned = d.assigned_users ?? (d.user ? [d.user] : []);
+    const newAssigned = userId && user
+      ? [...currentAssigned.filter(u => u.id !== userId), user]
+      : currentAssigned.filter(u => u.id !== user?.id);  // user?.id is the unassigned cashier's id
+    return {
+      ...d,
+      assigned_users: newAssigned,
+      user_id: newAssigned[0]?.id ?? null,
+      user:    newAssigned[0] ?? null,
+    };
+  }));
+}}
         device={assignTarget}
     />
     )}
