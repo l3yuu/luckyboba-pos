@@ -254,8 +254,7 @@ const AssignCashierModal: React.FC<{
   const [apiError,    setApiError]    = useState("");
   const [success,     setSuccess]     = useState(false);
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const { branch_id, id, assigned_users, user } = device;
+
 
 useEffect(() => {
   (async () => {
