@@ -128,9 +128,13 @@ const inputCls = (err?: string) =>
 const RegisterDeviceModal: React.FC<{
   onClose: () => void;
   onRegistered: (device: PosDevice) => void;
-  branches: Branch[];
-}> = ({ onClose, onRegistered, branches }) => {
-  const [form, setForm] = useState({ device_name: "", pos_number: "", branch_id: "" });
+  defaultBranchId?: number | null;
+}> = ({ onClose, onRegistered, defaultBranchId }) => {
+  const [form, setForm] = useState({
+    device_name: "",
+    pos_number:  "",
+    branch_id:   defaultBranchId ? String(defaultBranchId) : "",
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [apiError, setApiError] = useState("");
@@ -140,7 +144,7 @@ const RegisterDeviceModal: React.FC<{
     const e: Record<string, string> = {};
     if (!form.device_name.trim()) e.device_name = "Device ID is required.";
     if (!form.pos_number.trim())  e.pos_number  = "POS number is required.";
-    if (!form.branch_id)          e.branch_id   = "Branch is required.";
+    if (!form.branch_id && !defaultBranchId)    e.branch_id   = "Branch is required.";
     return e;
   };
 
@@ -151,7 +155,7 @@ const RegisterDeviceModal: React.FC<{
     try {
       const res  = await fetch("/api/pos-devices", {
         method: "POST", headers: authHeaders(),
-        body: JSON.stringify({ device_name: form.device_name.trim(), pos_number: form.pos_number.trim(), branch_id: Number(form.branch_id) }),
+body: JSON.stringify({ device_name: form.device_name.trim(), pos_number: form.pos_number.trim(), branch_id: Number(form.branch_id) || defaultBranchId }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -219,19 +223,6 @@ const RegisterDeviceModal: React.FC<{
           <div className="grid grid-cols-2 gap-3">
             <Field label="POS Number" required error={errors.pos_number}>
               <input {...f("pos_number")} placeholder="e.g. POS-001" className={inputCls(errors.pos_number)} />
-            </Field>
-            <Field label="Branch" required error={errors.branch_id}>
-              {branches.length === 0 ? (
-                <div className="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
-                  <AlertCircle size={12} className="text-amber-500 shrink-0" />
-                  <p className="text-xs text-amber-700">No branches found.</p>
-                </div>
-              ) : (
-                <select {...f("branch_id")} className={inputCls(errors.branch_id)}>
-                  <option value="">— Select branch —</option>
-                  {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                </select>
-              )}
             </Field>
           </div>
         </>
@@ -467,9 +458,12 @@ const DeleteDeviceModal: React.FC<{
 };
 
 // ── Main Tab ──────────────────────────────────────────────────────────────────
-const DeviceManagementTab: React.FC = () => {
+const BM_DeviceManagementTab: React.FC<{ branchId?: number | null }> = ({ branchId: branchIdProp }) => {
+  // Read from localStorage as fallback — BM always has a branch_id
+  const authUser = (() => { try { return JSON.parse(localStorage.getItem("auth_user") ?? "{}"); } catch { return {}; } })();
+  const branchId = branchIdProp ?? authUser?.branch_id ?? null;
   const [devices,     setDevices]     = useState<PosDevice[]>([]);
-  const [branches,    setBranches]    = useState<Branch[]>([]);
+  const [,    setBranches]    = useState<Branch[]>([]);
   const [loading,     setLoading]     = useState(true);
   const [fetchError,  setFetchError]  = useState("");
   const [search,      setSearch]      = useState("");
@@ -712,7 +706,7 @@ const fetchData = async () => {
         <RegisterDeviceModal
           onClose={() => setRegisterOpen(false)}
           onRegistered={device => { setDevices(p => [device, ...p]); showToast("Device registered. You can now assign a cashier."); }}
-          branches={branches}
+          defaultBranchId={branchId}
         />
       )}
     {assignTarget && (
@@ -748,4 +742,4 @@ onAssigned={(deviceId, userId, user) => {
   );
 };
 
-export default DeviceManagementTab;
+export default BM_DeviceManagementTab;
