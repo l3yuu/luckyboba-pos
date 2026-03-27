@@ -158,7 +158,7 @@ const TeamLeaderSidebar: React.FC<TeamLeaderSidebarProps> = ({
   // Floor ops: what a TL actually manages day-to-day
   const floorItems = [
     { tab: 'void-logs',       label: 'Void Log'        },
-    { tab: 'hourly-sales',    label: 'Hourly Sales'    },
+    //{ tab: 'hourly-sales',    label: 'Hourly Sales'    },
   ];
 
   const salesOpen = openGroups.has('sales');

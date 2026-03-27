@@ -127,29 +127,38 @@ class ReceiptController extends Controller
     // ─────────────────────────────────────────────────────────────
     // STEP 1: CREATE VOID REQUEST
     // ─────────────────────────────────────────────────────────────
-    public function voidRequest(Request $request, $id)
-    {
-        $sale = Sale::findOrFail($id);
+public function voidRequest(Request $request, $id)
+{
+    try {
+        $sale = \App\Models\Sale::findOrFail($id);
 
-        if (strtolower($sale->status) === 'cancelled') {
-            return response()->json(['message' => 'Already voided.'], 422);
+        if (in_array($sale->status, ['cancelled', 'voided'])) {
+            return response()->json(['message' => 'Sale is already voided.'], 422);
         }
 
-        $user = $request->user();
+        \DB::transaction(function () use ($sale, $request) {
+            $sale->update([
+                'status'              => 'cancelled',
+                'cancellation_reason' => $request->input('reason'),
+                'cancelled_at'        => now(),
+            ]);
 
-        $voidRequest = VoidRequest::create([
-            'sale_id'    => $sale->id,
-            'cashier_id' => $user->id,
-            'branch_id'  => $user->branch_id,
-            'reason'     => $request->input('reason', 'Voided by manager'),
-            'status'     => 'pending',
-        ]);
+            foreach ($sale->items as $item) {
+                if ($item->menu_item_id) {
+                    \DB::table('menu_items')
+                        ->where('id', $item->menu_item_id)
+                        ->increment('quantity', $item->quantity);
+                }
+            }
+        });
 
-        return response()->json([
-            'message'         => 'Void request created.',
-            'void_request_id' => $voidRequest->id,
-        ]);
+        return response()->json(['message' => 'Sale voided successfully.']);
+
+    } catch (\Exception $e) {
+        \Log::error('voidRequest Error: ' . $e->getMessage());
+        return response()->json(['message' => 'Failed to void sale.'], 500);
     }
+}
 
     // ─────────────────────────────────────────────────────────────
     // STEP 2: APPROVE VOID

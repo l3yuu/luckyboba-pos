@@ -240,6 +240,8 @@ interface ItemSelectionModalProps {
   isDrink: boolean;
   isCombo: boolean;
   isWaffleCategory: boolean;
+  isFoodCategory: boolean;
+  filteredAddOns: { id: number; name: string; price: number; grab_price?: number; panda_price?: number }[];
   onQtyChange: (q: number) => void;
   onRemarksChange: (r: string) => void;
   onSugarChange: (s: string) => void;
@@ -253,7 +255,7 @@ interface ItemSelectionModalProps {
 
 export const ItemSelectionModal = ({
   selectedItem, qty, remarks, sugarLevel, selectedOptions, selectedAddOns,
-  orderCharge, isDrink, isCombo, isWaffleCategory, onQtyChange, onRemarksChange,
+  orderCharge, isDrink, isCombo, isWaffleCategory, onQtyChange, onRemarksChange, isFoodCategory, filteredAddOns,
   onSugarChange, onToggleOption, onToggleOrderCharge, onOpenAddOns, onAddToOrder, onClose, sugarLevels,
 }: ItemSelectionModalProps) => {
   const itemOpts = (selectedItem as { options?: string[] })?.options ?? [];
@@ -315,6 +317,18 @@ export const ItemSelectionModal = ({
           {isDrink && (
             <div>
               <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Extra</label>
+              <AddOnTriggerButton count={selectedAddOns.length} onClick={onOpenAddOns} />
+            </div>
+          )}
+          {isWaffleCategory && (
+            <div>
+              <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Combo Add-ons</label>
+              <AddOnTriggerButton count={selectedAddOns.length} onClick={onOpenAddOns} />
+            </div>
+          )}
+          {isFoodCategory && filteredAddOns.length > 0 && (
+            <div>
+              <label className="text-sm font-bold text-zinc-900 uppercase tracking-widest ml-2 mb-2 block">Food Add-ons</label>
               <AddOnTriggerButton count={selectedAddOns.length} onClick={onOpenAddOns} />
             </div>
           )}

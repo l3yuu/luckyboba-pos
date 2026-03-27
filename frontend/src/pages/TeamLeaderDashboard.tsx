@@ -14,7 +14,7 @@ import SalesDashboardPanel   from '../components/TeamLeader/Reports/SalesDashboa
 import XReadingPanel         from '../components/TeamLeader/Reports/XReadingPanel';
 import ZReadingPanel         from '../components/TeamLeader/Reports/ZReadingPanel';
 import VoidLogsPanel         from '../components/TeamLeader/FloorOps/VoidLogsPanel';
-import HourlySalesPanel from '../components/TeamLeader/FloorOps/HourlySalesPanel';
+//import HourlySalesPanel from '../components/TeamLeader/FloorOps/HourlySalesPanel';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const STYLES = `
@@ -152,7 +152,7 @@ const TeamLeaderDashboard = () => {
       case 'users':            return <StaffOverviewPanel  branchId={authUser?.branch_id ?? null} />;
       // Floor Ops
       case 'void-logs':    return <VoidLogsPanel  branchId={authUser?.branch_id ?? null} />;
-      case 'hourly-sales': return <HourlySalesPanel branchId={authUser?.branch_id ?? null} />;
+      //case 'hourly-sales': return <HourlySalesPanel branchId={authUser?.branch_id ?? null} />;
       // Reports
       case 'sales-dashboard':  return <SalesDashboardPanel branchId={authUser?.branch_id ?? null} />;
       case 'items-report':     return <ItemsReportPanel    branchId={authUser?.branch_id ?? null} />;

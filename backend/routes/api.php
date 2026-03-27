@@ -265,6 +265,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::get('/branches',  [BranchController::class, 'index']);
             Route::post('/branches', [BranchController::class, 'store']);
         // ──────────────────────────────────────────────────────────────────────
+
+        Route::get('/users', [UserController::class, 'index']); 
     });
 
     // ── BRANCH MANAGER + SUPERADMIN ──────────────────────────────────────────
@@ -318,7 +320,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/item-checker/{barcode}', [ItemCheckerController::class, 'lookup']);
 
         Route::prefix('users')->group(function () {
-            Route::get('/',                     [UserController::class, 'index']);
             Route::post('/',                    [UserController::class, 'store']);
             Route::get('/stats',                [UserController::class, 'stats']);
             Route::get('/{id}',                 [UserController::class, 'show']);
