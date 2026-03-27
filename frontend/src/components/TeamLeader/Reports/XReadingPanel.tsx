@@ -1,240 +1,207 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  RefreshCw, AlertCircle, TrendingUp, ShoppingCart,
+  XCircle, CreditCard, Calendar, Info, Eye,
+} from 'lucide-react';
+import api from '../../../services/api';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface XReadingData {
-  date: string;
-  gross_sales: number;
-  void_sales: number;
-  net_sales: number;
-  cash_sales: number;
-  card_sales: number;
-  gc_sales: number;
-  total_orders: number;
-  void_orders: number;
+  date:          string;
+  gross_sales:   number;
+  void_sales:    number;
+  net_sales:     number;
+  cash_sales:    number;
+  card_sales:    number;
+  gc_sales:      number;
+  total_orders:  number;
+  void_orders:   number;
 }
 
-const XReadingPanel = ({ branchId }: { branchId: number | null }) => {
-  const [data, setData] = useState<XReadingData | null>(null);
-  const [loading, setLoading] = useState(true);
+// ─── Row helper ───────────────────────────────────────────────────────────────
+
+const Row: React.FC<{ label: string; value: React.ReactNode; accent?: string }> = ({ label, value, accent }) => (
+  <div className="flex items-center justify-between py-2.5 border-b border-zinc-100 last:border-0">
+    <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">{label}</span>
+    <span className={`text-xs font-bold ${accent ?? 'text-zinc-700'}`}>{value}</span>
+  </div>
+);
+
+// ─── Main Panel ───────────────────────────────────────────────────────────────
+
+const XReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
+  const [data,         setData]         = useState<XReadingData | null>(null);
+  const [loading,      setLoading]      = useState(true);
+  const [fetchError,   setFetchError]   = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
 
-  useEffect(() => {
-    const loadXReading = async () => {
-      try {
-        // Mock data for now - replace with actual API call
-        const mockData: XReadingData = {
-          date: selectedDate,
-          gross_sales: 15420.50,
-          void_sales: 340.00,
-          net_sales: 15080.50,
-          cash_sales: 8200.00,
-          card_sales: 5880.50,
-          gc_sales: 1000.00,
-          total_orders: 415,
-          void_orders: 8,
-        };
-        setData(mockData);
-      } catch (error) {
-        console.error('Failed to load X-reading data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadXReading();
+  const fetchData = useCallback(async () => {
+    setLoading(true); setFetchError('');
+    try {
+      const res = await api.get('/x-reading', { params: { branch_id: branchId, date: selectedDate } });
+      const raw = res.data?.data ?? res.data;
+      setData({
+        date:         raw.date          ?? selectedDate,
+        gross_sales:  Number(raw.gross_sales  ?? 0),
+        void_sales:   Number(raw.void_sales   ?? 0),
+        net_sales:    Number(raw.net_sales    ?? 0),
+        cash_sales:   Number(raw.cash_sales   ?? 0),
+        card_sales:   Number(raw.card_sales   ?? 0),
+        gc_sales:     Number(raw.gc_sales     ?? 0),
+        total_orders: Number(raw.total_orders ?? 0),
+        void_orders:  Number(raw.void_orders  ?? 0),
+      });
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setFetchError(msg ?? 'Failed to load X-reading.');
+    } finally { setLoading(false); }
   }, [branchId, selectedDate]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3b2063]"></div>
-      </div>
-    );
-  }
+  useEffect(() => { fetchData(); }, [fetchData]);
 
-  if (!data) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-gray-500">No data available for selected date</p>
-      </div>
-    );
-  }
+  const netOrders = data ? data.total_orders - data.void_orders : 0;
+  const avgOrder  = data && netOrders > 0 ? data.net_sales / netOrders : 0;
+  const voidRate  = data && data.total_orders > 0 ? (data.void_orders / data.total_orders) * 100 : 0;
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-2">X-Reading Report</h2>
-        <p className="text-gray-600">Read-only view of daily sales summary</p>
-      </div>
+    <div className="p-6 md:p-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
 
-      <div className="mb-4">
-        <input
-          type="date"
-          value={selectedDate}
-          onChange={(e) => setSelectedDate(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#3b2063]"
-        />
-      </div>
-
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-        <div className="flex items-center">
-          <svg className="w-5 h-5 text-blue-600 mr-2" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-          </svg>
-          <p className="text-sm text-blue-800">
-            This is a read-only X-Reading report. Team Leaders can view but cannot export or modify this data.
-          </p>
+      {/* ── Header ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+        <div>
+          <h2 className="text-base font-bold text-[#1a0f2e]">X-Reading</h2>
+          <p className="text-xs text-zinc-400 mt-0.5">Daily sales summary — read only</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 bg-white border border-zinc-200 rounded-lg px-3 py-2">
+            <Calendar size={13} className="text-zinc-400 shrink-0" />
+            <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
+              className="text-xs font-medium text-zinc-700 bg-transparent outline-none cursor-pointer" />
+          </div>
+          <button onClick={fetchData} disabled={loading}
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 disabled:opacity-50 transition-all">
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
+          </button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-lg border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Gross Sales</p>
-              <p className="text-2xl font-bold text-gray-900">₱{data.gross_sales.toFixed(2)}</p>
-            </div>
-            <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
-              <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white p-4 rounded-lg border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Void Sales</p>
-              <p className="text-2xl font-bold text-red-600">₱{data.void_sales.toFixed(2)}</p>
-            </div>
-            <div className="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
-              <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white p-4 rounded-lg border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Net Sales</p>
-              <p className="text-2xl font-bold text-green-600">₱{data.net_sales.toFixed(2)}</p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white p-4 rounded-lg border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Total Orders</p>
-              <p className="text-2xl font-bold text-blue-600">{data.total_orders}</p>
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-            </div>
-          </div>
-        </div>
+      {/* Read-only notice */}
+      <div className="flex items-start gap-3 p-3 bg-violet-50 border border-violet-200 rounded-[0.625rem] mb-6">
+        <Info size={14} className="text-violet-500 shrink-0 mt-0.5" />
+        <p className="text-xs text-violet-700 font-medium">
+          This is a <span className="font-bold">read-only</span> X-Reading report. Team Leaders can view but cannot export or modify this data.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-        <div className="bg-white p-6 rounded-lg border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment Method Breakdown</h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
-                <span className="text-sm font-medium text-gray-700">Cash Sales</span>
+      {/* ── Stat Cards ── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+        {[
+          { label: 'Gross Sales',   value: data ? `₱${data.gross_sales.toFixed(2)}`  : '—', icon: <TrendingUp size={15} className="text-zinc-500" />,   bg: 'bg-zinc-50 border-zinc-200'    },
+          { label: 'Void Sales',    value: data ? `₱${data.void_sales.toFixed(2)}`   : '—', icon: <XCircle    size={15} className="text-red-500" />,     bg: 'bg-red-50 border-red-200'      },
+          { label: 'Net Sales',     value: data ? `₱${data.net_sales.toFixed(2)}`    : '—', icon: <TrendingUp size={15} className="text-emerald-600" />, bg: 'bg-emerald-50 border-emerald-200' },
+          { label: 'Total Orders',  value: data ? data.total_orders                  : '—', icon: <ShoppingCart size={15} className="text-violet-600" />, bg: 'bg-violet-50 border-violet-200' },
+        ].map(({ label, value, icon, bg }) => (
+          <div key={label} className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 flex items-center gap-3">
+            <div className={`w-10 h-10 ${bg} border flex items-center justify-center rounded-[0.4rem] shrink-0`}>{icon}</div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{label}</p>
+              <p className="text-lg font-bold text-[#1a0f2e] tabular-nums">{loading ? '—' : value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Error ── */}
+      {!loading && fetchError && (
+        <div className="flex flex-col items-center gap-2 py-16">
+          <AlertCircle size={20} className="text-red-400" />
+          <p className="text-sm font-semibold text-red-500">{fetchError}</p>
+          <button onClick={fetchData} className="px-3 py-2 text-xs font-bold bg-white border border-zinc-200 rounded-lg hover:bg-zinc-50">Try again</button>
+        </div>
+      )}
+
+      {/* ── No data ── */}
+      {!loading && !fetchError && !data && (
+        <div className="flex flex-col items-center gap-2 py-16 text-zinc-400 text-xs font-medium">
+          <Eye size={20} />
+          No X-reading data available for this date.
+        </div>
+      )}
+
+      {/* ── Detail Cards ── */}
+      {!loading && !fetchError && data && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+
+          {/* Payment Methods */}
+          <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
+            <div className="px-5 py-4 border-b border-zinc-100 flex items-center gap-2">
+              <CreditCard size={13} className="text-zinc-400" />
+              <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">Payment Methods</p>
+            </div>
+            <div className="px-5 py-2">
+              <Row label="Cash Sales"             value={`₱${data.cash_sales.toFixed(2)}`} accent="text-emerald-600" />
+              <Row label="Card Sales"             value={`₱${data.card_sales.toFixed(2)}`} accent="text-blue-600" />
+              <Row label="Gift Certificate Sales" value={`₱${data.gc_sales.toFixed(2)}`}   accent="text-violet-600" />
+              <div className="flex items-center justify-between py-2.5 mt-1 border-t border-zinc-200">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Total</span>
+                <span className="text-sm font-bold text-[#1a0f2e]">₱{data.net_sales.toFixed(2)}</span>
               </div>
-              <span className="text-sm font-bold text-gray-900">₱{data.cash_sales.toFixed(2)}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
-                <span className="text-sm font-medium text-gray-700">Card Sales</span>
-              </div>
-              <span className="text-sm font-bold text-gray-900">₱{data.card_sales.toFixed(2)}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
-                <span className="text-sm font-medium text-gray-700">Gift Certificate Sales</span>
-              </div>
-              <span className="text-sm font-bold text-gray-900">₱{data.gc_sales.toFixed(2)}</span>
             </div>
           </div>
-        </div>
 
-        <div className="bg-white p-6 rounded-lg border border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Order Summary</h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">Total Orders</span>
-              <span className="text-sm font-bold text-gray-900">{data.total_orders}</span>
+          {/* Order Summary */}
+          <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
+            <div className="px-5 py-4 border-b border-zinc-100 flex items-center gap-2">
+              <ShoppingCart size={13} className="text-zinc-400" />
+              <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">Order Summary</p>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">Void Orders</span>
-              <span className="text-sm font-bold text-red-600">{data.void_orders}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">Net Orders</span>
-              <span className="text-sm font-bold text-green-600">{data.total_orders - data.void_orders}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">Average Order Value</span>
-              <span className="text-sm font-bold text-gray-900">₱{(data.net_sales / (data.total_orders - data.void_orders)).toFixed(2)}</span>
+            <div className="px-5 py-2">
+              <Row label="Total Orders"       value={data.total_orders} />
+              <Row label="Void Orders"        value={data.void_orders}  accent="text-red-500" />
+              <Row label="Void Rate"          value={`${voidRate.toFixed(1)}%`} accent={voidRate > 5 ? 'text-red-500' : 'text-zinc-700'} />
+              <Row label="Avg Order Value"    value={`₱${avgOrder.toFixed(2)}`} accent="text-emerald-600" />
+              <div className="flex items-center justify-between py-2.5 mt-1 border-t border-zinc-200">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Net Orders</span>
+                <span className="text-sm font-bold text-emerald-600">{netOrders}</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
-      <div className="bg-white rounded-lg border border-gray-200">
-        <div className="p-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">X-Reading Summary</h3>
-        </div>
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="text-md font-semibold text-gray-900 mb-3">Sales Information</h4>
-              <dl className="space-y-2">
-                <div className="flex justify-between">
-                  <dt className="text-sm text-gray-600">Date:</dt>
-                  <dd className="text-sm font-medium text-gray-900">{data.date}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-sm text-gray-600">Gross Sales:</dt>
-                  <dd className="text-sm font-medium text-gray-900">₱{data.gross_sales.toFixed(2)}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-sm text-gray-600">Void Sales:</dt>
-                  <dd className="text-sm font-medium text-red-600">-₱{data.void_sales.toFixed(2)}</dd>
-                </div>
-                <div className="flex justify-between pt-2 border-t">
-                  <dt className="text-sm font-semibold text-gray-900">Net Sales:</dt>
-                  <dd className="text-sm font-bold text-green-600">₱{data.net_sales.toFixed(2)}</dd>
-                </div>
-              </dl>
+      {/* ── Summary Table ── */}
+      {!loading && !fetchError && data && (
+        <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
+          <div className="px-5 py-4 border-b border-zinc-100">
+            <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">X-Reading Summary</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-0 divide-y md:divide-y-0 md:divide-x divide-zinc-100">
+            {/* Sales info */}
+            <div className="px-5 py-4">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-3">Sales Information</p>
+              <Row label="Date"        value={new Date(data.date).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })} />
+              <Row label="Gross Sales" value={`₱${data.gross_sales.toFixed(2)}`} />
+              <Row label="Void Sales"  value={`-₱${data.void_sales.toFixed(2)}`} accent="text-red-500" />
+              <div className="flex items-center justify-between py-2.5 mt-1 border-t border-zinc-300">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Net Sales</span>
+                <span className="text-sm font-bold text-emerald-600">₱{data.net_sales.toFixed(2)}</span>
+              </div>
             </div>
-            <div>
-              <h4 className="text-md font-semibold text-gray-900 mb-3">Order Information</h4>
-              <dl className="space-y-2">
-                <div className="flex justify-between">
-                  <dt className="text-sm text-gray-600">Total Orders:</dt>
-                  <dd className="text-sm font-medium text-gray-900">{data.total_orders}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-sm text-gray-600">Void Orders:</dt>
-                  <dd className="text-sm font-medium text-red-600">{data.void_orders}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-sm text-gray-600">Void Rate:</dt>
-                  <dd className="text-sm font-medium text-gray-900">{((data.void_orders / data.total_orders) * 100).toFixed(1)}%</dd>
-                </div>
-                <div className="flex justify-between pt-2 border-t">
-                  <dt className="text-sm font-semibold text-gray-900">Net Orders:</dt>
-                  <dd className="text-sm font-bold text-green-600">{data.total_orders - data.void_orders}</dd>
-                </div>
-              </dl>
+            {/* Order info */}
+            <div className="px-5 py-4">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-3">Order Information</p>
+              <Row label="Total Orders" value={data.total_orders} />
+              <Row label="Void Orders"  value={data.void_orders}  accent="text-red-500" />
+              <Row label="Void Rate"    value={`${voidRate.toFixed(1)}%`} />
+              <div className="flex items-center justify-between py-2.5 mt-1 border-t border-zinc-300">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Net Orders</span>
+                <span className="text-sm font-bold text-emerald-600">{netOrders}</span>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

@@ -13,6 +13,8 @@ import ItemsReportPanel      from '../components/TeamLeader/Reports/ItemsReportP
 import SalesDashboardPanel   from '../components/TeamLeader/Reports/SalesDashboardPanel';
 import XReadingPanel         from '../components/TeamLeader/Reports/XReadingPanel';
 import ZReadingPanel         from '../components/TeamLeader/Reports/ZReadingPanel';
+import VoidLogsPanel         from '../components/TeamLeader/FloorOps/VoidLogsPanel';
+import HourlySalesPanel from '../components/TeamLeader/FloorOps/HourlySalesPanel';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const STYLES = `
@@ -149,8 +151,8 @@ const TeamLeaderDashboard = () => {
       case 'dashboard':        return <TL_DashboardPanel   branchId={authUser?.branch_id ?? null} />;
       case 'users':            return <StaffOverviewPanel  branchId={authUser?.branch_id ?? null} />;
       // Floor Ops
-      case 'void-logs':        return <div className="p-8 text-zinc-400">Void Logs — coming soon</div>;
-      case 'hourly-sales':     return <div className="p-8 text-zinc-400">Hourly Sales — coming soon</div>;
+      case 'void-logs':    return <VoidLogsPanel  branchId={authUser?.branch_id ?? null} />;
+      case 'hourly-sales': return <HourlySalesPanel branchId={authUser?.branch_id ?? null} />;
       // Reports
       case 'sales-dashboard':  return <SalesDashboardPanel branchId={authUser?.branch_id ?? null} />;
       case 'items-report':     return <ItemsReportPanel    branchId={authUser?.branch_id ?? null} />;
