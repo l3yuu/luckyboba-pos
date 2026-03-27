@@ -281,6 +281,7 @@ useEffect(() => {
     } catch { setApiError("Failed to load cashiers."); }
     finally { setLoading(false); }
   })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [device.branch_id, device.id]);
 
   const isAlreadyAssigned = (id: number) => assigned.some(a => a.id === id);
