@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, CreditCard, CalendarDays, Gift, CheckCircle2, ShieldCheck, AlertCircle } from 'lucide-react';
 import api from '../../../../services/api';
+import axios from 'axios';
 
 interface CardMember {
   id: number;
@@ -173,22 +174,25 @@ const CardUsersTab: React.FC = () => {
       } else {
         setPinError(response.data.message || 'Authorization failed. Try again.');
       }
-    } catch (error: any) {
-      const msg = error?.response?.data?.message;
-      if (error?.response?.status === 401) {
-        setPinError('Incorrect PIN. Please try again.');
-      } else if (error?.response?.status === 409) {
-        setPinError('This perk has already been claimed today.');
-        // Sync local list
-        fetchMembers();
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const msg = error.response?.data?.message;
+        if (error.response?.status === 401) {
+          setPinError('Incorrect PIN. Please try again.');
+        } else if (error.response?.status === 409) {
+          setPinError('This perk has already been claimed today.');
+          fetchMembers();
+        } else {
+          setPinError(msg || 'Something went wrong. Please retry.');
+        }
       } else {
-        setPinError(msg || 'Something went wrong. Please retry.');
+        setPinError('Something went wrong. Please retry.');
       }
     } finally {
       setPinLoading(false);
       setProcessingId(null);
     }
-  };
+  }; 
 
   const filteredMembers = members.filter(m =>
     m.user_name.toLowerCase().includes(searchQuery.toLowerCase()) ||

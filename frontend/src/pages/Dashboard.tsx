@@ -126,20 +126,19 @@ const fetchStats = useCallback(async (force = false) => {
     void fetchStats(refreshKey > 0);
   }, [user, activeTab, refreshKey, fetchStats]);
 
+  useEffect(() => {
+    const handleOrderCompleted = () => {
+      localStorage.removeItem('dashboard_stats_timestamp');
+      void fetchStats(true);
+    };
+    window.addEventListener('online-order-completed', handleOrderCompleted);
+    return () => {
+      window.removeEventListener('online-order-completed', handleOrderCompleted);
+    };
+  }, [fetchStats]);
+
   if (authLoading || (isInitialLoad && !stats)) return <DashboardSkeleton />;
   if (!user) return null;
-
-  useEffect(() => {
-  const handleOrderCompleted = () => {
-    localStorage.removeItem('dashboard_stats_timestamp');
-    void fetchStats(true);
-  };
-
-  window.addEventListener('online-order-completed', handleOrderCompleted);
-  return () => {
-    window.removeEventListener('online-order-completed', handleOrderCompleted);
-  };
-}, [fetchStats]);
 
   const refreshStats = () => {
     localStorage.removeItem('dashboard_stats_timestamp');

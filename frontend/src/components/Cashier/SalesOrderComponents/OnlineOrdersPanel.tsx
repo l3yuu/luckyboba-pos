@@ -20,7 +20,7 @@ interface SaleItem {
   unit_price?: number;
   total_price?: number;
   cup_size?: string;
-  add_ons?: any[];
+  add_ons?: (string | { name?: string; addon_name?: string })[];
 }
 
 interface OnlineOrder {
