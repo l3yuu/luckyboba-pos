@@ -41,6 +41,7 @@ const ZReadingPanel = ({ branchId }: { branchId: number | null }) => {
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchReceipt, setSearchReceipt] = useState('');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [searchResults, setSearchResults] = useState<any[]>([]);
 
   useEffect(() => {
