@@ -26,6 +26,7 @@ class AddOnController extends Controller
             'price'        => 'required|numeric|min:0',
             'grab_price'   => 'nullable|numeric|min:0',
             'panda_price'  => 'nullable|numeric|min:0',
+            'barcode'      => 'nullable|string|max:100', 
             'category'     => 'required|string|max:100',
             'is_available' => 'boolean',
         ]);

@@ -1540,12 +1540,13 @@ const DeleteModal: React.FC<{ item: MenuItem; onClose: () => void; onDeleted: (i
 // ── Add-On Builder Modal ──────────────────────────────────────────────────────
 
 interface AddOnItem {
-  id:         number;
-  name:       string;
-  price:      number;
-  grab_price: number;
-  panda_price: number;
-  category:   string;
+  id:           number;
+  name:         string;
+  price:        number;
+  grab_price:   number;
+  panda_price:  number;
+  barcode:      string | null;  // ← add
+  category:     string;
   is_available: boolean;
 }
 
@@ -1629,7 +1630,7 @@ const AddOnBuilderModal: React.FC<AddOnBuilderModalProps> = ({ onClose }) => {
   const [filterTab, setFilterTab] = useState<"all" | "drink" | "food" | "waffle" | "other">("all");
 
   // Form state for new / editing
-  const blank = () => ({ name: "", price: "", grab_price: "0", panda_price: "0", category: "drink", is_available: true });
+  const blank = () => ({ name: "", price: "", grab_price: "0", panda_price: "0", category: "drink", barcode: "", is_available: true });
   const [form,       setForm]       = useState(blank());
   const [editingId,  setEditingId]  = useState<number | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -1666,6 +1667,7 @@ const AddOnBuilderModal: React.FC<AddOnBuilderModalProps> = ({ onClose }) => {
         price:       Number(form.price),
         grab_price:  Number(form.grab_price)  || 0,
         panda_price: Number(form.panda_price) || 0,
+        barcode:      form.barcode.trim() || null,
         category:    form.category.trim(),
         is_available: form.is_available,
       };
@@ -1685,11 +1687,12 @@ const AddOnBuilderModal: React.FC<AddOnBuilderModalProps> = ({ onClose }) => {
   const handleEdit = (addon: AddOnItem) => {
     setEditingId(addon.id);
     setForm({
-      name:        addon.name,
-      price:       String(addon.price),
-      grab_price:  String(addon.grab_price),
-      panda_price: String(addon.panda_price),
-      category:    addon.category,
+      name:         addon.name,
+      price:        String(addon.price),
+      grab_price:   String(addon.grab_price),
+      panda_price:  String(addon.panda_price),
+      barcode:      addon.barcode ?? "",   // ← add
+      category:     addon.category,
       is_available: addon.is_available,
     });
     setFormErrors({});
@@ -1746,6 +1749,13 @@ const AddOnBuilderModal: React.FC<AddOnBuilderModalProps> = ({ onClose }) => {
             </div>
           </Field>
         </div>
+
+        <Field label="Barcode">
+          <div className="relative">
+            <Barcode size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <input {...fi("barcode")} placeholder="e.g. AO-21" className={inputCls() + " pl-9"} />
+          </div>
+        </Field>
 
         <div className="grid grid-cols-3 gap-3">
           {/* Base price */}

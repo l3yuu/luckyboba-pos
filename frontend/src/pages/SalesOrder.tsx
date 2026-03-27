@@ -239,9 +239,14 @@ const SalesOrder = () => {
   const isWaffleCategory = selectedCategory?.category_type === 'waffle';
   const categoryHasOnlyOneSize = (selectedCategory?.sub_categories?.length ?? 0) <= 1;
 
-  const filteredAddOns = addOnsData.filter(a =>
-    isWaffleCategory ? a.category === 'waffle' : a.category !== 'waffle'
-  );
+  const isFoodCategory = selectedCategory?.category_type === 'food' ||
+    selectedCategory?.category_type === 'wings';
+
+  const filteredAddOns = addOnsData.filter(a => {
+    if (isWaffleCategory) return a.category === 'waffle';
+    if (isFoodCategory)   return a.category === 'food';
+    return a.category !== 'waffle' && a.category !== 'food';
+  });
 
   const totalCount = cart.reduce((acc, item) => acc + item.qty, 0);
 
@@ -683,7 +688,7 @@ const subtotal = grossSubtotal - itemDiscountTotal;
     if (!selectedItem || !selectedCategory) return;
     const isWaffle = selectedCategory?.name?.toLowerCase().includes('waffle');
     let extraCost = 0;
-    if (isDrink || isWaffle) {
+    if (isDrink || isWaffle || isFoodCategory) {
       selectedAddOns.forEach(name => {
         const addon = addOnsData.find(a => a.name === name);
         if (addon) {
@@ -705,7 +710,7 @@ const subtotal = grossSubtotal - itemDiscountTotal;
       sugarLevel: isDrink ? sugarLevel : undefined,
       size:       cartSize, cupSizeLabel,
       options:    isDrink ? selectedOptions : undefined,
-      addOns:     (isDrink || isWaffle) ? selectedAddOns : undefined,
+      addOns:     (isDrink || isWaffle || isFoodCategory) ? selectedAddOns : undefined,
       finalPrice: unitPrice * qty,
     };
     if (isCombo) {
@@ -1207,6 +1212,8 @@ const filteredCategories = categories
             orderCharge={orderCharge} isDrink={isDrink} isCombo={isCombo} isWaffleCategory={isWaffleCategory}
             onQtyChange={setQty} onRemarksChange={setRemarks} onSugarChange={setSugarLevel}
             onToggleOption={toggleOption} onToggleOrderCharge={toggleOrderCharge}
+            isFoodCategory={isFoodCategory}   // ← add
+            filteredAddOns={filteredAddOns}   // ← add
             onOpenAddOns={() => setIsAddOnModalOpen(true)} onAddToOrder={addToOrder}
             onClose={() => { setSelectedItem(null); setIsAddOnModalOpen(false); }}
             sugarLevels={isDrink ? sugarLevels : []}
