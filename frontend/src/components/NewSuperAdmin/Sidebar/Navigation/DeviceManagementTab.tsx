@@ -254,6 +254,8 @@ const AssignCashierModal: React.FC<{
   const [apiError,    setApiError]    = useState("");
   const [success,     setSuccess]     = useState(false);
 
+
+
 useEffect(() => {
   (async () => {
     try {
@@ -281,7 +283,7 @@ useEffect(() => {
     } catch { setApiError("Failed to load cashiers."); }
     finally { setLoading(false); }
   })();
-}, [device.branch_id, device.id]);
+}, [device.assigned_users, device.branch_id, device.id, device.user]);
 
   const isAlreadyAssigned = (id: number) => assigned.some(a => a.id === id);
 

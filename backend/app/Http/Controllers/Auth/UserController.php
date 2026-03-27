@@ -65,7 +65,7 @@ class UserController extends Controller
             // Branch managers only see cashiers in their branch
             if ($authUser->role === 'branch_manager') {
                 $query->whereIn('role', ['cashier', 'team_leader'])
-                    ->where('branch_name', $authUser->branch_name);
+                    ->where('branch_id', $authUser->branch_id);
             }
 
             // IT Admins only see non-superadmin users
@@ -134,7 +134,7 @@ class UserController extends Controller
             $user     = User::findOrFail($id);
 
             if ($authUser->role === 'branch_manager') {
-                if ($user->role !== 'cashier' || $user->branch_name !== $authUser->branch_name) {
+                if (!in_array($user->role, ['cashier', 'team_leader']) || $user->branch_id !== $authUser->branch_id) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Access denied. Branch managers can only view cashiers in their branch.',
@@ -172,7 +172,11 @@ class UserController extends Controller
         $authUser = $request->user();
 
         if ($authUser->role === 'branch_manager') {
-            $request->merge(['role' => 'cashier']);
+            $request->merge([
+                'role' => in_array($request->role, ['cashier', 'team_leader'])
+                    ? $request->role
+                    : 'cashier',   // fallback to cashier if invalid role sent
+            ]);
         }
 
         if ($authUser->role === 'it_admin' && $request->role === 'superadmin') {
@@ -257,13 +261,17 @@ class UserController extends Controller
         $target   = User::findOrFail($id);
 
         if ($authUser->role === 'branch_manager') {
-            if ($target->role !== 'cashier' || $target->branch_name !== $authUser->branch_name) {
+            if (!in_array($target->role, ['cashier', 'team_leader']) || $target->branch_id !== $authUser->branch_id) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Access denied. Branch managers can only edit cashiers in their branch.',
                 ], 403);
             }
-            $request->merge(['role' => 'cashier']);
+            $request->merge([
+                'role' => in_array($request->role, ['cashier', 'team_leader'])
+                    ? $request->role
+                    : $target->role,  // keep existing role if invalid value sent
+            ]);
         }
 
         if ($authUser->role === 'it_admin' && $target->role === 'superadmin') {
@@ -355,7 +363,7 @@ class UserController extends Controller
             $user     = User::findOrFail($id);
 
             if ($authUser->role === 'branch_manager') {
-                if ($user->role !== 'cashier' || $user->branch_name !== $authUser->branch_name) {
+                if (!in_array($user->role, ['cashier', 'team_leader']) || $user->branch_id !== $authUser->branch_id) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Access denied. Branch managers can only delete cashiers in their branch.',
@@ -430,7 +438,7 @@ class UserController extends Controller
             $user     = User::findOrFail($id);
 
             if ($authUser->role === 'branch_manager') {
-                if ($user->role !== 'cashier' || $user->branch_name !== $authUser->branch_name) {
+                if (!in_array($user->role, ['cashier', 'team_leader']) || $user->branch_id !== $authUser->branch_id) {
                     return response()->json([
                         'success' => false,
                         'message' => 'Access denied. Branch managers can only change status of cashiers in their branch.',

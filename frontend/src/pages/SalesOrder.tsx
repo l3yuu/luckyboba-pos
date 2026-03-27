@@ -12,6 +12,7 @@ import {
 import { useToast }  from '../hooks/useToast';
 import { useAuth }   from '../hooks/useAuth';
 import api           from '../services/api';
+import { Home, ChevronRight } from 'lucide-react';
 
 import {
   generateORNumber, generateQueueNumber, generateTerminalNumber,
@@ -79,10 +80,15 @@ const SalesOrder = () => {
   };
 
   // ── State ───────────────────────────────────────────────────────────────────
+
+  const [activeCategoryGroup, setActiveCategoryGroup] = useState<string | null>(null);
+
+
   const [branchDetails, setBranchDetails] = useState<{
-    brand?: string; companyName?: string; storeAddress?: string;
-    vatRegTin?: string; minNumber?: string; serialNumber?: string;
-  }>({});
+  brand?: string; companyName?: string; storeAddress?: string;
+  vatRegTin?: string; minNumber?: string; serialNumber?: string;
+  owner_name?: string;  // ← just the type, no value here
+}>({});
   const [orderType, setOrderType] = useState<'dine-in' | 'take-out' | 'delivery' | null>(null);
   const [cashierName, setCashierName] = useState<string>(() =>
     localStorage.getItem('lucky_boba_user_name') ?? 'Admin'
@@ -334,7 +340,7 @@ const subtotal = grossSubtotal - itemDiscountTotal;
     if (paxSenior > 0 && scDiscount)  applied.push(scDiscount);
     if (paxPwd    > 0 && pwdDiscount) applied.push(pwdDiscount);
     setSelectedDiscounts(applied);
-  }, [paxSenior, paxPwd]);
+  }, [paxSenior, paxPwd, scDiscount, pwdDiscount]);
 
   // ── Sticker logic ─────────────────────────────────────────────────────────
   const hasStickers = cart.some(item =>
@@ -380,7 +386,7 @@ const subtotal = grossSubtotal - itemDiscountTotal;
         const b = data.data ?? data;
         setBranchDetails({
           brand: b.brand, companyName: b.company_name, storeAddress: b.store_address,
-          vatRegTin: b.vat_reg_tin, minNumber: b.min_number, serialNumber: b.serial_number,
+          vatRegTin: b.vat_reg_tin, minNumber: b.min_number, serialNumber: b.serial_number, owner_name:   b.owner_name,
         });
         if (b.vat_type) {
           setVatType(b.vat_type as 'vat' | 'non_vat');
@@ -451,7 +457,7 @@ const subtotal = grossSubtotal - itemDiscountTotal;
       });
       return updated;
     });
-  }, [cart.length]);
+  }, [cart, cart.length]);
 
   // ── Sequence helpers ──────────────────────────────────────────────────────
 
@@ -484,6 +490,7 @@ const subtotal = grossSubtotal - itemDiscountTotal;
   const handleCategoryClick = (cat: Category) => {
     setSelectedCategory(cat);
     setCategorySize(null);
+    setActiveCategoryGroup(null);
     const catType    = cat.category_type ?? cat.type;
     const isDrinkCat = catType === 'drink' || catType === 'bundle';
     const isWingsCat = catType === 'wings';
@@ -1083,14 +1090,27 @@ const subtotal = grossSubtotal - itemDiscountTotal;
 
   // ── Filtered categories ────────────────────────────────────────────────────
 
-  const filteredCategories = categories
-    .map(cat => ({
-      ...cat,
-      menu_items: cat.menu_items.filter(item =>
-        item.name.toLowerCase().includes(searchQuery.toLowerCase())
-      ),
-    }))
-    .filter(cat => cat.name.toLowerCase().includes(searchQuery.toLowerCase()) || cat.menu_items.length > 0);
+  const GROUP_TYPES: Record<string, string[]> = {
+  drinks:        ['drink'],
+  bundles:       ['bundle'],
+  food:          ['food', 'combo', 'waffle', 'wings'],
+  mix_and_match: ['mix_and_match'],
+  others:        ['promo', 'other'],
+};
+
+const filteredCategories = categories
+  .map(cat => ({
+    ...cat,
+    menu_items: cat.menu_items.filter(item =>
+      item.name.toLowerCase().includes(searchQuery.toLowerCase())
+    ),
+  }))
+  .filter(cat => cat.name.toLowerCase().includes(searchQuery.toLowerCase()) || cat.menu_items.length > 0)
+  .filter(cat => {
+    if (!activeCategoryGroup) return true;
+    const allowed = GROUP_TYPES[activeCategoryGroup] ?? [];
+    return allowed.includes(cat.category_type ?? cat.type ?? '');
+  });
 
   // ── Loading screen ─────────────────────────────────────────────────────────
 
@@ -1300,6 +1320,92 @@ const subtotal = grossSubtotal - itemDiscountTotal;
           isSyncing={isSyncing} syncNow={syncNow} remove={remove}
         />
 
+         {/* ── Category nav bar ─────────────────────────────────────────── */}
+<div className="flex flex-col bg-white/70 backdrop-blur-sm border-b border-[#7c14d4]/10 print:hidden z-10 flex-shrink-0">
+
+  {/* Row 1: POS Home + Breadcrumb */}
+  <div className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium">
+    <button
+      onClick={() => navigate('/pos')}
+      className="flex items-center gap-1 px-2.5 py-1 rounded-md bg-[#7c14d4] text-white hover:bg-[#6010b0] active:scale-95 transition-all duration-150 shadow-sm mr-2 text-xs font-semibold"
+    >
+      <Home size={12} />
+      <span>POS Home</span>
+    </button>
+
+    <span
+      className="flex items-center gap-1 px-2 py-1 rounded-md text-[#7c14d4]/60 hover:text-[#7c14d4] hover:bg-[#7c14d4]/10 cursor-pointer transition-all duration-150"
+      onClick={() => { setSelectedCategory(null); setCategorySize(null); setActiveCategoryGroup(null); }}
+    >
+      <span>All Categories</span>
+    </span>
+
+    {selectedCategory && (
+      <>
+        <ChevronRight size={12} className="text-[#7c14d4]/30 flex-shrink-0" />
+        <span
+          className={`flex items-center px-2 py-1 rounded-md transition-all duration-150 ${
+            !categorySize
+              ? 'text-[#7c14d4] font-semibold bg-[#7c14d4]/10'
+              : 'text-[#7c14d4]/60 hover:text-[#7c14d4] hover:bg-[#7c14d4]/10 cursor-pointer'
+          }`}
+          onClick={() => { if (categorySize && !categoryHasOnlyOneSize) setCategorySize(null); }}
+        >
+          {selectedCategory.name}
+        </span>
+      </>
+    )}
+
+    {selectedCategory && categorySize && !categoryHasOnlyOneSize && (
+      <>
+        <ChevronRight size={12} className="text-[#7c14d4]/30 flex-shrink-0" />
+        <span className="px-2 py-1 rounded-md text-[#7c14d4] font-semibold bg-[#7c14d4]/10">
+          {categorySize}
+        </span>
+      </>
+    )}
+  </div>
+
+  {/* Row 2: Category group filter tabs — only when no category is selected */}
+  {!selectedCategory && (
+    <div className="flex items-center gap-1.5 px-3 pb-2 overflow-x-auto scrollbar-none">
+      {[
+        { key: null,            label: 'All',     types: null },
+        { key: 'drinks',        label: '🧋 Drinks',   types: ['drink'] },
+        { key: 'bundles',       label: '📦 Bundles',  types: ['bundle'] },
+        { key: 'food',          label: '🍕 Food',     types: ['food', 'combo', 'waffle', 'wings'] },
+        { key: 'mix_and_match', label: '🔀 Mix & Match', types: ['mix_and_match'] },
+        { key: 'others',        label: '✨ Others',   types: ['promo', 'other'] },
+      ].map(group => {
+        const isActive = activeCategoryGroup === group.key;
+        // Count matching categories
+        const count = group.types == null
+          ? filteredCategories.length
+          : filteredCategories.filter(c => group.types!.includes(c.category_type ?? c.type ?? '')).length;
+        if (count === 0 && group.key !== null) return null;
+        return (
+          <button
+            key={String(group.key)}
+            onClick={() => setActiveCategoryGroup(isActive ? null : group.key)}
+            className={`flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-all duration-150 border ${
+              isActive
+                ? 'bg-[#7c14d4] text-white border-[#7c14d4] shadow-sm'
+                : 'bg-white text-[#7c14d4] border-[#7c14d4]/20 hover:border-[#7c14d4]/50 hover:bg-[#7c14d4]/5'
+            }`}
+          >
+            {group.label}
+            <span className={`text-[10px] px-1 py-0.5 rounded-full ml-0.5 ${
+              isActive ? 'bg-white/20 text-white' : 'bg-[#7c14d4]/10 text-[#7c14d4]'
+            }`}>
+              {count}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  )}
+</div>
+
         <div className="flex flex-1 overflow-hidden relative z-10">
           <MenuArea
             menuAvailable={menuAvailable} selectedCategory={selectedCategory}
@@ -1323,7 +1429,7 @@ const subtotal = grossSubtotal - itemDiscountTotal;
         </div>
       </div>
 
-      {printTarget === 'receipt' && <ReceiptPrint {...printProps} {...branchDetails} vatType={vatType} addOnsData={addOnsData} orderCharge={orderCharge} totalCount={totalCount} subtotal={grossSubtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} vatExemptSales={vatExemptSales} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} selectedDiscounts={selectedDiscounts} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount} itemPaxAssignments={itemPaxAssignments} />}
+      {printTarget === 'receipt' && <ReceiptPrint {...printProps} {...branchDetails} ownerName={branchDetails.owner_name} vatType={vatType} addOnsData={addOnsData} orderCharge={orderCharge} totalCount={totalCount} subtotal={grossSubtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} vatExemptSales={vatExemptSales} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} selectedDiscounts={selectedDiscounts} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount} itemPaxAssignments={itemPaxAssignments} />}
       {printTarget === 'kitchen'  && <KitchenPrint  {...printProps} />}
       {printTarget === 'stickers' && <StickerPrint  {...printProps} customerName={customerName} />}
     </>

@@ -163,7 +163,7 @@ class AuditLogController extends Controller
 
         $branchUserIds = DB::table('users')
             ->where('branch_id', $branchId)
-            ->whereIn('role', ['cashier', 'branch_manager'])
+            ->whereIn('role', ['cashier', 'branch_manager', 'team_leader'])
             ->pluck('id');
 
         $query = AuditLog::with('user:id,name')

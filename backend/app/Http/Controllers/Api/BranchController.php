@@ -53,6 +53,7 @@ public function store(Request $request)
         'ownership_type' => 'sometimes|in:company,franchise',
         'vat_type'       => 'sometimes|in:vat,non_vat',
         // ✅ Add these
+        'owner_name'     => 'nullable|string|max:255',
         'brand'          => 'sometimes|string|max:255',
         'company_name'   => 'sometimes|string|max:255',
         'store_address'  => 'sometimes|string|max:500',
@@ -91,6 +92,7 @@ public function store(Request $request)
             'vat_reg_tin'    => $request->vat_reg_tin    ?? '',
             'min_number'     => $request->min_number     ?? '',
             'serial_number'  => $request->serial_number  ?? '',
+            'owner_name'     => $request->owner_name     ?? '',  
         ]);
 
             AuditHelper::log('branch', "Created branch: {$branch->name}");
@@ -175,6 +177,7 @@ public function store(Request $request)
     'vat_reg_tin',
     'min_number',
     'serial_number',
+    'owner_name',
 ]));
 
             // Sync users.branch_name whenever branch name changes

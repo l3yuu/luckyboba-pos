@@ -22,6 +22,7 @@ class Receipt extends Model
     'sale_id',
     'branch_id', 
     'brand',
+    'owner_name',
     'company_name',
     'store_address',
     'vat_reg_tin',
