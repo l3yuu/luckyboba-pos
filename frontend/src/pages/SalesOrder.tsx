@@ -85,9 +85,10 @@ const SalesOrder = () => {
 
 
   const [branchDetails, setBranchDetails] = useState<{
-    brand?: string; companyName?: string; storeAddress?: string;
-    vatRegTin?: string; minNumber?: string; serialNumber?: string;
-  }>({});
+  brand?: string; companyName?: string; storeAddress?: string;
+  vatRegTin?: string; minNumber?: string; serialNumber?: string;
+  owner_name?: string;  // ← just the type, no value here
+}>({});
   const [orderType, setOrderType] = useState<'dine-in' | 'take-out' | 'delivery' | null>(null);
   const [cashierName, setCashierName] = useState<string>(() =>
     localStorage.getItem('lucky_boba_user_name') ?? 'Admin'
@@ -385,7 +386,7 @@ const subtotal = grossSubtotal - itemDiscountTotal;
         const b = data.data ?? data;
         setBranchDetails({
           brand: b.brand, companyName: b.company_name, storeAddress: b.store_address,
-          vatRegTin: b.vat_reg_tin, minNumber: b.min_number, serialNumber: b.serial_number,
+          vatRegTin: b.vat_reg_tin, minNumber: b.min_number, serialNumber: b.serial_number, owner_name:   b.owner_name,
         });
         if (b.vat_type) {
           setVatType(b.vat_type as 'vat' | 'non_vat');
@@ -1429,7 +1430,7 @@ const filteredCategories = categories
         </div>
       </div>
 
-      {printTarget === 'receipt' && <ReceiptPrint {...printProps} {...branchDetails} vatType={vatType} addOnsData={addOnsData} orderCharge={orderCharge} totalCount={totalCount} subtotal={grossSubtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} vatExemptSales={vatExemptSales} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} selectedDiscounts={selectedDiscounts} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount} itemPaxAssignments={itemPaxAssignments} />}
+      {printTarget === 'receipt' && <ReceiptPrint {...printProps} {...branchDetails} ownerName={branchDetails.owner_name} vatType={vatType} addOnsData={addOnsData} orderCharge={orderCharge} totalCount={totalCount} subtotal={grossSubtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} vatExemptSales={vatExemptSales} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} selectedDiscounts={selectedDiscounts} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount} itemPaxAssignments={itemPaxAssignments} />}
       {printTarget === 'kitchen'  && <KitchenPrint  {...printProps} />}
       {printTarget === 'stickers' && <StickerPrint  {...printProps} customerName={customerName} />}
     </>

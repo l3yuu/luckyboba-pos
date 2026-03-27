@@ -23,6 +23,7 @@ class Branch extends Model
     'vat_reg_tin',
     'min_number',
     'serial_number',
+    'owner_name',
 ];
 
 protected $casts = [

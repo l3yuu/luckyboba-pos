@@ -28,7 +28,8 @@ interface Branch {
   store_address:  string;
   vat_reg_tin:    string;
   min_number:     string;
-  serial_number:  string;
+  serial_number: string;
+  owner_name:     string;
 }
 interface StatCardProps {
   icon: React.ReactNode; label: string; value: string | number;
@@ -57,7 +58,8 @@ interface RawBranch {
   store_address?:  string;
   vat_reg_tin?:    string;
   min_number?:     string;
-  serial_number?:  string;
+  serial_number?: string;
+  owner_name?:     string; 
   today_sales?:    number | string;
   total_sales?:    number | string;
   staff_count?:    number;
@@ -92,7 +94,8 @@ const mapBranch = (b: RawBranch): Branch => ({
   store_address:  b.store_address  ?? '',
   vat_reg_tin:    b.vat_reg_tin    ?? '',
   min_number:     b.min_number     ?? '',
-  serial_number:  b.serial_number  ?? '',
+  serial_number: b.serial_number ?? '',
+  owner_name:     b.owner_name     ?? '',
 });
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
@@ -265,7 +268,8 @@ const ViewBranchModal: React.FC<ViewBranchModalProps> = ({ onClose, branch }) =>
     ["Store Address", branch.store_address || "—"],
     ["VAT Reg TIN",   branch.vat_reg_tin  || "—"],
     ["MIN",           branch.min_number   || "—"],
-    ["Serial No.",    branch.serial_number || "—"],
+    ["Serial No.", branch.serial_number || "—"],
+    ["Owner Name",    branch.owner_name    || "—"],
   ];
   return (
     <ModalShell
@@ -301,7 +305,8 @@ const EditBranchModal: React.FC<EditBranchModalProps> = ({ onClose, onUpdated, b
     store_address:  branch.store_address ?? '',
     vat_reg_tin:    branch.vat_reg_tin   ?? '',
     min_number:     branch.min_number    ?? '',
-    serial_number:  branch.serial_number ?? '',
+    serial_number: branch.serial_number ?? '',
+    owner_name:     branch.owner_name    ?? '',
   });
   const [errors,   setErrors]   = useState<Record<string, string>>({});
   const [loading,  setLoading]  = useState(false);
@@ -416,6 +421,10 @@ const EditBranchModal: React.FC<EditBranchModalProps> = ({ onClose, onUpdated, b
 
       {/* ── Receipt / BIR Info ── */}
       <FormSection title="Receipt / BIR Info">
+        <div>
+          <FieldLabel label="Owner Name" />
+          <input {...field("owner_name")} placeholder="e.g. Juan Dela Cruz" className={inputCls()} />
+        </div>
         <div>
           <FieldLabel label="Brand" />
           <input {...field("brand")} placeholder="e.g. Lucky Boba Milk Tea" className={inputCls()} />
@@ -537,7 +546,8 @@ const AddBranchModal: React.FC<AddBranchModalProps> = ({ onClose, onSaved }) => 
     store_address:  "",
     vat_reg_tin:    "",
     min_number:     "",
-    serial_number:  "",
+    serial_number: "",
+    owner_name:     "",
   });
   const [errors,   setErrors]   = useState<Record<string, string>>({});
   const [loading,  setLoading]  = useState(false);
@@ -652,6 +662,10 @@ const AddBranchModal: React.FC<AddBranchModalProps> = ({ onClose, onSaved }) => 
 
       {/* ── Receipt / BIR Info ── */}
       <FormSection title="Receipt / BIR Info">
+        <div>
+          <FieldLabel label="Owner Name" />
+          <input {...field("owner_name")} placeholder="e.g. Juan Dela Cruz" className={inputCls()} />
+        </div>
         <div>
           <FieldLabel label="Brand" />
           <input {...field("brand")} placeholder="e.g. Lucky Boba Milk Tea" className={inputCls()} />
