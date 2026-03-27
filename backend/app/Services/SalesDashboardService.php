@@ -279,19 +279,23 @@ class SalesDashboardService
         $discounts = $this->computeDiscounts($from, $to, $branchId);
 
         // ── VAT calculation ───────────────────────────────────────────────────
-        // BIR rule: SC/PWD discount is 20% of the VAT-exclusive price.
-        // Reconstruct VAT-exclusive base: discount / 0.20
-        // That base is the VAT-exempt sales figure.
-        $scPwdDiscount  = $discounts['sc_discount'] + $discounts['pwd_discount'];
-        $vatExemptSales = $isVat ? round($scPwdDiscount / 0.20, 2) : 0.0;
-        $vatableBase    = $isVat ? max(0.0, $grossSales - $vatExemptSales) : 0.0;
-        $vatableSales   = $isVat ? round($vatableBase / 1.12, 2) : 0.0;
-        $vatAmount      = $isVat ? round($vatableBase - $vatableSales, 2) : 0.0;
+        // ── FIX: net_sales = gross - all discounts - voids ─
+$totalDiscounts = $discounts['sc_discount'] + $discounts['pwd_discount']
+                + $discounts['diplomat_discount'] + $discounts['other_discount'];
 
-        // ── FIX: net_sales = gross - all discounts - voids (consistent with Z) ─
-        $totalDiscounts = $discounts['sc_discount'] + $discounts['pwd_discount']
-                        + $discounts['diplomat_discount'] + $discounts['other_discount'];
-        $netSales = round($grossSales - $totalDiscounts - $voidAmount, 2);
+$netSales = round($grossSales - $totalDiscounts - $voidAmount, 2);
+
+
+// ── VAT calculation ───────────────────────────────────────────────────
+$scPwdDiscount  = $discounts['sc_discount'] + $discounts['pwd_discount'];
+
+$vatExemptSales = $isVat ? round($scPwdDiscount / 0.20, 2) : 0.0;
+
+$vatableBase  = $isVat ? max(0.0, $netSales - $vatExemptSales) : 0.0;
+
+$vatableSales = $isVat ? round($vatableBase / 1.12, 2) : 0.0;
+
+$vatAmount    = $isVat ? round($vatableBase - $vatableSales, 2) : 0.0;
 
         $paymentBreakdown = $this->computePaymentBreakdown($from, $to, $branchId);
 
@@ -422,9 +426,9 @@ class SalesDashboardService
         //   vatAmount      = 25.71 - 22.96 = 2.75
         $scPwdDiscount  = $discounts['sc_discount'] + $discounts['pwd_discount'];
         $vatExemptSales = $isVat ? round($scPwdDiscount / 0.20, 2) : 0.0;
-        $vatableBase    = $isVat ? max(0.0, $gross - $vatExemptSales) : 0.0;
-        $vatableSales   = $isVat ? round($vatableBase / 1.12, 2) : 0.0;
-        $vatAmount      = $isVat ? round($vatableBase - $vatableSales, 2) : 0.0;
+$vatableBase    = $isVat ? max(0.0, $netSales - $vatExemptSales) : 0.0;
+$vatableSales   = $isVat ? round($vatableBase / 1.12, 2) : 0.0;
+$vatAmount      = $isVat ? round($vatableBase - $vatableSales, 2) : 0.0;
 
         $begSI = DB::table('receipts')
             ->whereBetween('created_at', [$start, $end])
