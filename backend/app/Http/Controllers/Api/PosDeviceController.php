@@ -59,10 +59,14 @@ class PosDeviceController extends Controller
     public function index(Request $request)
     {
         try {
+            $user  = $request->user();
             $query = PosDevice::with(['users:id,name,branch_id', 'branch:id,name'])
                 ->orderBy('created_at', 'desc');
 
-            if ($request->filled('branch_id')) {
+            // Branch managers only see their own branch's devices
+            if ($user->role === 'branch_manager' && $user->branch_id) {
+                $query->where('branch_id', $user->branch_id);
+            } elseif ($request->filled('branch_id')) {
                 $query->where('branch_id', $request->branch_id);
             }
 
