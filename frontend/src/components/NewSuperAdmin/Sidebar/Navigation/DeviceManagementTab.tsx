@@ -320,7 +320,6 @@ const handleUnassign = async (cashierId: number) => {
   } catch { setApiError("Network error."); }
   finally { setSaving(false); }
 };
-
   return (
     <ModalShell onClose={onClose} icon={<Link size={15} className="text-violet-600" />}
       title="Assign Cashiers" sub={`Manage cashiers for ${device.pos_number}`}
@@ -334,7 +333,6 @@ const handleUnassign = async (cashierId: number) => {
           </Btn>
         </>
       }>
-
       {/* Device info */}
       <div className="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl">
         <div className="w-9 h-9 bg-violet-50 border border-violet-200 rounded-lg flex items-center justify-center shrink-0">

@@ -211,7 +211,7 @@ const branchLabel = authUser?.name ?? null; // 'Main Branch' comes from here
     switch (activeTab) {
       case 'dashboard':           return <DashboardPanel branchId={authUser?.branch_id ?? null} />;
       case 'users':               return <UserManagement />;
-      case 'device-management': return <BM_DeviceManagement />;
+      case 'device-management': return <BM_DeviceManagement branchId={authUser?.branch_id ?? null} />;
       case 'sales-dashboard':     return <SalesDashboard />;
       case 'items-report':        return <ItemsReport />;
       case 'x-reading':           return <XReading />;

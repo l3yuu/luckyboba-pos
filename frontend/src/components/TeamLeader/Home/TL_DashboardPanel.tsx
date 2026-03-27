@@ -102,11 +102,6 @@ const MiniBar = ({ values, color, formatter }: { values: number[]; color: string
 };
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
-const StatusDot = ({ status }: { status: 'active' | 'idle' | 'break' }) => (
-  <span className={`${status === 'active' ? 'tl-pulse' : status === 'idle' ? 'tl-pulse tl-pulse-amber' : 'tl-pulse tl-pulse-red'}`}
-    style={{ display:'inline-block', flexShrink:0 }} />
-);
-
 const ShiftRing = ({ pct }: { pct: number }) => (
   <div className="tl-shift-ring" style={{ '--pct': `${Math.min(100, Math.max(0, pct))}%` } as React.CSSProperties}>
     <span className="tl-shift-ring-text">{Math.round(pct)}%</span>
@@ -398,7 +393,7 @@ const BMAnalyticsView = ({ branchId }: { branchId: number | null }) => {
                 <CartesianGrid vertical={false} stroke="#f4f4f5"/>
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize:9, fill:'#a1a1aa', fontWeight:700 }}/>
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize:9, fill:'#a1a1aa', fontWeight:600 }}/>
-                <Tooltip formatter={v => [`${v} sold`, 'Qty']} contentStyle={{ borderRadius:'0.625rem', border:'1.5px solid #ede8f5', fontSize:11 }}/>
+                <Tooltip formatter={(value) => [`${value} sold`, 'Quantity']} contentStyle={{ borderRadius:'0.625rem', border:'1.5px solid #ede8f5', fontSize:11 }}/>
                 <Bar dataKey="qty" radius={[4,4,0,0]}>
                   {sellersAllTime.slice(0,6).map((_, i) => (<Cell key={i} fill={i===0 ? '#3b2063' : `hsl(${265-i*15},${70-i*8}%,${60+i*5}%)`}/>))}
                 </Bar>
@@ -646,34 +641,8 @@ const TL_DashboardPanel = ({ branchId }: { branchId: number | null }) => {
           </div>
         </div>
 
-        {/* ── ROW 3: CASHIERS + TOP SELLERS + STOCK ── */}
-        <div style={{ display:'grid', gridTemplateColumns:'1.2fr 1fr 1fr', gap:12, marginBottom:16 }}>
-          <div className="tl-card p-5">
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-              <h3 style={{ fontSize:'0.88rem', fontWeight:800, color:'#0f0a1a', margin:0 }}>Staff on Floor</h3>
-              <span className="tl-badge tl-badge-blue"><Eye size={9} /> {activeCnt} active</span>
-            </div>
-            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-              {cashiers.map(c => (
-                <div key={c.id} style={{ display:'flex', alignItems:'center', gap:10 }}>
-                  <StatusDot status={c.status} />
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'baseline' }}>
-                      <p style={{ fontSize:'0.78rem', fontWeight:700, color:'#0f0a1a', margin:0, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', maxWidth:'60%' }}>{c.name}</p>
-                      <span style={{ fontSize:'0.65rem', fontWeight:700, color:'#7c3aed', flexShrink:0 }}>{c.orders} orders</span>
-                    </div>
-                    <div style={{ display:'flex', alignItems:'center', gap:6, marginTop:3 }}>
-                      <div className="tl-progress-bar" style={{ flex:1 }}>
-                        <div className="tl-progress-fill" style={{ width:`${(c.orders / Math.max(...cashiers.map(x => x.orders), 1)) * 100}%`, background: c.status === 'active' ? '#7c3aed' : c.status === 'idle' ? '#f59e0b' : '#ef4444' }} />
-                      </div>
-                      <span className="tl-label" style={{ flexShrink:0, fontSize:'0.5rem', color: c.status === 'active' ? '#16a34a' : c.status === 'idle' ? '#d97706' : '#dc2626' }}>{c.status}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
+        {/* ── ROW 3: TOP SELLERS + STOCK ── */}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12, marginBottom:16 }}>
           <div className="tl-card p-5">
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
               <h3 style={{ fontSize:'0.88rem', fontWeight:800, color:'#0f0a1a', margin:0 }}>Top Items</h3>

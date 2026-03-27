@@ -818,11 +818,9 @@ const XReading = () => {
               border: none !important; 
               border-radius: 0 !important; 
               overflow: visible !important;
-              page-break-after: auto !important;
             }
             .receipt-area * { overflow: visible !important; }
             .receipt-area > div > div {
-              page-break-inside: avoid !important;
               break-inside: avoid !important;
             }
             .flex-between { display: flex !important; justify-content: space-between !important; width: 100% !important; align-items: flex-end !important; }

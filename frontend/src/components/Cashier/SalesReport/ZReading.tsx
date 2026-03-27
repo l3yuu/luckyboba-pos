@@ -717,7 +717,7 @@ console.log('zData categories:', (zRes.data as Record<string, unknown>).categori
         <Divider />
         <Row label="TOTAL CASH"     value={phCurrency.format(actualCash)} />
         <Row label="TOTAL NON-CASH" value={phCurrency.format(actualNonCash)} />
-        <Row label="TOTAL PAYMENTS" value={phCurrency.format(gross)} />
+        <Row label="TOTAL PAYMENTS" value={phCurrency.format(netSales)} />
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
         <Row label="Transaction Count" value={txCount} />
@@ -821,13 +821,11 @@ console.log('zData categories:', (zRes.data as Record<string, unknown>).categori
               border: none !important; 
               border-radius: 0 !important; 
               overflow: visible !important;
-              page-break-after: auto !important;
             }
             .receipt-area * {
               overflow: visible !important;
             }
             .receipt-area > div > div {
-              page-break-inside: avoid !important;
               break-inside: avoid !important;
             }
             .flex-between { display: flex !important; justify-content: space-between !important; width: 100% !important; align-items: flex-end !important; }

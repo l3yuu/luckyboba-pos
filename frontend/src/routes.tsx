@@ -5,12 +5,14 @@ import SalesOrder              from './pages/SalesOrder';
 import SuperAdminDashboard     from './pages/SuperAdminDashboard';
 import BranchManagerDashboard  from './pages/BranchManagerDashboard';
 import TeamLeaderDashboard     from './pages/TeamLeaderDashboard';
-import ITDashboard             from './pages/ITDashboard';       // ← added
+import ITDashboard             from './pages/ITDashboard';
 import Calendar                from './pages/Calendar';
 import { ProtectedRoute }      from './components/ProtectedRoute';
 import { PublicRoute }         from './components/PublicRoute';
 import { ErrorFallback }       from './components/ErrorFallback';
-import PosDeviceManager from        './pages/PosDeviceManager';
+import PosDeviceManager        from './pages/PosDeviceManager';
+import OnlineOrdersPage        from './components/Cashier/SalesOrder/OnlineOrdersPage'; // ← NEW
+
 
 
 export const router = createBrowserRouter([
@@ -80,8 +82,6 @@ export const router = createBrowserRouter([
   },
 
   // ── IT Admin only ────────────────────────────────────────────────────────
-  // Access: overview, branches (read-only), users, menu management, audit, settings
-  // Blocked: sales reports, analytics, inventory, expenses, promotions
   {
     element:      <ProtectedRoute allowedRoles={['it_admin']} />,
     errorElement: <ErrorFallback />,
@@ -101,8 +101,9 @@ export const router = createBrowserRouter([
     children: [
       {
         children: [
-          { path: '/cashier',     element: <Dashboard /> },
-          { path: '/cashier/pos', element: <SalesOrder /> },
+          { path: '/cashier',                element: <Dashboard /> },
+          { path: '/cashier/pos',            element: <SalesOrder /> },
+          { path: '/cashier/online-orders',  element: <OnlineOrdersPage /> }, // ← NEW
         ],
       },
     ],

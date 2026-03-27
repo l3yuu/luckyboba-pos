@@ -24,7 +24,7 @@ import MenuItemsTab    from "../components/NewSuperAdmin/Sidebar/MenuManagement/
 import CategoriesTab   from "../components/NewSuperAdmin/Sidebar/MenuManagement/CategoriesTab";
 import SubCategoriesTab from "../components/NewSuperAdmin/Sidebar/MenuManagement/SubCategoriesTab";
 
-import InventoryOverview from "../components/NewSuperAdmin/Sidebar/Inventory/InventoryOverview";
+import InventoryOverview from "../components/NewSuperAdmin/Sidebar/Inventory/InventoryOverview";  
 import RawMaterialsTab from "../components/NewSuperAdmin/Sidebar/Inventory/RawMaterialsTab";
 import UsageReportTab from "../components/NewSuperAdmin/Sidebar/Inventory/UsageReportTab";
 import RecipesTab     from "../components/NewSuperAdmin/Sidebar/Inventory/RecipesTab";

@@ -5,7 +5,8 @@ import {
   UtensilsCrossed, Layers, List, Package,
   TrendingUp, FileText, ClipboardList, Receipt, Repeat2,
   Truck, ScanLine, Hash, ShoppingCart, ArrowLeftRight,
-  DollarSign, BookOpen, FlaskConical, Wallet, X, ChevronDown, Monitor
+  DollarSign, BookOpen, FlaskConical, Wallet, X, ChevronDown, Monitor,
+  CreditCard,
 } from "lucide-react";
 
 // ── Tab IDs ───────────────────────────────────────────────────────────────────
@@ -18,6 +19,8 @@ export type TabId =
   | "recipes" | "supplier" | "item_checker"
   | "item_serials" | "purchase_order" | "stock_transfer"
   | "expenses"
+  | "card_approvals"
+  | "card_users"
   | "promotions" | "audit" | "settings";
 
 export interface SuperAdminSidebarProps {
@@ -42,7 +45,6 @@ const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
   .sa-sb-root, .sa-sb-root * { font-family: 'DM Sans', sans-serif !important; box-sizing: border-box; }
 
-  /* Desktop nav tab */
   .sa-tab {
     border-radius: 0.4rem; border: none; cursor: pointer;
     background: transparent; transition: background 0.12s, color 0.12s;
@@ -54,7 +56,6 @@ const STYLES = `
     width: 2.5px; background: #3b2063; border-radius: 0 2px 2px 0;
   }
 
-  /* Desktop: accordion */
   .sa-accordion {
     display: grid; grid-template-rows: 0fr; opacity: 0;
     transition: grid-template-rows 0.32s cubic-bezier(0.4,0,0.2,1), opacity 0.22s ease;
@@ -62,17 +63,14 @@ const STYLES = `
   .sa-accordion.open { grid-template-rows: 1fr; opacity: 1; }
   .sa-accordion-inner { overflow: hidden; }
 
-  /* Desktop: chevron */
   .sa-chevron { color: #a1a1aa; flex-shrink: 0; transition: transform 0.32s cubic-bezier(0.4,0,0.2,1); }
   .sa-chevron.open { transform: rotate(180deg); }
 
-  /* ── Overlay animations ── */
   @keyframes sa-overlay-in  { from { opacity: 0; } to { opacity: 1; } }
   @keyframes sa-overlay-out { from { opacity: 1; } to { opacity: 0; } }
   .sa-overlay-enter { animation: sa-overlay-in  0.2s ease forwards; }
   .sa-overlay-exit  { animation: sa-overlay-out 0.25s ease forwards; }
 
-  /* ── Mobile: panel slide ── */
   @keyframes sa-panel-in  { from { transform: translateX(-100%); } to { transform: translateX(0); } }
   @keyframes sa-panel-out { from { transform: translateX(0); }      to { transform: translateX(-100%); } }
   .sa-panel-enter { animation: sa-panel-in  0.3s cubic-bezier(0.22,1,0.36,1) forwards; }
@@ -81,14 +79,12 @@ const STYLES = `
   .sa-scroll { overflow-y: auto; -ms-overflow-style: none; scrollbar-width: none; }
   .sa-scroll::-webkit-scrollbar { display: none; }
 
-  /* ── Mobile: section label ── */
   .sa-sec {
     padding: 16px 4px 5px;
     font-size: 0.58rem; font-weight: 700; letter-spacing: 0.18em;
     text-transform: uppercase; color: #c4c4c8;
   }
 
-  /* ── Mobile: nav item ── */
   .sa-item {
     display: flex; align-items: center; gap: 14px;
     width: 100%; padding: 13px 14px; border: none;
@@ -105,7 +101,6 @@ const STYLES = `
     width: 3px; background: #3b2063; border-radius: 0 3px 3px 0;
   }
 
-  /* ── Mobile: icon box ── */
   .sa-item-icon {
     flex-shrink: 0; width: 38px; height: 38px; border-radius: 0.6rem;
     background: #f4f4f5; display: flex; align-items: center; justify-content: center;
@@ -114,7 +109,6 @@ const STYLES = `
   .sa-item.active .sa-item-icon { background: #ddd5ff; }
   .sa-item:hover  .sa-item-icon { background: #ede8ff; }
 
-  /* ── Mobile: group button ── */
   .sa-group-btn {
     display: flex; align-items: center; gap: 14px;
     width: 100%; padding: 13px 14px; border: none;
@@ -131,11 +125,9 @@ const STYLES = `
   }
   .sa-group-btn:hover .sa-item-icon { background: #ede8ff; }
 
-  /* ── Mobile: chevron ── */
   .sa-m-chevron { color: #a1a1aa; flex-shrink: 0; transition: transform 0.32s cubic-bezier(0.4,0,0.2,1); }
   .sa-m-chevron.open { transform: rotate(180deg); }
 
-  /* ── Mobile: accordion ── */
   .sa-m-accordion {
     display: grid; grid-template-rows: 0fr; opacity: 0;
     transition: grid-template-rows 0.32s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease;
@@ -143,7 +135,6 @@ const STYLES = `
   .sa-m-accordion.open { grid-template-rows: 1fr; opacity: 1; }
   .sa-m-accordion-inner { overflow: hidden; }
 
-  /* ── Mobile: sub item ── */
   .sa-sub {
     display: flex; align-items: center; gap: 8px;
     width: 100%; padding: 10px 14px 10px 64px; border: none;
@@ -167,7 +158,6 @@ const STYLES = `
   }
   .sa-sub.active::after, .sa-sub:hover::after { background: #3b2063; }
 
-  /* ── Mobile: logout button ── */
   .sa-logout {
     display: flex; align-items: center; gap: 14px;
     width: 100%; padding: 13px 14px; border: none;
@@ -187,13 +177,14 @@ const STYLES = `
 `;
 
 // ── Nav data ──────────────────────────────────────────────────────────────────
-const NAV_ITEMS:       { id: TabId; label: string; icon: React.ReactNode }[] = [
-  { id: "overview",  label: "Overview",          icon: <LayoutGrid size={14} /> },
-  { id: "branches",  label: "Branch Management", icon: <GitBranch  size={14} /> },
-  { id: "users",     label: "User Management",   icon: <Users      size={14} /> },
-  { id: "devices", label: "Device Management", icon: <Monitor size={14} /> },
+const NAV_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
+  { id: "overview", label: "Overview",          icon: <LayoutGrid size={14} /> },
+  { id: "branches", label: "Branch Management", icon: <GitBranch  size={14} /> },
+  { id: "users",    label: "User Management",   icon: <Users      size={14} /> },
+  { id: "devices",  label: "Device Management", icon: <Monitor    size={14} /> },
 ];
-const REPORTS_ITEMS:   { id: TabId; label: string; icon: React.ReactNode }[] = [
+
+const REPORTS_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "sales_report",         label: "Sales Report",         icon: <Receipt       size={13} /> },
   { id: "analytics",            label: "Analytics & Sales",    icon: <TrendingUp    size={13} /> },
   { id: "items_report",         label: "Items Report",         icon: <ClipboardList size={13} /> },
@@ -201,11 +192,13 @@ const REPORTS_ITEMS:   { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "x_reading",            label: "X Reading",            icon: <Repeat2       size={13} /> },
   { id: "z_reading",            label: "Z Reading",            icon: <FileText      size={13} /> },
 ];
-const MENU_ITEMS:      { id: TabId; label: string; icon: React.ReactNode }[] = [
+
+const MENU_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "menu_items",    label: "Menu List",      icon: <BookOpen size={13} /> },
   { id: "categories",    label: "Categories",     icon: <Layers   size={13} /> },
   { id: "subcategories", label: "Sub-Categories", icon: <List     size={13} /> },
 ];
+
 const INVENTORY_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "inv_overview",   label: "Overview",       icon: <Package        size={13} /> },
   { id: "raw_materials",  label: "Raw Materials",  icon: <FlaskConical   size={13} /> },
@@ -217,10 +210,17 @@ const INVENTORY_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "purchase_order", label: "Purchase Order", icon: <ShoppingCart   size={13} /> },
   { id: "stock_transfer", label: "Stock Transfer", icon: <ArrowLeftRight size={13} /> },
 ];
-const EXPENSES_ITEMS:  { id: TabId; label: string; icon: React.ReactNode }[] = [
+
+const EXPENSES_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "expenses", label: "Expenses", icon: <Wallet size={13} /> },
 ];
-const SYSTEM_ITEMS:    { id: TabId; label: string; icon: React.ReactNode }[] = [
+
+const APP_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
+  { id: "card_approvals", label: "Card Approvals", icon: <CreditCard size={14} /> },
+  { id: "card_users",     label: "Card Members",   icon: <Users      size={14} /> },
+];
+
+const SYSTEM_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "promotions", label: "Promotions & Discounts", icon: <Tag         size={14} /> },
   { id: "audit",      label: "Audit Logs",             icon: <ShieldCheck size={14} /> },
 ];
@@ -326,7 +326,7 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
   const [showLogoutModal,    setShowLogoutModal]    = useState(false);
   const [internalLoggingOut, setInternalLoggingOut] = useState(false);
   const [authUser,           setAuthUser]           = useState<AuthUser | null>(null);
-  const [isClosing,          setIsClosing]           = useState(false);
+  const [isClosing,          setIsClosing]          = useState(false);
 
   // Desktop accordion state
   const [reportsExp,   setReportsExp]   = useState(false);
@@ -455,6 +455,15 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
             activeTab={active} isGroupActive={EXPENSES_IDS.includes(active)}
             expanded={expensesOpen} onToggle={() => setExpensesExp(v => !v)} onNavigate={go} />
 
+          <p className="px-2 pt-4 pb-1 text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">App</p>
+          {APP_ITEMS.map(t => (
+            <button key={t.id} onClick={() => go(t.id)}
+              className={`sa-tab flex items-center gap-2 w-full px-2.5 py-1.5 text-[0.8rem] font-medium mb-0.5 text-left relative ${active === t.id ? "active" : "text-zinc-500"}`}>
+              <span className={`shrink-0 ${active === t.id ? "text-[#3b2063]" : "text-zinc-400"}`}>{t.icon}</span>
+              {t.label}
+            </button>
+          ))}
+
           <p className="px-2 pt-4 pb-1 text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">System</p>
           {SYSTEM_ITEMS.map(t => (
             <button key={t.id} onClick={() => go(t.id)}
@@ -568,6 +577,14 @@ const SuperAdminSidebar: React.FC<SuperAdminSidebarProps> = ({
               <MobileGroup label="Expenses" icon={<DollarSign size={18} />}
                 items={EXPENSES_ITEMS} activeTab={active} isGroupActive={EXPENSES_IDS.includes(active)}
                 expanded={mExpensesOpen} onToggle={() => setMExpensesExp(v => !v)} onNavigate={go} />
+
+              <div className="sa-sec">App</div>
+              {APP_ITEMS.map(t => (
+                <button key={t.id} onClick={() => go(t.id)} className={`sa-item ${active === t.id ? "active" : ""}`}>
+                  <span className="sa-item-icon" style={{ color: active === t.id ? "#3b2063" : "#71717a" }}>{t.icon}</span>
+                  {t.label}
+                </button>
+              ))}
 
               <div className="sa-sec">System</div>
               {SYSTEM_ITEMS.map(t => (

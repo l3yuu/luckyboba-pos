@@ -116,12 +116,13 @@ const Sidebar: React.FC<SidebarProps> = ({
   }, []);
 
   const posMenuItems: MenuItem[] = [
-    { id: 'cash-in', label: 'Cash In' },
-    { id: 'cash-drop', label: 'Cash Drop' },
-    { id: 'menu', label: 'Menu' },
-    { id: 'search-receipts', label: 'Search Receipts' },
-    { id: 'cash-count', label: 'Cash Count EOD' },
-  ];
+  { id: 'cash-in',         label: 'Cash In' },
+  { id: 'cash-drop',       label: 'Cash Drop' },
+  { id: 'menu',            label: 'Menu' },
+  { id: 'online-orders',   label: 'Online Orders' },  
+  { id: 'search-receipts', label: 'Search Receipts' },
+  { id: 'cash-count',      label: 'Cash Count EOD' },
+];
 const salesReportItems: MenuItem[] = [
   { id: 'sales-dashboard', label: 'Dashboard' },
   { id: 'items-report', label: 'Items Report' },
@@ -367,10 +368,14 @@ const salesReportItems: MenuItem[] = [
                                 }
                               } else if (item.id === 'z-reading' && !isEodLockedRef.current) {
                                 setShowZReadingBlockedModal(true);
-                              } else {
-                                setCurrentTab(item.id);
-                                if (window.innerWidth < 768) setSidebarOpen(false);
-                              }
+                              } else if (item.id === 'online-orders') {
+                              setCurrentTab('online-orders');
+                              navigate('/cashier/online-orders');          // 👈 navigates to full page
+                              if (window.innerWidth < 768) setSidebarOpen(false);
+                            } else {
+                              setCurrentTab(item.id);
+                              if (window.innerWidth < 768) setSidebarOpen(false);
+                            }
                             }}
                             className={`sb-sub ${locked ? 'opacity-40 cursor-not-allowed' : ''} ${currentTab === item.id ? 'active' : ''}`}
                           >

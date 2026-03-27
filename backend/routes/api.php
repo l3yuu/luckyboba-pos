@@ -12,9 +12,12 @@ use App\Http\Controllers\Api\PosDeviceController;
 use App\Http\Controllers\Api\RawMaterialController;
 use App\Http\Controllers\Api\SugarLevelController;
 use App\Http\Controllers\Api\RecipeController;
+// ✅ ADDED: CardController import
+use App\Http\Controllers\Api\CardController;
 use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\CacheController;
 use App\Http\Controllers\CategoryDrinkController;
+use App\Http\Controllers\OnlineOrderController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -24,12 +27,18 @@ use Illuminate\Support\Facades\Route;
 Route::post('/login',  [AuthController::class, 'login'])->middleware('throttle:5,2');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 
+
 // ── DEVICE CHECK — public, no auth, called before login ──────────────────────
 Route::post('/devices/check', [PosDeviceController::class, 'check']);
 // ─────────────────────────────────────────────────────────────────────────────
 
 Route::post('/purchase-card',             [CardPurchaseController::class, 'purchase']);
 Route::get('/check-card-status/{userId}', [CardPurchaseController::class, 'checkStatus']);
+
+// ✅ ADDED PUBLIC MOBILE ROUTES HERE
+Route::get('/cards', [CardController::class, 'index']);
+Route::get('/payment-settings', [SettingsController::class, 'index']);
+Route::get('/add-ons', [AddOnController::class, 'index']);
 
 // ── PUBLIC MENU ───────────────────────────────────────────────────────────────
 Route::get('/public-menu', function () {
@@ -79,6 +88,12 @@ Route::post('/register', function (Request $request) {
 
 // ── Authenticated routes ─────────────────────────────────────────────────────
 Route::middleware(['auth:sanctum', 'active'])->group(function () {
+    
+    Route::post('/online-orders', [OnlineOrderController::class, 'store']);
+    Route::get('/my-orders',      [OnlineOrderController::class, 'myOrders']);
+
+     Route::post('/sales', [SalesController::class, 'store']);
+    Route::get('/sales/{id}', [SalesController::class, 'show']);
 
     Route::get('/user', function (Request $request) {
         $user = $request->user();
@@ -91,11 +106,49 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         ]);
     });
 
+    // ── USER PROFILE UPDATES (Mobile App) ─────────────────────────────────────
+    Route::put('/user/name', function (Request $request) {
+        $request->validate(['name' => 'required|string|max:255']);
+        $user = $request->user();
+        $user->name = $request->name;
+        $user->save();
+        return response()->json(['message' => 'Name updated successfully', 'user' => $user]);
+    });
+
+    Route::post('/user/avatar', function (Request $request) {
+        $request->validate([
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:5120', // Max 5MB
+        ]);
+
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('avatars', 'public');
+            
+            // Note: If you add an 'avatar' column to your users table later, 
+            // you can uncomment the next two lines to save it permanently!
+            // $user = $request->user();
+            // $user->avatar = $path;
+            // $user->save();
+
+            return response()->json([
+                'message' => 'Avatar uploaded successfully!',
+                'path' => url('storage/' . $path)
+            ]);
+        }
+
+        return response()->json(['message' => 'No image file provided.'], 400);
+    });
+    // ─────────────────────────────────────────────────────────────────────────
+
     // ── NO ROLE RESTRICTION ───────────────────────────────────────────────────
     Route::post('/auth/verify-manager-pin', [UserController::class, 'verifyManagerPin']);
 
     // ── CASHIER + BRANCH MANAGER + SUPERADMIN ────────────────────────────────
     Route::middleware(['role:superadmin,branch_manager,cashier,team_leader'])->group(function () {
+
+        // --- MOVED ONLINE ORDERS ROUTES HERE ---
+        Route::get('/online-orders', [OnlineOrderController::class, 'index']);
+        Route::patch('/online-orders/{id}/status', [OnlineOrderController::class, 'updateStatus']);
+        // ---------------------------------------
 
         Route::get('/dashboard/stats', [DashboardController::class, 'index']);
         Route::get('/app-init',        [DashboardController::class, 'init']);
@@ -137,7 +190,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/menu-item-options',       [MenuItemOptionController::class, 'index']);
         Route::get('/menu-item-options/bulk',  [MenuItemOptionController::class, 'bulk']);
         Route::put('/menu-item-options/{id}',  [MenuItemOptionController::class, 'update']);
-        Route::get('/add-ons',     [AddOnController::class, 'index']);
         Route::get('/bundles',     [BundleController::class, 'index']);
         Route::get('/category-drinks', [CategoryDrinkController::class, 'index']);
         Route::apiResource('categories',     CategoryController::class);
@@ -213,6 +265,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::get('/branches',  [BranchController::class, 'index']);
             Route::post('/branches', [BranchController::class, 'store']);
         // ──────────────────────────────────────────────────────────────────────
+
+        Route::get('/users', [UserController::class, 'index']); 
     });
 
     // ── BRANCH MANAGER + SUPERADMIN ──────────────────────────────────────────
@@ -266,7 +320,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/item-checker/{barcode}', [ItemCheckerController::class, 'lookup']);
 
         Route::prefix('users')->group(function () {
-            Route::get('/',                     [UserController::class, 'index']);
             Route::post('/',                    [UserController::class, 'store']);
             Route::get('/stats',                [UserController::class, 'stats']);
             Route::get('/{id}',                 [UserController::class, 'show']);
@@ -292,12 +345,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/recipes/by-menu-item/{menuItemId}', [RecipeController::class, 'byMenuItem']);
         Route::patch('/recipes/{recipe}/toggle',         [RecipeController::class, 'toggle']);
         Route::apiResource('recipes', RecipeController::class)->except(['index', 'show']);
-
-        Route::prefix('pos-devices')->group(function () {
-            Route::get    ('/',               [PosDeviceController::class, 'index']);
-            Route::patch  ('/{id}/assign',    [PosDeviceController::class, 'assignUser']);
-            Route::delete ('/{id}/unassign',  [PosDeviceController::class, 'unassignUser']);
-        });
     });
 
     // ── SUPERADMIN ONLY ──────────────────────────────────────────────────────
@@ -348,13 +395,35 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::delete ('/{id}',          [SugarLevelController::class, 'destroy']);
             Route::patch  ('/reorder',       [SugarLevelController::class, 'reorder']);
         });
+        
+
+        // ── ADD HERE ─────────────────────────────────────────────────────────────
+        Route::prefix('add-ons')->group(function () {
+            Route::post  ('/',        [AddOnController::class, 'store']);
+            Route::put   ('/{addOn}', [AddOnController::class, 'update']);
+            Route::delete('/{addOn}', [AddOnController::class, 'destroy']);
+        });
 
         // ── POS DEVICE MANAGEMENT ─────────────────────────────────────────────
-        Route::prefix('pos-devices')->group(function () {
-            Route::post  ('/',                [PosDeviceController::class, 'register']);
-            Route::patch ('/{id}/toggle',     [PosDeviceController::class, 'toggleStatus']);
-            Route::delete('/{id}',            [PosDeviceController::class, 'destroy']);
-        });
         // ─────────────────────────────────────────────────────────────────────
+
+        Route::prefix('admin/cards')->group(function () {
+    Route::get('/pending',              [CardController::class, 'getPendingApprovals']);
+    Route::post('/{id}/approve',        [CardController::class, 'approveCard']);
+    Route::post('/{id}/reject',         [CardController::class, 'rejectCard']);
+    Route::get('/users',                [CardController::class, 'getCardUsers']);
+    Route::post('/users/{userId}/log-usage', [CardController::class, 'logUsage']);
+});
+
+    });
+
+        // ── POS DEVICES — superadmin, branch_manager, team_leader ────────────────
+    Route::middleware(['role:superadmin,branch_manager,team_leader'])->prefix('pos-devices')->group(function () {
+        Route::get    ('/',               [PosDeviceController::class, 'index']);
+        Route::post   ('/',               [PosDeviceController::class, 'register']);
+        Route::patch  ('/{id}/assign',    [PosDeviceController::class, 'assignUser']);
+        Route::delete ('/{id}/unassign',  [PosDeviceController::class, 'unassignUser']);
+        Route::patch  ('/{id}/toggle',    [PosDeviceController::class, 'toggleStatus']);
+        Route::delete ('/{id}',           [PosDeviceController::class, 'destroy']);
     });
 });

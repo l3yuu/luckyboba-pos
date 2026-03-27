@@ -37,121 +37,128 @@ class ReceiptController extends Controller
     // ─────────────────────────────────────────────────────────────
     // SEARCH RECEIPTS
     // ─────────────────────────────────────────────────────────────
-    public function search(Request $request)
-    {
-        $user  = $request->user();
-        $query = strtolower($request->input('query', ''));
-        $date  = $request->input('date');
+   public function search(Request $request)
+{
+    $user  = $request->user();
+    $query = strtolower($request->input('query', ''));
+    $date  = $request->input('date');
 
-        $dbQuery = Receipt::query()
-            ->leftJoin('sales', 'receipts.sale_id', '=', 'sales.id')
-            // ✅ Join branches to pull BIR fields
-            ->leftJoin('branches', 'sales.branch_id', '=', 'branches.id')
-            ->select([
-                'receipts.sale_id',
-                'receipts.si_number',
-                'receipts.cashier_name',
-                'receipts.terminal',
-                'receipts.items_count',
-                'receipts.created_at',
+    $dbQuery = Sale::query()
+        ->leftJoin('receipts', 'sales.id', '=', 'receipts.sale_id')
+        ->leftJoin('branches', 'sales.branch_id', '=', 'branches.id')
+        ->select([
+            'sales.id as sale_id',
+            'sales.invoice_number as si_number',
+            'sales.total_amount',
+            'sales.payment_method',
+            'sales.cash_tendered',
+            'sales.reference_number',
+            'sales.status',
+            'sales.customer_name',
+            'sales.created_at',
 
-                'sales.total_amount',
-                'sales.payment_method',
-                'sales.cash_tendered',
-                'sales.reference_number',
-                'sales.charge_type',
-                'sales.status',
-                'sales.cancellation_reason',
-                'sales.customer_name',
+            'receipts.cashier_name',
+            'receipts.terminal',
+            'receipts.items_count',
 
-                // ✅ BIR fields from branch
-                'branches.brand',
-                'branches.company_name',
-                'branches.store_address',
-                'branches.vat_reg_tin',
-                'branches.min_number',
-                'branches.serial_number',
-                'branches.vat_type',
-                'branches.ownership_type',
-            ])
-            ->selectRaw("
-                EXISTS(
-                    SELECT 1 FROM sale_items si
-                    JOIN menu_items mi ON si.menu_item_id = mi.id
-                    JOIN categories c ON mi.category_id = c.id
-                    WHERE si.sale_id = sales.id
-                    AND c.type = 'drink'
-                ) as has_stickers
-            ");
+            'branches.brand',
+            'branches.company_name',
+            'branches.store_address',
+            'branches.vat_reg_tin',
+            'branches.min_number',
+            'branches.serial_number',
+            'branches.vat_type',
+            'branches.ownership_type',
+        ])
+        ->selectRaw("
+            EXISTS(
+                SELECT 1 FROM sale_items si
+                JOIN menu_items mi ON si.menu_item_id = mi.id
+                JOIN categories c ON mi.category_id = c.id
+                WHERE si.sale_id = sales.id
+                AND c.type = 'drink'
+            ) as has_stickers
+        ");
 
-        // Branch restriction
-        if ($user->role !== 'superadmin' && $user->branch_id) {
-            $dbQuery->where('receipts.branch_id', $user->branch_id);
-        }
-
-        // Date filter
-        if ($date) {
-            $dbQuery->whereDate('receipts.created_at', $date);
-        }
-
-        // Search filter
-        if ($query) {
-            $dbQuery->where(function ($q) use ($query) {
-                $q->whereRaw('LOWER(receipts.si_number) LIKE ?', ["%{$query}%"])
-                  ->orWhereRaw('LOWER(receipts.cashier_name) LIKE ?', ["%{$query}%"])
-                  ->orWhereRaw('LOWER(receipts.terminal) LIKE ?', ["%{$query}%"]);
-            });
-        }
-
-        $results = $dbQuery
-            ->latest('receipts.created_at')
-            ->limit(50)
-            ->get()
-            // ✅ Append VAT computation per row
-            ->map(fn($row) => $this->appendVatFields($row));
-
-        $completed = $results->where('status', '!=', 'cancelled');
-        $voided    = $results->where('status', 'cancelled');
-
-        return response()->json([
-            'results' => $results->values(),
-            'stats'   => [
-                'gross'  => round($completed->sum('total_amount'), 2),
-                'voided' => round($voided->sum('total_amount'), 2),
-                'net'    => round(
-                    $completed->sum('total_amount') - $voided->sum('total_amount'),
-                    2
-                ),
-            ],
-        ]);
+    // Branch restriction — include APP- orders for all branches
+    if ($user->role !== 'superadmin' && $user->branch_id) {
+        $dbQuery->where(function ($q) use ($user) {
+            $q->where('sales.branch_id', $user->branch_id)
+              ->orWhere('sales.invoice_number', 'like', 'APP-%');
+        });
     }
+
+    // Date filter
+    if ($date) {
+        $dbQuery->whereDate('sales.created_at', $date);
+    }
+
+    // Search filter
+    if ($query) {
+    $dbQuery->where(function ($q) use ($query) {
+        $q->whereRaw('LOWER(sales.invoice_number) LIKE ?', ["%{$query}%"])
+          ->orWhereRaw('LOWER(receipts.cashier_name) LIKE ?', ["%{$query}%"])
+          ->orWhereRaw('LOWER(sales.customer_name) LIKE ?', ["%{$query}%"]);
+    });
+}
+
+    $results = $dbQuery
+        ->latest('sales.created_at')
+        ->limit(50)
+        ->get()
+        ->map(fn($row) => $this->appendVatFields($row));
+
+    $completed = $results->where('status', '!=', 'cancelled');
+    $voided    = $results->where('status', 'cancelled');
+
+    return response()->json([
+        'results' => $results->values(),
+        'stats'   => [
+            'gross'  => round($completed->sum('total_amount'), 2),
+            'voided' => round($voided->sum('total_amount'), 2),
+            'net'    => round(
+                $completed->sum('total_amount') - $voided->sum('total_amount'),
+                2
+            ),
+        ],
+    ]);
+}
 
     // ─────────────────────────────────────────────────────────────
     // STEP 1: CREATE VOID REQUEST
     // ─────────────────────────────────────────────────────────────
-    public function voidRequest(Request $request, $id)
-    {
-        $sale = Sale::findOrFail($id);
+public function voidRequest(Request $request, $id)
+{
+    try {
+        $sale = \App\Models\Sale::findOrFail($id);
 
-        if (strtolower($sale->status) === 'cancelled') {
-            return response()->json(['message' => 'Already voided.'], 422);
+        if (in_array($sale->status, ['cancelled', 'voided'])) {
+            return response()->json(['message' => 'Sale is already voided.'], 422);
         }
 
-        $user = $request->user();
+        \DB::transaction(function () use ($sale, $request) {
+            $sale->update([
+                'status'              => 'cancelled',
+                'cancellation_reason' => $request->input('reason'),
+                'cancelled_at'        => now(),
+            ]);
 
-        $voidRequest = VoidRequest::create([
-            'sale_id'    => $sale->id,
-            'cashier_id' => $user->id,
-            'branch_id'  => $user->branch_id,
-            'reason'     => $request->input('reason', 'Voided by manager'),
-            'status'     => 'pending',
-        ]);
+            foreach ($sale->items as $item) {
+                if ($item->menu_item_id) {
+                    \DB::table('menu_items')
+                        ->where('id', $item->menu_item_id)
+                        ->increment('quantity', $item->quantity);
+                }
+            }
+        });
 
-        return response()->json([
-            'message'         => 'Void request created.',
-            'void_request_id' => $voidRequest->id,
-        ]);
+        return response()->json(['message' => 'Sale voided successfully.']);
+
+    } catch (\Exception $e) {
+        \Log::error('voidRequest Error: ' . $e->getMessage());
+        return response()->json(['message' => 'Failed to void sale.'], 500);
     }
+}
 
     // ─────────────────────────────────────────────────────────────
     // STEP 2: APPROVE VOID

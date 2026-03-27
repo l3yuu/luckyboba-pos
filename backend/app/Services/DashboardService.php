@@ -27,16 +27,28 @@ class DashboardService
 
         $saleQuery = Sale::whereBetween('created_at', [$startOfDay, $endOfDay])
             ->where('status', 'completed');
+
         if ($branchId) {
-            $saleQuery->where('branch_id', $branchId);
+            $saleQuery->where(function ($q) use ($branchId) {
+                $q->where('branch_id', $branchId)
+                ->orWhere('invoice_number', 'like', 'APP-%');
+                
+            });
         }
+
         $saleStats = $saleQuery->selectRaw("SUM(total_amount) as total_sales, COUNT(*) as total_orders")->first();
 
+
         $voidedQuery = Sale::whereBetween('created_at', [$startOfDay, $endOfDay])
-            ->where('status', 'cancelled');
-        if ($branchId) {
-            $voidedQuery->where('branch_id', $branchId);
-        }
+                ->where('status', 'cancelled');
+
+            if ($branchId) {
+                $voidedQuery->where(function ($q) use ($branchId) {
+                    $q->where('branch_id', $branchId)
+                    ->orWhere('invoice_number', 'like', 'APP-%');
+                });
+            }
+
         $voidedSales = $voidedQuery->sum('total_amount');
 
         return [
@@ -59,9 +71,12 @@ class DashboardService
                 ->where('sales.status', '!=', 'cancelled')
                 ->whereBetween('sales.created_at', [$start, $end]);  // ← more reliable
 
-            if ($branchId) {
-                $query->where('sales.branch_id', $branchId);
-            }
+           if ($branchId) {
+            $query->where(function ($q) use ($branchId) {
+                $q->where('sales.branch_id', $branchId)
+                ->orWhere('sales.invoice_number', 'like', 'APP-%');
+            });
+        }
 
             return $query->select('sale_items.product_name', DB::raw('SUM(sale_items.quantity) as total_qty'))
                 ->groupBy('sale_items.product_name')
@@ -74,29 +89,33 @@ class DashboardService
     }
 
     private function getTopSellerAllTime(?int $branchId = null)
-    {
-        $cacheKey = $branchId ? "top_seller_all_time_branch_{$branchId}" : 'top_seller_all_time';
+{
+    $cacheKey = $branchId ? "top_seller_all_time_branch_{$branchId}" : 'top_seller_all_time';
 
-        return Cache::remember($cacheKey, 3600, function () use ($branchId) {
-            try {
-                $query = DB::table('sale_items')
-                    ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
-                    ->where('sales.status', 'completed');
+    return Cache::remember($cacheKey, 3600, function () use ($branchId) {
+        try {
+            $query = DB::table('sale_items')
+                ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+                ->where('sales.status', 'completed');
 
-                if ($branchId) {
-                    $query->where('sales.branch_id', $branchId);
-                }
-
-                return $query->select('sale_items.product_name', DB::raw('SUM(sale_items.quantity) as total_qty'))
-                    ->groupBy('sale_items.product_name')
-                    ->orderByDesc('total_qty')
-                    ->limit(5)
-                    ->get();
-            } catch (\Exception $e) {
-                return collect([]);
+            if ($branchId) {
+                $query->where(function ($q) use ($branchId) {
+                    $q->where('sales.branch_id', $branchId)
+                      ->orWhere('sales.invoice_number', 'like', 'APP-%');
+                });
             }
-        });
-    }
+
+            return $query->select('sale_items.product_name', DB::raw('SUM(sale_items.quantity) as total_qty'))
+                ->groupBy('sale_items.product_name')
+                ->orderByDesc('total_qty')
+                ->limit(5)
+                ->get();
+
+        } catch (\Exception $e) {
+            return collect([]);
+        }
+    });
+}
 
     public function clearTodayCache(?int $branchId = null)
     {

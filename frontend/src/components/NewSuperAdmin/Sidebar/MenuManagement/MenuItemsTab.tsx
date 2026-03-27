@@ -619,6 +619,58 @@ const SugarLevelToggle: React.FC<{
   );
 };
 
+// ── Food Add-Ons Toggle ───────────────────────────────────────────────────────
+
+const FoodAddOnsToggle: React.FC<{
+  allAddOns:  AddOnItem[];
+  selected:   number[];
+  onChange:   (ids: number[]) => void;
+}> = ({ allAddOns, selected, onChange }) => {
+  const foodAddOns = allAddOns.filter(a => a.category === "food" && a.is_available);
+
+  const toggle = (id: number) => {
+    onChange(selected.includes(id)
+      ? selected.filter(s => s !== id)
+      : [...selected, id]
+    );
+  };
+
+  if (foodAddOns.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">Food Add-Ons</p>
+      <div className="flex flex-wrap gap-1.5">
+        {foodAddOns.map(addon => {
+          const isOn = selected.includes(addon.id);
+          return (
+            <button
+              key={addon.id}
+              type="button"
+              onClick={() => toggle(addon.id)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                isOn
+                  ? "bg-amber-100 border-amber-300 text-amber-700"
+                  : "bg-white border-zinc-200 text-zinc-400"
+              }`}
+            >
+              <span>🍴</span>
+              <span>{addon.name}</span>
+              <span className={`text-[9px] font-bold ${isOn ? "text-amber-500" : "text-zinc-300"}`}>
+                ₱{Number(addon.price).toFixed(2)}
+              </span>
+              {isOn
+                ? <ToggleRight size={16} className="text-amber-500" />
+                : <ToggleLeft  size={16} className="text-zinc-300" />}
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-[9px] text-amber-500">Selected add-ons will appear as choices when this item is ordered.</p>
+    </div>
+  );
+};
+
 // ── Searchable Select ─────────────────────────────────────────────────────────
 
 interface SearchableSelectOption {
@@ -769,11 +821,12 @@ interface MenuItemFormProps {
   categories:    Category[];
   subcategories: SubCategory[];
   sugarLevels:   SugarLevel[]; 
+  allAddOns:     AddOnItem[];   // ← add this
   onClose:       () => void;
   onSaved:       (item: MenuItem) => void;
 }
 
-const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories, subcategories, sugarLevels, onClose, onSaved }) => {
+const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories, subcategories, sugarLevels, allAddOns, onClose, onSaved }) => {
   const isEdit = !!item;
 
   const [form, setForm] = useState({
@@ -805,6 +858,7 @@ const mmFoodOptions = useMemo(() =>
   const [mmBundleItems, setMmBundleItems] = useState<{ name: string; quantity: number; size: string }[] | null>(null);
   const [mmBundleLoading, setMmBundleLoading] = useState(false);
   const [selectedSugarLevelIds, setSelectedSugarLevelIds] = useState<number[]>([]);
+  const [selectedFoodAddOnIds, setSelectedFoodAddOnIds] = useState<number[]>([]);
 
 // Pre-load Mix & Match bundle components when editing
 
@@ -822,6 +876,19 @@ const mmFoodOptions = useMemo(() =>
           pearl: rows.some(r => r.option_type === "pearl"),
           ice:   rows.some(r => r.option_type === "ice"),
         });
+      })
+      .catch(() => {});
+  }, [isEdit, item]);
+
+  useEffect(() => {
+    if (!isEdit || !item) return;
+    const isFoodItem = ["food", "wings", "waffle"].includes(item.category_type ?? "");
+    if (!isFoodItem) return;
+    fetch(`/api/menu-item-addons?menu_item_id=${item.id}`, { headers: authHeaders() })
+      .then(r => r.json())
+      .then(data => {
+        const rows: { addon_id: number }[] = data.data ?? [];
+        setSelectedFoodAddOnIds(rows.map(r => r.addon_id));
       })
       .catch(() => {});
   }, [isEdit, item]);
@@ -1058,6 +1125,17 @@ const validate = () => {
           onSaved(savedItem);
           return;
         }
+      }
+
+      // Save food add-ons if applicable
+      const isFoodItem = ["food", "wings", "waffle"].includes(
+        categories.find(c => String(c.id) === form.category_id)?.category_type ?? ""
+      );
+      if (isFoodItem) {
+        await fetch(`/api/menu-item-addons/${savedItem.id}`, {
+          method: "PUT", headers: authHeaders(),
+          body: JSON.stringify({ addon_ids: selectedFoodAddOnIds }),
+        }).catch(() => {});
       }
 
       onSaved(savedItem);
@@ -1391,6 +1469,15 @@ const validate = () => {
         </>
       )}
 
+      {/* Food Add-Ons — only for food/wings/waffle category */}
+      {["food", "wings", "waffle"].includes(selectedCategory?.category_type ?? "") && (
+        <FoodAddOnsToggle
+          allAddOns={allAddOns}
+          selected={selectedFoodAddOnIds}
+          onChange={setSelectedFoodAddOnIds}
+        />
+      )}
+
       <div className="flex items-center justify-between p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
         <div>
           <p className="text-xs font-bold text-zinc-700">Available on POS</p>
@@ -1450,6 +1537,390 @@ const DeleteModal: React.FC<{ item: MenuItem; onClose: () => void; onDeleted: (i
   );
 };
 
+// ── Add-On Builder Modal ──────────────────────────────────────────────────────
+
+interface AddOnItem {
+  id:           number;
+  name:         string;
+  price:        number;
+  grab_price:   number;
+  panda_price:  number;
+  barcode:      string | null;  // ← add
+  category:     string;
+  is_available: boolean;
+}
+
+interface AddOnBuilderModalProps {
+  onClose: () => void;
+}
+
+// ── Delete Add-On Confirmation Modal ─────────────────────────────────────────
+interface DeleteAddOnModalProps {
+  addon:     AddOnItem;
+  onClose:   () => void;
+  onDeleted: (id: number) => void;
+}
+
+const DeleteAddOnModal: React.FC<DeleteAddOnModalProps> = ({ addon, onClose, onDeleted }) => {
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState("");
+
+  const handleDelete = async () => {
+    setLoading(true);
+    try {
+      const res  = await fetch(`/api/add-ons/${addon.id}`, { method: "DELETE", headers: authHeaders() });
+      const data = await res.json();
+      if (!res.ok) { setError(data.message ?? "Failed to delete."); return; }
+      onDeleted(addon.id);
+      onClose();
+    } catch { setError("Network error."); }
+    finally { setLoading(false); }
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-10000 flex items-center justify-center p-6"
+      style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", backgroundColor: "rgba(0,0,0,0.45)" }}>
+      <div className="absolute inset-0" onClick={onClose} />
+      <div className="relative bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] shadow-2xl">
+        <div className="flex flex-col items-center text-center px-6 pt-8 pb-5">
+          <div className="w-14 h-14 bg-red-50 border border-red-200 rounded-full flex items-center justify-center mb-4">
+            <Trash2 size={22} className="text-red-500" />
+          </div>
+          <p className="text-base font-bold text-[#1a0f2e]">Delete Add-On?</p>
+          <p className="text-xs text-zinc-500 mt-1 leading-relaxed">
+            Permanently delete <span className="font-bold text-zinc-700">{addon.name}</span>.
+          </p>
+          <div className="flex items-center gap-1.5 mt-1.5">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-violet-50 text-violet-700 border border-violet-200">
+              {addon.category}
+            </span>
+            <span className="text-[10px] font-bold text-zinc-500">
+              ₱{Number(addon.price).toFixed(2)} base price
+            </span>
+          </div>
+          <p className="mt-3 px-3 py-2 w-full bg-amber-50 border border-amber-200 rounded-lg text-[10px] text-amber-700 font-medium leading-relaxed">
+            This cannot be undone. Any cashier sessions using this add-on may be affected.
+          </p>
+          {error && (
+            <div className="mt-2 p-2.5 w-full bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">
+              {error}
+            </div>
+          )}
+        </div>
+        <div className="flex gap-2 px-6 pb-6">
+          <Btn variant="secondary" className="flex-1 justify-center" onClick={onClose} disabled={loading}>Cancel</Btn>
+          <Btn variant="danger"    className="flex-1 justify-center" onClick={handleDelete} disabled={loading}>
+            {loading
+              ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Deleting...</span>
+              : <><Trash2 size={13} /> Delete Add-On</>}
+          </Btn>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+const AddOnBuilderModal: React.FC<AddOnBuilderModalProps> = ({ onClose }) => {
+  const [addOns,   setAddOns]   = useState<AddOnItem[]>([]);
+  const [loading,  setLoading]  = useState(true);
+  const [saving,   setSaving]   = useState(false);
+  const [deleting] = useState<number | null>(null);
+  const [error,    setError]    = useState("");
+  const [filterTab, setFilterTab] = useState<"all" | "drink" | "food" | "waffle" | "other">("all");
+
+  // Form state for new / editing
+  const blank = () => ({ name: "", price: "", grab_price: "0", panda_price: "0", category: "drink", barcode: "", is_available: true });
+  const [form,       setForm]       = useState(blank());
+  const [editingId,  setEditingId]  = useState<number | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [deleteTarget, setDeleteTarget] = useState<AddOnItem | null>(null);
+
+  // Fetch all add-ons (including unavailable so admin can manage them)
+  const fetchAddOns = async () => {
+    setLoading(true); setError("");
+    try {
+      const res  = await fetch("/api/add-ons?all=1", { headers: authHeaders() });
+      const data = await res.json();
+      setAddOns(Array.isArray(data) ? data : (data.data ?? []));
+    } catch { setError("Failed to load add-ons."); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { fetchAddOns(); }, []);
+
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!form.name.trim())                                       e.name  = "Name is required.";
+    if (!form.price || isNaN(Number(form.price)) || Number(form.price) < 0) e.price = "Valid price required.";
+    if (!form.category.trim())                                   e.category = "Category is required.";
+    return e;
+  };
+
+  const handleSave = async () => {
+    const e = validate();
+    if (Object.keys(e).length) { setFormErrors(e); return; }
+    setSaving(true); setError("");
+    try {
+      const payload = {
+        name:        form.name.trim(),
+        price:       Number(form.price),
+        grab_price:  Number(form.grab_price)  || 0,
+        panda_price: Number(form.panda_price) || 0,
+        barcode:      form.barcode.trim() || null,
+        category:    form.category.trim(),
+        is_available: form.is_available,
+      };
+      const url    = editingId ? `/api/add-ons/${editingId}` : "/api/add-ons";
+      const method = editingId ? "PUT" : "POST";
+      const res    = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(payload) });
+      const data   = await res.json();
+      if (!res.ok) { setError(data.message ?? "Failed to save."); return; }
+      await fetchAddOns();
+      setForm(blank());
+      setEditingId(null);
+      setFormErrors({});
+    } catch { setError("Network error."); }
+    finally { setSaving(false); }
+  };
+
+  const handleEdit = (addon: AddOnItem) => {
+    setEditingId(addon.id);
+    setForm({
+      name:         addon.name,
+      price:        String(addon.price),
+      grab_price:   String(addon.grab_price),
+      panda_price:  String(addon.panda_price),
+      barcode:      addon.barcode ?? "",   // ← add
+      category:     addon.category,
+      is_available: addon.is_available,
+    });
+    setFormErrors({});
+  };
+
+
+  const cancelEdit = () => { setEditingId(null); setForm(blank()); setFormErrors({}); };
+
+  const fi = (key: keyof typeof form) => ({
+    value: String(form[key]),
+    onChange: (ev: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      setForm(p => ({ ...p, [key]: ev.target.value }));
+      setFormErrors(p => { const n = { ...p }; delete n[key]; return n; });
+    },
+  });
+
+  return (
+    <ModalShell
+      onClose={onClose}
+      icon={<Plus size={15} className="text-violet-600" />}
+      title="Add-On Builder"
+      sub="Manage cashier add-on options"
+      maxWidth="max-w-2xl"
+      footer={
+        <Btn variant="secondary" onClick={onClose}>Close</Btn>
+      }
+    >
+      {error && (
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <AlertCircle size={14} className="text-red-500 shrink-0" />
+          <p className="text-xs text-red-600 font-medium">{error}</p>
+        </div>
+      )}
+
+      {/* ── Form ── */}
+      <div className="p-4 bg-violet-50 border border-violet-200 rounded-xl flex flex-col gap-3">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-violet-600">
+          {editingId ? "✏ Editing Add-On" : "＋ New Add-On"}
+        </p>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Name" required error={formErrors.name}>
+            <input {...fi("name")} placeholder="e.g. Extra Pearl" className={inputCls(formErrors.name)} />
+          </Field>
+          <Field label="Category" required error={formErrors.category}>
+            <div className="relative">
+              <select {...fi("category")} className={inputCls(formErrors.category) + " appearance-none pr-8"}>
+                <option value="drink">Drink</option>
+                <option value="waffle">Waffle</option>
+                <option value="food">Food</option>
+                <option value="other">Other</option>
+              </select>
+              <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+            </div>
+          </Field>
+        </div>
+
+        <Field label="Barcode">
+          <div className="relative">
+            <Barcode size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <input {...fi("barcode")} placeholder="e.g. AO-21" className={inputCls() + " pl-9"} />
+          </div>
+        </Field>
+
+        <div className="grid grid-cols-3 gap-3">
+          {/* Base price */}
+          <Field label="Base Price (₱)" required error={formErrors.price}>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm font-medium">₱</span>
+              <input {...fi("price")} type="number" min="0" step="0.01" placeholder="0.00"
+                className={inputCls(formErrors.price) + " pl-7"} />
+            </div>
+          </Field>
+
+          {/* Grab surcharge */}
+          <Field label="Grab Price (₱)">
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green-500 text-xs font-bold">G</span>
+              <input {...fi("grab_price")} type="number" min="0" step="0.01" placeholder="0.00"
+                className={inputCls() + " pl-7"} />
+            </div>
+          </Field>
+
+          {/* Panda surcharge */}
+          <Field label="Panda Price (₱)">
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-pink-500 text-xs font-bold">P</span>
+              <input {...fi("panda_price")} type="number" min="0" step="0.01" placeholder="0.00"
+                className={inputCls() + " pl-7"} />
+            </div>
+          </Field>
+        </div>
+
+        {/* Available toggle */}
+        <div className="flex items-center justify-between p-3 bg-white border border-violet-200 rounded-lg">
+          <div>
+            <p className="text-xs font-bold text-zinc-700">Available at cashier</p>
+            <p className="text-[10px] text-zinc-400">Toggle off to hide from POS</p>
+          </div>
+          <button type="button" onClick={() => setForm(p => ({ ...p, is_available: !p.is_available }))}>
+            {form.is_available
+              ? <ToggleRight size={26} className="text-[#3b2063]" />
+              : <ToggleLeft  size={26} className="text-zinc-300"  />}
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 justify-end">
+          {editingId && (
+            <Btn variant="secondary" onClick={cancelEdit} disabled={saving}>Cancel</Btn>
+          )}
+          <Btn onClick={handleSave} disabled={saving}>
+            {saving
+              ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</span>
+              : editingId ? "Save Changes" : <><Plus size={13} /> Add Add-On</>}
+          </Btn>
+        </div>
+      </div>
+
+      {/* ── List ── */}
+      <div className="flex flex-col gap-1.5">
+<div className="flex items-center justify-between mb-1">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+            All Add-Ons ({addOns.length})
+          </p>
+          <Btn variant="ghost" size="sm" onClick={fetchAddOns} disabled={loading}>
+            <RefreshCw size={11} className={loading ? "animate-spin" : ""} /> Refresh
+          </Btn>
+        </div>
+
+        {/* ── Category tabs ── */}
+        <div className="flex items-center gap-1 p-1 bg-zinc-100 rounded-lg">
+          {(["all", "drink", "food", "waffle", "other"] as const).map(tab => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setFilterTab(tab)}
+              className={`flex-1 px-2 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${
+                filterTab === tab
+                  ? "bg-white text-zinc-700 shadow-sm"
+                  : "text-zinc-400 hover:text-zinc-600"
+              }`}
+            >
+              {tab === "all" ? `All (${addOns.length})` : `${tab} (${addOns.filter(a => a.category === tab).length})`}
+            </button>
+          ))}
+        </div>
+
+        {loading ? (
+          [...Array(4)].map((_, i) => (
+            <div key={i} className="h-12 bg-zinc-100 rounded-lg animate-pulse" />
+          ))
+        ) : addOns.length === 0 ? (
+          <p className="text-xs text-zinc-400 text-center py-6 italic">No add-ons yet. Add one above.</p>
+        ) : (
+          addOns
+            .filter(a => filterTab === "all" || a.category === filterTab)
+            .map(addon => (
+            <div
+              key={addon.id}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all ${
+                editingId === addon.id
+                  ? "bg-violet-50 border-violet-300"
+                  : "bg-white border-zinc-200 hover:border-zinc-300"
+              }`}
+            >
+              {/* Availability dot */}
+              <div className={`w-2 h-2 rounded-full shrink-0 ${addon.is_available ? "bg-emerald-400" : "bg-zinc-300"}`} />
+
+              {/* Name + category */}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-zinc-700 truncate">{addon.name}</p>
+                <p className="text-[10px] text-zinc-400 capitalize">{addon.category}</p>
+              </div>
+
+              {/* Prices */}
+              <div className="flex items-center gap-2 shrink-0 text-[10px] font-bold">
+                <span className="text-zinc-600">₱{Number(addon.price).toFixed(2)}</span>
+                {Number(addon.grab_price) > 0 && (
+                  <span className="text-green-600 bg-green-50 border border-green-200 px-1.5 py-0.5 rounded-full">
+                    G ₱{Number(addon.grab_price).toFixed(2)}
+                  </span>
+                )}
+                {Number(addon.panda_price) > 0 && (
+                  <span className="text-pink-600 bg-pink-50 border border-pink-200 px-1.5 py-0.5 rounded-full">
+                    P ₱{Number(addon.panda_price).toFixed(2)}
+                  </span>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={() => handleEdit(addon)}
+                  className="p-1.5 hover:bg-violet-100 rounded-md text-zinc-400 hover:text-violet-600 transition-colors"
+                  title="Edit"
+                >
+                  <Edit2 size={12} />
+                </button>
+                <button
+                  onClick={() => setDeleteTarget(addon)}
+                  disabled={false}
+                  className="p-1.5 hover:bg-red-50 rounded-md text-zinc-400 hover:text-red-500 transition-colors disabled:opacity-40"
+                  title="Delete"
+                >
+                  {deleting === addon.id
+                    ? <div className="w-3 h-3 border-2 border-zinc-300 border-t-red-400 rounded-full animate-spin" />
+                    : <Trash2 size={12} />}
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    {deleteTarget && (
+        <DeleteAddOnModal
+          addon={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onDeleted={id => {
+            setAddOns(prev => prev.filter(a => a.id !== id));
+            if (editingId === id) { setEditingId(null); setForm(blank()); }
+            setDeleteTarget(null);
+          }}
+        />
+      )}
+    </ModalShell>
+  );
+};
+
 // ── Main Component ────────────────────────────────────────────────────────────
 const MenuItemsTab: React.FC = () => {
   const [items,         setItems]         = useState<MenuItem[]>([]);
@@ -1468,6 +1939,8 @@ const MenuItemsTab: React.FC = () => {
   const [itemOptions, setItemOptions] = useState<Record<number, ItemOptions>>({});
   const [drinkPoolTarget, setDrinkPoolTarget] = useState<Category | null>(null);
   const [sugarLevels, setSugarLevels] = useState<SugarLevel[]>([]);
+  const [addOnBuilderOpen, setAddOnBuilderOpen] = useState(false);
+  const [allAddOns, setAllAddOns] = useState<AddOnItem[]>([]);
 
   // Fetch all item options in bulk when items load
   const fetchAllOptions = useCallback(async (loadedItems: MenuItem[]) => {
@@ -1496,14 +1969,15 @@ const MenuItemsTab: React.FC = () => {
   const fetchAll = useCallback(async () => {
     setLoading(true); setError("");
     try {
-      const [itemsRes, catsRes, subsRes, sugarRes] = await Promise.all([
+      const [itemsRes, catsRes, subsRes, sugarRes, addOnsRes] = await Promise.all([
         fetch("/api/menu-items",     { headers: authHeaders() }),
         fetch("/api/categories",     { headers: authHeaders() }),
         fetch("/api/sub-categories", { headers: authHeaders() }),
         fetch("/api/sugar-levels",   { headers: authHeaders() }),
+        fetch("/api/add-ons?all=1",  { headers: authHeaders() }),
       ]);
-      const [itemsData, catsData, subsData, sugarData] = await Promise.all([
-        itemsRes.json(), catsRes.json(), subsRes.json(), sugarRes.json(),
+      const [itemsData, catsData, subsData, sugarData, addOnsData] = await Promise.all([
+        itemsRes.json(), catsRes.json(), subsRes.json(), sugarRes.json(), addOnsRes.json(),
       ]);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1548,6 +2022,8 @@ const MenuItemsTab: React.FC = () => {
         (Array.isArray(sugarData) ? sugarData : (sugarData.data ?? []))
           .filter((s: SugarLevel) => s.is_active)
       );
+
+      setAllAddOns(Array.isArray(addOnsData) ? addOnsData : (addOnsData.data ?? [])); // ← add here
 
     } catch { setError("Failed to load menu items."); }
     finally { setLoading(false); }
@@ -1645,6 +2121,9 @@ const MenuItemsTab: React.FC = () => {
           )}
           <Btn onClick={() => startTransition(() => setAddOpen(true))} disabled={loading}>
             <Plus size={13} /> Add Item
+          </Btn>
+          <Btn variant="secondary" onClick={() => setAddOnBuilderOpen(true)} disabled={loading}>
+            <Plus size={13} /> Add-Ons
           </Btn>
         </div>
       </div>
@@ -1910,6 +2389,7 @@ const MenuItemsTab: React.FC = () => {
           categories={categories}
           subcategories={subcategories}
           sugarLevels={sugarLevels}   // ← add
+          allAddOns={allAddOns}
           onClose={() => startTransition(() => setAddOpen(false))}
           onSaved={item => { setItems(p => [item, ...p]); setAddOpen(false); }}
         />
@@ -1921,6 +2401,7 @@ const MenuItemsTab: React.FC = () => {
           categories={categories}
           subcategories={subcategories}
           sugarLevels={sugarLevels}   // ← add
+          allAddOns={allAddOns} 
           onClose={() => startTransition(() => setEditTarget(null))}
           onSaved={updated => { setItems(p => p.map(i => i.id === updated.id ? updated : i)); setEditTarget(null); }}
         />
@@ -1936,6 +2417,9 @@ const MenuItemsTab: React.FC = () => {
           allItems={items}
           onClose={() => setDrinkPoolTarget(null)}
         />
+      )}
+      {addOnBuilderOpen && (
+        <AddOnBuilderModal onClose={() => setAddOnBuilderOpen(false)} />
       )}
     </div>
   );

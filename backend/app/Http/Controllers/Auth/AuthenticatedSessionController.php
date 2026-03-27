@@ -34,6 +34,17 @@ public function store(Request $request): JsonResponse
         'user' => $user,
         'token' => $token,
     ]);
+
+    $requestedBranchName = trim($request->input('branch_name')); 
+
+    $branch = \App\Models\Branch::whereRaw('LOWER(name) = ?', [strtolower($requestedBranchName)])->first();
+
+    \Log::info('Branch lookup', [
+        'requested' => $request->input('branch_name'),
+        'cleaned'   => $requestedBranchName, // Let's log the cleaned version too
+        'found'     => $branch?->name,
+        'found_id'  => $branch?->id,
+    ]);
 }
 
     /**

@@ -196,21 +196,28 @@ class SalesController extends Controller
                 }
             }
 
-            // ── 3. Recalculate total from saved items ──────────────────────────
-            $recalculatedTotal = DB::table('sale_items')
-                ->where('sale_id', $sale->id)
-                ->sum('final_price');
+// ── 3. Recalculate total from saved items ──────────────────────────────────
+$recalculatedTotal = DB::table('sale_items')
+    ->where('sale_id', $sale->id)
+    ->sum('final_price');
 
-            $itemDiscountTotal = DB::table('sale_items')
-                ->where('sale_id', $sale->id)
-                ->sum('discount_amount');
+$itemDiscountTotal = DB::table('sale_items')
+    ->where('sale_id', $sale->id)
+    ->sum('discount_amount');
 
-            $discountApplied = (float) $request->input('discount_amount', 0);
-            $finalTotal      = max(0, $recalculatedTotal - $itemDiscountTotal - $discountApplied);
+// ✅ FIX: Use the frontend-computed amtDue (already VAT-adjusted for SC/PWD)
+// The frontend's `total` field = amtDue = vatableBase + vatExemptSales (correct)
+$finalTotal = (float) $request->input('total', 0);
 
-            $sale->update(['total_amount' => $finalTotal]);
+// Fallback: only recompute if total not provided
+if ($finalTotal <= 0) {
+    $discountApplied = (float) $request->input('discount_amount', 0);
+    $finalTotal = max(0, $recalculatedTotal - $itemDiscountTotal - $discountApplied);
+}
 
-            // ── 4. Create Receipt ──────────────────────────────────────────────
+$sale->update(['total_amount' => $finalTotal]);
+
+// ── 4. Create Receipt ──────────────────────────────────────────────────────
 $branch = Branch::find($branchId);
 
 Receipt::create([
@@ -218,12 +225,11 @@ Receipt::create([
     'terminal'      => '01',
     'items_count'   => $totalQty,
     'cashier_name'  => $cashierName,
-    'total_amount'  => $recalculatedTotal,
+    'total_amount'  => $finalTotal,   // ✅ was $recalculatedTotal — now uses corrected total
     'sale_id'       => $sale->id,
     'branch_id'     => $branchId,
-    // ✅ BIR snapshot
     'brand'         => $branch?->brand         ?? 'Lucky Boba Milk Tea',
-    'owner_name'     => $branch?->owner_name     ?? '',
+    'owner_name'    => $branch?->owner_name    ?? '',
     'company_name'  => $branch?->company_name  ?? '',
     'store_address' => $branch?->store_address ?? '',
     'vat_reg_tin'   => $branch?->vat_reg_tin   ?? '',
