@@ -101,106 +101,85 @@ const handleSubmit = async () => {
           </div>
         </div>
       )}
-<style>{`
-        .printable-receipt { display: none; }
-        @media print {
-          @page { size: 80mm auto; margin: 0; }
-          body * { visibility: hidden; }
-          .printable-receipt, .printable-receipt * { visibility: visible; }
-          .printable-receipt {
-            display: block !important;
-            position: fixed; left: 0; top: 0;
-            width: 76mm !important;
-            padding: 3mm 4mm;
-            background: white; color: black;
-            font-family: Arial, Helvetica, sans-serif;
-            font-size: 11px; line-height: 1.6;
-          }
-          .pr-center { text-align: center; }
-          .pr-divider { border: none; border-top: 1px dashed black; margin: 5px 0; display: block; }
-          .pr-title { font-size: 14px; font-weight: bold; text-transform: uppercase; text-align: center; }
-          .pr-store { font-size: 13px; font-weight: bold; text-align: center; text-transform: uppercase; line-height: 1.6; margin: 0; }
-          .pr-meta { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 2px; }
-          .pr-meta td { padding: 2px 0; vertical-align: top; }
-          .pr-meta td:last-child { text-align: right; text-transform: uppercase; }
-          .pr-denom-table { width: 100%; border-collapse: collapse; font-size: 11px; }
-          .pr-denom-table th { text-align: left; border-bottom: 1px solid black; padding: 3px 0; text-transform: uppercase; font-weight: bold; font-size: 11px; }
-          .pr-denom-table th:nth-child(2) { text-align: center; }
-          .pr-denom-table th:nth-child(3) { text-align: right; }
-          .pr-denom-table td { padding: 3px 0; border-bottom: 1px dotted #aaa; vertical-align: middle; font-size: 11px; }
-          .pr-denom-table td:nth-child(2) { text-align: center; }
-          .pr-denom-table td:nth-child(3) { text-align: right; }
-          .pr-total-table { width: 100%; border-collapse: collapse; font-size: 13px; font-weight: bold; }
-          .pr-total-table td { padding: 5px 0; border-top: 1px solid black; border-bottom: 1px solid black; }
-          .pr-total-table td:last-child { text-align: right; }
-          .pr-sig { text-align: center; font-size: 11px; margin-top: 20px; }
+    <style>{`
+      .printable-receipt { display: none; }
+      @media print {
+        @page { size: 80mm auto; margin: 0; }
+        body * { visibility: hidden; }
+        .printable-receipt, .printable-receipt * { visibility: visible; }
+        .printable-receipt {
+          display: block !important;
+          position: absolute !important; left: 0 !important; top: 0 !important;
+          width: 80mm !important; padding: 5mm !important;
+          background: white !important; color: black !important;
+          font-family: 'Courier New', monospace;
         }
-      `}</style>
+        .receipt-divider { border-top: 1px dashed #000 !important; margin: 8px 0; width: 100%; }
+        .flex-between { display: flex !important; justify-content: space-between !important; width: 100%; }
+      }
+      .receipt-divider { border-top: 1px dashed #000; margin: 8px 0; width: 100%; }
+      .flex-between { display: flex; justify-content: space-between; width: 100%; }
+    `}</style>
 
-      {printData && (
-        <div className="printable-receipt">
-          <p className="pr-store">LUCKY BOBA MILKTEA<br />FOOD AND BEVERAGE TRADING</p>
-          <p className="pr-center" style={{ fontSize: '11px', margin: '2px 0' }}>{branchName.toUpperCase()}</p>
-          <hr className="pr-divider" />
-          <p className="pr-title">EOD CASH COUNT</p>
-          <hr className="pr-divider" />
+{printData && (
+  <div className="printable-receipt text-slate-800">
+    <div className="text-center space-y-1">
+      <h1 className="font-black text-[17px] uppercase leading-tight">
+        Lucky Boba Milktea<br />Food and Beverage Trading
+      </h1>
+      <p className="text-[13px] uppercase font-bold">{branchName.toUpperCase()}</p>
+      <div className="receipt-divider" />
+      <h2 className="font-black text-[14px] uppercase tracking-widest">EOD Cash Count</h2>
+    </div>
 
-          <table className="pr-meta">
-            <tbody>
-              <tr><td>Date</td><td>{printData.date}</td></tr>
-              <tr><td>Time</td><td>{printData.time}</td></tr>
-              <tr><td>Cashier</td><td>{localStorage.getItem('lucky_boba_user_name') || 'Staff'}</td></tr>
-              {printData.remarks && <tr><td>Remarks</td><td>{printData.remarks}</td></tr>}
-            </tbody>
-          </table>
-
-          <hr className="pr-divider" />
-          <p style={{ fontWeight: 'bold', fontSize: '12px', textTransform: 'uppercase', margin: '3px 0' }}>Denomination Breakdown</p>
-
-          <table className="pr-denom-table">
-            <thead>
-              <tr>
-                <th style={{ width: '45%' }}>Denom</th>
-                <th style={{ width: '20%' }}>Qty</th>
-                <th style={{ width: '35%' }}>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {denominations.map(denom => {
-                const qtyString = printData.breakdown[denom] || '0';
-                const qty = parseFloat(qtyString);
-                const label = denom === 0.25 ? '₱0.25' : `₱${denom.toLocaleString()}`;
-                return (
-                  <tr key={denom}>
-                    <td>{label}</td>
-                    <td>x{qty || 0}</td>
-                    <td>₱{(qty * denom).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-
-          <table className="pr-total-table" style={{ marginTop: '4px' }}>
-            <tbody>
-              <tr>
-                <td>TOTAL COUNT</td>
-                <td>₱{printData.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div className="pr-sig">
-            <p style={{ textTransform: 'uppercase', margin: '3px 0' }}>
-              {localStorage.getItem('lucky_boba_user_name') || 'Staff'}
-            </p>
-            <p style={{ marginTop: '20px' }}>____________________</p>
-            <p style={{ textTransform: 'uppercase', fontSize: '10px', margin: '2px 0' }}>Prepared By</p>
-            <p style={{ marginTop: '20px' }}>____________________</p>
-            <p style={{ textTransform: 'uppercase', fontSize: '10px', margin: '2px 0' }}>Signed By</p>
-          </div>
-        </div>
+    <div className="text-left text-[13px] space-y-0.5 mt-2 uppercase">
+      <div className="flex-between"><span>Date</span><span>{printData.date}</span></div>
+      <div className="flex-between"><span>Time</span><span>{printData.time}</span></div>
+      <div className="flex-between"><span>Terminal</span><span>POS-01</span></div>
+      <div className="flex-between"><span>Cashier</span><span>{localStorage.getItem('lucky_boba_user_name') || 'Staff'}</span></div>
+      {printData.remarks && (
+        <div className="flex-between"><span>Remarks</span><span>{printData.remarks}</span></div>
       )}
+    </div>
+
+    <div className="mt-2">
+      <div className="receipt-divider" />
+      <p className="text-[15px] font-black uppercase tracking-widest mb-1">Denomination Breakdown</p>
+      {denominations.map(denom => {
+        const qtyString = printData.breakdown[denom] || '0';
+        const qty = parseFloat(qtyString);
+        const label = denom === 0.25 ? '₱0.25' : `₱${denom.toLocaleString()}`;
+        return (
+          <div key={denom} className="flex-between text-[18px]" style={{ lineHeight: '1.7' }}>
+            <span>{label}</span>
+            <span>x{qty || 0}</span>
+            <span className="font-bold">₱{(qty * denom).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+          </div>
+        );
+      })}
+    </div>
+
+    <div className="mt-2">
+      <div className="receipt-divider" />
+      <div className="flex-between" style={{ paddingTop: 4, paddingBottom: 4 }}>
+        <span className="text-[13px] font-black uppercase tracking-widest">Total Count</span>
+        <span className="text-[18px] font-black">₱{printData.total.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+      </div>
+      <div className="receipt-divider" />
+    </div>
+
+    <div className="mt-10 text-center">
+      <p className="text-[12px] font-bold uppercase underline underline-offset-4">
+        {localStorage.getItem('lucky_boba_user_name') || 'Staff'}
+      </p>
+      <p className="text-[11px] uppercase tracking-widest mt-1">Prepared By</p>
+    </div>
+    <div className="mt-6 text-center">
+      <p className="text-[12px] font-bold uppercase">____________________</p>
+      <p className="text-[11px] uppercase tracking-widest mt-1">Signed By</p>
+    </div>
+  </div>
+)}
 
       <div className="flex flex-col h-full w-full bg-[#f4f2fb] relative overflow-hidden">
         <TopNavbar isEodLocked={isEodLocked} />
