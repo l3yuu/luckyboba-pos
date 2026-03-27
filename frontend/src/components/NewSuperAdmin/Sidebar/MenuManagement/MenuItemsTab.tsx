@@ -619,6 +619,58 @@ const SugarLevelToggle: React.FC<{
   );
 };
 
+// ── Food Add-Ons Toggle ───────────────────────────────────────────────────────
+
+const FoodAddOnsToggle: React.FC<{
+  allAddOns:  AddOnItem[];
+  selected:   number[];
+  onChange:   (ids: number[]) => void;
+}> = ({ allAddOns, selected, onChange }) => {
+  const foodAddOns = allAddOns.filter(a => a.category === "food" && a.is_available);
+
+  const toggle = (id: number) => {
+    onChange(selected.includes(id)
+      ? selected.filter(s => s !== id)
+      : [...selected, id]
+    );
+  };
+
+  if (foodAddOns.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-amber-500">Food Add-Ons</p>
+      <div className="flex flex-wrap gap-1.5">
+        {foodAddOns.map(addon => {
+          const isOn = selected.includes(addon.id);
+          return (
+            <button
+              key={addon.id}
+              type="button"
+              onClick={() => toggle(addon.id)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all ${
+                isOn
+                  ? "bg-amber-100 border-amber-300 text-amber-700"
+                  : "bg-white border-zinc-200 text-zinc-400"
+              }`}
+            >
+              <span>🍴</span>
+              <span>{addon.name}</span>
+              <span className={`text-[9px] font-bold ${isOn ? "text-amber-500" : "text-zinc-300"}`}>
+                ₱{Number(addon.price).toFixed(2)}
+              </span>
+              {isOn
+                ? <ToggleRight size={16} className="text-amber-500" />
+                : <ToggleLeft  size={16} className="text-zinc-300" />}
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-[9px] text-amber-500">Selected add-ons will appear as choices when this item is ordered.</p>
+    </div>
+  );
+};
+
 // ── Searchable Select ─────────────────────────────────────────────────────────
 
 interface SearchableSelectOption {
@@ -769,11 +821,12 @@ interface MenuItemFormProps {
   categories:    Category[];
   subcategories: SubCategory[];
   sugarLevels:   SugarLevel[]; 
+  allAddOns:     AddOnItem[];   // ← add this
   onClose:       () => void;
   onSaved:       (item: MenuItem) => void;
 }
 
-const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories, subcategories, sugarLevels, onClose, onSaved }) => {
+const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories, subcategories, sugarLevels, allAddOns, onClose, onSaved }) => {
   const isEdit = !!item;
 
   const [form, setForm] = useState({
@@ -805,6 +858,7 @@ const mmFoodOptions = useMemo(() =>
   const [mmBundleItems, setMmBundleItems] = useState<{ name: string; quantity: number; size: string }[] | null>(null);
   const [mmBundleLoading, setMmBundleLoading] = useState(false);
   const [selectedSugarLevelIds, setSelectedSugarLevelIds] = useState<number[]>([]);
+  const [selectedFoodAddOnIds, setSelectedFoodAddOnIds] = useState<number[]>([]);
 
 // Pre-load Mix & Match bundle components when editing
 
@@ -822,6 +876,19 @@ const mmFoodOptions = useMemo(() =>
           pearl: rows.some(r => r.option_type === "pearl"),
           ice:   rows.some(r => r.option_type === "ice"),
         });
+      })
+      .catch(() => {});
+  }, [isEdit, item]);
+
+  useEffect(() => {
+    if (!isEdit || !item) return;
+    const isFoodItem = ["food", "wings", "waffle"].includes(item.category_type ?? "");
+    if (!isFoodItem) return;
+    fetch(`/api/menu-item-addons?menu_item_id=${item.id}`, { headers: authHeaders() })
+      .then(r => r.json())
+      .then(data => {
+        const rows: { addon_id: number }[] = data.data ?? [];
+        setSelectedFoodAddOnIds(rows.map(r => r.addon_id));
       })
       .catch(() => {});
   }, [isEdit, item]);
@@ -1058,6 +1125,17 @@ const validate = () => {
           onSaved(savedItem);
           return;
         }
+      }
+
+      // Save food add-ons if applicable
+      const isFoodItem = ["food", "wings", "waffle"].includes(
+        categories.find(c => String(c.id) === form.category_id)?.category_type ?? ""
+      );
+      if (isFoodItem) {
+        await fetch(`/api/menu-item-addons/${savedItem.id}`, {
+          method: "PUT", headers: authHeaders(),
+          body: JSON.stringify({ addon_ids: selectedFoodAddOnIds }),
+        }).catch(() => {});
       }
 
       onSaved(savedItem);
@@ -1391,6 +1469,15 @@ const validate = () => {
         </>
       )}
 
+      {/* Food Add-Ons — only for food/wings/waffle category */}
+      {["food", "wings", "waffle"].includes(selectedCategory?.category_type ?? "") && (
+        <FoodAddOnsToggle
+          allAddOns={allAddOns}
+          selected={selectedFoodAddOnIds}
+          onChange={setSelectedFoodAddOnIds}
+        />
+      )}
+
       <div className="flex items-center justify-between p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
         <div>
           <p className="text-xs font-bold text-zinc-700">Available on POS</p>
@@ -1539,6 +1626,7 @@ const AddOnBuilderModal: React.FC<AddOnBuilderModalProps> = ({ onClose }) => {
   const [saving,   setSaving]   = useState(false);
   const [deleting] = useState<number | null>(null);
   const [error,    setError]    = useState("");
+  const [filterTab, setFilterTab] = useState<"all" | "drink" | "food" | "waffle" | "other">("all");
 
   // Form state for new / editing
   const blank = () => ({ name: "", price: "", grab_price: "0", panda_price: "0", category: "drink", is_available: true });
@@ -1715,13 +1803,31 @@ const AddOnBuilderModal: React.FC<AddOnBuilderModalProps> = ({ onClose }) => {
 
       {/* ── List ── */}
       <div className="flex flex-col gap-1.5">
-        <div className="flex items-center justify-between mb-1">
+<div className="flex items-center justify-between mb-1">
           <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
             All Add-Ons ({addOns.length})
           </p>
           <Btn variant="ghost" size="sm" onClick={fetchAddOns} disabled={loading}>
             <RefreshCw size={11} className={loading ? "animate-spin" : ""} /> Refresh
           </Btn>
+        </div>
+
+        {/* ── Category tabs ── */}
+        <div className="flex items-center gap-1 p-1 bg-zinc-100 rounded-lg">
+          {(["all", "drink", "food", "waffle", "other"] as const).map(tab => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setFilterTab(tab)}
+              className={`flex-1 px-2 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${
+                filterTab === tab
+                  ? "bg-white text-zinc-700 shadow-sm"
+                  : "text-zinc-400 hover:text-zinc-600"
+              }`}
+            >
+              {tab === "all" ? `All (${addOns.length})` : `${tab} (${addOns.filter(a => a.category === tab).length})`}
+            </button>
+          ))}
         </div>
 
         {loading ? (
@@ -1731,7 +1837,9 @@ const AddOnBuilderModal: React.FC<AddOnBuilderModalProps> = ({ onClose }) => {
         ) : addOns.length === 0 ? (
           <p className="text-xs text-zinc-400 text-center py-6 italic">No add-ons yet. Add one above.</p>
         ) : (
-          addOns.map(addon => (
+          addOns
+            .filter(a => filterTab === "all" || a.category === filterTab)
+            .map(addon => (
             <div
               key={addon.id}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all ${
@@ -1822,6 +1930,7 @@ const MenuItemsTab: React.FC = () => {
   const [drinkPoolTarget, setDrinkPoolTarget] = useState<Category | null>(null);
   const [sugarLevels, setSugarLevels] = useState<SugarLevel[]>([]);
   const [addOnBuilderOpen, setAddOnBuilderOpen] = useState(false);
+  const [allAddOns, setAllAddOns] = useState<AddOnItem[]>([]);
 
   // Fetch all item options in bulk when items load
   const fetchAllOptions = useCallback(async (loadedItems: MenuItem[]) => {
@@ -1850,14 +1959,15 @@ const MenuItemsTab: React.FC = () => {
   const fetchAll = useCallback(async () => {
     setLoading(true); setError("");
     try {
-      const [itemsRes, catsRes, subsRes, sugarRes] = await Promise.all([
+      const [itemsRes, catsRes, subsRes, sugarRes, addOnsRes] = await Promise.all([
         fetch("/api/menu-items",     { headers: authHeaders() }),
         fetch("/api/categories",     { headers: authHeaders() }),
         fetch("/api/sub-categories", { headers: authHeaders() }),
         fetch("/api/sugar-levels",   { headers: authHeaders() }),
+        fetch("/api/add-ons?all=1",  { headers: authHeaders() }),
       ]);
-      const [itemsData, catsData, subsData, sugarData] = await Promise.all([
-        itemsRes.json(), catsRes.json(), subsRes.json(), sugarRes.json(),
+      const [itemsData, catsData, subsData, sugarData, addOnsData] = await Promise.all([
+        itemsRes.json(), catsRes.json(), subsRes.json(), sugarRes.json(), addOnsRes.json(),
       ]);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1902,6 +2012,8 @@ const MenuItemsTab: React.FC = () => {
         (Array.isArray(sugarData) ? sugarData : (sugarData.data ?? []))
           .filter((s: SugarLevel) => s.is_active)
       );
+
+      setAllAddOns(Array.isArray(addOnsData) ? addOnsData : (addOnsData.data ?? [])); // ← add here
 
     } catch { setError("Failed to load menu items."); }
     finally { setLoading(false); }
@@ -2267,6 +2379,7 @@ const MenuItemsTab: React.FC = () => {
           categories={categories}
           subcategories={subcategories}
           sugarLevels={sugarLevels}   // ← add
+          allAddOns={allAddOns}
           onClose={() => startTransition(() => setAddOpen(false))}
           onSaved={item => { setItems(p => [item, ...p]); setAddOpen(false); }}
         />
@@ -2278,6 +2391,7 @@ const MenuItemsTab: React.FC = () => {
           categories={categories}
           subcategories={subcategories}
           sugarLevels={sugarLevels}   // ← add
+          allAddOns={allAddOns} 
           onClose={() => startTransition(() => setEditTarget(null))}
           onSaved={updated => { setItems(p => p.map(i => i.id === updated.id ? updated : i)); setEditTarget(null); }}
         />
