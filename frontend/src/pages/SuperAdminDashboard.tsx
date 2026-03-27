@@ -8,10 +8,6 @@ import type { TabId }    from "../components/NewSuperAdmin/SuperAdminSidebar";
 import OverviewTab   from "../components/NewSuperAdmin/Sidebar/Navigation/OverviewTab";
 import BranchesTab   from "../components/NewSuperAdmin/Sidebar/Navigation/BranchesTab";
 import UsersTab      from "../components/NewSuperAdmin/Sidebar/Navigation/UsersTab";
-import DeviceManagementTab from "../components/NewSuperAdmin/Sidebar/Navigation/DeviceManagementTab";
-import AuditLogsTab  from "../components/NewSuperAdmin/Sidebar/System/AuditLogsTab";
-import PromotionsTab from "../components/NewSuperAdmin/Sidebar/System/PromotionsTab";
-import SettingsTab   from "../components/NewSuperAdmin/Sidebar/SettingsTab";
 
 import SalesReportTab from "../components/NewSuperAdmin/Sidebar/Reports/SalesReportTab";
 import CrossBranchTab from "../components/NewSuperAdmin/Sidebar/Reports/CrossBranchTab";
@@ -36,6 +32,12 @@ import StockTransferTab from "../components/NewSuperAdmin/Sidebar/Inventory/Stoc
 
 import ExpensesTab from "../components/NewSuperAdmin/Sidebar/ExpensesTab";
 
+// ── System Tabs ──────────────────────────────────────────────────────────────
+import PromotionsTab from "../components/NewSuperAdmin/Sidebar/System/PromotionsTab";
+import AuditLogsTab  from "../components/NewSuperAdmin/Sidebar/System/AuditLogsTab";
+import CardApprovalsTab from "../components/NewSuperAdmin/Sidebar/System/CardApprovalTab";
+import CardUsersTab from "../components/NewSuperAdmin/Sidebar/System/CardUsersTab";
+import SettingsTab   from "../components/NewSuperAdmin/Sidebar/SettingsTab";
 
 
 const GlobalStyles = () => (
@@ -71,7 +73,7 @@ const GlobalStyles = () => (
 );
 
 const SuperAdminDashboard: React.FC = () => {
-  const [active,      setActive]      = useState<TabId>("overview");
+  const [active,       setActive]      = useState<TabId>("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const renderContent = () => {
@@ -81,7 +83,6 @@ const SuperAdminDashboard: React.FC = () => {
       case "overview":  return <OverviewTab />;
       case "branches":  return <BranchesTab />;
       case "users":     return <UsersTab    />;
-      case "devices": return <DeviceManagementTab />;
 
       // ── Reports ───────────────────────────────────────────────────────────
       case "sales_report":         return <SalesReportTab />;
@@ -113,6 +114,8 @@ const SuperAdminDashboard: React.FC = () => {
       // ── System ────────────────────────────────────────────────────────────
       case "promotions": return <PromotionsTab />;
       case "audit":      return <AuditLogsTab  />;
+      case "card_approvals": return <CardApprovalsTab />; 
+      case "card_users":     return <CardUsersTab />;
       case "settings":   return <SettingsTab   />;
     }
   };
@@ -139,4 +142,4 @@ const SuperAdminDashboard: React.FC = () => {
   );
 };
 
-export default SuperAdminDashboard;
+export default SuperAdminDashboard; 

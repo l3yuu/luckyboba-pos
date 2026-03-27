@@ -103,29 +103,34 @@ class AuthController extends Controller
 
     // ── GOOGLE SIGN-IN ────────────────────────────────────────────────────────
     public function googleLogin(Request $request)
-    {
-        $request->validate([
-            'email' => 'required|email',
-            'name'  => 'required|string|max:255',
-        ]);
+{
+    $request->validate([
+        'email' => 'required|email',
+        'name'  => 'required|string|max:255',
+    ]);
 
-        $user = User::firstOrCreate(
-            ['email' => $request->email],
-            [
-                'name'     => $request->name,
-                'password' => Hash::make(Str::random(32)),
-                'role'     => 'customer',
-            ]
-        );
+    $user = User::firstOrCreate(
+        ['email' => $request->email],
+        [
+            'name'     => $request->name,
+            'password' => Hash::make(Str::random(32)),
+            'role'     => 'customer',
+        ]
+    );
 
-        AuditLog::create([
-            'user_id'    => $user->id,
-            'action'     => "User signed in via Google: {$user->name}",
-            'module'     => 'Auth',
-            'details'    => "Email: {$user->email}",
-            'ip_address' => $request->ip(),
-        ]);
+    AuditLog::create([
+        'user_id'    => $user->id,
+        'action'     => "User signed in via Google: {$user->name}",
+        'module'     => 'Auth',
+        'details'    => "Email: {$user->email}",
+        'ip_address' => $request->ip(),
+    ]);
 
-        return response()->json(['user' => $user], 200);
-    }
+    $token = $user->createToken('app')->plainTextToken; // ← add this
+
+    return response()->json([
+        'user'  => $user,
+        'token' => $token,  // ← add this
+    ], 200);
+}
 }

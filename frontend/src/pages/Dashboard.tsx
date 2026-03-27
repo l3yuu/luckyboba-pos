@@ -29,6 +29,9 @@ import PurchaseOrder from '../components/Cashier/Inventory/PurchaseOrder';
 import StockTransfer from '../components/Cashier/Inventory/StockTransfer';
 import Supplier from '../components/Cashier/Inventory/Supplier';
 import Settings from '../components/Cashier/Settings/Settings';
+import { OnlineOrdersPanel } from '../components/Cashier/SalesOrderComponents/OnlineOrdersPanel';
+
+
 
 interface DashboardStatsProps {
   stats: DashboardData | null;
@@ -126,6 +129,18 @@ const fetchStats = useCallback(async (force = false) => {
   if (authLoading || (isInitialLoad && !stats)) return <DashboardSkeleton />;
   if (!user) return null;
 
+  useEffect(() => {
+  const handleOrderCompleted = () => {
+    localStorage.removeItem('dashboard_stats_timestamp');
+    void fetchStats(true);
+  };
+
+  window.addEventListener('online-order-completed', handleOrderCompleted);
+  return () => {
+    window.removeEventListener('online-order-completed', handleOrderCompleted);
+  };
+}, [fetchStats]);
+
   const refreshStats = () => {
     localStorage.removeItem('dashboard_stats_timestamp');
     setRefreshKey(k => k + 1);
@@ -155,6 +170,7 @@ const fetchStats = useCallback(async (force = false) => {
       case 'stock-transfer':      return <StockTransfer />;
       case 'inventory-report':    return <InventoryReport />;
       case 'expense':             return <Expense />;
+      case 'online-orders': return <OnlineOrdersPanel isPage={false} />;
       case 'settings':            return <Settings />;
       default:                    return <DashboardStats stats={stats} isInitialLoad={isInitialLoad} isStale={isStale} loading={loading} isOnline={isOnline} onRefresh={() => fetchStats(true)} />;
     }
