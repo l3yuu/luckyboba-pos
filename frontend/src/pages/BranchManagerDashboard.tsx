@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import BranchManagerSidebar from '../components/BranchManager/BranchManagerSidebar';
 import logo from '../assets/logo.png';
-import UserManagement from '../components/BranchManager/UserManagement';
+import UserManagement from '../components/BranchManager/Home/UserManagement';
+import BM_DeviceManagement from '../components/BranchManager/Home/BM_DeviceManagement';
 import api from '../services/api';
 import {
   TrendingUp, TrendingDown, DollarSign, AlertCircle, Menu,
@@ -35,6 +36,8 @@ import BM_InventoryItemSerials   from '../components/BranchManager/Inventory/BM_
 import BM_InventoryPurchaseOrder from '../components/BranchManager/Inventory/BM_InventoryPurchaseOrder';
 import BM_InventoryStockTransfer from '../components/BranchManager/Inventory/BM_InventoryStockTransfer';
 import BM_InventorySuppliers     from '../components/BranchManager/Inventory/BM_InventorySuppliers';
+
+import BranchManagerAuditLogsTab from '../components/BranchManager/BranchManagerAuditLogsTab';
 
 // ── BranchManager-specific Settings Items ─────────────
 import BM_AddCustomers       from '../components/BranchManager/Settings/BM_AddCustomers';
@@ -208,6 +211,7 @@ const branchLabel = authUser?.name ?? null; // 'Main Branch' comes from here
     switch (activeTab) {
       case 'dashboard':           return <DashboardPanel branchId={authUser?.branch_id ?? null} />;
       case 'users':               return <UserManagement />;
+      case 'device-management': return <BM_DeviceManagement />;
       case 'sales-dashboard':     return <SalesDashboard />;
       case 'items-report':        return <ItemsReport />;
       case 'x-reading':           return <XReading />;
@@ -229,6 +233,8 @@ const branchLabel = authUser?.name ?? null; // 'Main Branch' comes from here
       case 'stock-transfer':      return <BM_InventoryStockTransfer />;
       case 'inventory-report':    return <BM_InventoryReports />;
       
+      case 'audit-logs':          return <BranchManagerAuditLogsTab />;
+
       // ── Settings ──
       case 'settings':            return <BM_Settings />;
       case 'add-customers':       return <BM_AddCustomers onBack={() => setActiveTab('settings')} />;

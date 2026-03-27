@@ -1,5 +1,5 @@
 // components/NewSuperAdmin/Tabs/MenuManagement/MenuItemsTab.tsx
-import { useState, useEffect, useCallback, useMemo, startTransition } from "react";
+import { useState, useEffect, useCallback, useMemo, startTransition, useRef } from "react";
 import {
   Search, Plus, Edit2, Trash2, RefreshCw,
   AlertCircle, X, Package, ChevronDown,
@@ -210,14 +210,39 @@ interface ComboBuilderProps {
   errors:        Record<string, string>;
 }
 
-const ComboBuilder: React.FC<ComboBuilderProps> = ({
-  allItems, foodItemId, drinkItemId, onFoodChange, onDrinkChange, errors,
-}) => {
 const FOOD_TYPES  = ["food", "wings", "waffle"];
 const DRINK_TYPES = ["drink"];
 
-const foodItems  = allItems.filter(i => FOOD_TYPES.includes(i.category_type));
-const drinkItems = allItems.filter(i => DRINK_TYPES.includes(i.category_type));
+const ComboBuilder: React.FC<ComboBuilderProps> = ({
+  allItems, foodItemId, drinkItemId, onFoodChange, onDrinkChange, errors,
+}) => {
+
+  const foodOptions = useMemo(() =>
+    allItems
+      .filter(i => FOOD_TYPES.includes(i.category_type))
+      .map(i => ({ value: String(i.id), label: `${i.name} — ${i.category} (₱${Number(i.price).toFixed(2)})` })),
+    [allItems]
+  );
+
+  const drinkOptions = useMemo(() => {
+    const drinks = allItems.filter(i => DRINK_TYPES.includes(i.category_type));
+    const nameCounts = drinks.reduce<Record<string, number>>((acc, d) => {
+      acc[d.name] = (acc[d.name] ?? 0) + 1; return acc;
+    }, {});
+    const nameIndex: Record<string, number> = {};
+    return drinks.map(i => {
+      const hasPair = nameCounts[i.name] > 1;
+      let sizeLabel = i.size && i.size !== "none" ? i.size : "";
+      if (!sizeLabel && hasPair) {
+        nameIndex[i.name] = (nameIndex[i.name] ?? 0) + 1;
+        sizeLabel = nameIndex[i.name] === 1 ? "M" : "L";
+      }
+      return {
+        value: String(i.id),
+        label: `${i.name}${sizeLabel ? ` (${sizeLabel})` : ""} — ${i.category} (₱${Number(i.price).toFixed(2)})`,
+      };
+    });
+  }, [allItems]);
 
   return (
     <div className="flex flex-col gap-3 p-4 bg-purple-50 border border-purple-200 rounded-xl">
@@ -234,25 +259,17 @@ const drinkItems = allItems.filter(i => DRINK_TYPES.includes(i.category_type));
         <label className="text-[10px] font-bold uppercase tracking-wider text-purple-600 mb-1.5 flex items-center gap-1.5">
           <Utensils size={10} /> Food Item <span className="text-red-400">*</span>
         </label>
-        <div className="relative">
-          <select
-            value={foodItemId}
-            onChange={e => onFoodChange(e.target.value)}
-            className={`w-full text-sm font-medium text-zinc-700 bg-white border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-purple-400 transition-all appearance-none pr-8 ${errors.food_item_id ? "border-red-300" : "border-purple-200"}`}
-          >
-            <option value="">Select food item...</option>
-            {foodItems.map(i => (
-              <option key={i.id} value={i.id}>
-                {i.name} — {i.category} (₱{Number(i.price).toFixed(2)})
-              </option>
-            ))}
-          </select>
-          <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-        </div>
+        <SearchableSelect
+          options={foodOptions}
+          value={foodItemId}
+          onChange={onFoodChange}
+          placeholder="Search food item..."
+          error={!!errors.food_item_id}
+          accentColor="purple"
+        />
         {errors.food_item_id && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.food_item_id}</p>}
       </div>
 
-      {/* Divider */}
       <div className="flex items-center gap-2">
         <div className="flex-1 h-px bg-purple-200" />
         <span className="text-[10px] font-bold text-purple-400">+</span>
@@ -264,36 +281,14 @@ const drinkItems = allItems.filter(i => DRINK_TYPES.includes(i.category_type));
         <label className="text-[10px] font-bold uppercase tracking-wider text-purple-600 mb-1.5 flex items-center gap-1.5">
           <Coffee size={10} /> Drink Item <span className="text-red-400">*</span>
         </label>
-        <div className="relative">
-          <select
-            value={drinkItemId}
-            onChange={e => onDrinkChange(e.target.value)}
-            className={`w-full text-sm font-medium text-zinc-700 bg-white border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-purple-400 transition-all appearance-none pr-8 ${errors.drink_item_id ? "border-red-300" : "border-purple-200"}`}
-          >
-            <option value="">Select drink item...</option>
-              {(() => {
-                const nameCounts = drinkItems.reduce<Record<string, number>>((acc, d) => {
-                  acc[d.name] = (acc[d.name] ?? 0) + 1;
-                  return acc;
-                }, {});
-                const nameIndex: Record<string, number> = {};
-                return drinkItems.map(i => {
-                  const hasPair = nameCounts[i.name] > 1;
-                  let sizeLabel = i.size && i.size !== 'none' ? i.size : '';
-                  if (!sizeLabel && hasPair) {
-                    nameIndex[i.name] = (nameIndex[i.name] ?? 0) + 1;
-                    sizeLabel = nameIndex[i.name] === 1 ? 'M' : 'L';
-                  }
-                  return (
-                    <option key={i.id} value={i.id}>
-                      {i.name}{sizeLabel ? ` (${sizeLabel})` : ''} — {i.category} (₱{Number(i.price).toFixed(2)})
-                    </option>
-                  );
-                });
-              })()}
-          </select>
-          <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-        </div>
+        <SearchableSelect
+          options={drinkOptions}
+          value={drinkItemId}
+          onChange={onDrinkChange}
+          placeholder="Search drink item..."
+          error={!!errors.drink_item_id}
+          accentColor="purple"
+        />
         {errors.drink_item_id && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.drink_item_id}</p>}
       </div>
 
@@ -316,17 +311,32 @@ interface BundleBuilderProps {
 const BundleBuilder: React.FC<BundleBuilderProps> = ({
   allItems, bundleItemIds, onItemsChange, errors,
 }) => {
-  const DRINK_TYPES = ["drink"];
-  const drinkItems  = allItems
-    .filter(i => DRINK_TYPES.includes(i.category_type))
-    .sort((a, b) => a.name.localeCompare(b.name) || (a.price - b.price));
+  const drinkOptions = useMemo(() => {
+    const drinks = allItems
+      .filter(i => i.category_type === "drink")
+      .sort((a, b) => a.name.localeCompare(b.name) || (a.price - b.price));
+    const nameCounts = drinks.reduce<Record<string, number>>((acc, d) => {
+      acc[d.name] = (acc[d.name] ?? 0) + 1; return acc;
+    }, {});
+    const nameIndex: Record<string, number> = {};
+    return drinks.map(i => {
+      const hasPair = nameCounts[i.name] > 1;
+      let sizeLabel = i.size && i.size !== "none" ? i.size : "";
+      if (!sizeLabel && hasPair) {
+        nameIndex[i.name] = (nameIndex[i.name] ?? 0) + 1;
+        sizeLabel = nameIndex[i.name] === 1 ? "M" : "L";
+      }
+      return {
+        value: String(i.id),
+        label: `${i.name}${sizeLabel ? ` (${sizeLabel})` : ""} — ${i.category} (₱${Number(i.price).toFixed(2)})`,
+      };
+    });
+  }, [allItems]);
 
   const addSlot    = () => onItemsChange([...bundleItemIds, ""]);
   const removeSlot = (idx: number) => onItemsChange(bundleItemIds.filter((_, i) => i !== idx));
   const setSlot    = (idx: number, val: string) => {
-    const next = [...bundleItemIds];
-    next[idx]  = val;
-    onItemsChange(next);
+    const next = [...bundleItemIds]; next[idx] = val; onItemsChange(next);
   };
 
   return (
@@ -339,19 +349,14 @@ const BundleBuilder: React.FC<BundleBuilderProps> = ({
           <p className="text-xs font-bold text-indigo-700 uppercase tracking-wider">Bundle Builder</p>
           <span className="text-[10px] text-indigo-400 font-medium">— pick 2+ drinks</span>
         </div>
-        <button
-          type="button"
-          onClick={addSlot}
-          className="flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-100 hover:bg-indigo-200 px-2 py-1 rounded-md transition-colors"
-        >
+        <button type="button" onClick={addSlot}
+          className="flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-100 hover:bg-indigo-200 px-2 py-1 rounded-md transition-colors">
           <Plus size={10} /> Add Item
         </button>
       </div>
 
       {bundleItemIds.length === 0 && (
-        <p className="text-[10px] text-indigo-400 italic text-center py-2">
-          Click "Add Item" to start building the bundle.
-        </p>
+        <p className="text-[10px] text-indigo-400 italic text-center py-2">Click "Add Item" to start building the bundle.</p>
       )}
 
       {bundleItemIds.map((itemId, idx) => (
@@ -369,47 +374,20 @@ const BundleBuilder: React.FC<BundleBuilderProps> = ({
                 <Coffee size={10} /> Item {idx + 1} <span className="text-red-400">*</span>
               </span>
               {bundleItemIds.length > 2 && (
-                <button
-                  type="button"
-                  onClick={() => removeSlot(idx)}
-                  className="text-[9px] font-bold text-red-400 hover:text-red-600 flex items-center gap-0.5 transition-colors"
-                >
+                <button type="button" onClick={() => removeSlot(idx)}
+                  className="text-[9px] font-bold text-red-400 hover:text-red-600 flex items-center gap-0.5 transition-colors">
                   <X size={9} /> Remove
                 </button>
               )}
             </label>
-            <div className="relative">
-              <select
-                value={itemId}
-                onChange={e => setSlot(idx, e.target.value)}
-                className={`w-full text-sm font-medium text-zinc-700 bg-white border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-indigo-400 transition-all appearance-none pr-8 ${errors[`bundle_item_${idx}`] ? "border-red-300" : "border-indigo-200"}`}
-              >
-                <option value="">Select drink item...</option>
-                {(() => {
-                  // For each drink, figure out if it has a sibling with same name (M/L pair)
-                  const nameCounts = drinkItems.reduce<Record<string, number>>((acc, d) => {
-                    acc[d.name] = (acc[d.name] ?? 0) + 1;
-                    return acc;
-                  }, {});
-                  // Track index per name to assign M/L
-                  const nameIndex: Record<string, number> = {};
-                  return drinkItems.map(i => {
-                    const hasPair = nameCounts[i.name] > 1;
-                    let sizeLabel = i.size && i.size !== 'none' ? i.size : '';
-                    if (!sizeLabel && hasPair) {
-                      nameIndex[i.name] = (nameIndex[i.name] ?? 0) + 1;
-                      sizeLabel = nameIndex[i.name] === 1 ? 'M' : 'L';
-                    }
-                    return (
-                      <option key={i.id} value={i.id}>
-                        {i.name}{sizeLabel ? ` (${sizeLabel})` : ''} — {i.category} (₱{Number(i.price).toFixed(2)})
-                      </option>
-                    );
-                  });
-                })()}
-              </select>
-              <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-            </div>
+            <SearchableSelect
+              options={drinkOptions}
+              value={itemId}
+              onChange={val => setSlot(idx, val)}
+              placeholder={`Search item ${idx + 1}...`}
+              error={!!errors[`bundle_item_${idx}`]}
+              accentColor="indigo"
+            />
             {errors[`bundle_item_${idx}`] && (
               <p className="text-[10px] text-red-500 mt-1 font-medium">{errors[`bundle_item_${idx}`]}</p>
             )}
@@ -641,6 +619,148 @@ const SugarLevelToggle: React.FC<{
   );
 };
 
+// ── Searchable Select ─────────────────────────────────────────────────────────
+
+interface SearchableSelectOption {
+  value: string;
+  label: string;
+}
+
+interface SearchableSelectProps {
+  options:      SearchableSelectOption[];
+  value:        string;
+  onChange:     (val: string) => void;
+  placeholder?: string;
+  error?:       boolean;
+  accentColor?: string; // e.g. "purple" | "indigo" | "rose"
+}
+
+const ACCENT: Record<string, { border: string; ring: string; icon: string; highlight: string }> = {
+  purple: { border: "border-purple-200", ring:  "focus-within:ring-purple-400", icon:  "text-purple-300", highlight: "bg-purple-50 text-purple-700" },
+  indigo: { border: "border-indigo-200", ring:  "focus-within:ring-indigo-400", icon:  "text-indigo-300", highlight: "bg-indigo-50 text-indigo-700" },
+  rose:   { border: "border-rose-200",   ring:  "focus-within:ring-rose-400",   icon:  "text-rose-300",   highlight: "bg-rose-50 text-rose-700"     },
+};
+
+const SearchableSelect: React.FC<SearchableSelectProps> = ({
+  options, value, onChange, placeholder = "Search or select...", error = false, accentColor = "purple",
+}) => {
+  const [query,  setQuery]  = useState("");
+  const [open,   setOpen]   = useState(false);
+  const ref                 = useRef<HTMLDivElement>(null);
+  const inputRef            = useRef<HTMLInputElement>(null);
+  const ac                  = ACCENT[accentColor] ?? ACCENT.purple;
+
+  const selected = options.find(o => o.value === value);
+
+  const filtered = useMemo(() => {
+    const q = query.toLowerCase().trim();
+    if (!q) return options;
+    return options.filter(o => o.label.toLowerCase().includes(q));
+  }, [options, query]);
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+        setQuery("");
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const handleSelect = (val: string) => {
+    onChange(val);
+    setOpen(false);
+    setQuery("");
+  };
+
+  const handleOpen = () => {
+    setOpen(true);
+    setQuery("");
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
+  return (
+    <div ref={ref} className="relative">
+      {/* Trigger */}
+      <button
+        type="button"
+        onClick={open ? () => { setOpen(false); setQuery(""); } : handleOpen}
+        className={`w-full flex items-center gap-2 bg-white border rounded-lg px-3 py-2.5 text-sm transition-all outline-none ring-2 ring-transparent ${ac.ring} ${error ? "border-red-300" : ac.border}`}
+      >
+        <Search size={13} className={`shrink-0 ${selected ? "text-zinc-400" : ac.icon}`} />
+        <span className={`flex-1 text-left truncate ${selected ? "font-medium text-zinc-700" : "text-zinc-400 font-normal"}`}>
+          {selected ? selected.label : placeholder}
+        </span>
+        {selected && (
+          <span
+            role="button"
+            onClick={e => { e.stopPropagation(); handleSelect(""); }}
+            className="text-zinc-300 hover:text-zinc-500 transition-colors"
+          >
+            <X size={12} />
+          </span>
+        )}
+        <ChevronDown
+          size={12}
+          className={`text-zinc-300 shrink-0 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      {/* Dropdown */}
+      {open && (
+        <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-zinc-200 rounded-xl shadow-xl flex flex-col overflow-hidden">
+          {/* Search input inside dropdown */}
+          <div className={`flex items-center gap-2 px-3 py-2 border-b border-zinc-100`}>
+            <Search size={12} className={ac.icon} />
+            <input
+              ref={inputRef}
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Type to filter..."
+              className="flex-1 text-xs text-zinc-600 bg-transparent outline-none placeholder:text-zinc-300"
+            />
+            {query && (
+              <button type="button" onClick={() => setQuery("")}>
+                <X size={11} className="text-zinc-300 hover:text-zinc-500" />
+              </button>
+            )}
+          </div>
+
+          {/* Options list */}
+          <div className="max-h-52 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <p className="text-[11px] text-zinc-400 text-center py-4 italic">No results found.</p>
+            ) : (
+              filtered.map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => handleSelect(opt.value)}
+                  className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors flex items-center gap-2 ${
+                    opt.value === value
+                      ? `${ac.highlight} font-bold`
+                      : "text-zinc-600 hover:bg-zinc-50"
+                  }`}
+                >
+                  {opt.value === value && (
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="shrink-0">
+                      <path d="M2 5L4 7L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  )}
+                  <span className={opt.value === value ? "" : "pl-3.5"}>{opt.label}</span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ── Add / Edit Modal ──────────────────────────────────────────────────────────
 
 interface MenuItemFormProps {
@@ -666,6 +786,13 @@ const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories,
     barcode:        item?.barcode        ?? "",
     is_available:   item?.is_available   ?? true,
   });
+
+const mmFoodOptions = useMemo(() =>
+  allItems
+    .filter(i => ["food", "wings", "waffle"].includes(i.category_type))
+    .map(i => ({ value: String(i.id), label: `${i.name} — ${i.category} (₱${Number(i.price).toFixed(2)})` })),
+  [allItems]
+);
 
   // ✅ Combo-specific state
   const [foodItemId,        setFoodItemId]        = useState("");
@@ -1142,27 +1269,20 @@ const validate = () => {
     </div>
 
     {/* Food picker */}
-    <div>
-      <label className="text-[10px] font-bold uppercase tracking-wider text-rose-600 mb-1.5 flex items-center gap-1.5">
-        <Utensils size={10} /> Food Item <span className="text-red-400">*</span>
-      </label>
-      <div className="relative">
-        <select
-          value={mixMatchFoodId}
-          onChange={e => { setMixMatchFoodId(e.target.value); setErrors(ev => { const n = { ...ev }; delete n.food_item_id; return n; }); }}
-          className={`w-full text-sm font-medium text-zinc-700 bg-white border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-rose-400 transition-all appearance-none pr-8 ${errors.food_item_id ? "border-red-300" : "border-rose-200"}`}
-        >
-          <option value="">Select food item...</option>
-          {allItems.filter(i => ["food", "wings", "waffle"].includes(i.category_type)).map(i => (
-            <option key={i.id} value={i.id}>
-              {i.name} — {i.category} (₱{Number(i.price).toFixed(2)})
-            </option>
-          ))}
-        </select>
-        <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-      </div>
-      {errors.food_item_id && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.food_item_id}</p>}
-    </div>
+<div>
+  <label className="text-[10px] font-bold uppercase tracking-wider text-rose-600 mb-1.5 flex items-center gap-1.5">
+    <Utensils size={10} /> Food Item <span className="text-red-400">*</span>
+  </label>
+  <SearchableSelect
+    options={mmFoodOptions}
+    value={mixMatchFoodId}
+    onChange={val => { setMixMatchFoodId(val); setErrors(ev => { const n = { ...ev }; delete n.food_item_id; return n; }); }}
+    placeholder="Search food item..."
+    error={!!errors.food_item_id}
+    accentColor="rose"
+  />
+  {errors.food_item_id && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.food_item_id}</p>}
+</div>
 
 {/* Drinks auto-inherit notice */}
 <div className="flex items-start gap-2 p-2.5 bg-white border border-rose-200 rounded-lg">
@@ -1330,6 +1450,359 @@ const DeleteModal: React.FC<{ item: MenuItem; onClose: () => void; onDeleted: (i
   );
 };
 
+// ── Add-On Builder Modal ──────────────────────────────────────────────────────
+
+interface AddOnItem {
+  id:         number;
+  name:       string;
+  price:      number;
+  grab_price: number;
+  panda_price: number;
+  category:   string;
+  is_available: boolean;
+}
+
+interface AddOnBuilderModalProps {
+  onClose: () => void;
+}
+
+// ── Delete Add-On Confirmation Modal ─────────────────────────────────────────
+interface DeleteAddOnModalProps {
+  addon:     AddOnItem;
+  onClose:   () => void;
+  onDeleted: (id: number) => void;
+}
+
+const DeleteAddOnModal: React.FC<DeleteAddOnModalProps> = ({ addon, onClose, onDeleted }) => {
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState("");
+
+  const handleDelete = async () => {
+    setLoading(true);
+    try {
+      const res  = await fetch(`/api/add-ons/${addon.id}`, { method: "DELETE", headers: authHeaders() });
+      const data = await res.json();
+      if (!res.ok) { setError(data.message ?? "Failed to delete."); return; }
+      onDeleted(addon.id);
+      onClose();
+    } catch { setError("Network error."); }
+    finally { setLoading(false); }
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-10000 flex items-center justify-center p-6"
+      style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", backgroundColor: "rgba(0,0,0,0.45)" }}>
+      <div className="absolute inset-0" onClick={onClose} />
+      <div className="relative bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] shadow-2xl">
+        <div className="flex flex-col items-center text-center px-6 pt-8 pb-5">
+          <div className="w-14 h-14 bg-red-50 border border-red-200 rounded-full flex items-center justify-center mb-4">
+            <Trash2 size={22} className="text-red-500" />
+          </div>
+          <p className="text-base font-bold text-[#1a0f2e]">Delete Add-On?</p>
+          <p className="text-xs text-zinc-500 mt-1 leading-relaxed">
+            Permanently delete <span className="font-bold text-zinc-700">{addon.name}</span>.
+          </p>
+          <div className="flex items-center gap-1.5 mt-1.5">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-violet-50 text-violet-700 border border-violet-200">
+              {addon.category}
+            </span>
+            <span className="text-[10px] font-bold text-zinc-500">
+              ₱{Number(addon.price).toFixed(2)} base price
+            </span>
+          </div>
+          <p className="mt-3 px-3 py-2 w-full bg-amber-50 border border-amber-200 rounded-lg text-[10px] text-amber-700 font-medium leading-relaxed">
+            This cannot be undone. Any cashier sessions using this add-on may be affected.
+          </p>
+          {error && (
+            <div className="mt-2 p-2.5 w-full bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-medium">
+              {error}
+            </div>
+          )}
+        </div>
+        <div className="flex gap-2 px-6 pb-6">
+          <Btn variant="secondary" className="flex-1 justify-center" onClick={onClose} disabled={loading}>Cancel</Btn>
+          <Btn variant="danger"    className="flex-1 justify-center" onClick={handleDelete} disabled={loading}>
+            {loading
+              ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Deleting...</span>
+              : <><Trash2 size={13} /> Delete Add-On</>}
+          </Btn>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+const AddOnBuilderModal: React.FC<AddOnBuilderModalProps> = ({ onClose }) => {
+  const [addOns,   setAddOns]   = useState<AddOnItem[]>([]);
+  const [loading,  setLoading]  = useState(true);
+  const [saving,   setSaving]   = useState(false);
+  const [deleting] = useState<number | null>(null);
+  const [error,    setError]    = useState("");
+
+  // Form state for new / editing
+  const blank = () => ({ name: "", price: "", grab_price: "0", panda_price: "0", category: "drink", is_available: true });
+  const [form,       setForm]       = useState(blank());
+  const [editingId,  setEditingId]  = useState<number | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+  const [deleteTarget, setDeleteTarget] = useState<AddOnItem | null>(null);
+
+  // Fetch all add-ons (including unavailable so admin can manage them)
+  const fetchAddOns = async () => {
+    setLoading(true); setError("");
+    try {
+      const res  = await fetch("/api/add-ons?all=1", { headers: authHeaders() });
+      const data = await res.json();
+      setAddOns(Array.isArray(data) ? data : (data.data ?? []));
+    } catch { setError("Failed to load add-ons."); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { fetchAddOns(); }, []);
+
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!form.name.trim())                                       e.name  = "Name is required.";
+    if (!form.price || isNaN(Number(form.price)) || Number(form.price) < 0) e.price = "Valid price required.";
+    if (!form.category.trim())                                   e.category = "Category is required.";
+    return e;
+  };
+
+  const handleSave = async () => {
+    const e = validate();
+    if (Object.keys(e).length) { setFormErrors(e); return; }
+    setSaving(true); setError("");
+    try {
+      const payload = {
+        name:        form.name.trim(),
+        price:       Number(form.price),
+        grab_price:  Number(form.grab_price)  || 0,
+        panda_price: Number(form.panda_price) || 0,
+        category:    form.category.trim(),
+        is_available: form.is_available,
+      };
+      const url    = editingId ? `/api/add-ons/${editingId}` : "/api/add-ons";
+      const method = editingId ? "PUT" : "POST";
+      const res    = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(payload) });
+      const data   = await res.json();
+      if (!res.ok) { setError(data.message ?? "Failed to save."); return; }
+      await fetchAddOns();
+      setForm(blank());
+      setEditingId(null);
+      setFormErrors({});
+    } catch { setError("Network error."); }
+    finally { setSaving(false); }
+  };
+
+  const handleEdit = (addon: AddOnItem) => {
+    setEditingId(addon.id);
+    setForm({
+      name:        addon.name,
+      price:       String(addon.price),
+      grab_price:  String(addon.grab_price),
+      panda_price: String(addon.panda_price),
+      category:    addon.category,
+      is_available: addon.is_available,
+    });
+    setFormErrors({});
+  };
+
+
+  const cancelEdit = () => { setEditingId(null); setForm(blank()); setFormErrors({}); };
+
+  const fi = (key: keyof typeof form) => ({
+    value: String(form[key]),
+    onChange: (ev: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+      setForm(p => ({ ...p, [key]: ev.target.value }));
+      setFormErrors(p => { const n = { ...p }; delete n[key]; return n; });
+    },
+  });
+
+  return (
+    <ModalShell
+      onClose={onClose}
+      icon={<Plus size={15} className="text-violet-600" />}
+      title="Add-On Builder"
+      sub="Manage cashier add-on options"
+      maxWidth="max-w-2xl"
+      footer={
+        <Btn variant="secondary" onClick={onClose}>Close</Btn>
+      }
+    >
+      {error && (
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <AlertCircle size={14} className="text-red-500 shrink-0" />
+          <p className="text-xs text-red-600 font-medium">{error}</p>
+        </div>
+      )}
+
+      {/* ── Form ── */}
+      <div className="p-4 bg-violet-50 border border-violet-200 rounded-xl flex flex-col gap-3">
+        <p className="text-[10px] font-bold uppercase tracking-wider text-violet-600">
+          {editingId ? "✏ Editing Add-On" : "＋ New Add-On"}
+        </p>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Name" required error={formErrors.name}>
+            <input {...fi("name")} placeholder="e.g. Extra Pearl" className={inputCls(formErrors.name)} />
+          </Field>
+          <Field label="Category" required error={formErrors.category}>
+            <div className="relative">
+              <select {...fi("category")} className={inputCls(formErrors.category) + " appearance-none pr-8"}>
+                <option value="drink">Drink</option>
+                <option value="waffle">Waffle</option>
+                <option value="food">Food</option>
+                <option value="other">Other</option>
+              </select>
+              <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+            </div>
+          </Field>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3">
+          {/* Base price */}
+          <Field label="Base Price (₱)" required error={formErrors.price}>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 text-sm font-medium">₱</span>
+              <input {...fi("price")} type="number" min="0" step="0.01" placeholder="0.00"
+                className={inputCls(formErrors.price) + " pl-7"} />
+            </div>
+          </Field>
+
+          {/* Grab surcharge */}
+          <Field label="Grab Price (₱)">
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green-500 text-xs font-bold">G</span>
+              <input {...fi("grab_price")} type="number" min="0" step="0.01" placeholder="0.00"
+                className={inputCls() + " pl-7"} />
+            </div>
+          </Field>
+
+          {/* Panda surcharge */}
+          <Field label="Panda Price (₱)">
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-pink-500 text-xs font-bold">P</span>
+              <input {...fi("panda_price")} type="number" min="0" step="0.01" placeholder="0.00"
+                className={inputCls() + " pl-7"} />
+            </div>
+          </Field>
+        </div>
+
+        {/* Available toggle */}
+        <div className="flex items-center justify-between p-3 bg-white border border-violet-200 rounded-lg">
+          <div>
+            <p className="text-xs font-bold text-zinc-700">Available at cashier</p>
+            <p className="text-[10px] text-zinc-400">Toggle off to hide from POS</p>
+          </div>
+          <button type="button" onClick={() => setForm(p => ({ ...p, is_available: !p.is_available }))}>
+            {form.is_available
+              ? <ToggleRight size={26} className="text-[#3b2063]" />
+              : <ToggleLeft  size={26} className="text-zinc-300"  />}
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 justify-end">
+          {editingId && (
+            <Btn variant="secondary" onClick={cancelEdit} disabled={saving}>Cancel</Btn>
+          )}
+          <Btn onClick={handleSave} disabled={saving}>
+            {saving
+              ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</span>
+              : editingId ? "Save Changes" : <><Plus size={13} /> Add Add-On</>}
+          </Btn>
+        </div>
+      </div>
+
+      {/* ── List ── */}
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+            All Add-Ons ({addOns.length})
+          </p>
+          <Btn variant="ghost" size="sm" onClick={fetchAddOns} disabled={loading}>
+            <RefreshCw size={11} className={loading ? "animate-spin" : ""} /> Refresh
+          </Btn>
+        </div>
+
+        {loading ? (
+          [...Array(4)].map((_, i) => (
+            <div key={i} className="h-12 bg-zinc-100 rounded-lg animate-pulse" />
+          ))
+        ) : addOns.length === 0 ? (
+          <p className="text-xs text-zinc-400 text-center py-6 italic">No add-ons yet. Add one above.</p>
+        ) : (
+          addOns.map(addon => (
+            <div
+              key={addon.id}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all ${
+                editingId === addon.id
+                  ? "bg-violet-50 border-violet-300"
+                  : "bg-white border-zinc-200 hover:border-zinc-300"
+              }`}
+            >
+              {/* Availability dot */}
+              <div className={`w-2 h-2 rounded-full shrink-0 ${addon.is_available ? "bg-emerald-400" : "bg-zinc-300"}`} />
+
+              {/* Name + category */}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-zinc-700 truncate">{addon.name}</p>
+                <p className="text-[10px] text-zinc-400 capitalize">{addon.category}</p>
+              </div>
+
+              {/* Prices */}
+              <div className="flex items-center gap-2 shrink-0 text-[10px] font-bold">
+                <span className="text-zinc-600">₱{Number(addon.price).toFixed(2)}</span>
+                {Number(addon.grab_price) > 0 && (
+                  <span className="text-green-600 bg-green-50 border border-green-200 px-1.5 py-0.5 rounded-full">
+                    G ₱{Number(addon.grab_price).toFixed(2)}
+                  </span>
+                )}
+                {Number(addon.panda_price) > 0 && (
+                  <span className="text-pink-600 bg-pink-50 border border-pink-200 px-1.5 py-0.5 rounded-full">
+                    P ₱{Number(addon.panda_price).toFixed(2)}
+                  </span>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={() => handleEdit(addon)}
+                  className="p-1.5 hover:bg-violet-100 rounded-md text-zinc-400 hover:text-violet-600 transition-colors"
+                  title="Edit"
+                >
+                  <Edit2 size={12} />
+                </button>
+                <button
+                  onClick={() => setDeleteTarget(addon)}
+                  disabled={false}
+                  className="p-1.5 hover:bg-red-50 rounded-md text-zinc-400 hover:text-red-500 transition-colors disabled:opacity-40"
+                  title="Delete"
+                >
+                  {deleting === addon.id
+                    ? <div className="w-3 h-3 border-2 border-zinc-300 border-t-red-400 rounded-full animate-spin" />
+                    : <Trash2 size={12} />}
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    {deleteTarget && (
+        <DeleteAddOnModal
+          addon={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+          onDeleted={id => {
+            setAddOns(prev => prev.filter(a => a.id !== id));
+            if (editingId === id) { setEditingId(null); setForm(blank()); }
+            setDeleteTarget(null);
+          }}
+        />
+      )}
+    </ModalShell>
+  );
+};
+
 // ── Main Component ────────────────────────────────────────────────────────────
 const MenuItemsTab: React.FC = () => {
   const [items,         setItems]         = useState<MenuItem[]>([]);
@@ -1348,6 +1821,7 @@ const MenuItemsTab: React.FC = () => {
   const [itemOptions, setItemOptions] = useState<Record<number, ItemOptions>>({});
   const [drinkPoolTarget, setDrinkPoolTarget] = useState<Category | null>(null);
   const [sugarLevels, setSugarLevels] = useState<SugarLevel[]>([]);
+  const [addOnBuilderOpen, setAddOnBuilderOpen] = useState(false);
 
   // Fetch all item options in bulk when items load
   const fetchAllOptions = useCallback(async (loadedItems: MenuItem[]) => {
@@ -1525,6 +1999,9 @@ const MenuItemsTab: React.FC = () => {
           )}
           <Btn onClick={() => startTransition(() => setAddOpen(true))} disabled={loading}>
             <Plus size={13} /> Add Item
+          </Btn>
+          <Btn variant="secondary" onClick={() => setAddOnBuilderOpen(true)} disabled={loading}>
+            <Plus size={13} /> Add-Ons
           </Btn>
         </div>
       </div>
@@ -1816,6 +2293,9 @@ const MenuItemsTab: React.FC = () => {
           allItems={items}
           onClose={() => setDrinkPoolTarget(null)}
         />
+      )}
+      {addOnBuilderOpen && (
+        <AddOnBuilderModal onClose={() => setAddOnBuilderOpen(false)} />
       )}
     </div>
   );

@@ -1,32 +1,30 @@
-"use client"
-
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Search, Plus, Eye, Edit2, Trash2, Lock, UserCheck, XCircle,
+  Search, Eye, Edit2, Trash2, Lock, UserCheck, XCircle,
   Users, X, AlertCircle, RefreshCw, Mail, MapPin, ShieldCheck,
-  Trash, CheckCircle, Laptop, MonitorCheck, MonitorOff, Monitor,
+  Trash, CheckCircle, Laptop, MonitorCheck, MonitorOff, Plus,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import api from '../../services/api';
+import api from '../../../services/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type VariantKey = 'primary' | 'secondary' | 'danger' | 'ghost';
 type SizeKey    = 'sm' | 'md' | 'lg';
 
-interface User {
-  id:             number;
-  name:           string;
-  email:          string;
-  role:           string;
-  branch:         string;
-  branch_id:      number | null;
-  status:         string;
-  lastLogin?:     string;
-  login_count:    number;
-  created_at:     string;
-  has_pin:        boolean;
-  device_id?:     number | null;
+interface Staff {
+  id:            number;
+  name:          string;
+  email:         string;
+  role:          string;
+  branch:        string;
+  branch_id:     number | null;
+  status:        string;
+  lastLogin?:    string;
+  login_count:   number;
+  created_at:    string;
+  has_pin:       boolean;
+  device_id?:    number | null;
   device_number?: string | null;
 }
 
@@ -36,6 +34,7 @@ interface FormState {
   password:        string;
   passwordConfirm: string;
   status:          string;
+  role:            string;
 }
 
 interface PosDevice {
@@ -49,37 +48,32 @@ interface PosDevice {
   branch?:     { id: number; name: string } | null;
 }
 
-interface Branch {
-  id:   number;
-  name: string;
-}
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const mapUser = (u: any): User => ({
-  id:             u.id,
-  name:           u.name,
-  email:          u.email,
-  role:           u.role,
-  branch:         u.branch ?? u.branch_name ?? '—',
-  branch_id:      u.branch_id ?? null,
-  status:         u.status,
-  lastLogin:      u.last_login_at
+const mapStaff = (u: any): Staff => ({
+  id:            u.id,
+  name:          u.name,
+  email:         u.email,
+  role:          u.role,
+  branch:        u.branch ?? u.branch_name ?? '—',
+  branch_id:     u.branch_id ?? null,
+  status:        u.status,
+  lastLogin:     u.last_login_at
     ? new Date(u.last_login_at).toLocaleString('en-PH', {
         month: 'short', day: 'numeric', year: 'numeric',
         hour: '2-digit', minute: '2-digit',
       })
     : undefined,
-  login_count:    u.login_count ?? 0,
-  created_at:     u.created_at,
-  has_pin:        u.has_pin ?? false,
-  device_id:      u.device_id ?? null,
-  device_number:  u.device_number ?? u.pos_number ?? null,
+  login_count:   u.login_count ?? 0,
+  created_at:    u.created_at,
+  has_pin:       u.has_pin ?? false,
+  device_id:     u.device_id ?? null,
+  device_number: u.device_number ?? u.pos_number ?? null,
 });
 
 const blankForm = (): FormState => ({
-  name: '', email: '', password: '', passwordConfirm: '', status: 'ACTIVE',
+  name: '', email: '', password: '', passwordConfirm: '', status: 'ACTIVE', role: 'cashier',
 });
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
@@ -94,13 +88,14 @@ const Badge: React.FC<{ status: string }> = ({ status }) => {
   const isActive = status === 'ACTIVE' || status === 'active';
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider
-      ${isActive ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-zinc-100 text-zinc-500 border border-zinc-200'}`}>
+      ${isActive
+        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+        : 'bg-zinc-100 text-zinc-500 border border-zinc-200'}`}>
       {status}
     </span>
   );
 };
 
-// Inline device pill shown in the table row
 const DevicePill: React.FC<{ deviceNumber?: string | null }> = ({ deviceNumber }) =>
   deviceNumber ? (
     <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
@@ -184,12 +179,13 @@ const inputCls = (err?: string) =>
 
 // ─── View Modal ───────────────────────────────────────────────────────────────
 
-const ViewUserModal: React.FC<{ onClose: () => void; user: User }> = ({ onClose, user }) => {
+const ViewStaffModal: React.FC<{ onClose: () => void; user: Staff }> = ({ onClose, user }) => {
   const rows: [string, React.ReactNode][] = [
-    ['User ID',    `#${user.id}`],
+    ['Staff ID',   `#${user.id}`],
     ['Name',       <div className="flex items-center gap-2"><Avatar name={user.name} />{user.name}</div>],
     ['Email',      <span className="flex items-center gap-1"><Mail size={11} />{user.email}</span>],
     ['Branch',     <span className="flex items-center gap-1"><MapPin size={11} />{user.branch}</span>],
+    ['Role',       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-violet-50 text-violet-700 border border-violet-200">{user.role === 'team_leader' ? 'Team Leader' : 'Cashier'}</span>],
     ['Status',     <Badge status={user.status} />],
     ['Last Login', user.lastLogin ?? '—'],
     ['Device',     user.device_number
@@ -198,7 +194,7 @@ const ViewUserModal: React.FC<{ onClose: () => void; user: User }> = ({ onClose,
   ];
   return (
     <ModalShell onClose={onClose} icon={<Eye size={15} className="text-violet-600" />}
-      title={user.name} sub="Cashier details"
+      title={user.name} sub="Staff details"
       footer={<Btn variant="secondary" onClick={onClose}>Close</Btn>}>
       <div className="flex flex-col divide-y divide-zinc-100 -my-1">
         {rows.map(([label, val]) => (
@@ -212,17 +208,17 @@ const ViewUserModal: React.FC<{ onClose: () => void; user: User }> = ({ onClose,
   );
 };
 
-// ─── Cashier Form Modal (Add / Edit) ─────────────────────────────────────────
+// ─── Staff Form Modal (Add / Edit) ────────────────────────────────────────────
 
-const CashierFormModal: React.FC<{
+const StaffFormModal: React.FC<{
   onClose:      () => void;
-  onSaved:      (u: User) => void;
-  editingUser?: User | null;
+  onSaved:      (u: Staff) => void;
+  editingUser?: Staff | null;
   branchId:     number | null;
 }> = ({ onClose, onSaved, editingUser, branchId }) => {
-  const [form,     setForm]     = useState<FormState>(
+  const [form, setForm] = useState<FormState>(
     editingUser
-      ? { name: editingUser.name, email: editingUser.email, password: '', passwordConfirm: '', status: editingUser.status }
+      ? { name: editingUser.name, email: editingUser.email, password: '', passwordConfirm: '', status: editingUser.status, role: editingUser.role }
       : blankForm()
   );
   const [errors,   setErrors]   = useState<Record<string, string>>({});
@@ -247,27 +243,22 @@ const CashierFormModal: React.FC<{
       if (editingUser) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const payload: Record<string, any> = {
-          name: form.name, email: form.email,
-          role: 'cashier', status: form.status,
-          branch_id: branchId,
+          name: form.name, email: form.email, role: form.role,
+          status: form.status, branch_id: branchId,
         };
         if (form.password) {
           payload.password              = form.password;
           payload.password_confirmation = form.passwordConfirm;
         }
         const res = await api.put(`/users/${editingUser.id}`, payload);
-        onSaved(mapUser(res.data?.data ?? res.data));
+        onSaved(mapStaff(res.data?.data ?? res.data));
       } else {
         const res = await api.post('/users', {
-          name:                  form.name,
-          email:                 form.email,
-          password:              form.password,
-          password_confirmation: form.passwordConfirm,
-          role:                  'cashier',
-          status:                form.status,
-          branch_id:             branchId,
+          name: form.name, email: form.email,
+          password: form.password, password_confirmation: form.passwordConfirm,
+          role: form.role, status: form.status, branch_id: branchId,
         });
-        onSaved(mapUser(res.data?.data ?? res.data));
+        onSaved(mapStaff(res.data?.data ?? res.data));
       }
       onClose();
     } catch (err: unknown) {
@@ -293,15 +284,15 @@ const CashierFormModal: React.FC<{
     <ModalShell
       onClose={onClose}
       icon={editingUser ? <Edit2 size={15} className="text-violet-600" /> : <Users size={15} className="text-violet-600" />}
-      title={editingUser ? 'Edit Cashier' : 'Add Cashier'}
-      sub={editingUser ? `Updating ${editingUser.name}` : 'Create a new cashier account'}
+      title={editingUser ? 'Edit Staff' : 'Add Staff'}
+      sub={editingUser ? `Updating ${editingUser.name}` : 'Create a new cashier or team leader account'}
       footer={
         <>
           <Btn variant="secondary" onClick={onClose} disabled={saving}>Cancel</Btn>
           <Btn onClick={handleSubmit} disabled={saving}>
             {saving
               ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</span>
-              : editingUser ? 'Save Changes' : <><Plus size={13} /> Add Cashier</>}
+              : editingUser ? 'Save Changes' : <><Plus size={13} /> Add Staff</>}
           </Btn>
         </>
       }>
@@ -329,11 +320,18 @@ const CashierFormModal: React.FC<{
           <option value="INACTIVE">Inactive</option>
         </select>
       </Field>
-      {/* Hint for new cashiers: device assigned after saving */}
+      <Field label="Role" required>
+        <select {...f('role')} className={inputCls()}>
+          <option value="cashier">Cashier</option>
+          <option value="team_leader">Team Leader</option>
+        </select>
+      </Field>
       {!editingUser && (
         <div className="flex items-center gap-2 p-3 bg-violet-50 border border-violet-200 rounded-lg">
           <Laptop size={13} className="text-violet-500 shrink-0" />
-          <p className="text-[10px] text-violet-700 font-medium">You can assign a POS device to this cashier after saving.</p>
+          <p className="text-[10px] text-violet-700 font-medium">
+            You can assign a POS device to cashiers after saving.
+          </p>
         </div>
       )}
     </ModalShell>
@@ -344,8 +342,8 @@ const CashierFormModal: React.FC<{
 
 const ToggleStatusModal: React.FC<{
   onClose:   () => void;
-  onToggled: (u: User) => void;
-  user:      User;
+  onToggled: (u: Staff) => void;
+  user:      Staff;
 }> = ({ onClose, onToggled, user }) => {
   const [saving,   setSaving]   = useState(false);
   const [apiError, setApiError] = useState('');
@@ -355,7 +353,7 @@ const ToggleStatusModal: React.FC<{
     setSaving(true); setApiError('');
     try {
       const res = await api.patch(`/users/${user.id}/toggle-status`);
-      onToggled(mapUser(res.data?.data ?? res.data));
+      onToggled(mapStaff(res.data?.data ?? res.data));
       onClose();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -372,10 +370,10 @@ const ToggleStatusModal: React.FC<{
           <div className={`w-14 h-14 rounded-full flex items-center justify-center mb-4 border ${isActive ? 'bg-amber-50 border-amber-200' : 'bg-emerald-50 border-emerald-200'}`}>
             {isActive ? <XCircle size={24} className="text-amber-500" /> : <UserCheck size={24} className="text-emerald-500" />}
           </div>
-          <p className="text-base font-bold text-[#1a0f2e]">{isActive ? 'Deactivate Cashier?' : 'Activate Cashier?'}</p>
+          <p className="text-base font-bold text-[#1a0f2e]">{isActive ? 'Deactivate Staff?' : 'Activate Staff?'}</p>
           <p className="text-xs text-zinc-500 mt-1 leading-relaxed">
             {isActive
-              ? <>This will prevent <span className="font-bold text-zinc-700">{user.name}</span> from logging in.</>
+              ? <><span className="font-bold text-zinc-700">{user.name}</span> will no longer be able to log in.</>
               : <>This will restore <span className="font-bold text-zinc-700">{user.name}</span>'s access to the system.</>}
           </p>
           {apiError && (
@@ -414,10 +412,10 @@ const ToggleStatusModal: React.FC<{
 
 // ─── Delete Modal ─────────────────────────────────────────────────────────────
 
-const DeleteUserModal: React.FC<{
+const DeleteStaffModal: React.FC<{
   onClose:   () => void;
   onDeleted: (id: number) => void;
-  user:      User;
+  user:      Staff;
 }> = ({ onClose, onDeleted, user }) => {
   const [saving,   setSaving]   = useState(false);
   const [apiError, setApiError] = useState('');
@@ -430,7 +428,7 @@ const DeleteUserModal: React.FC<{
       onClose();
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setApiError(msg ?? 'Failed to delete cashier.');
+      setApiError(msg ?? 'Failed to delete staff.');
     } finally { setSaving(false); }
   };
 
@@ -443,7 +441,7 @@ const DeleteUserModal: React.FC<{
           <div className="w-14 h-14 bg-red-50 border border-red-200 rounded-full flex items-center justify-center mb-4">
             <Trash size={22} className="text-red-500" />
           </div>
-          <p className="text-base font-bold text-[#1a0f2e]">Delete Cashier?</p>
+          <p className="text-base font-bold text-[#1a0f2e]">Delete Staff?</p>
           <p className="text-xs text-zinc-500 mt-1 leading-relaxed">
             You're about to permanently delete <span className="font-bold text-zinc-700">{user.name}</span>. This cannot be undone.
           </p>
@@ -459,7 +457,7 @@ const DeleteUserModal: React.FC<{
           <div className="min-w-0 flex-1">
             <p className="text-xs font-bold text-[#1a0f2e] truncate">{user.name}</p>
             <p className="text-[10px] text-zinc-400 truncate flex items-center gap-1">
-              <ShieldCheck size={9} />Cashier
+              <ShieldCheck size={9} />{user.role === 'team_leader' ? 'Team Leader' : 'Cashier'}
             </p>
           </div>
           <Badge status={user.status} />
@@ -483,7 +481,7 @@ const DeleteUserModal: React.FC<{
 const AssignDeviceModal: React.FC<{
   onClose:     () => void;
   onAssigned?: (userId: number, deviceId: number | null, deviceNumber: string | null) => void;
-  user:        User;
+  user:        Staff;
 }> = ({ onClose, onAssigned, user }) => {
   const [devices,    setDevices]    = useState<PosDevice[]>([]);
   const [selectedId, setSelectedId] = useState<string>('');
@@ -499,7 +497,7 @@ const AssignDeviceModal: React.FC<{
       setLoading(true);
       try {
         const res  = await api.get('/pos-devices');
-        const list: PosDevice[] = res.data?.devices ?? res.data ?? [];
+        const list: PosDevice[] = res.data?.data ?? res.data?.devices ?? [];
         setDevices(list.filter(d => d.status === 'ACTIVE'));
         const assigned = list.find(d => d.user_id === user.id);
         if (assigned) setSelectedId(String(assigned.id));
@@ -544,11 +542,15 @@ const AssignDeviceModal: React.FC<{
             <Btn variant="secondary" onClick={onClose} disabled={saving}>Cancel</Btn>
             {currentDevice && (
               <Btn variant="danger" onClick={handleUnassign} disabled={saving || loading}>
-                {saving ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Removing...</span> : <><MonitorOff size={13} /> Unassign</>}
+                {saving
+                  ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Removing...</span>
+                  : <><MonitorOff size={13} /> Unassign</>}
               </Btn>
             )}
             <Btn onClick={handleAssign} disabled={saving || loading || !selectedId}>
-              {saving ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Assigning...</span> : <><MonitorCheck size={13} /> Assign Device</>}
+              {saving
+                ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Assigning...</span>
+                : <><MonitorCheck size={13} /> Assign Device</>}
             </Btn>
           </>
         )
@@ -568,8 +570,6 @@ const AssignDeviceModal: React.FC<{
               <p className="text-xs text-red-600 font-medium">{apiError}</p>
             </div>
           )}
-
-          {/* Cashier info row */}
           <div className="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl">
             <Avatar name={user.name} size="w-8 h-8 text-xs" />
             <div className="min-w-0 flex-1">
@@ -584,30 +584,27 @@ const AssignDeviceModal: React.FC<{
                   <MonitorOff size={9} />No device
                 </span>}
           </div>
-
-          {/* Status banner */}
           {currentDevice ? (
             <div className="flex items-center gap-2 p-3 bg-violet-50 border border-violet-200 rounded-lg">
               <MonitorCheck size={13} className="text-violet-500 shrink-0" />
               <p className="text-xs text-violet-700 font-medium">
                 Currently on <span className="font-bold">{currentDevice.pos_number}</span>
-                {currentDevice.branch?.name ? ` — ${currentDevice.branch.name}` : ''}. Switch device or unassign.
+                {currentDevice.branch?.name ? ` — ${currentDevice.branch.name}` : ''}. Switch or unassign.
               </p>
             </div>
           ) : (
             <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <MonitorOff size={13} className="text-amber-500 shrink-0" />
-              <p className="text-xs text-amber-700 font-medium">No device assigned. Select one below to link it to this cashier.</p>
+              <p className="text-xs text-amber-700 font-medium">No device assigned. Select one below.</p>
             </div>
           )}
-
           <Field label="Select POS Device" required>
             {loading ? (
               <div className="h-10 bg-zinc-100 rounded-lg animate-pulse" />
             ) : devices.length === 0 ? (
               <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
                 <AlertCircle size={13} className="text-amber-500 shrink-0" />
-                <p className="text-xs text-amber-700 font-medium">No active devices. Ask the superadmin to register a device first.</p>
+                <p className="text-xs text-amber-700 font-medium">No active devices available.</p>
               </div>
             ) : (
               <select value={selectedId} onChange={e => setSelectedId(e.target.value)} className={inputCls()}>
@@ -624,9 +621,8 @@ const AssignDeviceModal: React.FC<{
               </select>
             )}
           </Field>
-
           <p className="text-[10px] text-zinc-400 font-medium">
-            Only <span className="font-bold">ACTIVE</span> devices are shown. Reassigning moves the device from the other cashier.
+            Only <span className="font-bold">ACTIVE</span> devices are shown.
           </p>
         </>
       )}
@@ -634,194 +630,58 @@ const AssignDeviceModal: React.FC<{
   );
 };
 
-// ─── Register Device Modal ────────────────────────────────────────────────────
+// ─── Main Panel ───────────────────────────────────────────────────────────────
 
-const RegisterDeviceModal: React.FC<{
-  onClose:      () => void;
-  onRegistered: (device: PosDevice) => void;
-  branches:     Branch[];
-}> = ({ onClose, onRegistered, branches }) => {
-  const [form, setForm] = useState({ device_name: '', pos_number: '', branch_id: '' });
-  const [errors,   setErrors]   = useState<Record<string, string>>({});
-  const [saving,   setSaving]   = useState(false);
-  const [apiError, setApiError] = useState('');
-  const [success,  setSuccess]  = useState(false);
-
-  const validate = () => {
-    const e: Record<string, string> = {};
-    if (!form.device_name.trim()) e.device_name = 'Device ID is required.';
-    if (!form.pos_number.trim())  e.pos_number  = 'POS number is required.';
-    if (!form.branch_id)          e.branch_id   = 'Branch is required.';
-    return e;
-  };
-
-  const handleSubmit = async () => {
-    const e = validate();
-    if (Object.keys(e).length) { setErrors(e); return; }
-    setSaving(true); setApiError('');
-    try {
-      const res = await api.post('/pos-devices', {
-        device_name: form.device_name.trim(),
-        pos_number:  form.pos_number.trim(),
-        branch_id:   Number(form.branch_id),
-      });
-      onRegistered(res.data.device);
-      setSuccess(true);
-      setTimeout(onClose, 1500);
-    } catch (err: unknown) {
-      type LaravelError = { response?: { data?: { message?: string; errors?: Record<string, string[]> } } };
-      const errData = (err as LaravelError)?.response?.data;
-      if (errData?.errors) {
-        const mapped: Record<string, string> = {};
-        Object.entries(errData.errors).forEach(([k, v]) => { mapped[k] = Array.isArray(v) ? v[0] : String(v); });
-        setErrors(mapped);
-      } else { setApiError(errData?.message ?? 'Failed to register device.'); }
-    } finally { setSaving(false); }
-  };
-
-  const f = (key: keyof typeof form) => ({
-    value: form[key],
-    onChange: (ev: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-      setForm(p => ({ ...p, [key]: ev.target.value }));
-      setErrors(p => { const n = { ...p }; delete n[key]; return n; });
-    },
-  });
-
-  return (
-    <ModalShell onClose={onClose} icon={<Monitor size={15} className="text-violet-600" />}
-      title="Register POS Device" sub="Add a new terminal to the system"
-      footer={
-        success ? null : (
-          <>
-            <Btn variant="secondary" onClick={onClose} disabled={saving}>Cancel</Btn>
-            <Btn onClick={handleSubmit} disabled={saving}>
-              {saving
-                ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Registering...</span>
-                : <><Plus size={13} /> Register Device</>}
-            </Btn>
-          </>
-        )
-      }>
-      {success ? (
-        <div className="flex flex-col items-center py-4 gap-3">
-          <div className="w-12 h-12 bg-emerald-50 border border-emerald-200 rounded-full flex items-center justify-center">
-            <CheckCircle size={24} className="text-emerald-500" />
-          </div>
-          <p className="text-sm font-bold text-[#1a0f2e]">Device registered successfully</p>
-          <p className="text-xs text-zinc-400">You can now assign it to a cashier.</p>
-        </div>
-      ) : (
-        <>
-          {apiError && (
-            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <AlertCircle size={14} className="text-red-500 shrink-0" />
-              <p className="text-xs text-red-600 font-medium">{apiError}</p>
-            </div>
-          )}
-          <div className="flex items-start gap-3 p-3 bg-violet-50 border border-violet-200 rounded-lg">
-            <Laptop size={14} className="text-violet-500 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-violet-700 mb-0.5">How to get the Device ID</p>
-              <p className="text-xs text-violet-600 leading-relaxed">
-                On the POS terminal, open the app. If unregistered it shows a <span className="font-bold">"Device Not Registered"</span> screen with the Device ID.
-              </p>
-            </div>
-          </div>
-          <Field label="Device ID" required error={errors.device_name}>
-            <input {...f('device_name')} placeholder="e.g. DEV-3700E18D-..." className={inputCls(errors.device_name)} />
-          </Field>
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="POS Number" required error={errors.pos_number}>
-              <input {...f('pos_number')} placeholder="e.g. POS-001" className={inputCls(errors.pos_number)} />
-            </Field>
-            <Field label="Branch" required error={errors.branch_id}>
-              {branches.length === 0 ? (
-                <div className="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
-                  <AlertCircle size={12} className="text-amber-500 shrink-0" />
-                  <p className="text-xs text-amber-700">No branches found.</p>
-                </div>
-              ) : (
-                <select {...f('branch_id')} className={inputCls(errors.branch_id)}>
-                  <option value="">— Select branch —</option>
-                  {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                </select>
-              )}
-            </Field>
-          </div>
-        </>
-      )}
-    </ModalShell>
-  );
-};
-
-// ─── Main Component ───────────────────────────────────────────────────────────
-
-const UserManagement: React.FC = () => {
-  const [users,      setUsers]      = useState<User[]>([]);
+const StaffOverviewPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
+  const [staff,      setStaff]      = useState<Staff[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [fetchError, setFetchError] = useState('');
   const [search,     setSearch]     = useState('');
-  const [branchId,   setBranchId]   = useState<number | null>(null);
-  const [branches,     setBranches]     = useState<Branch[]>([]);
-  const [registerOpen, setRegisterOpen] = useState(false);
 
   const [addOpen,      setAddOpen]      = useState(false);
-  const [viewTarget,   setViewTarget]   = useState<User | null>(null);
-  const [editTarget,   setEditTarget]   = useState<User | null>(null);
-  const [toggleTarget, setToggleTarget] = useState<User | null>(null);
-  const [delTarget,    setDelTarget]    = useState<User | null>(null);
-  const [deviceTarget, setDeviceTarget] = useState<User | null>(null);
+  const [viewTarget,   setViewTarget]   = useState<Staff | null>(null);
+  const [editTarget,   setEditTarget]   = useState<Staff | null>(null);
+  const [toggleTarget, setToggleTarget] = useState<Staff | null>(null);
+  const [delTarget,    setDelTarget]    = useState<Staff | null>(null);
+  const [deviceTarget, setDeviceTarget] = useState<Staff | null>(null);
 
-  const fetchUsers = useCallback(async () => {
+  const fetchStaff = useCallback(async () => {
     setLoading(true); setFetchError('');
     try {
-      const meRes = await api.get('/user');
-      const me    = meRes.data?.data ?? meRes.data;
-      setBranchId(me?.branch_id ?? null);
-
-      const [usersRes, branchesRes] = await Promise.all([
-        api.get('/users'),
-        api.get('/branches'),
-      ]);
-
-      const payload = usersRes.data;
+      const res = await api.get('/users');
+      const payload = res.data;
       const raw: unknown[] = Array.isArray(payload)
         ? payload
         : Array.isArray(payload?.data) ? payload.data : [];
 
       const list = raw
         .filter((u): u is Record<string, unknown> => !!u && typeof u === 'object' && 'id' in (u as object))
-        .map(mapUser)
-        .filter(u => u.role === 'cashier');
+        .map(mapStaff)
+        .filter(u => u.role === 'cashier' || u.role === 'team_leader');
 
-      setUsers(list);
-
-      // ── Load branches for device registration ─────────────────────────────
-      const branchData = branchesRes.data;
-      setBranches(Array.isArray(branchData?.data) ? branchData.data : []);
-
+      // Filter by branch if branchId is set
+      setStaff(branchId ? list.filter(u => u.branch_id === branchId) : list);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setFetchError(msg ?? 'Failed to load cashiers.');
+      setFetchError(msg ?? 'Failed to load staff.');
     } finally { setLoading(false); }
-  }, []);
+  }, [branchId]);
 
-  useEffect(() => { fetchUsers(); }, [fetchUsers]);
+  useEffect(() => { fetchStaff(); }, [fetchStaff]);
 
-  // Update device info in local state after assign/unassign — no full refetch needed
   const handleDeviceAssigned = (userId: number, deviceId: number | null, deviceNumber: string | null) => {
-    setUsers(prev => prev.map(u =>
+    setStaff(prev => prev.map(u =>
       u.id === userId ? { ...u, device_id: deviceId, device_number: deviceNumber } : u
     ));
   };
 
-  const filtered = users.filter(u =>
+  const filtered = staff.filter(u =>
     u.name.toLowerCase().includes(search.toLowerCase()) ||
     u.email.toLowerCase().includes(search.toLowerCase())
   );
 
-  const activeCount   = users.filter(u => u.status === 'ACTIVE').length;
-  const inactiveCount = users.filter(u => u.status !== 'ACTIVE').length;
+  const activeCount   = staff.filter(u => u.status === 'ACTIVE').length;
+  const inactiveCount = staff.filter(u => u.status !== 'ACTIVE').length;
 
   return (
     <div className="p-6 md:p-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
@@ -829,20 +689,17 @@ const UserManagement: React.FC = () => {
       {/* ── Header ── */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Cashier Management</h2>
+          <h2 className="text-base font-bold text-[#1a0f2e]">Staff Overview</h2>
           <p className="text-xs text-zinc-400 mt-0.5">
-            {loading ? 'Loading...' : `${users.length} cashiers · ${activeCount} active`}
+            {loading ? 'Loading...' : `${staff.length} staff · ${activeCount} active`}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Btn variant="secondary" onClick={fetchUsers} disabled={loading}>
+          <Btn variant="secondary" onClick={fetchStaff} disabled={loading}>
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
           </Btn>
-          <Btn variant="secondary" onClick={() => setRegisterOpen(true)} disabled={loading}>
-            <Monitor size={13} /> Register Device
-          </Btn>
           <Btn onClick={() => setAddOpen(true)} disabled={loading}>
-            <Plus size={13} /> Add Cashier
+            <Plus size={13} /> Add Staff
           </Btn>
         </div>
       </div>
@@ -854,8 +711,8 @@ const UserManagement: React.FC = () => {
             <Users size={16} className="text-violet-600" />
           </div>
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Total Cashiers</p>
-            <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">{loading ? '—' : users.length}</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Total Staff</p>
+            <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">{loading ? '—' : staff.length}</p>
           </div>
         </div>
         <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center gap-3">
@@ -883,9 +740,12 @@ const UserManagement: React.FC = () => {
         <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-100">
           <div className="flex-1 flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
             <Search size={13} className="text-zinc-400" />
-            <input value={search} onChange={e => setSearch(e.target.value)}
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
               className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400"
-              placeholder="Search cashiers..." />
+              placeholder="Search staff..."
+            />
           </div>
         </div>
 
@@ -893,15 +753,16 @@ const UserManagement: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100">
-                {['Name', 'Email', 'Device', 'Last Login', 'Status', 'Actions'].map(h => (
+                {['Name', 'Email', 'Role', 'Device', 'Last Login', 'Status', 'Actions'].map(h => (
                   <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
+              {/* Skeleton rows */}
               {loading && [...Array(4)].map((_, i) => (
                 <tr key={i} className="border-b border-zinc-50">
-                  {[...Array(6)].map((_, j) => (
+                  {[...Array(7)].map((_, j) => (
                     <td key={j} className="px-5 py-4">
                       <div className="h-3 bg-zinc-100 rounded animate-pulse" style={{ width: `${60 + (j * 7) % 40}%` }} />
                     </td>
@@ -909,26 +770,29 @@ const UserManagement: React.FC = () => {
                 </tr>
               ))}
 
+              {/* Error state */}
               {!loading && fetchError && (
                 <tr>
-                  <td colSpan={6} className="px-5 py-10 text-center">
+                  <td colSpan={7} className="px-5 py-10 text-center">
                     <div className="flex flex-col items-center gap-2">
                       <AlertCircle size={20} className="text-red-400" />
                       <p className="text-sm font-semibold text-red-500">{fetchError}</p>
-                      <Btn variant="secondary" size="sm" onClick={fetchUsers}>Try again</Btn>
+                      <Btn variant="secondary" size="sm" onClick={fetchStaff}>Try again</Btn>
                     </div>
                   </td>
                 </tr>
               )}
 
+              {/* Empty state */}
               {!loading && !fetchError && filtered.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-5 py-10 text-center text-zinc-400 text-xs font-medium">
-                    {search ? 'No cashiers match your search.' : 'No cashiers found in your branch.'}
+                  <td colSpan={7} className="px-5 py-10 text-center text-zinc-400 text-xs font-medium">
+                    {search ? 'No staff match your search.' : 'No staff found in your branch.'}
                   </td>
                 </tr>
               )}
 
+              {/* Data rows */}
               {!loading && !fetchError && filtered.map(u => (
                 <tr key={u.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
                   <td className="px-5 py-3.5">
@@ -938,7 +802,15 @@ const UserManagement: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-5 py-3.5 text-zinc-500">{u.email}</td>
-                  {/* Device status pill — always visible for cashiers */}
+                  <td className="px-5 py-3.5">
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                      u.role === 'team_leader'
+                        ? 'bg-violet-50 text-violet-700 border border-violet-200'
+                        : 'bg-zinc-100 text-zinc-500 border border-zinc-200'
+                    }`}>
+                      {u.role === 'team_leader' ? 'Team Leader' : 'Cashier'}
+                    </span>
+                  </td>
                   <td className="px-5 py-3.5">
                     <DevicePill deviceNumber={u.device_number} />
                   </td>
@@ -963,7 +835,6 @@ const UserManagement: React.FC = () => {
                         className="p-1.5 hover:bg-red-50 rounded-[0.4rem] text-zinc-400 hover:text-red-500 transition-colors" title="Delete">
                         <Trash2 size={13} />
                       </button>
-                      {/* Assign Device — always shown, colour indicates assignment state */}
                       <button
                         onClick={() => setDeviceTarget(u)}
                         className={`p-1.5 rounded-[0.4rem] transition-colors ${
@@ -985,15 +856,19 @@ const UserManagement: React.FC = () => {
 
       {/* ── Modals ── */}
       {addOpen && (
-        <CashierFormModal onClose={() => setAddOpen(false)} onSaved={u => setUsers(p => [u, ...p])} branchId={branchId} />
+        <StaffFormModal
+          onClose={() => setAddOpen(false)}
+          onSaved={u => setStaff(p => [u, ...p])}
+          branchId={branchId}
+        />
       )}
       {viewTarget && (
-        <ViewUserModal onClose={() => setViewTarget(null)} user={viewTarget} />
+        <ViewStaffModal onClose={() => setViewTarget(null)} user={viewTarget} />
       )}
       {editTarget && (
-        <CashierFormModal
+        <StaffFormModal
           onClose={() => setEditTarget(null)}
-          onSaved={u => { setUsers(p => p.map(x => x.id === u.id ? u : x)); setEditTarget(null); }}
+          onSaved={u => { setStaff(p => p.map(x => x.id === u.id ? u : x)); setEditTarget(null); }}
           editingUser={editTarget}
           branchId={branchId}
         />
@@ -1001,14 +876,14 @@ const UserManagement: React.FC = () => {
       {toggleTarget && (
         <ToggleStatusModal
           onClose={() => setToggleTarget(null)}
-          onToggled={u => { setUsers(p => p.map(x => x.id === u.id ? u : x)); setToggleTarget(null); }}
+          onToggled={u => { setStaff(p => p.map(x => x.id === u.id ? u : x)); setToggleTarget(null); }}
           user={toggleTarget}
         />
       )}
       {delTarget && (
-        <DeleteUserModal
+        <DeleteStaffModal
           onClose={() => setDelTarget(null)}
-          onDeleted={id => { setUsers(p => p.filter(x => x.id !== id)); setDelTarget(null); }}
+          onDeleted={id => { setStaff(p => p.filter(x => x.id !== id)); setDelTarget(null); }}
           user={delTarget}
         />
       )}
@@ -1019,15 +894,8 @@ const UserManagement: React.FC = () => {
           user={deviceTarget}
         />
       )}
-      {registerOpen && (
-        <RegisterDeviceModal
-          onClose={() => setRegisterOpen(false)}
-          onRegistered={() => {}}
-          branches={branches}
-        />
-      )}
     </div>
   );
 };
 
-export default UserManagement;
+export default StaffOverviewPanel;

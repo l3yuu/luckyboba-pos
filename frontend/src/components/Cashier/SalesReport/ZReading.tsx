@@ -262,11 +262,19 @@ const ZReading = () => {
           ? { from: fromDate, to: toDate }
           : { from: selectedDate, to: selectedDate };
         const [zRes, cashRes, qtyRes, voidRes] = await Promise.all([
-          api.get('/reports/z-reading',       { params: zParams }),
-          api.get('/cash-counts/summary',     { params: { date: dateMode === 'range' ? toDate : selectedDate } }),
-          api.get('/reports/item-quantities', { params: { date: dateMode === 'range' ? toDate : selectedDate } }),
-          api.get('/reports/void-logs',       { params: { date: dateMode === 'range' ? toDate : selectedDate } }),
-        ]);
+  api.get('/reports/z-reading',       { params: zParams }),
+  api.get('/cash-counts/summary',     { params: { date: dateMode === 'range' ? toDate : selectedDate } }),
+  api.get('/reports/item-quantities', { params: { date: dateMode === 'range' ? toDate : selectedDate } }),
+  api.get('/reports/void-logs',       { params: { date: dateMode === 'range' ? toDate : selectedDate } }),
+]);
+
+// ← ADD HERE, before const zData
+console.log('zData categories:', (zRes.data as Record<string, unknown>).categories);
+        console.log('qtyRes categories:', qtyRes.data.categories);
+        console.log('qtyRes categories:', JSON.stringify(qtyRes.data.categories, null, 2));
+
+
+        
         const zData  = zRes.data  as Record<string, unknown>;
         const ccData = cashRes.data as Record<string, unknown>;
         const ccNested = ccData.cash_count as { denominations: { label: string; qty: number; total: number }[]; grand_total: number } | undefined;
@@ -581,42 +589,51 @@ const ZReading = () => {
   };
 
   const renderZReading = () => {
-    const gross = reportData?.gross_sales || 0;
-    const netSales = reportData?.net_sales || gross;
-    const txCount = reportData?.transaction_count || 0;
-    const scDiscount = reportData?.sc_discount || 0;
-    const pwdDiscount = reportData?.pwd_discount || 0;
-    const diplomat = reportData?.diplomat_discount || 0;
-    const totalDisc = scDiscount + pwdDiscount + diplomat;
-    const vatableSales = reportData?.vatable_sales || 0;
-    const vatAmount = reportData?.vat_amount || 0;
-    const voids = reportData?.total_void_amount || 0;
-    const qtyTotal = reportData?.total_qty_sold || 0;
-    const cashDrop = reportData?.cash_drop || 0;
-    const cashIn = reportData?.cash_in || 0;
-    const resetCounter = reportData?.reset_counter ?? 0;
-    const zCounter = reportData?.z_counter ?? 1;
+    const gross          = reportData?.gross_sales || 0;
+    const scDiscount     = reportData?.sc_discount || 0;
+    const pwdDiscount    = reportData?.pwd_discount || 0;
+    const diplomat       = reportData?.diplomat_discount || 0;
+    const otherDiscount  = reportData?.other_discount || 0;
+
+    // ✅ totalDisc declared BEFORE netSales uses it
+    const totalDisc = reportData?.total_discounts
+      ?? (scDiscount + pwdDiscount + diplomat + otherDiscount);
+
+    // ✅ netSales now has a valid fallback
+    const netSales  = reportData?.net_sales ?? (gross - totalDisc);
+    const netTotal  = reportData?.net_total ?? (gross - totalDisc);
+
+    const txCount            = reportData?.transaction_count || 0;
+    const vatableSales       = reportData?.vatable_sales || 0;
+    const vatAmount          = reportData?.vat_amount || 0;
+    const voids              = reportData?.total_void_amount || 0;
+    const qtyTotal           = reportData?.total_qty_sold || 0;
+    const cashDrop           = reportData?.cash_drop || 0;
+    const cashIn             = reportData?.cash_in || 0;
+    const resetCounter       = reportData?.reset_counter ?? 0;
+    const zCounter           = reportData?.z_counter ?? 1;
     const presentAccumulated = reportData?.present_accumulated ?? gross;
     const previousAccumulated = reportData?.previous_accumulated ?? 0;
-    const salesForDay = reportData?.sales_for_the_day ?? gross;
+    const salesForDay        = reportData?.sales_for_the_day ?? gross;
+
     const PAYMENT_METHODS = ['food panda', 'grab', 'gcash', 'visa', 'mastercard', 'cash'];
     const METHOD_ALIASES: Record<string, string> = {
-      'panda': 'food panda',
-      'foodpanda': 'food panda',
-      'food_panda': 'food panda',
-      'food panda': 'food panda',
-      'grabfood': 'grab',
-      'grab food': 'grab',
-      'grab': 'grab',
-      'master card': 'mastercard',
-      'master': 'mastercard',
-      'mastercard': 'mastercard',
-      'visa card': 'visa',
-      'visa': 'visa',
-      'e-wallet': 'gcash',
-      'ewallet': 'gcash',
-      'gcash': 'gcash',
-      'cash': 'cash',
+      'panda':        'food panda',
+      'foodpanda':    'food panda',
+      'food_panda':   'food panda',
+      'food panda':   'food panda',
+      'grabfood':     'grab',
+      'grab food':    'grab',
+      'grab':         'grab',
+      'master card':  'mastercard',
+      'master':       'mastercard',
+      'mastercard':   'mastercard',
+      'visa card':    'visa',
+      'visa':         'visa',
+      'e-wallet':     'gcash',
+      'ewallet':      'gcash',
+      'gcash':        'gcash',
+      'cash':         'cash',
     };
     const paymentMap = new Map<string, number>();
     (reportData?.payment_breakdown ?? []).forEach(p => {
@@ -635,7 +652,6 @@ const ZReading = () => {
     const totalCashCount = reportData?.total_cash_count ?? reportData?.cash_count?.grand_total ?? 0;
     const expectedEOD = actualCash + cashIn - cashDrop;
     const overShort = reportData?.over_short ?? (totalCashCount - expectedEOD);
-    const netTotal = reportData?.net_total ?? (gross - totalDisc);
     const isRange = dateMode === 'range';
     const now = new Date();
     const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -911,7 +927,9 @@ const ZReading = () => {
                   <p className="uppercase text-[13px] font-bold leading-tight">LUCKY BOBA MILKTEA<br />FOOD AND BEVERAGE TRADING</p>
                   <p className="uppercase text-[11px] mt-0.5">{localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'}</p>
                   <Divider />
-                  <p className="uppercase text-[12px] font-bold tracking-widest">{reportData.report_type === 'z_reading' ? (dateMode === 'range' ? 'Z-READING (RANGE)' : 'Z-READING') : reportData.report_type?.replace(/_/g, ' ') || 'Z READING'}</p>
+                  <p className="uppercase text-[12px] font-bold tracking-widest">
+                    [Z] {reportData.report_type === 'z_reading' ? (dateMode === 'range' ? 'Z-READING (RANGE)' : 'Z-READING') : reportData.report_type?.replace(/_/g, ' ') || 'Z READING'}
+                  </p>
                 </div>
                 {(() => {
                   switch (reportData.report_type) {

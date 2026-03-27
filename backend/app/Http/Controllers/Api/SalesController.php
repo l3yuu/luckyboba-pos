@@ -223,6 +223,7 @@ Receipt::create([
     'branch_id'     => $branchId,
     // ✅ BIR snapshot
     'brand'         => $branch?->brand         ?? 'Lucky Boba Milk Tea',
+    'owner_name'     => $branch?->owner_name     ?? '',
     'company_name'  => $branch?->company_name  ?? '',
     'store_address' => $branch?->store_address ?? '',
     'vat_reg_tin'   => $branch?->vat_reg_tin   ?? '',
