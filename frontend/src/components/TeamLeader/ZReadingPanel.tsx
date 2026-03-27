@@ -36,13 +36,22 @@ interface ZReadingData {
   sales_for_the_day: number;
 }
 
+interface SearchResult {
+  invoice: string;
+  amount: number;
+  time: string;
+  customer: string;
+  items: string[];
+  payment: string;
+  reference: string;
+}
+
 const ZReadingPanel = ({ branchId }: { branchId: number | null }) => {
   const [data, setData] = useState<ZReadingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [searchReceipt, setSearchReceipt] = useState('');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
 
   useEffect(() => {
     const loadZReading = async () => {
