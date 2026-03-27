@@ -228,7 +228,6 @@ class SalesDashboardService
             $branch = \App\Models\Branch::select('vat_type')->find($branchId);
             $isVat  = $branch?->vat_type !== 'non_vat';
         }
-        // ─────────────────────────────────────────────────────────────────────
 
         $salesQuery = DB::table('sales')
             ->whereBetween('created_at', [$from, $to])
@@ -276,33 +275,23 @@ class SalesDashboardService
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->sum('total_amount');
 
-        // ── Discounts (MUST come before VAT calculation) ──────────────────────
+        // ── Discounts ─────────────────────────────────────────────────────────
         $discounts = $this->computeDiscounts($from, $to, $branchId);
 
-        // ── VAT calculation based on branch type ──────────────────────────────
-        // BIR rule: SC/PWD discount is applied on VAT-EXCLUSIVE price.
-        // Step 1 — remove VAT from the SC/PWD covered amount: covered / 1.12
-        // Step 2 — the VAT-exclusive amount becomes VAT-exempt
-        // Example: ₱240 gross with full SC/PWD coverage
-        //   - VAT-exclusive base = 240 / 1.12 = 214.29
-        //   - Discount (20%) = 214.29 × 0.20 = 42.86
-        //   - VAT-exempt sales = 214.29 (the VAT-exclusive base)
-        //   - Vatable base = 240 - 214.29 = 25.71 (remaining VATable)
-        // ── VAT calculation based on branch type ──────────────────────────────
+        // ── VAT calculation ───────────────────────────────────────────────────
+        // BIR rule: SC/PWD discount is 20% of the VAT-exclusive price.
+        // Reconstruct VAT-exclusive base: discount / 0.20
+        // That base is the VAT-exempt sales figure.
         $scPwdDiscount  = $discounts['sc_discount'] + $discounts['pwd_discount'];
-        $vatExemptSales = $isVat ? round($scPwdDiscount, 2) : 0.0;
-        $vatableBase    = $isVat ? max(0.0, $grossSales - $scPwdDiscount) : 0.0;  // ← $grossSales
+        $vatExemptSales = $isVat ? round($scPwdDiscount / 0.20, 2) : 0.0;
+        $vatableBase    = $isVat ? max(0.0, $grossSales - $vatExemptSales) : 0.0;
         $vatableSales   = $isVat ? round($vatableBase / 1.12, 2) : 0.0;
         $vatAmount      = $isVat ? round($vatableBase - $vatableSales, 2) : 0.0;
-        $vatableSales   = $isVat ? round($vatableBase / 1.12, 2) : 0.0;           // duplicate, can remove
-        $vatAmount      = $isVat ? round($vatableBase - $vatableSales, 2) : 0.0;  // duplicate, can remove
-        // ─────────────────────────────────────────────────────────────────────
 
-        // ── FIX: net_sales = gross - all discounts - voids ────────────────────
+        // ── FIX: net_sales = gross - all discounts - voids (consistent with Z) ─
         $totalDiscounts = $discounts['sc_discount'] + $discounts['pwd_discount']
                         + $discounts['diplomat_discount'] + $discounts['other_discount'];
         $netSales = round($grossSales - $totalDiscounts - $voidAmount, 2);
-        // ─────────────────────────────────────────────────────────────────────
 
         $paymentBreakdown = $this->computePaymentBreakdown($from, $to, $branchId);
 
@@ -346,7 +335,7 @@ class SalesDashboardService
             'date'              => $from->toDateString(),
             'to_date'           => $to->toDateString(),
             'gross_sales'       => $grossSales,
-            'net_sales'         => $netSales,           // ← FIXED
+            'net_sales'         => $netSales,
             'transaction_count' => $transactionCount,
             'cash_total'        => $cashSales,
             'non_cash_total'    => $otherSales,
@@ -357,7 +346,7 @@ class SalesDashboardService
             'total_void_amount' => $voidAmount,
             'vatable_sales'     => $vatableSales,
             'vat_amount'        => $vatAmount,
-            'vat_exempt_sales'  => $vatExemptSales,     // ← FIXED
+            'vat_exempt_sales'  => $vatExemptSales,
             'is_vat'            => $isVat,
             'sc_discount'       => $discounts['sc_discount'],
             'pwd_discount'      => $discounts['pwd_discount'],
@@ -385,7 +374,6 @@ class SalesDashboardService
             $branch = \App\Models\Branch::select('vat_type')->find($branchId);
             $isVat  = $branch?->vat_type !== 'non_vat';
         }
-        // ─────────────────────────────────────────────────────────────────────
 
         $sales = DB::table('sales')
             ->whereBetween('created_at', [$start, $end])
@@ -416,21 +404,19 @@ class SalesDashboardService
         $discounts        = $this->computeDiscounts($start, $end, $branchId);
         $paymentBreakdown = $this->computePaymentBreakdown($start, $end, $branchId);
 
-        // ── FIX: net_sales = gross - all discounts - voids ────────────────────
+        // ── FIX: net_sales = gross - all discounts - voids (now consistent with X-Reading) ──
         $totalDiscounts = $discounts['sc_discount'] + $discounts['pwd_discount']
                         + $discounts['diplomat_discount'] + $discounts['other_discount'];
-        $netSales = round($gross - $totalDiscounts, 2);
-        // ─────────────────────────────────────────────────────────────────────
+        $netSales = round($gross - $totalDiscounts - $voidAmount, 2);
 
         // ── VAT calculation ───────────────────────────────────────────────────
-        // BIR rule: SC/PWD transactions are VAT-exempt.
-        // The discount stored in DB is 20% of the VAT-exclusive price.
-        // To reconstruct the full VAT-exclusive base: discount / 0.20
-        // That base becomes the VAT-exempt sales figure.
-        // The remaining gross is then split into VATable + VAT.
+        // BIR rule: SC/PWD discount is 20% of the VAT-exclusive price.
+        // Reconstruct VAT-exclusive base: discount / 0.20
+        // That base becomes VAT-exempt sales.
+        // Remaining gross is split into VATable base + VAT.
         //
-        // Example: ₱240 gross order, SC/PWD discount = ₱42.86
-        //   vatExemptSales = 42.86 / 0.20 = 214.29  (VAT-excl base of exempt portion)
+        // Example: ₱240 gross, SC/PWD discount = ₱42.86
+        //   vatExemptSales = 42.86 / 0.20 = 214.29
         //   vatableBase    = 240 - 214.29 = 25.71
         //   vatableSales   = 25.71 / 1.12 = 22.96
         //   vatAmount      = 25.71 - 22.96 = 2.75
@@ -439,7 +425,6 @@ class SalesDashboardService
         $vatableBase    = $isVat ? max(0.0, $gross - $vatExemptSales) : 0.0;
         $vatableSales   = $isVat ? round($vatableBase / 1.12, 2) : 0.0;
         $vatAmount      = $isVat ? round($vatableBase - $vatableSales, 2) : 0.0;
-        // ─────────────────────────────────────────────────────────────────────
 
         $begSI = DB::table('receipts')
             ->whereBetween('created_at', [$start, $end])
@@ -486,24 +471,22 @@ class SalesDashboardService
             ->groupBy('sale_items.cup_size_label')
             ->get();
 
-        // ── FIX: Z Counter & Accumulated Sales from z_readings table ─────────
-        // For date-range Z Readings we skip the counter/accumulated logic
-        // since those are day-level BIR concepts.
+        // ── FIX 1: Z Counter uses strict '<' to avoid double-counting on re-run ──
+        // ── FIX 2: branch_id included in all ZReading queries ────────────────────
         $isSingleDay = ($from === $to);
 
         if ($isSingleDay) {
-            // Count all previous Z Readings before today to get running totals
             $previousAccumulated = (float) ZReading::where('reading_date', '<', $start->toDateString())
-    ->when($branchId && \Schema::hasColumn('z_readings', 'branch_id'), fn($q) => $q->where('branch_id', $branchId))
-    ->sum('total_sales');
+                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                ->sum('total_sales');
 
-$zCounter = (int) ZReading::where('reading_date', '<=', $start->toDateString())
-    ->when($branchId && \Schema::hasColumn('z_readings', 'branch_id'), fn($q) => $q->where('branch_id', $branchId))
-    ->count() + 1;
+            // FIX: use strict '<' so re-generating today's Z doesn't increment counter
+            $zCounter = (int) ZReading::where('reading_date', '<', $start->toDateString())
+                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                ->count() + 1;
 
-            $resetCounter = 0; // Increment this manually if the machine is ever reset
+            $resetCounter = 0;
         } else {
-            // For a date range, sum up all Z readings in that range
             $previousAccumulated = (float) ZReading::where('reading_date', '<', $start->toDateString())
                 ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
                 ->sum('total_sales');
@@ -514,7 +497,6 @@ $zCounter = (int) ZReading::where('reading_date', '<=', $start->toDateString())
 
         $presentAccumulated = round($previousAccumulated + $gross, 2);
         $salesForTheDay     = $gross;
-        // ─────────────────────────────────────────────────────────────────────
 
         $reportData = [
             'from_date'            => $start->toDateString(),
@@ -523,7 +505,7 @@ $zCounter = (int) ZReading::where('reading_date', '<=', $start->toDateString())
 
             // ── Sales figures ─────────────────────────────────────────────────
             'gross_sales'          => $gross,
-            'net_sales'            => $netSales,           // ← FIXED: was equal to gross
+            'net_sales'            => $netSales,
             'total_discounts'      => round($totalDiscounts, 2),
             'total_void_amount'    => $voidAmount,
 
@@ -532,9 +514,9 @@ $zCounter = (int) ZReading::where('reading_date', '<=', $start->toDateString())
             'total_qty_sold'       => $totalQtySold,
 
             // ── VAT breakdown ─────────────────────────────────────────────────
-            'vatable_sales'        => $vatableSales,       // ← FIXED formula
-            'vat_amount'           => $vatAmount,          // ← FIXED formula
-            'vat_exempt_sales'     => $vatExemptSales,     // ← FIXED: was scPwdDiscount
+            'vatable_sales'        => $vatableSales,
+            'vat_amount'           => $vatAmount,
+            'vat_exempt_sales'     => $vatExemptSales,
             'is_vat'               => $isVat,
 
             // ── Discount breakdown ────────────────────────────────────────────
@@ -558,11 +540,11 @@ $zCounter = (int) ZReading::where('reading_date', '<=', $start->toDateString())
             'cash_in_drawer'       => $cashIn + $cash - $cashDrop,
 
             // ── BIR Z Counter & Accumulated ───────────────────────────────────
-            'z_counter'            => $zCounter,           // ← NEW
-            'reset_counter'        => $resetCounter,       // ← NEW
-            'previous_accumulated' => $previousAccumulated, // ← NEW
-            'present_accumulated'  => $presentAccumulated,  // ← NEW
-            'sales_for_the_day'    => $salesForTheDay,      // ← NEW
+            'z_counter'            => $zCounter,
+            'reset_counter'        => $resetCounter,
+            'previous_accumulated' => $previousAccumulated,
+            'present_accumulated'  => $presentAccumulated,
+            'sales_for_the_day'    => $salesForTheDay,
 
             // ── Item & category breakdown ─────────────────────────────────────
             'category_breakdown'   => $categoryBreakdown,
@@ -570,15 +552,17 @@ $zCounter = (int) ZReading::where('reading_date', '<=', $start->toDateString())
             'generated_at'         => now()->toDateTimeString(),
         ];
 
-        // Persist single-day Z Readings to track accumulation over time
-        ZReading::updateOrCreate(
-    ['reading_date' => $start->toDateString()],
-    [
-        'total_sales' => $gross,
-        'net_sales'   => $netSales,
-        'data'        => json_encode($reportData),
-    ]
-);
+        // ── FIX 3: Include branch_id in updateOrCreate key so branches don't
+        //           overwrite each other's Z-readings on the same date ──────────
+        $zRecord = ZReading::firstOrNew([
+    'reading_date' => $start->toDateString(),
+    'branch_id'    => $branchId,
+]);
+
+$zRecord->total_sales = $gross;
+$zRecord->net_sales   = $netSales;
+$zRecord->data        = json_encode($reportData);
+$zRecord->save();
 
         return $reportData;
     }
@@ -738,14 +722,14 @@ $zCounter = (int) ZReading::where('reading_date', '<=', $start->toDateString())
             ->sum('sale_items.discount_amount');
 
         $itemLevelOther = (float) (clone $base)
-    ->where('sale_items.discount_label', 'NOT LIKE', '%SENIOR%')
-    ->where('sale_items.discount_label', 'NOT LIKE', '%PWD%')
-    ->where('sale_items.discount_label', 'NOT LIKE', '%DIPLOMAT%')
-    ->where('sale_items.discount_label', 'NOT LIKE', '%FREE%')      // ← ADD
-    ->where('sale_items.discount_label', 'NOT LIKE', '%FREE ITEM%') // ← ADD
-    ->whereNotNull('sale_items.discount_label')
-    ->where('sale_items.discount_label', '!=', '')
-    ->sum('sale_items.discount_amount');
+            ->where('sale_items.discount_label', 'NOT LIKE', '%SENIOR%')
+            ->where('sale_items.discount_label', 'NOT LIKE', '%PWD%')
+            ->where('sale_items.discount_label', 'NOT LIKE', '%DIPLOMAT%')
+            ->where('sale_items.discount_label', 'NOT LIKE', '%FREE%')
+            ->where('sale_items.discount_label', 'NOT LIKE', '%FREE ITEM%')
+            ->whereNotNull('sale_items.discount_label')
+            ->where('sale_items.discount_label', '!=', '')
+            ->sum('sale_items.discount_amount');
 
         // ── Order-level discounts ─────────────────────────────────────────────
         $orderBase = DB::table('sales')
