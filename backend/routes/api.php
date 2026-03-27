@@ -345,12 +345,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/recipes/by-menu-item/{menuItemId}', [RecipeController::class, 'byMenuItem']);
         Route::patch('/recipes/{recipe}/toggle',         [RecipeController::class, 'toggle']);
         Route::apiResource('recipes', RecipeController::class)->except(['index', 'show']);
-
-        Route::prefix('pos-devices')->group(function () {
-            Route::get    ('/',               [PosDeviceController::class, 'index']);
-            Route::patch  ('/{id}/assign',    [PosDeviceController::class, 'assignUser']);
-            Route::delete ('/{id}/unassign',  [PosDeviceController::class, 'unassignUser']);
-        });
     });
 
     // ── SUPERADMIN ONLY ──────────────────────────────────────────────────────
@@ -411,11 +405,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         });
 
         // ── POS DEVICE MANAGEMENT ─────────────────────────────────────────────
-        Route::prefix('pos-devices')->group(function () {
-            Route::post  ('/',                [PosDeviceController::class, 'register']);
-            Route::patch ('/{id}/toggle',     [PosDeviceController::class, 'toggleStatus']);
-            Route::delete('/{id}',            [PosDeviceController::class, 'destroy']);
-        });
         // ─────────────────────────────────────────────────────────────────────
 
         Route::prefix('admin/cards')->group(function () {
@@ -426,5 +415,15 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::post('/users/{userId}/log-usage', [CardController::class, 'logUsage']);
 });
 
+    });
+
+        // ── POS DEVICES — superadmin, branch_manager, team_leader ────────────────
+    Route::middleware(['role:superadmin,branch_manager,team_leader'])->prefix('pos-devices')->group(function () {
+        Route::get    ('/',               [PosDeviceController::class, 'index']);
+        Route::post   ('/',               [PosDeviceController::class, 'register']);
+        Route::patch  ('/{id}/assign',    [PosDeviceController::class, 'assignUser']);
+        Route::delete ('/{id}/unassign',  [PosDeviceController::class, 'unassignUser']);
+        Route::patch  ('/{id}/toggle',    [PosDeviceController::class, 'toggleStatus']);
+        Route::delete ('/{id}',           [PosDeviceController::class, 'destroy']);
     });
 });

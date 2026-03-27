@@ -150,6 +150,11 @@ class PosDeviceController extends Controller
             'branch_id'   => 'required|exists:branches,id',
         ]);
 
+        $user = $request->user();
+        if ($user->role === 'branch_manager' && $user->branch_id) {
+            $request->merge(['branch_id' => $user->branch_id]);
+        }
+
         $device = PosDevice::create([
             'device_name' => $request->device_name,
             'pos_number'  => $request->pos_number,

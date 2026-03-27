@@ -133,11 +133,16 @@ const ModalShell: React.FC<{
 // ─── Register Device Modal ────────────────────────────────────────────────────
 
 const RegisterDeviceModal: React.FC<{
-  onClose:     () => void;
+  onClose: () => void;
   onRegistered: (device: PosDevice) => void;
-  branches:    Branch[];
-}> = ({ onClose, onRegistered, branches }) => {
-  const [form, setForm] = useState({ device_name: '', pos_number: '', branch_id: '' });
+  branches: Branch[];
+  defaultBranchId?: number | null;
+}> = ({ onClose, onRegistered, branches, defaultBranchId }) => {
+  const [form, setForm] = useState({
+    device_name: "",
+    pos_number:  "",
+    branch_id:   defaultBranchId ? String(defaultBranchId) : "",
+  });
   const [errors,   setErrors]   = useState<Record<string, string>>({});
   const [saving,   setSaving]   = useState(false);
   const [apiError, setApiError] = useState('');
@@ -145,9 +150,9 @@ const RegisterDeviceModal: React.FC<{
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.device_name.trim()) e.device_name = 'Device ID is required.';
-    if (!form.pos_number.trim())  e.pos_number  = 'POS number is required.';
-    if (!form.branch_id)          e.branch_id   = 'Branch is required.';
+    if (!form.device_name.trim()) e.device_name = "Device ID is required.";
+    if (!form.pos_number.trim())  e.pos_number  = "POS number is required.";
+    if (!form.branch_id && !defaultBranchId) e.branch_id = "Branch is required.";
     return e;
   };
 
@@ -213,13 +218,12 @@ const RegisterDeviceModal: React.FC<{
             </div>
           )}
 
-          {/* How-to hint */}
           <div className="flex items-start gap-3 p-3 bg-violet-50 border border-violet-200 rounded-lg">
             <Laptop size={14} className="text-violet-500 shrink-0 mt-0.5" />
             <div>
               <p className="text-[10px] font-bold uppercase tracking-widest text-violet-700 mb-0.5">How to get the Device ID</p>
               <p className="text-xs text-violet-600 leading-relaxed">
-                On the POS terminal, open the app and it will show a <span className="font-bold">"Device Not Registered"</span> screen with the Device ID. The cashier can copy it and send it to you.
+                On the POS terminal, open the app and it will show a <span className="font-bold">"Device Not Registered"</span> screen with the Device ID.
               </p>
             </div>
           </div>
@@ -233,19 +237,26 @@ const RegisterDeviceModal: React.FC<{
             <Field label="POS Number" required error={errors.pos_number} hint="Friendly label shown in reports.">
               <input {...f('pos_number')} placeholder="e.g. POS-001" className={inputCls(errors.pos_number)} />
             </Field>
-            <Field label="Branch" required error={errors.branch_id}>
-              {branches.length === 0 ? (
-                <div className="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
-                  <AlertCircle size={12} className="text-amber-500 shrink-0" />
-                  <p className="text-xs text-amber-700">No branches found.</p>
-                </div>
-              ) : (
-                <select {...f('branch_id')} className={inputCls(errors.branch_id)}>
-                  <option value="">— Select branch —</option>
-                  {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                </select>
-              )}
-            </Field>
+
+<Field label="Branch" required error={errors.branch_id}>
+  {defaultBranchId ? (
+    <div className="flex items-center gap-2 px-3 py-2.5 bg-violet-50 border border-violet-200 rounded-lg">
+      <p className="text-sm font-semibold text-violet-700 truncate">
+        {branches.find(b => b.id === defaultBranchId)?.name ?? `Branch #${defaultBranchId}`}
+      </p>
+    </div>
+  ) : branches.length === 0 ? (
+    <div className="flex items-center gap-2 p-2.5 bg-amber-50 border border-amber-200 rounded-lg">
+      <AlertCircle size={12} className="text-amber-500 shrink-0" />
+      <p className="text-xs text-amber-700">No branches found.</p>
+    </div>
+  ) : (
+    <select {...f("branch_id")} className={inputCls(errors.branch_id)}>
+      <option value="">— Select branch —</option>
+      {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+    </select>
+  )}
+</Field>
           </div>
         </>
       )}
