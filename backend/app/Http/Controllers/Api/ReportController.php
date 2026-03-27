@@ -126,11 +126,11 @@ class ReportController extends Controller
 
             return [
                 'summary_data'      => $summary,
-                'total_discounts'   => (float)$totalDiscounts,
-                'total_void_amount' => (float)$totalVoids,
-                'gross_sales'       => (float)$totalGross,
+                'total_discounts'   => (float) $totalDiscounts,
+                'total_void_amount' => (float) $totalVoids,
+                'gross_sales'       => (float) $totalGross,
                 'from_date'         => $from,
-                'to_date'           => $to
+                'to_date'           => $to,
             ];
         } catch (\Exception $e) {
             Log::error("Summary Logic Error: " . $e->getMessage());
@@ -183,19 +183,13 @@ class ReportController extends Controller
         $globalAddonSummary = [];
 
         $groupedData = $rawItems->groupBy('category_name')->map(function ($items, $category) use (&$globalAddonSummary) {
-            $productSummary = $items->groupBy(function ($item) {
-                $size = $item->size ?? null;
-                $name = $item->resolved_product_name ?? $item->product_name;
-                return $name . '||' . ($size ?? 'none');
-            })->map(function ($pGroup) use (&$globalAddonSummary) {
-                $firstItem = $pGroup->first();
-                $rawSize   = $firstItem->size ?? null;
-                $cupSizeM  = $firstItem->cup_size_m ?? 'SM';
-                $cupSizeL  = $firstItem->cup_size_l ?? 'SL';
-
-                $sizeLabel = null;
-                if ($rawSize === 'M') $sizeLabel = $cupSizeM;
-                elseif ($rawSize === 'L') $sizeLabel = $cupSizeL;
+        $productSummary = $items->groupBy(function ($item) {
+    $name      = $item->resolved_product_name ?? $item->product_name;
+    $sizeLabel = $item->cup_size_label ?? null;
+    return $name . '||' . ($sizeLabel ?? 'none');
+})->map(function ($pGroup) use (&$globalAddonSummary) {
+    $firstItem = $pGroup->first();
+    $sizeLabel = $firstItem->cup_size_label ?? null;
 
                 $productAddOnCounts = [];
                 foreach ($pGroup as $item) {
@@ -312,6 +306,7 @@ class ReportController extends Controller
             $expectedAmount = (float) ($cashCount->expected_amount ?? $cashCount->expected_cash ?? 0);
             $shortOver      = (float) ($cashCount->short_over      ?? ($actualAmount - $expectedAmount));
 
+            /** @var \Illuminate\Http\Request $request */
             $user = auth('sanctum')->user() ?? $request->user();
 
             return response()->json([
@@ -333,19 +328,41 @@ class ReportController extends Controller
         }
     }
 
+    /**
+     * FIX: Use void_reason or remarks as the reason field,
+     * not the invoice_number.
+     */
     public function getVoidLogs(Request $request)
-    {
-        $date  = $request->query('date');
-        $voids = Sale::whereDate('created_at', $date)
-            ->where('status', 'cancelled')
-            ->select('id', 'invoice_number as reason', 'total_amount as amount', DB::raw("DATE_FORMAT(created_at, '%h:%i %p') as time"))
-            ->get();
+{
+    $date = $request->query('date');
 
-        return response()->json([
-            'logs'        => $voids,
-            'prepared_by' => auth()->user()->name ?? 'System Admin',
-        ]);
+    $hasVoidReason = \Schema::hasColumn('sales', 'void_reason');
+    $hasRemarks    = \Schema::hasColumn('sales', 'remarks');
+
+    $reasonExpr = 'invoice_number';
+    if ($hasVoidReason && $hasRemarks) {
+        $reasonExpr = "COALESCE(NULLIF(void_reason, ''), NULLIF(remarks, ''), invoice_number)";
+    } elseif ($hasVoidReason) {
+        $reasonExpr = "COALESCE(NULLIF(void_reason, ''), invoice_number)";
+    } elseif ($hasRemarks) {
+        $reasonExpr = "COALESCE(NULLIF(remarks, ''), invoice_number)";
     }
+
+    $voids = Sale::whereDate('created_at', $date)
+        ->where('status', 'cancelled')
+        ->select(
+            'id',
+            DB::raw("$reasonExpr as reason"),
+            'total_amount as amount',
+            DB::raw("DATE_FORMAT(created_at, '%h:%i %p') as time")
+        )
+        ->get();
+
+    return response()->json([
+        'logs'        => $voids,
+        'prepared_by' => auth()->user()->name ?? 'System Admin',
+    ]);
+}
 
     public function exportSales(Request $request)
     {
@@ -416,6 +433,10 @@ class ReportController extends Controller
 
     /**
      * GET /api/reports/sales-summary?from=YYYY-MM-DD&to=YYYY-MM-DD
+     *
+     * FIX: VAT is now calculated consistently with generateZReading().
+     * SC/PWD discount / 0.20 reconstructs the VAT-exempt base.
+     * Remaining gross is then split into VATable + VAT.
      */
     public function getSalesSummary(Request $request)
     {
@@ -443,10 +464,7 @@ class ReportController extends Controller
             }
             // ─────────────────────────────────────────────────────────────────
 
-            $vatableSales   = $isVat ? round($gross / 1.12, 2) : 0.0;
-            $vatAmount      = $isVat ? round($gross - $vatableSales, 2) : 0.0;
-            $vatExemptSales = $isVat ? 0.0 : $gross;
-
+            // ── Discounts (needed before VAT calc) ────────────────────────────
             $scDiscount = DB::table('sale_items')
                 ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
                 ->whereBetween('sales.created_at', [$from, $to])
@@ -485,15 +503,29 @@ class ReportController extends Controller
                 ->whereNotNull('discount_id')
                 ->sum('discount_amount');
 
+            // ── FIX: VAT using consistent formula ─────────────────────────────
+            // Previously this just did gross / 1.12, ignoring SC/PWD exemptions.
+            // Now uses the same formula as generateZReading():
+            //   vatExemptSales = scPwdDiscount / 0.20
+            //   vatableBase    = gross - vatExemptSales
+            //   vatableSales   = vatableBase / 1.12
+            //   vatAmount      = vatableBase - vatableSales
+            $scPwdDiscount  = (float)$scDiscount + (float)$pwdDiscount;
+            $vatExemptSales = $isVat ? round($scPwdDiscount / 0.20, 2) : 0.0;
+            $vatableBase    = $isVat ? max(0.0, $gross - $vatExemptSales) : 0.0;
+            $vatableSales   = $isVat ? round($vatableBase / 1.12, 2) : 0.0;
+            $vatAmount      = $isVat ? round($vatableBase - $vatableSales, 2) : 0.0;
+            // ─────────────────────────────────────────────────────────────────
+
             return response()->json(array_merge($data, [
                 'payment_breakdown'  => $paymentBreakdown,
                 'vatable_sales'      => $vatableSales,
                 'vat_amount'         => $vatAmount,
-                'vat_exempt_sales'   => $vatExemptSales,   // ← new
-                'is_vat'             => $isVat,             // ← new
-                'sc_discount'        => round((float)$scDiscount,       2),
-                'pwd_discount'       => round((float)$pwdDiscount,      2),
-                'diplomat_discount'  => round((float)$diplomatDiscount, 2),
+                'vat_exempt_sales'   => $vatExemptSales,
+                'is_vat'             => $isVat,
+                'sc_discount'        => round((float)$scDiscount,           2),
+                'pwd_discount'       => round((float)$pwdDiscount,          2),
+                'diplomat_discount'  => round((float)$diplomatDiscount,     2),
                 'other_discount'     => round((float)$otherDiscount + (float)$orderLevelOtherDiscount, 2),
                 'sc_pwd_discount'    => round((float)$scDiscount + (float)$pwdDiscount, 2),
                 'total_senior_pax'   => 0,
