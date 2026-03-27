@@ -238,9 +238,11 @@ export const MenuArea = ({
         // ── Category grid ─────────────────────────────────────────────────
         <div className="pb-20 animate-in fade-in zoom-in duration-300 space-y-7">
           {[
-            { label: 'Drinks', types: ['drink'],         colorKey: 'drink' },
-            { label: 'Promo',  types: ['promo'],         colorKey: 'promo' },
-            { label: 'Food',   types: ['food', 'wings'], colorKey: 'food'  },
+            { label: 'Drinks',       types: ['drink'],                        colorKey: 'drink' },
+            { label: 'Bundles',      types: ['bundle'],                       colorKey: 'drink' },
+            { label: 'Food',         types: ['food', 'wings', 'waffle', 'combo'], colorKey: 'food' },
+            { label: 'Mix & Match',  types: ['mix_and_match'],                colorKey: 'promo' },
+            { label: 'Promo',        types: ['promo'],                        colorKey: 'promo' },
           ].map(({ label, types, colorKey }) => {
             const groupCats = filteredCategories.filter(cat => types.includes(cat.type));
             if (groupCats.length === 0) return null;
@@ -265,7 +267,7 @@ export const MenuArea = ({
 
           {/* Other categories */}
           {(() => {
-            const known  = ['food', 'wings', 'drink', 'promo'];
+            const known  = ['food', 'wings', 'waffle', 'combo', 'drink', 'bundle', 'mix_and_match', 'promo'];
             const others = filteredCategories.filter(cat => !known.includes(cat.type));
             if (others.length === 0) return null;
             return (
