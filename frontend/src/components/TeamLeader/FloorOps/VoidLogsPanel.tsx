@@ -32,16 +32,34 @@ interface Stats { gross: number; voided: number; net: number; }
  * getSalesDetailed returns PascalCase aliases (Invoice, Amount, Status,
  * Cashier, Date_Time) so we read both casings to be safe.
  */
-const mapVoidLog = (v: any): VoidLog => ({
+interface RawSaleRecord {
+  id: number;
+  Invoice?: string;
+  invoice_number?: string;
+  invoice?: string;
+  Amount?: string | number;
+  total_amount?: string | number;
+  amount?: string | number;
+  Cashier?: string;
+  cashier_name?: string;
+  cashier?: string;
+  Date_Time?: string;
+  created_at?: string;
+  Status?: string;
+  status?: string;
+}
+
+const mapVoidLog = (v: RawSaleRecord): VoidLog => ({
   id:         v.id,
-  sale_id:    v.id,                                        // same row, use sales.id
-  invoice:    v.Invoice    ?? v.invoice_number ?? v.invoice ?? `#${v.id}`,
-  amount:     parseFloat(v.Amount     ?? v.total_amount   ?? v.amount ?? 0),
-  cashier:    v.Cashier    ?? v.cashier_name   ?? v.cashier ?? '—',
-  created_at: v.Date_Time  ?? v.created_at
-    ? new Date(v.Date_Time ?? v.created_at).toLocaleString('en-PH')
-    : '—',
-  status:     (v.Status ?? v.status ?? 'completed').toLowerCase() as VoidStatus,
+  sale_id:    v.id,
+  invoice:    v.Invoice ?? v.invoice_number ?? v.invoice ?? `#${v.id}`,
+  amount:     parseFloat(String(v.Amount ?? v.total_amount ?? v.amount ?? 0)),
+  cashier:    v.Cashier ?? v.cashier_name ?? v.cashier ?? '—',
+  created_at: (() => {
+    const raw = v.Date_Time ?? v.created_at;
+    return raw ? new Date(raw).toLocaleString('en-PH') : '—';
+  })(),
+  status: (v.Status ?? v.status ?? 'completed').toLowerCase() as VoidStatus,
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -99,7 +117,7 @@ const VoidLogsPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
       if (branchId) params.branch_id = branchId;   // ← scoped to this branch
 
       const res    = await api.get('/reports/sales-detailed', { params });
-      const raw    = res.data.transactions ?? [];
+      const raw: RawSaleRecord[] = res.data.transactions ?? [];
       const mapped: VoidLog[] = raw.map(mapVoidLog);
       setVoidLogs(mapped);
 
@@ -139,8 +157,11 @@ const VoidLogsPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
       });
       setVoidSuccess(true);
       setTimeout(() => { closeVoidModal(); fetchLogs(); }, 1500);
-    } catch (err: any) {
-      setVoidError(err?.response?.data?.message ?? 'Void failed. Receipt may already be voided.');
+} catch (err: unknown) {
+  setVoidError(
+    (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+    ?? 'Void failed. Receipt may already be voided.'
+  );
     } finally { setIsVoiding(false); }
   };
 
