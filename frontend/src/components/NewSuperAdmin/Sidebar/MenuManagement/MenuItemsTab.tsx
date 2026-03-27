@@ -210,11 +210,12 @@ interface ComboBuilderProps {
   errors:        Record<string, string>;
 }
 
+const FOOD_TYPES  = ["food", "wings", "waffle"];
+const DRINK_TYPES = ["drink"];
+
 const ComboBuilder: React.FC<ComboBuilderProps> = ({
   allItems, foodItemId, drinkItemId, onFoodChange, onDrinkChange, errors,
 }) => {
-  const FOOD_TYPES  = ["food", "wings", "waffle"];
-  const DRINK_TYPES = ["drink"];
 
   const foodOptions = useMemo(() =>
     allItems

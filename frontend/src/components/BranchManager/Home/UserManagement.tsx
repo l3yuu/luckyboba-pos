@@ -242,7 +242,7 @@ const handleSubmit = async () => {
   setSaving(true); setApiError('');
   try {
     if (editingUser) {
-      const payload: Record<string, any> = {
+      const payload: Record<string, string | number | boolean | null> = {
         name:      form.name,
         email:     form.email,
         role:      form.role,
