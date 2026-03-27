@@ -1321,7 +1321,7 @@ const filteredCategories = categories
         />
 
          {/* ── Category nav bar ─────────────────────────────────────────── */}
-<div className="flex flex-col bg-white/70 backdrop-blur-sm border-b border-[#7c14d4]/10 print:hidden z-10 flex-shrink-0">
+<div className="flex flex-col bg-white/70 backdrop-blur-sm border-b border-[#7c14d4]/10 print:hidden z-10 shrink-0">
 
   {/* Row 1: POS Home + Breadcrumb */}
   <div className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium">
@@ -1342,7 +1342,7 @@ const filteredCategories = categories
 
     {selectedCategory && (
       <>
-        <ChevronRight size={12} className="text-[#7c14d4]/30 flex-shrink-0" />
+        <ChevronRight size={12} className="text-[#7c14d4]/30 shrink-0" />
         <span
           className={`flex items-center px-2 py-1 rounded-md transition-all duration-150 ${
             !categorySize
@@ -1358,7 +1358,7 @@ const filteredCategories = categories
 
     {selectedCategory && categorySize && !categoryHasOnlyOneSize && (
       <>
-        <ChevronRight size={12} className="text-[#7c14d4]/30 flex-shrink-0" />
+        <ChevronRight size={12} className="text-[#7c14d4]/30 shrink-0" />
         <span className="px-2 py-1 rounded-md text-[#7c14d4] font-semibold bg-[#7c14d4]/10">
           {categorySize}
         </span>
@@ -1387,7 +1387,7 @@ const filteredCategories = categories
           <button
             key={String(group.key)}
             onClick={() => setActiveCategoryGroup(isActive ? null : group.key)}
-            className={`flex-shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-all duration-150 border ${
+            className={`shrink-0 flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold transition-all duration-150 border ${
               isActive
                 ? 'bg-[#7c14d4] text-white border-[#7c14d4] shadow-sm'
                 : 'bg-white text-[#7c14d4] border-[#7c14d4]/20 hover:border-[#7c14d4]/50 hover:bg-[#7c14d4]/5'
