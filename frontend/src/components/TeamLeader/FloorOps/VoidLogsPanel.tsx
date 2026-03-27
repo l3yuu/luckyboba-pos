@@ -1,348 +1,242 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Search, RefreshCw, AlertCircle, Eye, X,
-  FileX, Clock, CheckCircle, AlertTriangle,
+  Search, RefreshCw, X, AlertTriangle, Trash2,
+  Receipt as ReceiptIcon, CheckCircle2,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import api from '../../../services/api';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// TYPES
+// ─────────────────────────────────────────────────────────────────────────────
 
-type VoidStatus = 'pending' | 'approved' | 'rejected';
-type FilterTab  = 'all' | VoidStatus;
+type VoidStatus = 'completed' | 'pending' | 'approved' | 'rejected' | 'cancelled';
 
 interface VoidLog {
   id:         number;
+  sale_id:    number;
   invoice:    string;
   amount:     number;
   cashier:    string;
-  reason:     string;
   created_at: string;
   status:     VoidStatus;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+interface Stats { gross: number; voided: number; net: number; }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// ─────────────────────────────────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * getSalesDetailed returns PascalCase aliases (Invoice, Amount, Status,
+ * Cashier, Date_Time) so we read both casings to be safe.
+ */
 const mapVoidLog = (v: any): VoidLog => ({
   id:         v.id,
-  invoice:    v.invoice ?? v.invoice_number ?? `#${v.id}`,
-  amount:     parseFloat(v.amount ?? v.total ?? 0),
-  cashier:    v.cashier ?? v.cashier_name ?? v.user?.name ?? '—',
-  reason:     v.reason ?? v.void_reason ?? '—',
-  created_at: v.created_at
-    ? new Date(v.created_at).toLocaleString('en-PH', {
-        month: 'short', day: 'numeric',
-        hour: '2-digit', minute: '2-digit',
-      })
-    : v.created_at,
-  status: v.status ?? 'pending',
+  sale_id:    v.id,                                        // same row, use sales.id
+  invoice:    v.Invoice    ?? v.invoice_number ?? v.invoice ?? `#${v.id}`,
+  amount:     parseFloat(v.Amount     ?? v.total_amount   ?? v.amount ?? 0),
+  cashier:    v.Cashier    ?? v.cashier_name   ?? v.cashier ?? '—',
+  created_at: v.Date_Time  ?? v.created_at
+    ? new Date(v.Date_Time ?? v.created_at).toLocaleString('en-PH')
+    : '—',
+  status:     (v.Status ?? v.status ?? 'completed').toLowerCase() as VoidStatus,
 });
 
-// ─── Shared UI ────────────────────────────────────────────────────────────────
-
-type VariantKey = 'primary' | 'secondary';
-type SizeKey    = 'sm' | 'md';
-
-interface BtnProps {
-  children: React.ReactNode; variant?: VariantKey; size?: SizeKey;
-  onClick?: () => void; className?: string; disabled?: boolean;
-}
-const Btn: React.FC<BtnProps> = ({
-  children, variant = 'primary', size = 'sm',
-  onClick, className = '', disabled = false,
-}) => {
-  const sizes:    Record<SizeKey,    string> = { sm: 'px-3 py-2 text-xs', md: 'px-4 py-2.5 text-sm' };
-  const variants: Record<VariantKey, string> = {
-    primary:   'bg-[#3b2063] hover:bg-[#2a1647] text-white',
-    secondary: 'bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50',
-  };
-  return (
-    <button onClick={onClick} disabled={disabled}
-      className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 ${sizes[size]} ${variants[variant]} ${className}`}>
-      {children}
-    </button>
-  );
-};
+// ─────────────────────────────────────────────────────────────────────────────
+// SHARED UI
+// ─────────────────────────────────────────────────────────────────────────────
 
 const StatusBadge: React.FC<{ status: VoidStatus }> = ({ status }) => {
-  const map: Record<VoidStatus, string> = {
-    pending:  'bg-amber-50 text-amber-700 border border-amber-200',
-    approved: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
-    rejected: 'bg-red-50 text-red-600 border border-red-200',
+  const map: Record<string, string> = {
+    pending:   'bg-amber-50 text-amber-700 border border-amber-200',
+    approved:  'bg-emerald-50 text-emerald-700 border border-emerald-200',
+    completed: 'bg-blue-50 text-blue-700 border border-blue-200',
+    cancelled: 'bg-red-50 text-red-600 border border-red-200',
   };
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${map[status]}`}>
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${map[status] || map.completed}`}>
       {status}
     </span>
   );
 };
 
-// ─── View Modal ───────────────────────────────────────────────────────────────
+const StatBox: React.FC<{ label: string; value: number; isDanger?: boolean }> = ({ label, value, isDanger }) => (
+  <div className={`bg-white border rounded-lg p-4 text-center shadow-sm ${isDanger ? 'border-red-200' : 'border-zinc-200'}`}>
+    <div className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${isDanger ? 'text-red-400' : 'text-zinc-400'}`}>{label}</div>
+    <div className={`text-xl font-bold ${isDanger ? 'text-red-500' : 'text-[#1a0f2e]'}`}>
+      ₱{value.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+    </div>
+  </div>
+);
 
-const ViewVoidModal: React.FC<{ onClose: () => void; log: VoidLog }> = ({ onClose, log }) => {
-  const rows: [string, React.ReactNode][] = [
-    ['Log ID',    `#${log.id}`],
-    ['Invoice',   <span className="font-mono text-xs">{log.invoice}</span>],
-    ['Cashier',   log.cashier],
-    ['Amount',    <span className="font-bold text-red-600">₱{log.amount.toFixed(2)}</span>],
-    ['Reason',    log.reason],
-    ['Date/Time', log.created_at],
-    ['Status',    <StatusBadge status={log.status} />],
-  ];
-
-  return createPortal(
-    <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
-      style={{ backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.45)' }}>
-      <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative bg-white w-full max-w-md border border-zinc-200 rounded-[1.25rem] shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-violet-50 border border-violet-200 rounded-lg flex items-center justify-center">
-              <Eye size={15} className="text-violet-600" />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-[#1a0f2e]">Void Details</p>
-              <p className="text-[10px] text-zinc-400">Invoice {log.invoice}</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600">
-            <X size={16} />
-          </button>
-        </div>
-        {/* Body */}
-        <div className="px-6 py-5 flex flex-col divide-y divide-zinc-100">
-          {rows.map(([label, val]) => (
-            <div key={label as string} className="flex items-center justify-between py-2.5">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">{label}</span>
-              <span className="text-xs font-semibold text-zinc-700 text-right max-w-[60%]">{val}</span>
-            </div>
-          ))}
-        </div>
-        {/* Footer */}
-        <div className="flex items-center justify-end px-6 py-4 border-t border-zinc-100">
-          <Btn variant="secondary" onClick={onClose}>Close</Btn>
-        </div>
-      </div>
-    </div>,
-    document.body
-  );
-};
-
-// ─── Main Panel ───────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// MAIN PANEL
+// ─────────────────────────────────────────────────────────────────────────────
 
 const VoidLogsPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
-  const [voidLogs,   setVoidLogs]   = useState<VoidLog[]>([]);
-  const [loading,    setLoading]    = useState(true);
-  const [fetchError, setFetchError] = useState('');
-  const [search,     setSearch]     = useState('');
-  const [filter,     setFilter]     = useState<FilterTab>('all');
-  const [viewTarget, setViewTarget] = useState<VoidLog | null>(null);
 
+  const [voidLogs,     setVoidLogs]     = useState<VoidLog[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [fetchError,   setFetchError]   = useState('');
+  const [stats,        setStats]        = useState<Stats>({ gross: 0, voided: 0, net: 0 });
+  const [searchQuery,  setSearchQuery]  = useState('');
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+
+  // Void modal
+  const [targetReceipt, setTargetReceipt] = useState<VoidLog | null>(null);
+  const [voidReason,    setVoidReason]    = useState('');
+  const [isVoiding,     setIsVoiding]     = useState(false);
+  const [voidSuccess,   setVoidSuccess]   = useState(false);
+  const [voidError,     setVoidError]     = useState('');
+
+  // ── Fetch ───────────────────────────────────────────────────────────────────
   const fetchLogs = useCallback(async () => {
     setLoading(true); setFetchError('');
     try {
-      const res = await api.get('/void-logs', { params: { branch_id: branchId } });
-      const payload = res.data;
-      const raw: unknown[] = Array.isArray(payload)
-        ? payload
-        : Array.isArray(payload?.data) ? payload.data : [];
-      setVoidLogs(raw.map(mapVoidLog));
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setFetchError(msg ?? 'Failed to load void logs.');
+      const params: Record<string, any> = { date: selectedDate };
+      if (branchId) params.branch_id = branchId;   // ← scoped to this branch
+
+      const res    = await api.get('/reports/sales-detailed', { params });
+      const raw    = res.data.transactions ?? [];
+      const mapped: VoidLog[] = raw.map(mapVoidLog);
+      setVoidLogs(mapped);
+
+      const gross  = mapped.reduce((s, l) => s + l.amount, 0);
+      const voided = mapped
+        .filter(l => l.status === 'cancelled')
+        .reduce((s, l) => s + l.amount, 0);
+      setStats({ gross, voided, net: gross - voided });
+    } catch {
+      setFetchError('Failed to load receipts.');
     } finally { setLoading(false); }
-  }, [branchId]);
+  }, [branchId, selectedDate]);
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
-  const filtered = voidLogs
-    .filter(l => filter === 'all' || l.status === filter)
-    .filter(l =>
-      l.invoice.toLowerCase().includes(search.toLowerCase()) ||
-      l.cashier.toLowerCase().includes(search.toLowerCase()) ||
-      l.reason.toLowerCase().includes(search.toLowerCase())
-    );
+  // ── Void handlers ───────────────────────────────────────────────────────────
+  const openVoidModal = (log: VoidLog) => {
+    setTargetReceipt(log);
+    setVoidReason('');
+    setVoidSuccess(false);
+    setVoidError('');
+  };
 
-  const pendingCount  = voidLogs.filter(l => l.status === 'pending').length;
-  const approvedCount = voidLogs.filter(l => l.status === 'approved').length;
-  const rejectedCount = voidLogs.filter(l => l.status === 'rejected').length;
-  const totalAmount   = voidLogs.reduce((sum, l) => sum + l.amount, 0);
+  const closeVoidModal = () => {
+    setTargetReceipt(null);
+    setVoidReason('');
+    setVoidSuccess(false);
+    setVoidError('');
+  };
 
-  const TABS: { key: FilterTab; label: string }[] = [
-    { key: 'all',      label: 'All'      },
-    { key: 'pending',  label: 'Pending'  },
-    { key: 'approved', label: 'Approved' },
-    { key: 'rejected', label: 'Rejected' },
-  ];
+  const handleConfirmVoid = async () => {
+    if (!targetReceipt || !voidReason.trim()) return;
+    setIsVoiding(true); setVoidError('');
+    try {
+      await api.post(`/receipts/${targetReceipt.sale_id}/void-request`, {
+        reason: voidReason,
+      });
+      setVoidSuccess(true);
+      setTimeout(() => { closeVoidModal(); fetchLogs(); }, 1500);
+    } catch (err: any) {
+      setVoidError(err?.response?.data?.message ?? 'Void failed. Receipt may already be voided.');
+    } finally { setIsVoiding(false); }
+  };
 
+  // ── Filter ──────────────────────────────────────────────────────────────────
+  const filtered = voidLogs.filter(l =>
+    l.invoice.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    l.cashier.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // RENDER
+  // ─────────────────────────────────────────────────────────────────────────
   return (
     <div className="p-6 md:p-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Void Logs</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            {loading ? 'Loading...' : `${voidLogs.length} total · ${pendingCount} pending`}
-          </p>
+          <h2 className="text-base font-bold text-[#1a0f2e]">Receipt Management</h2>
+          <p className="text-xs text-zinc-400 mt-0.5">Search and void transactions</p>
         </div>
-        <Btn variant="secondary" onClick={fetchLogs} disabled={loading}>
-          <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
-        </Btn>
-      </div>
-
-      {/* ── Stat Cards ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        {/* Total */}
-        <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-violet-50 border border-violet-200 flex items-center justify-center rounded-[0.4rem] shrink-0">
-            <FileX size={15} className="text-violet-600" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Total Voids</p>
-            <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">{loading ? '—' : voidLogs.length}</p>
-          </div>
-        </div>
-        {/* Pending */}
-        <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-amber-50 border border-amber-200 flex items-center justify-center rounded-[0.4rem] shrink-0">
-            <Clock size={15} className="text-amber-500" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Pending</p>
-            <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">{loading ? '—' : pendingCount}</p>
-          </div>
-        </div>
-        {/* Approved */}
-        <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-emerald-50 border border-emerald-200 flex items-center justify-center rounded-[0.4rem] shrink-0">
-            <CheckCircle size={15} className="text-emerald-600" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Approved</p>
-            <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">{loading ? '—' : approvedCount}</p>
-          </div>
-        </div>
-        {/* Total Value */}
-        <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-red-50 border border-red-200 flex items-center justify-center rounded-[0.4rem] shrink-0">
-            <AlertTriangle size={15} className="text-red-500" />
-          </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Total Value</p>
-            <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">
-              {loading ? '—' : `₱${totalAmount.toFixed(2)}`}
-            </p>
-          </div>
+        <div className="flex gap-2">
+          <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
+            className="bg-white border border-zinc-200 rounded-lg px-3 py-2 text-xs font-bold outline-none" />
+          <button onClick={fetchLogs} disabled={loading}
+            className="inline-flex items-center gap-1.5 font-bold rounded-lg transition-all px-3 py-2 text-xs bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 disabled:opacity-50">
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
+          </button>
         </div>
       </div>
 
-      {/* ── Table Card ── */}
+      {/* ── Stats Bar ── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+        <StatBox label="Gross Sales"  value={stats.gross} />
+        <StatBox label="Voided Sales" value={stats.voided} isDanger />
+        <StatBox label="Net Sales"    value={stats.net} />
+      </div>
+
+      {/* ── Table ── */}
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
-
-        {/* Search + Filter tabs */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 px-5 py-4 border-b border-zinc-100">
-          {/* Search */}
-          <div className="flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 flex-1">
-            <Search size={13} className="text-zinc-400 shrink-0" />
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400"
-              placeholder="Search invoice, cashier, reason..."
-            />
-          </div>
-          {/* Filter tabs */}
-          <div className="flex items-center gap-1 bg-zinc-50 border border-zinc-200 rounded-lg p-1 shrink-0">
-            {TABS.map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => setFilter(key)}
-                className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${
-                  filter === key
-                    ? 'bg-[#1a0f2e] text-white shadow-sm'
-                    : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100'
-                }`}>
-                {label}
-                {key !== 'all' && !loading && (
-                  <span className={`ml-1.5 text-[9px] tabular-nums ${filter === key ? 'opacity-70' : 'opacity-50'}`}>
-                    {key === 'pending' ? pendingCount : key === 'approved' ? approvedCount : rejectedCount}
-                  </span>
-                )}
+        <div className="px-5 py-4 border-b border-zinc-100">
+          <div className="flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
+            <Search size={13} className="text-zinc-400" />
+            <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+              className="flex-1 bg-transparent text-sm outline-none"
+              placeholder="Search invoice or cashier..." />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery('')} className="text-zinc-300 hover:text-red-500">
+                <X size={13} />
               </button>
-            ))}
+            )}
           </div>
         </div>
 
-        {/* Table */}
+        {fetchError && (
+          <p className="px-5 py-3 text-xs text-red-500 font-semibold">{fetchError}</p>
+        )}
+
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-zinc-100">
-                {['Invoice', 'Cashier', 'Amount', 'Reason', 'Date / Time', 'Status', 'Actions'].map(h => (
+              <tr className="border-b border-zinc-100 bg-zinc-50/50">
+                {['Invoice', 'Cashier', 'Amount', 'Date', 'Status', 'Actions'].map(h => (
                   <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-
-              {/* Skeleton */}
-              {loading && [...Array(4)].map((_, i) => (
-                <tr key={i} className="border-b border-zinc-50">
-                  {[...Array(7)].map((_, j) => (
-                    <td key={j} className="px-5 py-4">
-                      <div className="h-3 bg-zinc-100 rounded animate-pulse" style={{ width: `${55 + (j * 9) % 40}%` }} />
-                    </td>
-                  ))}
-                </tr>
-              ))}
-
-              {/* Error */}
-              {!loading && fetchError && (
+              {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-10 text-center">
-                    <div className="flex flex-col items-center gap-2">
-                      <AlertCircle size={20} className="text-red-400" />
-                      <p className="text-sm font-semibold text-red-500">{fetchError}</p>
-                      <Btn variant="secondary" size="sm" onClick={fetchLogs}>Try again</Btn>
-                    </div>
+                  <td colSpan={6} className="py-16 text-center text-xs text-zinc-300 font-bold uppercase tracking-widest">
+                    Loading...
                   </td>
                 </tr>
-              )}
-
-              {/* Empty */}
-              {!loading && !fetchError && filtered.length === 0 && (
+              ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-10 text-center text-zinc-400 text-xs font-medium">
-                    {search || filter !== 'all'
-                      ? 'No void logs match your filters.'
-                      : 'No void logs found for this branch.'}
+                  <td colSpan={6} className="py-16 text-center">
+                    <ReceiptIcon size={32} className="mx-auto text-zinc-200 mb-2" />
+                    <p className="text-xs text-zinc-300 font-bold uppercase tracking-widest">No transactions found</p>
                   </td>
                 </tr>
-              )}
-
-              {/* Data rows */}
-              {!loading && !fetchError && filtered.map(log => (
-                <tr key={log.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
-                  <td className="px-5 py-3.5">
-                    <span className="font-mono text-xs font-bold text-[#1a0f2e]">{log.invoice}</span>
-                  </td>
-                  <td className="px-5 py-3.5 font-semibold text-[#1a0f2e]">{log.cashier}</td>
-                  <td className="px-5 py-3.5 font-bold text-red-600 tabular-nums">
-                    ₱{log.amount.toFixed(2)}
-                  </td>
-                  <td className="px-5 py-3.5 text-zinc-500 max-w-50 truncate">{log.reason}</td>
-                  <td className="px-5 py-3.5 text-zinc-400 text-xs whitespace-nowrap">{log.created_at}</td>
+              ) : filtered.map(log => (
+                <tr key={log.id} className="border-b border-zinc-50 hover:bg-zinc-50">
+                  <td className="px-5 py-3.5 font-mono text-xs font-bold">{log.invoice}</td>
+                  <td className="px-5 py-3.5 text-zinc-600">{log.cashier}</td>
+                  <td className="px-5 py-3.5 font-bold text-zinc-800">₱{log.amount.toFixed(2)}</td>
+                  <td className="px-5 py-3.5 text-zinc-400 text-xs">{log.created_at}</td>
                   <td className="px-5 py-3.5"><StatusBadge status={log.status} /></td>
                   <td className="px-5 py-3.5">
-                    <button
-                      onClick={() => setViewTarget(log)}
-                      className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors"
-                      title="View details">
-                      <Eye size={13} />
-                    </button>
+                    {log.status === 'completed' && (
+                      <button onClick={() => openVoidModal(log)}
+                        className="p-1.5 bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors"
+                        title="Void receipt">
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -351,9 +245,64 @@ const VoidLogsPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
         </div>
       </div>
 
-      {/* ── Modal ── */}
-      {viewTarget && (
-        <ViewVoidModal onClose={() => setViewTarget(null)} log={viewTarget} />
+      {/* ── Void Confirmation Modal ── */}
+      {targetReceipt && createPortal(
+        <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden">
+
+            <div className="p-6 border-b border-zinc-100">
+              <h3 className="text-lg font-bold text-zinc-900">Void Receipt?</h3>
+              <p className="text-sm text-zinc-500">
+                Invoice: <span className="font-mono font-bold">{targetReceipt.invoice}</span>
+              </p>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {voidSuccess ? (
+                <div className="text-center py-4">
+                  <CheckCircle2 size={48} className="mx-auto text-emerald-500 mb-3" />
+                  <p className="text-zinc-700 font-semibold">Transaction voided successfully</p>
+                </div>
+              ) : (
+                <>
+                  <div className="p-3 bg-red-50 border border-red-100 rounded-lg flex gap-3 text-red-700 text-xs">
+                    <AlertTriangle size={16} className="shrink-0 mt-0.5" />
+                    <p>Voiding this will cancel the sale and adjust inventory back. This cannot be undone.</p>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase text-zinc-400">Reason for Void</label>
+                    <textarea
+                      value={voidReason}
+                      onChange={e => setVoidReason(e.target.value)}
+                      className="w-full mt-1 p-3 border border-zinc-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-red-500/20 resize-none"
+                      placeholder="e.g. Wrong items entered, Customer changed mind..."
+                      rows={3}
+                    />
+                  </div>
+                  {voidError && (
+                    <p className="text-xs text-red-500 font-semibold bg-red-50 border border-red-100 px-3 py-2 rounded-lg">
+                      {voidError}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+
+            {!voidSuccess && (
+              <div className="p-6 bg-zinc-50 flex justify-end gap-3">
+                <button onClick={closeVoidModal} disabled={isVoiding}
+                  className="inline-flex items-center gap-1.5 font-bold rounded-lg px-3 py-2 text-xs bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 disabled:opacity-50">
+                  Cancel
+                </button>
+                <button onClick={handleConfirmVoid} disabled={!voidReason.trim() || isVoiding}
+                  className="inline-flex items-center gap-1.5 font-bold rounded-lg px-3 py-2 text-xs bg-red-600 hover:bg-red-700 text-white disabled:opacity-50">
+                  {isVoiding ? 'Voiding...' : 'Confirm Void'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

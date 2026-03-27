@@ -184,12 +184,12 @@ class ReportController extends Controller
 
         $groupedData = $rawItems->groupBy('category_name')->map(function ($items, $category) use (&$globalAddonSummary) {
         $productSummary = $items->groupBy(function ($item) {
-    $name      = $item->resolved_product_name ?? $item->product_name;
-    $sizeLabel = $item->cup_size_label ?? null;
-    return $name . '||' . ($sizeLabel ?? 'none');
-})->map(function ($pGroup) use (&$globalAddonSummary) {
-    $firstItem = $pGroup->first();
-    $sizeLabel = $firstItem->cup_size_label ?? null;
+            $name      = $item->resolved_product_name ?? $item->product_name;
+            $sizeLabel = $item->cup_size_label ?? null;
+            return $name . '||' . ($sizeLabel ?? 'none');
+        })->map(function ($pGroup) use (&$globalAddonSummary) {
+            $firstItem = $pGroup->first();
+            $sizeLabel = $firstItem->cup_size_label ?? null;
 
                 $productAddOnCounts = [];
                 foreach ($pGroup as $item) {
@@ -333,36 +333,56 @@ class ReportController extends Controller
      * not the invoice_number.
      */
     public function getVoidLogs(Request $request)
-{
-    $date = $request->query('date');
+    {
+        try {
+            $date = $request->query('date', now()->toDateString());
+            $branchId = $request->query('branch_id');
 
-    $hasVoidReason = \Schema::hasColumn('sales', 'void_reason');
-    $hasRemarks    = \Schema::hasColumn('sales', 'remarks');
+            // 1. Logic for the 'Reason' column
+            $hasVoidReason = \Schema::hasColumn('sales', 'void_reason');
+            $hasRemarks    = \Schema::hasColumn('sales', 'remarks');
 
-    $reasonExpr = 'invoice_number';
-    if ($hasVoidReason && $hasRemarks) {
-        $reasonExpr = "COALESCE(NULLIF(void_reason, ''), NULLIF(remarks, ''), invoice_number)";
-    } elseif ($hasVoidReason) {
-        $reasonExpr = "COALESCE(NULLIF(void_reason, ''), invoice_number)";
-    } elseif ($hasRemarks) {
-        $reasonExpr = "COALESCE(NULLIF(remarks, ''), invoice_number)";
+            $reasonExpr = 'invoice_number'; // Fallback
+            if ($hasVoidReason && $hasRemarks) {
+                $reasonExpr = "COALESCE(NULLIF(void_reason, ''), NULLIF(remarks, ''), invoice_number)";
+            } elseif ($hasVoidReason) {
+                $reasonExpr = "COALESCE(NULLIF(void_reason, ''), invoice_number)";
+            }
+
+            // 2. Build the Query
+            $query = Sale::query()
+                ->leftJoin('users', 'sales.user_id', '=', 'users.id')
+                ->whereDate('sales.created_at', $date)
+                ->whereIn('sales.status', ['cancelled', 'voided', 'pending']); // Include pending voids
+
+            // 3. Filter by Branch if provided
+            if ($branchId) {
+                $query->where('sales.branch_id', $branchId);
+            }
+
+            $voids = $query->select([
+                    'sales.id',
+                    'sales.invoice_number as invoice', // Matches frontend 'invoice'
+                    'sales.total_amount as amount',
+                    'sales.status',
+                    'sales.created_at',
+                    'users.name as cashier',           // Matches frontend 'cashier'
+                    DB::raw("$reasonExpr as reason")
+                ])
+                ->orderBy('sales.created_at', 'desc')
+                ->get();
+
+            return response()->json([
+                'logs' => $voids,
+                'prepared_by' => auth()->user()->name ?? 'System Admin',
+            ]);
+
+        } catch (\Exception $e) {
+            // This will log the actual error in storage/logs/laravel.log
+            \Log::error("Void Logs Error: " . $e->getMessage());
+            return response()->json(['error' => 'Server Error', 'message' => $e->getMessage()], 500);
+        }
     }
-
-    $voids = Sale::whereDate('created_at', $date)
-        ->where('status', 'cancelled')
-        ->select(
-            'id',
-            DB::raw("$reasonExpr as reason"),
-            'total_amount as amount',
-            DB::raw("DATE_FORMAT(created_at, '%h:%i %p') as time")
-        )
-        ->get();
-
-    return response()->json([
-        'logs'        => $voids,
-        'prepared_by' => auth()->user()->name ?? 'System Admin',
-    ]);
-}
 
     public function exportSales(Request $request)
     {
@@ -551,7 +571,9 @@ class ReportController extends Controller
 
             $transactions = Sale::whereBetween('sales.created_at', [$from, $to])
                 ->leftJoin('users', 'users.id', '=', 'sales.user_id')
+                ->when($request->query('branch_id'), fn($q, $b) => $q->where('sales.branch_id', $b))
                 ->selectRaw('
+                    sales.id,
                     sales.invoice_number                                                        as Invoice,
                     sales.total_amount                                                          as Amount,
                     sales.status                                                                as Status,
