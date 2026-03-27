@@ -468,10 +468,16 @@ const subtotal = grossSubtotal - itemDiscountTotal;
       const { data }  = await api.get('/receipts/next-sequence');
       const serverSeq = parseInt(data.next_sequence, 10);
       if (!isNaN(serverSeq)) {
-        localStorage.setItem('last_or_sequence', String(serverSeq));
-        localStorage.setItem('last_or_date', new Date().toDateString());
-        setOrNumber(generateORNumber(serverSeq));
-        setQueueNumber(generateQueueNumber(serverSeq));
+        // ── Check if it's a new day and reset sequence ────────────────────
+        const savedDate = localStorage.getItem('last_or_date');
+        const today     = new Date().toDateString();
+        const isNewDay  = savedDate !== today;
+        const seq       = isNewDay ? 1 : serverSeq;
+
+        localStorage.setItem('last_or_sequence', String(seq));
+        localStorage.setItem('last_or_date', today);
+        setOrNumber(generateORNumber(seq));
+        setQueueNumber(generateQueueNumber(seq));
       }
     } catch {
       const savedDate = localStorage.getItem('last_or_date');
@@ -1011,7 +1017,10 @@ const subtotal = grossSubtotal - itemDiscountTotal;
         await api.post('/sales', orderData);
         localStorage.removeItem('pos_cart_cache');
         const currentSeq = parseInt(orNumber.split('-').pop() ?? '0', 10);
-        if (!isNaN(currentSeq)) localStorage.setItem('last_or_sequence', String(currentSeq));
+        if (!isNaN(currentSeq)) {
+          localStorage.setItem('last_or_sequence', String(currentSeq));
+          localStorage.setItem('last_or_date', new Date().toDateString()); // ← add this
+        }
         localStorage.setItem('dashboard_stats_timestamp', '0');
         const today = new Date().toISOString().split('T')[0];
         Promise.all([
@@ -1042,7 +1051,10 @@ const subtotal = grossSubtotal - itemDiscountTotal;
     } else {
       enqueue(orderData);
       const currentSeq = parseInt(orNumber.replace('SI-', ''), 10);
-      if (!isNaN(currentSeq)) localStorage.setItem('last_or_sequence', String(currentSeq));
+      if (!isNaN(currentSeq)) {
+        localStorage.setItem('last_or_sequence', String(currentSeq));
+        localStorage.setItem('last_or_date', new Date().toDateString()); // ← add this
+      }
       setPrintedReceipt(false); setPrintedKitchen(false); setPrintedStickers(false);
       setIsSuccessModalOpen(true);
       showToast('Offline — order queued and will sync when connected.', 'warning');
