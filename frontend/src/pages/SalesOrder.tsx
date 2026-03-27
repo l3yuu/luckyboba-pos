@@ -930,7 +930,7 @@ const subtotal = grossSubtotal - itemDiscountTotal;
     // ── Pre-calculate split discount amounts from explicit assignments ────────
     let scDiscountAmount       = 0;
     let pwdDiscountAmount      = 0;
-    let diplomatDiscountAmount = 0;
+    const diplomatDiscountAmount = 0;
 
     cart.forEach((item, cartIndex) => {
       const assignments = itemPaxAssignments[String(cartIndex)] ?? [];
