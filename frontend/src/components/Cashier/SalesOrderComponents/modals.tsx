@@ -758,8 +758,8 @@ interface ConfirmOrderModalProps {
   discountRemarks: string;
   // ── NEW: per-item assignments instead of PAX counts ──
   itemPaxAssignments: ItemPaxAssignments;
-  seniorId: string;
-  pwdId: string;
+  seniorIds: string[];
+  pwdIds: string[];
   discounts: Discount[];
   activeTab: 'payment' | 'discount' | 'pax';
   submitting: boolean;
@@ -768,12 +768,11 @@ interface ConfirmOrderModalProps {
   onCashTenderedChange: (v: number | '') => void;
   onReferenceNumberChange: (v: string) => void;
   onDiscountChange: (d: Discount | null) => void;
-  onDiscountsChange: (d: Discount[]) => void;
   onDiscountRemarksChange: (v: string) => void;
   // ── NEW: callbacks for assignments ──
   onItemPaxAssignmentsChange: (assignments: ItemPaxAssignments) => void;
-  onSeniorIdChange: (v: string) => void;
-  onPwdIdChange: (v: string) => void;
+  onSeniorIdsChange: (v: string[]) => void;
+  onPwdIdsChange: (v: string[]) => void;
   onEditCartItem: (i: number) => void;
   onConfirm: () => void;
   onClose: () => void;
@@ -786,11 +785,11 @@ export const ConfirmOrderModal = ({
   cart, cashierName, totalCount, subtotal, amtDue,
   vatableSales, vatAmount, vatExemptSales: _vatExemptSales = 0, change, totalDiscountDisplay,
   orderCharge, selectedDiscount, paymentMethod, cashTendered,
-  referenceNumber, discountRemarks, itemPaxAssignments, seniorId, pwdId, discounts,
+  referenceNumber, discountRemarks, itemPaxAssignments, seniorIds, pwdIds, discounts,
   activeTab, submitting, vatType = 'vat', addOnsData = [],
   onTabChange, onPaymentMethodChange, onCashTenderedChange, onReferenceNumberChange,
   onDiscountChange, onDiscountRemarksChange,
-  onItemPaxAssignmentsChange, onSeniorIdChange, onPwdIdChange,
+  onItemPaxAssignmentsChange, onSeniorIdsChange, onPwdIdsChange,
   onEditCartItem, onConfirm, onClose, onResetOrder,
 }: ConfirmOrderModalProps) => {
   const { showToast } = useToast();
@@ -1111,24 +1110,97 @@ export const ConfirmOrderModal = ({
                     </div>
                   </div>
                 )}
-
-                {/* ── PAX Tab — Per-Item Per-Unit SC/PWD Assignment ── */}
                 {activeTab === 'pax' && (
                   <div className="space-y-4">
 
-                    {/* ID fields */}
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-1.5">Senior ID / Card No.</label>
-                        <input type="text" value={seniorId} onChange={e => onSeniorIdChange(e.target.value)} placeholder="SC ID Number"
-                          className="w-full px-3 py-2.5 border-2 border-zinc-200 rounded-lg font-bold text-sm focus:border-blue-500 focus:outline-none transition-colors" />
+                    {/* ID fields - only show when relevant discounts are assigned */}
+                    {(totalScUnits > 0 || totalPwdUnits > 0) && (
+                      <div className="space-y-4">
+                        {totalScUnits > 0 && (
+                          <div>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-1.5">
+                              Senior ID / Card No. ({totalScUnits} {totalScUnits === 1 ? 'person' : 'people'})
+                            </label>
+                            <div className="space-y-2">
+                              {seniorIds.map((id, index) => (
+                                <div key={index} className="flex gap-2">
+                                  <input 
+                                    type="text" 
+                                    value={id} 
+                                    onChange={e => {
+                                      const newIds = [...seniorIds];
+                                      newIds[index] = e.target.value;
+                                      onSeniorIdsChange(newIds);
+                                    }} 
+                                    placeholder={`SC ID ${index + 1}`}
+                                    className="flex-1 px-3 py-2.5 border-2 border-zinc-200 rounded-lg font-bold text-sm focus:border-blue-500 focus:outline-none transition-colors" 
+                                  />
+                                  {seniorIds.length > 1 && (
+                                    <button
+                                      onClick={() => {
+                                        const newIds = seniorIds.filter((_, i) => i !== index);
+                                        onSeniorIdsChange(newIds);
+                                      }}
+                                      className="px-3 py-2.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                                    >
+                                      Remove
+                                    </button>
+                                  )}
+                                </div>
+                              ))}
+                              <button
+                                onClick={() => onSeniorIdsChange([...seniorIds, ''])}
+                                className="w-full px-3 py-2.5 border-2 border-dashed border-blue-300 rounded-lg font-bold text-sm text-blue-600 hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                              >
+                                + Add Senior ID
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {totalPwdUnits > 0 && (
+                          <div>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-1.5">
+                              PWD ID / Card No. ({totalPwdUnits} {totalPwdUnits === 1 ? 'person' : 'people'})
+                            </label>
+                            <div className="space-y-2">
+                              {pwdIds.map((id, index) => (
+                                <div key={index} className="flex gap-2">
+                                  <input 
+                                    type="text" 
+                                    value={id} 
+                                    onChange={e => {
+                                      const newIds = [...pwdIds];
+                                      newIds[index] = e.target.value;
+                                      onPwdIdsChange(newIds);
+                                    }} 
+                                    placeholder={`PWD ID ${index + 1}`}
+                                    className="flex-1 px-3 py-2.5 border-2 border-zinc-200 rounded-lg font-bold text-sm focus:border-purple-500 focus:outline-none transition-colors" 
+                                  />
+                                  {pwdIds.length > 1 && (
+                                    <button
+                                      onClick={() => {
+                                        const newIds = pwdIds.filter((_, i) => i !== index);
+                                        onPwdIdsChange(newIds);
+                                      }}
+                                      className="px-3 py-2.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                                    >
+                                      Remove
+                                    </button>
+                                  )}
+                                </div>
+                              ))}
+                              <button
+                                onClick={() => onPwdIdsChange([...pwdIds, ''])}
+                                className="w-full px-3 py-2.5 border-2 border-dashed border-purple-300 rounded-lg font-bold text-sm text-purple-600 hover:border-purple-500 hover:bg-purple-50 transition-colors"
+                              >
+                                + Add PWD ID
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <div>
-                        <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-1.5">PWD ID / Card No.</label>
-                        <input type="text" value={pwdId} onChange={e => onPwdIdChange(e.target.value)} placeholder="PWD ID Number"
-                          className="w-full px-3 py-2.5 border-2 border-zinc-200 rounded-lg font-bold text-sm focus:border-purple-500 focus:outline-none transition-colors" />
-                      </div>
-                    </div>
+                    )}
 
                     {/* Legend */}
                     <div className="flex items-center gap-3 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
