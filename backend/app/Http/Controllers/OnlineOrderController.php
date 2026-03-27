@@ -16,7 +16,7 @@ class OnlineOrderController extends Controller
     {
         $user = $request->user();
 
-        $query = Sale::with(['items', 'user'])
+        $query = Sale::with(['items', 'user', 'branch'])
             ->where('invoice_number', 'like', 'APP-%')
             ->whereNotIn('status', ['cancelled']);
 
@@ -44,6 +44,7 @@ class OnlineOrderController extends Controller
     {
         $request->validate([
             'status' => ['required', 'in:pending,preparing,completed'],
+            'branch_name' => 'required|string|exists:branches,name',
         ]);
 
         $user = $request->user();
@@ -74,7 +75,7 @@ class OnlineOrderController extends Controller
      */
     public function myOrders(Request $request): JsonResponse
     {
-        $orders = Sale::with(['items', 'user'])
+        $orders = Sale::with(['items', 'user', 'branch'])
             ->where('user_id', $request->user()->id)
             ->where('invoice_number', 'like', 'APP-%')
             ->orderByDesc('created_at')
@@ -96,7 +97,12 @@ class OnlineOrderController extends Controller
             'branch_name'    => 'required|string', // Ensure this is expected
         ]);
 
-        $branch = \App\Models\Branch::where('name', $request->input('branch_name'))->first();
+        $branch = \App\Models\Branch::whereRaw('LOWER(name) = ?', [strtolower($request->input('branch_name'))])->first();
+\Log::info('Branch lookup', [
+    'requested' => $request->input('branch_name'),
+    'found'     => $branch?->name,
+    'found_id'  => $branch?->id,
+]);
 
         $sale = Sale::create([
             'invoice_number' => $request->si_number, 
@@ -128,7 +134,7 @@ class OnlineOrderController extends Controller
             ]);
         }
 
-        $sale->load(['items', 'user']);
+        $sale->load(['items', 'user', 'branch']);
 
         return response()->json([
             'success'    => true,
@@ -150,6 +156,7 @@ class OnlineOrderController extends Controller
             'customer_name'  => $sale->user ? $sale->user->name : 'App Customer',
             'customer_code'  => $code,
             'qr_code'        => $code,
+            'branch_name'    => $sale->branch?->name ?? null,
             'total_amount'   => (float) $sale->total_amount,
             'status'         => $sale->status ?? 'pending',
             'created_at'     => $sale->created_at,
