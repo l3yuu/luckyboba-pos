@@ -197,38 +197,53 @@ export const MenuArea = ({
         </div>
 
       ) : searchQuery.trim() ? (
-        // ── Search results: flat item list across all categories ──────────
-        <div className="pb-20 animate-in fade-in zoom-in duration-300">
+        // ── Search results: grouped by category, with size labels already enriched ──
+        <div className="pb-20 animate-in fade-in zoom-in duration-300 space-y-6">
           {(() => {
-            const q = searchQuery.toLowerCase();
-            const allItems = filteredCategories.flatMap(cat =>
-              cat.menu_items
-                .filter(item => item.name.toLowerCase().includes(q))
-                .map(item => ({ item, catName: cat.name }))
-            );
-            if (allItems.length === 0) return (
+            const totalCount = filteredCategories.reduce((sum, cat) => sum + cat.menu_items.length, 0);
+            if (totalCount === 0) return (
               <div className="text-center text-[#7c14d4]/60 font-bold text-sm py-12 uppercase tracking-widest">
                 No items found for "{searchQuery}"
               </div>
             );
             return (
               <>
-                <div className="flex items-center gap-3 mb-4 px-1">
+                <div className="flex items-center gap-3 mb-2 px-1">
                   <span className="bg-[#7c14d4] text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-sm">
                     Search Results
                   </span>
                   <div className="flex-1 h-px bg-zinc-300/60" />
-                  <span className="text-[11px] text-[#7c14d4]/60 font-bold">{allItems.length} item{allItems.length !== 1 ? 's' : ''}</span>
+                  <span className="text-[11px] text-[#7c14d4]/60 font-bold">{totalCount} item{totalCount !== 1 ? 's' : ''}</span>
                 </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-                  {allItems.map(({ item, catName }) => (
-                    <button key={`${item.id}-${catName}`} onClick={() => onItemClick(item)}
-                      className={`${BASE_CARD} hover:bg-[#7c14d4] hover:border-[#7c14d4] hover:text-white flex-col gap-1`}>
-                      <span>{item.name}</span>
-                      <span className="text-[9px] font-bold opacity-40 uppercase tracking-widest text-[#7c14d4]/60">{catName}</span>
-                    </button>
-                  ))}
-                </div>
+
+                {filteredCategories.map(cat => {
+                  if (cat.menu_items.length === 0) return null;
+                  return (
+                    <div key={cat.id}>
+                      {/* Category header */}
+                      <div className="flex items-center gap-2 mb-2 px-1">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-[#7c14d4] bg-[#7c14d4]/10 px-2.5 py-1 rounded-full">
+                          {cat.name}
+                        </span>
+                        <div className="flex-1 h-px bg-zinc-200" />
+                        <span className="text-[10px] text-zinc-400 font-bold">{cat.menu_items.length}</span>
+                      </div>
+
+                      {/* Items in this category */}
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                        {cat.menu_items.map(item => (
+                          <button
+                            key={`${item.id}-${cat.id}`}
+                            onClick={() => onItemClick(item)}
+                            className={`${BASE_CARD} hover:bg-[#7c14d4] hover:border-[#7c14d4] hover:text-white flex-col gap-1`}
+                          >
+                            <span>{item.name}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </>
             );
           })()}

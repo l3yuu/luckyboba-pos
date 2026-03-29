@@ -584,6 +584,16 @@ const SalesOrder = () => {
   }
 
   const getFilteredItems = (items: MenuItem[]): MenuItem[] => {
+    // When searching, append size label so M and L items with the same name are distinguishable
+    if (searchQuery) {
+      return items.map(item => {
+        if (!item.size || item.size === 'none') return item
+        const cupM = selectedCategory?.cup?.size_m ?? 'M'
+        const cupL = selectedCategory?.cup?.size_l ?? 'L'
+        const sizeLabel = item.size === 'L' ? cupL : cupM
+        return { ...item, name: `${item.name} (${sizeLabel})` }
+      })
+    }
     if (!categorySize || categorySize === 'all') return items
     const cupSizeM = selectedCategory?.cup?.size_m || 'M'
     const cupSizeL = selectedCategory?.cup?.size_l || 'L'
@@ -1279,12 +1289,22 @@ const SalesOrder = () => {
 };
 
 const filteredCategories = categories
-  .map(cat => ({
-    ...cat,
-    menu_items: cat.menu_items.filter(item =>
+  .map(cat => {
+    const matchedItems = cat.menu_items.filter(item =>
       item.name.toLowerCase().includes(searchQuery.toLowerCase())
-    ),
-  }))
+    )
+    // During search: tag each drink item with its cup size label so M/L duplicates are distinguishable
+    const enrichedItems = searchQuery
+      ? matchedItems.map(item => {
+          if (!item.size || item.size === 'none') return item
+          const cupM = cat.cup?.size_m ?? 'M'
+          const cupL = cat.cup?.size_l ?? 'L'
+          const sizeLabel = item.size === 'L' ? cupL : cupM
+          return { ...item, name: `${item.name} (${sizeLabel})` }
+        })
+      : matchedItems
+    return { ...cat, menu_items: enrichedItems }
+  })
   .filter(cat => cat.name.toLowerCase().includes(searchQuery.toLowerCase()) || cat.menu_items.length > 0)
   .filter(cat => {
     if (!activeCategoryGroup) return true;
