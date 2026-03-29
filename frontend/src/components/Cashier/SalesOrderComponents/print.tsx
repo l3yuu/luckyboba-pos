@@ -236,7 +236,19 @@ export const ReceiptPrint = ({
                 ? Number(item.panda_price ?? 0)
                 : 0;
 
-              const unitGross = Number(item.price) + surchargePerUnit;
+              // finalPrice already includes surcharge and add-ons baked in.
+              // Derive a clean per-unit price from finalPrice directly.
+              const addOnCostPerUnit = (item.addOns ?? []).reduce((sum, addonName) => {
+                const a = addOnsData.find(x => x.name === addonName);
+                if (!a) return sum;
+                return sum + (item.charges?.grab && Number(a.grab_price ?? 0) > 0
+                  ? Number(a.grab_price)
+                  : item.charges?.panda && Number(a.panda_price ?? 0) > 0
+                  ? Number(a.panda_price)
+                  : Number(a.price));
+              }, 0);
+
+              const unitGross = Number(item.price) + surchargePerUnit + addOnCostPerUnit;
               const unitVatExcl = unitGross / 1.12;
               const discountAmt = hasPaxDiscount ? unitVatExcl * (discountPct / 100) : 0;
               const netPrice = hasPaxDiscount ? unitVatExcl - discountAmt : unitGross;
@@ -254,26 +266,14 @@ export const ReceiptPrint = ({
                   </div>
 
                   {/* Qty × unit price row */}
-                  <div className="flex justify-between w-full mt-0.5">
-                    <span>
-                      {count} X {unitGross.toFixed(2)}
-                    </span>
-                    <span>
-                      {(() => {
-                        const addOnCost = (item.addOns ?? []).reduce((sum, addonName) => {
-                          const a = addOnsData.find(x => x.name === addonName);
-                          if (!a) return sum;
-                          return sum + (item.charges?.grab && Number(a.grab_price ?? 0) > 0
-                            ? Number(a.grab_price)
-                            : item.charges?.panda && Number(a.panda_price ?? 0) > 0
-                            ? Number(a.panda_price)
-                            : Number(a.price));
-                        }, 0);
-                        const basePrice = (Number(item.price) + addOnCost) * count;
-                        return basePrice.toFixed(2);
-                      })()}
-                    </span>
-                  </div>
+                    <div className="flex justify-between w-full mt-0.5">
+                      <span>
+                        {count} X {(Number(item.price) + surchargePerUnit).toFixed(2)}
+                      </span>
+                      <span>
+                        {(unitGross * count).toFixed(2)}
+                      </span>
+                    </div>
 
                   {/* ── Per-item SC/PWD VAT breakdown ── */}
                   {hasPaxDiscount && (

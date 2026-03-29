@@ -359,16 +359,7 @@ const SalesOrder = () => {
 
   const amtDue = Math.max(0, round(vatableBase + vatExemptSales))
 
-  console.log({
-    grossSubtotal,
-    totalPaxDiscount,
-    totalVatExemptSales,
-    vatExemptSales,
-    amtDue,
-    vatableBase,
-    vatableSales,
-    vatAmount,
-  })
+
 
   const totalDiscountDisplay = itemDiscountTotal + totalPaxDiscount + promoDiscount
   const change = typeof cashTendered === 'number' ? Math.max(0, cashTendered - amtDue) : 0
