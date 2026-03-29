@@ -619,7 +619,13 @@ const SalesOrder = () => {
 
   const handleItemClick = async (item: MenuItem) => {
     const actualCategory = categories.find(cat => cat.menu_items.some(mi => mi.id === item.id)) ?? selectedCategory
-    setSelectedCategory(actualCategory)
+    
+    // Only drill into category view when NOT searching — during search,
+    // the background should stay on search results while the modal is open
+    if (!searchQuery.trim()) {
+      setSelectedCategory(actualCategory)
+    }
+    
     const catType = actualCategory?.category_type
 
     if (catType === 'mix_and_match') {
@@ -832,6 +838,7 @@ const SalesOrder = () => {
     mergeIntoCart(newCartItem)
     setSelectedItem(null)
     setIsAddOnModalOpen(false)
+    if (searchQuery.trim()) setSelectedCategory(null)
     logCartAction(newCartItem.name, newCartItem.qty)
     showToast(`${selectedItem.name} added to order`, 'success')
   }
@@ -907,6 +914,7 @@ const SalesOrder = () => {
     setIsBundleModalOpen(false)
     setActiveBundleItem(null)
     showToast(`${activeBundleItem.name} added!`, 'success')
+    if (searchQuery.trim()) setSelectedCategory(null) 
   }
 
   // ── Combo drink confirm ────────────────────────────────────────────────────
@@ -950,6 +958,7 @@ const SalesOrder = () => {
     setIsCombodrinkModalOpen(false)
     setPendingComboCart(null)
     showToast(`${finalItem.name} added!`, 'success')
+    if (searchQuery.trim()) setSelectedCategory(null)
   }
 
   // ── Mix & Match confirm ────────────────────────────────────────────────────
@@ -982,6 +991,7 @@ const SalesOrder = () => {
     setIsMixMatchModalOpen(false)
     setPendingMixMatchCart(null)
     showToast(`${finalItem.name} + ${selectedMixMatchDrink.name} added!`, 'success')
+    if (searchQuery.trim()) setSelectedCategory(null)
   }
 
   // ── Cart item editing ──────────────────────────────────────────────────────
@@ -1407,7 +1417,11 @@ const filteredCategories = categories
             isFoodCategory={isFoodCategory}   // ← add
             filteredAddOns={filteredAddOns}   // ← add
             onOpenAddOns={() => setIsAddOnModalOpen(true)} onAddToOrder={addToOrder}
-            onClose={() => { setSelectedItem(null); setIsAddOnModalOpen(false); }}
+            onClose={() => {
+              setSelectedItem(null)
+              setIsAddOnModalOpen(false)
+              if (searchQuery.trim()) setSelectedCategory(null)  
+            }}
             sugarLevels={isDrink ? sugarLevels : []}
           />
         )}
@@ -1455,6 +1469,7 @@ const filteredCategories = categories
                 onClose={() => {
                   setIsBundleModalOpen(false)
                   setActiveBundleItem(null)
+                  if (searchQuery.trim()) setSelectedCategory(null) 
                 }}
                 orderCharge={orderCharge}
                 onToggleOrderCharge={toggleBundleOrderCharge}
@@ -1484,6 +1499,7 @@ const filteredCategories = categories
             onClose={() => {
               setIsCombodrinkModalOpen(false)
               setPendingComboCart(null)
+              if (searchQuery.trim()) setSelectedCategory(null)
             }}
             orderCharge={orderCharge}
           />
@@ -1518,6 +1534,7 @@ const filteredCategories = categories
             onClose={() => {
               setIsMixMatchModalOpen(false)
               setPendingMixMatchCart(null)
+              if (searchQuery.trim()) setSelectedCategory(null) 
             }}
           />
         )}
