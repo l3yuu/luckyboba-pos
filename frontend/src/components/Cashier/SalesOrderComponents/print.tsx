@@ -504,18 +504,15 @@ export const KitchenPrint = ({
                   {item.name} {item.cupSizeLabel ? `(${item.cupSizeLabel})` : ''}
                 </div>
 
-                {item.size === 'none' && item.sugarLevel != null ? (
-                  <>
-                    <div className="text-sm font-bold mt-1">• Classic Pearl</div>
-                    <div className="text-sm pl-3">Sugar: {item.sugarLevel}</div>
-                    {item.options && item.options.length > 0 && (
-                      <div className="text-sm pl-3">Options: {item.options.join(', ')}</div>
-                    )}
-                    {item.addOns && item.addOns.length > 0 && item.addOns.map((a, ai) => (
-                      <div key={ai} className="text-sm pl-3 font-bold">+ {a}</div>
-                    ))}
-                  </>
-                ) : (
+                {item.size === 'none' ? (
+  <>
+    <div className="pl-2 text-[10px]">• Classic Pearl</div>
+    {item.sugarLevel != null && (
+      <div className="pl-4 text-[10px]">• Sugar {item.sugarLevel}</div>
+    )}
+    {item.options?.map(o => <div key={o} className="pl-4 text-[10px]">• {o}</div>)}
+  </>
+) : (
                   <>
                     {item.sugarLevel != null && (
                       <div className="text-sm mt-1">Sugar: {item.sugarLevel}</div>
