@@ -727,7 +727,7 @@ const XReading = () => {
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">BREAKDOWN OF SALES</p>
         <Row label="VATABLE SALES"    value={phCurrency.format(reportIsVat ? vatableSales : 0)} />
         <Row label="VAT AMOUNT"       value={phCurrency.format(reportIsVat ? vatAmount : 0)} />
-        <Row label="VAT EXEMPT SALES" value={phCurrency.format(reportIsVat ? 0 : vatExempt || gross)} />
+        <Row label="VAT EXEMPT SALES" value={phCurrency.format(vatExempt)} />
         <Row label="ZERO-RATED SALES" value={phCurrency.format(0)} />
         <Divider />
         <Row label="SERVICE CHARGE" value={phCurrency.format(0)} />

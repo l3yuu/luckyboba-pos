@@ -289,10 +289,9 @@ class SalesDashboardService
         $vatAmount    = (float) $sales->sum('vat_amount');
 
         // Reconstruct Exempt Sales for report balance
-        $vatExemptSales = $isVat ? round($scPwdDiscount / 0.20, 2) : 0.0;
-
-        // Net Sales = Gross - All Discounts - Voids
-        $netSales = round($grossSales - $totalDiscounts - $voidAmount, 2);
+        $vatExemptBase  = $isVat ? round($scPwdDiscount / 0.20, 2) : 0.0;
+        $vatExemptSales = $isVat ? round($vatExemptBase - $scPwdDiscount, 2) : 0.0;
+        $netSales       = round($vatableSales + $vatExemptSales, 2);
         // ─────────────────────────────────────────────────────────────────────
         // ─────────────────────────────────────────────────────────────────────
 
@@ -342,6 +341,7 @@ class SalesDashboardService
             'transaction_count' => $transactionCount,
             'cash_total'        => $cashSales,
             'non_cash_total'    => $otherSales,
+            'total_payments'    => $grossSales,
             'hourly_data'       => $hourly,
             'beg_si'            => $begSI,
             'end_si'            => $endSI,
@@ -415,8 +415,9 @@ class SalesDashboardService
         $vatableSales = (float) $sales->sum('vatable_sales');
         $vatAmount    = (float) $sales->sum('vat_amount');
 
-        $vatExemptSales = $isVat ? round($scPwdDiscount / 0.20, 2) : 0.0;
-        $netSales       = round($gross - $totalDiscounts - $voidAmount, 2);
+        $vatExemptBase  = $isVat ? round($scPwdDiscount / 0.20, 2) : 0.0;
+        $vatExemptSales = $isVat ? round($vatExemptBase - $scPwdDiscount, 2) : 0.0;
+        $netSales       = round($vatableSales + $vatExemptSales, 2);
         // ─────────────────────────────────────────────────────────────────────
         // ─────────────────────────────────────────────────────────────────────
 
@@ -508,6 +509,7 @@ class SalesDashboardService
             'other_discount'       => $discounts['other_discount'],
             'cash_total'           => $cash,
             'non_cash_total'       => $gross - $cash,
+            'total_payments'       => $gross,           // ← ADD THIS
             'payment_breakdown'    => $paymentBreakdown,
             'beg_si'               => $begSI,
             'end_si'               => $endSI,

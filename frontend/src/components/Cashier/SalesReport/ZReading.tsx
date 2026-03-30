@@ -717,7 +717,7 @@ console.log('zData categories:', (zRes.data as Record<string, unknown>).categori
         <Divider />
         <Row label="TOTAL CASH"     value={phCurrency.format(actualCash)} />
         <Row label="TOTAL NON-CASH" value={phCurrency.format(actualNonCash)} />
-        <Row label="TOTAL PAYMENTS" value={phCurrency.format(netSales)} />
+        <Row label="TOTAL PAYMENTS" value={phCurrency.format(gross)} />
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
         <Row label="Transaction Count" value={txCount} />
