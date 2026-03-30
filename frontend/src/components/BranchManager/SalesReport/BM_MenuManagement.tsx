@@ -181,6 +181,10 @@ const BM_MenuManagement = () => {
         id:           i.id,
         name:         i.name,
         category:     i.category ?? 'Uncategorized',
+        sellingPrice: parseFloat(String(i.sellingPrice ?? i.selling_price ?? 0)),
+        quantity:     i.quantity ?? 0,
+        is_available: i.is_available ?? true,
+        image:        i.image ?? null,
         }));
       setItems(list);
       // Open all categories by default
