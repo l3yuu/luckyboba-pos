@@ -38,6 +38,8 @@ import BM_InventoryStockTransfer from '../components/BranchManager/Inventory/BM_
 import BM_InventorySuppliers     from '../components/BranchManager/Inventory/BM_InventorySuppliers';
 
 import BranchManagerAuditLogsTab from '../components/BranchManager/BranchManagerAuditLogsTab';
+import BM_AppOrders      from '../components/BranchManager/SalesReport/BM_AppOrders';
+import BM_MenuManagement from '../components/BranchManager/SalesReport/BM_MenuManagement';
 
 // ── BranchManager-specific Settings Items ─────────────
 import BM_AddCustomers       from '../components/BranchManager/Settings/BM_AddCustomers';
@@ -216,6 +218,10 @@ const branchLabel = authUser?.name ?? null; // 'Main Branch' comes from here
       case 'items-report':        return <ItemsReport />;
       case 'x-reading':           return <XReading />;
       case 'z-reading':           return <ZReading />;
+
+      // ── Mobile App ──
+    case 'app-orders':         return <BM_AppOrders />;        
+    case 'menu-management': return <BM_MenuManagement />;  
 
       // ── Menu Items ──
       case 'menu-list':          return <BM_MenuList />;

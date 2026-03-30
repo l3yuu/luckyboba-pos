@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Users, BarChart2, ShoppingBag,
   Package, Settings as SettingsIcon, LogOut, HelpCircle, ChevronDown, Activity, Monitor,
+  Smartphone, 
 } from 'lucide-react';
 
 // ── Sidebar styles ────────────────────────────────────────────────────────────
@@ -69,6 +70,19 @@ const SB_STYLES = `
   }
   .bm-sb-sub.active::after, .bm-sb-sub:hover::after { background: #3b2063; }
 
+  /* ── NEW: pulse badge for pending app orders ── */
+  .bm-sb-badge {
+    margin-left: auto;
+    min-width: 18px; height: 18px;
+    background: #3b2063; color: #fff;
+    border-radius: 100px; padding: 0 5px;
+    font-size: 0.55rem; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    letter-spacing: 0.02em;
+    animation: bm-sb-pop 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes bm-sb-pop { from { transform: scale(0); } to { transform: scale(1); } }
+
   @keyframes bm-sb-spin { to { transform: rotate(360deg); } }
   .bm-sb-spin { animation: bm-sb-spin 0.7s linear infinite; }
 `;
@@ -94,7 +108,7 @@ const getToken = () =>
   localStorage.getItem("auth_token") ||
   localStorage.getItem("lucky_boba_token") || "";
 
-type GroupId = 'sales' | 'menu' | 'inventory';
+type GroupId = 'sales' | 'menu' | 'inventory' | 'app'; // ← added 'app'
 
 const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
   isSidebarOpen, setSidebarOpen, currentTab, setCurrentTab,
@@ -103,6 +117,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
   const [openGroups, setOpenGroups] = useState<Set<GroupId>>(new Set(['sales']));
   const [internalLoggingOut,  setInternalLoggingOut]  = useState(false);
   const [showLogoutModal,     setShowLogoutModal]      = useState(false);
+  const [pendingOrderCount,   setPendingOrderCount]    = useState(0); // ← NEW
 
   const isLoggingOut = externalLoggingOut ?? internalLoggingOut;
 
@@ -119,8 +134,29 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
     });
   };
 
-  const handleLogoutClick = () => setShowLogoutModal(true);
+  // ── Poll pending app orders count every 30s ──────────────────────────────
+  useEffect(() => {
+    const fetchPending = async () => {
+      try {
+        const res = await fetch('/api/branch/app-orders', {
+          headers: {
+            'Accept':        'application/json',
+            'Authorization': `Bearer ${getToken()}`,
+          },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const list = Array.isArray(data) ? data : (data.data ?? []);
+        const count = list.filter((o: any) => o.status?.toLowerCase() === 'pending').length;
+        setPendingOrderCount(count);
+      } catch { /* silently fail */ }
+    };
+    fetchPending();
+    const id = setInterval(fetchPending, 30_000);
+    return () => clearInterval(id);
+  }, []);
 
+  const handleLogoutClick   = () => setShowLogoutModal(true);
   const handleLogoutConfirm = async () => {
     setShowLogoutModal(false);
     if (onLogout) { onLogout(); return; }
@@ -157,9 +193,16 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
     { tab: 'inventory-report',    label: 'Reports'         },
   ];
 
+  // ── NEW: App group items ────────────────────────────────────────────────────
+  const appItems = [
+    { tab: 'app-orders',      label: 'App Orders'      },
+    { tab: 'menu-management', label: 'Menu Availability' },
+  ];
+
   const salesOpen     = openGroups.has('sales');
   const menuOpen      = openGroups.has('menu');
   const inventoryOpen = openGroups.has('inventory');
+  const appOpen       = openGroups.has('app'); // ← NEW
 
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
 
@@ -247,6 +290,28 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
             <span className="bm-sb-icon" style={{ color: iconColor('device-management') }}><Monitor size={14} /></span>
             Device Management
           </button>
+
+          {/* ── NEW: Mobile App Group ────────────────────────────────────────── */}
+          <div className="bm-sb-sec">Mobile App</div>
+          <button onClick={() => toggleGroup('app')} className="bm-sb-group-btn">
+            <span className="bm-sb-icon" style={{ color: appItems.some(i => isActive(i.tab)) ? '#3b2063' : '#a1a1aa' }}>
+              <Smartphone size={14} />
+            </span>
+            <span className="flex-1">App Management</span>
+            {pendingOrderCount > 0 && (
+              <span className="bm-sb-badge">{pendingOrderCount}</span>
+            )}
+            <ChevronDown size={12} style={{ color: '#a1a1aa', transform: appOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', marginLeft: pendingOrderCount > 0 ? 4 : 0 }} />
+          </button>
+          {appOpen && appItems.map(({ tab, label }) => (
+            <button key={tab} onClick={() => goTo(tab)} className={`bm-sb-sub ${isActive(tab) ? 'active' : ''}`}>
+              {label}
+              {tab === 'app-orders' && pendingOrderCount > 0 && (
+                <span className="bm-sb-badge" style={{ marginLeft: 6 }}>{pendingOrderCount}</span>
+              )}
+            </button>
+          ))}
+          {/* ─────────────────────────────────────────────────────────────────── */}
 
           {/* Sales Reports Group */}
           <div className="bm-sb-sec">Reports</div>

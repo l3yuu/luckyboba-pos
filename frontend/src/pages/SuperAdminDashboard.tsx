@@ -35,7 +35,8 @@ import PurchaseOrderTab from "../components/NewSuperAdmin/Sidebar/Inventory/Purc
 import StockTransferTab from "../components/NewSuperAdmin/Sidebar/Inventory/StockTransferTab";
 
 import ExpensesTab from "../components/NewSuperAdmin/Sidebar/ExpensesTab";
-
+import CardUsersTab     from "../components/NewSuperAdmin/Sidebar/System/CardUsersTab";
+import CardApprovalTab from "../components/NewSuperAdmin/Sidebar/System/CardApprovalTab";
 
 
 const GlobalStyles = () => (
@@ -114,6 +115,10 @@ const SuperAdminDashboard: React.FC = () => {
       case "promotions": return <PromotionsTab />;
       case "audit":      return <AuditLogsTab  />;
       case "settings":   return <SettingsTab   />;
+
+      // ── App ───────────────────────────────────────────────────────────────────
+      case "card_approvals": return <CardApprovalTab />;
+      case "card_members":   return <CardUsersTab    />;
     }
   };
 
