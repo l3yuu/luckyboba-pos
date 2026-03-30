@@ -147,7 +147,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
         if (!res.ok) return;
         const data = await res.json();
         const list = Array.isArray(data) ? data : (data.data ?? []);
-        const count = list.filter((o: any) => o.status?.toLowerCase() === 'pending').length;
+        const count = list.filter((o: { status?: string }) => o.status?.toLowerCase() === 'pending').length;
         setPendingOrderCount(count);
       } catch { /* silently fail */ }
     };
