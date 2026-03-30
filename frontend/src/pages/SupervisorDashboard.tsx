@@ -11,7 +11,7 @@ import SalesDashboardPanel from '../components/TeamLeader/Reports/SalesDashboard
 import ItemsReportPanel    from '../components/TeamLeader/Reports/ItemsReportPanel';
 import XReadingPanel       from '../components/TeamLeader/Reports/XReadingPanel';
 import SVZReading from '../components/Supervisor/Reports/SVZReading';
-import SV_VoidLogsPanel    from '../components/Supervisor/Logs/SVVoidLogs';
+import SV_VoidLogsPanel    from '../components/Supervisor/Logging/SVVoidLogs';
 import InventoryListPanel  from '../components/TeamLeader/Inventory/InventoryListPanel';
 import ItemCheckerPanel    from '../components/TeamLeader/Inventory/ItemCheckerPanel';
 
