@@ -635,7 +635,7 @@ console.log('zData categories:', (zRes.data as Record<string, unknown>).categori
 
     // ✅ netSales now has a valid fallback
     const netSales  = reportData?.net_sales ?? (gross - totalDisc);
-    const netTotal  = reportData?.net_total ?? (gross - totalDisc);
+    const netTotal  = reportData?.net_sales ?? reportData?.net_total ?? (gross - totalDisc);
 
     const txCount            = reportData?.transaction_count || 0;
     const vatableSales       = reportData?.vatable_sales || 0;
