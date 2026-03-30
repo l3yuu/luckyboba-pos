@@ -162,7 +162,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::post('/auth/verify-manager-pin', [UserController::class, 'verifyManagerPin']);
 
     // ── CASHIER + BRANCH MANAGER + SUPERADMIN ────────────────────────────────
-    Route::middleware(['role:superadmin,branch_manager,cashier,team_leader'])->group(function () {
+    Route::middleware(['role:superadmin,branch_manager,supervisor,cashier,team_leader'])->group(function () {
+
 
         Route::get   ('/online-orders',            [OnlineOrderController::class, 'index']);
         Route::patch ('/online-orders/{id}/status',[OnlineOrderController::class, 'updateStatus']);

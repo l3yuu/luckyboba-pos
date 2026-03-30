@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Users, BarChart2, ShoppingBag,
-  Package, Settings as SettingsIcon, LogOut, HelpCircle, ChevronDown, Activity, Monitor,
-  Smartphone, 
+  Package, Settings as SettingsIcon, LogOut, HelpCircle,
+  ChevronDown, Activity, Monitor, Trash2, Smartphone,
 } from 'lucide-react';
 
 // ── Sidebar styles ────────────────────────────────────────────────────────────
@@ -357,6 +357,19 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
               {label}
             </button>
           ))}
+
+          {/* Floor Ops */}
+<div className="bm-sb-sec">Floor Ops</div>
+
+<button
+  onClick={() => goTo('void-logs')}
+  className={`bm-sb-item ${isActive('void-logs') ? 'active' : ''}`}
+>
+  <span className="bm-sb-icon" style={{ color: iconColor('void-logs') }}>
+    <Trash2 size={14} />
+  </span>
+  Void Logs
+</button>
 
           <div className="bm-sb-sec">System</div>
           <button onClick={() => goTo('audit-logs')} className={`bm-sb-item ${isActive('audit-logs') ? 'active' : ''}`}>

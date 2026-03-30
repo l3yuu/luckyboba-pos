@@ -78,6 +78,23 @@ class SalesController extends Controller
         $branchId    = $user?->branch_id;
         $officialOR  = $validated['si_number'];
 
+            $existing = Sale::with('items')
+        ->where('invoice_number', $validated['si_number'])
+        ->where('branch_id', auth('sanctum')->user()?->branch_id)
+        ->first();
+
+        if ($existing) {
+            return response()->json([
+                'status'    => 'success',
+                'si_number' => $existing->invoice_number,
+                'sale'      => $existing->makeVisible([
+                    'pax_senior','pax_pwd','senior_id','pwd_id',
+                    'sc_discount_amount','pwd_discount_amount',
+                    'diplomat_discount_amount','other_discount_amount',
+                ])->load('items'),
+            ], 200); // 200 not 201 — it already existed
+        }
+
         try {
             DB::beginTransaction();
 
@@ -309,7 +326,8 @@ Receipt::create([
             DB::beginTransaction();
 
             $sale = Sale::with('items')->findOrFail($id);
-
+            $user = $request->user();
+if ($user->role === 'supervisor' && $sale->branch_id !== $user->branch_id)
             if ($sale->status === 'cancelled') {
                 return response()->json(['message' => 'Sale already cancelled'], 400);
             }

@@ -21,7 +21,7 @@ const STYLES = `
   @media print {
     @page { size: 80mm auto; margin: 0 !important; }
     body * { visibility: hidden; }
-    nav, header, aside, button, .print\\:hidden { display: none !important; }
+    nav, header, aside, button, .print:hidden { display: none !important; }
     html, body { width: 80mm !important; margin: 0 !important; padding: 0 !important; background: white !important; }
     .printable-receipt-container, .printable-receipt-container * { visibility: visible !important; }
     .printable-receipt-container { position: absolute !important; left: 0 !important; top: 0 !important; width: 80mm !important; display: flex !important; justify-content: center !important; }
@@ -63,6 +63,10 @@ interface ZReadingReport {
   total_discounts?: number;
 }
 
+interface SVZReadingProps {
+  branchId?: number | null;
+}
+
 // ─── Receipt primitives ───────────────────────────────────────────────────────
 const Row = ({ label, value, indent = false }: { label: string; value: string | number; indent?: boolean }) => (
   <div className={`flex justify-between text-[11px] leading-snug ${indent ? 'pl-3' : ''}`}>
@@ -87,7 +91,7 @@ const MENU_CARDS = [
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
-const BM_ZReading = () => {
+const SVZReading: React.FC<SVZReadingProps> = ({ branchId }) => {
   const today = new Date().toISOString().split('T')[0];
   const [selectedDate,  setSelectedDate]  = useState(today);
   const [fromDate,      setFromDate]      = useState(today);
@@ -97,7 +101,7 @@ const BM_ZReading = () => {
   const [reportData,    setReportData]    = useState<ZReadingReport | null>(null);
   const [loading,       setLoading]       = useState(false);
   const [error,         setError]         = useState<string | null>(null);
-  const [cashierName,   setCashierName]   = useState('ADMIN USER');
+  const [cashierName,   setCashierName]   = useState('SUPERVISOR');
   const [invoiceQuery,  setInvoiceQuery]  = useState('');
   const [branchFilter,  setBranchFilter]  = useState('');
   const [teamLeaderFilter, setTeamLeaderFilter] = useState('');
@@ -110,7 +114,7 @@ const BM_ZReading = () => {
 
   useEffect(() => {
     const u = localStorage.getItem('user');
-    if (u) { const p = JSON.parse(u); setCashierName(p.name || 'ADMIN USER'); }
+    if (u) { const p = JSON.parse(u); setCashierName(p.name || 'SUPERVISOR'); }
   }, []);
 
   useEffect(() => {
@@ -166,11 +170,13 @@ const BM_ZReading = () => {
   const fetchReportData = async (type: string) => {
     setLoading(true); setError(null);
     try {
+      const branchParam = branchId ? { branch_id: String(branchId) } : {};
+
       // ── Summary — merge sales-summary + item-quantities ──────────────────
       if (type === 'summary') {
         const [sRes, qRes] = await Promise.all([
-          api.get('/reports/sales-summary',   { params: { from: selectedDate, to: selectedDate } }),
-          api.get('/reports/item-quantities', { params: { date: selectedDate } }),
+          api.get('/reports/sales-summary',   { params: { from: selectedDate, to: selectedDate, ...branchParam } }),
+          api.get('/reports/item-quantities', { params: { date: selectedDate, ...branchParam } }),
         ]);
         const merged = { ...sRes.data, categories: qRes.data.categories ?? [], all_addons_summary: qRes.data.all_addons_summary ?? [] };
         setReportData({ ...normalizeResponse(type, merged), report_type: type });
@@ -180,15 +186,15 @@ const BM_ZReading = () => {
       // ── Z-Reading — merge z-reading + cash-counts + item-quantities + void-logs ──
       if (type === 'z_reading') {
         const zParams = dateMode === 'range'
-          ? { from: fromDate, to: toDate }
-          : { from: selectedDate, to: selectedDate };
+          ? { from: fromDate, to: toDate, ...branchParam }
+          : { from: selectedDate, to: selectedDate, ...branchParam };
         const ccDate = dateMode === 'range' ? toDate : selectedDate;
 
         const [zRes, ccRes, qtyRes, voidRes] = await Promise.all([
           api.get('/reports/z-reading',       { params: zParams }),
-          api.get('/cash-counts/summary',     { params: { date: ccDate } }),
-          api.get('/reports/item-quantities', { params: { date: ccDate } }),
-          api.get('/reports/void-logs',       { params: { date: ccDate } }),
+          api.get('/cash-counts/summary',     { params: { date: ccDate, ...branchParam } }),
+          api.get('/reports/item-quantities', { params: { date: ccDate, ...branchParam } }),
+          api.get('/reports/void-logs',       { params: { date: ccDate, ...branchParam } }),
         ]);
 
         const zData    = zRes.data  as Record<string, unknown>;
@@ -246,16 +252,19 @@ const BM_ZReading = () => {
       }
 
       // ── All other endpoints ──────────────────────────────────────────────
+      const baseParams: Record<string, string> = { date: selectedDate };
+      if (branchId) baseParams.branch_id = String(branchId);
+
       const map: Record<string, { url: string; params: Record<string, string> }> = {
-        hourly_sales: { url: '/reports/hourly-sales',    params: { date: selectedDate } },
-        void_logs:    { url: '/reports/void-logs',       params: { date: selectedDate } },
-        qty_items:    { url: '/reports/item-quantities', params: { date: selectedDate } },
-        cash_count:   { url: '/cash-counts/summary',     params: { date: selectedDate } },
+        hourly_sales: { url: '/reports/hourly-sales',    params: { ...baseParams } },
+        void_logs:    { url: '/reports/void-logs',       params: { ...baseParams } },
+        qty_items:    { url: '/reports/item-quantities', params: { ...baseParams } },
+        cash_count:   { url: '/cash-counts/summary',     params: { ...baseParams } },
         search:       {
           url: '/receipts/search',
-          params: { query: invoiceQuery, date: selectedDate, branch: branchFilter, team_leader: teamLeaderFilter },
+          params: { query: invoiceQuery, branch: branchFilter, team_leader: teamLeaderFilter, ...baseParams },
         },
-        detailed: { url: '/reports/sales-detailed', params: { date: selectedDate } },
+        detailed: { url: '/reports/sales-detailed', params: { ...baseParams } },
       };
       const { url, params } = map[type];
       const cleanParams = Object.fromEntries(Object.entries(params).filter(([, v]) => v !== ''));
@@ -319,7 +328,7 @@ const BM_ZReading = () => {
     );
   };
 
-  // ── Qty Items — ported from ZReading reference ────────────────────────────
+  // ── Qty Items ────────────────────────────
   const renderQtyItems = () => {
     if (!reportData?.categories) return <p className="text-[11px] mt-4 text-center">No category data returned by API.</p>;
     const SIZE_ORDER = ['SM', 'UM', 'PCM', 'JR', 'SL', 'UL', 'PCL'];
@@ -369,7 +378,7 @@ const BM_ZReading = () => {
     );
   };
 
-  // ── Summary — ported from ZReading reference ──────────────────────────────
+  // ── Summary ──────────────────────────────
   const renderSummary = () => {
     const SIZE_ORDER = ['SM', 'UM', 'PCM', 'JR', 'SL', 'UL', 'PCL'];
     return (
@@ -665,7 +674,7 @@ const BM_ZReading = () => {
           </>
         )}
 
-        {/* Item breakdown from item-quantities (same as ZReading reference) */}
+        {/* Item breakdown from item-quantities */}
         {reportData?.categories && reportData.categories.length > 0 && (
           <>
             <Divider />
@@ -703,7 +712,8 @@ const BM_ZReading = () => {
     else if (type === 'export_sales' || type === 'export_items') {
       try {
         const ep  = type === 'export_sales' ? 'export-sales' : 'export-items';
-        const r   = await api.get(`/reports/${ep}`, { params: { date: selectedDate }, responseType: 'blob' });
+        const branchParam = branchId ? { branch_id: String(branchId) } : {};
+        const r   = await api.get(`/reports/${ep}`, { params: { date: selectedDate, ...branchParam }, responseType: 'blob' });
         const url = window.URL.createObjectURL(new Blob([r.data]));
         const a   = document.createElement('a'); a.href = url;
         a.setAttribute('download', `lucky_boba_${ep}_${selectedDate}.csv`);
@@ -944,4 +954,4 @@ const BM_ZReading = () => {
   );
 };
 
-export default BM_ZReading;
+export default SVZReading;

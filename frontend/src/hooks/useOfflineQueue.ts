@@ -115,36 +115,51 @@ export function useOfflineQueue(): OfflineQueueState {
 
     let updated = [...current];
 
-    for (const item of current) {
-      if (item.attempts >= MAX_ATTEMPTS) continue;
+    try {
+      for (const item of current) {
+        if (item.attempts >= MAX_ATTEMPTS) continue;
 
-      try {
-        await api.post('/sales', item.payload);
-        // Success — remove from queue
-        updated = updated.filter(q => q.id !== item.id);
-} catch (err) {
-        const status = (err as { response?: { status?: number } })?.response?.status;
-        if (status === 422) {
-          // Unrecoverable — bad payload, drop it instead of retrying
+        try {
+          await api.post('/sales', item.payload);
           updated = updated.filter(q => q.id !== item.id);
-          console.warn('Dropped invalid queued order (422):', item.id);
-          continue;
+        } catch (err) {
+          const status  = (err as { response?: { status?: number } })?.response?.status;
+          const message = err instanceof Error ? err.message : 'Unknown error';
+
+          if (status === 422) {
+            updated = updated.filter(q => q.id !== item.id);
+            console.warn('Dropped invalid queued order (422):', item.id);
+            continue;
+          }
+
+          const responseData = (err as { response?: { data?: { message?: string } } })?.response?.data;
+          const isDuplicateInvoice =
+            status === 500 &&
+            typeof responseData?.message === 'string' &&
+            responseData.message.toLowerCase().includes('duplicate entry');
+
+          if (isDuplicateInvoice) {
+            updated = updated.filter(q => q.id !== item.id);
+            console.warn('Dropped duplicate invoice (already saved on server):', item.id);
+            continue;
+          }
+
+          updated = updated.map(q =>
+            q.id === item.id
+              ? { ...q, attempts: q.attempts + 1, lastError: message }
+              : q
+          );
         }
-        const message = err instanceof Error ? err.message : 'Unknown error';
-        updated = updated.map(q =>
-          q.id === item.id
-            ? { ...q, attempts: q.attempts + 1, lastError: message }
-            : q
-        );
       }
+    } finally {
+      // ── Always reset — even if something above throws unexpectedly ──────
+      saveQueue(updated);
+      setQueue(updated);
+      isSyncingRef.current = false;
+      setIsSyncing(false);
     }
-
-    saveQueue(updated);
-    setQueue(updated);
-    isSyncingRef.current = false;
-    setIsSyncing(false);
   }, []);
-
+  
   // ── Auto-sync on reconnect ──────────────────────────────────────────────────
   useEffect(() => {
     const handleOnline = () => {
