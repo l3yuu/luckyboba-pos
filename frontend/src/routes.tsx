@@ -12,6 +12,7 @@ import { PublicRoute }         from './components/PublicRoute';
 import { ErrorFallback }       from './components/ErrorFallback';
 import PosDeviceManager        from './pages/PosDeviceManager';
 import OnlineOrdersPage        from './components/Cashier/SalesOrder/OnlineOrdersPage'; // ← NEW
+import SupervisorDashboard from './pages/SupervisorDashboard';  // ← ADD THIS IMPORT
 
 
 
@@ -67,6 +68,20 @@ export const router = createBrowserRouter([
       },
     ],
   },
+
+  // ── Supervisor only ──────────────────────────────────────────────────────
+{
+  element:      <ProtectedRoute allowedRoles={['supervisor']} />,
+  errorElement: <ErrorFallback />,
+  children: [
+    {
+      children: [
+        { path: '/supervisor', element: <SupervisorDashboard /> },
+      ],
+    },
+  ],
+},
+
 
   // ── Team Leader only ─────────────────────────────────────────────────────
   {

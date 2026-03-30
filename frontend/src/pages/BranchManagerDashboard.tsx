@@ -38,7 +38,7 @@ import BM_InventoryStockTransfer from '../components/BranchManager/Inventory/BM_
 import BM_InventorySuppliers     from '../components/BranchManager/Inventory/BM_InventorySuppliers';
 
 import BranchManagerAuditLogsTab from '../components/BranchManager/BranchManagerAuditLogsTab';
-
+import BMVoidLogsPanel from '../components/BranchManager/FloorOps/BMVoidLogs';
 // ── BranchManager-specific Settings Items ─────────────
 import BM_AddCustomers       from '../components/BranchManager/Settings/BM_AddCustomers';
 import BM_AddVouchers        from '../components/BranchManager/Settings/BM_AddVouchers';
@@ -234,7 +234,8 @@ const branchLabel = authUser?.name ?? null; // 'Main Branch' comes from here
       case 'inventory-report':    return <BM_InventoryReports />;
       
       case 'audit-logs':          return <BranchManagerAuditLogsTab />;
-
+      case 'void-logs':
+  return <BMVoidLogsPanel branchId={authUser?.branch_id ?? null} />;
       // ── Settings ──
       case 'settings':            return <BM_Settings />;
       case 'add-customers':       return <BM_AddCustomers onBack={() => setActiveTab('settings')} />;

@@ -326,7 +326,8 @@ Receipt::create([
             DB::beginTransaction();
 
             $sale = Sale::with('items')->findOrFail($id);
-
+            $user = $request->user();
+if ($user->role === 'supervisor' && $sale->branch_id !== $user->branch_id)
             if ($sale->status === 'cancelled') {
                 return response()->json(['message' => 'Sale already cancelled'], 400);
             }

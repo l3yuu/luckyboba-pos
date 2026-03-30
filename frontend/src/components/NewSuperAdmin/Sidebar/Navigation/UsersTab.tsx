@@ -94,8 +94,9 @@ const ROLE_LABELS: Record<string, string> = {
   cashier:        "Cashier",
   customer:       "Customer",
   team_leader:    "Team Leader",
+  supervisor:     "Supervisor"
 };
-const ALL_ROLES = ["superadmin", "system_admin", "branch_manager", "team_leader", "cashier", "customer"];
+const ALL_ROLES = ["superadmin", "system_admin", "branch_manager", "team_leader", "cashier", "customer", "supervisor"];
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
 const Avatar: React.FC<{ name: string; size?: string }> = ({ name, size = "w-7 h-7 text-[10px]" }) => (
@@ -312,7 +313,8 @@ const AddUserModal: React.FC<{
 
   const PIN_ROLES  = ["branch_manager", "team_leader"];
   const showPin    = PIN_ROLES.includes(form.role);
-  const showBranch = ["cashier", "branch_manager", "team_leader"].includes(form.role);
+  const showBranch = ["cashier", "branch_manager", "team_leader", "supervisor"].includes(form.role);
+
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -342,7 +344,7 @@ const AddUserModal: React.FC<{
         password:  form.password,
         role:      form.role,
         status:    form.status,
-        branch_id: form.branch_id || null,
+        branch_id: form.branch_id ? Number(form.branch_id) : null,
       };
       if (showPin) {
         payload.manager_pin              = form.manager_pin;
@@ -487,7 +489,8 @@ const EditUserModal: React.FC<{
 
   const PIN_ROLES  = ["branch_manager", "team_leader"];
   const showPin    = PIN_ROLES.includes(form.role) && !user.has_pin;
-  const showBranch = ["cashier", "branch_manager", "team_leader"].includes(form.role);
+  const showBranch = ["cashier", "branch_manager", "team_leader", "supervisor"].includes(form.role);
+
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -515,7 +518,7 @@ const EditUserModal: React.FC<{
         email:     form.username,  // backend still uses email field
         role:      form.role,
         status:    form.status,
-        branch_id: form.branch_id || null,
+        branch_id: form.branch_id ? Number(form.branch_id) : null,
       };
       if (form.password) payload.password = form.password;
       if (showPin) {
@@ -1247,7 +1250,7 @@ const UsersTab: React.FC = () => {
                         className="p-1.5 hover:bg-red-50 rounded-[0.4rem] text-zinc-400 hover:text-red-500 transition-colors" title="Delete">
                         <Trash2 size={13} />
                       </button>
-                      {["branch_manager", "team_leader"].includes(u.role) && (
+                      {["branch_manager", "team_leader", "supervisor"].includes(u.role) && (
                         <button onClick={() => setPinTarget(u)}
                           className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors" title="Change PIN">
                           <ShieldCheck size={13} />
