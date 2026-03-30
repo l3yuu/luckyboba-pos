@@ -314,7 +314,7 @@ export const ReceiptPrint = ({
                         </>
                       ) : (
                         <>
-                          {item.sugarLevel != null && <div className="pl-2 text-[10px]">• Sugar {item.sugarLevel}</div>}
+                          {item.sugarLevel != null && item.sugarLevel !== '' && <div className="pl-2 text-[10px]">• Sugar {item.sugarLevel}</div>}
                           {item.options?.map(o => <div key={o} className="pl-2 text-[10px]">• {o}</div>)}
                           {item.remarks && <div className="pl-2 text-[10px] italic">• {item.remarks}</div>}
                         </>
@@ -517,7 +517,7 @@ export const KitchenPrint = ({
                   </>
                 ) : (
                   <>
-                    {item.sugarLevel != null && (
+                    {item.sugarLevel != null && item.sugarLevel !== '' && (
                       <div className="text-sm mt-1">Sugar: {item.sugarLevel}</div>
                     )}
                     {item.options && item.options.length > 0 && (
@@ -819,7 +819,7 @@ export const StickerPrint = ({
               {item.name}
             </div>
             <div className={`w-full text-center font-bold ${cls.addOnSize} ${cls.gapClass}`}>
-              {item.sugarLevel && <div>Sugar: {item.sugarLevel}</div>}
+              {item.sugarLevel && item.sugarLevel.trim() !== '' && <div>Sugar: {item.sugarLevel}</div>}
               {item.options?.map(opt => <div key={opt}>{opt}</div>)}
               {item.addOns?.map(a => <div key={a}>+ {a}</div>)}
               {item.remarks && <div className="italic">{item.remarks}</div>}
