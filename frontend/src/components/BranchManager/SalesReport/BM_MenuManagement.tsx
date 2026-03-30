@@ -23,7 +23,7 @@ const getToken = () =>
   localStorage.getItem('lucky_boba_token') || '';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-interface MenuItem {
+export interface MenuItem {
   id:           number;
   name:         string;
   category:     string;
@@ -31,6 +31,17 @@ interface MenuItem {
   quantity:     number;
   is_available: boolean;
   image:        string | null;
+}
+
+export interface ApiMenuItem {
+  id: number;
+  name: string;
+  category?: string;
+  sellingPrice?: number | string;
+  selling_price?: number | string;
+  quantity?: number;
+  is_available?: boolean;
+  image?: string | null;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -166,15 +177,11 @@ const BM_MenuManagement = () => {
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      const list: MenuItem[] = (data.data ?? data).map((i: any) => ({
+     const list: MenuItem[] = (data.data ?? data).map((i: ApiMenuItem) => ({
         id:           i.id,
         name:         i.name,
         category:     i.category ?? 'Uncategorized',
-        sellingPrice: parseFloat(i.sellingPrice ?? i.selling_price ?? 0),
-        quantity:     i.quantity ?? 0,
-        is_available: i.is_available ?? true,
-        image:        i.image ?? null,
-      }));
+        }));
       setItems(list);
       // Open all categories by default
       setOpenCats(new Set(list.map(i => i.category)));
