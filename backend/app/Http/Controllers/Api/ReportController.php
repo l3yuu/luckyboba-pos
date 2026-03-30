@@ -458,106 +458,98 @@ class ReportController extends Controller
      * SC/PWD discount / 0.20 reconstructs the VAT-exempt base.
      * Remaining gross is then split into VATable + VAT.
      */
-    public function getSalesSummary(Request $request)
-    {
-        try {
-            $from = $request->query('from', now()->toDateString()) . ' 00:00:00';
-            $to   = $request->query('to',   now()->toDateString()) . ' 23:59:59';
+public function getSalesSummary(Request $request)
+{
+    try {
+        $from = $request->query('from', now()->toDateString()) . ' 00:00:00';
+        $to   = $request->query('to',   now()->toDateString()) . ' 23:59:59';
 
-            $data = $this->getSummaryData($from, $to);
+        $data  = $this->getSummaryData($from, $to);
+        $gross = $data['gross_sales'];
 
-            $paymentBreakdown = Sale::whereBetween('created_at', [$from, $to])
-                ->where('status', 'completed')
-                ->selectRaw('payment_method as method, SUM(total_amount) as amount')
-                ->groupBy('payment_method')
-                ->get();
-
-            $gross = $data['gross_sales'];
-
-            // ── VAT type check ────────────────────────────────────────────────
-            $user     = auth('sanctum')->user();
-            $branchId = $user?->branch_id;
-            $isVat    = true;
-            if ($branchId) {
-                $branch = \App\Models\Branch::select('vat_type')->find($branchId);
-                $isVat  = $branch?->vat_type !== 'non_vat';
-            }
-            // ─────────────────────────────────────────────────────────────────
-
-            // ── Discounts (needed before VAT calc) ────────────────────────────
-            $scDiscount = DB::table('sale_items')
-                ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
-                ->whereBetween('sales.created_at', [$from, $to])
-                ->where('sales.status', 'completed')
-                ->where('sale_items.discount_label', 'LIKE', '%SENIOR%')
-                ->sum('sale_items.discount_amount');
-
-            $pwdDiscount = DB::table('sale_items')
-                ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
-                ->whereBetween('sales.created_at', [$from, $to])
-                ->where('sales.status', 'completed')
-                ->where('sale_items.discount_label', 'LIKE', '%PWD%')
-                ->sum('sale_items.discount_amount');
-
-            $diplomatDiscount = DB::table('sale_items')
-                ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
-                ->whereBetween('sales.created_at', [$from, $to])
-                ->where('sales.status', 'completed')
-                ->where('sale_items.discount_label', 'LIKE', '%DIPLOMAT%')
-                ->sum('sale_items.discount_amount');
-
-            $otherDiscount = DB::table('sale_items')
-                ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
-                ->whereBetween('sales.created_at', [$from, $to])
-                ->where('sales.status', 'completed')
-                ->where('sale_items.discount_label', 'NOT LIKE', '%SENIOR%')
-                ->where('sale_items.discount_label', 'NOT LIKE', '%PWD%')
-                ->where('sale_items.discount_label', 'NOT LIKE', '%DIPLOMAT%')
-                ->whereNotNull('sale_items.discount_label')
-                ->where('sale_items.discount_label', '!=', '')
-                ->sum('sale_items.discount_amount');
-
-            $orderLevelOtherDiscount = DB::table('sales')
-                ->whereBetween('created_at', [$from, $to])
-                ->where('status', 'completed')
-                ->whereNotNull('discount_id')
-                ->sum('discount_amount');
-
-            // ── FIX: VAT using consistent formula ─────────────────────────────
-            // Previously this just did gross / 1.12, ignoring SC/PWD exemptions.
-            // Now uses the same formula as generateZReading():
-            //   vatExemptSales = scPwdDiscount / 0.20
-            //   vatableBase    = gross - vatExemptSales
-            //   vatableSales   = vatableBase / 1.12
-            //   vatAmount      = vatableBase - vatableSales
-            $scPwdDiscount  = (float)$scDiscount + (float)$pwdDiscount;
-            $vatExemptSales = $isVat ? round($scPwdDiscount / 0.20, 2) : 0.0;
-            $vatableBase    = $isVat ? max(0.0, $gross - $vatExemptSales) : 0.0;
-            $vatableSales   = $isVat ? round($vatableBase / 1.12, 2) : 0.0;
-            $vatAmount      = $isVat ? round($vatableBase - $vatableSales, 2) : 0.0;
-            // ─────────────────────────────────────────────────────────────────
-
-            return response()->json(array_merge($data, [
-                'payment_breakdown'  => $paymentBreakdown,
-                'vatable_sales'      => $vatableSales,
-                'vat_amount'         => $vatAmount,
-                'vat_exempt_sales'   => $vatExemptSales,
-                'is_vat'             => $isVat,
-                'sc_discount'        => round((float)$scDiscount,           2),
-                'pwd_discount'       => round((float)$pwdDiscount,          2),
-                'diplomat_discount'  => round((float)$diplomatDiscount,     2),
-                'other_discount'     => round((float)$otherDiscount + (float)$orderLevelOtherDiscount, 2),
-                'sc_pwd_discount'    => round((float)$scDiscount + (float)$pwdDiscount, 2),
-                'total_senior_pax'   => 0,
-                'total_pwd_pax'      => 0,
-                'total_diplomat_pax' => 0,
-            ]));
-
-        } catch (\Exception $e) {
-            Log::error("getSalesSummary Error: " . $e->getMessage());
-            return response()->json(['error' => 'Failed to generate summary report'], 500);
+        // ── VAT type check ────────────────────────────────────────────────
+        $user     = auth('sanctum')->user();
+        $branchId = $user?->branch_id;
+        $isVat    = true;
+        if ($branchId) {
+            $branch = \App\Models\Branch::select('vat_type')->find($branchId);
+            $isVat  = $branch?->vat_type !== 'non_vat';
         }
+
+        // ── Discounts from sales table columns ────────────────────────────
+        $scDiscount = (float) DB::table('sales')
+            ->whereBetween('created_at', [$from, $to])
+            ->where('status', 'completed')
+            ->sum('sc_discount_amount');
+
+        $pwdDiscount = (float) DB::table('sales')
+            ->whereBetween('created_at', [$from, $to])
+            ->where('status', 'completed')
+            ->sum('pwd_discount_amount');
+
+        $diplomatDiscount = (float) DB::table('sales')
+            ->whereBetween('created_at', [$from, $to])
+            ->where('status', 'completed')
+            ->sum('diplomat_discount_amount');
+
+        $otherDiscount = (float) DB::table('sales')
+            ->whereBetween('created_at', [$from, $to])
+            ->where('status', 'completed')
+            ->sum('other_discount_amount');
+
+        $scPwdDiscount  = $scDiscount + $pwdDiscount;
+        $totalDiscounts = $scPwdDiscount + $diplomatDiscount + $otherDiscount;
+
+        // ── Use stored VAT values directly from sales records ─────────────
+        $salesVatTotal = (float) DB::table('sales')
+            ->whereBetween('created_at', [$from, $to])
+            ->where('status', 'completed')
+            ->sum('vat_amount');
+
+        $salesVatableSales = (float) DB::table('sales')
+            ->whereBetween('created_at', [$from, $to])
+            ->where('status', 'completed')
+            ->sum('vatable_sales');
+
+        $vatAmount    = $isVat ? round($salesVatTotal,     2) : 0.0;
+        $vatableSales = $isVat ? round($salesVatableSales, 2) : 0.0;
+
+        // ── vatExemptSales still uses formula ─────────────────────────────
+        $vatExemptBase  = $isVat ? round($scPwdDiscount / 0.20, 2) : 0.0;
+        $vatExemptSales = $isVat ? round($vatExemptBase - $scPwdDiscount, 2) : 0.0;
+
+        // ── Pre-discount gross = post-discount gross + discounts + VAT ────
+        $preDiscountGross = round($gross + $totalDiscounts + $salesVatTotal, 2);
+
+        $paymentBreakdown = Sale::whereBetween('created_at', [$from, $to])
+            ->where('status', 'completed')
+            ->selectRaw('payment_method as method, SUM(total_amount) as amount')
+            ->groupBy('payment_method')
+            ->get();
+
+        return response()->json(array_merge($data, [
+            'payment_breakdown'  => $paymentBreakdown,
+            'vatable_sales'      => $vatableSales,
+            'vat_amount'         => $vatAmount,
+            'vat_exempt_sales'   => $vatExemptSales,
+            'is_vat'             => $isVat,
+            'sc_discount'        => round($scDiscount,       2),
+            'pwd_discount'       => round($pwdDiscount,      2),
+            'diplomat_discount'  => round($diplomatDiscount, 2),
+            'other_discount'     => round($otherDiscount,    2),
+            'sc_pwd_discount'    => round($scPwdDiscount,    2),
+            'total_discounts'    => round($totalDiscounts,   2),
+            'pre_discount_gross' => $preDiscountGross,
+            'total_senior_pax'   => 0,
+            'total_pwd_pax'      => 0,
+            'total_diplomat_pax' => 0,
+        ]));
+
+    } catch (\Exception $e) {
+        Log::error("getSalesSummary Error: " . $e->getMessage());
+        return response()->json(['error' => 'Failed to generate summary report'], 500);
     }
+}
 
     /**
      * GET /api/reports/sales-detailed?date=YYYY-MM-DD

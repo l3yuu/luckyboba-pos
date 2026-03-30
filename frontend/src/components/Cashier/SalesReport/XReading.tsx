@@ -89,6 +89,7 @@ interface XReadingReport {
   cash_in?: number;
   is_vat?: boolean;           // ← add
   vat_exempt_sales?: number;  // ← add
+  pre_discount_gross?: number;
 }
 
 const Row = ({ label, value, indent = false }: { label: string; value: string | number; indent?: boolean }) => (
@@ -625,33 +626,35 @@ const XReading = () => {
           );
         })()}
         <Divider />
-        <div className="flex text-[11px] justify-end gap-2 mb-0.5">
-          <span className="uppercase">TOTAL:</span>
-          <span className="w-[35%] text-right font-bold">{phCurrency.format(reportData?.gross_sales || 0)}</span>
-        </div>
-        <Divider />
         {(() => {
-        const gross        = reportData?.gross_sales || 0;
-        const vatAmt       = reportData?.vat_amount || 0;
-        const vatableSales = reportData?.vatable_sales || 0;
-        const scDiscount   = reportData?.sc_discount || 0;
-        const pwdDiscount  = reportData?.pwd_discount || 0;
-        const diplomat     = reportData?.diplomat_discount || 0;
-        const otherDisc    = reportData?.other_discount || 0;
-        const voids        = reportData?.total_void_amount || 0;
-        const netAmount    = gross - scDiscount - pwdDiscount - diplomat - vatAmt;
+          const gross            = reportData?.gross_sales || 0;
+          const preDiscountGross = reportData?.pre_discount_gross || gross;
+          const vatAmt           = reportData?.vat_amount || 0;
+          const vatableSales     = reportData?.vatable_sales || 0;
+          const scDiscount       = reportData?.sc_discount || 0;
+          const pwdDiscount      = reportData?.pwd_discount || 0;
+          const diplomat         = reportData?.diplomat_discount || 0;
+          const otherDisc        = reportData?.other_discount || 0;
+          const voids            = reportData?.total_void_amount || 0;
+          // NET = pre-discount gross - all discounts - VAT
+          const netAmount        = preDiscountGross - scDiscount - pwdDiscount - diplomat - otherDisc - vatAmt;
           const auditRows = [
-            { label: 'LINE DISC:', value: phCurrency.format(0) },
-            { label: 'LESS POINTS REDEEMED:', value: phCurrency.format(0) },
+            { label: 'LINE DISC:',             value: phCurrency.format(0) },
+            { label: 'LESS POINTS REDEEMED:',  value: phCurrency.format(0) },
             { label: 'LESS REG EMP VIP DISC:', value: phCurrency.format(0) },
-            { label: 'LESS PWD DISCOUNT:', value: pwdDiscount > 0 ? `-${phCurrency.format(pwdDiscount)}` : phCurrency.format(0) },
-            { label: 'LESS SC DISCOUNT:', value: scDiscount > 0 ? `-${phCurrency.format(scDiscount)}` : phCurrency.format(0) },
-            { label: 'LESS DIPLOMAT:', value: diplomat > 0 ? `-${phCurrency.format(diplomat)}` : phCurrency.format(0) },
-            { label: 'LESS OTHER DISC:', value: otherDisc > 0 ? `-${phCurrency.format(otherDisc)}` : phCurrency.format(0) },
-            { label: 'LESS 12% VAT:', value: (reportData?.is_vat ?? isVat) && vatAmt > 0 ? `-${phCurrency.format(vatAmt)}` : phCurrency.format(0) },
+            { label: 'LESS PWD DISCOUNT:',     value: pwdDiscount > 0 ? `-${phCurrency.format(pwdDiscount)}` : phCurrency.format(0) },
+            { label: 'LESS SC DISCOUNT:',      value: scDiscount  > 0 ? `-${phCurrency.format(scDiscount)}`  : phCurrency.format(0) },
+            { label: 'LESS DIPLOMAT:',         value: diplomat    > 0 ? `-${phCurrency.format(diplomat)}`    : phCurrency.format(0) },
+            { label: 'LESS OTHER DISC:',       value: otherDisc   > 0 ? `-${phCurrency.format(otherDisc)}`  : phCurrency.format(0) },
+            { label: 'LESS 12% VAT:',          value: (reportData?.is_vat ?? isVat) && vatAmt > 0 ? `-${phCurrency.format(vatAmt)}` : phCurrency.format(0) },
           ];
           return (
             <>
+              <div className="flex text-[11px] justify-end gap-2 mb-0.5">
+                <span className="uppercase">TOTAL:</span>
+                <span className="w-[35%] text-right font-bold">{phCurrency.format(preDiscountGross)}</span>
+              </div>
+              <Divider />
               {auditRows.map((r, i) => (
                 <div key={i} className="flex text-[11px] leading-snug">
                   <span className="flex-1 text-right uppercase pr-1">{r.label}</span>
@@ -664,10 +667,10 @@ const XReading = () => {
               </div>
               <Divider />
               {[
-              { label: 'VATABLE SALES:',    value: phCurrency.format((reportData?.is_vat ?? isVat) ? vatableSales : 0) },
-              { label: 'VAT AMOUNT:',       value: phCurrency.format((reportData?.is_vat ?? isVat) ? vatAmt : 0) },
-              { label: 'VAT EXEMPT SALES:', value: phCurrency.format((reportData?.is_vat ?? isVat) ? 0 : (reportData?.vat_exempt_sales || gross)) },
-              { label: 'ZERO RATED SALES:', value: phCurrency.format(0) },
+                { label: 'VATABLE SALES:',    value: phCurrency.format((reportData?.is_vat ?? isVat) ? vatableSales : 0) },
+                { label: 'VAT AMOUNT:',       value: phCurrency.format((reportData?.is_vat ?? isVat) ? vatAmt : 0) },
+                { label: 'VAT EXEMPT SALES:', value: phCurrency.format(reportData?.vat_exempt_sales || 0) },
+                { label: 'ZERO RATED SALES:', value: phCurrency.format(0) },
               ].map((r, i) => (
                 <div key={i} className="flex text-[11px] leading-snug">
                   <span className="flex-1 text-right uppercase pr-1">{r.label}</span>
@@ -675,11 +678,20 @@ const XReading = () => {
                 </div>
               ))}
               <Divider />
-              <div className="flex text-[11px] leading-snug"><span className="flex-1 text-right uppercase pr-1">SC AND PWD AMOUNT:</span><span className="w-[35%] text-right">{phCurrency.format(scDiscount + pwdDiscount)}</span></div>
-              <div className="flex text-[11px] leading-snug"><span className="flex-1 text-right uppercase pr-1">TOTAL VOIDS:</span><span className="w-[35%] text-right">{phCurrency.format(voids)}</span></div>
+              <div className="flex text-[11px] leading-snug">
+                <span className="flex-1 text-right uppercase pr-1">SC AND PWD AMOUNT:</span>
+                <span className="w-[35%] text-right">{phCurrency.format(scDiscount + pwdDiscount)}</span>
+              </div>
+              <div className="flex text-[11px] leading-snug">
+                <span className="flex-1 text-right uppercase pr-1">TOTAL VOIDS:</span>
+                <span className="w-[35%] text-right">{phCurrency.format(voids)}</span>
+              </div>
               <div className="flex text-[11px] mt-1 leading-snug">
                 <span className="flex-1 text-right uppercase pr-1">PRINTED:</span>
-                <span className="w-[45%] text-right">{new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })} {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                <span className="w-[45%] text-right">
+                  {new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}{' '}
+                  {new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                </span>
               </div>
             </>
           );
@@ -727,7 +739,7 @@ const XReading = () => {
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">BREAKDOWN OF SALES</p>
         <Row label="VATABLE SALES"    value={phCurrency.format(reportIsVat ? vatableSales : 0)} />
         <Row label="VAT AMOUNT"       value={phCurrency.format(reportIsVat ? vatAmount : 0)} />
-        <Row label="VAT EXEMPT SALES" value={phCurrency.format(reportIsVat ? 0 : vatExempt || gross)} />
+        <Row label="VAT EXEMPT SALES" value={phCurrency.format(vatExempt)} />
         <Row label="ZERO-RATED SALES" value={phCurrency.format(0)} />
         <Divider />
         <Row label="SERVICE CHARGE" value={phCurrency.format(0)} />
