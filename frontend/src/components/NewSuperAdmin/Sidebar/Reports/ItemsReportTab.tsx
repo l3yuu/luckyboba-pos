@@ -34,6 +34,15 @@ interface ItemRow {
 interface BranchOption   { id: number; name: string; }
 interface CategoryOption { id: number; name: string; }
 
+interface ApiItemRow {
+  product_name:   string;
+  category:       string | null;
+  total_quantity: string | number;
+  total_revenue:  string | number;
+  avg_unit_price: string | number | null;
+  times_ordered:  string | number | null;
+}
+
 // ── Shared UI ─────────────────────────────────────────────────────────────────
 interface StatCardProps {
   icon: React.ReactNode; label: string; value: string | number;
@@ -139,19 +148,19 @@ const ItemsReportTab: React.FC = () => {
     setError("");
     try {
       const params = new URLSearchParams({
-        date_from: dateFrom,   // ← was "date: dateTo"
-        date_to:   dateTo,     // ← add this
+        date_from: dateFrom,
+        date_to:   dateTo,
       });
       if (branchId)   params.set("branch_id",   branchId);
       if (categoryId) params.set("category_id", categoryId);
 
-      const res  = await fetch(`/api/reports/items-all?${params}`, { headers: authHeaders() }); // ← new endpoint
-      const data = await res.json();
+      const res  = await fetch(`/api/reports/items-all?${params}`, { headers: authHeaders() });
+      const data = await res.json() as { top_products?: ApiItemRow[] };
 
       if (data.top_products) {
-        setItems(data.top_products.map((p: any) => ({
+        setItems(data.top_products.map((p) => ({
           product_name:   p.product_name,
-          category:       p.category ?? "—",   // ← now has real category
+          category:       p.category ?? "—",
           total_quantity: Number(p.total_quantity),
           total_revenue:  Number(p.total_revenue),
           avg_price:      Number(p.avg_unit_price ?? 0),
