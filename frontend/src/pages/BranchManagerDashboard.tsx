@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import BranchManagerSidebar from '../components/BranchManager/BranchManagerSidebar';
+import { ConfirmModal } from '../components/BranchManager/SharedUI';
 import logo from '../assets/logo.png';
 import UserManagement from '../components/BranchManager/Home/UserManagement';
 import BM_DeviceManagement from '../components/BranchManager/Home/BM_DeviceManagement';
@@ -49,9 +50,16 @@ import BM_SalesSettings      from '../components/BranchManager/Settings/BM_Sales
 import BM_Settings           from '../components/BranchManager/Settings/BM_Settings';
 import BM_UploadData         from '../components/BranchManager/Settings/BM_UploadData';
 
-// ─── Font tokens ──────────────────────────────────────────────────────────────
+// ─── Font tokens and Global Styles ────────────────────────────────────────────
 const STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
+  *, *::before, *::after, body, input, button, select, textarea {
+    font-family: 'DM Sans', sans-serif !important;
+    box-sizing: border-box;
+  }
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: #f4f2fb; }
+  ::-webkit-scrollbar-thumb { background: #d4d0e8; border-radius: 4px; }
   .bm-root, .bm-root * { font-family: 'DM Sans', sans-serif !important; box-sizing: border-box; }
   .bm-label { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #3f3f46; }
   .bm-sub   { font-size: 0.65rem; font-weight: 400; color: #71717a; }
@@ -69,59 +77,11 @@ const STYLES = `
   .bm-tab-off { background: transparent; color: #a1a1aa; }
   .bm-tab-off:hover { background: #ede8ff; color: #3b2063; }
   .bm-pill { font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 100px; padding: 3px 9px; border: 1px solid #e4e4e7; background: #f4f4f5; color: #71717a; }
+  .card { transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease; }
+  .card:hover { box-shadow: 0 8px 32px rgba(59,32,99,0.12); transform: translateY(-1px); border-color: #ddd6f7; }
+  .bm-card { background: #ffffff; border: 1px solid #e4e4e7; border-radius: 0.875rem; transition: all 0.15s ease; }
+  .bm-card:hover { border-color: #ddd6f7; box-shadow: 0 8px 32px rgba(59,32,99,0.12); }
 `;
-
-// ─── Confirm Modal ────────────────────────────────────────────────────────────
-interface ConfirmModalProps {
-  show:     boolean;
-  icon?:    React.ReactNode;
-  title:    string;
-  desc?:    string;
-  action:   () => void;
-  btnText?: string;
-  cancel:   () => void;
-  danger?:  boolean;
-}
-
-const ConfirmModal: React.FC<ConfirmModalProps> = ({
-  show, icon, title, desc, action, btnText = 'Confirm', cancel, danger = false,
-}) => {
-  if (!show) return null;
-  return (
-    <div className="fixed inset-0 z-200 flex items-center justify-center p-6 bg-black/40 backdrop-blur-sm">
-      <div
-        style={{ fontFamily: "'DM Sans', sans-serif" }}
-        className="bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] p-8 flex flex-col items-center text-center shadow-2xl"
-      >
-        {icon && (
-          <div className={`w-11 h-11 rounded-[0.625rem] flex items-center justify-center mb-5 ${danger ? 'bg-red-50' : 'bg-[#f5f3ff]'}`}>
-            {icon}
-          </div>
-        )}
-        <h3 className="text-[#1a0f2e] font-bold text-base mb-2 tracking-tight">{title}</h3>
-        {desc && <p className="text-zinc-500 text-sm font-medium mb-7 leading-relaxed">{desc}</p>}
-        <div className="flex flex-col w-full gap-2">
-          <button
-            onClick={action}
-            className={`w-full py-3 text-[10px] font-bold tracking-[0.18em] uppercase text-white transition-all rounded-[0.625rem] active:scale-[0.98] ${
-              danger ? 'bg-[#be2525] hover:bg-[#a11f1f]' : 'bg-[#3b2063] hover:bg-[#2a1647]'
-            }`}
-          >
-            {btnText}
-          </button>
-          {cancel && (
-            <button
-              onClick={cancel}
-              className="w-full py-3 text-[10px] font-bold tracking-[0.18em] uppercase text-zinc-500 bg-white border border-zinc-200 hover:bg-zinc-50 transition-all rounded-[0.625rem] active:scale-[0.98]"
-            >
-              Cancel
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -570,13 +530,13 @@ const DashboardPanel = ({ branchId }: { branchId: number | null }) => {
       {/* ── STAT CARDS ── */}
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-5">
         {statCards.map((s, i) => (
-          <div key={i} className="bg-white border border-gray-100 rounded-2xl p-5 flex flex-col gap-3 hover:shadow-md hover:border-[#ddd6f7] transition-all">
+          <div key={i} className="card bg-white border border-zinc-200 rounded-[0.875rem] p-6 flex flex-col gap-4 shadow-sm">
             <div className="flex items-start justify-between">
-              <div>
+              <div className="flex-1">
                 <p className="bm-label">{s.label}</p>
-                <p className="bm-sub" style={{ marginTop: 2 }}>{s.sub}</p>
+                <p className="bm-sub" style={{ marginTop: 3 }}>{s.sub}</p>
               </div>
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
+              <div className="w-10 h-10 rounded-[0.625rem] flex items-center justify-center shrink-0"
                 style={{ background: s.iconBg, color: s.iconColor }}>{s.icon}</div>
             </div>
             <div>
@@ -584,7 +544,7 @@ const DashboardPanel = ({ branchId }: { branchId: number | null }) => {
               <p className="bm-sub" style={{ marginTop: 4 }}>{s.value}</p>
             </div>
             <MiniBar values={s.spark} color={s.sparkColor} formatter={s.sparkFmt} />
-            <div className="flex items-center justify-between pt-1 border-t border-gray-50">
+            <div className="flex items-center justify-between pt-3 border-t border-zinc-100">
               <span className="bm-sub">vs yesterday</span>
               {s.trend === '—' ? (
                 <span style={{ fontSize:'0.62rem', fontWeight:700, letterSpacing:'0.06em', color:'#a1a1aa' }}>—</span>
@@ -602,7 +562,7 @@ const DashboardPanel = ({ branchId }: { branchId: number | null }) => {
       {/* ── QUICK METRICS ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {quickStats.map((o, i) => (
-          <div key={i} className="bg-white border border-gray-100 rounded-xl px-4 py-3 flex items-center gap-3">
+          <div key={i} className="card bg-white border border-zinc-200 rounded-[0.875rem] px-4 py-3 flex items-center gap-3 shadow-sm">
             <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
               style={{ background: o.color + '18', color: o.color }}>{o.icon}</div>
             <div className="min-w-0">
@@ -615,7 +575,7 @@ const DashboardPanel = ({ branchId }: { branchId: number | null }) => {
 
       {/* ── CHART + TODAY TOP SELLERS ── */}
       <div className="grid gap-4 grid-cols-1 xl:grid-cols-3">
-        <div className="xl:col-span-2 bg-white border border-gray-100 rounded-2xl p-5">
+        <div className="card xl:col-span-2 bg-white border border-zinc-200 rounded-[0.875rem] p-6 shadow-sm">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
             <div>
               <h2 style={{ fontSize:'0.9rem', fontWeight:800, color:'#1a0f2e', letterSpacing:'-0.025em', margin:0 }}>Revenue Overview</h2>
@@ -628,7 +588,7 @@ const DashboardPanel = ({ branchId }: { branchId: number | null }) => {
                 ))}
               </div>
             </div>
-            <div className="flex gap-1 p-1 bg-gray-50 border border-gray-100 rounded-lg">
+            <div className="flex gap-1 p-1 bg-zinc-50 border border-zinc-200 rounded-lg">
               {([
                 { key: '7days',   label: '7D',  data: analytics?.weekly    },
                 { key: '30days',  label: '30D', data: analytics?.monthly   },
@@ -648,10 +608,10 @@ const DashboardPanel = ({ branchId }: { branchId: number | null }) => {
               })}
             </div>
           </div>
-          <div style={{ height: 220, width: '100%', minHeight: 220, minWidth: 0 }}>
-            {chartData.length === 0 ? (
+            <div style={{ height:220, minHeight: 220, width: '100%', minWidth: 0 }}>
+              {chartData.length === 0 ? (
               <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#f4f4f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#f5f4f8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Activity size={16} color="#a1a1aa" />
                 </div>
                 <p className="bm-label" style={{ color: '#a1a1aa' }}>No data for this period</p>
@@ -666,7 +626,7 @@ const DashboardPanel = ({ branchId }: { branchId: number | null }) => {
                       <stop offset="95%" stopColor="#7c3aed" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid vertical={false} stroke="#f4f4f5"/>
+                  <CartesianGrid vertical={false} stroke="#e4e4e7"/>
                   <XAxis dataKey="name" axisLine={false} tickLine={false} dy={8} minTickGap={20}
                     tick={{ fontSize:9, fill:'#a1a1aa', fontWeight:700 }}/>
                   <YAxis axisLine={false} tickLine={false} ticks={yTicks} domain={[0, niceMax]}
@@ -681,7 +641,7 @@ const DashboardPanel = ({ branchId }: { branchId: number | null }) => {
           </div>
         </div>
 
-        <div className="bg-white border border-gray-100 rounded-2xl p-5 flex flex-col">
+        <div className="card bg-white border border-zinc-200 rounded-[0.875rem] p-6 flex flex-col shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 style={{ fontSize:'0.9rem', fontWeight:800, color:'#1a0f2e', letterSpacing:'-0.025em', margin:0 }}>Top Sellers</h2>
@@ -694,12 +654,12 @@ const DashboardPanel = ({ branchId }: { branchId: number | null }) => {
               <div key={i} className="flex flex-col gap-1">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span style={{ width:20, height:20, borderRadius:'0.3rem', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.55rem', fontWeight:800, background: i===0?'#3b2063':'#f4f4f5', color: i===0?'#fff':'#71717a', flexShrink:0 }}>{i+1}</span>
+                    <span style={{ width:20, height:20, borderRadius:'0.3rem', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.55rem', fontWeight:800, background: i===0?'#3b2063':'#f5f4f8', color: i===0?'#fff':'#71717a', flexShrink:0 }}>{i+1}</span>
                     <span style={{ fontSize:'0.78rem', fontWeight:600, color:'#1a0f2e' }} className="truncate max-w-32.5">{item.product_name}</span>
                   </div>
                   <span style={{ fontSize:'0.72rem', fontWeight:700, color:'#71717a', letterSpacing:'-0.01em', flexShrink:0, marginLeft:8 }}>{item.total_qty}</span>
                 </div>
-                <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                <div className="h-1.5 bg-zinc-200 rounded-full overflow-hidden">
                   <div className="h-full rounded-full" style={{ width:`${(item.total_qty/todayMax)*100}%`, background: purples[i] || '#ede9fe' }}/>
                 </div>
               </div>
@@ -710,7 +670,7 @@ const DashboardPanel = ({ branchId }: { branchId: number | null }) => {
             )}
           </div>
           {sellersToday.length > 0 && (
-            <div className="mt-4 pt-3 border-t border-gray-50">
+            <div className="mt-4 pt-3 border-t border-zinc-100">
               <p className="bm-label" style={{ color:'#a1a1aa' }}>
                 Total sold: <span style={{ color:'#1a0f2e' }}>{sellersToday.slice(0,6).reduce((a,b) => a + Number(b.total_qty), 0)} items</span>
               </p>
@@ -721,7 +681,7 @@ const DashboardPanel = ({ branchId }: { branchId: number | null }) => {
 
       {/* ── ALL-TIME + RANK ── */}
       <div className="grid gap-4 grid-cols-1 xl:grid-cols-2">
-        <div className="bg-white border border-gray-100 rounded-2xl p-5">
+        <div className="card bg-white border border-zinc-200 rounded-[0.875rem] p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 style={{ fontSize:'0.9rem', fontWeight:800, color:'#1a0f2e', letterSpacing:'-0.025em', margin:0 }}>All-Time Best Sellers</h2>
@@ -732,7 +692,7 @@ const DashboardPanel = ({ branchId }: { branchId: number | null }) => {
           <div style={{ height:200, minHeight: 200 }}>
             <ResponsiveContainer width="100%" height="100%" minHeight={0}>
               <BarChart data={sellersAllTime.slice(0,6).map(x=>({ name:x.product_name.split(' ')[0], qty:x.total_qty }))} margin={{ top:0, right:0, left:-25, bottom:0 }}>
-                <CartesianGrid vertical={false} stroke="#f4f4f5"/>
+                  <CartesianGrid vertical={false} stroke="#e4e4e7"/>
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize:9, fill:'#a1a1aa', fontWeight:700 }}/>
                 <YAxis axisLine={false} tickLine={false} tick={{ fontSize:9, fill:'#a1a1aa', fontWeight:600 }}/>
                 <Tooltip formatter={v=>[`${v} sold`,'Qty']} contentStyle={{ borderRadius:'0.625rem', border:'1.5px solid #ebebed', fontSize:11, fontFamily:'DM Sans, sans-serif' }}/>
@@ -746,7 +706,7 @@ const DashboardPanel = ({ branchId }: { branchId: number | null }) => {
           </div>
         </div>
 
-        <div className="bg-white border border-gray-100 rounded-2xl p-5">
+        <div className="card bg-white border border-zinc-200 rounded-[0.875rem] p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 style={{ fontSize:'0.9rem', fontWeight:800, color:'#1a0f2e', letterSpacing:'-0.025em', margin:0 }}>Rank Breakdown</h2>
@@ -758,13 +718,13 @@ const DashboardPanel = ({ branchId }: { branchId: number | null }) => {
               const pct = Math.round((item.total_qty / allTimeMax) * 100);
               return (
                 <div key={i} className="flex items-center gap-3">
-                  <span style={{ width:24, height:24, borderRadius:'0.4rem', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.55rem', fontWeight:800, flexShrink:0, background: i===0?'#3b2063':i===1?'#ede8ff':'#f4f4f5', color: i===0?'#fff':i===1?'#3b2063':'#71717a' }}>{i+1}</span>
+                  <span style={{ width:24, height:24, borderRadius:'0.4rem', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.55rem', fontWeight:800, flexShrink:0, background: i===0?'#3b2063':i===1?'#ede8ff':'#f5f4f8', color: i===0?'#fff':i===1?'#3b2063':'#71717a' }}>{i+1}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-center mb-1">
                       <span style={{ fontSize:'0.78rem', fontWeight:600, color:'#1a0f2e' }} className="truncate">{item.product_name}</span>
                       <span style={{ fontSize:'0.72rem', fontWeight:700, color:'#71717a', letterSpacing:'-0.01em', flexShrink:0, marginLeft:8 }}>{item.total_qty.toLocaleString()}</span>
                     </div>
-                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-zinc-200 rounded-full overflow-hidden">
                       <div className="h-full rounded-full" style={{ width:`${pct}%`, background: i===0?'#3b2063':'#d4d4d8' }}/>
                     </div>
                   </div>
