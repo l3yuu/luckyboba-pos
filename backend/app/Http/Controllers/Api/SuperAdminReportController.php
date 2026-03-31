@@ -219,4 +219,42 @@ class SuperAdminReportController extends Controller
             ],
         };
     }
+
+    public function itemsReport(Request $request)
+    {
+        $from     = $request->query('date_from', today()->toDateString());
+        $to       = $request->query('date_to',   today()->toDateString());
+        $branchId = $request->query('branch_id');
+
+        $topProducts = DB::table('sale_items')
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->leftJoin('menu_items', 'sale_items.menu_item_id', '=', 'menu_items.id')
+            ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
+            ->select(
+                'sale_items.product_name',
+                DB::raw("COALESCE(categories.name, 'Uncategorized') as category"),
+                DB::raw('SUM(sale_items.quantity)           as total_quantity'),
+                DB::raw('SUM(sale_items.final_price * sale_items.quantity) as total_revenue'),
+                DB::raw('AVG(sale_items.price)              as avg_unit_price'),
+                DB::raw('COUNT(DISTINCT sale_items.sale_id) as times_ordered')
+            )
+            ->where('sales.status', 'completed')
+            ->whereBetween('sales.created_at', [
+                $from . ' 00:00:00',
+                $to   . ' 23:59:59',
+            ])
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+            ->groupBy('sale_items.product_name', 'categories.name')
+            ->orderByDesc('total_quantity')
+            ->get();                          // ← no limit, returns everything
+
+        return response()->json([
+            'top_products' => $topProducts,
+            'meta' => [
+                'date_from' => $from,
+                'date_to'   => $to,
+                'branch_id' => $branchId,
+            ],
+        ]);
+    }
 }

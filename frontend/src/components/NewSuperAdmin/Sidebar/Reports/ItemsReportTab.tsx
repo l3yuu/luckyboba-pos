@@ -138,25 +138,19 @@ const ItemsReportTab: React.FC = () => {
     setError("");
     try {
       const params = new URLSearchParams({
-        period:    "daily",
-        date_from: dateFrom,
-        date_to:   dateTo,
+        date_from: dateFrom,   // ← was "date: dateTo"
+        date_to:   dateTo,     // ← add this
       });
       if (branchId)   params.set("branch_id",   branchId);
       if (categoryId) params.set("category_id", categoryId);
 
-      // Use admin-sales-summary which returns top_products, or items-report if available
-      const res  = await fetch(`/api/reports/admin-sales-summary?${params}`, { headers: authHeaders() });
+      const res  = await fetch(`/api/reports/items-all?${params}`, { headers: authHeaders() }); // ← new endpoint
       const data = await res.json();
 
       if (data.top_products) {
-        // Map top_products to ItemRow format
-        setItems((data.top_products as {
-          product_name: string; total_quantity: number;
-          total_revenue: number; avg_unit_price: number; times_ordered: number;
-        }[]).map(p => ({
+        setItems(data.top_products.map((p: any) => ({
           product_name:   p.product_name,
-          category:       "—",
+          category:       p.category ?? "—",   // ← now has real category
           total_quantity: Number(p.total_quantity),
           total_revenue:  Number(p.total_revenue),
           avg_price:      Number(p.avg_unit_price ?? 0),
