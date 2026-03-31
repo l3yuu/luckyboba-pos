@@ -1,25 +1,25 @@
 import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Users, BarChart2, ShoppingBag,
-  Package, Settings as SettingsIcon, LogOut, HelpCircle,
-  ChevronDown, Activity, Monitor, Trash2
+  Package, LogOut, HelpCircle, ChevronDown, Activity,
+  Shield,
 } from 'lucide-react';
 
 // ── Sidebar styles ────────────────────────────────────────────────────────────
 const SB_STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
-  .bm-sb-root, .bm-sb-root * { font-family: 'DM Sans', sans-serif !important; box-sizing: border-box; }
+  .sv-sb-root, .sv-sb-root * { font-family: 'DM Sans', sans-serif !important; box-sizing: border-box; }
 
-  .bm-sb-scroll { overflow-y: auto; -ms-overflow-style: none; scrollbar-width: none; }
-  .bm-sb-scroll::-webkit-scrollbar { display: none; }
+  .sv-sb-scroll { overflow-y: auto; -ms-overflow-style: none; scrollbar-width: none; }
+  .sv-sb-scroll::-webkit-scrollbar { display: none; }
 
-  .bm-sb-sec {
+  .sv-sb-sec {
     padding: 16px 8px 4px;
     font-size: 0.58rem; font-weight: 700; letter-spacing: 0.18em;
     text-transform: uppercase; color: #b4b4b8;
   }
 
-  .bm-sb-item {
+  .sv-sb-item {
     display: flex; align-items: center; gap: 8px;
     width: 100%; padding: 7px 10px; border: none;
     background: transparent; cursor: pointer; text-align: left;
@@ -28,16 +28,16 @@ const SB_STYLES = `
     transition: background 0.12s, color 0.12s;
     position: relative;
   }
-  .bm-sb-item:hover  { background: #f5f3ff; color: #3b2063; }
-  .bm-sb-item.active { background: #ede8ff; color: #3b2063; font-weight: 600; }
-  .bm-sb-item.active::before {
+  .sv-sb-item:hover  { background: #f5f3ff; color: #3b2063; }
+  .sv-sb-item.active { background: #ede8ff; color: #3b2063; font-weight: 600; }
+  .sv-sb-item.active::before {
     content: ''; position: absolute; left: 0; top: 18%; bottom: 18%;
     width: 2.5px; background: #3b2063; border-radius: 0 2px 2px 0;
   }
-  .bm-sb-icon { flex-shrink: 0; width: 15px; display: flex; align-items: center; justify-content: center; }
-  .bm-sb-divider { height: 1px; background: #f0f0f2; margin: 6px 10px; }
+  .sv-sb-icon { flex-shrink: 0; width: 15px; display: flex; align-items: center; justify-content: center; }
+  .sv-sb-divider { height: 1px; background: #f0f0f2; margin: 6px 10px; }
 
-  .bm-sb-group-btn {
+  .sv-sb-group-btn {
     display: flex; align-items: center; gap: 8px;
     width: 100%; padding: 7px 10px; border: none;
     background: transparent; cursor: pointer; text-align: left;
@@ -45,9 +45,9 @@ const SB_STYLES = `
     color: #52525b; font-size: 0.8rem; font-weight: 500;
     transition: background 0.12s, color 0.12s;
   }
-  .bm-sb-group-btn:hover { background: #f5f3ff; color: #3b2063; }
+  .sv-sb-group-btn:hover { background: #f5f3ff; color: #3b2063; }
 
-  .bm-sb-sub {
+  .sv-sb-sub {
     display: flex; align-items: center; gap: 8px;
     width: 100%; padding: 6px 10px 6px 28px; border: none;
     background: transparent; cursor: pointer; text-align: left;
@@ -56,25 +56,34 @@ const SB_STYLES = `
     transition: background 0.12s, color 0.12s;
     position: relative;
   }
-  .bm-sb-sub:hover  { background: #f5f3ff; color: #3b2063; }
-  .bm-sb-sub.active { background: #ede8ff; color: #3b2063; font-weight: 600; }
-  .bm-sb-sub.active::before {
+  .sv-sb-sub:hover  { background: #f5f3ff; color: #3b2063; }
+  .sv-sb-sub.active { background: #ede8ff; color: #3b2063; font-weight: 600; }
+  .sv-sb-sub.active::before {
     content: ''; position: absolute; left: 0; top: 18%; bottom: 18%;
     width: 2.5px; background: #3b2063; border-radius: 0 2px 2px 0;
   }
-  .bm-sb-sub::after {
+  .sv-sb-sub::after {
     content: ''; position: absolute; left: 18px; top: 50%;
     width: 5px; height: 5px; border-radius: 50%;
     background: #d4d4d8; transform: translateY(-50%);
     transition: background 0.12s;
   }
-  .bm-sb-sub.active::after, .bm-sb-sub:hover::after { background: #3b2063; }
+  .sv-sb-sub.active::after, .sv-sb-sub:hover::after { background: #3b2063; }
 
-  @keyframes bm-sb-spin { to { transform: rotate(360deg); } }
-  .bm-sb-spin { animation: bm-sb-spin 0.7s linear infinite; }
+  .sv-role-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 0.52rem; font-weight: 700; letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: linear-gradient(135deg, #f5f3ff, #ede8ff);
+    color: #6d28d9; border: 1px solid #ddd6fe;
+    border-radius: 100px; padding: 2px 7px;
+  }
+
+  @keyframes sv-sb-spin { to { transform: rotate(360deg); } }
+  .sv-sb-spin { animation: sv-sb-spin 0.7s linear infinite; }
 `;
 
-interface BranchManagerSidebarProps {
+interface SupervisorSidebarProps {
   isSidebarOpen:  boolean;
   setSidebarOpen: (v: boolean) => void;
   logo:           string;
@@ -85,25 +94,26 @@ interface BranchManagerSidebarProps {
 }
 
 interface AuthUser {
-  id:     number;
-  name:   string;
-  email:  string;
-  role:   string;
+  id:    number;
+  name:  string;
+  email: string;
+  role:  string;
 }
 
 const getToken = () =>
-  localStorage.getItem("auth_token") ||
-  localStorage.getItem("lucky_boba_token") || "";
+  localStorage.getItem('auth_token') ||
+  localStorage.getItem('lucky_boba_token') || '';
 
-type GroupId = 'sales' | 'menu' | 'inventory';
+type GroupId = 'sales' | 'floor';
 
-const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
+const SupervisorSidebar: React.FC<SupervisorSidebarProps> = ({
   isSidebarOpen, setSidebarOpen, currentTab, setCurrentTab,
   onLogout, isLoggingOut: externalLoggingOut,
 }) => {
-  const [openGroups, setOpenGroups] = useState<Set<GroupId>>(new Set(['sales']));
-  const [internalLoggingOut,  setInternalLoggingOut]  = useState(false);
-  const [showLogoutModal,     setShowLogoutModal]      = useState(false);
+  const [openGroups,         setOpenGroups]         = useState<Set<GroupId>>(new Set(['floor']));
+  const [internalLoggingOut, setInternalLoggingOut] = useState(false);
+  const [showLogoutModal,    setShowLogoutModal]    = useState(false);
+  const [authUser,           setAuthUser]           = useState<AuthUser | null>(null);
 
   const isLoggingOut = externalLoggingOut ?? internalLoggingOut;
 
@@ -120,8 +130,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
     });
   };
 
-  const handleLogoutClick = () => setShowLogoutModal(true);
-
+  const handleLogoutClick   = () => setShowLogoutModal(true);
   const handleLogoutConfirm = async () => {
     setShowLogoutModal(false);
     if (onLogout) { onLogout(); return; }
@@ -135,43 +144,30 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
   const isActive  = (tab: string) => currentTab === tab;
   const iconColor = (tab: string) => isActive(tab) ? '#3b2063' : '#a1a1aa';
 
+  // ── Nav items scoped to Supervisor ───────────────────────────────────────
+  // Supervisor sees everything Team Leader sees + void logs
   const salesItems = [
     { tab: 'sales-dashboard', label: 'Sales Dashboard' },
     { tab: 'items-report',    label: 'Items Report'    },
     { tab: 'x-reading',       label: 'X-Reading'       },
     { tab: 'z-reading',       label: 'Z-Reading'       },
   ];
-  const menuItems = [
-    { tab: 'menu-list',         label: 'Menu List'      },
-    { tab: 'category-list',     label: 'Categories'     },
-    { tab: 'sub-category-list', label: 'Sub-Categories' },
-  ];
-  const inventoryItems = [
-    { tab: 'inventory-dashboard', label: 'Dashboard'       },
-    { tab: 'inventory-list',      label: 'Inventory List'  },
-    { tab: 'inventory-category',  label: 'Categories'      },
-    { tab: 'purchase-order',      label: 'Purchase Orders' },
-    { tab: 'stock-transfer',      label: 'Stock Transfer'  },
-    { tab: 'supplier',            label: 'Suppliers'       },
-    { tab: 'item-checker',        label: 'Item Checker'    },
-    { tab: 'item-serials',        label: 'Item Serials'    },
-    { tab: 'inventory-report',    label: 'Reports'         },
+
+  const floorItems = [
+    { tab: 'void-logs', label: 'Void Log' },
   ];
 
-  const salesOpen     = openGroups.has('sales');
-  const menuOpen      = openGroups.has('menu');
-  const inventoryOpen = openGroups.has('inventory');
-
-  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const salesOpen = openGroups.has('sales');
+  const floorOpen = openGroups.has('floor');
 
   useEffect(() => {
     const fetchMe = async () => {
       try {
         const token = getToken();
-        const res = await fetch("/api/user", {
+        const res = await fetch('/api/user', {
           headers: {
-            "Accept":       "application/json",
-            "Content-Type": "application/json",
+            Accept:         'application/json',
+            'Content-Type': 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
         });
@@ -185,15 +181,15 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
   }, []);
 
   const initials = authUser
-    ? authUser.name.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()
-    : "BM";
+    ? authUser.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()
+    : 'SV';
 
   return (
     <>
       <style>{SB_STYLES}</style>
 
       <aside className={`
-        bm-sb-root fixed inset-y-0 left-0 z-50 w-60 bg-white border-r border-zinc-100
+        sv-sb-root fixed inset-y-0 left-0 z-50 w-60 bg-white border-r border-zinc-100
         flex flex-col transform transition-transform duration-300
         md:relative md:translate-x-0
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -204,7 +200,8 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
           <div className="flex items-center gap-3">
             <div style={{
               width: 32, height: 32, borderRadius: '0.4rem',
-              background: '#3b2063', flexShrink: 0,
+              background: 'linear-gradient(135deg, #3b2063, #6d28d9)',
+              flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <span style={{ fontSize: '0.55rem', fontWeight: 800, color: '#fff', letterSpacing: '0.02em' }}>
@@ -212,13 +209,16 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
               </span>
             </div>
             {authUser ? (
-              <div className="text-left">
+              <div className="text-left min-w-0">
                 <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1a0f2e', lineHeight: 1.2 }}
                   className="truncate max-w-36">
                   {authUser.name}
                 </div>
-                <div style={{ fontSize: '0.58rem', fontWeight: 600, color: '#a1a1aa', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                  Branch Manager
+                <div className="mt-1">
+                  <span className="sv-role-badge">
+                    <Shield size={8} strokeWidth={2.5} />
+                    Supervisor
+                  </span>
                 </div>
               </div>
             ) : (
@@ -231,90 +231,60 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
         </div>
 
         {/* ── Nav ── */}
-        <div className="flex-1 bm-sb-scroll min-h-0 px-3 py-2">
+        <div className="flex-1 sv-sb-scroll min-h-0 px-3 py-2">
 
-          <div className="bm-sb-sec mt-1">Home</div>
-          <button onClick={() => goTo('dashboard')} className={`bm-sb-item ${isActive('dashboard') ? 'active' : ''}`}>
-            <span className="bm-sb-icon" style={{ color: iconColor('dashboard') }}><LayoutDashboard size={14} /></span>
+          {/* Dashboard */}
+          <div className="sv-sb-sec mt-1">Home</div>
+          <button onClick={() => goTo('dashboard')} className={`sv-sb-item ${isActive('dashboard') ? 'active' : ''}`}>
+            <span className="sv-sb-icon" style={{ color: iconColor('dashboard') }}><LayoutDashboard size={14} /></span>
             Dashboard
           </button>
 
-          <button onClick={() => goTo('users')} className={`bm-sb-item ${isActive('users') ? 'active' : ''}`}>
-            <span className="bm-sb-icon" style={{ color: iconColor('users') }}><Users size={14} /></span>
-            User Management
+          {/* Staff */}
+          <button onClick={() => goTo('users')} className={`sv-sb-item ${isActive('users') ? 'active' : ''}`}>
+            <span className="sv-sb-icon" style={{ color: iconColor('users') }}><Users size={14} /></span>
+            Staff Overview
           </button>
 
-          <button onClick={() => goTo('device-management')} className={`bm-sb-item ${isActive('device-management') ? 'active' : ''}`}>
-            <span className="bm-sb-icon" style={{ color: iconColor('device-management') }}><Monitor size={14} /></span>
-            Device Management
+          {/* Floor Ops Group */}
+          <div className="sv-sb-sec">Floor Ops</div>
+          <button onClick={() => toggleGroup('floor')} className="sv-sb-group-btn">
+            <span className="sv-sb-icon" style={{ color: floorItems.some(i => isActive(i.tab)) ? '#3b2063' : '#a1a1aa' }}>
+              <Activity size={14} />
+            </span>
+            <span className="flex-1">Operations</span>
+            <ChevronDown size={12} style={{ color: '#a1a1aa', transform: floorOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
           </button>
+          {floorOpen && floorItems.map(({ tab, label }) => (
+            <button key={tab} onClick={() => goTo(tab)} className={`sv-sb-sub ${isActive(tab) ? 'active' : ''}`}>
+              {label}
+            </button>
+          ))}
 
           {/* Sales Reports Group */}
-          <div className="bm-sb-sec">Reports</div>
-          <button onClick={() => toggleGroup('sales')} className="bm-sb-group-btn">
-            <span className="bm-sb-icon" style={{ color: salesItems.some(i => isActive(i.tab)) ? '#3b2063' : '#a1a1aa' }}>
+          <div className="sv-sb-sec">Reports</div>
+          <button onClick={() => toggleGroup('sales')} className="sv-sb-group-btn">
+            <span className="sv-sb-icon" style={{ color: salesItems.some(i => isActive(i.tab)) ? '#3b2063' : '#a1a1aa' }}>
               <BarChart2 size={14} />
             </span>
             <span className="flex-1">Sales Reports</span>
             <ChevronDown size={12} style={{ color: '#a1a1aa', transform: salesOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
           </button>
           {salesOpen && salesItems.map(({ tab, label }) => (
-            <button key={tab} onClick={() => goTo(tab)} className={`bm-sb-sub ${isActive(tab) ? 'active' : ''}`}>
+            <button key={tab} onClick={() => goTo(tab)} className={`sv-sb-sub ${isActive(tab) ? 'active' : ''}`}>
               {label}
             </button>
           ))}
 
-          {/* Menu Items Group */}
-          <div className="bm-sb-sec">Menu</div>
-          <button onClick={() => toggleGroup('menu')} className="bm-sb-group-btn">
-            <span className="bm-sb-icon" style={{ color: menuItems.some(i => isActive(i.tab)) ? '#3b2063' : '#a1a1aa' }}>
-              <ShoppingBag size={14} />
-            </span>
-            <span className="flex-1">Menu Items</span>
-            <ChevronDown size={12} style={{ color: '#a1a1aa', transform: menuOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+          {/* Inventory — view only */}
+          <div className="sv-sb-sec">Inventory</div>
+          <button onClick={() => goTo('inventory-list')} className={`sv-sb-item ${isActive('inventory-list') ? 'active' : ''}`}>
+            <span className="sv-sb-icon" style={{ color: iconColor('inventory-list') }}><Package size={14} /></span>
+            Stock Levels
           </button>
-          {menuOpen && menuItems.map(({ tab, label }) => (
-            <button key={tab} onClick={() => goTo(tab)} className={`bm-sb-sub ${isActive(tab) ? 'active' : ''}`}>
-              {label}
-            </button>
-          ))}
-
-          {/* Inventory Group */}
-          <div className="bm-sb-sec">Inventory</div>
-          <button onClick={() => toggleGroup('inventory')} className="bm-sb-group-btn">
-            <span className="bm-sb-icon" style={{ color: inventoryItems.some(i => isActive(i.tab)) ? '#3b2063' : '#a1a1aa' }}>
-              <Package size={14} />
-            </span>
-            <span className="flex-1">Inventory</span>
-            <ChevronDown size={12} style={{ color: '#a1a1aa', transform: inventoryOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
-          </button>
-          {inventoryOpen && inventoryItems.map(({ tab, label }) => (
-            <button key={tab} onClick={() => goTo(tab)} className={`bm-sb-sub ${isActive(tab) ? 'active' : ''}`}>
-              {label}
-            </button>
-          ))}
-
-          {/* Floor Ops */}
-<div className="bm-sb-sec">Floor Ops</div>
-
-<button
-  onClick={() => goTo('void-logs')}
-  className={`bm-sb-item ${isActive('void-logs') ? 'active' : ''}`}
->
-  <span className="bm-sb-icon" style={{ color: iconColor('void-logs') }}>
-    <Trash2 size={14} />
-  </span>
-  Void Logs
-</button>
-
-          <div className="bm-sb-sec">System</div>
-          <button onClick={() => goTo('audit-logs')} className={`bm-sb-item ${isActive('audit-logs') ? 'active' : ''}`}>
-            <span className="bm-sb-icon" style={{ color: iconColor('audit-logs') }}><Activity size={14} /></span>
-            Audit Logs
-          </button>
-          <button onClick={() => goTo('settings')} className={`bm-sb-item ${isActive('settings') ? 'active' : ''}`}>
-            <span className="bm-sb-icon" style={{ color: iconColor('settings') }}><SettingsIcon size={14} /></span>
-            Settings
+          <button onClick={() => goTo('item-checker')} className={`sv-sb-item ${isActive('item-checker') ? 'active' : ''}`}>
+            <span className="sv-sb-icon" style={{ color: iconColor('item-checker') }}><ShoppingBag size={14} /></span>
+            Item Checker
           </button>
 
           <div className="pb-4" />
@@ -323,35 +293,35 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
         {/* ── Bottom-pinned ── */}
         <div className="shrink-0 px-3 pb-4 pt-2 border-t border-zinc-100">
           <button
-            className="bm-sb-item"
+            className="sv-sb-item"
             style={{ color: '#71717a' }}
             onClick={() => window.open('mailto:support@luckyboba.com')}
           >
-            <span className="bm-sb-icon" style={{ color: '#a1a1aa' }}><HelpCircle size={14} /></span>
+            <span className="sv-sb-icon" style={{ color: '#a1a1aa' }}><HelpCircle size={14} /></span>
             Get Help
           </button>
 
-          <div className="bm-sb-divider my-2" />
+          <div className="sv-sb-divider my-2" />
 
           <button
             onClick={handleLogoutClick}
             disabled={isLoggingOut}
-            className="bm-sb-item"
+            className="sv-sb-item"
             style={{ color: '#be2525' }}
           >
             {isLoggingOut ? (
               <>
-                <span className="bm-sb-icon">
+                <span className="sv-sb-icon">
                   <div className="relative w-3.5 h-3.5">
                     <div className="absolute inset-0 rounded-full border-[1.5px] border-red-200" />
-                    <div className="bm-sb-spin absolute inset-0 rounded-full border-[1.5px] border-transparent border-t-[#be2525]" />
+                    <div className="sv-sb-spin absolute inset-0 rounded-full border-[1.5px] border-transparent border-t-[#be2525]" />
                   </div>
                 </span>
                 Logging out...
               </>
             ) : (
               <>
-                <span className="bm-sb-icon"><LogOut size={14} /></span>
+                <span className="sv-sb-icon"><LogOut size={14} /></span>
                 Log out
               </>
             )}
@@ -363,6 +333,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
         </div>
       </aside>
 
+      {/* Mobile overlay */}
       {isSidebarOpen && (
         <div
           className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 md:hidden"
@@ -405,4 +376,4 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
   );
 };
 
-export default BranchManagerSidebar;
+export default SupervisorSidebar;

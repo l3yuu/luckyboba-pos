@@ -12,8 +12,8 @@ import { PublicRoute }         from './components/PublicRoute';
 import { ErrorFallback }       from './components/ErrorFallback';
 import PosDeviceManager        from './pages/PosDeviceManager';
 import OnlineOrdersPage        from './components/Cashier/SalesOrder/OnlineOrdersPage'; // ← NEW
-
-
+import SupervisorDashboard from './pages/SupervisorDashboard';  // ← ADD THIS IMPORT
+import { DeviceGate } from './components/DeviceGate';
 
 export const router = createBrowserRouter([
 
@@ -68,6 +68,20 @@ export const router = createBrowserRouter([
     ],
   },
 
+  // ── Supervisor only ──────────────────────────────────────────────────────
+{
+  element:      <ProtectedRoute allowedRoles={['supervisor']} />,
+  errorElement: <ErrorFallback />,
+  children: [
+    {
+      children: [
+        { path: '/supervisor', element: <SupervisorDashboard /> },
+      ],
+    },
+  ],
+},
+
+
   // ── Team Leader only ─────────────────────────────────────────────────────
   {
     element:      <ProtectedRoute allowedRoles={['team_leader']} />,
@@ -95,32 +109,36 @@ export const router = createBrowserRouter([
   },
 
   // ── Cashier only ─────────────────────────────────────────────────────────
-  {
-    element:      <ProtectedRoute allowedRoles={['cashier']} />,
-    errorElement: <ErrorFallback />,
-    children: [
-      {
-        children: [
-          { path: '/cashier',                element: <Dashboard /> },
-          { path: '/cashier/pos',            element: <SalesOrder /> },
-          { path: '/cashier/online-orders',  element: <OnlineOrdersPage /> }, // ← NEW
-        ],
-      },
-    ],
-  },
+{
+  element: <ProtectedRoute allowedRoles={['cashier']} />,
+  errorElement: <ErrorFallback />,
+  children: [
+    {
+      // DeviceGate wraps every cashier child route
+      element: <DeviceGate />,          // ← WRAP HERE (layout route)
+      children: [
+        { path: '/cashier',               element: <Dashboard /> },
+        { path: '/cashier/pos',           element: <SalesOrder /> },
+        { path: '/cashier/online-orders', element: <OnlineOrdersPage /> },
+      ],
+    },
+  ],
+},
 
-  // ── POS — accessible to cashier, branch_manager, superadmin ──────────────
-  {
-    element:      <ProtectedRoute allowedRoles={['cashier', 'branch_manager', 'superadmin']} />,
-    errorElement: <ErrorFallback />,
-    children: [
-      {
-        children: [
-          { path: '/pos', element: <SalesOrder /> },
-        ],
-      },
-    ],
-  },
+// ── POS — accessible to cashier, branch_manager, superadmin ──────────────
+// If cashiers also reach /pos, gate it here too
+{
+  element: <ProtectedRoute allowedRoles={['cashier', 'branch_manager', 'superadmin']} />,
+  errorElement: <ErrorFallback />,
+  children: [
+    {
+      element: <DeviceGate />,          // ← WRAP HERE TOO if cashiers use /pos
+      children: [
+        { path: '/pos', element: <SalesOrder /> },
+      ],
+    },
+  ],
+},
 
   // ── Root & catch-all ─────────────────────────────────────────────────────
   { path: '/',  element: <Navigate to="/login" replace /> },

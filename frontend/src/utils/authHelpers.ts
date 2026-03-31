@@ -5,7 +5,7 @@
 // ProtectedRoute, and any other component all use the exact same keys.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type UserRole = 'superadmin' | 'admin' | 'manager' | 'cashier' | 'it_admin';
+export type UserRole = 'superadmin' | 'admin' | 'manager' | 'cashier' | 'it_admin' | 'supervisor';
 
 /** Where each role's dashboard lives */
 export const ROLE_HOME: Record<string, string> = {
@@ -13,7 +13,8 @@ export const ROLE_HOME: Record<string, string> = {
   admin:          '/dashboard',
   manager:        '/branch-manager',
   branch_manager: '/branch-manager',
-  cashier:        '/cashier',  // ← updated
+  supervisor:     '/supervisor',       // ← ADD
+  cashier:        '/cashier',
 };
 
 // ── Storage keys (single source of truth) ────────────────────────────────────
@@ -53,6 +54,7 @@ export function getStoredRole(): UserRole | null {
   if (['superadmin', 'super_admin', 'super admin'].includes(n)) return 'superadmin';
   if (n === 'admin') return 'admin';
   if (['manager', 'branch_manager'].includes(n)) return 'manager';
+  if (n === 'supervisor') return 'supervisor';   // ← ADD
   if (n === 'cashier') return 'cashier';
 
   return null;
