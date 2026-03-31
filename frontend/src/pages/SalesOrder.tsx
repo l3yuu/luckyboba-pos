@@ -73,6 +73,8 @@ const SalesOrder = () => {
   }, [])
 
   const branchId = user?.branch_id ?? null
+  const seqKey  = `last_or_sequence_${branchId ?? 'default'}`
+  const dateKey = `last_or_date_${branchId ?? 'default'}`
   const branchName = user?.branch_name ?? localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'
   const [vatType, setVatType] = useState<'vat' | 'non_vat'>(
     () => (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat'
@@ -527,23 +529,23 @@ const SalesOrder = () => {
       const serverSeq = parseInt(data.next_sequence, 10)
       if (!isNaN(serverSeq)) {
         // ── Check if it's a new day and reset sequence ────────────────────
-        const savedDate = localStorage.getItem('last_or_date');
+        const savedDate = localStorage.getItem(dateKey);
         const today     = new Date().toDateString();
         const isNewDay  = savedDate !== today;
         const seq       = isNewDay ? 1 : serverSeq;
 
-        localStorage.setItem('last_or_sequence', String(seq));
-        localStorage.setItem('last_or_date', today);
+        localStorage.setItem(seqKey, String(seq));
+        localStorage.setItem(dateKey, today);
         setOrNumber(generateORNumber(seq));
         setQueueNumber(generateQueueNumber(seq));
       }
     } catch {
-      const savedDate = localStorage.getItem('last_or_date')
+      const savedDate = localStorage.getItem(dateKey)
       const today = new Date().toDateString()
       const isNewDay = savedDate !== today
-      const fallback = isNewDay ? 1 : parseInt(localStorage.getItem('last_or_sequence') || '0') + 1
-      localStorage.setItem('last_or_sequence', String(fallback))
-      localStorage.setItem('last_or_date', today)
+      const fallback = isNewDay ? 1 : parseInt(localStorage.getItem(seqKey) || '0') + 1
+      localStorage.setItem(seqKey, String(fallback))
+      localStorage.setItem(dateKey, today)
       setOrNumber(generateORNumber(fallback))
       setQueueNumber(generateQueueNumber(fallback))
     }
@@ -1179,8 +1181,8 @@ const SalesOrder = () => {
         localStorage.removeItem('pos_cart_cache');
         const currentSeq = parseInt(orNumber.split('-').pop() ?? '0', 10);
         if (!isNaN(currentSeq)) {
-          localStorage.setItem('last_or_sequence', String(currentSeq));
-          localStorage.setItem('last_or_date', new Date().toDateString()); // ← add this
+          localStorage.setItem(seqKey, String(currentSeq));
+          localStorage.setItem(dateKey, new Date().toDateString());
         }
         localStorage.setItem('dashboard_stats_timestamp', '0');
         const today = new Date().toISOString().split('T')[0];
@@ -1217,8 +1219,8 @@ const SalesOrder = () => {
       enqueue(orderData);
       const currentSeq = parseInt(orNumber.replace('SI-', ''), 10);
       if (!isNaN(currentSeq)) {
-        localStorage.setItem('last_or_sequence', String(currentSeq));
-        localStorage.setItem('last_or_date', new Date().toDateString()); // ← add this
+        localStorage.setItem(seqKey, String(currentSeq));
+        localStorage.setItem(dateKey, new Date().toDateString());
       }
       setPrintedReceipt(false); setPrintedKitchen(false); setPrintedStickers(false);
       setIsSuccessModalOpen(true);
