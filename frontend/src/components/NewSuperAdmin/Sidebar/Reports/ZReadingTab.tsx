@@ -293,10 +293,31 @@ const ZReadingTab: React.FC = () => {
     }
   };
 
-  const handlePrint = () => {
-    const params = new URLSearchParams({ branch_id: branchId, date });
-    window.open(`/api/readings/z/print?${params}`, "_blank");
-  };
+const handlePrint = async () => {
+  try {
+    const res = await fetch('/api/readings/z/print-token', {
+      method:  'POST',
+      headers: authHeaders(),
+      body:    JSON.stringify({ branch_id: branchId, date }),
+    });
+    const json = await res.json();
+    if (!json.token) { setError('Failed to generate print token.'); return; }
+
+    const params = new URLSearchParams({ branch_id: branchId, date, token: json.token });
+    
+    // Use anchor click instead of window.open — never blocked by popup blocker
+    const a = document.createElement('a');
+    a.href = `/api/readings/z/print?${params}`;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+  } catch {
+    setError('Failed to open print view.');
+  }
+};
 
   const selectedBranchName = branches.find(b => String(b.id) === branchId)?.name ?? "—";
 
