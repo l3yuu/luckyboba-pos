@@ -191,7 +191,7 @@ const BM_ZReading = () => {
           api.get('/reports/void-logs',       { params: { date: ccDate } }),
         ]);
 
-        const zData    = zRes.data  as Record<string, unknown>;
+        const zData    = (zRes.data?.data ?? zRes.data) as Record<string, unknown>;
         const ccData   = ccRes.data as Record<string, unknown>;
         const ccNested = ccData.cash_count as { denominations: { label: string; qty: number; total: number }[]; grand_total: number } | undefined;
 
@@ -211,8 +211,8 @@ const BM_ZReading = () => {
         const soloDisc  = Number(zData.solo_parent_discount ?? 0);
         const otherDisc = Number(zData.diplomat_discount ?? 0) + Number(zData.other_discount ?? 0);
         const totalDisc = scDisc + pwdDisc + naacDisc + soloDisc + otherDisc;
-        const computedGross = netSales + totalDisc;
-
+        const vatAmt        = Number(zData.vat_amount ?? 0);
+        const computedGross = netSales + totalDisc + vatAmt;
         const presentAcc  = Number(zData.present_accumulated  ?? computedGross);
         const previousAcc = Number(zData.previous_accumulated ?? 0);
         const salesDay    = Number(zData.sales_for_the_day    ?? (presentAcc - previousAcc));
@@ -232,8 +232,8 @@ const BM_ZReading = () => {
           // Cash count
           cash_denominations: cashDenominations,
           total_cash_count:   ccNested?.grand_total ?? Number(ccData.actual_amount ?? 0),
-          expected_amount:    Number(ccData.expected_amount ?? 0),
-          over_short:         Number(ccData.short_over ?? 0),
+          expected_amount:    Number(ccData.expected_amount ?? 0) || Number(zData.gross_sales ?? 0),
+          over_short:         Number(ccData.actual_amount ?? ccNested?.grand_total ?? 0) - Number(zData.gross_sales ?? 0),
           // Item quantities from separate call
           categories:         ((qtyRes.data as Record<string, unknown>).categories as ZReadingReport['categories']) ?? [],
           all_addons_summary: ((qtyRes.data as Record<string, unknown>).all_addons_summary as ZReadingReport['all_addons_summary']) ?? [],
@@ -597,7 +597,7 @@ const BM_ZReading = () => {
         <Row label="Start Date & Time"     value={`${startDate} ${timeStr}`} />
         <Row label="End Date & Time"       value={`${endDate} ${timeStr}`} />
         <Row label="Terminal #"            value="ALL" />
-        <Row label="Cashier"               value={reportData?.prepared_by || cashierName} />
+        <Row label="Cashier"               value={cashierName} />
         <Row label="Beg. SI #"             value={reportData?.beg_si || '0000000000'} />
         <Row label="End. SI #"             value={reportData?.end_si || '0000000000'} />
         <Divider />
@@ -641,7 +641,7 @@ const BM_ZReading = () => {
         <Divider />
         <Row label="TOTAL CASH"     value={phCurrency.format(actualCash)} />
         <Row label="TOTAL NON-CASH" value={phCurrency.format(actualNonCash)} />
-        <Row label="TOTAL PAYMENTS" value={phCurrency.format(netSales)} />
+        <Row label="TOTAL PAYMENTS" value={phCurrency.format(gross)} />
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
         <Row label="Transaction Count" value={txCount} />
@@ -882,7 +882,7 @@ const BM_ZReading = () => {
             </div>
 
             {/* Receipt area */}
-            <div className="flex-1 flex items-start justify-center py-8 px-4 bg-[#f5f4f8] overflow-y-auto min-h-0">
+            <div className="flex items-start justify-center py-8 px-4 bg-[#f5f4f8] overflow-y-auto" style={{ maxHeight: '75vh' }}>
               {loading ? (
                 <div className="flex flex-col items-center gap-3 py-16">
                   <div className="w-9 h-9 border-2 border-[#3b2063] border-t-transparent animate-spin rounded-full" />
@@ -917,7 +917,7 @@ const BM_ZReading = () => {
                     {!HIDE_FOOTER.includes(reportData.report_type ?? '') && (
                       <div className="mt-6 text-center text-[11px]">
                         <Divider />
-                        <p className="uppercase mt-1">{reportData?.prepared_by || cashierName}</p>
+                        <p className="uppercase mt-1">{cashierName}</p>
                         <p className="mt-3">____________________</p>
                         <p className="uppercase text-[10px] mt-0.5">Prepared By</p>
                         <p className="mt-3">____________________</p>
