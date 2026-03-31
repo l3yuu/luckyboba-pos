@@ -257,4 +257,98 @@ class SuperAdminReportController extends Controller
             ],
         ]);
     }
+
+    public function exportItems(Request $request)
+    {
+        $from     = $request->query('date_from', today()->toDateString());
+        $to       = $request->query('date_to',   today()->toDateString());
+        $branchId = $request->query('branch_id');
+
+        $branchName = $branchId
+            ? DB::table('branches')->where('id', $branchId)->value('name') ?? 'Unknown Branch'
+            : 'All Branches';
+
+        $items = DB::table('sale_items')
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->leftJoin('menu_items', 'sale_items.menu_item_id', '=', 'menu_items.id')
+            ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
+            ->select(
+                'sale_items.product_name',
+                DB::raw("COALESCE(categories.name, 'Uncategorized') as category"),
+                DB::raw('SUM(sale_items.quantity) as total_quantity'),
+                DB::raw('SUM(sale_items.final_price * sale_items.quantity) as total_revenue'),
+                DB::raw('AVG(sale_items.price) as avg_unit_price'),
+                DB::raw('COUNT(DISTINCT sale_items.sale_id) as times_ordered')
+            )
+            ->where('sales.status', 'completed')
+            ->whereBetween('sales.created_at', [
+                $from . ' 00:00:00',
+                $to   . ' 23:59:59',
+            ])
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+            ->groupBy('sale_items.product_name', 'categories.name')
+            ->orderByDesc('total_quantity')
+            ->get();
+
+        $totalQty     = $items->sum('total_quantity');
+        $totalRevenue = $items->sum('total_revenue');
+        $totalOrders  = $items->sum('times_ordered');
+        $topItem      = $items->first();
+        $generatedAt  = now()->format('F d, Y h:i A');
+
+        // ── Report Header ──────────────────────────────────────────
+        $csv  = "LUCKY BOBA POS - ITEMS SALES REPORT\n";
+        $csv .= "Generated:,\"" . $generatedAt . "\"\n";
+        $csv .= "Date Range:,\"" . date('F d Y', strtotime($from)) . " to " . date('F d Y', strtotime($to)) . "\"\n";
+        $csv .= "Branch:,\"" . $branchName . "\"\n";
+        $csv .= "Total Items:," . $items->count() . "\n";
+        $csv .= "\n";
+
+        // ── Summary ────────────────────────────────────────────────
+        $csv .= "SUMMARY\n";
+        $csv .= "Total Qty Sold:," . $totalQty . "\n";
+        $csv .= "Total Revenue (PHP):,\"" . number_format($totalRevenue, 2) . "\"\n";
+        $csv .= "Total Orders:," . $totalOrders . "\n";
+        if ($topItem) {
+            $csv .= "Top Selling Item:,\"" . $topItem->product_name . " (" . $topItem->total_quantity . " sold)\"\n";
+        }
+        $csv .= "\n";
+
+        // ── Table Header ───────────────────────────────────────────
+        $csv .= "#,Item Name,Category,Qty Sold,Total Revenue (PHP),Avg Price (PHP),Times Ordered,Revenue Share\n";
+
+        $rank = 1;
+        foreach ($items as $item) {
+            $revShare = $totalRevenue > 0
+                ? round(($item->total_revenue / $totalRevenue) * 100, 1) . '%'
+                : '0%';
+            $csv .= implode(',', [
+                $rank++,
+                '"' . str_replace('"', '""', $item->product_name) . '"',
+                '"' . str_replace('"', '""', $item->category) . '"',
+                (int) $item->total_quantity,
+                '"' . number_format((float) $item->total_revenue, 2) . '"',
+                '"' . number_format((float) $item->avg_unit_price, 2) . '"',
+                (int) $item->times_ordered,
+                $revShare,
+            ]) . "\n";
+        }
+
+        // ── Footer ─────────────────────────────────────────────────
+        $csv .= "\n";
+        $csv .= "TOTALS,,," . (int) $totalQty . ",\"" . number_format((float) $totalRevenue, 2) . "\",,,100%\n";
+        $csv .= "\n";
+        $csv .= "--- End of Report ---\n";
+
+        $branchSlug = $branchId
+            ? strtoupper(preg_replace('/[^a-zA-Z0-9]+/', '-', $branchName))
+            : 'ALL-BRANCHES';
+
+        $filename = "LuckyBoba_ItemsReport_{$branchSlug}_{$from}_to_{$to}.csv";
+
+        return response($csv, 200, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ]);
+    }
 }

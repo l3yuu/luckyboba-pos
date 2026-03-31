@@ -194,10 +194,26 @@ const ItemsReportTab: React.FC = () => {
   const topItem      = filtered[0];
 
   const handleExport = () => {
-    const params = new URLSearchParams({ date_from: dateFrom, date_to: dateTo });
-    if (branchId)   params.set("branch_id",   branchId);
-    if (categoryId) params.set("category_id", categoryId);
-    window.open(`/api/reports/export-items?${params}`, "_blank");
+      const params = new URLSearchParams({ date_from: dateFrom, date_to: dateTo });
+      if (branchId)   params.set("branch_id",   branchId);
+      if (categoryId) params.set("category_id", categoryId);
+      
+      const branchSlug = branchId
+          ? (branches.find(b => String(b.id) === branchId)?.name ?? "BRANCH")
+              .toUpperCase().replace(/[^A-Z0-9]+/g, "-")
+          : "ALL-BRANCHES";
+
+      fetch(`/api/reports/items-export?${params}`, { headers: authHeaders() })
+          .then(res => res.blob())
+          .then(blob => {
+              const url  = URL.createObjectURL(blob);
+              const a    = document.createElement('a');
+              a.href     = url;
+              a.download = `LuckyBoba_ItemsReport_${branchSlug}_${dateFrom}_to_${dateTo}.csv`; // ← updated
+              a.click();
+              URL.revokeObjectURL(url);
+          })
+          .catch(() => alert('Export failed.'));
   };
 
   const SortTh: React.FC<{ col: SortKey; label: string }> = ({ col, label }) => (

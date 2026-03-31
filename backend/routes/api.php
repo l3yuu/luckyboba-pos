@@ -358,7 +358,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::get('/admin-sales-summary', [SuperAdminReportController::class, 'salesSummary']);
             Route::get('/branch-comparison',   [SuperAdminReportController::class, 'branchComparison']);
             Route::get('/z-reading/history',   [SalesDashboardController::class, 'zReadingHistory']);
-            Route::get('/items-all',           [SuperAdminReportController::class, 'itemsReport']); // ← ADD THIS
+            Route::get('/items-all',           [SuperAdminReportController::class, 'itemsReport']);
+            Route::get('/items-export',        [SuperAdminReportController::class, 'exportItems']); // ← ADD
         });
 
         Route::prefix('system')->group(function () {
