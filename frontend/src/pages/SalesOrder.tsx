@@ -532,24 +532,14 @@ const amtDue = isVat
       const { data } = await api.get('/receipts/next-sequence')
       const serverSeq = parseInt(data.next_sequence, 10)
       if (!isNaN(serverSeq)) {
-        // ── Check if it's a new day and reset sequence ────────────────────
-        const savedDate = localStorage.getItem(dateKey);
-        const today     = new Date().toDateString();
-        const isNewDay  = savedDate !== today;
-        const seq       = isNewDay ? 1 : serverSeq;
-
-        localStorage.setItem(seqKey, String(seq));
-        localStorage.setItem(dateKey, today);
-        setOrNumber(generateORNumber(seq));
-        setQueueNumber(generateQueueNumber(seq));
+        localStorage.setItem(seqKey, String(serverSeq))
+        setOrNumber(generateORNumber(serverSeq))
+        setQueueNumber(generateQueueNumber(serverSeq))
       }
     } catch {
-      const savedDate = localStorage.getItem(dateKey)
-      const today = new Date().toDateString()
-      const isNewDay = savedDate !== today
-      const fallback = isNewDay ? 1 : parseInt(localStorage.getItem(seqKey) || '0') + 1
+      // fallback: just increment from last known local sequence
+      const fallback = parseInt(localStorage.getItem(seqKey) || '0') + 1
       localStorage.setItem(seqKey, String(fallback))
-      localStorage.setItem(dateKey, today)
       setOrNumber(generateORNumber(fallback))
       setQueueNumber(generateQueueNumber(fallback))
     }

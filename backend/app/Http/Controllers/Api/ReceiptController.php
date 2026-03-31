@@ -18,12 +18,14 @@ class ReceiptController extends Controller
     public function getNextSequence(Request $request)
     {
         $branchId = $request->user()?->branch_id;
-        $today = now()->toDateString(); // e.g. "2025-03-31"
+
+        if (!$branchId) {
+            return response()->json(['next_sequence' => 1]);
+        }
 
         $latest = Sale::where('invoice_number', 'LIKE', 'SI-%')
             ->whereRaw("invoice_number REGEXP '^SI-[0-9]+$'")
-            ->whereDate('created_at', $today)          // ← add this
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->where('branch_id', $branchId)          // always filter by branch
             ->orderByRaw('CAST(SUBSTRING(invoice_number, 4) AS UNSIGNED) DESC')
             ->first();
 
