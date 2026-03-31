@@ -9,13 +9,15 @@ use Symfony\Component\HttpFoundation\Response;
 class CheckRole
 {
     /**
-     * Protected roles for Lucky Boba system.
-     *
-     * Hierarchy:
-     *   superadmin      — full system access
-     *   branch_manager  — branch-level access
-     */
-    const PROTECTED_ROLES = ['superadmin', 'branch_manager'];
+ * Protected roles for Lucky Boba system.
+ *
+ * Hierarchy:
+ *   superadmin      — full system access
+ *   branch_manager  — branch-level access
+ *   supervisor      — sits between branch_manager and team_leader
+ */
+    const PROTECTED_ROLES = ['superadmin', 'branch_manager', 'supervisor'];
+
 
     /**
      * Handle an incoming request.

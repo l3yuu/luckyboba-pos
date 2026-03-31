@@ -85,7 +85,8 @@ Route::post('/register', function (Request $request) {
     $token = $user->createToken('auth-token')->plainTextToken;
     return response()->json(['token' => $token, 'user' => $user], 201);
 });
-
+// ── Z Reading print — public, auth handled via one-time cache token ───────────
+Route::get('/readings/z/print', [SalesDashboardController::class, 'zReadingPrint']);
 // ── Authenticated routes ─────────────────────────────────────────────────────
 Route::middleware(['auth:sanctum', 'active'])->group(function () {
     
@@ -143,7 +144,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::post('/auth/verify-manager-pin', [UserController::class, 'verifyManagerPin']);
 
     // ── CASHIER + BRANCH MANAGER + SUPERADMIN ────────────────────────────────
-    Route::middleware(['role:superadmin,branch_manager,cashier,team_leader'])->group(function () {
+    Route::middleware(['role:superadmin,branch_manager,supervisor,cashier,team_leader'])->group(function () {
+
 
         // --- MOVED ONLINE ORDERS ROUTES HERE ---
         Route::get('/online-orders', [OnlineOrderController::class, 'index']);
@@ -243,6 +245,11 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::get('/food-menu',         [ReportController::class, 'getFoodMenu']);
             Route::get('/export-sales',      [ReportController::class, 'exportSales']);
             Route::get('/export-items',      [ReportController::class, 'exportItems']);
+        });
+        // ── Z Reading print + close ───────────────────────────────────────────────────
+        Route::prefix('readings')->group(function () {
+            Route::post('/z/close',       [SalesDashboardController::class, 'zReadingClose']);
+            Route::post('/z/print-token', [SalesDashboardController::class, 'zReadingPrintToken']);
         });
 
         // ── BRANCH SHOW — cashiers need this to load VAT type and branch info ──
@@ -357,6 +364,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::get('/admin-sales-summary', [SuperAdminReportController::class, 'salesSummary']);
             Route::get('/branch-comparison',   [SuperAdminReportController::class, 'branchComparison']);
             Route::get('/z-reading/history',   [SalesDashboardController::class, 'zReadingHistory']);
+            Route::get('/items-all',           [SuperAdminReportController::class, 'itemsReport']);
+            Route::get('/items-export',        [SuperAdminReportController::class, 'exportItems']); // ← ADD
         });
 
         Route::prefix('system')->group(function () {

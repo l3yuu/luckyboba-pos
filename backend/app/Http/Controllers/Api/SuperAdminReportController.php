@@ -219,4 +219,191 @@ class SuperAdminReportController extends Controller
             ],
         };
     }
+
+    public function itemsReport(Request $request)
+    {
+        $from     = $request->query('date_from', today()->toDateString());
+        $to       = $request->query('date_to',   today()->toDateString());
+        $branchId = $request->query('branch_id');
+
+        $topProducts = DB::table('sale_items')
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->leftJoin('menu_items', 'sale_items.menu_item_id', '=', 'menu_items.id')
+            ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
+            ->select(
+                'sale_items.product_name',
+                DB::raw("COALESCE(categories.name, 'Uncategorized') as category"),
+                DB::raw('SUM(sale_items.quantity)           as total_quantity'),
+                DB::raw('SUM(sale_items.final_price * sale_items.quantity) as total_revenue'),
+                DB::raw('AVG(sale_items.price)              as avg_unit_price'),
+                DB::raw('COUNT(DISTINCT sale_items.sale_id) as times_ordered')
+            )
+            ->where('sales.status', 'completed')
+            ->whereBetween('sales.created_at', [
+                $from . ' 00:00:00',
+                $to   . ' 23:59:59',
+            ])
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+            ->groupBy('sale_items.product_name', 'categories.name')
+            ->orderByDesc('total_quantity')
+            ->get();                          // ← no limit, returns everything
+
+        return response()->json([
+            'top_products' => $topProducts,
+            'meta' => [
+                'date_from' => $from,
+                'date_to'   => $to,
+                'branch_id' => $branchId,
+            ],
+        ]);
+    }
+
+    public function exportItems(Request $request)
+    {
+        $from     = $request->query('date_from', today()->toDateString());
+        $to       = $request->query('date_to',   today()->toDateString());
+        $branchId = $request->query('branch_id');
+
+        $branchName = $branchId
+            ? DB::table('branches')->where('id', $branchId)->value('name') ?? 'Unknown Branch'
+            : 'All Branches';
+
+        $items = DB::table('sale_items')          // ← renamed from $baseQuery to $items
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->leftJoin('branches', 'sales.branch_id', '=', 'branches.id')
+            ->leftJoin('menu_items', 'sale_items.menu_item_id', '=', 'menu_items.id')
+            ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
+            ->select(
+                'branches.id   as branch_id',
+                'branches.name as branch_name',
+                'sale_items.product_name',
+                DB::raw("COALESCE(categories.name, 'Uncategorized') as category"),
+                DB::raw('SUM(sale_items.quantity) as total_quantity'),
+                DB::raw('SUM(sale_items.final_price * sale_items.quantity) as total_revenue'),
+                DB::raw('AVG(sale_items.price) as avg_unit_price'),
+                DB::raw('COUNT(DISTINCT sale_items.sale_id) as times_ordered')
+            )
+            ->where('sales.status', 'completed')
+            ->whereBetween('sales.created_at', [
+                $from . ' 00:00:00',
+                $to   . ' 23:59:59',
+            ])
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+            ->groupBy('branches.id', 'branches.name', 'sale_items.product_name', 'categories.name')
+            ->orderBy('branches.name')
+            ->orderByDesc('total_quantity')
+            ->get();
+
+        $generatedAt  = now()->format('F d, Y h:i A');
+        $grandQty     = $items->sum('total_quantity');    // ← now valid
+        $grandRevenue = $items->sum('total_revenue');     // ← now valid
+
+        // ── Report Header ──────────────────────────────────────────
+        $csv  = "LUCKY BOBA POS - ITEMS SALES REPORT\n";
+        $csv .= "Generated:,\"" . $generatedAt . "\"\n";
+        $csv .= "Date Range:,\"" . date('F d Y', strtotime($from)) . " to " . date('F d Y', strtotime($to)) . "\"\n";
+        $csv .= "Branch:,\"" . $branchName . "\"\n";
+        $csv .= "\n";
+
+        if ($branchId) {
+            $totalQty     = $items->sum('total_quantity');
+            $totalRevenue = $items->sum('total_revenue');
+            $totalOrders  = $items->sum('times_ordered');
+            $topItem      = $items->first();
+
+            $csv .= "SUMMARY\n";
+            $csv .= "Total Qty Sold:," . (int) $totalQty . "\n";
+            $csv .= "Total Revenue (PHP):,\"" . number_format($totalRevenue, 2) . "\"\n";
+            $csv .= "Total Orders:," . (int) $totalOrders . "\n";
+            if ($topItem) {
+                $csv .= "Top Selling Item:,\"" . $topItem->product_name . " (" . (int) $topItem->total_quantity . " sold)\"\n";
+            }
+            $csv .= "\n";
+
+            $csv .= $this->buildItemsTable($items, $totalRevenue);
+
+        } else {
+            $grouped = $items->groupBy('branch_id');    // ← groupBy on the collection
+
+            $csv .= "GRAND SUMMARY\n";
+            $csv .= "Total Branches:," . $grouped->count() . "\n";
+            $csv .= "Total Qty Sold (All):," . (int) $grandQty . "\n";
+            $csv .= "Total Revenue (All) (PHP):,\"" . number_format($grandRevenue, 2) . "\"\n";
+            $csv .= "\n";
+
+            foreach ($grouped as $branchItems) {
+                $bName    = $branchItems->first()->branch_name ?? 'Unknown Branch';
+                $bQty     = $branchItems->sum('total_quantity');
+                $bRevenue = $branchItems->sum('total_revenue');
+                $bOrders  = $branchItems->sum('times_ordered');
+                $bTop     = $branchItems->first();
+                $bShare   = $grandRevenue > 0
+                    ? round(($bRevenue / $grandRevenue) * 100, 1)
+                    : 0;
+
+                $csv .= "══════════════════════════════════════════════════════════\n";
+                $csv .= "BRANCH:,\"" . strtoupper($bName) . "\"\n";
+                $csv .= "══════════════════════════════════════════════════════════\n";
+                $csv .= "Qty Sold:," . (int) $bQty . "\n";
+                $csv .= "Revenue (PHP):,\"" . number_format($bRevenue, 2) . "\"\n";
+                $csv .= "Orders:," . (int) $bOrders . "\n";
+                $csv .= "Revenue Share (vs all branches):," . $bShare . "%\n";
+                if ($bTop) {
+                    $csv .= "Top Item:,\"" . $bTop->product_name . " (" . (int) $bTop->total_quantity . " sold)\"\n";
+                }
+                $csv .= "\n";
+
+                $csv .= $this->buildItemsTable($branchItems, $bRevenue);
+                $csv .= "\n";
+            }
+
+            $csv .= "══════════════════════════════════════════════════════════\n";
+            $csv .= "GRAND TOTALS,,," . (int) $grandQty . ",\"" . number_format($grandRevenue, 2) . "\",,,100%\n";
+            $csv .= "══════════════════════════════════════════════════════════\n";
+        }
+
+        $csv .= "\n--- End of Report ---\n";
+
+        $branchSlug = $branchId
+            ? strtoupper(preg_replace('/[^a-zA-Z0-9]+/', '-', $branchName))
+            : 'ALL-BRANCHES';
+
+        $filename = "LuckyBoba_ItemsReport_{$branchSlug}_{$from}_to_{$to}.csv";
+
+        return response($csv, 200, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ]);
+    }
+
+    // ── Reusable table builder ─────────────────────────────────────────────────────
+    private function buildItemsTable($items, float $totalRevenue): string
+    {
+        $csv  = "#,Item Name,Category,Qty Sold,Total Revenue (PHP),Avg Price (PHP),Times Ordered,Revenue Share\n";
+
+        $rank = 1;
+        foreach ($items as $item) {
+            $revShare = $totalRevenue > 0
+                ? round(($item->total_revenue / $totalRevenue) * 100, 1) . '%'
+                : '0%';
+
+            $csv .= implode(',', [
+                $rank++,
+                '"' . str_replace('"', '""', $item->product_name) . '"',
+                '"' . str_replace('"', '""', $item->category) . '"',
+                (int) $item->total_quantity,
+                '"' . number_format((float) $item->total_revenue, 2) . '"',
+                '"' . number_format((float) $item->avg_unit_price, 2) . '"',
+                (int) $item->times_ordered,
+                $revShare,
+            ]) . "\n";
+        }
+
+        // Subtotal row
+        $subtotalQty = $items->sum('total_quantity');
+        $subtotalRev = $items->sum('total_revenue');
+        $csv .= "SUBTOTAL,,," . (int) $subtotalQty . ",\"" . number_format((float) $subtotalRev, 2) . "\",,,100%\n";
+
+        return $csv;
+    }
 }
