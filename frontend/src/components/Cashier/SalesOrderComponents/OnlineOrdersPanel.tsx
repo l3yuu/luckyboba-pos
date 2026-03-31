@@ -689,14 +689,15 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
         // Print customer receipt
         if (updatedOrder) triggerPrint('receipt', updatedOrder as OnlineOrder, seqNumber);
       }
-    } catch (err: any) {
-      if (err?.response?.status === 401) {
-        setError('Session expired. Please log out and log back in.');
-      } else if (err?.response?.status === 422) {
-        setError('Missing branch info. Please refresh.');
-      } else {
-        setError('Failed to update order status.');
-      }
+    } catch (err: unknown) {
+  const status = (err as { response?: { status?: number } })?.response?.status;
+  if (status === 401) {
+    setError('Session expired. Please log out and log back in.');
+  } else if (status === 422) {
+    setError('Missing branch info. Please refresh.');
+  } else {
+    setError('Failed to update order status.');333
+  }
     } finally {
       setUpdatingId(null);
     }
