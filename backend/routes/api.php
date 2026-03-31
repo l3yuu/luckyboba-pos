@@ -18,6 +18,7 @@ use App\Http\Controllers\Auth\UserController;
 use App\Http\Controllers\CacheController;
 use App\Http\Controllers\CategoryDrinkController;
 use App\Http\Controllers\OnlineOrderController;
+use App\Http\Controllers\Api\PointsController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -107,6 +108,7 @@ Route::post('/register', function (Request $request) {
         'email'    => $request->email,
         'password' => Hash::make($request->password),
         'role'     => 'customer',
+        'status'   => 'active',
     ]);
     $token = $user->createToken('auth-token')->plainTextToken;
     return response()->json(['token' => $token, 'user' => $user], 201);
@@ -116,7 +118,28 @@ Route::post('/register', function (Request $request) {
 Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     Route::post('/online-orders', [OnlineOrderController::class, 'store']);
+    Route::post('/cards/generate-qr',  [CardController::class, 'generateQr']);
+    Route::get('/cards/perk-status',   [CardController::class, 'perkStatus']);
     Route::get('/my-orders',      [OnlineOrderController::class, 'myOrders']);
+    Route::get('/points', [PointsController::class, 'index']);
+    Route::post('/points/redeem', [PointsController::class, 'redeem']);
+
+    Route::patch('/orders/{siNumber}/cancel', function (Request $request, string $siNumber) {
+        $sale = \App\Models\Sale::where('invoice_number', $siNumber)
+            ->where('user_id', $request->user()->id)
+            ->firstOrFail();
+
+        if ($sale->status !== 'pending') {
+            return response()->json([
+                'message' => 'Order can only be cancelled while pending.',
+            ], 422);
+        }
+
+        $sale->status = 'cancelled';
+        $sale->save();
+
+        return response()->json(['message' => 'Order cancelled successfully.']);
+    });
 
     Route::post('/sales',     [SalesController::class, 'store']);
     Route::get('/sales/{id}', [SalesController::class, 'show']);
