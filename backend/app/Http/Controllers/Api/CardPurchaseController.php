@@ -44,31 +44,47 @@ class CardPurchaseController extends Controller
     }
 
     public function checkStatus($userId)
-    {
-        // ✅ Uses database's own clock (NOW()) to avoid PHP timezone issues
-        $activeCard = DB::table('user_cards')
+{
+    $activeCard = DB::table('user_cards')
+        ->where('user_id', $userId)
+        ->where('status', 'active')
+        ->whereRaw('expires_at > NOW()')
+        ->join('cards', 'user_cards.card_id', '=', 'cards.id')
+        ->select('user_cards.*', 'cards.title')
+        ->orderBy('user_cards.expires_at', 'desc')
+        ->first();
+
+    if ($activeCard) {
+        $expiresAt     = Carbon::parse($activeCard->expires_at);
+        $now           = Carbon::now();
+        $daysRemaining = (int) $now->diffInDays($expiresAt, false);
+
+        // Check which perks already used today
+        $today     = now()->toDateString();
+        $usedToday = DB::table('card_usage_logs')
             ->where('user_id', $userId)
-            ->where('status', 'active')
-            ->whereRaw('expires_at > NOW()')
-            ->orderBy('expires_at', 'desc')
-            ->first();
-
-        if ($activeCard) {
-            $expiresAt     = Carbon::parse($activeCard->expires_at);
-            $now           = Carbon::now();
-            $daysRemaining = (int) $now->diffInDays($expiresAt, false);
-
-            return response()->json([
-                'has_active_card'      => true,
-                'card_id'              => $activeCard->card_id,
-                'expires_at'           => $expiresAt->toDateString(),
-                'expires_at_formatted' => $expiresAt->format('F d, Y'),
-                'days_remaining'       => max(0, $daysRemaining),
-            ]);
-        }
+            ->whereDate('created_at', $today)
+            ->pluck('perk_type')
+            ->toArray();
 
         return response()->json([
-            'has_active_card' => false,
+            'has_active_card'      => true,
+            'card_id'              => $activeCard->card_id,
+            'expires_at'           => $expiresAt->toDateString(),
+            'expires_at_formatted' => $expiresAt->format('F d, Y'),
+            'days_remaining'       => max(0, $daysRemaining),
+
+            // ── This is what Flutter CheckoutPage needs ──
+            'card' => [
+                'card_id'        => $activeCard->card_id,
+                'card_title'     => $activeCard->title,
+                'claimed_promos' => $usedToday,
+            ],
         ]);
     }
+
+    return response()->json([
+        'has_active_card' => false,
+    ]);
+}
 }
