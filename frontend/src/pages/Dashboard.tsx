@@ -204,10 +204,10 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, isOnli
     <div className="p-5 md:p-7 min-h-full flex flex-col gap-5">
       <div className="grid grid-cols-12 gap-4">
 
-        {/* Terminal Status — solid #7c14d4, same as login purple, NO gradient */}
+        {/* Terminal Status — solid #3b2063, same as login purple, NO gradient */}
         <div
           className="col-span-12 lg:col-span-5 rounded-[0.625rem] p-7 flex flex-col justify-between min-h-44 relative overflow-hidden"
-          style={{ backgroundColor: '#7c14d4' }}
+          style={{ backgroundColor: '#3b2063' }}
         >
           <div className="absolute inset-0 opacity-[0.06]"
             style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
@@ -244,7 +244,7 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, isOnli
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-[#f5f0ff] border border-[#ddd6fe] flex items-center justify-center rounded-lg">
-                <DollarSign size={18} className="text-[#7c14d4]" strokeWidth={2} />
+                <DollarSign size={18} className="text-[#3b2063]" strokeWidth={2} />
               </div>
               <p className="text-sm font-bold uppercase tracking-widest text-zinc-700">Net Revenue</p>
             </div>
@@ -266,7 +266,7 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, isOnli
         <div className="col-span-12 md:col-span-6 lg:col-span-3 bg-white border border-[#e9d5ff] rounded-[0.625rem] p-7 flex flex-col justify-between min-h-44 stat-card">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-[#f5f0ff] border border-[#ddd6fe] flex items-center justify-center rounded-lg">
-              <Receipt size={18} className="text-[#7c14d4]" strokeWidth={2} />
+              <Receipt size={18} className="text-[#3b2063]" strokeWidth={2} />
             </div>
             <p className="text-sm font-bold uppercase tracking-widest text-zinc-700">Transactions</p>
           </div>
@@ -279,13 +279,13 @@ const DashboardStats = ({ stats, isInitialLoad, isStale = false, loading, isOnli
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <MetricCard icon={<ArrowUpFromLine size={18} strokeWidth={2} className="text-emerald-600" />} label="Begin Cash" value={fmt(stats?.cash_in_today ?? 0)} isLoading={isLoading} accent="emerald" />
-        <MetricCard icon={<ArrowDownToLine size={18} strokeWidth={2} className="text-[#7c14d4]" />}  label="Cash Out"   value={fmt(stats?.cash_out_today ?? 0)}  isLoading={isLoading} accent="purple" />
+        <MetricCard icon={<ArrowDownToLine size={18} strokeWidth={2} className="text-[#3b2063]" />}  label="Cash Out"   value={fmt(stats?.cash_out_today ?? 0)}  isLoading={isLoading} accent="purple" />
         <MetricCard icon={<Ban size={18} strokeWidth={2} className="text-red-500" />}                label="Voided"     value={fmt(stats?.voided_sales_today ?? 0)} isLoading={isLoading} accent="red" />
       </div>
 
       <div className="grid grid-cols-12 gap-4 flex-1">
-        <LeaderboardCard title="Top Sellers Today"  icon={<Trophy size={17} strokeWidth={2} className="text-[#7c14d4]" />} sellers={stats?.top_seller_today ?? []}    loading={isLoading} />
-        <LeaderboardCard title="All Time Leaders"   icon={<Clock4  size={17} strokeWidth={2} className="text-[#7c14d4]" />} sellers={stats?.top_seller_all_time ?? []} loading={isLoading} />
+        <LeaderboardCard title="Top Sellers Today"  icon={<Trophy size={17} strokeWidth={2} className="text-[#3b2063]" />} sellers={stats?.top_seller_today ?? []}    loading={isLoading} />
+        <LeaderboardCard title="All Time Leaders"   icon={<Clock4  size={17} strokeWidth={2} className="text-[#3b2063]" />} sellers={stats?.top_seller_all_time ?? []} loading={isLoading} />
       </div>
     </div>
   );
@@ -299,7 +299,7 @@ interface MetricCardProps {
   accent: 'emerald' | 'purple' | 'red';
 }
 
-const accentMap = { emerald: 'text-emerald-700', purple: 'text-[#7c14d4]', red: 'text-red-600' };
+const accentMap = { emerald: 'text-emerald-700', purple: 'text-[#3b2063]', red: 'text-red-600' };
 
 const MetricCard = ({ icon, label, value, isLoading, accent }: MetricCardProps) => (
   <div className="bg-white border border-[#e9d5ff] rounded-[0.625rem] px-6 py-5 flex items-center justify-between stat-card">
@@ -350,12 +350,12 @@ const LeaderboardCard = ({ title, icon, sellers, loading }: LeaderboardCardProps
                         <span className="text-sm font-bold tabular-nums text-[#c4b5fd] w-5">{String(i + 1).padStart(2, '0')}</span>
                         <span className="text-base font-semibold text-[#1a0f2e] truncate max-w-55">{item.product_name}</span>
                       </div>
-                      <span className="text-sm font-bold tabular-nums text-[#7c14d4] bg-[#f5f0ff] border border-[#ddd6fe] px-3 py-1 rounded-sm">
+                      <span className="text-sm font-bold tabular-nums text-[#3b2063] bg-[#f5f0ff] border border-[#ddd6fe] px-3 py-1 rounded-sm">
                         {item.total_qty} sold
                       </span>
                     </div>
                     <div className="h-0.5 bg-[#ede9fe] overflow-hidden rounded-full">
-                      <div className="rank-bar h-full bg-[#7c14d4]" style={{ width: `${(item.total_qty / max) * 100}%` }} />
+                      <div className="rank-bar h-full bg-[#3b2063]" style={{ width: `${(item.total_qty / max) * 100}%` }} />
                     </div>
                   </>
                 ) : (
@@ -388,7 +388,7 @@ const DashboardSkeleton = () => (
       </div>
       <div className="flex-1 p-7 flex flex-col gap-5">
         <div className="grid grid-cols-12 gap-4">
-          <div className="col-span-5 h-44 animate-pulse rounded-[0.625rem]" style={{ backgroundColor: '#7c14d4', opacity: 0.25 }} />
+          <div className="col-span-5 h-44 animate-pulse rounded-[0.625rem]" style={{ backgroundColor: '#3b2063', opacity: 0.25 }} />
           <div className="col-span-4 h-44 bg-white animate-pulse border border-[#e9d5ff] rounded-[0.625rem]" />
           <div className="col-span-3 h-44 bg-white animate-pulse border border-[#e9d5ff] rounded-[0.625rem]" />
         </div>

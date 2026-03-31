@@ -134,7 +134,7 @@ const Expense = () => {
             </div>
             <button
               onClick={() => setIsAddModalOpen(true)}
-              className="h-11 px-7 bg-[#7c14d4] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm"
+              className="h-11 px-7 bg-[#3b2063] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm"
             >
               Add New Expense
             </button>
@@ -144,17 +144,17 @@ const Expense = () => {
           <div className="bg-white border border-zinc-200 p-4 rounded-[0.625rem] shadow-sm flex flex-col xl:flex-row items-center gap-4">
             <div className="flex flex-1 gap-2 w-full xl:w-auto">
               <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)}
-                className="flex-1 px-4 py-3 rounded-[0.625rem] border border-zinc-200 bg-[#f5f0ff] text-sm font-semibold outline-none focus:border-[#7c14d4] transition-colors" />
+                className="flex-1 px-4 py-3 rounded-[0.625rem] border border-zinc-200 bg-[#f5f0ff] text-sm font-semibold outline-none focus:border-[#3b2063] transition-colors" />
               <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)}
-                className="flex-1 px-4 py-3 rounded-[0.625rem] border border-zinc-200 bg-[#f5f0ff] text-sm font-semibold outline-none focus:border-[#7c14d4] transition-colors" />
+                className="flex-1 px-4 py-3 rounded-[0.625rem] border border-zinc-200 bg-[#f5f0ff] text-sm font-semibold outline-none focus:border-[#3b2063] transition-colors" />
             </div>
             <div className="w-full xl:w-64">
               <input type="text" placeholder="Search Ref #" value={refNumSearch} onChange={(e) => setRefNumSearch(e.target.value)}
-                className="w-full px-4 py-3 rounded-[0.625rem] border border-zinc-200 bg-[#f5f0ff] text-sm font-semibold outline-none focus:border-[#7c14d4] transition-colors placeholder:text-zinc-400" />
+                className="w-full px-4 py-3 rounded-[0.625rem] border border-zinc-200 bg-[#f5f0ff] text-sm font-semibold outline-none focus:border-[#3b2063] transition-colors placeholder:text-zinc-400" />
             </div>
             <div className="w-full xl:w-48">
               <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}
-                className="w-full px-4 py-3 rounded-[0.625rem] border border-zinc-200 bg-[#f5f0ff] text-sm font-semibold outline-none focus:border-[#7c14d4] transition-colors cursor-pointer">
+                className="w-full px-4 py-3 rounded-[0.625rem] border border-zinc-200 bg-[#f5f0ff] text-sm font-semibold outline-none focus:border-[#3b2063] transition-colors cursor-pointer">
                 <option value="ALL">All Categories</option>
                 <option value="Bills">Bills</option>
                 <option value="Salary">Salary</option>
@@ -165,7 +165,7 @@ const Expense = () => {
             </div>
             <div className="flex gap-2 w-full xl:w-auto">
               <button onClick={() => fetchExpenses(true)}
-                className="flex-1 xl:flex-none h-11 px-7 bg-[#7c14d4] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem]">
+                className="flex-1 xl:flex-none h-11 px-7 bg-[#3b2063] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem]">
                 Search
               </button>
             </div>
@@ -174,7 +174,7 @@ const Expense = () => {
           {/* Summary cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
-              { label: 'Total Sales', value: summary.totalSales, color: 'text-[#7c14d4]' },
+              { label: 'Total Sales', value: summary.totalSales, color: 'text-[#3b2063]' },
               { label: 'Total Expense', value: summary.totalExpense, color: 'text-red-500' },
               { label: 'Net Total', value: summary.netTotal, color: 'text-emerald-600' },
             ].map(({ label, value, color }) => (
@@ -191,7 +191,7 @@ const Expense = () => {
           <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm rounded-[0.625rem] relative">
             {isFetching && (
               <div className="absolute inset-0 bg-white/50 z-10 flex items-center justify-center backdrop-blur-[1px]">
-                <Loader2 className="animate-spin text-[#7c14d4]" size={32} />
+                <Loader2 className="animate-spin text-[#3b2063]" size={32} />
               </div>
             )}
             <div className="px-6 py-4 border-b border-[#e9d5ff] bg-[#f5f0ff] rounded-t-[0.625rem]">
@@ -224,7 +224,7 @@ const Expense = () => {
                         <span className="text-[12px] font-semibold text-zinc-500">{item.date}</span>
                       </td>
                       <td className="px-7 py-3.5">
-                        <span className="text-[13px] font-extrabold text-[#7c14d4]">{item.description || '-'}</span>
+                        <span className="text-[13px] font-extrabold text-[#3b2063]">{item.description || '-'}</span>
                       </td>
                       <td className="px-7 py-3.5">
                         <span className="text-[12px] font-semibold text-zinc-500 uppercase">{item.category}</span>
@@ -256,7 +256,7 @@ const Expense = () => {
       {isAddModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-[0.625rem] border border-[#e9d5ff] shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-200" style={dashboardFont}>
-            <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100 bg-[#7c14d4] rounded-t-[0.625rem]">
+            <div className="flex items-center justify-between px-7 py-5 border-b border-zinc-100 bg-[#3b2063] rounded-t-[0.625rem]">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#e9d5ff]/70">Finance</p>
                 <h2 className="text-sm font-extrabold text-white mt-0.5">Add Expense</h2>
@@ -266,7 +266,7 @@ const Expense = () => {
 
             {isSubmitting && (
               <div className="absolute inset-0 bg-white/70 z-20 flex items-center justify-center backdrop-blur-sm">
-                <Loader2 className="animate-spin text-[#7c14d4]" size={40} />
+                <Loader2 className="animate-spin text-[#3b2063]" size={40} />
               </div>
             )}
 
@@ -274,25 +274,25 @@ const Expense = () => {
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Reference Number</label>
                 <input type="text" placeholder="e.g. BILL-001"
-                  className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] bg-[#f5f0ff] text-sm font-semibold outline-none transition-all text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#7c14d4] focus:bg-white font-mono"
+                  className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] bg-[#f5f0ff] text-sm font-semibold outline-none transition-all text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white font-mono"
                   value={newExpense.refNum} onChange={(e) => setNewExpense({ ...newExpense, refNum: e.target.value })} />
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Description</label>
                 <textarea placeholder="Brief details about the expense..."
-                  className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] bg-[#f5f0ff] text-sm font-semibold outline-none transition-all text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#7c14d4] focus:bg-white h-24 resize-none"
+                  className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] bg-[#f5f0ff] text-sm font-semibold outline-none transition-all text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white h-24 resize-none"
                   value={newExpense.description} onChange={(e) => setNewExpense({ ...newExpense, description: e.target.value })} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Date</label>
                   <input type="date"
-                    className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] bg-[#f5f0ff] text-sm font-semibold outline-none transition-all text-[#1c1c1e] focus:border-[#7c14d4] focus:bg-white cursor-pointer"
+                    className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] bg-[#f5f0ff] text-sm font-semibold outline-none transition-all text-[#1c1c1e] focus:border-[#3b2063] focus:bg-white cursor-pointer"
                     value={newExpense.date} onChange={(e) => setNewExpense({ ...newExpense, date: e.target.value })} />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Category</label>
-                  <select className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] bg-[#f5f0ff] text-sm font-semibold outline-none transition-all text-[#1c1c1e] focus:border-[#7c14d4] focus:bg-white cursor-pointer"
+                  <select className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] bg-[#f5f0ff] text-sm font-semibold outline-none transition-all text-[#1c1c1e] focus:border-[#3b2063] focus:bg-white cursor-pointer"
                     value={newExpense.category} onChange={(e) => setNewExpense({ ...newExpense, category: e.target.value })}>
                     <option>Bills</option>
                     <option>Salary</option>
@@ -305,7 +305,7 @@ const Expense = () => {
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Amount (₱)</label>
                 <input type="number" placeholder="0.00" step="0.01"
-                  className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] bg-[#f5f0ff] text-lg font-extrabold outline-none transition-all text-black focus:border-[#7c14d4] focus:bg-white"
+                  className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] bg-[#f5f0ff] text-lg font-extrabold outline-none transition-all text-black focus:border-[#3b2063] focus:bg-white"
                   value={newExpense.amount} onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })} />
               </div>
             </div>
@@ -316,7 +316,7 @@ const Expense = () => {
                 Cancel
               </button>
               <button onClick={handleSaveExpense} disabled={isSubmitting}
-                className="flex-1 h-11 bg-[#7c14d4] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]">
+                className="flex-1 h-11 bg-[#3b2063] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]">
                 {isSubmitting
                   ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Saving...</>
                   : 'Save Expense'

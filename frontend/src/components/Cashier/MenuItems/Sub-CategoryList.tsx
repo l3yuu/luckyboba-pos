@@ -122,7 +122,7 @@ const SubCategoryList = () => {
           <div className="flex-1 bg-white border border-zinc-200 overflow-hidden flex flex-col shadow-sm relative rounded-[0.625rem]">
             {isFetching && (
               <div className="absolute inset-0 bg-white/70 z-10 flex items-center justify-center">
-                <Loader2 className="animate-spin text-[#7c14d4]" size={28} />
+                <Loader2 className="animate-spin text-[#3b2063]" size={28} />
               </div>
             )}
 
@@ -133,7 +133,7 @@ const SubCategoryList = () => {
                 <select
                   value={entriesLimit}
                   onChange={(e) => setEntriesLimit(Number(e.target.value))}
-                  className="border border-[#e9d5ff] bg-white px-3 py-1.5 outline-none text-[#1a0f2e] font-semibold text-sm focus:border-[#7c14d4] transition-colors rounded-[0.625rem]"
+                  className="border border-[#e9d5ff] bg-white px-3 py-1.5 outline-none text-[#1a0f2e] font-semibold text-sm focus:border-[#3b2063] transition-colors rounded-[0.625rem]"
                 >
                   <option value={10}>10</option>
                   <option value={25}>25</option>
@@ -149,7 +149,7 @@ const SubCategoryList = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search sub-categories..."
-                  className="border border-[#e9d5ff] bg-white px-4 py-2 text-sm font-semibold text-[#1a0f2e] outline-none focus:border-[#7c14d4] focus:bg-white w-56 transition-all placeholder:text-zinc-300 rounded-[0.625rem]"
+                  className="border border-[#e9d5ff] bg-white px-4 py-2 text-sm font-semibold text-[#1a0f2e] outline-none focus:border-[#3b2063] focus:bg-white w-56 transition-all placeholder:text-zinc-300 rounded-[0.625rem]"
                 />
               </div>
             </div>
@@ -174,14 +174,14 @@ const SubCategoryList = () => {
                       <tr key={sub.id} className="hover:bg-[#f5f0ff] transition-colors">
                         <td className="px-7 py-3.5">
                           <div className="flex items-center gap-2">
-                            <Tag size={13} className="text-[#7c14d4] shrink-0" />
+                            <Tag size={13} className="text-[#3b2063] shrink-0" />
                             <span className="text-sm font-bold text-[#1a0f2e]">{sub.name}</span>
                           </div>
                         </td>
                         <td className="px-5 py-3.5">
                           <div className="flex flex-wrap gap-1">
                             {(sub.usedBy?.length ?? 0) > 0 ? sub.usedBy.map((cat) => (
-                              <span key={cat} className="px-2.5 py-1 bg-[#f5f0ff] border border-[#e9d5ff] text-[10px] font-bold text-[#7c14d4] uppercase tracking-wide rounded-sm">
+                              <span key={cat} className="px-2.5 py-1 bg-[#f5f0ff] border border-[#e9d5ff] text-[10px] font-bold text-[#3b2063] uppercase tracking-wide rounded-sm">
                                 {cat}
                               </span>
                             )) : (

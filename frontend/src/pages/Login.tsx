@@ -105,7 +105,7 @@ const Login: React.FC = () => {
           padding: 2rem 2rem 2rem;
           position: relative;
           overflow: hidden;
-          background-color: #7c14d4;
+          background-color: #3b2063;
           background-image:
             radial-gradient(ellipse 80% 60% at 50% 50%, #8b1fe0 0%, #6a0ec0 100%),
             repeating-linear-gradient(
@@ -333,7 +333,7 @@ const Login: React.FC = () => {
         .lb-mobile-logo img { width: 120px; height: auto; object-fit: contain; }
         .lb-mobile-logo-tag {
           font-size: 0.52rem; font-weight: 700;
-          letter-spacing: 0.28em; text-transform: uppercase; color: #7c14d4;
+          letter-spacing: 0.28em; text-transform: uppercase; color: #3b2063;
         }
 
         .lb-form-title {
@@ -382,7 +382,7 @@ const Login: React.FC = () => {
         }
         .lb-input::placeholder { color: #c4c4c8; font-weight: 300; }
         .lb-input:focus {
-          border-color: #7c14d4;
+          border-color: #3b2063;
           background: #fff;
           box-shadow: 0 0 0 3px rgba(124,20,212,0.08);
         }
@@ -396,14 +396,14 @@ const Login: React.FC = () => {
           display: flex; padding: 3px;
           transition: color 0.15s;
         }
-        .lb-eye:hover { color: #7c14d4; }
+        .lb-eye:hover { color: #3b2063; }
 
         .lb-btn-wrap { margin-top: 1.4rem; }
 
         .lb-btn {
           width: 100%;
           padding: 13px 20px;
-          background: #7c14d4;
+          background: #3b2063;
           color: #fff;
           font-family: 'DM Sans', sans-serif;
           font-size: 0.68rem;

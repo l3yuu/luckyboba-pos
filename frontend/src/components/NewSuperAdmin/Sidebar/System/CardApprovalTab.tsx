@@ -254,7 +254,7 @@ const CardApprovalsTab: React.FC = () => {
         {/* Table header bar */}
         <div className="px-7 py-5 border-b border-zinc-100 flex items-center justify-between bg-white">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-[#7c14d4] flex items-center justify-center rounded-sm">
+            <div className="w-9 h-9 bg-[#3b2063] flex items-center justify-center rounded-sm">
               <CreditCard size={18} className="text-white" />
             </div>
             <div>
@@ -332,7 +332,7 @@ const CardApprovalsTab: React.FC = () => {
 
                       {/* Card title */}
                       <td className="px-7 py-4">
-                        <span className="inline-flex items-center gap-1.5 text-sm font-bold text-[#7c14d4]">
+                        <span className="inline-flex items-center gap-1.5 text-sm font-bold text-[#3b2063]">
                           <CreditCard size={13} />{req.card_title}
                         </span>
                       </td>
@@ -370,7 +370,7 @@ const CardApprovalsTab: React.FC = () => {
                           <button
                             onClick={() => setConfirmData({ request: req, mode: "approve" })}
                             disabled={busyId === req.id}
-                            className="flex items-center gap-1.5 bg-[#7c14d4] hover:bg-[#6a12b8] text-white px-3 py-1.5 rounded-sm text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-50"
+                            className="flex items-center gap-1.5 bg-[#3b2063] hover:bg-[#6a12b8] text-white px-3 py-1.5 rounded-sm text-[10px] font-black uppercase tracking-widest transition-colors disabled:opacity-50"
                           >
                             {busyId === req.id
                               ? <span className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin inline-block" />

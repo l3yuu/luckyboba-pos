@@ -42,7 +42,7 @@ const authHeaders = () => ({
 // ── Shared UI ─────────────────────────────────────────────────────────────────
 const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, trend, color = "violet" }) => {
   const colors: Record<ColorKey, { bg: string; border: string; icon: string }> = {
-    violet:  { bg: "bg-violet-50",  border: "border-violet-200",  icon: "text-violet-600"  },
+    violet:  { bg: "bg-[#f5f0ff]",  border: "border-[#e9d5ff]",  icon: "text-[#3b2063]"  },
     emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
     red:     { bg: "bg-red-50",     border: "border-red-200",     icon: "text-red-500"     },
     amber:   { bg: "bg-amber-50",   border: "border-amber-200",   icon: "text-amber-600"   },
@@ -455,8 +455,8 @@ const OverviewTab: React.FC = () => {
                   : 0;
                 return (
                   <div key={i} className="flex items-center gap-3">
-                    <div className="w-5 h-5 rounded-md bg-violet-50 border border-violet-200 flex items-center justify-center shrink-0">
-                      <span className="text-[9px] font-black text-violet-600">{i + 1}</span>
+                    <div className="w-5 h-5 rounded-md bg-[#f5f0ff] border border-[#e9d5ff] flex items-center justify-center shrink-0">
+                      <span className="text-[9px] font-black text-[#3b2063]">{i + 1}</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-0.5">

@@ -135,7 +135,7 @@ const SerialFormModal: React.FC<{
         <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center">
-              <Hash size={15} className="text-[#7c14d4]" />
+              <Hash size={15} className="text-[#3b2063]" />
             </div>
             <div>
               <p className="text-sm font-bold text-[#1a0f2e]">{editing ? 'Edit Serial Item' : 'Register Serial Item'}</p>
@@ -186,7 +186,7 @@ const SerialFormModal: React.FC<{
             Cancel
           </button>
           <button onClick={handleSubmit} disabled={saving}
-            className="flex-1 py-2.5 bg-[#7c14d4] hover:bg-[#6a12b8] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">
+            className="flex-1 py-2.5 bg-[#3b2063] hover:bg-[#2d1851] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">
             {saving ? 'Saving...' : editing ? 'Save Changes' : 'Register'}
           </button>
         </div>
@@ -285,10 +285,10 @@ const ItemSerialsTab: React.FC = () => {
           <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">{loading ? 'Loading...' : `${items.length} serialized items tracked`}</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={fetchAll} disabled={loading} className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#7c14d4] hover:border-[#7c14d4] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
+          <button onClick={fetchAll} disabled={loading} className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
           </button>
-          <button onClick={() => setAddOpen(true)} className="bg-[#7c14d4] hover:bg-[#6a12b8] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all">
+          <button onClick={() => setAddOpen(true)} className="bg-[#3b2063] hover:bg-[#6a12b8] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all">
             <Plus size={13} /> Register Item
           </button>
         </div>
@@ -350,7 +350,7 @@ const ItemSerialsTab: React.FC = () => {
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-2">
                       <div className="w-7 h-7 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center shrink-0">
-                        <Hash size={12} className="text-[#7c14d4]" />
+                        <Hash size={12} className="text-[#3b2063]" />
                       </div>
                       <span className="font-black text-[#1a0f2e] text-xs tabular-nums">{item.serial_number}</span>
                     </div>
@@ -381,7 +381,7 @@ const ItemSerialsTab: React.FC = () => {
                   </td>
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-1">
-                      <button onClick={() => setEditTarget(item)} className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#7c14d4] transition-colors"><Edit2 size={13} /></button>
+                      <button onClick={() => setEditTarget(item)} className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors"><Edit2 size={13} /></button>
                       <button onClick={() => setDelTarget(item)} className="p-1.5 hover:bg-red-50 rounded-[0.4rem] text-zinc-400 hover:text-red-500 transition-colors"><Trash2 size={13} /></button>
                     </div>
                   </td>

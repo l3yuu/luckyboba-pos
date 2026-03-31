@@ -83,7 +83,7 @@ const MovementDrawer: React.FC<{
   const typeColor = (t: string) => {
     if (t === 'add')      return '#16a34a';
     if (t === 'subtract') return '#dc2626';
-    return '#7c14d4';
+    return '#3b2063';
   };
   const typePrefix = (t: string) => t === 'add' ? '+' : t === 'subtract' ? '-' : '=';
 
@@ -94,7 +94,7 @@ const MovementDrawer: React.FC<{
       <div className="relative bg-white w-full max-w-sm h-full flex flex-col shadow-2xl">
         <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 bg-[#faf9ff]">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#7c14d4] rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-[#3b2063] rounded-lg flex items-center justify-center">
               <Clock size={14} className="text-white" />
             </div>
             <div>
@@ -111,7 +111,7 @@ const MovementDrawer: React.FC<{
         <div className="grid grid-cols-3 border-b border-zinc-100">
           {[
             { label: 'BEG', value: row.beg, color: '#71717a' },
-            { label: 'USED', value: row.usage, color: '#7c14d4' },
+            { label: 'USED', value: row.usage, color: '#3b2063' },
             { label: 'END', value: row.end, color: '#1a0f2e' },
           ].map(s => (
             <div key={s.label} className="text-center py-3 border-r border-zinc-100 last:border-0">
@@ -142,7 +142,7 @@ const MovementDrawer: React.FC<{
                   ? <TrendingUp  size={12} color="#16a34a" />
                   : m.type === 'subtract'
                   ? <TrendingDown size={12} color="#dc2626" />
-                  : <Minus       size={12} color="#7c14d4" />}
+                  : <Minus       size={12} color="#3b2063" />}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
@@ -275,11 +275,11 @@ const UsageReportTab: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           <button onClick={fetchReport} disabled={loading}
-            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#7c14d4] hover:border-[#7c14d4] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
+            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
           </button>
           <button onClick={handleExport} disabled={exporting || loading}
-            className="bg-[#7c14d4] hover:bg-[#6a12b8] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all disabled:opacity-50">
+            className="bg-[#3b2063] hover:bg-[#2d1851] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all disabled:opacity-50">
             <Download size={13} /> {exporting ? 'Exporting...' : 'Export CSV'}
           </button>
         </div>
@@ -288,7 +288,7 @@ const UsageReportTab: React.FC = () => {
       {/* Stat Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
         {[
-          { label: 'Total Items',     value: rows.length,  color: '#7c14d4', bg: '#f5f0ff', border: '#e9d5ff' },
+          { label: 'Total Items',     value: rows.length,  color: '#3b2063', bg: '#f5f0ff', border: '#e9d5ff' },
           { label: 'Total Usage',     value: totalUsage,   color: '#1a0f2e', bg: '#faf9ff', border: '#e9d5ff' },
           { label: 'Total Spoilage',  value: totalSpoil,   color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
           { label: 'Negative Var.',   value: negVar,       color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
@@ -345,7 +345,7 @@ const UsageReportTab: React.FC = () => {
           </div>
 
           <button onClick={() => setShowGuide(v => !v)}
-            className="flex items-center gap-1.5 px-3 py-2 h-9 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold text-zinc-500 hover:text-[#7c14d4] hover:border-[#e9d5ff] transition-colors ml-auto">
+            className="flex items-center gap-1.5 px-3 py-2 h-9 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold text-zinc-500 hover:text-[#3b2063] hover:border-[#e9d5ff] transition-colors ml-auto">
             Column Guide {showGuide ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </button>
         </div>
@@ -355,7 +355,7 @@ const UsageReportTab: React.FC = () => {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 px-5 py-4 bg-[#faf9ff] border-b border-zinc-100">
             {Object.entries(COLUMN_GUIDE).map(([col, desc]) => (
               <div key={col} className="flex items-start gap-2">
-                <span className="text-[9px] font-black text-[#7c14d4] bg-[#f5f0ff] px-1.5 py-0.5 rounded border border-[#e9d5ff] shrink-0 mt-0.5">{col}</span>
+                <span className="text-[9px] font-black text-[#3b2063] bg-[#f5f0ff] px-1.5 py-0.5 rounded border border-[#e9d5ff] shrink-0 mt-0.5">{col}</span>
                 <p className="text-[10px] text-zinc-500 leading-tight">{desc}</p>
               </div>
             ))}
@@ -394,10 +394,10 @@ const UsageReportTab: React.FC = () => {
                     <td className="px-4 py-3.5 text-right text-xs font-medium text-zinc-500 tabular-nums">{r.beg}</td>
                     <td className="px-4 py-3.5 text-right text-xs font-medium tabular-nums" style={{ color: r.del > 0 ? '#16a34a' : '#a1a1aa' }}>{r.del}</td>
                     <td className="px-4 py-3.5 text-right text-xs font-medium tabular-nums" style={{ color: r.cooked > 0 ? '#2563eb' : '#a1a1aa' }}>{r.cooked}</td>
-                    <td className="px-4 py-3.5 text-right text-xs font-medium tabular-nums" style={{ color: r.out > 0 ? '#7c14d4' : '#a1a1aa' }}>{r.out}</td>
+                    <td className="px-4 py-3.5 text-right text-xs font-medium tabular-nums" style={{ color: r.out > 0 ? '#3b2063' : '#a1a1aa' }}>{r.out}</td>
                     <td className="px-4 py-3.5 text-right text-xs font-medium tabular-nums" style={{ color: r.spoil > 0 ? '#dc2626' : '#a1a1aa' }}>{r.spoil}</td>
                     <td className="px-4 py-3.5 text-right text-xs font-bold text-[#1a0f2e] tabular-nums">{r.end}</td>
-                    <td className="px-4 py-3.5 text-right text-xs font-bold tabular-nums" style={{ color: '#7c14d4' }}>{r.usage}</td>
+                    <td className="px-4 py-3.5 text-right text-xs font-bold tabular-nums" style={{ color: '#3b2063' }}>{r.usage}</td>
                     <td className="px-4 py-3.5 text-right">
                       <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold border tabular-nums"
                         style={{ background: vc.bg, color: vc.text, borderColor: vc.border }}>
