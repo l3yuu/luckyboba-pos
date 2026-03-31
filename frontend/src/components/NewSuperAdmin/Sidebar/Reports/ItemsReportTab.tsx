@@ -283,17 +283,21 @@ const ItemsReportTab: React.FC = () => {
             <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           </div>
         </div>
-        {/* Apply */}
-        <Btn onClick={fetchItems} disabled={loading}>
-          {loading ? <><RefreshCw size={12} className="animate-spin" /> Loading...</> : "Apply Filters"}
-        </Btn>
-        {/* Clear */}
-        {(branchId || categoryId) && (
-          <button onClick={() => { setBranchId(""); setCategoryId(""); }}
-            className="text-xs font-bold text-zinc-400 hover:text-red-500 flex items-center gap-1 transition-colors">
-            <X size={11} /> Clear
-          </button>
-        )}
+
+        {/* ── Apply + Clear grouped together ── */}
+        <div className="flex items-center gap-2">
+          <Btn onClick={fetchItems} disabled={loading}>
+            {loading ? <><RefreshCw size={12} className="animate-spin" /> Loading...</> : "Apply Filters"}
+          </Btn>
+          {(branchId || categoryId) && (
+            <button
+              onClick={() => { setBranchId(""); setCategoryId(""); }}
+              className="inline-flex items-center gap-1 px-3 py-2 text-xs font-bold text-zinc-400 hover:text-red-500 hover:bg-red-50 border border-zinc-200 hover:border-red-200 rounded-lg transition-colors"
+            >
+              <X size={11} /> Clear
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Error ── */}
