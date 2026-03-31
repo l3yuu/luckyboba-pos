@@ -256,12 +256,13 @@ const ZReadingTab: React.FC = () => {
         return { ...raw, hourly_data: hourlyData } as unknown as XReadingReport;
       }
       case "void_logs": {
-        const logs = (raw.logs as any[] ?? []).map((l: any) => ({
+        type VoidLog = { id?: unknown; reason?: unknown; invoice?: unknown; amount?: unknown; created_at?: unknown };
+        const logs = ((raw.logs as VoidLog[]) ?? []).map((l: VoidLog) => ({
           id:     String(l.id ?? ""),
           reason: String(l.reason ?? l.invoice ?? ""),
           amount: Number(l.amount ?? 0),
           time:   l.created_at
-            ? new Date(l.created_at).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
+            ? new Date(l.created_at as string).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
             : "—",
         }));
         return { ...raw, logs, prepared_by: raw.prepared_by } as unknown as XReadingReport;
@@ -427,7 +428,8 @@ const ZReadingTab: React.FC = () => {
     if (branchId && reportType !== "z_reading") {
       fetchXReport();
     }
-  }, [reportType]); 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reportType]);
 
   const handleCloseShift = async () => {
     if (!branchId || !data) return;
