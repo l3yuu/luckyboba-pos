@@ -274,7 +274,7 @@ useEffect(() => {
     } catch { setApiError("Failed to load cashiers."); }
     finally { setLoading(false); }
   })();
-}, [branch_id, id, assigned_users, user]);
+}, [branch_id, id, assigned_users, user, device.branch_id, device.assigned_users, device.user]);
 
   const isAlreadyAssigned = (id: number) => assigned.some(a => a.id === id);
 
