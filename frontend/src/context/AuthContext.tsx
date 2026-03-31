@@ -2,7 +2,6 @@ import { createContext, useState, useEffect, useCallback, useMemo } from 'react'
 import type { ReactNode } from 'react';
 import api from '../services/api';
 import type { LoginCredentials, User } from '../types/user';
-import { getDeviceIdAsync } from '../utils/deviceId'; // ← updated import
 import axios from 'axios';
 
 const AUTH_KEYS = [
@@ -107,70 +106,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.removeItem('login_attempts');
       localStorage.removeItem('login_lockout_end');
 
-      // ── Cashier device-pairing check ──────────────────────────────────────
-      // Only cashiers are device-locked. All other roles skip this entirely.
-      if (userData.role === 'cashier') {
-        try {
-          // ── Resolve hardware-derived device ID (survives site data clear) ──
-          const deviceName = await getDeviceIdAsync();
-
-          const deviceCheck = await api.post('/devices/check', {
-            device_name: deviceName, // ← always a real string, never undefined
-            user_id:     userData.id,
-          });
-
-          if (!deviceCheck.data.success) {
-            // Auth succeeded but device pairing failed — roll back session
-            clearSession();
-            const msg = deviceCheck.data.message || 'This device is not assigned to your account.';
-            setError(msg);
-            throw new Error(msg);
-          }
-
-          // Store device info from check response
-          sessionStorage.setItem('pos_number', deviceCheck.data.pos_number ?? '');
-          sessionStorage.setItem('branch_id',  String(deviceCheck.data.branch_id ?? ''));
-
-        } catch (deviceErr: unknown) {
-          // Re-throw errors we already handled above
-          if (deviceErr instanceof Error && deviceErr.message !== 'Network Error') {
-            throw deviceErr;
-          }
-          // Network/unexpected error — fail safe, block login
-          clearSession();
-          const msg = 'Device verification failed. Please try again.';
-          setError(msg);
-          throw new Error(msg);
-        }
-
-      } else {
-        // Non-cashier roles — persist device session directly from login response
-        sessionStorage.setItem('pos_number', pos_number  ?? '');
-        sessionStorage.setItem('branch_id',  String(branch_id ?? ''));
-      }
+      // ── Persist device session — DeviceGate handles the actual check ──────
+      sessionStorage.setItem('pos_number', pos_number ?? '');
+      sessionStorage.setItem('branch_id',  String(branch_id ?? ''));
       // ─────────────────────────────────────────────────────────────────────
 
       setUser(userData);
       return userData;
 
     } catch (err: unknown) {
-      // Don't increment lockout counter for device-pairing errors
-      const isDeviceError = err instanceof Error && (
-        err.message.includes('device') ||
-        err.message.includes('Device') ||
-        err.message.includes('assigned') ||
-        err.message.includes('cashier')
-      );
+      const attempts = parseInt(localStorage.getItem('login_attempts') || '0') + 1;
+      localStorage.setItem('login_attempts', attempts.toString());
 
-      if (!isDeviceError) {
-        const attempts = parseInt(localStorage.getItem('login_attempts') || '0') + 1;
-        localStorage.setItem('login_attempts', attempts.toString());
-
-        if (attempts >= MAX_LOGIN_ATTEMPTS) {
-          localStorage.setItem('login_lockout_end', (Date.now() + LOCKOUT_DURATION).toString());
-          setError('Too many failed attempts. Please wait 2 minutes.');
-          return null;
-        }
+      if (attempts >= MAX_LOGIN_ATTEMPTS) {
+        localStorage.setItem('login_lockout_end', (Date.now() + LOCKOUT_DURATION).toString());
+        setError('Too many failed attempts. Please wait 2 minutes.');
+        return null;
       }
 
       let message = 'Invalid email or password.';
@@ -186,7 +137,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } finally {
       setIsLoading(false);
     }
-  }, [clearSession]);
+  }, []);
 
   const logout = useCallback(async (): Promise<void> => {
     try {

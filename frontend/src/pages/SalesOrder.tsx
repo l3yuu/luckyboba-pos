@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 'use client'
 
 import React, { useState, useEffect } from 'react'
@@ -353,13 +354,16 @@ const SalesOrder = () => {
   // ── VAT split ─────────────────────────────────────────────────────────────
   const vatExemptSales = isVat && hasPaxDiscount ? Math.max(0, round(totalVatExemptSales - totalPaxDiscount)) : 0
 
-  const vatableBase = isVat
-    ? Math.max(0, round(grossSubtotal - totalVatExemptSales * 1.12 - itemDiscountTotal - promoDiscount))
-    : 0
-  const vatableSales = isVat ? round(vatableBase / 1.12) : 0
-  const vatAmount = isVat ? round(vatableBase - vatableSales) : 0
+  // ── VAT ────────────────────────────────────────────────────────
+const vatableBase = isVat
+  ? Math.max(0, round(grossSubtotal - totalVatExemptSales * 1.12 - itemDiscountTotal - promoDiscount))
+  : 0
+const vatableSales = isVat ? round(vatableBase / 1.12) : 0
+const vatAmount    = isVat ? round(vatableBase - vatableSales) : 0
 
-  const amtDue = Math.max(0, round(vatableBase + vatExemptSales))
+const amtDue = isVat
+  ? Math.max(0, round(vatableBase + vatExemptSales))
+  : Math.max(0, round(grossSubtotal - itemDiscountTotal - orderLevelDiscount))
 
 
 

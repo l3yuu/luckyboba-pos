@@ -1,10 +1,13 @@
-import { type ReactNode, useState } from 'react';
+ 
+import { useState } from 'react';
 import { useDeviceCheck } from '../hooks/useDeviceCheck';
 import { useAuth } from '../hooks/useAuth';
+import { Outlet } from 'react-router-dom';
 
-interface Props {
-  children: ReactNode;
-}
+
+type Props = {
+  children?: React.ReactNode; // ← make optional
+};
 
 export function DeviceGate({ children }: Props) {
   const { user } = useAuth();
@@ -13,7 +16,7 @@ export function DeviceGate({ children }: Props) {
   const [copied, setCopied] = useState(false);
 
   // Non-cashier roles — pass through immediately
-  if (!isCashier) return <>{children}</>;
+  if (!isCashier) return <>{children ?? <Outlet />}</>;
 
   // ── Checking ──────────────────────────────────────────────────────────────
   if (status === 'checking') {
@@ -95,5 +98,5 @@ export function DeviceGate({ children }: Props) {
   }
 
   // ── Registered — render normally ──────────────────────────────────────────
-  return <>{children}</>;
+  return <>{children ?? <Outlet />}</>;
 }
