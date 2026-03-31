@@ -275,25 +275,24 @@ class SalesDashboardService
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->sum('total_amount');
 
-        // ── Discounts ─────────────────────────────────────────────────────────
+        // ── Discounts (MUST come before VAT calculation) ──────────────────────
+
         $discounts = $this->computeDiscounts($from, $to, $branchId);
 
+        // ── VAT & Sales Calculation (Database Driven) ─────────────────────────
         $scPwdDiscount  = $discounts['sc_discount'] + $discounts['pwd_discount'];
         $otherDiscounts = $discounts['diplomat_discount'] + $discounts['other_discount'];
-        $totalDiscounts = round($scPwdDiscount + $otherDiscounts, 2);
+        $totalDiscounts = $scPwdDiscount + $otherDiscounts;
 
-        // ── VAT Calculation ───────────────────────────────────────────────────
-        if ($isVat) {
-            $vatableSales   = (float) $sales->sum('vatable_sales');
-            $vatAmount      = (float) $sales->sum('vat_amount');
-            $vatExemptSales = round($scPwdDiscount / 1.20, 2);
-            $netSales       = round($vatableSales + $vatExemptSales, 2);
-        } else {
-            $vatableSales   = 0.0;
-            $vatAmount      = 0.0;
-            $vatExemptSales = 0.0;
-            $netSales       = round($grossSales - $totalDiscounts, 2);
-        }
+        // Sum values directly from your 'sales' query results
+        $vatableSales = (float) $sales->sum('vatable_sales');
+        $vatAmount    = (float) $sales->sum('vat_amount');
+
+        // Reconstruct Exempt Sales for report balance
+        $vatExemptBase  = $isVat ? round($scPwdDiscount / 0.20, 2) : 0.0;
+        $vatExemptSales = $isVat ? round($vatExemptBase - $scPwdDiscount, 2) : 0.0;
+        $netSales       = round($vatableSales + $vatExemptSales, 2);
+        // ─────────────────────────────────────────────────────────────────────
         // ─────────────────────────────────────────────────────────────────────
 
         $paymentBreakdown = $this->computePaymentBreakdown($from, $to, $branchId);
@@ -356,7 +355,7 @@ class SalesDashboardService
             'pwd_discount'      => $discounts['pwd_discount'],
             'diplomat_discount' => $discounts['diplomat_discount'],
             'other_discount'    => $discounts['other_discount'],
-            'total_discounts'   => $totalDiscounts,
+            'total_discounts'   => round($totalDiscounts, 2),
             'payment_breakdown' => $paymentBreakdown,
             'total_qty_sold'    => $totalQtySold,
             'cash_in'           => $cashIn,
@@ -407,23 +406,19 @@ class SalesDashboardService
         $discounts        = $this->computeDiscounts($start, $end, $branchId);
         $paymentBreakdown = $this->computePaymentBreakdown($start, $end, $branchId);
 
-        // ── Discounts ─────────────────────────────────────────────────────────
+        // ── VAT & Sales Calculation (Database Driven) ─────────────────────────
         $scPwdDiscount  = $discounts['sc_discount'] + $discounts['pwd_discount'];
         $otherDiscounts = $discounts['diplomat_discount'] + $discounts['other_discount'];
-        $totalDiscounts = round($scPwdDiscount + $otherDiscounts, 2);
+        $totalDiscounts = $scPwdDiscount + $otherDiscounts;
 
-        // ── VAT Calculation ───────────────────────────────────────────────────
-        if ($isVat) {
-            $vatableSales   = (float) $sales->sum('vatable_sales');
-            $vatAmount      = (float) $sales->sum('vat_amount');
-            $vatExemptSales = round($scPwdDiscount / 1.20, 2);
-            $netSales       = round($vatableSales + $vatExemptSales, 2);
-        } else {
-            $vatableSales   = 0.0;
-            $vatAmount      = 0.0;
-            $vatExemptSales = 0.0;
-            $netSales       = round($gross - $totalDiscounts, 2);
-        }
+        // Use direct sums to ensure 91.60 and 761.70
+        $vatableSales = (float) $sales->sum('vatable_sales');
+        $vatAmount    = (float) $sales->sum('vat_amount');
+
+        $vatExemptBase  = $isVat ? round($scPwdDiscount / 0.20, 2) : 0.0;
+        $vatExemptSales = $isVat ? round($vatExemptBase - $scPwdDiscount, 2) : 0.0;
+        $netSales       = round($vatableSales + $vatExemptSales, 2);
+        // ─────────────────────────────────────────────────────────────────────
         // ─────────────────────────────────────────────────────────────────────
 
         $begSI = DB::table('receipts')
@@ -482,12 +477,12 @@ class SalesDashboardService
                 ->when($branchId && \Schema::hasColumn('z_readings', 'branch_id'), fn($q) => $q->where('branch_id', $branchId))
                 ->count() + 1;
 
-            $resetCounter = 0;
+            $resetCounter = 0; 
         } else {
             $previousAccumulated = (float) ZReading::where('reading_date', '<', $start->toDateString())
                 ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
                 ->sum('total_sales');
-            $zCounter     = 0;
+            $zCounter = 0;
             $resetCounter = 0;
         }
 
@@ -500,7 +495,7 @@ class SalesDashboardService
             'branch_id'            => $branchId,
             'gross_sales'          => $gross,
             'net_sales'            => $netSales,
-            'total_discounts'      => $totalDiscounts,
+            'total_discounts'      => round($totalDiscounts, 2),
             'total_void_amount'    => $voidAmount,
             'transaction_count'    => $sales->count(),
             'total_qty_sold'       => $totalQtySold,
@@ -514,7 +509,7 @@ class SalesDashboardService
             'other_discount'       => $discounts['other_discount'],
             'cash_total'           => $cash,
             'non_cash_total'       => $gross - $cash,
-            'total_payments'       => $gross,
+            'total_payments'       => $gross,           // ← ADD THIS
             'payment_breakdown'    => $paymentBreakdown,
             'beg_si'               => $begSI,
             'end_si'               => $endSI,
@@ -643,15 +638,15 @@ class SalesDashboardService
             'branch_id'   => $branchId,
             'gross_sales' => $grossSales,
             'sc_discount' => [
-                'total'     => $discounts['sc_discount'],
-                'pax_count' => (int) ($paxTotals->total_senior_pax ?? 0),
+                'total'      => $discounts['sc_discount'],
+                'pax_count'  => (int) ($paxTotals->total_senior_pax ?? 0),
             ],
             'pwd_discount' => [
-                'total'     => $discounts['pwd_discount'],
-                'pax_count' => (int) ($paxTotals->total_pwd_pax ?? 0),
+                'total'      => $discounts['pwd_discount'],
+                'pax_count'  => (int) ($paxTotals->total_pwd_pax ?? 0),
             ],
             'diplomat_discount' => [
-                'total' => $discounts['diplomat_discount'],
+                'total'      => $discounts['diplomat_discount'],
             ],
             'other_discount' => [
                 'total'                 => $discounts['other_discount'],
@@ -670,9 +665,15 @@ class SalesDashboardService
     /**
      * Shared discount computation used by getXReading, generateZReading,
      * and getDiscountSummary so the logic lives in exactly one place.
+     *
+     * SC/PWD discount_amount stored in the DB is already the final discount
+     * value (20% of the VAT-exclusive price). Sum it directly.
      */
-    private function computeDiscounts(Carbon $from, Carbon $to, ?int $branchId): array
-    {
+    private function computeDiscounts(
+        Carbon $from,
+        Carbon $to,
+        ?int $branchId
+    ): array {
         // ── Item-level discounts ──────────────────────────────────────────────
         $base = DB::table('sale_items')
             ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
@@ -714,10 +715,10 @@ class SalesDashboardService
         $otherOrder    = (float) (clone $orderBase)->sum('other_discount_amount');
 
         return [
-            'sc_discount'       => round($scItem        + $scOrder,       2),
-            'pwd_discount'      => round($pwdItem        + $pwdOrder,      2),
-            'diplomat_discount' => round($diplomatItem   + $diplomatOrder, 2),
-            'other_discount'    => round($itemLevelOther + $otherOrder,    2),
+            'sc_discount'       => round($scItem       + $scOrder,       2),
+            'pwd_discount'      => round($pwdItem       + $pwdOrder,      2),
+            'diplomat_discount' => round($diplomatItem  + $diplomatOrder, 2),
+            'other_discount'    => round($itemLevelOther + $otherOrder,   2),
         ];
     }
 
