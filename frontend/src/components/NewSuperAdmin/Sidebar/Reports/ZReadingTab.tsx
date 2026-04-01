@@ -249,7 +249,7 @@ const ZReadingTab: React.FC = () => {
     if (!branchId) return;
     setHistLoading(true);
     try {
-        const res  = await fetch(`/api/reports/z-reading/history?branch_id=${branchId}`, { headers: authHeaders() });
+        const res  = await fetch(`/api/reports/z-reading-history?branch_id=${branchId}`, { headers: authHeaders() });
         if (!res.ok) { setHistory([]); return; } // ← add this line
         const json = await res.json();
         if (json.success && json.data) setHistory(json.data);

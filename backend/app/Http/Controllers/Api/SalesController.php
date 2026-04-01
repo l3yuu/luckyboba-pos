@@ -126,7 +126,11 @@ class SalesController extends Controller
             $diplomatDiscountAmount = (float) $request->input('diplomat_discount_amount',  0);
             $otherDiscountAmount    = (float) $request->input('other_discount_amount',     0);
 
-            // ── 1. Create Sale ─────────────────────────────────────────────────
+            // ── Determine VAT type ────────────────────────────────────────────
+            $branch = Branch::find($branchId);
+            $isVat  = ($branch?->vat_type ?? 'vat') !== 'non_vat';
+
+            // ── 1. Create Sale (vatable_sales / vat_amount placeholder — recalculated below) ──
             $sale = Sale::create([
                 'user_id'                  => $userId,
                 'branch_id'                => $branchId,
@@ -143,8 +147,8 @@ class SalesController extends Controller
                 'diplomat_discount_amount' => $diplomatDiscountAmount,
                 'other_discount_amount'    => $otherDiscountAmount,
                 'discount_remarks'         => $validated['discount_remarks'] ?? null,
-                'vatable_sales'            => $validated['vatable_sales'],
-                'vat_amount'               => $validated['vat_amount'],
+                'vatable_sales'            => 0, // recalculated after final total is known
+                'vat_amount'               => 0, // recalculated after final total is known
                 'vat_type'                 => $request->input('vat_type', 'vat'),
                 'customer_name'            => $validated['customer_name'] ?? null,
                 'is_synced'                => false,
@@ -213,47 +217,55 @@ class SalesController extends Controller
                 }
             }
 
-// ── 3. Recalculate total from saved items ──────────────────────────────────
-$recalculatedTotal = DB::table('sale_items')
-    ->where('sale_id', $sale->id)
-    ->sum('final_price');
+            // ── 3. Recalculate total from saved items ──────────────────────────
+            $recalculatedTotal = DB::table('sale_items')
+                ->where('sale_id', $sale->id)
+                ->sum('final_price');
 
-$itemDiscountTotal = DB::table('sale_items')
-    ->where('sale_id', $sale->id)
-    ->sum('discount_amount');
+            $itemDiscountTotal = DB::table('sale_items')
+                ->where('sale_id', $sale->id)
+                ->sum('discount_amount');
 
-// ✅ FIX: Use the frontend-computed amtDue (already VAT-adjusted for SC/PWD)
-// The frontend's `total` field = amtDue = vatableBase + vatExemptSales (correct)
-$finalTotal = (float) $request->input('total', 0);
+            // ✅ Use the frontend-computed amtDue (already accounts for SC/PWD)
+            $finalTotal = (float) $request->input('total', 0);
 
-// Fallback: only recompute if total not provided
-if ($finalTotal <= 0) {
-    $discountApplied = (float) $request->input('discount_amount', 0);
-    $finalTotal = max(0, $recalculatedTotal - $itemDiscountTotal - $discountApplied);
-}
+            // Fallback: only recompute if total not provided
+            if ($finalTotal <= 0) {
+                $discountApplied = (float) $request->input('discount_amount', 0);
+                $finalTotal = max(0, $recalculatedTotal - $itemDiscountTotal - $discountApplied);
+            }
 
-$sale->update(['total_amount' => $finalTotal]);
+            $sale->update(['total_amount' => $finalTotal]);
 
-// ── 4. Create Receipt ──────────────────────────────────────────────────────
-$branch = Branch::find($branchId);
+            // ── Recompute VAT from final total (BIR-compliant, server-side) ───
+            $scPwdTotal   = $scDiscountAmount + $pwdDiscountAmount;
+            $vatableGross = $finalTotal - $scPwdTotal;               // amount subject to VAT
+            $vatableSales = $isVat ? round($vatableGross / 1.12, 2) : 0;
+            $vatAmount    = $isVat ? round($vatableGross - $vatableSales, 2) : 0;
 
-Receipt::create([
-    'si_number'     => $officialOR,
-    'terminal'      => '01',
-    'items_count'   => $totalQty,
-    'cashier_name'  => $cashierName,
-    'total_amount'  => $finalTotal,   // ✅ was $recalculatedTotal — now uses corrected total
-    'sale_id'       => $sale->id,
-    'branch_id'     => $branchId,
-    'brand'         => $branch?->brand         ?? 'Lucky Boba Milk Tea',
-    'owner_name'    => $branch?->owner_name    ?? '',
-    'company_name'  => $branch?->company_name  ?? '',
-    'store_address' => $branch?->store_address ?? '',
-    'vat_reg_tin'   => $branch?->vat_reg_tin   ?? '',
-    'min_number'    => $branch?->min_number    ?? '',
-    'serial_number' => $branch?->serial_number ?? '',
-    'vat_type'      => $branch?->vat_type      ?? 'vat',
-]);
+            $sale->update([
+                'vatable_sales' => $vatableSales,
+                'vat_amount'    => $vatAmount,
+            ]);
+
+            // ── 4. Create Receipt ──────────────────────────────────────────────
+            Receipt::create([
+                'si_number'     => $officialOR,
+                'terminal'      => '01',
+                'items_count'   => $totalQty,
+                'cashier_name'  => $cashierName,
+                'total_amount'  => $finalTotal,
+                'sale_id'       => $sale->id,
+                'branch_id'     => $branchId,
+                'brand'         => $branch?->brand         ?? 'Lucky Boba Milk Tea',
+                'owner_name'    => $branch?->owner_name    ?? '',
+                'company_name'  => $branch?->company_name  ?? '',
+                'store_address' => $branch?->store_address ?? '',
+                'vat_reg_tin'   => $branch?->vat_reg_tin   ?? '',
+                'min_number'    => $branch?->min_number    ?? '',
+                'serial_number' => $branch?->serial_number ?? '',
+                'vat_type'      => $branch?->vat_type      ?? 'vat',
+            ]);
 
             // ── 5. Deduct Raw Materials ────────────────────────────────────────
             app(SaleObserver::class)->deductStock($sale);
@@ -289,13 +301,13 @@ Receipt::create([
             $this->dashboardService->clearTodayCache($sale->branch_id);
 
             return response()->json([
-    'status'    => 'success',
-    'si_number' => $officialOR,
-    'sale'      => $sale->makeVisible([
-        'pax_senior','pax_pwd','senior_id','pwd_id',
-        'sc_discount_amount','pwd_discount_amount','diplomat_discount_amount','other_discount_amount'
-    ])->load('items'),
-], 201);
+                'status'    => 'success',
+                'si_number' => $officialOR,
+                'sale'      => $sale->makeVisible([
+                    'pax_senior','pax_pwd','senior_id','pwd_id',
+                    'sc_discount_amount','pwd_discount_amount','diplomat_discount_amount','other_discount_amount'
+                ])->load('items'),
+            ], 201);
 
         } catch (\Exception $e) {
             DB::rollBack();
