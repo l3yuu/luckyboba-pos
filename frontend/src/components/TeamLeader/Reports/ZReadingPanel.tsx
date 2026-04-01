@@ -201,15 +201,16 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
           total: denom * (storedMap.get(denom) ?? 0),
         }));
 
-        const netSales  = Number(zData.net_sales      ?? zData.gross_sales ?? 0);
+        // ── FIX 1: prefer real API gross; fall back to net+discounts only if 0 ──
+        const rawGross  = Number(zData.gross_sales ?? 0);
+        const netSales  = Number(zData.net_sales   ?? 0);
         const scDisc    = Number(zData.sc_discount          ?? 0);
         const pwdDisc   = Number(zData.pwd_discount         ?? 0);
         const naacDisc  = Number(zData.naac_discount        ?? 0);
         const soloDisc  = Number(zData.solo_parent_discount ?? 0);
         const otherDisc = Number(zData.diplomat_discount ?? 0) + Number(zData.other_discount ?? 0);
         const totalDisc = scDisc + pwdDisc + naacDisc + soloDisc + otherDisc;
-        const vatAmt        = Number(zData.vat_amount ?? 0);
-        const computedGross = netSales + totalDisc + vatAmt;
+        const computedGross = rawGross > 0 ? rawGross : (netSales + totalDisc);
 
         const presentAcc  = Number(zData.present_accumulated  ?? computedGross);
         const previousAcc = Number(zData.previous_accumulated ?? 0);
@@ -229,8 +230,9 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
           sales_for_the_day:    salesDay,
           cash_denominations:   cashDenominations,
           total_cash_count:     ccNested?.grand_total ?? Number(ccData.actual_amount ?? 0),
-          expected_amount:      Number(ccData.expected_amount ?? 0) || Number(zData.gross_sales ?? 0),
-          over_short:           Number(ccData.actual_amount ?? ccNested?.grand_total ?? 0) - Number(zData.gross_sales ?? 0),
+          // ── FIX 1 (cont): expected_amount comes only from the cash-count API ──
+          expected_amount:      Number(ccData.expected_amount ?? 0),
+          over_short: Number(ccData.actual_amount ?? ccNested?.grand_total ?? 0) - (Number(zData.cash_total ?? 0) + Number(zData.cash_in ?? 0) - Number(zData.cash_drop ?? 0)),
           categories:           ((qtyRes.data as Record<string, unknown>).categories as ZReadingReport['categories']) ?? [],
           all_addons_summary:   ((qtyRes.data as Record<string, unknown>).all_addons_summary as ZReadingReport['all_addons_summary']) ?? [],
           logs:                 ((voidRes.data as Record<string, unknown>).logs as ZReadingReport['logs']) ?? (Array.isArray(voidRes.data) ? voidRes.data as ZReadingReport['logs'] : []),
@@ -565,10 +567,13 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
     const totalCashCount = reportData?.total_cash_count   ?? reportData?.cash_count?.grand_total   ?? 0;
     const cashIn         = reportData?.cash_in   ?? 0;
     const cashDrop       = reportData?.cash_drop ?? 0;
-    const apiExpected    = reportData?.expected_amount ?? 0;
-    const expectedEOD    = apiExpected > 0 ? apiExpected : (actualCash + cashIn - cashDrop);
-    const apiShortOver   = reportData?.over_short;
-    const overShort      = apiShortOver !== undefined ? apiShortOver : (totalCashCount - expectedEOD);
+
+    // ── FIX 2: prefer backend's stored expected_amount; fall back to formula ──
+    const apiExpected = reportData?.expected_amount ?? 0;
+    const expectedEOD = apiExpected > 0 ? apiExpected : (actualCash + cashIn - cashDrop);
+    const apiShortOver = reportData?.over_short;
+    const overShort    = apiShortOver !== undefined ? apiShortOver : (totalCashCount - expectedEOD);
+
     const netTotal       = reportData?.net_total ?? netSales;
 
     const isRange   = dateMode === 'range';

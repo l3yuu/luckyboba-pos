@@ -12,6 +12,27 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportController extends Controller
 {
+    private function resolveBranchId(Request $request): ?int
+    {
+        $user = auth('sanctum')->user() ?? $request->user();
+
+        // Superadmin has no branch_id — always use query param
+        // Branch manager/cashier still respect a query param override from superadmin context
+        $qb = $request->query('branch_id');
+
+        if ($qb !== null && $qb !== '') {
+            $id = (int) $qb;
+            return $id > 0 ? $id : null;  // guard against (int)"" = 0
+        }
+
+        // Fall back to the user's own branch
+        if ($user?->branch_id) {
+            return (int) $user->branch_id;
+        }
+
+        return null;
+    }
+
     public function getFoodMenu()
     {
         try {
@@ -39,9 +60,10 @@ class ReportController extends Controller
     public function getSalesReport(Request $request)
     {
         try {
-            $from = $request->query('from', date('Y-m-d')) . ' 00:00:00';
-            $to   = $request->query('to', date('Y-m-d')) . ' 23:59:59';
-            $type = $request->query('type', 'SALES');
+            $from     = $request->query('from', date('Y-m-d')) . ' 00:00:00';
+            $to       = $request->query('to',   date('Y-m-d')) . ' 23:59:59';
+            $type     = $request->query('type', 'SALES');
+            $branchId = $this->resolveBranchId($request);
 
             switch ($type) {
                 case 'SUMMARY':
@@ -53,6 +75,7 @@ class ReportController extends Controller
                         )
                         ->whereBetween('created_at', [$from, $to])
                         ->where('status', 'completed')
+                        ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
                         ->groupBy('Sales_Date')
                         ->orderBy('Sales_Date', 'desc')
                         ->get();
@@ -68,6 +91,7 @@ class ReportController extends Controller
                         )
                         ->whereBetween('sales.created_at', [$from, $to])
                         ->where('sales.status', 'completed')
+                        ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
                         ->groupBy('sale_items.product_name')
                         ->get();
                     break;
@@ -76,12 +100,14 @@ class ReportController extends Controller
                     $data = Sale::whereBetween('created_at', [$from, $to])
                         ->select('invoice_number as Invoice', 'payment_method as Method', 'total_amount as Amount', 'created_at as Date')
                         ->where('status', 'completed')
+                        ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
                         ->get();
                     break;
 
                 default:
                     $data = Sale::whereBetween('created_at', [$from, $to])
                         ->select('invoice_number as Invoice', 'total_amount as Amount', 'status as Status', 'created_at as Date_Time')
+                        ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
                         ->orderBy('created_at', 'desc')
                         ->get();
                     break;
@@ -95,11 +121,12 @@ class ReportController extends Controller
         }
     }
 
-    private function getSummaryData($from, $to)
+    private function getSummaryData($from, $to, ?int $branchId = null)
     {
         try {
             $summary = Sale::whereBetween('created_at', [$from, $to])
                 ->where('status', 'completed')
+                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
                 ->select(
                     DB::raw('DATE(created_at) as Sales_Date'),
                     DB::raw('COUNT(id) as Total_Orders'),
@@ -111,17 +138,25 @@ class ReportController extends Controller
 
             $totalGross = Sale::whereBetween('created_at', [$from, $to])
                 ->where('status', 'completed')
+                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
                 ->sum('total_amount') ?? 0;
 
             $totalDiscounts = 0;
             if (\Schema::hasColumn('sales', 'total_discount')) {
-                $totalDiscounts = Sale::whereBetween('created_at', [$from, $to])->where('status', 'completed')->sum('total_discount');
+                $totalDiscounts = Sale::whereBetween('created_at', [$from, $to])
+                    ->where('status', 'completed')
+                    ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                    ->sum('total_discount');
             } elseif (\Schema::hasColumn('sales', 'discount_amount')) {
-                $totalDiscounts = Sale::whereBetween('created_at', [$from, $to])->where('status', 'completed')->sum('discount_amount');
+                $totalDiscounts = Sale::whereBetween('created_at', [$from, $to])
+                    ->where('status', 'completed')
+                    ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                    ->sum('discount_amount');
             }
 
             $totalVoids = Sale::whereBetween('created_at', [$from, $to])
                 ->where('status', 'cancelled')
+                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
                 ->sum('total_amount') ?? 0;
 
             return [
@@ -138,18 +173,20 @@ class ReportController extends Controller
         }
     }
 
-    private function getDetailedData($from, $to)
+    private function getDetailedData($from, $to, ?int $branchId = null)
     {
         $transactions = Sale::whereBetween('created_at', [$from, $to])
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->select('invoice_number as Invoice', 'total_amount as Amount', 'status as Status', 'created_at as Date_Time')
             ->orderBy('created_at', 'desc')
             ->get();
         return ['search_results' => $transactions, 'transactions' => $transactions];
     }
 
-    private function getGeneralSalesData($from, $to)
+    private function getGeneralSalesData($from, $to, ?int $branchId = null)
     {
         $data = Sale::whereBetween('created_at', [$from, $to])
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->select('invoice_number as Invoice', 'total_amount as Amount', 'status as Status', 'created_at as Date_Time')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -159,6 +196,7 @@ class ReportController extends Controller
     public function getItemQuantities(Request $request)
     {
         $date        = $request->query('date');
+        $branchId    = $this->resolveBranchId($request);
         $user        = auth('sanctum')->user() ?? $request->user();
         $cashierName = $user ? $user->name : 'System Admin';
 
@@ -167,8 +205,10 @@ class ReportController extends Controller
             ->leftJoin('menu_items', 'sale_items.menu_item_id', '=', 'menu_items.id')
             ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
             ->leftJoin('bundles', 'sale_items.bundle_id', '=', 'bundles.id')
+            ->leftJoin('cups', 'categories.cup_id', '=', 'cups.id')
             ->whereDate('sales.created_at', $date)
             ->where('sales.status', 'completed')
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
             ->select(
                 DB::raw("COALESCE(bundles.category, categories.name, 'UNCATEGORIZED') as category_name"),
                 DB::raw("COALESCE(categories.type, 'drink') as category_type"),
@@ -177,19 +217,18 @@ class ReportController extends Controller
                 DB::raw("COALESCE(cups.size_m, 'M') as cup_size_m"),
                 DB::raw("COALESCE(cups.size_l, 'L') as cup_size_l")
             )
-            ->leftJoin('cups', 'categories.cup_id', '=', 'cups.id')
             ->get();
 
         $globalAddonSummary = [];
 
         $groupedData = $rawItems->groupBy('category_name')->map(function ($items, $category) use (&$globalAddonSummary) {
-        $productSummary = $items->groupBy(function ($item) {
-            $name      = $item->resolved_product_name ?? $item->product_name;
-            $sizeLabel = $item->cup_size_label ?? null;
-            return $name . '||' . ($sizeLabel ?? 'none');
-        })->map(function ($pGroup) use (&$globalAddonSummary) {
-            $firstItem = $pGroup->first();
-            $sizeLabel = $firstItem->cup_size_label ?? null;
+            $productSummary = $items->groupBy(function ($item) {
+                $name      = $item->resolved_product_name ?? $item->product_name;
+                $sizeLabel = $item->cup_size_label ?? null;
+                return $name . '||' . ($sizeLabel ?? 'none');
+            })->map(function ($pGroup) use (&$globalAddonSummary) {
+                $firstItem = $pGroup->first();
+                $sizeLabel = $firstItem->cup_size_label ?? null;
 
                 $productAddOnCounts = [];
                 foreach ($pGroup as $item) {
@@ -242,11 +281,13 @@ class ReportController extends Controller
     public function getHourlySales(Request $request)
     {
         $date        = $request->query('date');
+        $branchId    = $this->resolveBranchId($request);
         $user        = auth('sanctum')->user() ?? $request->user();
         $cashierName = $user ? $user->name : 'System Admin';
 
         $hourlyData = Sale::whereDate('created_at', $date)
             ->where('status', '!=', 'cancelled')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->selectRaw('HOUR(created_at) as hour, SUM(total_amount) as total, COUNT(*) as count')
             ->groupBy('hour')
             ->orderBy('hour')
@@ -260,16 +301,21 @@ class ReportController extends Controller
 
     public function getCashCountSummary(Request $request)
     {
-        $date = $request->query('date', now()->toDateString());
+        $date     = $request->query('date', now()->toDateString());
+        $branchId = $this->resolveBranchId($request);
 
         try {
-            $cashCount = DB::table('cash_counts')
+            $query = DB::table('cash_counts')
                 ->where(function ($q) use ($date) {
                     $q->whereDate('date', $date)
                       ->orWhereDate('created_at', $date);
-                })
-                ->latest()
-                ->first();
+                });
+
+            if ($branchId) {
+                $query->where('branch_id', $branchId);
+            }
+
+            $cashCount = $query->latest()->first();
 
             if (!$cashCount) {
                 return response()->json([
@@ -306,7 +352,6 @@ class ReportController extends Controller
             $expectedAmount = (float) ($cashCount->expected_amount ?? $cashCount->expected_cash ?? 0);
             $shortOver      = (float) ($cashCount->short_over      ?? ($actualAmount - $expectedAmount));
 
-            /** @var \Illuminate\Http\Request $request */
             $user = auth('sanctum')->user() ?? $request->user();
 
             return response()->json([
@@ -328,67 +373,58 @@ class ReportController extends Controller
         }
     }
 
-    /**
-     * FIX: Use void_reason or remarks as the reason field,
-     * not the invoice_number.
-     */
     public function getVoidLogs(Request $request)
     {
         try {
-            $date = $request->query('date', now()->toDateString());
-            $branchId = $request->query('branch_id');
+            $date     = $request->query('date', now()->toDateString());
+            $branchId = $this->resolveBranchId($request);
 
-            // 1. Logic for the 'Reason' column
             $hasVoidReason = \Schema::hasColumn('sales', 'void_reason');
             $hasRemarks    = \Schema::hasColumn('sales', 'remarks');
 
-            $reasonExpr = 'invoice_number'; // Fallback
+            $reasonExpr = 'invoice_number';
             if ($hasVoidReason && $hasRemarks) {
                 $reasonExpr = "COALESCE(NULLIF(void_reason, ''), NULLIF(remarks, ''), invoice_number)";
             } elseif ($hasVoidReason) {
                 $reasonExpr = "COALESCE(NULLIF(void_reason, ''), invoice_number)";
             }
 
-            // 2. Build the Query
-            $query = Sale::query()
+            $voids = Sale::query()
                 ->leftJoin('users', 'sales.user_id', '=', 'users.id')
                 ->whereDate('sales.created_at', $date)
-                ->whereIn('sales.status', ['cancelled', 'voided', 'pending']); // Include pending voids
-
-            // 3. Filter by Branch if provided
-            if ($branchId) {
-                $query->where('sales.branch_id', $branchId);
-            }
-
-            $voids = $query->select([
+                ->whereIn('sales.status', ['cancelled', 'voided', 'pending'])
+                ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+                ->select([
                     'sales.id',
-                    'sales.invoice_number as invoice', // Matches frontend 'invoice'
+                    'sales.invoice_number as invoice',
                     'sales.total_amount as amount',
                     'sales.status',
                     'sales.created_at',
-                    'users.name as cashier',           // Matches frontend 'cashier'
-                    DB::raw("$reasonExpr as reason")
+                    'users.name as cashier',
+                    DB::raw("$reasonExpr as reason"),
                 ])
                 ->orderBy('sales.created_at', 'desc')
                 ->get();
 
             return response()->json([
-                'logs' => $voids,
+                'logs'        => $voids,
                 'prepared_by' => auth()->user()->name ?? 'System Admin',
             ]);
 
         } catch (\Exception $e) {
-            // This will log the actual error in storage/logs/laravel.log
-            \Log::error("Void Logs Error: " . $e->getMessage());
+            Log::error("Void Logs Error: " . $e->getMessage());
             return response()->json(['error' => 'Server Error', 'message' => $e->getMessage()], 500);
         }
     }
 
     public function exportSales(Request $request)
     {
-        $date  = $request->query('date', now()->toDateString());
+        $date     = $request->query('date', now()->toDateString());
+        $branchId = $this->resolveBranchId($request);
+
         $sales = Sale::whereDate('created_at', $date)
             ->where('status', '!=', 'cancelled')
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->get();
 
         $headers = [
@@ -419,10 +455,13 @@ class ReportController extends Controller
 
     public function exportItems(Request $request)
     {
-        $date  = $request->query('date', now()->toDateString());
+        $date     = $request->query('date', now()->toDateString());
+        $branchId = $this->resolveBranchId($request);
+
         $items = SaleItem::join('sales', 'sale_items.sale_id', '=', 'sales.id')
             ->whereDate('sales.created_at', $date)
             ->where('sales.status', '!=', 'cancelled')
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
             ->select(
                 'sale_items.product_name',
                 DB::raw('SUM(sale_items.quantity) as total_qty'),
@@ -451,119 +490,114 @@ class ReportController extends Controller
         return new StreamedResponse($callback, 200, $headers);
     }
 
-    /**
-     * GET /api/reports/sales-summary?from=YYYY-MM-DD&to=YYYY-MM-DD
-     *
-     * FIX: VAT is now calculated consistently with generateZReading().
-     * SC/PWD discount / 0.20 reconstructs the VAT-exempt base.
-     * Remaining gross is then split into VATable + VAT.
-     */
-public function getSalesSummary(Request $request)
-{
-    try {
-        $from = $request->query('from', now()->toDateString()) . ' 00:00:00';
-        $to   = $request->query('to',   now()->toDateString()) . ' 23:59:59';
+    public function getSalesSummary(Request $request)
+    {
+        try {
+            $from     = $request->query('from', now()->toDateString()) . ' 00:00:00';
+            $to       = $request->query('to',   now()->toDateString()) . ' 23:59:59';
+            $branchId = $this->resolveBranchId($request);
 
-        $data  = $this->getSummaryData($from, $to);
-        $gross = $data['gross_sales'];
+            $data  = $this->getSummaryData($from, $to, $branchId);
+            $gross = $data['gross_sales'];
 
-        // ── VAT type check ────────────────────────────────────────────────
-        $user     = auth('sanctum')->user();
-        $branchId = $user?->branch_id;
-        $isVat    = true;
-        if ($branchId) {
-            $branch = \App\Models\Branch::select('vat_type')->find($branchId);
-            $isVat  = $branch?->vat_type !== 'non_vat';
+            // ── VAT type check ────────────────────────────────────────────────
+            $isVat = true;
+            if ($branchId) {
+                $branch = \App\Models\Branch::select('vat_type')->find($branchId);
+                $isVat  = $branch?->vat_type !== 'non_vat';
+            }
+
+            // ── Discounts ─────────────────────────────────────────────────────
+            $scDiscount = (float) DB::table('sales')
+                ->whereBetween('created_at', [$from, $to])
+                ->where('status', 'completed')
+                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                ->sum('sc_discount_amount');
+
+            $pwdDiscount = (float) DB::table('sales')
+                ->whereBetween('created_at', [$from, $to])
+                ->where('status', 'completed')
+                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                ->sum('pwd_discount_amount');
+
+            $diplomatDiscount = (float) DB::table('sales')
+                ->whereBetween('created_at', [$from, $to])
+                ->where('status', 'completed')
+                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                ->sum('diplomat_discount_amount');
+
+            $otherDiscount = (float) DB::table('sales')
+                ->whereBetween('created_at', [$from, $to])
+                ->where('status', 'completed')
+                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                ->sum('other_discount_amount');
+
+            $scPwdDiscount  = $scDiscount + $pwdDiscount;
+            $totalDiscounts = $scPwdDiscount + $diplomatDiscount + $otherDiscount;
+
+            // ── VAT from stored sales records ─────────────────────────────────
+            $salesVatTotal = (float) DB::table('sales')
+                ->whereBetween('created_at', [$from, $to])
+                ->where('status', 'completed')
+                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                ->sum('vat_amount');
+
+            $salesVatableSales = (float) DB::table('sales')
+                ->whereBetween('created_at', [$from, $to])
+                ->where('status', 'completed')
+                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                ->sum('vatable_sales');
+
+            $vatAmount    = $isVat ? round($salesVatTotal,     2) : 0.0;
+            $vatableSales = $isVat ? round($salesVatableSales, 2) : 0.0;
+
+            $vatExemptBase  = $isVat ? round($scPwdDiscount / 0.20, 2) : 0.0;
+            $vatExemptSales = $isVat ? round($vatExemptBase - $scPwdDiscount, 2) : 0.0;
+
+            $preDiscountGross = round($gross + $totalDiscounts + $salesVatTotal, 2);
+
+            $paymentBreakdown = Sale::whereBetween('created_at', [$from, $to])
+                ->where('status', 'completed')
+                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                ->selectRaw('payment_method as method, SUM(total_amount) as amount')
+                ->groupBy('payment_method')
+                ->get();
+
+            return response()->json(array_merge($data, [
+                'payment_breakdown'  => $paymentBreakdown,
+                'vatable_sales'      => $vatableSales,
+                'vat_amount'         => $vatAmount,
+                'vat_exempt_sales'   => $vatExemptSales,
+                'is_vat'             => $isVat,
+                'sc_discount'        => round($scDiscount,       2),
+                'pwd_discount'       => round($pwdDiscount,      2),
+                'diplomat_discount'  => round($diplomatDiscount, 2),
+                'other_discount'     => round($otherDiscount,    2),
+                'sc_pwd_discount'    => round($scPwdDiscount,    2),
+                'total_discounts'    => round($totalDiscounts,   2),
+                'pre_discount_gross' => $preDiscountGross,
+                'total_senior_pax'   => 0,
+                'total_pwd_pax'      => 0,
+                'total_diplomat_pax' => 0,
+            ]));
+
+        } catch (\Exception $e) {
+            Log::error("getSalesSummary Error: " . $e->getMessage());
+            return response()->json(['error' => 'Failed to generate summary report'], 500);
         }
-
-        // ── Discounts from sales table columns ────────────────────────────
-        $scDiscount = (float) DB::table('sales')
-            ->whereBetween('created_at', [$from, $to])
-            ->where('status', 'completed')
-            ->sum('sc_discount_amount');
-
-        $pwdDiscount = (float) DB::table('sales')
-            ->whereBetween('created_at', [$from, $to])
-            ->where('status', 'completed')
-            ->sum('pwd_discount_amount');
-
-        $diplomatDiscount = (float) DB::table('sales')
-            ->whereBetween('created_at', [$from, $to])
-            ->where('status', 'completed')
-            ->sum('diplomat_discount_amount');
-
-        $otherDiscount = (float) DB::table('sales')
-            ->whereBetween('created_at', [$from, $to])
-            ->where('status', 'completed')
-            ->sum('other_discount_amount');
-
-        $scPwdDiscount  = $scDiscount + $pwdDiscount;
-        $totalDiscounts = $scPwdDiscount + $diplomatDiscount + $otherDiscount;
-
-        // ── Use stored VAT values directly from sales records ─────────────
-        $salesVatTotal = (float) DB::table('sales')
-            ->whereBetween('created_at', [$from, $to])
-            ->where('status', 'completed')
-            ->sum('vat_amount');
-
-        $salesVatableSales = (float) DB::table('sales')
-            ->whereBetween('created_at', [$from, $to])
-            ->where('status', 'completed')
-            ->sum('vatable_sales');
-
-        $vatAmount    = $isVat ? round($salesVatTotal,     2) : 0.0;
-        $vatableSales = $isVat ? round($salesVatableSales, 2) : 0.0;
-
-        // ── vatExemptSales still uses formula ─────────────────────────────
-        $vatExemptBase  = $isVat ? round($scPwdDiscount / 0.20, 2) : 0.0;
-        $vatExemptSales = $isVat ? round($vatExemptBase - $scPwdDiscount, 2) : 0.0;
-
-        // ── Pre-discount gross = post-discount gross + discounts + VAT ────
-        $preDiscountGross = round($gross + $totalDiscounts + $salesVatTotal, 2);
-
-        $paymentBreakdown = Sale::whereBetween('created_at', [$from, $to])
-            ->where('status', 'completed')
-            ->selectRaw('payment_method as method, SUM(total_amount) as amount')
-            ->groupBy('payment_method')
-            ->get();
-
-        return response()->json(array_merge($data, [
-            'payment_breakdown'  => $paymentBreakdown,
-            'vatable_sales'      => $vatableSales,
-            'vat_amount'         => $vatAmount,
-            'vat_exempt_sales'   => $vatExemptSales,
-            'is_vat'             => $isVat,
-            'sc_discount'        => round($scDiscount,       2),
-            'pwd_discount'       => round($pwdDiscount,      2),
-            'diplomat_discount'  => round($diplomatDiscount, 2),
-            'other_discount'     => round($otherDiscount,    2),
-            'sc_pwd_discount'    => round($scPwdDiscount,    2),
-            'total_discounts'    => round($totalDiscounts,   2),
-            'pre_discount_gross' => $preDiscountGross,
-            'total_senior_pax'   => 0,
-            'total_pwd_pax'      => 0,
-            'total_diplomat_pax' => 0,
-        ]));
-
-    } catch (\Exception $e) {
-        Log::error("getSalesSummary Error: " . $e->getMessage());
-        return response()->json(['error' => 'Failed to generate summary report'], 500);
     }
-}
 
-    /**
-     * GET /api/reports/sales-detailed?date=YYYY-MM-DD
-     */
     public function getSalesDetailed(Request $request)
     {
         try {
-            $date = $request->query('date', now()->toDateString());
-            $from = $date . ' 00:00:00';
-            $to   = $date . ' 23:59:59';
+            $date     = $request->query('date', now()->toDateString());
+            $from     = $date . ' 00:00:00';
+            $to       = $date . ' 23:59:59';
+            $branchId = $this->resolveBranchId($request);
 
             $transactions = Sale::whereBetween('sales.created_at', [$from, $to])
                 ->leftJoin('users', 'users.id', '=', 'sales.user_id')
-                ->when($request->query('branch_id'), fn($q, $b) => $q->where('sales.branch_id', $b))
+                ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
                 ->selectRaw('
                     sales.id,
                     sales.invoice_number                                                        as Invoice,

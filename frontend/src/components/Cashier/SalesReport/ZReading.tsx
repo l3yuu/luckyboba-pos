@@ -191,6 +191,7 @@ interface ZReadingReport {
   total_cash_count?: number;
   over_short?: number;
   net_total?: number;
+  expected_amount?: number;
   vat_type?:   string;
   vat_exempt?: number;
   is_vat?: boolean;           // ← add
@@ -268,30 +269,44 @@ const ZReading = () => {
   api.get('/reports/void-logs',       { params: { date: dateMode === 'range' ? toDate : selectedDate } }),
 ]);
 
-// ← ADD HERE, before const zData
-console.log('zData categories:', (zRes.data as Record<string, unknown>).categories);
-        console.log('qtyRes categories:', qtyRes.data.categories);
-        console.log('qtyRes categories:', JSON.stringify(qtyRes.data.categories, null, 2));
+
 
 
         
-        const zData  = zRes.data  as Record<string, unknown>;
-        const ccData = cashRes.data as Record<string, unknown>;
+        const zData    = (zRes.data?.data ?? zRes.data) as Record<string, unknown>;
+        const ccData   = cashRes.data as Record<string, unknown>;
         const ccNested = ccData.cash_count as { denominations: { label: string; qty: number; total: number }[]; grand_total: number } | undefined;
+
         const ALL_DENOMS = [1000, 500, 200, 100, 50, 20, 10, 5, 1, 0.25];
         const storedDenoms = ccNested?.denominations ?? [];
         const storedMap = new Map(storedDenoms.map(d => [parseFloat(d.label.replace(/,/g, '')), d.qty]));
-        const cashDenominations = ALL_DENOMS.map(denom => ({ label: denom === 0.25 ? '0.25' : String(denom), qty: storedMap.get(denom) ?? 0, total: denom * (storedMap.get(denom) ?? 0) }));
+        const cashDenominations = ALL_DENOMS.map(denom => ({
+          label: denom === 0.25 ? '0.25' : String(denom),
+          qty:   storedMap.get(denom) ?? 0,
+          total: denom * (storedMap.get(denom) ?? 0),
+        }));
+
         const totalCashCount = ccNested?.grand_total ?? (ccData.actual_amount as number) ?? 0;
         const expectedAmount = (ccData.expected_amount as number) ?? 0;
+
+        const rawGross  = Number(zData.gross_sales ?? 0);
+        const netSales  = Number(zData.net_sales   ?? 0);
+        const scDisc    = Number(zData.sc_discount       ?? 0);
+        const pwdDisc   = Number(zData.pwd_discount      ?? 0);
+        const otherDisc = Number(zData.diplomat_discount ?? 0) + Number(zData.other_discount ?? 0);
+        const totalDisc = scDisc + pwdDisc + otherDisc;
+        const computedGross = rawGross > 0 ? rawGross : (netSales + totalDisc);
+
         const merged = {
           ...zData,
+          gross_sales:        computedGross,
           cash_denominations: cashDenominations,
-          total_cash_count: totalCashCount,
-          expected_amount: expectedAmount,
-          categories: (qtyRes.data as Record<string, unknown>).categories ?? [],
+          total_cash_count:   totalCashCount,
+          expected_amount:    expectedAmount,
+          over_short:         totalCashCount - (Number(zData.cash_total ?? 0) + Number(zData.cash_in ?? 0) - Number(zData.cash_drop ?? 0)),
+          categories:         (qtyRes.data as Record<string, unknown>).categories ?? [],
           all_addons_summary: (qtyRes.data as Record<string, unknown>).all_addons_summary ?? [],
-          logs: (voidRes.data as Record<string, unknown>).logs ?? (Array.isArray(voidRes.data) ? voidRes.data : [])
+          logs:               (voidRes.data as Record<string, unknown>).logs ?? (Array.isArray(voidRes.data) ? voidRes.data : []),
         };
         setRawApiResponse(merged as Record<string, unknown>);
         setReportData({ ...merged as unknown as ZReadingReport, report_type: type });
@@ -684,8 +699,9 @@ console.log('zData categories:', (zRes.data as Record<string, unknown>).categori
     const actualNonCash = gross - actualCash;
     const cashDenominations = reportData?.cash_denominations ?? reportData?.cash_count?.denominations ?? [];
     const totalCashCount = reportData?.total_cash_count ?? reportData?.cash_count?.grand_total ?? 0;
-    const expectedEOD = actualCash + cashIn - cashDrop;
-    const overShort = reportData?.over_short ?? (totalCashCount - expectedEOD);
+    const apiExpected = reportData?.expected_amount ?? 0;
+    const expectedEOD = apiExpected > 0 ? apiExpected : (actualCash + cashIn - cashDrop);
+    const overShort   = reportData?.over_short ?? (totalCashCount - expectedEOD);
     const isRange = dateMode === 'range';
     const now = new Date();
     const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });

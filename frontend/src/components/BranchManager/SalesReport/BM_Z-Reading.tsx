@@ -210,9 +210,7 @@ const BM_ZReading = () => {
         const naacDisc  = Number(zData.naac_discount        ?? 0);
         const soloDisc  = Number(zData.solo_parent_discount ?? 0);
         const otherDisc = Number(zData.diplomat_discount ?? 0) + Number(zData.other_discount ?? 0);
-        const totalDisc = scDisc + pwdDisc + naacDisc + soloDisc + otherDisc;
-        const vatAmt        = Number(zData.vat_amount ?? 0);
-        const computedGross = netSales + totalDisc + vatAmt;
+        const computedGross = Number(zData.gross_sales ?? 0);
         const presentAcc  = Number(zData.present_accumulated  ?? computedGross);
         const previousAcc = Number(zData.previous_accumulated ?? 0);
         const salesDay    = Number(zData.sales_for_the_day    ?? (presentAcc - previousAcc));
@@ -571,7 +569,7 @@ const BM_ZReading = () => {
     const totalCredit  = ['visa', 'mastercard', 'food panda', 'grab', 'gcash'].reduce((a, m) => a + (pMap.get(m) ?? 0), 0);
     const totalDebit   = 0;
     const actualCash   = pMap.get('cash') ?? 0;
-    const actualNonCash = Math.max(0, gross - actualCash);
+    const actualNonCash = totalCredit + totalDebit;
 
     const cashDenoms     = reportData?.cash_denominations ?? reportData?.cash_count?.denominations ?? [];
     const totalCashCount = reportData?.total_cash_count   ?? reportData?.cash_count?.grand_total   ?? 0;
