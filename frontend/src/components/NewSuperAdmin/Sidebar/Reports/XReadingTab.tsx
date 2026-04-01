@@ -2,10 +2,12 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import React from "react";
 import {
-  RefreshCw, AlertCircle, Printer, ChevronDown, TrendingUp, 
-   Menu,
+  RefreshCw, AlertCircle, Printer, ChevronDown,
+  DollarSign, ShoppingBag, TrendingUp, Users,
+  CreditCard, Banknote, Smartphone, Menu,
 } from "lucide-react";
 
+type ColorKey   = "violet" | "emerald" | "red" | "amber";
 type VariantKey = "primary" | "secondary" | "danger" | "ghost";
 type SizeKey    = "sm" | "md" | "lg";
 
@@ -17,6 +19,29 @@ const authHeaders = () => ({
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
 
+// ── Types ─────────────────────────────────────────────────────────────────────
+interface XReading {
+  branch_id:      number;
+  branch_name:    string;
+  date:           string;
+  gross_sales:    number;
+  discount:       number;
+  net_sales:      number;
+  cash:           number;
+  gcash:          number;
+  card:           number;
+  returns:        number;
+  total_orders:   number;
+  cashier_breakdown?: CashierRow[];
+}
+interface CashierRow {
+  cashier_id:   number;
+  cashier_name: string;
+  orders:       number;
+  gross:        number;
+  discount:     number;
+  net:          number;
+}
 interface BranchOption { id: number; name: string; }
 
 // ── Receipt report type (mirrors cashier XReading) ────────────────────────────
@@ -70,11 +95,37 @@ interface XReadingReport {
   summary_data?: { Sales_Date: string; Total_Orders: number; Daily_Revenue: number }[];
 }
 
+// ── Shared UI ─────────────────────────────────────────────────────────────────
+interface StatCardProps {
+  icon: React.ReactNode; label: string; value: string | number;
+  sub?: string; color?: ColorKey;
+}
 interface BtnProps {
   children: React.ReactNode; variant?: VariantKey; size?: SizeKey;
   onClick?: () => void; className?: string; disabled?: boolean;
 }
 
+const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, color = "violet" }) => {
+  const colors: Record<ColorKey, { bg: string; border: string; icon: string }> = {
+    violet:  { bg: "bg-violet-50",  border: "border-violet-200",  icon: "text-violet-600"  },
+    emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
+    red:     { bg: "bg-red-50",     border: "border-red-200",     icon: "text-red-500"     },
+    amber:   { bg: "bg-amber-50",   border: "border-amber-200",   icon: "text-amber-600"   },
+  };
+  const c = colors[color];
+  return (
+    <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 flex items-center gap-3">
+      <div className={`w-10 h-10 ${c.bg} border ${c.border} flex items-center justify-center rounded-[0.4rem] shrink-0`}>
+        <span className={c.icon}>{icon}</span>
+      </div>
+      <div>
+        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{label}</p>
+        <p className="text-lg font-bold text-[#1a0f2e] tabular-nums">{value}</p>
+        {sub && <p className="text-[10px] text-zinc-400 mt-0.5">{sub}</p>}
+      </div>
+    </div>
+  );
+};
 
 const Btn: React.FC<BtnProps> = ({
   children, variant = "primary", size = "sm",
@@ -95,6 +146,9 @@ const Btn: React.FC<BtnProps> = ({
   );
 };
 
+const SkeletonBar: React.FC<{ h?: string }> = ({ h = "h-4" }) => (
+  <div className={`w-full ${h} bg-zinc-100 rounded animate-pulse`} />
+);
 
 // ── Receipt helpers (same as cashier) ─────────────────────────────────────────
 const ReceiptRow = ({ label, value }: { label: string; value: string | number }) => (
@@ -114,6 +168,7 @@ const XReadingTab: React.FC = () => {
   const [shift,        setShift]        = useState("all");
   const [loading,      setLoading]      = useState(false);
   const [error,        setError]        = useState("");
+  const [data,         setData]         = useState<XReading | null>(null);
   const [reportData,   setReportData]   = useState<XReadingReport | null>(null);
   const [branches,     setBranches]     = useState<BranchOption[]>([]);
   const [isMenuOpen,   setIsMenuOpen]   = useState(false);
@@ -122,6 +177,7 @@ const XReadingTab: React.FC = () => {
   const menuRef = useRef<HTMLDivElement>(null);
 
   const phCurrency = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" });
+  const fmt = (v: number) => `₱${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
   const vatType = (localStorage.getItem("lucky_boba_user_branch_vat") ?? "vat") as "vat" | "non_vat";
   const isVat = vatType === "vat";
 
@@ -181,18 +237,6 @@ const XReadingTab: React.FC = () => {
         }));
         return { ...raw, hourly_data: hourlyData } as unknown as XReadingReport;
       }
-      case "void_logs": {
-        type VoidLog = { id?: unknown; reason?: unknown; invoice?: unknown; amount?: unknown; created_at?: unknown };
-        const logs = ((raw.logs as VoidLog[]) ?? []).map((l: VoidLog) => ({
-          id:     String(l.id ?? ""),
-          reason: String(l.reason ?? l.invoice ?? ""),
-          amount: Number(l.amount ?? 0),
-          time:   l.created_at
-            ? new Date(l.created_at as string).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
-            : "—",
-        }));
-        return { ...raw, logs, prepared_by: raw.prepared_by } as unknown as XReadingReport;
-      }
       case "detailed": {
         const arr = (raw.transactions ?? raw.search_results ?? raw.results ?? (Array.isArray(raw) ? raw : null)) as Record<string, unknown>[] | null;
         const txData = (arr ?? []).map(r => ({
@@ -214,57 +258,90 @@ const XReadingTab: React.FC = () => {
     }
   };
 
-const fetchReading = useCallback(async () => {
-  if (!branchId) return;
-  setLoading(true);
-  setError("");
-  setReportData(null);
-  try {
-    const params = new URLSearchParams({ branch_id: branchId, date });
-    if (shift !== "all") params.set("shift", shift);
+  const fetchReading = useCallback(async () => {
+    if (!branchId) return;
+    setLoading(true);
+    setError("");
+    try {
+      const params = new URLSearchParams({ branch_id: branchId, date });
+      if (shift !== "all") params.set("shift", shift);
 
-    // ── Special case: summary needs two endpoints merged ──────────────────
-    if (reportType === "summary") {
-      const [summaryRes, qtyRes] = await Promise.all([
-        fetch(`/api/reports/sales-summary?from=${date}&to=${date}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
-        fetch(`/api/reports/item-quantities?date=${date}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
-      ]);
-      const merged = {
-        ...summaryRes,
-        categories:         qtyRes.categories         ?? [],
-        all_addons_summary: qtyRes.all_addons_summary ?? [],
-      };
-      const normalized = normalizeResponse("summary", merged as Record<string, unknown>);
-      setReportData({ ...normalized, report_type: "summary" });
-      return;
+      // ── Determine URL ──────────────────────────────────────────────────────
+      let url = "";
+      switch (reportType) {
+        case "hourly_sales": url = `/api/reports/hourly-sales?${params}`; break;
+        case "summary":      url = `/api/reports/sales-summary?from=${date}&to=${date}&branch_id=${branchId}`; break;
+        case "void_logs":    url = `/api/reports/void-logs?${params}`; break;
+        case "detailed":     url = `/api/reports/sales-detailed?${params}`; break;
+        case "qty_items":    url = `/api/reports/item-quantities?${params}`; break;
+        case "cash_count":   url = `/api/cash-counts/summary?${params}`; break;
+        case "search":
+          params.set("query", invoiceQuery);
+          url = `/api/receipts/search?${params}`;
+          break;
+        default:             url = `/api/reports/x-reading?${params}`; break;
+      }
+
+      // ── Special case: summary needs two endpoints merged ──────────────────
+      if (reportType === "summary") {
+        const [summaryRes, qtyRes] = await Promise.all([
+          fetch(`/api/reports/sales-summary?from=${date}&to=${date}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
+          fetch(`/api/reports/item-quantities?${params}`, { headers: authHeaders() }).then(r => r.json()),
+        ]);
+        const merged = {
+          ...summaryRes,
+          categories:         qtyRes.categories         ?? [],
+          all_addons_summary: qtyRes.all_addons_summary ?? [],
+        };
+        const normalized = normalizeResponse("summary", merged as Record<string, unknown>);
+        setReportData({ ...normalized, report_type: "summary" });
+        // also set the XReading stat cards from summary data
+        setData(null);
+        return;
+      }
+
+      const res  = await fetch(url, { headers: authHeaders() });
+      const json = await res.json() as Record<string, unknown>;
+
+      // ── Set receipt reportData ─────────────────────────────────────────────
+      const normalized = normalizeResponse(reportType, json);
+      setReportData({ ...normalized, report_type: reportType });
+
+      // ── Also set stat-card data for x_reading ─────────────────────────────
+      if (reportType === "x_reading") {
+        if ((json.success as boolean) && json.data) {
+          setData(json.data as XReading);
+        } else {
+          const branchRes  = await fetch(`/api/branches/${branchId}/analytics`, { headers: authHeaders() });
+          const branchData = await branchRes.json() as Record<string, unknown>;
+          if (branchData.success) {
+            const d = branchData.data as Record<string, unknown>;
+            const selectedBranch = branches.find(b => String(b.id) === branchId);
+            setData({
+              branch_id:    Number(branchId),
+              branch_name:  selectedBranch?.name ?? `Branch #${branchId}`,
+              date,
+              gross_sales:  Number(d.today_total        ?? 0),
+              discount:     0,
+              net_sales:    Number(d.today_total        ?? 0),
+              cash:         0, gcash: 0, card: 0, returns: 0,
+              total_orders: Number(d.total_transactions ?? 0),
+              cashier_breakdown: [],
+            });
+          } else {
+            setData(null);
+          }
+        }
+      } else {
+        setData(null);
+      }
+
+    } catch {
+      setError("Failed to load report data.");
+    } finally {
+      setLoading(false);
     }
-
-    // ── Determine URL ──────────────────────────────────────────────────────
-    let url = "";
-    switch (reportType) {
-      case "hourly_sales": url = `/api/reports/hourly-sales?${params}`; break;
-      case "void_logs":    url = `/api/reports/void-logs?${params}`; break;
-      case "detailed":     url = `/api/reports/sales-detailed?${params}`; break;
-      case "qty_items":    url = `/api/reports/item-quantities?${params}`; break;
-      case "cash_count":   url = `/api/cash-counts/summary?${params}`; break;
-      case "search":
-        params.set("query", invoiceQuery);
-        url = `/api/receipts/search?${params}`;
-        break;
-      default:             url = `/api/reports/x-reading?${params}`; break;
-    }
-
-    const res  = await fetch(url, { headers: authHeaders() });
-    const json = await res.json() as Record<string, unknown>;
-    const normalized = normalizeResponse(reportType, json);
-    setReportData({ ...normalized, report_type: reportType });
-
-  } catch {
-    setError("Failed to load report data.");
-  } finally {
-    setLoading(false);
-  }
-}, [branchId, date, shift, reportType, invoiceQuery]);
+  }, [branchId, date, shift, branches, reportType, invoiceQuery]);
 
   useEffect(() => {
     if (branchId) fetchReading();
@@ -740,10 +817,7 @@ const fetchReading = useCallback(async () => {
           nav, header, aside, button { display: none !important; }
           html, body { width: 80mm !important; margin: 0 !important; padding: 0 !important; background: white !important; }
           .printable-receipt-area, .printable-receipt-area * { visibility: visible !important; }
-          .printable-receipt-area {
-            position: absolute !important; left: 0 !important; top: 0 !important;
-            width: 80mm !important; display: block !important;
-          }
+          .printable-receipt-area { position: absolute !important; left: 0 !important; top: 0 !important; width: 80mm !important; }
         }
       `}</style>
 
@@ -821,15 +895,28 @@ const fetchReading = useCallback(async () => {
             <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           </div>
         </div>
+        {/* Search input for search receipt type */}
         {reportType === "search" && (
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Invoice / Cashier</p>
-            <input type="text" value={invoiceQuery} onChange={e => setInvoiceQuery(e.target.value)}
+            <input
+              type="text"
+              value={invoiceQuery}
+              onChange={e => setInvoiceQuery(e.target.value)}
               onKeyDown={e => e.key === "Enter" && fetchReading()}
               placeholder="Search invoice..."
-              className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400 w-48" />
+              className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400 w-48"
+            />
           </div>
         )}
+        <div className="flex items-center gap-2">
+          <Btn onClick={() => fetchReading()} disabled={loading || !branchId}>
+            {loading
+              ? <><RefreshCw size={12} className="animate-spin" /> Loading...</>
+              : `Load ${menuCards.find(c => c.type === reportType)?.title ?? "Reading"}`
+            }
+          </Btn>
+        </div>
       </div>
 
       {/* ── Error ── */}
@@ -840,27 +927,143 @@ const fetchReading = useCallback(async () => {
         </div>
       )}
 
-      {/* ── Loading ── */}
+      {/* ── Loading skeleton ── */}
       {loading && (
-        <div className="flex flex-col items-center mt-20 opacity-50">
-          <div className="w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full animate-spin mb-3" />
-          <p className="text-sm text-zinc-400 font-bold uppercase">Generating report...</p>
+        <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => <SkeletonBar key={i} h="h-20" />)}
+          </div>
+          <SkeletonBar h="h-48" />
         </div>
       )}
 
-      {/* ── Receipt preview — same as cashier XReading ── */}
-      {!loading && reportData && (
+      {/* ── X Reading stat cards + breakdown (only for x_reading type) ── */}
+      {!loading && reportType === "x_reading" && data && (
+        <>
+          <div className="bg-violet-50 border border-violet-200 rounded-[0.625rem] px-5 py-3.5 flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-[#3b2063] rounded-lg flex items-center justify-center">
+                <TrendingUp size={14} className="text-white" />
+              </div>
+              <div>
+                <p className="text-xs font-black text-[#3b2063] uppercase tracking-widest">X Reading Report</p>
+                <p className="text-[10px] text-violet-500 font-medium">{selectedBranchName} · {date} · {shift === "all" ? "All Shifts" : shift.toUpperCase() + " Shift"}</p>
+              </div>
+            </div>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase tracking-widest rounded-full border border-emerald-200">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Shift Open
+            </span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <StatCard icon={<DollarSign  size={16} />} label="Gross Sales"  value={fmt(data.gross_sales)}  color="violet"  />
+            <StatCard icon={<TrendingUp  size={16} />} label="Net Sales"    value={fmt(data.net_sales)}    color="emerald" />
+            <StatCard icon={<ShoppingBag size={16} />} label="Total Orders" value={data.total_orders}      color="amber"   />
+            <StatCard icon={<Users       size={16} />} label="Discount"     value={fmt(data.discount)}     color="red"     />
+          </div>
+          <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
+            <div className="px-5 py-4 border-b border-zinc-100">
+              <p className="text-sm font-bold text-[#1a0f2e]">Sales Breakdown</p>
+              <p className="text-[10px] text-zinc-400 mt-0.5">Revenue by payment method and deductions</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 sm:divide-x divide-zinc-100">
+              <div className="px-5 py-4 flex flex-col gap-3">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Payment Methods</p>
+                {[
+                  { label: "Cash",  value: data.cash,  icon: <Banknote   size={14} />, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-200" },
+                  { label: "GCash", value: data.gcash, icon: <Smartphone size={14} />, color: "text-blue-600",    bg: "bg-blue-50",    border: "border-blue-200"    },
+                  { label: "Card",  value: data.card,  icon: <CreditCard size={14} />, color: "text-violet-600",  bg: "bg-violet-50",  border: "border-violet-200"  },
+                ].map(pm => (
+                  <div key={pm.label} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-7 h-7 ${pm.bg} border ${pm.border} rounded-lg flex items-center justify-center`}>
+                        <span className={pm.color}>{pm.icon}</span>
+                      </div>
+                      <span className="text-xs font-semibold text-zinc-600">{pm.label}</span>
+                    </div>
+                    <span className={`text-sm font-black tabular-nums ${pm.color}`}>{fmt(pm.value)}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="px-5 py-4 flex flex-col gap-3">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Deductions</p>
+                {[
+                  { label: "Gross Sales", value: data.gross_sales, isPos: true  },
+                  { label: "Discounts",   value: data.discount,    isPos: false },
+                  { label: "Returns",     value: data.returns,     isPos: false },
+                ].map(row => (
+                  <div key={row.label} className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-zinc-600">{row.label}</span>
+                    <span className={`text-sm font-black tabular-nums ${row.isPos ? "text-[#3b2063]" : "text-red-500"}`}>
+                      {row.isPos ? "" : "−"}{fmt(row.value)}
+                    </span>
+                  </div>
+                ))}
+                <div className="border-t border-zinc-100 pt-3 flex items-center justify-between">
+                  <span className="text-xs font-black text-[#1a0f2e] uppercase tracking-wider">Net Sales</span>
+                  <span className="text-base font-black text-emerald-600 tabular-nums">{fmt(data.net_sales)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          {data.cashier_breakdown && data.cashier_breakdown.length > 0 && (
+            <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
+              <div className="px-5 py-4 border-b border-zinc-100">
+                <p className="text-sm font-bold text-[#1a0f2e]">Per-Cashier Breakdown</p>
+                <p className="text-[10px] text-zinc-400 mt-0.5">Individual performance for this shift</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-zinc-100">
+                      {["Cashier","Orders","Gross Sales","Discounts","Net Sales"].map(h => (
+                        <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.cashier_breakdown.map((row, i) => (
+                      <tr key={i} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-[#ede8ff] flex items-center justify-center text-[9px] font-bold text-[#3b2063] shrink-0">
+                              {row.cashier_name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+                            </div>
+                            <span className="font-semibold text-[#1a0f2e] text-xs">{row.cashier_name}</span>
+                          </div>
+                        </td>
+                        <td className="px-5 py-3.5 text-zinc-600 text-xs">{row.orders}</td>
+                        <td className="px-5 py-3.5 font-bold text-[#3b2063] text-xs">{fmt(row.gross)}</td>
+                        <td className="px-5 py-3.5 text-red-500 text-xs">−{fmt(row.discount)}</td>
+                        <td className="px-5 py-3.5 font-bold text-emerald-600 text-xs">{fmt(row.net)}</td>
+                      </tr>
+                    ))}
+                    <tr className="bg-zinc-50 border-t border-zinc-200">
+                      <td className="px-5 py-3.5 font-black text-[#1a0f2e] text-xs uppercase tracking-widest">Total</td>
+                      <td className="px-5 py-3.5 font-black text-[#1a0f2e] text-xs">{data.cashier_breakdown.reduce((s, r) => s + r.orders, 0)}</td>
+                      <td className="px-5 py-3.5 font-black text-[#3b2063] text-xs">{fmt(data.gross_sales)}</td>
+                      <td className="px-5 py-3.5 font-black text-red-500 text-xs">−{fmt(data.discount)}</td>
+                      <td className="px-5 py-3.5 font-black text-emerald-600 text-xs">{fmt(data.net_sales)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── Receipt preview for all other report types ── */}
+      {!loading && reportData && reportType !== "x_reading" && (
         <div className="flex justify-center">
-          <div
-            className="printable-receipt-area bg-white border border-zinc-200 rounded-[0.625rem] shadow-sm p-6 w-full max-w-sm"
-            style={{ fontFamily: "Arial, Helvetica, sans-serif" }}
-          >
+          <div className="printable-receipt-area bg-white border border-zinc-200 rounded-[0.625rem] shadow-sm p-6 w-full max-w-sm"
+            style={{ fontFamily: "Arial, Helvetica, sans-serif" }}>
             <div className="text-center mb-2">
               <p className="uppercase text-[13px] font-bold leading-tight">Lucky Boba Milktea</p>
               <p className="uppercase text-[11px] mt-0.5">{selectedBranchName}</p>
               <ReceiptDivider />
               <p className="uppercase text-[12px] font-bold tracking-widest">
-                [X] {reportData.report_type === "x_reading" ? "X-READING" : (reportData.report_type ?? "REPORT").replace(/_/g, " ").toUpperCase()}
+                [{reportType === "x_reading" ? "X" : reportType.replace(/_/g, " ").toUpperCase()}]
               </p>
               <p className="text-[10px] text-zinc-500">{date} · {shift === "all" ? "All Shifts" : shift.toUpperCase()}</p>
             </div>
@@ -879,7 +1082,7 @@ const fetchReading = useCallback(async () => {
       )}
 
       {/* ── Empty state ── */}
-      {!loading && !reportData && !error && (
+      {!loading && !data && !reportData && !error && (
         <div className="flex flex-col items-center justify-center h-48 gap-2 text-zinc-400">
           <TrendingUp size={28} className="text-zinc-200" />
           <p className="text-sm font-semibold">Select a branch to load the report</p>
@@ -887,7 +1090,7 @@ const fetchReading = useCallback(async () => {
         </div>
       )}
     </div>
-  )
+  );
 };
 
 export default XReadingTab;
