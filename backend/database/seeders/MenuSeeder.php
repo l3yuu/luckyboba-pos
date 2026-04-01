@@ -256,7 +256,7 @@ class MenuSeeder extends Seeder
             ],
             'FP COFFEE BUNDLES' => [
                 ['name' => "TOFFEE CARAMEL ICED COFFEE + DARK ROAST COFFEE", 'price' => 154.00, 'barcode' => "COF1", 'size' => 'L', 'grab_price' => 45.00, 'panda_price' => 45.00],
-                ['name' => "VANILLA ICED COFFEE + JAVA CHIP COFEE FRP",      'price' => 250.00, 'barcode' => "COF2", 'size' => 'L', 'grab_price' => 75.00, 'panda_price' => 75.00],
+                ['name' => "VANILLA ICED COFFEE + JAVA CHIP COFFEE FRP",      'price' => 250.00, 'barcode' => "COF2", 'size' => 'L', 'grab_price' => 75.00, 'panda_price' => 75.00],
             ],
             'HOLI-YEY' => [
                 ['name' => "HOLI-YEY : STRAWBERRY CCAKE",              'price' => 175.00, 'barcode' => "HYSTRW", 'size' => 'L', 'grab_price' => 65.00, 'panda_price' => 65.00],

@@ -886,7 +886,6 @@ export const ConfirmOrderModal = ({
                     return splitGroups.map((group, gi) => {
                       const { cartIndex, item, discountType, count } = group;
                       const isDiscounted = discountType !== 'none';
-                      const discountLabel = discountType === 'sc' ? 'SC' : 'PWD';
                       const showAddOns = !shownAddOns.has(cartIndex);
                       if (showAddOns) shownAddOns.add(cartIndex);
                       const isFirstGroupForItem = splitGroups.findIndex(g => g.cartIndex === cartIndex) === gi;
@@ -903,21 +902,27 @@ export const ConfirmOrderModal = ({
                       } else {
                         groupPrice = unitTotal * count;
                       }
+                      if (discountType === 'none' && item.discountType && item.discountValue && Number(item.discountValue) > 0) {
+                        const unitDisc = item.discountType === 'percent'
+                          ? unitTotal * item.qty * (Number(item.discountValue) / 100)
+                          : Math.min(Number(item.discountValue) * item.qty, unitTotal * item.qty);
+                        groupPrice = groupPrice - unitDisc;
+                      }
 
                       return (
                         <div key={gi} onClick={() => onEditCartItem(cartIndex)}
                           className="pb-3 border-b border-[#e9d5ff] last:border-0 mb-2 cursor-pointer hover:bg-[#f5f0ff] rounded-lg px-2 -mx-2 transition-colors">
                           <div className="flex justify-between items-start">
                             <div>
-                              <p className="font-bold text-sm text-black">
-                                {count}x {item.name}
-                                {item.cupSizeLabel && <span className="ml-1 opacity-60">({item.cupSizeLabel})</span>}
-                                {isDiscounted && (
-                                  <span className={`ml-2 text-[9px] font-black px-1.5 py-0.5 rounded uppercase ${discountType === 'sc' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'}`}>
-                                    {discountLabel} 20%
-                                  </span>
-                                )}
-                              </p>
+                              <p className="font-black text-sm text-black shrink-0 ml-2">
+                              {/* Show strikethrough original if item has a discount */}
+                              {discountType === 'none' && item.discountLabel && Number(item.discountValue) > 0 && (
+                                <span className="line-through text-zinc-400 text-xs mr-1">
+                                  ₱ {(unitTotal * count).toFixed(2)}
+                                </span>
+                              )}
+                              ₱ {groupPrice.toFixed(2)}
+                            </p>
                               {/* Show sugar/options/remarks only on first group per item */}
                               {isFirstGroupForItem && (
                                 <div className="text-[10px] text-zinc-500 mt-1 ml-2">
