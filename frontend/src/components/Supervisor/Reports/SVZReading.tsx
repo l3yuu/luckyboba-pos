@@ -216,7 +216,6 @@ const ccData   = ccRes.data as Record<string, unknown>;
         const naacDisc  = Number(zData.naac_discount        ?? 0);
         const soloDisc  = Number(zData.solo_parent_discount ?? 0);
         const otherDisc = Number(zData.diplomat_discount ?? 0) + Number(zData.other_discount ?? 0);
-        const totalDisc = scDisc + pwdDisc + naacDisc + soloDisc + otherDisc;
         const computedGross = Number(zData.gross_sales ?? 0);
 
         const presentAcc  = Number(zData.present_accumulated  ?? computedGross);
