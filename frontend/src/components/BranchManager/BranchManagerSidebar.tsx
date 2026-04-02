@@ -397,7 +397,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
       {/* ══════════════════════════════════════════════
           DESKTOP SIDEBAR (md and above)
       ══════════════════════════════════════════════ */}
-      <aside className="bm-sb-root fixed inset-y-0 left-0 z-50 w-60 bg-white border-r border-zinc-100 flex-col hidden md:flex md:relative md:translate-x-0">
+      <aside className="bm-sb-root fixed inset-y-0 left-0 z-50 w-60 bg-white border-r border-zinc-100 flex-col hidden md:flex md:relative md:translate-x-0 shrink-0">
 
         {/* User profile */}
         <div className="shrink-0 px-4 pt-6 pb-4 border-b border-zinc-100">

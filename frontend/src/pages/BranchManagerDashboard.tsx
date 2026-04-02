@@ -201,7 +201,7 @@ const branchLabel = authUser?.name ?? null; // 'Main Branch' comes from here
 
   return (
     <>
-      <div className="bm-root flex flex-col md:flex-row h-screen bg-[#f5f4f8] overflow-hidden">
+      <div className="bm-root flex flex-col md:flex-row h-screen bg-[#f5f4f8] overflow-hidden min-w-0">
 
         <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 shrink-0">
           <img src={logo} alt="Lucky Boba" className="h-8 w-auto object-contain" />
@@ -211,14 +211,16 @@ const branchLabel = authUser?.name ?? null; // 'Main Branch' comes from here
           </button>
         </div>
 
+      <div className="shrink-0">
         <BranchManagerSidebar
           isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen}
           logo={logo} currentTab={activeTab} setCurrentTab={setActiveTab}
           onLogout={handleLogoutClick}
           isLoggingOut={isLoggingOut}
         />
+      </div>
 
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-hidden min-w-0">
         <BranchManagerTopNav
           pageTitle={pageTitle}
           branchLabel={branchLabel}

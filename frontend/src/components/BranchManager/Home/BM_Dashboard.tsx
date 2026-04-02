@@ -15,23 +15,23 @@ import {
 // ─── Font tokens ──────────────────────────────────────────────────────────────
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
-  .bm-root, .bm-root * { font-family: 'DM Sans', sans-serif !important; box-sizing: border-box; }
-  .bm-label { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #3f3f46; }
-  .bm-sub   { font-size: 0.65rem; font-weight: 400; color: #71717a; }
-  .bm-value { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.035em; line-height: 1; }
-  .bm-live  {
+  .bmd-root, .bmd-root * { font-family: 'DM Sans', sans-serif !important; box-sizing: border-box; }
+  .bmd-label { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #3f3f46; }
+  .bmd-sub   { font-size: 0.65rem; font-weight: 400; color: #71717a; }
+  .bmd-value { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.035em; line-height: 1; }
+  .bmd-live  {
     display: inline-flex; align-items: center; gap: 5px;
     background: #f0fdf4; border: 1px solid #bbf7d0;
     border-radius: 100px; padding: 4px 10px;
   }
-  .bm-live-dot  { width: 5px; height: 5px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 5px rgba(34,197,94,0.6); animation: bm-pulse 2s infinite; }
-  .bm-live-text { font-size: 0.55rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #16a34a; }
-  @keyframes bm-pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-  .bm-tab { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; padding: 6px 13px; border-radius: 0.4rem; border: none; cursor: pointer; transition: background 0.12s, color 0.12s; }
-  .bm-tab-on  { background: #1a0f2e; color: #fff; }
-  .bm-tab-off { background: transparent; color: #a1a1aa; }
-  .bm-tab-off:hover { background: #ede8ff; color: #3b2063; }
-  .bm-pill { font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 100px; padding: 3px 9px; border: 1px solid #e4e4e7; background: #f4f4f5; color: #71717a; }
+  .bmd-live-dot  { width: 5px; height: 5px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 5px rgba(34,197,94,0.6); animation: bm-pulse 2s infinite; }
+  .bmd-live-text { font-size: 0.55rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #16a34a; }
+  @keyframes bmd-pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+  .bmd-tab { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; padding: 6px 13px; border-radius: 0.4rem; border: none; cursor: pointer; transition: background 0.12s, color 0.12s; }
+  .bmd-tab-on  { background: #1a0f2e; color: #fff; }
+  .bmd-tab-off { background: transparent; color: #a1a1aa; }
+  .bmd-tab-off:hover { background: #ede8ff; color: #3b2063; }
+  .bmd-pill { font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 100px; padding: 3px 9px; border: 1px solid #e4e4e7; background: #f4f4f5; color: #71717a; }
 `;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -197,7 +197,7 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
 
   if (loading && !analytics) {
     return (
-      <div className="h-full flex flex-col items-center justify-center gap-3">
+      <div className="flex flex-col items-center justify-center gap-3 py-20">
         <div className="w-9 h-9 border-2 border-[#3b2063] border-t-transparent animate-spin rounded-full" />
         <p className="bm-label" style={{ color: '#a1a1aa' }}>Loading analytics…</p>
       </div>
@@ -323,7 +323,7 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
   return (
     <>
       <style>{STYLES}</style>
-      <section className="bm-root px-5 md:px-8 pb-8 pt-5 space-y-5">
+      <div className="bmd-root px-4 md:px-6 pb-6 pt-4 space-y-4">
 
         {/* ── STAT CARDS ── */}
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-5">
@@ -538,7 +538,7 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
           </div>
         </div>
 
-      </section>
+      </div>
     </>
   );
 };
