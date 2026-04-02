@@ -195,51 +195,40 @@ class SalesDashboardController extends Controller
     public function dashboardData(Request $request): JsonResponse
     {
         try {
-            $user     = auth('sanctum')->user() ?? $request->user();
+            $user = auth('sanctum')->user() ?? $request->user();
             $branchId = $user?->branch_id;
+            $today = now()->toDateString();
 
-            $today     = now()->toDateString();
+            // 1. Get Weekly Sales (Existing logic)
             $weekStart = now()->startOfWeek()->toDateString();
             $weekEnd   = now()->endOfWeek()->toDateString();
-
             $weeklySales = \App\Models\Sale::selectRaw('DATE(created_at) as date, SUM(total_amount) as value')
                 ->whereBetween('created_at', [$weekStart . ' 00:00:00', $weekEnd . ' 23:59:59'])
-                ->where('status', '!=', 'cancelled')
+                ->where('status', 'completed')
                 ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
                 ->groupByRaw('DATE(created_at)')
-                ->orderBy('date')
                 ->get()
                 ->map(fn($row) => [
-                    'day'       => \Carbon\Carbon::parse($row->date)->format('D'),
-                    'date'      => \Carbon\Carbon::parse($row->date)->format('M d'),
-                    'value'     => (float) $row->value,
-                    'full_date' => $row->date,
+                    'day'  => \Carbon\Carbon::parse($row->date)->format('D'),
+                    'date' => \Carbon\Carbon::parse($row->date)->format('M d'),
+                    'value'=> (float) $row->value,
                 ]);
 
-            $todaySales = \App\Models\Sale::selectRaw('HOUR(created_at) as hour, SUM(total_amount) as value')
-                ->whereDate('created_at', $today)
-                ->where('status', '!=', 'cancelled')
-                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-                ->groupByRaw('HOUR(created_at)')
-                ->orderBy('hour')
-                ->get()
-                ->map(fn($row) => [
-                    'time'  => \Carbon\Carbon::createFromTime($row->hour)->format('g A'),
-                    'value' => (float) $row->value,
-                ]);
+            // 2. Get Top Sellers Today (New)
+            $topSellers = DB::table('sale_items')
+                ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+                ->select('product_name', DB::raw('SUM(sale_items.quantity) as total_qty'))
+                ->whereDate('sales.created_at', $today)
+                ->where('sales.status', 'completed')
+                ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+                ->groupBy('product_name')
+                ->orderByDesc('total_qty')
+                ->limit(6)
+                ->get();
 
-            $beginning = \App\Models\Sale::whereDate('created_at', $today)
-                ->where('status', '!=', 'cancelled')
-                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-                ->orderBy('id')->first();
-
-            $ending = \App\Models\Sale::whereDate('created_at', $today)
-                ->where('status', '!=', 'cancelled')
-                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-                ->orderBy('id', 'desc')->first();
-
+            // 3. Get Totals (Existing + New Cash In)
             $todayTotal = (float) \App\Models\Sale::whereDate('created_at', $today)
-                ->where('status', '!=', 'cancelled')
+                ->where('status', 'completed')
                 ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
                 ->sum('total_amount');
 
@@ -251,29 +240,16 @@ class SalesDashboardController extends Controller
             return response()->json([
                 'success' => true,
                 'data'    => [
-                    'weekly_sales' => [
-                        'data'               => $weeklySales,
-                        'total_revenue'      => $weeklySales->sum('value'),
-                        'start_date'         => \Carbon\Carbon::parse($weekStart)->format('M d, Y'),
-                        'end_date'           => \Carbon\Carbon::parse($weekEnd)->format('M d, Y'),
-                        'current_week_start' => $weekStart,
-                    ],
-                    'today_sales' => [
-                        'data' => $todaySales,
-                        'date' => $today,
-                    ],
-                    'statistics' => [
-                        'beginning_sales' => 0,
-                        'today_sales'     => $todayTotal,
-                        'ending_sales'    => $todayTotal,
-                        'cancelled_sales' => $cancelledTotal,
-                        'beginning_or'    => $beginning?->invoice_number ?? '00000',
-                        'ending_or'       => $ending?->invoice_number    ?? '00000',
+                    'weekly_sales' => ['data' => $weeklySales],
+                    'statistics'   => [
+                        'today_sales'      => $todayTotal,
+                        'cancelled_sales'  => $cancelledTotal,
+                        'beginning_sales'  => 0, // Update this if you use opening float
+                        'top_seller_today' => $topSellers
                     ],
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Dashboard Data Error: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }

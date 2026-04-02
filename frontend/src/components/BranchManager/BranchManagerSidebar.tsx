@@ -45,8 +45,19 @@ const SB_STYLES = `
   .bm-panel-exit  { animation: bm-panel-out 0.26s cubic-bezier(0.4,0,1,1)    forwards; }
 
   /* ── Scroll ── */
-  .bm-scroll { overflow-y: auto; -ms-overflow-style: none; scrollbar-width: none; }
-  .bm-scroll::-webkit-scrollbar { display: none; }
+.bm-scroll { 
+  overflow-y: auto; 
+  height: 100%; 
+  scrollbar-width: none; /* Keep it clean */
+}
+.bm-scroll::-webkit-scrollbar { display: none; }
+
+/* Ensure the root is fixed to the screen */
+.bm-sb-root {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
 
   /* ── Section label ── */
   .bm-sec {
@@ -420,7 +431,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
         </div>
 
         {/* Desktop nav */}
-        <div className="flex-1 bm-scroll px-3 py-2 min-h-0">
+        <div className="flex-1 bm-scroll px-3 py-2 min-h-0 overflow-y-auto">
           <p className="px-2 pt-4 pb-1 text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">Home</p>
           {[
             { tab: 'dashboard',         label: 'Dashboard',         icon: <LayoutDashboard size={14} /> },
@@ -542,7 +553,13 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
             <div className="bm-divider" style={{ margin: '0 20px' }} />
 
             {/* Scrollable nav */}
-            <div className="bm-scroll" style={{ flex: 1, minHeight: 0, padding: '8px 14px' }}>
+            <div className="bm-scroll" style={{ 
+              flex: 1, 
+              minHeight: 0, 
+              padding: '8px 14px', 
+              overflowY: 'auto',
+              WebkitOverflowScrolling: 'touch' 
+            }}>
 
               <div className="bm-sec">Home</div>
               {[

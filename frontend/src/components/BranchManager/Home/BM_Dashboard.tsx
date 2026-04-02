@@ -33,6 +33,21 @@ const GlobalStyles = () => (
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface TopSellerItem { product_name: string; total_qty: number; }
 
+interface DashboardApiResponse {
+  success: boolean;
+  data: {
+    weekly_sales: {
+      data: { date: string; day: string; value: number }[];
+    };
+    statistics: {
+      today_sales: number;
+      beginning_sales: number;
+      cancelled_sales: number;
+      top_seller_today?: TopSellerItem[]; // Optional depending on your controller update
+    };
+  };
+}
+
 interface DashboardStatsData {
   cash_in_today:       number;
   cash_out_today:      number;
@@ -224,9 +239,30 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
 const fetchData = useCallback(async () => {
   setLoading(true);
   try {
-    const res = await api.get<SalesAnalyticsResponse>('/sales-analytics');
-    setAnalytics(res.data);
-    localStorage.setItem(CACHE_KEY, JSON.stringify(res.data));
+    // 1. Specify the new DashboardApiResponse interface here
+    const res = await api.get<DashboardApiResponse>('/reports/dashboard-data');
+    const apiData = res.data.data;
+
+    // 2. Construct the state object to match SalesAnalyticsResponse
+    const mappedData: SalesAnalyticsResponse = {
+      weekly: apiData.weekly_sales.data,
+      monthly: [], // Default empty as before
+      quarterly: [], // Default empty as before
+      stats: {
+        total_sales_today: apiData.statistics.today_sales,
+        total_orders_today: 0, // Set to 0 or calculate if available
+        cash_in_today: apiData.statistics.beginning_sales,
+        cash_out_today: 0,
+        voided_sales_today: apiData.statistics.cancelled_sales,
+        top_seller_today: apiData.statistics.top_seller_today || [],
+        top_seller_all_time: [], // Default empty
+      }
+    };
+
+    // 3. Update state and cache with the mapped object
+    setAnalytics(mappedData);
+    localStorage.setItem(CACHE_KEY, JSON.stringify(mappedData));
+    
   } catch (e) {
     console.error('analytics fetch', e);
   } finally {
