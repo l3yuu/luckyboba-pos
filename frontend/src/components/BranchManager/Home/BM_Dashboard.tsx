@@ -1,41 +1,36 @@
 "use client"
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import api from '../../../services/api';
 import {
   TrendingUp, TrendingDown, DollarSign, AlertCircle,
   ShoppingBag, Activity, ArrowUpRight, ArrowDownRight,
-  Wallet,
+  Wallet, RefreshCw, Download, Package,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Cell,
 } from 'recharts';
 
-// ─── Font tokens ──────────────────────────────────────────────────────────────
-const STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
-  .bmd-root, .bmd-root * { font-family: 'DM Sans', sans-serif !important; box-sizing: border-box; }
-  .bmd-label { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #3f3f46; }
-  .bmd-sub   { font-size: 0.65rem; font-weight: 400; color: #71717a; }
-  .bmd-value { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.035em; line-height: 1; }
-  .bmd-live  {
-    display: inline-flex; align-items: center; gap: 5px;
-    background: #f0fdf4; border: 1px solid #bbf7d0;
-    border-radius: 100px; padding: 4px 10px;
-  }
-  .bmd-live-dot  { width: 5px; height: 5px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 5px rgba(34,197,94,0.6); animation: bm-pulse 2s infinite; }
-  .bmd-live-text { font-size: 0.55rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #16a34a; }
-  @keyframes bmd-pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-  .bmd-tab { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; padding: 6px 13px; border-radius: 0.4rem; border: none; cursor: pointer; transition: background 0.12s, color 0.12s; }
-  .bmd-tab-on  { background: #1a0f2e; color: #fff; }
-  .bmd-tab-off { background: transparent; color: #a1a1aa; }
-  .bmd-tab-off:hover { background: #ede8ff; color: #3b2063; }
-  .bmd-pill { font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 100px; padding: 3px 9px; border: 1px solid #e4e4e7; background: #f4f4f5; color: #71717a; }
-`;
+
+// ─── Global Styles (matching SuperAdmin) ──────────────────────────────────────
+const GlobalStyles = () => (
+  <style>{`
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
+    *, *::before, *::after, body, input, button, select, textarea {
+      font-family: 'DM Sans', sans-serif !important;
+      box-sizing: border-box;
+    }
+    .card { transition: box-shadow 0.15s ease, transform 0.15s ease; }
+    .card:hover { box-shadow: 0 4px 24px rgba(59,32,99,0.08); }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .fade-in { animation: fadeIn 0.25s ease forwards; }
+    @keyframes bmd-pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+    .bmd-live-dot { width:6px; height:6px; border-radius:50%; background:#22c55e; box-shadow:0 0 5px rgba(34,197,94,0.6); animation:bmd-pulse 2s infinite; }
+  `}</style>
+);
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
 interface TopSellerItem { product_name: string; total_qty: number; }
 
 interface DashboardStatsData {
@@ -66,101 +61,126 @@ interface SalesAnalyticsResponse {
   stats:  DashboardStatsData;
 }
 
-interface ChartTipProps {
-  active?:  boolean;
-  payload?: { value: number; payload: { name: string } }[];
-}
-
 // ─── Props ────────────────────────────────────────────────────────────────────
-
 interface BM_DashboardProps {
   branchId: number | null;
 }
 
 // ─── Cache helpers ────────────────────────────────────────────────────────────
-
 const CACHE_VERSION = 'v4';
 const cacheKey = (branchId: number | null) =>
   `lucky_boba_analytics_${CACHE_VERSION}_branch_${branchId ?? 'all'}`;
 
-// ─── Sparkline labels ─────────────────────────────────────────────────────────
+// ─── Shared UI Components (matching SuperAdmin style) ────────────────────────
 
+type ColorKey   = "violet" | "emerald" | "red" | "amber" | "sky";
+type VariantKey = "primary" | "secondary";
+type SizeKey    = "sm" | "md";
+
+interface StatCardProps {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+  sub?: string;
+  trend?: { label: string; up: boolean | null };
+  color?: ColorKey;
+}
+
+const COLORS: Record<ColorKey, { bg: string; border: string; icon: string }> = {
+  violet:  { bg: "bg-violet-50",  border: "border-violet-200",  icon: "text-violet-600"  },
+  emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
+  red:     { bg: "bg-red-50",     border: "border-red-200",     icon: "text-red-500"     },
+  amber:   { bg: "bg-amber-50",   border: "border-amber-200",   icon: "text-amber-600"   },
+  sky:     { bg: "bg-sky-50",     border: "border-sky-200",     icon: "text-sky-600"     },
+};
+
+const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, trend, color = "violet" }) => {
+  const c = COLORS[color];
+  return (
+    <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center justify-between card">
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <div className={`w-10 h-10 ${c.bg} border ${c.border} flex items-center justify-center rounded-[0.4rem] shrink-0`}>
+          <span className={c.icon}>{icon}</span>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{label}</p>
+          <p className="text-lg font-bold text-[#1a0f2e] tabular-nums whitespace-nowrap">{value}</p>
+          {sub && <p className="text-[11px] text-zinc-400 font-medium mt-0.5">{sub}</p>}
+        </div>
+      </div>
+      {trend && trend.up !== null && (
+        <div className={`flex items-center gap-1 text-xs font-bold shrink-0 ml-2 ${trend.up ? "text-emerald-600" : "text-red-500"}`}>
+          {trend.up ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+          {trend.label}
+        </div>
+      )}
+      {trend && trend.up === null && (
+        <span className="text-xs font-bold text-zinc-400 shrink-0 ml-2">—</span>
+      )}
+    </div>
+  );
+};
+
+interface SectionHeaderProps { title: string; desc?: string; action?: React.ReactNode; }
+const SectionHeader: React.FC<SectionHeaderProps> = ({ title, desc, action }) => (
+  <div className="flex items-center justify-between mb-5">
+    <div>
+      <h2 className="text-base font-bold text-[#1a0f2e]">{title}</h2>
+      {desc && <p className="text-xs text-zinc-400 mt-0.5">{desc}</p>}
+    </div>
+    {action}
+  </div>
+);
+
+interface BtnProps {
+  children: React.ReactNode; variant?: VariantKey; size?: SizeKey;
+  onClick?: () => void; className?: string; disabled?: boolean;
+}
+const Btn: React.FC<BtnProps> = ({ children, variant = "primary", size = "sm", onClick, className = "", disabled = false }) => {
+  const sizes: Record<SizeKey, string>    = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm" };
+  const variants: Record<VariantKey, string> = {
+    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
+  };
+  return (
+    <button onClick={onClick} disabled={disabled}
+      className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 ${sizes[size]} ${variants[variant]} ${className}`}>
+      {children}
+    </button>
+  );
+};
+
+const SkeletonBar: React.FC<{ w?: string; h?: string }> = ({ w = "w-full", h = "h-4" }) => (
+  <div className={`${w} ${h} bg-zinc-100 rounded animate-pulse`} />
+);
+
+// ─── MiniSparkline ────────────────────────────────────────────────────────────
 const ALL_SPARK_LABELS = ['6d ago', '5d ago', '4d ago', '3d ago', '2d ago', 'Yesterday', 'Today'];
+const getSparkLabels = (len: number) => ALL_SPARK_LABELS.slice(ALL_SPARK_LABELS.length - len);
 
-const getSparkLabels = (len: number): string[] =>
-  ALL_SPARK_LABELS.slice(ALL_SPARK_LABELS.length - len);
-
-// ─── MiniBar ──────────────────────────────────────────────────────────────────
-
-const MiniBar = ({
-  values,
-  color,
-  formatter,
-}: {
-  values:    number[];
-  color:     string;
-  formatter: (v: number) => string;
-}) => {
+const MiniSparkline = ({ values, color }: { values: number[]; color: string }) => {
   const max = Math.max(...values, 1);
   const labels = getSparkLabels(values.length);
   const [hovered, setHovered] = useState<number | null>(null);
-  const [pinned,  setPinned]  = useState<number | null>(null);
-
-  const activeTip = hovered ?? pinned;
 
   return (
-    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '2px', height: '2rem', position: 'relative' }}>
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '2px', height: '28px', position: 'relative', marginTop: 8 }}>
       {values.map((v, i) => {
-        const isActive = activeTip === i;
-        const isPinned = pinned === i;
-        const isZero   = v === 0;
-        const barH     = isZero ? 0 : Math.max((v / max) * 100, 8);
-
+        const isActive = hovered === i;
+        const barH = v === 0 ? 0 : Math.max((v / max) * 100, 8);
+        const fmtV = v >= 1000 ? `₱${(v / 1000).toFixed(1)}k` : `₱${v.toFixed(0)}`;
         return (
-          <div
-            key={i}
-            style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', position: 'relative', cursor: 'pointer' }}
-            onMouseEnter={() => setHovered(i)}
-            onMouseLeave={() => setHovered(null)}
-            onClick={() => setPinned(isPinned ? null : i)}
-          >
+          <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', position: 'relative', cursor: 'pointer' }}
+            onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)}>
             {isActive && (
-              <div style={{
-                position: 'absolute', bottom: 'calc(100% + 7px)', left: '50%',
-                transform: 'translateX(-50%)', zIndex: 30,
-                background: '#1a0f2e', color: '#fff', borderRadius: '0.45rem',
-                padding: '5px 10px', whiteSpace: 'nowrap', pointerEvents: 'none',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.2)', minWidth: '70px', textAlign: 'center',
-              }}>
-                <p style={{ fontSize: '0.5rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', opacity: 0.55, margin: 0, marginBottom: 2 }}>
-                  {labels[i] ?? `Day ${i + 1}`}
-                </p>
-                <p style={{ fontSize: '0.76rem', fontWeight: 800, margin: 0, letterSpacing: '-0.015em' }}>
-                  {formatter(v)}
-                </p>
-                <div style={{
-                  position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
-                  width: 0, height: 0,
-                  borderLeft: '5px solid transparent', borderRight: '5px solid transparent',
-                  borderTop: '5px solid #1a0f2e',
-                }} />
+              <div style={{ position: 'absolute', bottom: 'calc(100% + 6px)', left: '50%', transform: 'translateX(-50%)', zIndex: 30, background: '#1a0f2e', color: '#fff', borderRadius: '0.4rem', padding: '4px 8px', whiteSpace: 'nowrap', pointerEvents: 'none', fontSize: '10px', fontWeight: 700 }}>
+                {labels[i] ?? `Day ${i + 1}`}: {fmtV}
               </div>
             )}
-
-            {isZero ? (
-              <div style={{ width: '100%', height: '2px', background: color, borderRadius: '1px', opacity: 0.12 }} />
-            ) : (
-              <div style={{
-                width: '100%', height: `${barH}%`,
-                background: isPinned ? '#1a0f2e' : color,
-                borderRadius: '2px',
-                opacity: isActive ? 1 : 0.3 + (i / values.length) * 0.5,
-                transform: isActive ? 'scaleX(1.2)' : 'scaleX(1)',
-                transition: 'opacity 0.08s, transform 0.08s, background 0.08s',
-                outline: isPinned ? `2px solid ${color}` : 'none',
-                outlineOffset: '1px',
-              }} />
-            )}
+            {v === 0
+              ? <div style={{ width: '100%', height: '2px', background: color, borderRadius: '1px', opacity: 0.15 }} />
+              : <div style={{ width: '100%', height: `${barH}%`, background: color, borderRadius: '2px', opacity: isActive ? 1 : 0.25 + (i / values.length) * 0.5, transition: 'opacity 0.1s' }} />
+            }
           </div>
         );
       })}
@@ -168,8 +188,30 @@ const MiniBar = ({
   );
 };
 
-// ─── BM_Dashboard ─────────────────────────────────────────────────────────────
+// ─── Chart Tooltip ────────────────────────────────────────────────────────────
+interface ChartTipProps {
+  active?: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload?: readonly any[];
+  avgRevenue: number;
+}
+const ChartTip = ({ active, payload, avgRevenue }: ChartTipProps) => {
+  if (!active || !payload?.length) return null;
+  const val = Number(payload[0].value ?? 0);
+  const diff = val - avgRevenue;
+  const pct = avgRevenue ? ((diff / avgRevenue) * 100).toFixed(1) : '0';
+  return (
+    <div style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: '0.625rem', padding: '10px 14px', boxShadow: '0 4px 20px rgba(0,0,0,0.07)', fontSize: 12 }}>
+      <p style={{ fontSize: 10, fontWeight: 700, color: '#a1a1aa', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>{(payload[0].payload as { name: string }).name}</p>
+      <p style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1a0f2e' }}>₱{val.toLocaleString()}</p>
+      <p style={{ fontSize: 10, fontWeight: 700, marginTop: 4, color: diff >= 0 ? '#059669' : '#dc2626' }}>
+        {diff >= 0 ? '▲' : '▼'} {Math.abs(Number(pct))}% vs avg
+      </p>
+    </div>
+  );
+};
 
+// ─── BM_Dashboard ─────────────────────────────────────────────────────────────
 const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
   const CACHE_KEY = cacheKey(branchId);
 
@@ -177,46 +219,40 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
     try { const c = localStorage.getItem(CACHE_KEY); return c ? JSON.parse(c) : null; } catch { return null; }
   });
   const [loading,    setLoading]    = useState(!analytics);
-  const [timeFilter, setTimeFilter] = useState('7days');
+  const [timeFilter, setTimeFilter] = useState<'7days' | '30days' | '3months'>('7days');
 
-  useEffect(() => {
-    setLoading(true);
-    (async () => {
-      try {
-        const res = await api.get<SalesAnalyticsResponse>('/sales-analytics');
-        setAnalytics(res.data);
-        localStorage.setItem(CACHE_KEY, JSON.stringify(res.data));
-      } catch (e) {
-        console.error('analytics fetch', e);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [branchId]);
-
-  if (loading && !analytics) {
-    return (
-      <div className="flex flex-col items-center justify-center gap-3 py-20">
-        <div className="w-9 h-9 border-2 border-[#3b2063] border-t-transparent animate-spin rounded-full" />
-        <p className="bm-label" style={{ color: '#a1a1aa' }}>Loading analytics…</p>
-      </div>
-    );
+const fetchData = useCallback(async () => {
+  setLoading(true);
+  try {
+    const res = await api.get<SalesAnalyticsResponse>('/sales-analytics');
+    setAnalytics(res.data);
+    localStorage.setItem(CACHE_KEY, JSON.stringify(res.data));
+  } catch (e) {
+    console.error('analytics fetch', e);
+  } finally {
+    setLoading(false);
   }
+}, [CACHE_KEY]);
 
-  const sd   = analytics?.stats;
+useEffect(() => { fetchData(); }, [fetchData]);
+
+  // ── Formatters ─────────────────────────────────────────────────────────────
   const fmt  = (v?: number | string) => `₱${Number(v ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
-  const fmtS = (v?: number | string) => {
-    const n = Number(v ?? 0);
-    if (n >= 1_000_000) return `₱${(n / 1_000_000).toFixed(1)}M`;
-    if (n >= 1_000)     return `₱${(n / 1_000).toFixed(1)}K`;
-    return `₱${n.toFixed(0)}`;
+  const fmtK = (v: number) => {
+    if (v >= 1_000_000) return `₱${(v / 1_000_000).toFixed(1)}M`;
+    if (v >= 1_000)     return `₱${(v / 1_000).toFixed(0)}k`;
+    return `₱${v}`;
   };
-  const fmtTip = (v: number): string => {
-    if (v >= 1_000_000) return `₱${(v / 1_000_000).toFixed(2)}M`;
-    if (v >= 1_000)     return `₱${(v / 1_000).toFixed(1)}K`;
-    return `₱${v.toFixed(2)}`;
+
+  const computeTrend = (today: number, yesterday: number): { label: string; up: boolean | null } => {
+    if (yesterday === 0 && today === 0) return { label: '—', up: null };
+    if (yesterday === 0) return { label: 'New', up: true };
+    const pct = ((today - yesterday) / yesterday) * 100;
+    const sign = pct >= 0 ? '+' : '';
+    return { label: `${sign}${pct.toFixed(1)}%`, up: pct >= 0 };
   };
+
+  const sd = analytics?.stats;
 
   const toSpark = (apiSpark: number[] | undefined, todayVal: number): number[] => {
     if (!apiSpark || apiSpark.length === 0) return [todayVal];
@@ -225,14 +261,15 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
     return arr;
   };
 
-  const sparklines = {
-    cashIn:  toSpark(sd?.spark_cash_in,  Number(sd?.cash_in_today     ?? 0)),
-    cashOut: toSpark(sd?.spark_cash_out, Number(sd?.cash_out_today    ?? 0)),
-    sales:   toSpark(sd?.spark_sales,    Number(sd?.total_sales_today  ?? 0)),
-    voided:  toSpark(sd?.spark_voided,   Number(sd?.voided_sales_today ?? 0)),
-    overall: toSpark(sd?.spark_overall,  Number(sd?.overall_cash_today ?? 0)),
-  };
+  const overallCash = Number(sd?.cash_in_today ?? 0) + Number(sd?.total_sales_today ?? 0) - Number(sd?.cash_out_today ?? 0);
 
+  const trendCashIn  = computeTrend(Number(sd?.cash_in_today     ?? 0), Number(sd?.cash_in_yesterday      ?? 0));
+  const trendCashOut = computeTrend(Number(sd?.cash_out_today     ?? 0), Number(sd?.cash_out_yesterday     ?? 0));
+  const trendSales   = computeTrend(Number(sd?.total_sales_today  ?? 0), Number(sd?.sales_yesterday        ?? 0));
+  const trendVoided  = computeTrend(Number(sd?.voided_sales_today ?? 0), Number(sd?.voided_yesterday       ?? 0));
+  const trendOverall = computeTrend(overallCash,                          Number(sd?.overall_cash_yesterday ?? 0));
+
+  // ── Chart data ─────────────────────────────────────────────────────────────
   const chartData = (() => {
     const raw =
       timeFilter === '30days'  ? (analytics?.monthly   || []) :
@@ -259,282 +296,329 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
   const niceMax  = Math.ceil(maxVal / stepSize) * stepSize;
   const yTicks   = Array.from({ length: Math.min(Math.ceil(niceMax / stepSize) + 1, 7) }, (_, i) => i * stepSize);
 
-  const yFmt = (v: number) => {
-    if (v === 0) return '₱0';
-    if (v >= 1_000_000) return `₱${(v / 1_000_000).toFixed(1)}M`;
-    if (v >= 1_000)     return `₱${(v / 1_000).toFixed(0)}k`;
-    return `₱${v}`;
-  };
-
+  // ── Top sellers ────────────────────────────────────────────────────────────
   const sellersToday   = sd?.top_seller_today    || [];
   const sellersAllTime = sd?.top_seller_all_time || [];
   const allTimeMax = Math.max(...sellersAllTime.map(x => x.total_qty), 1);
-  const todayMax   = Math.max(...sellersToday.map(x => x.total_qty), 1);
 
-  const ChartTip = ({ active, payload }: ChartTipProps) => {
-    if (!active || !payload?.length) return null;
-    const val  = payload[0].value;
-    const diff = val - avgRevenue;
-    const pct  = avgRevenue ? ((diff / avgRevenue) * 100).toFixed(1) : '0';
+  const PURPLES = ['#3b2063', '#6d28d9', '#7c3aed', '#a78bfa', '#c4b5fd', '#ede9fe'];
+
+  // ── Quick stats ────────────────────────────────────────────────────────────
+  const avgOrderVal = fmt(
+    Number(sd?.total_sales_today ?? 0) / Math.max(Number(sd?.total_orders_today ?? 1), 1)
+  );
+  const netCashFlow = fmt(Number(sd?.cash_in_today ?? 0) - Number(sd?.cash_out_today ?? 0));
+  const voidRate    = `${((Number(sd?.voided_sales_today ?? 0) / Math.max(Number(sd?.total_sales_today ?? 1), 1)) * 100).toFixed(1)}%`;
+
+  // ── Loading skeleton ───────────────────────────────────────────────────────
+  if (loading && !analytics) {
     return (
-      <div style={{ background: '#fff', border: '1.5px solid #ebebed', borderRadius: '0.625rem', padding: '10px 14px', boxShadow: '0 4px 20px rgba(0,0,0,0.07)' }}>
-        <p className="bm-label" style={{ color: '#a1a1aa', marginBottom: 4 }}>{payload[0].payload.name}</p>
-        <p style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.025em' }}>₱ {val.toLocaleString()}</p>
-        <p style={{ fontSize: '0.6rem', fontWeight: 700, marginTop: 4, color: diff >= 0 ? '#16a34a' : '#be2525' }}>
-          {diff >= 0 ? '▲' : '▼'} {Math.abs(Number(pct))}% vs avg
-        </p>
-      </div>
+      <>
+        <GlobalStyles />
+        <div className="p-6 md:p-8 flex flex-col gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5">
+                <SkeletonBar h="h-10" />
+                <div className="mt-3"><SkeletonBar h="h-6" w="w-2/3" /></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </>
     );
-  };
-
-  const computeTrend = (today: number, yesterday: number): { label: string; up: boolean | null } => {
-    if (yesterday === 0 && today === 0) return { label: '—', up: null };
-    if (yesterday === 0) return { label: 'New', up: true };
-    const pct = ((today - yesterday) / yesterday) * 100;
-    const sign = pct >= 0 ? '+' : '';
-    return { label: `${sign}${pct.toFixed(1)}%`, up: pct >= 0 };
-  };
-
-  const trendCashIn  = computeTrend(Number(sd?.cash_in_today      ?? 0), Number(sd?.cash_in_yesterday      ?? 0));
-  const trendCashOut = computeTrend(Number(sd?.cash_out_today      ?? 0), Number(sd?.cash_out_yesterday     ?? 0));
-  const trendSales   = computeTrend(Number(sd?.total_sales_today   ?? 0), Number(sd?.sales_yesterday        ?? 0));
-  const trendVoided  = computeTrend(Number(sd?.voided_sales_today  ?? 0), Number(sd?.voided_yesterday       ?? 0));
-  const trendOverall = computeTrend(Number(sd?.overall_cash_today  ?? 0), Number(sd?.overall_cash_yesterday ?? 0));
-
-  const overallCash = Number(sd?.cash_in_today ?? 0) + Number(sd?.total_sales_today ?? 0) - Number(sd?.cash_out_today ?? 0);
-
-  const statCards = [
-    { label:'Cash In',      sub:'Opening float today',    value:fmt(sd?.cash_in_today),      compact:fmtS(sd?.cash_in_today),      icon:<TrendingUp   size={14} strokeWidth={2.5}/>, iconBg:'#dcfce7', iconColor:'#16a34a', valueColor:'#1a0f2e', trend:trendCashIn.label,  trendUp:trendCashIn.up  ?? true,  sparkColor:'#16a34a', spark:sparklines.cashIn,  sparkFmt:fmtTip },
-    { label:'Cash Out',     sub:'Total disbursed today',  value:fmt(sd?.cash_out_today),     compact:fmtS(sd?.cash_out_today),     icon:<TrendingDown size={14} strokeWidth={2.5}/>, iconBg:'#fee2e2', iconColor:'#dc2626', valueColor:'#1a0f2e', trend:trendCashOut.label, trendUp:trendCashOut.up ?? false, sparkColor:'#dc2626', spark:sparklines.cashOut, sparkFmt:fmtTip },
-    { label:'Total Sales',  sub:'Gross revenue today',    value:fmt(sd?.total_sales_today),  compact:fmtS(sd?.total_sales_today),  icon:<DollarSign   size={14} strokeWidth={2.5}/>, iconBg:'#ede9fe', iconColor:'#7c3aed', valueColor:'#3b2063', trend:trendSales.label,   trendUp:trendSales.up   ?? true,  sparkColor:'#7c3aed', spark:sparklines.sales,   sparkFmt:fmtTip },
-    { label:'Voided Sales', sub:'Cancelled transactions', value:fmt(sd?.voided_sales_today), compact:fmtS(sd?.voided_sales_today), icon:<AlertCircle  size={14} strokeWidth={2.5}/>, iconBg:'#fef9c3', iconColor:'#ca8a04', valueColor:'#1a0f2e', trend:trendVoided.label,  trendUp:trendVoided.up  ?? false, sparkColor:'#ca8a04', spark:sparklines.voided,  sparkFmt:fmtTip },
-    { label:'Overall Cash', sub:'Cash In + Sales − Drop', value:fmt(overallCash),            compact:fmtS(overallCash),            icon:<Wallet       size={14} strokeWidth={2.5}/>, iconBg:'#e0f2fe', iconColor:'#0284c7', valueColor:'#0c4a6e', trend:trendOverall.label, trendUp:trendOverall.up ?? true,  sparkColor:'#0284c7', spark:sparklines.overall, sparkFmt:fmtTip },
-  ];
-
-  const quickStats = [
-    { label:'Total Orders',    value: Number(sd?.total_orders_today ?? 0),                                                                                                          icon:<ShoppingBag  size={12}/>, color:'#3b82f6' },
-    { label:'Avg Order Value', value: fmt(Number(sd?.total_sales_today ?? 0) / Math.max(Number(sd?.total_orders_today ?? 1), 1)),                                                   icon:<Activity     size={12}/>, color:'#8b5cf6' },
-    { label:'Net Cash Flow',   value: fmt(Number(sd?.cash_in_today ?? 0) - Number(sd?.cash_out_today ?? 0)),                                                                        icon:<ArrowUpRight size={12}/>, color:'#10b981' },
-    { label:'Void Rate',       value: `${((Number(sd?.voided_sales_today ?? 0) / Math.max(Number(sd?.total_sales_today ?? 1), 1)) * 100).toFixed(1)}%`,                            icon:<AlertCircle  size={12}/>, color:'#f59e0b' },
-  ];
-
-  const purples = ['#3b2063','#6d28d9','#7c3aed','#a78bfa','#c4b5fd','#ede9fe'];
+  }
 
   return (
     <>
-      <style>{STYLES}</style>
-      <div className="bmd-root px-4 md:px-6 pb-6 pt-4 space-y-4">
+      <GlobalStyles />
+      <div className="p-6 md:p-8 flex flex-col gap-6 fade-in">
 
-        {/* ── STAT CARDS ── */}
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-5">
-          {statCards.map((s, i) => (
-            <div key={i} className="bg-white border border-gray-100 rounded-2xl p-5 flex flex-col gap-3 hover:shadow-md hover:border-[#ddd6f7] transition-all">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="bm-label">{s.label}</p>
-                  <p className="bm-sub" style={{ marginTop: 2 }}>{s.sub}</p>
-                </div>
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: s.iconBg, color: s.iconColor }}>{s.icon}</div>
-              </div>
-              <div>
-                <p className="bm-value" style={{ color: s.valueColor }}>{s.compact}</p>
-                <p className="bm-sub" style={{ marginTop: 4 }}>{s.value}</p>
-              </div>
-              <MiniBar values={s.spark} color={s.sparkColor} formatter={s.sparkFmt} />
-              <div className="flex items-center justify-between pt-1 border-t border-gray-50">
-                <span className="bm-sub">vs yesterday</span>
-                {s.trend === '—' ? (
-                  <span style={{ fontSize:'0.62rem', fontWeight:700, letterSpacing:'0.06em', color:'#a1a1aa' }}>—</span>
-                ) : (
-                  <span style={{ fontSize:'0.62rem', fontWeight:700, letterSpacing:'0.06em', display:'flex', alignItems:'center', gap:3, color: s.trendUp ? '#16a34a' : '#be2525' }}>
-                    {s.trendUp ? <ArrowUpRight size={10}/> : <ArrowDownRight size={10}/>}
-                    {s.trend}
-                  </span>
-                )}
-              </div>
-            </div>
-          ))}
+        {/* ── Header ── */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-bold text-[#1a0f2e]">Overview</h2>
+            <p className="text-xs text-zinc-400 mt-0.5">Real-time summary for your branch today</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {([
+              { key: '7days',   label: '7D'  },
+              { key: '30days',  label: '30D' },
+              { key: '3months', label: '3M'  },
+            ] as const).map(({ key, label }) => (
+              <button key={key} onClick={() => setTimeFilter(key)}
+                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${timeFilter === key ? 'bg-[#3b2063] text-white' : 'bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-50'}`}>
+                {label}
+              </button>
+            ))}
+            <Btn variant="secondary" onClick={fetchData} disabled={loading}>
+              <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+            </Btn>
+          </div>
         </div>
 
-        {/* ── QUICK METRICS ── */}
+        {/* ── Stat Cards ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <StatCard
+            icon={<TrendingUp size={18} strokeWidth={2} />}
+            label="Cash In"
+            value={loading ? '—' : fmt(sd?.cash_in_today)}
+            sub="Opening float today"
+            trend={trendCashIn}
+            color="emerald"
+          />
+          <StatCard
+            icon={<TrendingDown size={18} strokeWidth={2} />}
+            label="Cash Out"
+            value={loading ? '—' : fmt(sd?.cash_out_today)}
+            sub="Total disbursed today"
+            trend={trendCashOut}
+            color="red"
+          />
+          <StatCard
+            icon={<DollarSign size={18} strokeWidth={2} />}
+            label="Total Sales"
+            value={loading ? '—' : fmt(sd?.total_sales_today)}
+            sub="Gross revenue today"
+            trend={trendSales}
+            color="violet"
+          />
+          <StatCard
+            icon={<AlertCircle size={18} strokeWidth={2} />}
+            label="Voided Sales"
+            value={loading ? '—' : fmt(sd?.voided_sales_today)}
+            sub="Cancelled transactions"
+            trend={trendVoided}
+            color="amber"
+          />
+          <StatCard
+            icon={<ShoppingBag size={18} strokeWidth={2} />}
+            label="Total Orders"
+            value={loading ? '—' : Number(sd?.total_orders_today ?? 0).toLocaleString()}
+            sub={`Avg ${avgOrderVal} per order`}
+            color="sky"
+          />
+          <StatCard
+            icon={<Wallet size={18} strokeWidth={2} />}
+            label="Overall Cash"
+            value={loading ? '—' : fmt(overallCash)}
+            sub="Cash In + Sales − Drop"
+            trend={trendOverall}
+            color="violet"
+          />
+        </div>
+
+        {/* ── Quick Metrics Row ── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {quickStats.map((o, i) => (
-            <div key={i} className="bg-white border border-gray-100 rounded-xl px-4 py-3 flex items-center gap-3">
+          {[
+            { label: 'Net Cash Flow',   value: netCashFlow,  icon: <ArrowUpRight size={13} />,  color: '#10b981' },
+            { label: 'Void Rate',        value: voidRate,      icon: <AlertCircle  size={13} />,  color: '#f59e0b' },
+            { label: 'Avg Order Value',  value: avgOrderVal,   icon: <Activity     size={13} />,  color: '#8b5cf6' },
+            { label: 'Items Sold Today', value: sellersToday.slice(0, 6).reduce((a, b) => a + Number(b.total_qty), 0), icon: <Package size={13} />, color: '#3b82f6' },
+          ].map((o, i) => (
+            <div key={i} className="bg-white border border-zinc-200 rounded-[0.625rem] px-4 py-3 flex items-center gap-3 card">
               <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
                 style={{ background: o.color + '18', color: o.color }}>{o.icon}</div>
               <div className="min-w-0">
-                <p className="bm-label truncate" style={{ color: '#a1a1aa' }}>{o.label}</p>
-                <p style={{ fontSize:'0.92rem', fontWeight:800, color:'#1a0f2e', letterSpacing:'-0.025em', lineHeight:1.25 }} className="truncate">{o.value}</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 truncate">{o.label}</p>
+                <p className="text-sm font-bold text-[#1a0f2e] tabular-nums truncate">{o.value}</p>
               </div>
             </div>
           ))}
         </div>
 
-        {/* ── CHART + TODAY TOP SELLERS ── */}
-        <div className="grid gap-4 grid-cols-1 xl:grid-cols-3">
-          <div className="xl:col-span-2 bg-white border border-gray-100 rounded-2xl p-5">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        {/* ── Revenue Chart + Top Sellers Today ── */}
+        <div className="grid grid-cols-12 gap-4">
+          {/* Revenue Chart */}
+          <div className="col-span-12 lg:col-span-8 bg-white border border-zinc-200 rounded-[0.625rem] p-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-5">
               <div>
-                <h2 style={{ fontSize:'0.9rem', fontWeight:800, color:'#1a0f2e', letterSpacing:'-0.025em', margin:0 }}>Revenue Overview</h2>
+                <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">Revenue Trend</p>
+                <p className="text-xl font-bold text-[#1a0f2e] mt-0.5">Revenue Overview</p>
                 <div className="flex items-center gap-4 mt-1.5">
-                  {[['Total', `₱${totalRevenue.toLocaleString()}`], ['Daily Avg', `₱${avgRevenue.toFixed(0)}`], ['Peak', maxDay?.name]].map(([lbl, val], j) => (
+                  {([
+                    ['Total',   `₱${totalRevenue.toLocaleString()}`],
+                    ['Avg/Day', `₱${avgRevenue.toFixed(0)}`],
+                    ['Peak',    maxDay?.name],
+                  ] as const).map(([lbl, val], j) => (
                     <div key={j}>
-                      <span className="bm-label" style={{ color:'#a1a1aa' }}>{lbl}</span>
-                      <span style={{ fontSize:'0.78rem', fontWeight:700, color: j === 2 ? '#7c3aed' : '#1a0f2e', marginLeft:6, letterSpacing:'-0.01em' }}>{val}</span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">{lbl} </span>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: j === 2 ? '#7c3aed' : '#1a0f2e', letterSpacing: '-0.01em' }}>{val}</span>
                     </div>
                   ))}
                 </div>
               </div>
-              <div className="flex gap-1 p-1 bg-gray-50 border border-gray-100 rounded-lg">
-                {([
-                  { key: '7days',   label: '7D',  data: analytics?.weekly    },
-                  { key: '30days',  label: '30D', data: analytics?.monthly   },
-                  { key: '3months', label: '3M',  data: analytics?.quarterly },
-                ] as const).map(({ key, label, data }) => {
-                  const hasData = (data?.length ?? 0) > 0;
-                  return (
-                    <button key={key} onClick={() => setTimeFilter(key)}
-                      className={`bm-tab ${timeFilter === key ? 'bm-tab-on' : 'bm-tab-off'}`}
-                      style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      {label}
-                      {!hasData && (
-                        <span style={{ width: 4, height: 4, borderRadius: '50%', background: timeFilter === key ? 'rgba(255,255,255,0.4)' : '#d4d4d8', flexShrink: 0 }} />
-                      )}
-                    </button>
-                  );
-                })}
+              <Btn variant="secondary"><Download size={13} /> Export</Btn>
+            </div>
+
+            {loading ? (
+              <SkeletonBar h="h-[220px]" />
+            ) : chartData.length === 0 ? (
+              <div className="h-55 flex flex-col items-center justify-center gap-2 text-zinc-400">
+                <Activity size={28} className="opacity-30" />
+                <p className="text-xs font-medium">No data for this period</p>
               </div>
-            </div>
-            <div style={{ height: 220, width: '100%', minHeight: 220, minWidth: 0 }}>
-              {chartData.length === 0 ? (
-                <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#f4f4f5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Activity size={16} color="#a1a1aa" />
-                  </div>
-                  <p className="bm-label" style={{ color: '#a1a1aa' }}>No data for this period</p>
-                  <p className="bm-sub" style={{ color: '#d4d4d8' }}>Switch to 7D to see today's revenue</p>
-                </div>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%" minHeight={0}>
-                  <AreaChart data={chartData} margin={{ top:5, right:5, left:-20, bottom:0 }}>
-                    <defs>
-                      <linearGradient id="bmGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%"  stopColor="#7c3aed" stopOpacity={0.22}/>
-                        <stop offset="95%" stopColor="#7c3aed" stopOpacity={0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid vertical={false} stroke="#f4f4f5"/>
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} dy={8} minTickGap={20}
-                      tick={{ fontSize:9, fill:'#a1a1aa', fontWeight:700 }}/>
-                    <YAxis axisLine={false} tickLine={false} ticks={yTicks} domain={[0, niceMax]}
-                      tick={{ fontSize:9, fill:'#a1a1aa', fontWeight:600 }} tickFormatter={yFmt}/>
-                    <Tooltip content={<ChartTip/>} cursor={{ stroke:'#ddd6f7', strokeWidth:1, strokeDasharray:'3 3' }}/>
-                    <Area type="monotone" dataKey="value" stroke="#3b2063" strokeWidth={2}
-                      fillOpacity={1} fill="url(#bmGrad)"
-                      activeDot={{ r:4, fill:'#3b2063', stroke:'#fff', strokeWidth:2 }}/>
-                  </AreaChart>
-                </ResponsiveContainer>
-              )}
-            </div>
+            ) : (
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="bmGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%"  stopColor="#3b2063" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#3b2063" stopOpacity={0}    />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" vertical={false} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} dy={8} minTickGap={20}
+                    tick={{ fontSize: 11, fill: '#a1a1aa', fontWeight: 600 }} />
+                  <YAxis axisLine={false} tickLine={false} ticks={yTicks} domain={[0, niceMax]}
+                    tick={{ fontSize: 11, fill: '#a1a1aa', fontWeight: 600 }} tickFormatter={fmtK} />
+                  <Tooltip content={(props) => <ChartTip {...props} avgRevenue={avgRevenue} />}
+                    cursor={{ stroke: '#ddd6f7', strokeWidth: 1, strokeDasharray: '3 3' }} />
+                  <Area type="monotone" dataKey="value" name="Revenue" stroke="#3b2063" strokeWidth={2.5}
+                    fillOpacity={1} fill="url(#bmGrad)"
+                    activeDot={{ r: 4, fill: '#3b2063', stroke: '#fff', strokeWidth: 2 }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
 
-          <div className="bg-white border border-gray-100 rounded-2xl p-5 flex flex-col">
-            <div className="flex items-center justify-between mb-4">
+          {/* Top Sellers Today */}
+          <div className="col-span-12 lg:col-span-4 bg-white border border-zinc-200 rounded-[0.625rem] p-6">
+            <div className="flex items-start justify-between mb-5">
               <div>
-                <h2 style={{ fontSize:'0.9rem', fontWeight:800, color:'#1a0f2e', letterSpacing:'-0.025em', margin:0 }}>Top Sellers</h2>
-                <p className="bm-label" style={{ color:'#a1a1aa', marginTop:2 }}>Today's performance</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">Top Sellers</p>
+                <p className="text-xl font-bold text-[#1a0f2e] mt-0.5">Today</p>
               </div>
-              <div className="bm-live"><div className="bm-live-dot"/><span className="bm-live-text">Live</span></div>
+              <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1">
+                <div className="bmd-live-dot" />
+                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">Live</span>
+              </div>
             </div>
-            <div className="flex-1 flex flex-col gap-2">
-              {sellersToday.length > 0 ? sellersToday.slice(0,6).map((item, i) => (
-                <div key={i} className="flex flex-col gap-1">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span style={{ width:20, height:20, borderRadius:'0.3rem', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.55rem', fontWeight:800, background: i===0?'#3b2063':'#f4f4f5', color: i===0?'#fff':'#71717a', flexShrink:0 }}>{i+1}</span>
-                      <span style={{ fontSize:'0.78rem', fontWeight:600, color:'#1a0f2e' }} className="truncate max-w-32.5">{item.product_name}</span>
+
+            {loading ? (
+              <div className="flex flex-col gap-3">{[...Array(5)].map((_, i) => <SkeletonBar key={i} h="h-8" />)}</div>
+            ) : sellersToday.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center py-10">
+                <p className="text-xs font-medium text-zinc-400">No sales yet today</p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {sellersToday.slice(0, 6).map((item, i) => {
+                  const todayMax = Math.max(...sellersToday.map(x => x.total_qty), 1);
+                  return (
+                    <div key={i}>
+                      <div className="flex items-center justify-between mb-1">
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-md flex items-center justify-center shrink-0"
+                            style={{ background: i === 0 ? '#3b2063' : '#f4f4f5', color: i === 0 ? '#fff' : '#71717a' }}>
+                            <span style={{ fontSize: 9, fontWeight: 800 }}>{i + 1}</span>
+                          </div>
+                          <span className="text-xs font-semibold text-zinc-700 truncate max-w-32.5">{item.product_name}</span>
+                        </div>
+                        <span className="text-xs font-bold text-zinc-500 shrink-0 ml-2">{item.total_qty}</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${(item.total_qty / todayMax) * 100}%`, background: PURPLES[i] || '#ede9fe' }} />
+                      </div>
                     </div>
-                    <span style={{ fontSize:'0.72rem', fontWeight:700, color:'#71717a', letterSpacing:'-0.01em', flexShrink:0, marginLeft:8 }}>{item.total_qty}</span>
-                  </div>
-                  <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                    <div className="h-full rounded-full" style={{ width:`${(item.total_qty/todayMax)*100}%`, background: purples[i] || '#ede9fe' }}/>
-                  </div>
+                  );
+                })}
+                <div className="pt-3 border-t border-zinc-100 mt-1">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
+                    Total sold: <span className="text-[#1a0f2e]">{sellersToday.slice(0, 6).reduce((a, b) => a + Number(b.total_qty), 0)} items</span>
+                  </p>
                 </div>
-              )) : (
-                <div className="flex-1 flex items-center justify-center">
-                  <p className="bm-label" style={{ color:'#d4d4d8' }}>No sales yet today</p>
-                </div>
-              )}
-            </div>
-            {sellersToday.length > 0 && (
-              <div className="mt-4 pt-3 border-t border-gray-50">
-                <p className="bm-label" style={{ color:'#a1a1aa' }}>
-                  Total sold: <span style={{ color:'#1a0f2e' }}>{sellersToday.slice(0,6).reduce((a,b) => a + Number(b.total_qty), 0)} items</span>
-                </p>
               </div>
             )}
           </div>
         </div>
 
-        {/* ── ALL-TIME + RANK ── */}
-        <div className="grid gap-4 grid-cols-1 xl:grid-cols-2">
-          <div className="bg-white border border-gray-100 rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 style={{ fontSize:'0.9rem', fontWeight:800, color:'#1a0f2e', letterSpacing:'-0.025em', margin:0 }}>All-Time Best Sellers</h2>
-                <p className="bm-label" style={{ color:'#a1a1aa', marginTop:2 }}>Cumulative rankings</p>
-              </div>
-              <span className="bm-pill">Overall</span>
-            </div>
-            <div style={{ height:200, minHeight: 200 }}>
-              <ResponsiveContainer width="100%" height="100%" minHeight={0}>
-                <BarChart data={sellersAllTime.slice(0,6).map(x=>({ name:x.product_name.split(' ')[0], qty:x.total_qty }))} margin={{ top:0, right:0, left:-25, bottom:0 }}>
-                  <CartesianGrid vertical={false} stroke="#f4f4f5"/>
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize:9, fill:'#a1a1aa', fontWeight:700 }}/>
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize:9, fill:'#a1a1aa', fontWeight:600 }}/>
-                  <Tooltip formatter={v=>[`${v} sold`,'Qty']} contentStyle={{ borderRadius:'0.625rem', border:'1.5px solid #ebebed', fontSize:11, fontFamily:'DM Sans, sans-serif' }}/>
-                  <Bar dataKey="qty" radius={[4,4,0,0]}>
-                    {sellersAllTime.slice(0,6).map((_,i)=>(
-                      <Cell key={i} fill={i===0 ? '#3b2063' : `hsl(${265-i*15},${70-i*8}%,${60+i*5}%)`}/>
+        {/* ── All-Time Best Sellers + Rank Breakdown ── */}
+        <div className="grid grid-cols-12 gap-4">
+          {/* Bar Chart */}
+          <div className="col-span-12 lg:col-span-7 bg-white border border-zinc-200 rounded-[0.625rem] p-6">
+            <SectionHeader title="All-Time Best Sellers" desc="Cumulative sales volume by product" />
+            {loading ? (
+              <SkeletonBar h="h-[180px]" />
+            ) : sellersAllTime.length === 0 ? (
+              <div className="h-45 flex items-center justify-center text-zinc-400 text-xs">No records found.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart
+                  data={sellersAllTime.slice(0, 6).map(x => ({ name: x.product_name.split(' ')[0], qty: x.total_qty }))}
+                  margin={{ top: 0, right: 0, left: -25, bottom: 0 }}
+                  barSize={28}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" vertical={false} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#a1a1aa', fontWeight: 600 }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#a1a1aa', fontWeight: 600 }} />
+                  <Tooltip
+                    formatter={(v) => [`${v} sold`, 'Qty'] as [string, string]}
+                    contentStyle={{ borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 12 }}
+                  />
+                  <Bar dataKey="qty" radius={[4, 4, 0, 0]}>
+                    {sellersAllTime.slice(0, 6).map((_, i) => (
+                      <Cell key={i} fill={i === 0 ? '#3b2063' : `hsl(${265 - i * 15},${70 - i * 8}%,${60 + i * 5}%)`} />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-            </div>
+            )}
           </div>
 
-          <div className="bg-white border border-gray-100 rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 style={{ fontSize:'0.9rem', fontWeight:800, color:'#1a0f2e', letterSpacing:'-0.025em', margin:0 }}>Rank Breakdown</h2>
-                <p className="bm-label" style={{ color:'#a1a1aa', marginTop:2 }}>Share of total volume</p>
+          {/* Rank Breakdown */}
+          <div className="col-span-12 lg:col-span-5 bg-white border border-zinc-200 rounded-[0.625rem] p-6">
+            <SectionHeader title="Rank Breakdown" desc="Share of total sales volume" />
+            {loading ? (
+              <div className="flex flex-col gap-3">{[...Array(5)].map((_, i) => <SkeletonBar key={i} h="h-8" />)}</div>
+            ) : sellersAllTime.length === 0 ? (
+              <div className="flex items-center justify-center py-10">
+                <p className="text-xs font-medium text-zinc-400">No records found</p>
               </div>
-            </div>
-            <div className="flex flex-col gap-3">
-              {sellersAllTime.length > 0 ? sellersAllTime.slice(0,6).map((item,i) => {
-                const pct = Math.round((item.total_qty / allTimeMax) * 100);
-                return (
-                  <div key={i} className="flex items-center gap-3">
-                    <span style={{ width:24, height:24, borderRadius:'0.4rem', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.55rem', fontWeight:800, flexShrink:0, background: i===0?'#3b2063':i===1?'#ede8ff':'#f4f4f5', color: i===0?'#fff':i===1?'#3b2063':'#71717a' }}>{i+1}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-center mb-1">
-                        <span style={{ fontSize:'0.78rem', fontWeight:600, color:'#1a0f2e' }} className="truncate">{item.product_name}</span>
-                        <span style={{ fontSize:'0.72rem', fontWeight:700, color:'#71717a', letterSpacing:'-0.01em', flexShrink:0, marginLeft:8 }}>{item.total_qty.toLocaleString()}</span>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {sellersAllTime.slice(0, 6).map((item, i) => {
+                  const pct = Math.round((item.total_qty / allTimeMax) * 100);
+                  return (
+                    <div key={i} className="flex items-center gap-3">
+                      <div className="w-5 h-5 rounded-md flex items-center justify-center shrink-0"
+                        style={{ background: i === 0 ? '#3b2063' : i === 1 ? '#ede8ff' : '#f4f4f5', color: i === 0 ? '#fff' : i === 1 ? '#3b2063' : '#71717a' }}>
+                        <span style={{ fontSize: 9, fontWeight: 800 }}>{i + 1}</span>
                       </div>
-                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full" style={{ width:`${pct}%`, background: i===0?'#3b2063':'#d4d4d8' }}/>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-semibold text-zinc-700 truncate">{item.product_name}</span>
+                          <span className="text-[10px] font-bold text-zinc-500 ml-2 shrink-0">{item.total_qty.toLocaleString()}</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: i === 0 ? '#3b2063' : '#d4d4d8' }} />
+                        </div>
                       </div>
+                      <span className="text-[10px] font-bold text-zinc-400 shrink-0 w-8 text-right">{pct}%</span>
                     </div>
-                    <span className="bm-label" style={{ color:'#a1a1aa', flexShrink:0, width:32, textAlign:'right' }}>{pct}%</span>
-                  </div>
-                );
-              }) : (
-                <div className="text-center py-8">
-                  <p className="bm-label" style={{ color:'#d4d4d8' }}>No records found</p>
-                </div>
-              )}
-            </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Sparkline Trends ── */}
+        <div className="bg-white border border-zinc-200 rounded-[0.625rem] p-6">
+          <SectionHeader title="7-Day Trends" desc="Daily sparklines for each metric" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
+            {[
+              { label: 'Cash In',     spark: toSpark(sd?.spark_cash_in,  Number(sd?.cash_in_today     ?? 0)), color: '#16a34a' },
+              { label: 'Cash Out',    spark: toSpark(sd?.spark_cash_out, Number(sd?.cash_out_today    ?? 0)), color: '#dc2626' },
+              { label: 'Total Sales', spark: toSpark(sd?.spark_sales,    Number(sd?.total_sales_today  ?? 0)), color: '#7c3aed' },
+              { label: 'Voided',      spark: toSpark(sd?.spark_voided,   Number(sd?.voided_sales_today ?? 0)), color: '#ca8a04' },
+              { label: 'Overall',     spark: toSpark(sd?.spark_overall,  overallCash),                          color: '#0284c7' },
+            ].map((s, i) => (
+              <div key={i}>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{s.label}</p>
+                <MiniSparkline values={s.spark} color={s.color} />
+              </div>
+            ))}
           </div>
         </div>
 
