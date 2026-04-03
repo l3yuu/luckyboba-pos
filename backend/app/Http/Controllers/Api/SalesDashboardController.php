@@ -201,10 +201,10 @@ class SalesDashboardController extends Controller
 
             $todayStart = $now->copy()->startOfDay();
             $todayEnd   = $now->copy()->endOfDay();
-            $weekStart  = $now->copy()->startOfWeek();
-            $weekEnd    = $now->copy()->endOfWeek();
-            $monthStart = $now->copy()->startOfMonth();
-            $monthEnd   = $now->copy()->endOfMonth();
+            $weekStart  = $now->copy()->startOfWeek(\Carbon\Carbon::MONDAY)->startOfDay();
+            $weekEnd    = $now->copy()->endOfWeek(\Carbon\Carbon::SUNDAY)->endOfDay();
+            $monthStart = $now->copy()->startOfMonth()->startOfDay();
+            $monthEnd   = $now->copy()->endOfMonth()->endOfDay();
 
             // ── Helper: chart data (sales per day) ────────────────────────────
             $salesByDay = function ($from, $to) use ($branchId) {
@@ -263,34 +263,39 @@ class SalesDashboardController extends Controller
             };
 
             // ── Top sellers today ──────────────────────────────────────────────
-            $topSellerToday = DB::table('sale_items')
-                ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
-                ->whereBetween('sales.created_at', [$todayStart, $todayEnd])
-                ->where('sales.status', 'completed')
-                ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
-                ->selectRaw('sale_items.product_name, SUM(sale_items.quantity) as total_qty')
-                ->groupBy('sale_items.product_name')
-                ->orderByDesc('total_qty')
-                ->limit(6)
-                ->get();
+            $topSellerByPeriod = function ($from, $to) use ($branchId) {
+                return DB::table('sale_items')
+                    ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+                    ->whereBetween('sales.created_at', [$from, $to])
+                    ->where('sales.status', 'completed')
+                    ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+                    ->selectRaw('sale_items.product_name, SUM(sale_items.quantity) as total_qty')
+                    ->groupBy('sale_items.product_name')
+                    ->orderByDesc('total_qty')
+                    ->limit(6)
+                    ->get();
+            };
 
             return response()->json([
                 'success' => true,
                 'data' => [
                     'daily_sales'   => [
-                        'data'  => $salesByDay($todayStart, $todayEnd),
-                        'stats' => $statsByPeriod($todayStart, $todayEnd),
+                        'data'         => $salesByDay($todayStart, $todayEnd),
+                        'stats'        => $statsByPeriod($todayStart, $todayEnd),
+                        'top_sellers'  => $topSellerByPeriod($todayStart, $todayEnd),
                     ],
                     'weekly_sales'  => [
-                        'data'  => $salesByDay($weekStart, $weekEnd),
-                        'stats' => $statsByPeriod($weekStart, $weekEnd),
+                        'data'         => $salesByDay($weekStart, $weekEnd),
+                        'stats'        => $statsByPeriod($weekStart, $weekEnd),
+                        'top_sellers'  => $topSellerByPeriod($weekStart, $weekEnd),
                     ],
                     'monthly_sales' => [
-                        'data'  => $salesByDay($monthStart, $monthEnd),
-                        'stats' => $statsByPeriod($monthStart, $monthEnd),
+                        'data'         => $salesByDay($monthStart, $monthEnd),
+                        'stats'        => $statsByPeriod($monthStart, $monthEnd),
+                        'top_sellers'  => $topSellerByPeriod($monthStart, $monthEnd),
                     ],
                     'statistics' => [
-                        'top_seller_today' => $topSellerToday,
+                        'top_seller_today' => $topSellerByPeriod($todayStart, $todayEnd),
                     ],
                 ],
             ]);

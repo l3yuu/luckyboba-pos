@@ -42,19 +42,18 @@ interface PeriodStats {
 }
 
 interface PeriodData {
-  data:  { date: string; day: string; value: number }[];
-  stats: PeriodStats;
+  data:        { date: string; day: string; value: number }[];
+  stats:       PeriodStats;
+  top_sellers: TopSellerItem[];
 }
 
 interface DashboardApiResponse {
   success: boolean;
   data: {
-    daily_sales:   { data: { date: string; day: string; value: number }[]; stats: PeriodStats };
-    weekly_sales:  { data: { date: string; day: string; value: number }[]; stats: PeriodStats };
-    monthly_sales: { data: { date: string; day: string; value: number }[]; stats: PeriodStats };
-    statistics: {
-      top_seller_today?: TopSellerItem[];
-    };
+    daily_sales:   { data: { date: string; day: string; value: number }[]; stats: PeriodStats; top_sellers: TopSellerItem[] };
+    weekly_sales:  { data: { date: string; day: string; value: number }[]; stats: PeriodStats; top_sellers: TopSellerItem[] };
+    monthly_sales: { data: { date: string; day: string; value: number }[]; stats: PeriodStats; top_sellers: TopSellerItem[] };
+    statistics: { top_seller_today?: TopSellerItem[] };
   };
 }
 
@@ -71,7 +70,7 @@ interface BM_DashboardProps {
 }
 
 // ─── Cache helpers ────────────────────────────────────────────────────────────
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v6';
 const cacheKey = (branchId: number | null) =>
   `lucky_boba_analytics_${CACHE_VERSION}_branch_${branchId ?? 'all'}`;
 
@@ -231,9 +230,9 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
       const apiData = res.data.data;
 
       const mappedData: SalesAnalyticsResponse = {
-        daily:   { data: apiData.daily_sales.data,   stats: apiData.daily_sales.stats   },
-        weekly:  { data: apiData.weekly_sales.data,  stats: apiData.weekly_sales.stats  },
-        monthly: { data: apiData.monthly_sales.data, stats: apiData.monthly_sales.stats },
+        daily:   { data: apiData.daily_sales.data,   stats: apiData.daily_sales.stats,   top_sellers: apiData.daily_sales.top_sellers   },
+        weekly:  { data: apiData.weekly_sales.data,  stats: apiData.weekly_sales.stats,  top_sellers: apiData.weekly_sales.top_sellers  },
+        monthly: { data: apiData.monthly_sales.data, stats: apiData.monthly_sales.stats, top_sellers: apiData.monthly_sales.top_sellers },
         top_seller_today: apiData.statistics.top_seller_today || [],
       };
 
@@ -267,7 +266,7 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
   // ── Active period data (changes with filter) ───────────────────────────────
   const activePeriod = analytics?.[timeFilter];
   const sd           = activePeriod?.stats;
-  const sellersToday = analytics?.top_seller_today || [];
+  const sellersToday = activePeriod?.top_sellers || [];
 
   const overallCash  = Number(sd?.cash_in ?? 0) + Number(sd?.total_sales ?? 0) - Number(sd?.cash_out ?? 0);
 
@@ -283,10 +282,13 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
   const chartData = (() => {
     const raw: ChartPoint[] = activePeriod?.data || [];
     return raw.map((d: ChartPoint) => {
-      const o = new Date(d.date);
+      // ── Fix: append T00:00:00 to force local time parsing, not UTC ──
+      const o = new Date(d.date + 'T00:00:00');
       const label = isNaN(o.getTime())
         ? d.date
-        : o.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        : timeFilter === 'monthly'
+          ? o.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+          : o.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
       return { name: label, value: d.value };
     });
   })();
@@ -298,7 +300,9 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
     chartData[0] || { name: '—', value: 0 }
   );
   const maxVal   = Math.max(...chartData.map(d => d.value), 1);
-  const stepSize = timeFilter === 'monthly' ? 10_000 : 2_000;
+  const stepSize = timeFilter === 'monthly' ? (maxVal > 50_000 ? 10_000 : 5_000)
+                : timeFilter === 'weekly'  ? (maxVal > 10_000 ? 5_000  : 2_000)
+                : 2_000;
   const niceMax  = Math.ceil(maxVal / stepSize) * stepSize;
   const yTicks   = Array.from({ length: Math.min(Math.ceil(niceMax / stepSize) + 1, 7) }, (_: unknown, i: number) => i * stepSize);
 
@@ -500,7 +504,9 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
             <div className="flex items-start justify-between mb-5">
               <div>
                 <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">Top Sellers</p>
-                <p className="text-xl font-bold text-[#1a0f2e] mt-0.5">Today</p>
+                <p className="text-xl font-bold text-[#1a0f2e] mt-0.5">
+                  {timeFilter === 'daily' ? 'Today' : timeFilter === 'weekly' ? 'This Week' : 'This Month'}
+                </p>
               </div>
               <div className="flex items-center gap-1.5 bg-emerald-50 border border-emerald-200 rounded-full px-2.5 py-1">
                 <div className="bmd-live-dot" />
