@@ -53,7 +53,7 @@ const CATEGORIES: Category[] = ['Packaging', 'Ingredients', 'Intermediate', 'Equ
 
 const CATEGORY_COLORS: Record<Category, { bg: string; text: string; border: string }> = {
   Packaging:    { bg: '#f0fdf4', text: '#16a34a', border: '#bbf7d0' },
-  Ingredients:  { bg: '#f5f0ff', text: '#7c14d4', border: '#e9d5ff' },
+  Ingredients:  { bg: '#f5f0ff', text: '#3b2063', border: '#e9d5ff' },
   Intermediate: { bg: '#fffbeb', text: '#d97706', border: '#fde68a' },
   Equipment:    { bg: '#eff6ff', text: '#2563eb', border: '#bfdbfe' },
 };
@@ -119,10 +119,10 @@ const HistoryDrawer: React.FC<{ item: RawMaterial; onClose: () => void }> = ({ i
   const typeIcon = (t: AdjType) => {
     if (t === 'add')      return <TrendingUp  size={12} color="#16a34a" />;
     if (t === 'subtract') return <TrendingDown size={12} color="#dc2626" />;
-    return                       <Minus        size={12} color="#7c14d4" />;
+    return                       <Minus        size={12} color="#3b2063" />;
   };
 
-  const typeColor = (t: AdjType) => t === 'add' ? '#16a34a' : t === 'subtract' ? '#dc2626' : '#7c14d4';
+  const typeColor = (t: AdjType) => t === 'add' ? '#16a34a' : t === 'subtract' ? '#dc2626' : '#3b2063';
 
   return createPortal(
     <div className="fixed inset-0 z-9999 flex justify-end"
@@ -131,7 +131,7 @@ const HistoryDrawer: React.FC<{ item: RawMaterial; onClose: () => void }> = ({ i
       <div className="relative bg-white w-full max-w-sm h-full flex flex-col shadow-2xl">
         <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 bg-[#faf9ff]">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#7c14d4] rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-[#3b2063] rounded-lg flex items-center justify-center">
               <History size={14} className="text-white" />
             </div>
             <div>
@@ -221,7 +221,7 @@ const AdjustModal: React.FC<{
   const typeConfig = {
     add:      { label: 'Add Stock',      color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', icon: <TrendingUp  size={14} /> },
     subtract: { label: 'Subtract Stock', color: '#dc2626', bg: '#fef2f2', border: '#fecaca', icon: <TrendingDown size={14} /> },
-    set:      { label: 'Set Stock',      color: '#7c14d4', bg: '#f5f0ff', border: '#e9d5ff', icon: <Minus        size={14} /> },
+    set:      { label: 'Set Stock',      color: '#3b2063', bg: '#f5f0ff', border: '#e9d5ff', icon: <Minus        size={14} /> },
   };
 
   return createPortal(
@@ -232,7 +232,7 @@ const AdjustModal: React.FC<{
         <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center">
-              <Package size={15} className="text-[#7c14d4]" />
+              <Package size={15} className="text-[#3b2063]" />
             </div>
             <div>
               <p className="text-sm font-bold text-[#1a0f2e]">Adjust Stock</p>
@@ -372,7 +372,7 @@ const MaterialFormModal: React.FC<{
         <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center">
-              <FlaskConical size={15} className="text-[#7c14d4]" />
+              <FlaskConical size={15} className="text-[#3b2063]" />
             </div>
             <div>
               <p className="text-sm font-bold text-[#1a0f2e]">{editing ? 'Edit Material' : 'Add Raw Material'}</p>
@@ -427,8 +427,8 @@ const MaterialFormModal: React.FC<{
           </Field>
 
           <label className="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl cursor-pointer hover:bg-[#faf9ff] transition-colors">
-            <div className={`w-10 h-6 rounded-full transition-colors flex items-center ${form.is_intermediate ? 'bg-[#7c14d4]' : 'bg-zinc-300'}`}
-              onClick={() => setForm(p => ({ ...p, is_intermediate: !p.is_intermediate }))}>
+            <div className={`w-10 h-6 rounded-full transition-colors flex items-center ${form.is_intermediate ? 'bg-[#3b2063]' : 'bg-zinc-300'}`}
+              onClick={() => setForm(p => ({ ...p, is_intermediate: !p.is_intermediate }))}>  
               <div className={`w-4 h-4 bg-white rounded-full mx-1 transition-transform ${form.is_intermediate ? 'translate-x-4' : ''}`} />
             </div>
             <div>
@@ -444,7 +444,7 @@ const MaterialFormModal: React.FC<{
             Cancel
           </button>
           <button onClick={handleSubmit} disabled={saving}
-            className="flex-1 py-2.5 bg-[#7c14d4] hover:bg-[#6a12b8] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">
+            className="flex-1 py-2.5 bg-[#3b2063] hover:bg-[#2d1851] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">
             {saving ? 'Saving...' : editing ? 'Save Changes' : 'Add Material'}
           </button>
         </div>
@@ -575,11 +575,11 @@ const RawMaterialsTab: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           <button onClick={fetchMaterials} disabled={loading}
-            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#7c14d4] hover:border-[#7c14d4] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
+            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
           </button>
           <button onClick={() => setAddOpen(true)}
-            className="bg-[#7c14d4] hover:bg-[#6a12b8] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all">
+            className="bg-[#3b2063] hover:bg-[#2d1851] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all">
             <Plus size={13} /> Add Material
           </button>
         </div>
@@ -588,7 +588,7 @@ const RawMaterialsTab: React.FC = () => {
       {/* Stat Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
         {[
-          { label: 'Total Items',    value: totalItems,      color: '#7c14d4', bg: '#f5f0ff', border: '#e9d5ff' },
+          { label: 'Total Items',    value: totalItems,      color: '#3b2063', bg: '#f5f0ff', border: '#e9d5ff' },
           { label: 'Low Stock',      value: lowStockCnt,     color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
           { label: 'Out of Stock',   value: outOfStockCnt,   color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
           { label: 'Intermediate',   value: intermediateCnt, color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
@@ -701,15 +701,15 @@ const RawMaterialsTab: React.FC = () => {
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-1">
                         <button onClick={() => setAdjTarget(m)} title="Adjust Stock"
-                          className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#7c14d4] transition-colors">
+                          className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors">
                           <ChevronDown size={13} />
                         </button>
                         <button onClick={() => setHistTarget(m)} title="View History"
-                          className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#7c14d4] transition-colors">
+                          className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors">
                           <History size={13} />
                         </button>
                         <button onClick={() => setEditTarget(m)} title="Edit"
-                          className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#7c14d4] transition-colors">
+                          className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors">
                           <Edit2 size={13} />
                         </button>
                         <button onClick={() => setDelTarget(m)} title="Delete"

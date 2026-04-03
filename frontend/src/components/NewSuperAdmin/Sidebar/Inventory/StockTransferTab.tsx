@@ -169,7 +169,7 @@ const CreateTransferModal: React.FC<{
         <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center">
-              <ArrowRightLeft size={15} className="text-[#7c14d4]" />
+              <ArrowRightLeft size={15} className="text-[#3b2063]" />
             </div>
             <div>
               <p className="text-sm font-bold text-[#1a0f2e]">Create Stock Transfer</p>
@@ -194,7 +194,7 @@ const CreateTransferModal: React.FC<{
             </div>
             <div className="pt-5 shrink-0">
               <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-full flex items-center justify-center">
-                <ArrowRightLeft size={14} className="text-[#7c14d4]" />
+                <ArrowRightLeft size={14} className="text-[#3b2063]" />
               </div>
             </div>
             <div className="flex-1">
@@ -214,7 +214,7 @@ const CreateTransferModal: React.FC<{
                 <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 mb-0.5">Source</p>
                 <p className="text-xs font-bold text-zinc-700">{fromBranch?.name ?? '—'}</p>
               </div>
-              <ArrowRightLeft size={16} className="text-[#7c14d4] shrink-0" />
+              <ArrowRightLeft size={16} className="text-[#3b2063] shrink-0" />
               <div className="flex-1 text-center">
                 <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 mb-0.5">Destination</p>
                 <p className="text-xs font-bold text-zinc-700">{toBranch?.name ?? '—'}</p>
@@ -235,7 +235,7 @@ const CreateTransferModal: React.FC<{
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Items <span className="text-red-400">*</span></label>
-              <button onClick={addRow} className="flex items-center gap-1 px-2.5 py-1 bg-[#f5f0ff] border border-[#e9d5ff] text-[#7c14d4] rounded-lg text-[10px] font-bold hover:bg-[#ede8ff] transition-colors">
+              <button onClick={addRow} className="flex items-center gap-1 px-2.5 py-1 bg-[#f5f0ff] border border-[#e9d5ff] text-[#3b2063] rounded-lg text-[10px] font-bold hover:bg-[#ede8ff] transition-colors">
                 <Plus size={11} /> Add Row
               </button>
             </div>
@@ -277,7 +277,7 @@ const CreateTransferModal: React.FC<{
 
         <div className="flex items-center gap-2 px-6 py-4 border-t border-zinc-100 shrink-0">
           <button onClick={onClose} disabled={saving} className="flex-1 py-2.5 bg-white border border-zinc-200 text-zinc-600 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all disabled:opacity-50">Cancel</button>
-          <button onClick={handleSubmit} disabled={saving} className="flex-1 py-2.5 bg-[#7c14d4] hover:bg-[#6a12b8] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">{saving ? 'Creating...' : 'Create Transfer'}</button>
+          <button onClick={handleSubmit} disabled={saving} className="flex-1 py-2.5 bg-[#3b2063] hover:bg-[#6a12b8] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">{saving ? 'Creating...' : 'Create Transfer'}</button>
         </div>
       </div>
     </div>,
@@ -313,7 +313,7 @@ const ViewTransferModal: React.FC<{
         <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center">
-              <ArrowRightLeft size={15} className="text-[#7c14d4]" />
+              <ArrowRightLeft size={15} className="text-[#3b2063]" />
             </div>
             <div>
               <p className="text-sm font-bold text-[#1a0f2e]">{transfer.transfer_number}</p>
@@ -333,7 +333,7 @@ const ViewTransferModal: React.FC<{
                 <p className="text-xs font-bold text-zinc-700">{transfer.from_branch?.name ?? transfer.from_branch_name ?? '—'}</p>
               </div>
             </div>
-            <ArrowRightLeft size={18} className="text-[#7c14d4] shrink-0" />
+            <ArrowRightLeft size={18} className="text-[#3b2063] shrink-0" />
             <div className="flex-1 text-center">
               <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 mb-1">To</p>
               <div className="flex items-center justify-center gap-1.5">
@@ -360,7 +360,7 @@ const ViewTransferModal: React.FC<{
             {items.map((item, i) => (
               <div key={i} className="grid grid-cols-[1fr_80px_60px] px-4 py-2.5 border-b border-zinc-100 last:border-0">
                 <p className="text-xs font-semibold text-zinc-700">{item.material_name}</p>
-                <p className="text-xs font-bold text-[#7c14d4] tabular-nums">{item.quantity}</p>
+                <p className="text-xs font-bold text-[#3b2063] tabular-nums">{item.quantity}</p>
                 <p className="text-xs font-bold text-zinc-400 bg-zinc-100 px-1.5 py-0.5 rounded w-fit">{item.unit}</p>
               </div>
             ))}
@@ -425,10 +425,10 @@ const StockTransferTab: React.FC = () => {
           <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">{loading ? 'Loading...' : `${transfers.length} transfers · inter-branch stock movements`}</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={fetchAll} disabled={loading} className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#7c14d4] hover:border-[#7c14d4] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
+          <button onClick={fetchAll} disabled={loading} className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
           </button>
-          <button onClick={() => setAddOpen(true)} className="bg-[#7c14d4] hover:bg-[#6a12b8] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all">
+          <button onClick={() => setAddOpen(true)} className="bg-[#3b2063] hover:bg-[#6a12b8] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all">
             <Plus size={13} /> New Transfer
           </button>
         </div>
@@ -439,7 +439,7 @@ const StockTransferTab: React.FC = () => {
         {(Object.entries(counts) as [TransferStatus, number][]).map(([status, count]) => {
           const c = STATUS_CONFIG[status];
           return (
-            <div key={status} className="bg-white border rounded-[0.625rem] px-4 py-3.5 shadow-sm cursor-pointer hover:border-[#7c14d4] transition-colors" style={{ borderColor: statusFilter === status ? '#7c14d4' : c.border }}
+            <div key={status} className="bg-white border rounded-[0.625rem] px-4 py-3.5 shadow-sm cursor-pointer hover:border-[#3b2063] transition-colors" style={{ borderColor: statusFilter === status ? '#3b2063' : c.border }}
               onClick={() => setStatusFilter(statusFilter === status ? '' : status)}>
               <div className="flex items-center gap-1.5 mb-1">
                 <span style={{ color: c.text }}>{c.icon}</span>
@@ -494,7 +494,7 @@ const StockTransferTab: React.FC = () => {
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center shrink-0">
-                            <ArrowRightLeft size={12} className="text-[#7c14d4]" />
+                            <ArrowRightLeft size={12} className="text-[#3b2063]" />
                           </div>
                           <span className="font-black text-[#1a0f2e] text-xs">{t.transfer_number}</span>
                         </div>
@@ -520,15 +520,15 @@ const StockTransferTab: React.FC = () => {
                         ) : <span className="text-zinc-300 text-xs">—</span>}
                       </td>
                       <td className="px-5 py-3.5">
-                        <span className="text-xs font-bold text-[#7c14d4] bg-[#f5f0ff] px-2 py-0.5 rounded border border-[#e9d5ff]">{items.length} items</span>
+                        <span className="text-xs font-bold text-[#3b2063] bg-[#f5f0ff] px-2 py-0.5 rounded border border-[#e9d5ff]">{items.length} items</span>
                       </td>
                       <td className="px-5 py-3.5"><StatusBadge status={t.status} /></td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-1">
-                          <button onClick={() => setExpanded(isExp ? null : t.id)} className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#7c14d4] transition-colors">
+                          <button onClick={() => setExpanded(isExp ? null : t.id)} className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors">
                             <ChevronDown size={13} className={`transition-transform ${isExp ? 'rotate-180' : ''}`} />
                           </button>
-                          <button onClick={() => setViewTarget(t)} className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#7c14d4] transition-colors">
+                          <button onClick={() => setViewTarget(t)} className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors">
                             <Eye size={13} />
                           </button>
                         </div>
@@ -539,12 +539,12 @@ const StockTransferTab: React.FC = () => {
                         <td colSpan={7} className="px-5 pb-3 pt-1">
                           <div className="ml-10 border border-[#e9d5ff] rounded-xl overflow-hidden">
                             <div className="grid grid-cols-3 bg-[#f5f0ff] px-4 py-2 border-b border-[#e9d5ff]">
-                              {['Material', 'Quantity', 'Unit'].map(h => <p key={h} className="text-[9px] font-bold uppercase tracking-widest text-[#7c14d4]">{h}</p>)}
+                              {['Material', 'Quantity', 'Unit'].map(h => <p key={h} className="text-[9px] font-bold uppercase tracking-widest text-[#3b2063]">{h}</p>)}
                             </div>
                             {items.map((item, i) => (
                               <div key={i} className="grid grid-cols-3 px-4 py-2.5 border-b border-zinc-100 last:border-0">
                                 <p className="text-xs font-semibold text-zinc-700">{item.material_name}</p>
-                                <p className="text-xs font-bold text-[#7c14d4] tabular-nums">{item.quantity}</p>
+                                <p className="text-xs font-bold text-[#3b2063] tabular-nums">{item.quantity}</p>
                                 <span className="text-xs font-bold text-zinc-400 bg-zinc-100 px-1.5 py-0.5 rounded w-fit">{item.unit}</span>
                               </div>
                             ))}

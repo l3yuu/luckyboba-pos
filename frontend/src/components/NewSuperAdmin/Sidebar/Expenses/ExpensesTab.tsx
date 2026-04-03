@@ -7,7 +7,7 @@ import {
   User, FileText, TrendingDown,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
-import api from '../../../services/api';
+import api from '../../../../services/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -166,7 +166,7 @@ const ExpenseFormModal: React.FC<{
         <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center">
-              <Receipt size={15} className="text-[#7c14d4]" />
+              <Receipt size={15} className="text-[#3b2063]" />
             </div>
             <div>
               <p className="text-sm font-bold text-[#1a0f2e]">{editing ? 'Edit Expense' : 'Record Expense'}</p>
@@ -223,7 +223,7 @@ const ExpenseFormModal: React.FC<{
 
           {/* Receipt upload */}
           <Field label="Receipt / Proof">
-            <label className="flex flex-col items-center justify-center w-full border-2 border-dashed border-zinc-200 rounded-xl cursor-pointer hover:border-[#7c14d4] hover:bg-[#faf9ff] transition-all p-4">
+            <label className="flex flex-col items-center justify-center w-full border-2 border-dashed border-zinc-200 rounded-xl cursor-pointer hover:border-[#3b2063] hover:bg-[#faf9ff] transition-all p-4">
               {preview ? (
                 <div className="flex items-center gap-3 w-full">
                   <img src={preview} alt="Receipt" className="w-16 h-16 object-cover rounded-lg border border-zinc-200" />
@@ -250,7 +250,7 @@ const ExpenseFormModal: React.FC<{
             Cancel
           </button>
           <button onClick={handleSubmit} disabled={saving}
-            className="flex-1 py-2.5 bg-[#7c14d4] hover:bg-[#6a12b8] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">
+            className="flex-1 py-2.5 bg-[#3b2063] hover:bg-[#6a12b8] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">
             {saving ? 'Saving...' : editing ? 'Save Changes' : 'Record Expense'}
           </button>
         </div>
@@ -395,15 +395,15 @@ const ExpensesTab: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           <button onClick={fetchAll} disabled={loading}
-            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#7c14d4] hover:border-[#7c14d4] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
+            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
           </button>
           <button onClick={handleExport} disabled={exporting || loading}
-            className="bg-white border border-zinc-200 text-zinc-500 hover:text-[#7c14d4] hover:border-[#e9d5ff] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold disabled:opacity-50">
+            className="bg-white border border-zinc-200 text-zinc-500 hover:text-[#3b2063] hover:border-[#e9d5ff] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold disabled:opacity-50">
             <Download size={13} /> {exporting ? 'Exporting...' : 'Export CSV'}
           </button>
           <button onClick={() => setAddOpen(true)}
-            className="bg-[#7c14d4] hover:bg-[#6a12b8] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all">
+            className="bg-[#3b2063] hover:bg-[#6a12b8] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all">
             <Plus size={13} /> Record Expense
           </button>
         </div>
@@ -413,7 +413,7 @@ const ExpensesTab: React.FC = () => {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
         <div className="bg-white border border-[#e9d5ff] rounded-[0.625rem] px-5 py-4 shadow-sm col-span-2 sm:col-span-1">
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">This Month</p>
-          <p className="text-2xl font-black text-[#7c14d4] tabular-nums">
+          <p className="text-2xl font-black text-[#3b2063] tabular-nums">
             {loading ? '—' : `₱${totalThisMonth.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
           </p>
           <p className="text-[10px] text-zinc-400 mt-0.5">{MONTHS[now.getMonth()]} {now.getFullYear()}</p>
@@ -532,7 +532,7 @@ const ExpensesTab: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-5 py-3.5">
-                    <p className="text-sm font-black text-[#7c14d4] tabular-nums">
+                    <p className="text-sm font-black text-[#3b2063] tabular-nums">
                       ₱{Number(exp.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </p>
                   </td>
@@ -545,7 +545,7 @@ const ExpensesTab: React.FC = () => {
                   <td className="px-5 py-3.5">
                     {exp.receipt_path ? (
                       <a href={exp.receipt_path} target="_blank" rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-[10px] font-bold text-[#7c14d4] hover:underline">
+                        className="inline-flex items-center gap-1 text-[10px] font-bold text-[#3b2063] hover:underline">
                         <Receipt size={11} /> View
                       </a>
                     ) : <span className="text-zinc-300 text-xs">—</span>}
@@ -553,7 +553,7 @@ const ExpensesTab: React.FC = () => {
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-1">
                       <button onClick={() => setEditTarget(exp)} title="Edit"
-                        className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#7c14d4] transition-colors">
+                        className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors">
                         <Edit2 size={13} />
                       </button>
                       <button onClick={() => setDelTarget(exp)} title="Delete"
@@ -571,7 +571,7 @@ const ExpensesTab: React.FC = () => {
               <tfoot>
                 <tr className="border-t-2 border-zinc-200 bg-zinc-50">
                   <td colSpan={4} className="px-5 py-3 text-[10px] font-black uppercase tracking-widest text-zinc-400">Subtotal ({filtered.length} records)</td>
-                  <td className="px-5 py-3 font-black text-sm text-[#7c14d4] tabular-nums">
+                  <td className="px-5 py-3 font-black text-sm text-[#3b2063] tabular-nums">
                     ₱{filtered.reduce((s, e) => s + Number(e.amount), 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </td>
                   <td colSpan={3} />

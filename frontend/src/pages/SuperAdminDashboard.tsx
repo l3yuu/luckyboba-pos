@@ -34,7 +34,7 @@ import ItemSerialsTab   from "../components/NewSuperAdmin/Sidebar/Inventory/Item
 import PurchaseOrderTab from "../components/NewSuperAdmin/Sidebar/Inventory/PurchaseOrderTab";
 import StockTransferTab from "../components/NewSuperAdmin/Sidebar/Inventory/StockTransferTab";
 
-import ExpensesTab from "../components/NewSuperAdmin/Sidebar/ExpensesTab";
+import ExpensesTab from "../components/NewSuperAdmin/Sidebar/Expenses/ExpensesTab";
 
 
 
