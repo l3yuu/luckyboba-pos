@@ -74,6 +74,20 @@ const PAGE_TITLES: Record<string, { label: string; desc: string }> = {
   'upload-data':         { label: 'Upload Data',           desc: 'File uploads & data sync'                  },
 };
 
+// ─── Global Styles ────────────────────────────────────────────────────────────
+const GlobalStyles = () => (
+  <style>{`
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
+    *, *::before, *::after, body, input, button, select, textarea {
+      font-family: 'DM Sans', sans-serif !important;
+      box-sizing: border-box;
+    }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: #f4f2fb; }
+    ::-webkit-scrollbar-thumb { background: #d4d0e8; border-radius: 4px; }
+  `}</style>
+);
+
 // ─── Confirm Modal ────────────────────────────────────────────────────────────
 interface ConfirmModalProps {
   show:     boolean;
@@ -221,6 +235,7 @@ const BranchManagerDashboard = () => {
 
   return (
     <>
+      <GlobalStyles />  {/* ← ADD THIS LINE */}
       <div className="bm-root flex flex-col md:flex-row h-screen bg-[#f5f4f8] overflow-hidden min-w-0">
         <div className="shrink-0">
           <BranchManagerSidebar
