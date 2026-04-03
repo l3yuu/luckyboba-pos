@@ -200,9 +200,9 @@ interface ZReadingReport {
 }
 
 const Row = ({ label, value, indent = false }: { label: string; value: string | number; indent?: boolean }) => (
-  <div className={`flex justify-between text-[13px] leading-snug ${indent ? 'pl-3' : ''}`}>
+  <div className={`flex justify-between text-[12px] leading-snug font-medium ${indent ? 'pl-3' : ''}`}>
     <span className="uppercase w-[60%] leading-tight">{label}</span>
-    <span className="text-right w-[40%]">{value}</span>
+    <span className="text-right w-[40%] font-bold">{value}</span>
   </div>
 );
 
@@ -865,23 +865,26 @@ const ZReading = () => {
               background: white !important; 
               color: #000 !important; 
               font-family: Arial, Helvetica, sans-serif !important; 
-              font-size: 11px !important; 
-              line-height: 1.4 !important; 
+              font-size: 12px !important; 
+              font-weight: 500 !important;
+              line-height: 1.5 !important; 
               box-shadow: none !important; 
               border: none !important; 
               border-radius: 0 !important; 
               overflow: visible !important;
+              -webkit-font-smoothing: none !important;
             }
             .receipt-area * {
               overflow: visible !important;
+              -webkit-font-smoothing: none !important;
             }
             .receipt-area > div > div {
               break-inside: avoid !important;
             }
             .flex-between { display: flex !important; justify-content: space-between !important; width: 100% !important; align-items: flex-end !important; }
             table { width: 100% !important; max-width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; font-size: 11px !important; }
-            th { text-align: left !important; border-bottom: 1px solid #000 !important; padding-bottom: 2px !important; text-transform: uppercase !important; font-weight: 500 !important; font-size: 11px !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
-            td { padding: 2px 0 !important; vertical-align: top !important; font-size: 11px !important; font-weight: 400 !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
+            th { text-align: left !important; border-bottom: 1px solid #000 !important; padding-bottom: 2px !important; text-transform: uppercase !important; font-weight: 700 !important; font-size: 12px !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
+            td { padding: 2px 0 !important; vertical-align: top !important; font-size: 12px !important; font-weight: 500 !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
           }
         `}</style>
 
@@ -970,7 +973,7 @@ const ZReading = () => {
             </div>
           ) : reportData ? (
             <div className="printable-receipt-container">
-              <div className="receipt-area bg-white w-full text-black shadow-md" style={{ fontFamily: "Arial, Helvetica, sans-serif", fontSize: '13px', maxWidth: '180mm', padding: '1.5rem' }}>
+              <div className="receipt-area bg-white w-full text-black shadow-md" style={{ fontFamily: "Arial, Helvetica, sans-serif", fontSize: '13px', maxWidth: '180mm', padding: '1.5rem', fontWeight: 500 }}>
                 <div className="text-center">
                   <p className="uppercase text-[13px] font-bold leading-tight">LUCKY BOBA MILKTEA<br />FOOD AND BEVERAGE TRADING</p>
                   <p className="uppercase text-[11px] mt-0.5">{localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'}</p>
