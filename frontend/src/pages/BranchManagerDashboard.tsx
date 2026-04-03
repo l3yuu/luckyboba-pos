@@ -7,7 +7,7 @@ import UserManagement from '../components/BranchManager/Home/UserManagement';
 import BM_Dashboard from '../components/BranchManager/Home/BM_Dashboard';
 import BM_DeviceManagement from '../components/BranchManager/Home/BM_DeviceManagement';
 import api from '../services/api';
-import { Menu, LogOut } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import BranchManagerTopNav from '../components/BranchManager/BranchManagerTopNav'; 
 
 import SalesDashboard        from '../components/BranchManager/SalesReport/BM_SalesDashboard';
@@ -15,12 +15,10 @@ import ItemsReport           from '../components/BranchManager/SalesReport/BM_It
 import XReading              from '../components/BranchManager/SalesReport/BM_X-Reading';
 import ZReading              from '../components/BranchManager/SalesReport/BM_Z-Reading';
 
-// ── BranchManager-specific Menu Items ─────────────
 import BM_MenuList           from '../components/BranchManager/MenuItems/BM_MenuList';
 import BM_Categories         from '../components/BranchManager/MenuItems/BM_Categories';
 import BM_SubCategories      from '../components/BranchManager/MenuItems/BM_Sub-Categories';
 
-// ── BranchManager-specific Inventory Items ─────────────
 import BM_InventoryDashboard     from '../components/BranchManager/Inventory/BM_InventoryDashboard';
 import BM_InventoryCategories    from '../components/BranchManager/Inventory/BM_InventoryCategories';
 import BM_InventoryList          from '../components/BranchManager/Inventory/BM_InventoryList';
@@ -33,7 +31,7 @@ import BM_InventorySuppliers     from '../components/BranchManager/Inventory/BM_
 
 import BranchManagerAuditLogsTab from '../components/BranchManager/BranchManagerAuditLogsTab';
 import BMVoidLogsPanel from '../components/BranchManager/FloorOps/BMVoidLogs';
-// ── BranchManager-specific Settings Items ─────────────
+
 import BM_AddCustomers       from '../components/BranchManager/Settings/BM_AddCustomers';
 import BM_AddVouchers        from '../components/BranchManager/Settings/BM_AddVouchers';
 import BM_BackupSystem       from '../components/BranchManager/Settings/BM_BackupSystem';
@@ -43,7 +41,38 @@ import BM_SalesSettings      from '../components/BranchManager/Settings/BM_Sales
 import BM_Settings           from '../components/BranchManager/Settings/BM_Settings';
 import BM_UploadData         from '../components/BranchManager/Settings/BM_UploadData';
 
-// ─── Font tokens ──────────────────────────────────────────────────────────────
+// ─── Page Titles (outside component — same pattern as SuperAdmin) ─────────────
+const PAGE_TITLES: Record<string, { label: string; desc: string }> = {
+  'dashboard':           { label: 'Master Dashboard',      desc: 'Real-time summary for your branch'         },
+  'users':               { label: 'User Management',       desc: 'Staff accounts, roles & permissions'       },
+  'device-management':   { label: 'Device Management',     desc: 'POS terminals & connected devices'         },
+  'sales-dashboard':     { label: 'Sales Report',          desc: 'Daily & periodic sales breakdown'          },
+  'items-report':        { label: 'Items Report',          desc: 'Per-item sales and movement data'          },
+  'x-reading':           { label: 'X Reading',             desc: 'Mid-day POS shift summary'                 },
+  'z-reading':           { label: 'Z Reading',             desc: 'End-of-day POS closing report'             },
+  'menu-list':           { label: 'Menu List',             desc: 'All products & pricing'                    },
+  'category-list':       { label: 'Categories',            desc: 'Top-level menu groupings'                  },
+  'sub-category-list':   { label: 'Sub-Categories',        desc: 'Nested category structure'                 },
+  'inventory-dashboard': { label: 'Inventory Overview',    desc: 'Stock summary for your branch'             },
+  'inventory-list':      { label: 'Raw Materials',         desc: 'Ingredients & packaging stock'             },
+  'inventory-category':  { label: 'Inventory Categories',  desc: 'Stock groupings & classifications'         },
+  'supplier':            { label: 'Supplier',              desc: 'Vendor records & contacts'                 },
+  'item-checker':        { label: 'Item Checker',          desc: 'Verify item availability & details'        },
+  'item-serials':        { label: 'Item Serials',          desc: 'Serialized item tracking'                  },
+  'purchase-order':      { label: 'Purchase Order',        desc: 'Incoming stock orders'                     },
+  'stock-transfer':      { label: 'Stock Transfer',        desc: 'Move stock between branches'               },
+  'inventory-report':    { label: 'Usage Report',          desc: 'Material consumption & variance'           },
+  'audit-logs':          { label: 'Audit Logs',            desc: 'Complete system activity trail'            },
+  'void-logs':           { label: 'Void Logs',             desc: 'Cancelled & voided transaction records'    },
+  'settings':            { label: 'System Settings',       desc: 'Branch configuration & preferences'       },
+  'add-customers':       { label: 'Add Customers',         desc: 'Register new customer accounts'            },
+  'add-vouchers':        { label: 'Promotions & Vouchers', desc: 'Active campaigns & discount codes'         },
+  'backup-system':       { label: 'Backup System',         desc: 'Data backup & restore'                     },
+  'customer-report':     { label: 'Customer Report',       desc: 'Customer activity & purchase history'      },
+  'import-data':         { label: 'Import Data',           desc: 'Bulk data import & upload'                 },
+  'sales-settings':      { label: 'Sales Settings',        desc: 'POS & transaction configuration'           },
+  'upload-data':         { label: 'Upload Data',           desc: 'File uploads & data sync'                  },
+};
 
 // ─── Confirm Modal ────────────────────────────────────────────────────────────
 interface ConfirmModalProps {
@@ -98,43 +127,46 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
 interface AuthUser {
   id:        number;
   name:      string;
-  email:     string;  
+  email:     string;
   role:      string;
   branch_id: number | null;
   branch?:   { id: number; name: string; location?: string };
 }
 
-
-// ─── Root layout ─────────────────────────────────────────────────────────────
-
+// ─── Root layout ──────────────────────────────────────────────────────────────
 const BranchManagerDashboard = () => {
-  const [isSidebarOpen,    setSidebarOpen]    = useState(false);
-  const [activeTab,        setActiveTab]      = useState('dashboard');
-  const [authUser,         setAuthUser]       = useState<AuthUser | null>(null);
+  const [isSidebarOpen,     setSidebarOpen]    = useState(false);
+  const [activeTab,         setActiveTab]      = useState('dashboard');
+  const [authUser,          setAuthUser]       = useState<AuthUser | null>(null);
   const [isLogoutModalOpen, setLogoutModalOpen] = useState(false);
-  const [isLoggingOut,     setIsLoggingOut]   = useState(false);
+  const [isLoggingOut,      setIsLoggingOut]   = useState(false);
 
-useEffect(() => {
-  api.get<AuthUser>('/user')
-    .then(res => {
-      const u = res.data;
-      setAuthUser({
-        id:        u.id,
-        name:      u.name,
-        email:     u.email,
-        role:      u.role,
-        branch_id: u.branch_id,
-        branch:    u.branch ?? undefined,
-      });
-    })
-    .catch(err => console.error('Failed to load user', err));
-}, []);
+  useEffect(() => {
+    api.get<AuthUser>('/user')
+      .then(res => {
+        const u = res.data;
+        setAuthUser({
+          id:        u.id,
+          name:      u.name,
+          email:     u.email,
+          role:      u.role,
+          branch_id: u.branch_id,
+          branch:    u.branch ?? undefined,
+        });
+      })
+      .catch(err => console.error('Failed to load user', err));
+  }, []);
 
-const branchLabel = authUser?.name ?? null; // 'Main Branch' comes from here
+  const branchLabel = authUser?.name ?? null;
+
+  // ── Derive page meta from the map ─────────────────────────────────────────
+  const page = PAGE_TITLES[activeTab] ?? {
+    label: activeTab.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+    desc:  '',
+  };
 
   const handleLogoutClick = () => setLogoutModalOpen(true);
 
@@ -149,84 +181,64 @@ const branchLabel = authUser?.name ?? null; // 'Main Branch' comes from here
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard': return <BM_Dashboard branchId={authUser?.branch_id ?? null} />;
-      case 'users':               return <UserManagement />;
-      case 'device-management': return <BM_DeviceManagement branchId={authUser?.branch_id ?? null} />;
-      case 'sales-dashboard':     return <SalesDashboard />;
-      case 'items-report':        return <ItemsReport />;
-      case 'x-reading':           return <XReading />;
-      case 'z-reading':           return <ZReading />;
-
-      // ── Menu Items ──
+      case 'dashboard':          return <BM_Dashboard branchId={authUser?.branch_id ?? null} />;
+      case 'users':              return <UserManagement />;
+      case 'device-management':  return <BM_DeviceManagement branchId={authUser?.branch_id ?? null} />;
+      case 'sales-dashboard':    return <SalesDashboard />;
+      case 'items-report':       return <ItemsReport />;
+      case 'x-reading':          return <XReading />;
+      case 'z-reading':          return <ZReading />;
       case 'menu-list':          return <BM_MenuList />;
       case 'category-list':      return <BM_Categories />;
       case 'sub-category-list':  return <BM_SubCategories />;
-
-      // ── Inventory ──
-      case 'inventory-dashboard': return <BM_InventoryDashboard />;
-      case 'inventory-list':      return <BM_InventoryList />;
-      case 'inventory-category':  return <BM_InventoryCategories />;
-      case 'supplier':            return <BM_InventorySuppliers />;
-      case 'item-checker':        return <BM_InventoryItemChecker />;
-      case 'item-serials':        return <BM_InventoryItemSerials />;
-      case 'purchase-order':      return <BM_InventoryPurchaseOrder />;
-      case 'stock-transfer':      return <BM_InventoryStockTransfer />;
-      case 'inventory-report':    return <BM_InventoryReports />;
-      
-      case 'audit-logs':          return <BranchManagerAuditLogsTab />;
-      case 'void-logs':
-  return <BMVoidLogsPanel branchId={authUser?.branch_id ?? null} />;
-      // ── Settings ──
-      case 'settings':            return <BM_Settings />;
-      case 'add-customers':       return <BM_AddCustomers onBack={() => setActiveTab('settings')} />;
-      case 'add-vouchers':        return <BM_AddVouchers onBack={() => setActiveTab('settings')} />;
-      case 'backup-system':       return <BM_BackupSystem onBack={() => setActiveTab('settings')} />;
+      case 'inventory-dashboard':return <BM_InventoryDashboard />;
+      case 'inventory-list':     return <BM_InventoryList />;
+      case 'inventory-category': return <BM_InventoryCategories />;
+      case 'supplier':           return <BM_InventorySuppliers />;
+      case 'item-checker':       return <BM_InventoryItemChecker />;
+      case 'item-serials':       return <BM_InventoryItemSerials />;
+      case 'purchase-order':     return <BM_InventoryPurchaseOrder />;
+      case 'stock-transfer':     return <BM_InventoryStockTransfer />;
+      case 'inventory-report':   return <BM_InventoryReports />;
+      case 'audit-logs':         return <BranchManagerAuditLogsTab />;
+      case 'void-logs':          return <BMVoidLogsPanel branchId={authUser?.branch_id ?? null} />;
+      case 'settings':           return <BM_Settings />;
+      case 'add-customers':      return <BM_AddCustomers onBack={() => setActiveTab('settings')} />;
+      case 'add-vouchers':       return <BM_AddVouchers onBack={() => setActiveTab('settings')} />;
+      case 'backup-system':      return <BM_BackupSystem onBack={() => setActiveTab('settings')} />;
       case 'customer-report':
-        return <BM_CustomerReport 
-          onBack={() => setActiveTab('settings')} 
-          activeTab={activeTab as unknown as React.ComponentProps<typeof BM_CustomerReport>['activeTab']} 
-          setActiveTab={setActiveTab as unknown as React.ComponentProps<typeof BM_CustomerReport>['setActiveTab']} 
+        return <BM_CustomerReport
+          onBack={() => setActiveTab('settings')}
+          activeTab={activeTab as unknown as React.ComponentProps<typeof BM_CustomerReport>['activeTab']}
+          setActiveTab={setActiveTab as unknown as React.ComponentProps<typeof BM_CustomerReport>['setActiveTab']}
         />;
-      case 'import-data':         return <BM_ImportData onBack={() => setActiveTab('settings')} />;
-      case 'sales-settings':      return <BM_SalesSettings isOpen={true} onClose={() => setActiveTab('settings')} />;
-      case 'upload-data':         return <BM_UploadData onBack={() => setActiveTab('settings')} />;
-
-      default:                    return <BM_Dashboard branchId={authUser?.branch_id ?? null} />;
+      case 'import-data':    return <BM_ImportData onBack={() => setActiveTab('settings')} />;
+      case 'sales-settings': return <BM_SalesSettings isOpen={true} onClose={() => setActiveTab('settings')} />;
+      case 'upload-data':    return <BM_UploadData onBack={() => setActiveTab('settings')} />;
+      default:               return <BM_Dashboard branchId={authUser?.branch_id ?? null} />;
     }
   };
-
-  const pageTitle = activeTab === 'dashboard'
-    ? 'Master Dashboard'
-    : activeTab.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
   return (
     <>
       <div className="bm-root flex flex-col md:flex-row h-screen bg-[#f5f4f8] overflow-hidden min-w-0">
-
-        <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 shrink-0">
-          <img src={logo} alt="Lucky Boba" className="h-8 w-auto object-contain" />
-          <button onClick={() => setSidebarOpen(!isSidebarOpen)}
-            className="p-2 rounded-md text-[#3b2063] hover:bg-[#f5f3ff] transition-colors">
-            <Menu size={20} strokeWidth={2} />
-          </button>
+        <div className="shrink-0">
+          <BranchManagerSidebar
+            isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen}
+            logo={logo} currentTab={activeTab} setCurrentTab={setActiveTab}
+            onLogout={handleLogoutClick}
+            isLoggingOut={isLoggingOut}
+          />
         </div>
-
-      <div className="shrink-0">
-        <BranchManagerSidebar
-          isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen}
-          logo={logo} currentTab={activeTab} setCurrentTab={setActiveTab}
-          onLogout={handleLogoutClick}
-          isLoggingOut={isLoggingOut}
-        />
-      </div>
-
-      <main className="flex-1 flex flex-col overflow-hidden min-w-0">
-        <BranchManagerTopNav
-          pageTitle={pageTitle}
-          branchLabel={branchLabel}
-        />
-        <div className="flex-1 overflow-auto">{renderContent()}</div>
-      </main>
+        <main className="flex-1 flex flex-col overflow-hidden min-w-0">
+          <BranchManagerTopNav
+            pageTitle={page.label}
+            pageDesc={page.desc}
+            branchLabel={branchLabel}
+            onMenuClick={() => setSidebarOpen(v => !v)}
+          />
+          <div className="flex-1 overflow-auto">{renderContent()}</div>
+        </main>
       </div>
 
       <ConfirmModal
@@ -242,6 +254,5 @@ const branchLabel = authUser?.name ?? null; // 'Main Branch' comes from here
     </>
   );
 };
-
 
 export default BranchManagerDashboard;
