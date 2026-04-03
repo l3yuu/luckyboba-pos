@@ -5,7 +5,7 @@ import api from '../../../services/api';
 import {
   TrendingUp, TrendingDown, DollarSign, AlertCircle,
   ShoppingBag, Activity, ArrowUpRight, ArrowDownRight,
-  Wallet, RefreshCw, Download, Package,
+  Wallet, RefreshCw, Download,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -13,7 +13,7 @@ import {
 } from 'recharts';
 
 
-// ─── Global Styles (matching SuperAdmin) ──────────────────────────────────────
+// ─── Global Styles ────────────────────────────────────────────────────────────
 const GlobalStyles = () => (
   <style>{`
     @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
@@ -33,47 +33,36 @@ const GlobalStyles = () => (
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface TopSellerItem { product_name: string; total_qty: number; }
 
+interface PeriodStats {
+  total_sales:  number;
+  total_orders: number;
+  voided_sales: number;
+  cash_in:      number;
+  cash_out:     number;
+}
+
+interface PeriodData {
+  data:  { date: string; day: string; value: number }[];
+  stats: PeriodStats;
+}
+
 interface DashboardApiResponse {
   success: boolean;
   data: {
-    weekly_sales: {
-      data: { date: string; day: string; value: number }[];
-    };
+    daily_sales:   { data: { date: string; day: string; value: number }[]; stats: PeriodStats };
+    weekly_sales:  { data: { date: string; day: string; value: number }[]; stats: PeriodStats };
+    monthly_sales: { data: { date: string; day: string; value: number }[]; stats: PeriodStats };
     statistics: {
-      today_sales: number;
-      beginning_sales: number;
-      cancelled_sales: number;
-      top_seller_today?: TopSellerItem[]; // Optional depending on your controller update
+      top_seller_today?: TopSellerItem[];
     };
   };
 }
 
-interface DashboardStatsData {
-  cash_in_today:       number;
-  cash_out_today:      number;
-  total_sales_today:   number;
-  total_orders_today:  number;
-  voided_sales_today:  number;
-  top_seller_today:    TopSellerItem[];
-  top_seller_all_time: TopSellerItem[];
-  spark_cash_in?:  number[];
-  spark_cash_out?: number[];
-  spark_sales?:    number[];
-  spark_voided?:   number[];
-  spark_overall?:  number[];
-  cash_in_yesterday?:      number;
-  cash_out_yesterday?:     number;
-  sales_yesterday?:        number;
-  voided_yesterday?:       number;
-  overall_cash_yesterday?: number;
-  overall_cash_today?: number;
-}
-
 interface SalesAnalyticsResponse {
-  weekly:    { date: string; day: string; value: number }[];
-  monthly:   { date: string; day: string; value: number }[];
-  quarterly: { date: string; day: string; value: number }[];
-  stats:  DashboardStatsData;
+  daily:   PeriodData;
+  weekly:  PeriodData;
+  monthly: PeriodData;
+  top_seller_today: TopSellerItem[];
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -82,12 +71,11 @@ interface BM_DashboardProps {
 }
 
 // ─── Cache helpers ────────────────────────────────────────────────────────────
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const cacheKey = (branchId: number | null) =>
   `lucky_boba_analytics_${CACHE_VERSION}_branch_${branchId ?? 'all'}`;
 
-// ─── Shared UI Components (matching SuperAdmin style) ────────────────────────
-
+// ─── Shared UI Components ─────────────────────────────────────────────────────
 type ColorKey   = "violet" | "emerald" | "red" | "amber" | "sky";
 type VariantKey = "primary" | "secondary";
 type SizeKey    = "sm" | "md";
@@ -234,43 +222,31 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
     try { const c = localStorage.getItem(CACHE_KEY); return c ? JSON.parse(c) : null; } catch { return null; }
   });
   const [loading,    setLoading]    = useState(!analytics);
-  const [timeFilter, setTimeFilter] = useState<'7days' | '30days' | '3months'>('7days');
+  const [timeFilter, setTimeFilter] = useState<'daily' | 'weekly' | 'monthly'>('daily');
 
-const fetchData = useCallback(async () => {
-  setLoading(true);
-  try {
-    // 1. Specify the new DashboardApiResponse interface here
-    const res = await api.get<DashboardApiResponse>('/reports/dashboard-data');
-    const apiData = res.data.data;
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get<DashboardApiResponse>('/reports/dashboard-data');
+      const apiData = res.data.data;
 
-    // 2. Construct the state object to match SalesAnalyticsResponse
-    const mappedData: SalesAnalyticsResponse = {
-      weekly: apiData.weekly_sales.data,
-      monthly: [], // Default empty as before
-      quarterly: [], // Default empty as before
-      stats: {
-        total_sales_today: apiData.statistics.today_sales,
-        total_orders_today: 0, // Set to 0 or calculate if available
-        cash_in_today: apiData.statistics.beginning_sales,
-        cash_out_today: 0,
-        voided_sales_today: apiData.statistics.cancelled_sales,
+      const mappedData: SalesAnalyticsResponse = {
+        daily:   { data: apiData.daily_sales.data,   stats: apiData.daily_sales.stats   },
+        weekly:  { data: apiData.weekly_sales.data,  stats: apiData.weekly_sales.stats  },
+        monthly: { data: apiData.monthly_sales.data, stats: apiData.monthly_sales.stats },
         top_seller_today: apiData.statistics.top_seller_today || [],
-        top_seller_all_time: [], // Default empty
-      }
-    };
+      };
 
-    // 3. Update state and cache with the mapped object
-    setAnalytics(mappedData);
-    localStorage.setItem(CACHE_KEY, JSON.stringify(mappedData));
-    
-  } catch (e) {
-    console.error('analytics fetch', e);
-  } finally {
-    setLoading(false);
-  }
-}, [CACHE_KEY]);
+      setAnalytics(mappedData);
+      localStorage.setItem(CACHE_KEY, JSON.stringify(mappedData));
+    } catch (e) {
+      console.error('analytics fetch', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [CACHE_KEY]);
 
-useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   // ── Formatters ─────────────────────────────────────────────────────────────
   const fmt  = (v?: number | string) => `₱${Number(v ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
@@ -288,63 +264,64 @@ useEffect(() => { fetchData(); }, [fetchData]);
     return { label: `${sign}${pct.toFixed(1)}%`, up: pct >= 0 };
   };
 
-  const sd = analytics?.stats;
+  // ── Active period data (changes with filter) ───────────────────────────────
+  const activePeriod = analytics?.[timeFilter];
+  const sd           = activePeriod?.stats;
+  const sellersToday = analytics?.top_seller_today || [];
 
-  const toSpark = (apiSpark: number[] | undefined, todayVal: number): number[] => {
-    if (!apiSpark || apiSpark.length === 0) return [todayVal];
-    const arr = [...apiSpark];
-    arr[arr.length - 1] = todayVal;
-    return arr;
-  };
+  const overallCash  = Number(sd?.cash_in ?? 0) + Number(sd?.total_sales ?? 0) - Number(sd?.cash_out ?? 0);
 
-  const overallCash = Number(sd?.cash_in_today ?? 0) + Number(sd?.total_sales_today ?? 0) - Number(sd?.cash_out_today ?? 0);
-
-  const trendCashIn  = computeTrend(Number(sd?.cash_in_today     ?? 0), Number(sd?.cash_in_yesterday      ?? 0));
-  const trendCashOut = computeTrend(Number(sd?.cash_out_today     ?? 0), Number(sd?.cash_out_yesterday     ?? 0));
-  const trendSales   = computeTrend(Number(sd?.total_sales_today  ?? 0), Number(sd?.sales_yesterday        ?? 0));
-  const trendVoided  = computeTrend(Number(sd?.voided_sales_today ?? 0), Number(sd?.voided_yesterday       ?? 0));
-  const trendOverall = computeTrend(overallCash,                          Number(sd?.overall_cash_yesterday ?? 0));
+  const trendCashIn  = computeTrend(Number(sd?.cash_in      ?? 0), 0);
+  const trendCashOut = computeTrend(Number(sd?.cash_out     ?? 0), 0);
+  const trendSales   = computeTrend(Number(sd?.total_sales  ?? 0), 0);
+  const trendVoided  = computeTrend(Number(sd?.voided_sales ?? 0), 0);
+  const trendOverall = computeTrend(overallCash,                    0);
 
   // ── Chart data ─────────────────────────────────────────────────────────────
+  type ChartPoint = { date: string; day: string; value: number };
+
   const chartData = (() => {
-    const raw =
-      timeFilter === '30days'  ? (analytics?.monthly   || []) :
-      timeFilter === '3months' ? (analytics?.quarterly || []) :
-                                  (analytics?.weekly    || []);
-    return raw.map(d => {
+    const raw: ChartPoint[] = activePeriod?.data || [];
+    return raw.map((d: ChartPoint) => {
       const o = new Date(d.date);
-      let label: string;
-      if (timeFilter === '3months') {
-        label = isNaN(o.getTime()) ? d.day : `Wk ${o.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
-      } else {
-        label = isNaN(o.getTime()) ? d.date : o.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      }
+      const label = isNaN(o.getTime())
+        ? d.date
+        : o.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
       return { name: label, value: d.value };
     });
   })();
 
-  const totalRevenue = chartData.reduce((a, b) => a + b.value, 0);
+  const totalRevenue = chartData.reduce((a: number, b: { name: string; value: number }) => a + b.value, 0);
   const avgRevenue   = chartData.length ? totalRevenue / chartData.length : 0;
-  const maxDay       = chartData.reduce((a, b) => b.value > a.value ? b : a, chartData[0] || { name: '—', value: 0 });
-
+  const maxDay       = chartData.reduce(
+    (a: { name: string; value: number }, b: { name: string; value: number }) => b.value > a.value ? b : a,
+    chartData[0] || { name: '—', value: 0 }
+  );
   const maxVal   = Math.max(...chartData.map(d => d.value), 1);
-  const stepSize = timeFilter === '3months' ? 10_000 : 2_000;
+  const stepSize = timeFilter === 'monthly' ? 10_000 : 2_000;
   const niceMax  = Math.ceil(maxVal / stepSize) * stepSize;
-  const yTicks   = Array.from({ length: Math.min(Math.ceil(niceMax / stepSize) + 1, 7) }, (_, i) => i * stepSize);
+  const yTicks   = Array.from({ length: Math.min(Math.ceil(niceMax / stepSize) + 1, 7) }, (_: unknown, i: number) => i * stepSize);
 
-  // ── Top sellers ────────────────────────────────────────────────────────────
-  const sellersToday   = sd?.top_seller_today    || [];
-  const sellersAllTime = sd?.top_seller_all_time || [];
-  const allTimeMax = Math.max(...sellersAllTime.map(x => x.total_qty), 1);
+  // ── Top sellers (all-time not in API yet, hide section if empty) ───────────
+  const sellersAllTime: TopSellerItem[] = [];
+  const allTimeMax = 1;
 
   const PURPLES = ['#3b2063', '#6d28d9', '#7c3aed', '#a78bfa', '#c4b5fd', '#ede9fe'];
 
   // ── Quick stats ────────────────────────────────────────────────────────────
   const avgOrderVal = fmt(
-    Number(sd?.total_sales_today ?? 0) / Math.max(Number(sd?.total_orders_today ?? 1), 1)
+    Number(sd?.total_sales ?? 0) / Math.max(Number(sd?.total_orders ?? 1), 1)
   );
-  const netCashFlow = fmt(Number(sd?.cash_in_today ?? 0) - Number(sd?.cash_out_today ?? 0));
-  const voidRate    = `${((Number(sd?.voided_sales_today ?? 0) / Math.max(Number(sd?.total_sales_today ?? 1), 1)) * 100).toFixed(1)}%`;
+  const netCashFlow = fmt(Number(sd?.cash_in ?? 0) - Number(sd?.cash_out ?? 0));
+  const voidRate    = `${((Number(sd?.voided_sales ?? 0) / Math.max(Number(sd?.total_sales ?? 1), 1)) * 100).toFixed(1)}%`;
+  const itemsSold   = sellersToday.reduce((a: number, b: TopSellerItem) => a + Number(b.total_qty), 0);
+
+  // ── Sparkline values (use period totals as single-point sparks) ────────────
+  const sparkCashIn  = [Number(sd?.cash_in      ?? 0)];
+  const sparkCashOut = [Number(sd?.cash_out     ?? 0)];
+  const sparkSales   = [Number(sd?.total_sales  ?? 0)];
+  const sparkVoided  = [Number(sd?.voided_sales ?? 0)];
+  const sparkOverall = [overallCash];
 
   // ── Loading skeleton ───────────────────────────────────────────────────────
   if (loading && !analytics) {
@@ -378,9 +355,9 @@ useEffect(() => { fetchData(); }, [fetchData]);
           </div>
           <div className="flex items-center gap-2">
             {([
-              { key: '7days',   label: '7D'  },
-              { key: '30days',  label: '30D' },
-              { key: '3months', label: '3M'  },
+              { key: 'daily',   label: 'Daily'   },
+              { key: 'weekly',  label: 'Weekly'  },
+              { key: 'monthly', label: 'Monthly' },
             ] as const).map(({ key, label }) => (
               <button key={key} onClick={() => setTimeFilter(key)}
                 className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${timeFilter === key ? 'bg-[#3b2063] text-white' : 'bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-50'}`}>
@@ -398,31 +375,31 @@ useEffect(() => { fetchData(); }, [fetchData]);
           <StatCard
             icon={<TrendingUp size={18} strokeWidth={2} />}
             label="Cash In"
-            value={loading ? '—' : fmt(sd?.cash_in_today)}
-            sub="Opening float today"
+            value={loading ? '—' : fmt(sd?.cash_in)}
+            sub="Opening float for period"
             trend={trendCashIn}
             color="emerald"
           />
           <StatCard
             icon={<TrendingDown size={18} strokeWidth={2} />}
             label="Cash Out"
-            value={loading ? '—' : fmt(sd?.cash_out_today)}
-            sub="Total disbursed today"
+            value={loading ? '—' : fmt(sd?.cash_out)}
+            sub="Total disbursed for period"
             trend={trendCashOut}
             color="red"
           />
           <StatCard
             icon={<DollarSign size={18} strokeWidth={2} />}
             label="Total Sales"
-            value={loading ? '—' : fmt(sd?.total_sales_today)}
-            sub="Gross revenue today"
+            value={loading ? '—' : fmt(sd?.total_sales)}
+            sub="Gross revenue for period"
             trend={trendSales}
             color="violet"
           />
           <StatCard
             icon={<AlertCircle size={18} strokeWidth={2} />}
             label="Voided Sales"
-            value={loading ? '—' : fmt(sd?.voided_sales_today)}
+            value={loading ? '—' : fmt(sd?.voided_sales)}
             sub="Cancelled transactions"
             trend={trendVoided}
             color="amber"
@@ -430,7 +407,7 @@ useEffect(() => { fetchData(); }, [fetchData]);
           <StatCard
             icon={<ShoppingBag size={18} strokeWidth={2} />}
             label="Total Orders"
-            value={loading ? '—' : Number(sd?.total_orders_today ?? 0).toLocaleString()}
+            value={loading ? '—' : Number(sd?.total_orders ?? 0).toLocaleString()}
             sub={`Avg ${avgOrderVal} per order`}
             color="sky"
           />
@@ -447,10 +424,10 @@ useEffect(() => { fetchData(); }, [fetchData]);
         {/* ── Quick Metrics Row ── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: 'Net Cash Flow',   value: netCashFlow,  icon: <ArrowUpRight size={13} />,  color: '#10b981' },
-            { label: 'Void Rate',        value: voidRate,      icon: <AlertCircle  size={13} />,  color: '#f59e0b' },
-            { label: 'Avg Order Value',  value: avgOrderVal,   icon: <Activity     size={13} />,  color: '#8b5cf6' },
-            { label: 'Items Sold Today', value: sellersToday.slice(0, 6).reduce((a, b) => a + Number(b.total_qty), 0), icon: <Package size={13} />, color: '#3b82f6' },
+            { label: 'Net Cash Flow',  value: netCashFlow, icon: <ArrowUpRight size={13} />, color: '#10b981' },
+            { label: 'Void Rate',      value: voidRate,    icon: <AlertCircle  size={13} />, color: '#f59e0b' },
+            { label: 'Avg Order Value',value: avgOrderVal, icon: <Activity     size={13} />, color: '#8b5cf6' },
+            { label: 'Items Sold',     value: itemsSold,   icon: <ShoppingBag  size={13} />, color: '#3b82f6' },
           ].map((o, i) => (
             <div key={i} className="bg-white border border-zinc-200 rounded-[0.625rem] px-4 py-3 flex items-center gap-3 card">
               <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
@@ -532,15 +509,15 @@ useEffect(() => { fetchData(); }, [fetchData]);
             </div>
 
             {loading ? (
-              <div className="flex flex-col gap-3">{[...Array(5)].map((_, i) => <SkeletonBar key={i} h="h-8" />)}</div>
+              <div className="flex flex-col gap-3">{[...Array(5)].map((_: unknown, i: number) => <SkeletonBar key={i} h="h-8" />)}</div>
             ) : sellersToday.length === 0 ? (
               <div className="flex-1 flex items-center justify-center py-10">
                 <p className="text-xs font-medium text-zinc-400">No sales yet today</p>
               </div>
             ) : (
               <div className="flex flex-col gap-3">
-                {sellersToday.slice(0, 6).map((item, i) => {
-                  const todayMax = Math.max(...sellersToday.map(x => x.total_qty), 1);
+                {sellersToday.slice(0, 6).map((item: TopSellerItem, i: number) => {
+                  const todayMax = Math.max(...sellersToday.map((x: TopSellerItem) => x.total_qty), 1);
                   return (
                     <div key={i}>
                       <div className="flex items-center justify-between mb-1">
@@ -561,7 +538,7 @@ useEffect(() => { fetchData(); }, [fetchData]);
                 })}
                 <div className="pt-3 border-t border-zinc-100 mt-1">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">
-                    Total sold: <span className="text-[#1a0f2e]">{sellersToday.slice(0, 6).reduce((a, b) => a + Number(b.total_qty), 0)} items</span>
+                    Total sold: <span className="text-[#1a0f2e]">{sellersToday.slice(0, 6).reduce((a: number, b: TopSellerItem) => a + Number(b.total_qty), 0)} items</span>
                   </p>
                 </div>
               </div>
@@ -570,18 +547,13 @@ useEffect(() => { fetchData(); }, [fetchData]);
         </div>
 
         {/* ── All-Time Best Sellers + Rank Breakdown ── */}
-        <div className="grid grid-cols-12 gap-4">
-          {/* Bar Chart */}
-          <div className="col-span-12 lg:col-span-7 bg-white border border-zinc-200 rounded-[0.625rem] p-6">
-            <SectionHeader title="All-Time Best Sellers" desc="Cumulative sales volume by product" />
-            {loading ? (
-              <SkeletonBar h="h-[180px]" />
-            ) : sellersAllTime.length === 0 ? (
-              <div className="h-45 flex items-center justify-center text-zinc-400 text-xs">No records found.</div>
-            ) : (
+        {sellersAllTime.length > 0 && (
+          <div className="grid grid-cols-12 gap-4">
+            <div className="col-span-12 lg:col-span-7 bg-white border border-zinc-200 rounded-[0.625rem] p-6">
+              <SectionHeader title="All-Time Best Sellers" desc="Cumulative sales volume by product" />
               <ResponsiveContainer width="100%" height={180}>
                 <BarChart
-                  data={sellersAllTime.slice(0, 6).map(x => ({ name: x.product_name.split(' ')[0], qty: x.total_qty }))}
+                  data={sellersAllTime.slice(0, 6).map((x: TopSellerItem) => ({ name: x.product_name.split(' ')[0], qty: x.total_qty }))}
                   margin={{ top: 0, right: 0, left: -25, bottom: 0 }}
                   barSize={28}
                 >
@@ -593,27 +565,18 @@ useEffect(() => { fetchData(); }, [fetchData]);
                     contentStyle={{ borderRadius: 10, border: '1px solid #e5e7eb', fontSize: 12 }}
                   />
                   <Bar dataKey="qty" radius={[4, 4, 0, 0]}>
-                    {sellersAllTime.slice(0, 6).map((_, i) => (
+                    {sellersAllTime.slice(0, 6).map((_: TopSellerItem, i: number) => (
                       <Cell key={i} fill={i === 0 ? '#3b2063' : `hsl(${265 - i * 15},${70 - i * 8}%,${60 + i * 5}%)`} />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-            )}
-          </div>
+            </div>
 
-          {/* Rank Breakdown */}
-          <div className="col-span-12 lg:col-span-5 bg-white border border-zinc-200 rounded-[0.625rem] p-6">
-            <SectionHeader title="Rank Breakdown" desc="Share of total sales volume" />
-            {loading ? (
-              <div className="flex flex-col gap-3">{[...Array(5)].map((_, i) => <SkeletonBar key={i} h="h-8" />)}</div>
-            ) : sellersAllTime.length === 0 ? (
-              <div className="flex items-center justify-center py-10">
-                <p className="text-xs font-medium text-zinc-400">No records found</p>
-              </div>
-            ) : (
+            <div className="col-span-12 lg:col-span-5 bg-white border border-zinc-200 rounded-[0.625rem] p-6">
+              <SectionHeader title="Rank Breakdown" desc="Share of total sales volume" />
               <div className="flex flex-col gap-3">
-                {sellersAllTime.slice(0, 6).map((item, i) => {
+                {sellersAllTime.slice(0, 6).map((item: TopSellerItem, i: number) => {
                   const pct = Math.round((item.total_qty / allTimeMax) * 100);
                   return (
                     <div key={i} className="flex items-center gap-3">
@@ -635,20 +598,20 @@ useEffect(() => { fetchData(); }, [fetchData]);
                   );
                 })}
               </div>
-            )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* ── Sparkline Trends ── */}
         <div className="bg-white border border-zinc-200 rounded-[0.625rem] p-6">
-          <SectionHeader title="7-Day Trends" desc="Daily sparklines for each metric" />
+          <SectionHeader title="Period Trends" desc="Metric breakdown for selected period" />
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
             {[
-              { label: 'Cash In',     spark: toSpark(sd?.spark_cash_in,  Number(sd?.cash_in_today     ?? 0)), color: '#16a34a' },
-              { label: 'Cash Out',    spark: toSpark(sd?.spark_cash_out, Number(sd?.cash_out_today    ?? 0)), color: '#dc2626' },
-              { label: 'Total Sales', spark: toSpark(sd?.spark_sales,    Number(sd?.total_sales_today  ?? 0)), color: '#7c3aed' },
-              { label: 'Voided',      spark: toSpark(sd?.spark_voided,   Number(sd?.voided_sales_today ?? 0)), color: '#ca8a04' },
-              { label: 'Overall',     spark: toSpark(sd?.spark_overall,  overallCash),                          color: '#0284c7' },
+              { label: 'Cash In',     spark: sparkCashIn,  color: '#16a34a' },
+              { label: 'Cash Out',    spark: sparkCashOut, color: '#dc2626' },
+              { label: 'Total Sales', spark: sparkSales,   color: '#7c3aed' },
+              { label: 'Voided',      spark: sparkVoided,  color: '#ca8a04' },
+              { label: 'Overall',     spark: sparkOverall, color: '#0284c7' },
             ].map((s, i) => (
               <div key={i}>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{s.label}</p>
