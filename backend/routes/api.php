@@ -361,11 +361,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/audit-logs/stats', [AuditLogController::class, 'stats']);
 
         Route::prefix('reports')->group(function () {
-            Route::get('/admin-sales-summary', [SuperAdminReportController::class, 'salesSummary']);
-            Route::get('/branch-comparison',   [SuperAdminReportController::class, 'branchComparison']);
             Route::get('/z-reading/history',   [SalesDashboardController::class, 'zReadingHistory']);
             Route::get('/items-all',           [SuperAdminReportController::class, 'itemsReport']);
-            Route::get('/items-export',        [SuperAdminReportController::class, 'exportItems']); // ← ADD
+            Route::get('/items-export',        [SuperAdminReportController::class, 'exportItems']);
         });
 
         Route::prefix('system')->group(function () {
@@ -424,6 +422,12 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::post('/users/{userId}/log-usage', [CardController::class, 'logUsage']);
 });
 
+    });
+
+    // ── SUPERADMIN + BRANCH MANAGER — shared report endpoints ────────────────
+    Route::middleware(['role:superadmin,branch_manager'])->prefix('reports')->group(function () {
+        Route::get('/admin-sales-summary', [SuperAdminReportController::class, 'salesSummary']);
+        Route::get('/branch-comparison',   [SuperAdminReportController::class, 'branchComparison']);
     });
 
         // ── POS DEVICES — superadmin, branch_manager, team_leader ────────────────
