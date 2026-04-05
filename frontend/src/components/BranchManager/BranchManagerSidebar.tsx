@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Users, BarChart2, ShoppingBag,
-  Package, Settings as SettingsIcon, LogOut, HelpCircle,
+  Package, Settings as SettingsIcon, LogOut,
   ChevronDown, Activity, Monitor, Trash2, X,
 } from 'lucide-react';
 
@@ -485,10 +485,6 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
             <span style={{ flexShrink: 0, width: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', color: currentTab === 'settings' ? '#3b2063' : '#a1a1aa' }}><SettingsIcon size={14} /></span>
             Settings
           </button>
-          <button onClick={() => window.open('mailto:support@luckyboba.com')} className="bm-item" style={{ color: '#71717a' }}>
-            <span style={{ flexShrink: 0, width: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#a1a1aa' }}><HelpCircle size={14} /></span>
-            Get Help
-          </button>
           <div className="bm-divider" />
           <button onClick={() => onLogout?.()} disabled={isLoggingOut} className="bm-logout">
             {isLoggingOut ? (
@@ -508,7 +504,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
               </>
             )}
           </button>
-          <p className="mt-3 text-[9px] font-bold uppercase tracking-widest text-zinc-300 text-center">Lucky Boba © 2026</p>
+          <p className="mt-3 text-[9px] font-bold uppercase tracking-widest text-zinc-800 text-center">Lucky Boba © 2026</p>
         </div>
       </aside>
 
@@ -607,10 +603,6 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
               <button onClick={() => go('settings')} className={`bm-m-item ${currentTab === 'settings' ? 'active' : ''}`}>
                 <span className="bm-m-icon" style={{ color: currentTab === 'settings' ? '#3b2063' : '#71717a' }}><SettingsIcon size={18} /></span>
                 Settings
-              </button>
-              <button onClick={() => window.open('mailto:support@luckyboba.com')} className="bm-m-item" style={{ color: '#3f3f46' }}>
-                <span className="bm-m-icon" style={{ color: '#71717a' }}><HelpCircle size={18} /></span>
-                Get Help
               </button>
               <button onClick={() => onLogout?.()} disabled={isLoggingOut}
                 style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '13px 14px', border: 'none', background: 'transparent', cursor: 'pointer', textAlign: 'left', borderRadius: '0.75rem', margin: '2px 0', color: '#be2525', fontSize: '0.95rem', fontWeight: 500 }}>
