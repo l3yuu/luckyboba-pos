@@ -62,7 +62,7 @@ const SupervisorDashboard = () => {
   const renderContent = () => {
     const bId = authUser?.branch_id ?? null;
     switch (activeTab) {
-      case 'dashboard':       return <TL_DashboardPanel   branchId={bId} />;
+      case 'dashboard':       return <TL_DashboardPanel />;
       case 'users':           return <StaffOverviewPanel  branchId={bId} />;
       case 'void-logs':       return <SV_VoidLogsPanel    branchId={bId} />;
       case 'sales-dashboard': return <SalesDashboardPanel branchId={bId} />;
@@ -71,14 +71,14 @@ const SupervisorDashboard = () => {
       case 'z-reading':       return <SVZReading          branchId={bId} />;
       case 'inventory-list':  return <InventoryListPanel  branchId={bId} />;
       case 'item-checker':    return <ItemCheckerPanel    branchId={bId} />;
-      default:                return <TL_DashboardPanel   branchId={bId} />;
+      default:                return <TL_DashboardPanel />;
     }
   };
 
   return (
     <>
       <style>{DASHBOARD_STYLES}</style>
-      <div className="sv-root flex flex-col md:flex-row h-screen bg-[#fcfcfd] overflow-hidden">
+      <div className="tl-root flex flex-col md:flex-row h-screen bg-[#f9fafb] overflow-hidden">
 
         <SupervisorSidebar
           isSidebarOpen={isSidebarOpen}
@@ -97,7 +97,7 @@ const SupervisorDashboard = () => {
             onMenuClick={() => setSidebarOpen(true)}
           />
 
-          <div className="flex-1 overflow-auto bg-[#f8f9fa]/30">
+          <div className="flex-1 overflow-auto bg-[#f1f5f9]/20">
             <div className="p-4 md:p-6 max-w-[1600px] mx-auto animate-in fade-in duration-500">
               {renderContent()}
             </div>

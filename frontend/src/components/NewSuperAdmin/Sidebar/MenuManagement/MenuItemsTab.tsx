@@ -4,6 +4,7 @@ import {
   Search, Plus, Edit2, Trash2, RefreshCw,
   AlertCircle, X, Package, ChevronDown,
   ToggleLeft, ToggleRight, Barcode, Utensils, Coffee, Info, Printer,
+  Download, Upload,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 
@@ -1537,6 +1538,195 @@ const DeleteModal: React.FC<{ item: MenuItem; onClose: () => void; onDeleted: (i
   );
 };
 
+// ── Import Modal ──────────────────────────────────────────────────────────────
+const ImportModal: React.FC<{ onClose: () => void; onSaved: () => void }> = ({ onClose, onSaved }) => {
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  const handleDownloadTemplate = async () => {
+    try {
+      const res = await fetch("/api/menu-items/import-template", {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (!res.ok) throw new Error("Failed to download template");
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "menu_items_template.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch {
+      setError("Failed to download template. Please try again.");
+    }
+  };
+
+  const handleExportCurrent = async () => {
+    try {
+      const res = await fetch("/api/menu-items/export", {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (!res.ok) throw new Error("Failed to export items");
+      
+      const blob = await res.blob();
+      const url  = window.URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href     = url;
+      a.download = "current_menu_items.xlsx";
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch {
+      setError("Failed to export current items. Please try again.");
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!file) { setError("Please select a file first."); return; }
+    setUploading(true); setError(""); setSuccess(false);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await fetch("/api/menu-items/import", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${getToken()}`,
+          Accept: "application/json",
+        },
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setError(data.message ?? "Import failed. Please check your template format.");
+        return;
+      }
+
+      setSuccess(true);
+      setTimeout(() => { onSaved(); onClose(); }, 1500);
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
+      style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", backgroundColor: "rgba(0,0,0,0.45)" }}>
+      <div className="absolute inset-0" onClick={onClose} />
+      <div className="relative bg-white w-full max-w-md border border-zinc-200 rounded-[1.25rem] shadow-2xl overflow-hidden">
+        <div className="px-6 pt-6 pb-4 border-b border-zinc-100 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-emerald-50 border border-emerald-100 flex items-center justify-center">
+              <Upload size={16} className="text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-[#1a0f2e]">Bulk Import Items</p>
+              <p className="text-[10px] text-zinc-400 font-medium uppercase tracking-wider mt-0.5">Excel / CSV Upload</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-zinc-50 rounded-lg text-zinc-400 transition-colors"><X size={16} /></button>
+        </div>
+
+        <div className="p-6 flex flex-col gap-5">
+          {/* Template & Export Row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 bg-violet-50 border border-violet-100 rounded-xl flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 bg-white rounded-lg flex items-center justify-center shadow-sm">
+                  <Download size={14} className="text-violet-500" />
+                </div>
+                <p className="text-[11px] font-bold text-violet-900 leading-tight">Blank Template</p>
+              </div>
+              <Btn variant="primary" size="sm" onClick={handleDownloadTemplate} className="bg-violet-600 hover:bg-violet-700 w-full justify-center text-[10px]">
+                <Download size={11} /> Download
+              </Btn>
+            </div>
+
+            <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 bg-white rounded-lg flex items-center justify-center shadow-sm">
+                  <Download size={14} className="text-amber-500" />
+                </div>
+                <p className="text-[11px] font-bold text-amber-900 leading-tight">Current Items</p>
+              </div>
+              <Btn variant="primary" size="sm" onClick={handleExportCurrent} className="bg-amber-600 hover:bg-amber-700 w-full justify-center text-[10px]">
+                <Download size={11} /> Export
+              </Btn>
+            </div>
+          </div>
+
+          <div className={`relative group border-2 border-dashed rounded-xl transition-all ${
+            file ? "border-emerald-200 bg-emerald-50/30" : "border-zinc-200 hover:border-violet-300 bg-zinc-50/50"
+          }`}>
+            <input
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              onChange={e => setFile(e.target.files?.[0] ?? null)}
+              className="absolute inset-0 opacity-0 cursor-pointer z-10"
+            />
+            <div className="p-8 flex flex-col items-center text-center gap-3">
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
+                file ? "bg-emerald-100 text-emerald-600" : "bg-white text-zinc-300 group-hover:text-violet-400"
+              }`}>
+                <Upload size={24} />
+              </div>
+              {file ? (
+                <div>
+                  <p className="text-xs font-bold text-emerald-700">{file.name}</p>
+                  <p className="text-[10px] text-emerald-500 mt-1">Ready to upload · {(file.size / 1024).toFixed(1)} KB</p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-xs font-bold text-zinc-700">Click to upload or drag & drop</p>
+                  <p className="text-[10px] text-zinc-400 mt-1">Excel (.xlsx) or CSV files supported</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {error && (
+            <div className="flex items-center gap-2.5 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <AlertCircle size={14} className="text-red-500 shrink-0" />
+              <p className="text-[11px] text-red-600 font-bold leading-relaxed">{error}</p>
+            </div>
+          )}
+
+          {success && (
+            <div className="flex items-center gap-2.5 p-3 bg-emerald-50 border border-emerald-200 rounded-lg animate-bounce">
+              <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2.5 5L4.5 7L8 3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
+              <p className="text-[11px] text-emerald-700 font-bold">Imported successfully! Refreshing list...</p>
+            </div>
+          )}
+        </div>
+
+        <div className="p-6 bg-zinc-50 border-t border-zinc-100 flex gap-2">
+          <Btn variant="secondary" onClick={onClose} disabled={uploading}>Cancel</Btn>
+          <Btn className="flex-1 justify-center gap-2" onClick={handleUpload} disabled={uploading || !file}>
+            {uploading ? (
+              <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Processing...</>
+            ) : (
+              <><Upload size={14} /> Start Import</>
+            )}
+          </Btn>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
 // ── Add-On Builder Modal ──────────────────────────────────────────────────────
 
 interface AddOnItem {
@@ -2163,7 +2353,8 @@ const MenuItemsTab: React.FC = () => {
   const [bundleInfo, setBundleInfo] = useState<Record<number, { name: string; quantity: number; size: string }[]>>({});
   const [itemOptions, setItemOptions] = useState<Record<number, ItemOptions>>({});
   const [drinkPoolTarget, setDrinkPoolTarget] = useState<Category | null>(null);
-  const [sugarLevels, setSugarLevels] = useState<SugarLevel[]>([]);
+  const [importOpen, setImportOpen] = useState(false);
+  const [ sugarLevels, setSugarLevels] = useState<SugarLevel[]>([]);
   const [addOnBuilderOpen, setAddOnBuilderOpen] = useState(false);
   const [allAddOns, setAllAddOns] = useState<AddOnItem[]>([]);
   const [printMenuOpen, setPrintMenuOpen] = useState(false);
@@ -2347,6 +2538,9 @@ const MenuItemsTab: React.FC = () => {
           )}
           <Btn variant="secondary" onClick={() => setPrintMenuOpen(true)} disabled={loading}>
             <Printer size={13} /> Print Menu
+          </Btn>
+          <Btn variant="secondary" onClick={() => setImportOpen(true)} disabled={loading}>
+            <Upload size={13} /> Import
           </Btn>
           <Btn onClick={() => startTransition(() => setAddOpen(true))} disabled={loading}>
             <Plus size={13} /> Add Item
@@ -2655,6 +2849,12 @@ const MenuItemsTab: React.FC = () => {
           categories={categories}
           items={items}
           onClose={() => setPrintMenuOpen(false)}
+        />
+      )}
+      {importOpen && (
+        <ImportModal
+          onClose={() => setImportOpen(false)}
+          onSaved={() => fetchAll()}
         />
       )}
     </div>
