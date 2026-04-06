@@ -188,10 +188,7 @@ public function getCategories()
                 ->where('categories.type', '!=', 'standard');
 
             if ($branchId) {
-                $baseQuery->where(function($q) use ($branchId) {
-                    $q->where('menu_items.branch_id', $branchId)
-                      ->orWhereNull('menu_items.branch_id');
-                });
+                $baseQuery->where('menu_items.branch_id', $branchId);
             }
 
             $totalItems  = (clone $baseQuery)->count();
@@ -270,10 +267,7 @@ public function getCategories()
                 ->where('menu_items.quantity', '<=', 5);
 
             if ($branchId) {
-                $query->where(function($q) use ($branchId) {
-                    $q->where('menu_items.branch_id', $branchId)
-                      ->orWhereNull('menu_items.branch_id');
-                });
+                $query->where('menu_items.branch_id', $branchId);
             }
 
             $alerts = $query->orderBy('menu_items.quantity', 'asc')
@@ -307,13 +301,22 @@ public function usageReport(Request $request)
         $startDate = "{$year}-{$month}-01";
         $endDate   = date('Y-m-t', strtotime($startDate));
 
-        $materials = \App\Models\RawMaterial::query()->get();
+        $materialsQuery = \App\Models\RawMaterial::query();
+        if ($branchId) {
+            $materialsQuery->where('branch_id', $branchId);
+        }
+        $materials = $materialsQuery->get();
 
-        $rows = $materials->map(function ($mat) use ($startDate, $endDate) {
+        $rows = $materials->map(function ($mat) use ($startDate, $endDate, $branchId) {
             // Get all movements for this period
-            $movements = \App\Models\StockMovement::where('raw_material_id', $mat->id)
-                ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
-                ->get();
+            $movementsQuery = \App\Models\StockMovement::where('raw_material_id', $mat->id)
+                ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+            
+            if ($branchId) {
+                $movementsQuery->where('branch_id', $branchId);
+            }
+
+            $movements = $movementsQuery->get();
 
             $del    = $movements->where('type', 'add')->sum('quantity');
             $out    = $movements->where('type', 'subtract')->sum('quantity');

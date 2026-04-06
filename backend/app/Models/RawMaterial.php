@@ -17,6 +17,7 @@ class RawMaterial extends Model
         'is_intermediate',
         'notes',
         'branch_id',
+        'parent_id',
     ];
 
     protected $casts = [
