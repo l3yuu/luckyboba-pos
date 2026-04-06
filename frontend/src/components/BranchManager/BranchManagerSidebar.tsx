@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Users, BarChart2, ShoppingBag,
   Package, Settings as SettingsIcon, LogOut,
-  ChevronDown, Activity, Monitor, Trash2, X,
+  ChevronDown, Activity, Monitor, Trash2, X, Tag,
 } from 'lucide-react';
 
 // ── Styles (mirrored from SuperAdminSidebar) ──────────────────────────────────
@@ -468,7 +468,8 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
 
           <p className="px-2 pt-4 pb-1 text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">System</p>
           {[
-            { tab: 'audit-logs', label: 'Audit Logs', icon: <Activity size={14} /> },
+            { tab: 'audit-logs',       label: 'Audit Logs',       icon: <Activity size={14} /> },
+            { tab: 'promos-discounts', label: 'Promos & Discounts', icon: <Tag size={14} /> },
           ].map(t => (
             <button key={t.tab} onClick={() => go(t.tab)} className={`bm-item ${currentTab === t.tab ? 'active' : ''}`}>
               <span style={{ flexShrink: 0, width: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', color: currentTab === t.tab ? '#3b2063' : '#a1a1aa' }}>{t.icon}</span>
@@ -594,6 +595,10 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
               <button onClick={() => go('audit-logs')} className={`bm-m-item ${currentTab === 'audit-logs' ? 'active' : ''}`}>
                 <span className="bm-m-icon" style={{ color: currentTab === 'audit-logs' ? '#3b2063' : '#71717a' }}><Activity size={18} /></span>
                 Audit Logs
+              </button>
+              <button onClick={() => go('promos-discounts')} className={`bm-m-item ${currentTab === 'promos-discounts' ? 'active' : ''}`}>
+                <span className="bm-m-icon" style={{ color: currentTab === 'promos-discounts' ? '#3b2063' : '#71717a' }}><Tag size={18} /></span>
+                Promos & Discounts
               </button>
 
             </div>

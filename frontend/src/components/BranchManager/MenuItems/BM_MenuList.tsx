@@ -1,585 +1,677 @@
-"use client"
-
-import { useState, useEffect, useRef, useCallback } from 'react';
-import axios from 'axios';
-import api from '../../../services/api';
-import * as XLSX from 'xlsx';
+// components/BranchManager/MenuItems/BM_MenuList.tsx
+import { useState, useEffect, useCallback, useMemo } from "react";
 import {
-  Search, Plus, Printer, FileDown, Tag, Layers,
-  CheckCircle2, X, Package, RefreshCw, ArrowUpRight,
-  DollarSign, ShoppingBag, TrendingUp,
-} from 'lucide-react';
+  Search, RefreshCw,
+  AlertCircle, X, Package, ChevronDown,
+  ToggleLeft, ToggleRight, Coffee,
+} from "lucide-react";
+import { createPortal } from "react-dom";
 
-// ─── Design tokens ────────────────────────────────────────────────────────────
-const STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
-  .ml-root, .ml-root * { font-family: 'DM Sans', sans-serif !important; box-sizing: border-box; }
-  .ml-label { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #a1a1aa; }
-  .ml-live  { display: inline-flex; align-items: center; gap: 5px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 100px; padding: 4px 10px; }
-  .ml-live-dot  { width: 5px; height: 5px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 5px rgba(34,197,94,0.6); animation: ml-pulse 2s infinite; }
-  .ml-live-text { font-size: 0.55rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #16a34a; }
-  @keyframes ml-pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-`;
+type VariantKey = "primary" | "secondary" | "danger" | "ghost";
+type SizeKey    = "sm" | "md" | "lg";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+const getToken = () =>
+  localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
+const authHeaders = (): Record<string, string> => ({
+  "Content-Type": "application/json",
+  "Accept":       "application/json",
+  ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
+});
+
+
+
+interface ItemOptions {
+  pearl: boolean;
+  ice:   boolean;
+}
+
 interface MenuItem {
-  id: number;
-  name: string;
-  barcode: string | null;
-  category: string | null;
-  unitCost: number;
-  sellingPrice: number;
-  price: number;
-  totalCost: number;
-  status?: 'ACTIVE' | 'INACTIVE';
-  type?: 'FOOD' | 'DRINK';
+  id:             number;
+  name:           string;
+  category_id:    number | null;
+  category:       string;
+  category_type:  string;
+  subcategory_id: number | null;
+  subcategory:    string;
+  price:          number;
+  grab_price:     number;
+  panda_price:    number;
+  barcode:        string | null;
+  size:           string | null;
+  image_path:     string | null;
+  is_available:   boolean;
+}
+interface Category {
+  id:            number;
+  name:          string;
+  category_type: string; // ✅ added
 }
 
-interface Toast { id: number; message: string; type: 'success' | 'error'; }
-interface SubCategory { id: number; name: string; }
-interface Category { id: number; name: string; }
-interface FormData {
-  name: string; barcode: string; category: string; sub_category: string;
-  unitCost: string; sellingPrice: string; totalCost: string;
-  status: 'ACTIVE' | 'INACTIVE'; type: 'FOOD' | 'DRINK';
+
+interface CategoryDrink {
+  id:           number;
+  category_id:  number;
+  menu_item_id: number;
+  name:         string;
+  size:         string;
+  price:        number;
 }
 
-const INITIAL_FORM: FormData = {
-  name: '', barcode: '', category: '', sub_category: '',
-  unitCost: '', sellingPrice: '', totalCost: '',
-  status: 'ACTIVE', type: 'FOOD',
+interface SugarLevel {
+  id:         number;
+  label:      string;
+  value:      string;
+  sort_order: number;
+  is_active:  boolean;
+}
+
+// ── Shared UI ─────────────────────────────────────────────────────────────────
+
+interface BtnProps {
+  children: React.ReactNode; variant?: VariantKey; size?: SizeKey;
+  onClick?: () => void; className?: string; disabled?: boolean; type?: "button" | "submit" | "reset";
+}
+const Btn: React.FC<BtnProps> = ({ children, variant = "primary", size = "sm", onClick, className = "", disabled = false, type = "button" }) => {
+  const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
+  const variants: Record<VariantKey, string> = {
+    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
+    danger:    "bg-red-600 hover:bg-red-700 text-white",
+    ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
+  };
+  return (
+    <button type={type} onClick={onClick} disabled={disabled}
+      className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 ${sizes[size]} ${variants[variant]} ${className}`}>
+      {children}
+    </button>
+  );
 };
 
-// ─── Toast ────────────────────────────────────────────────────────────────────
-function ToastNotification({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: number) => void }) {
+const SkeletonBar: React.FC<{ h?: string; w?: string }> = ({ h = "h-4", w = "w-full" }) => (
+  <div className={`${w} ${h} bg-zinc-100 rounded animate-pulse`} />
+);
+
+const OptionsBadge: React.FC<{ opts: ItemOptions }> = ({ opts }) => {
+  if (!opts.pearl && !opts.ice) return <span className="text-zinc-300 text-xs">—</span>;
   return (
-    <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-2 pointer-events-none">
-      {toasts.map((toast) => (
-        <div key={toast.id}
-          className={`flex items-center gap-3 px-5 py-3 rounded-xl shadow-xl text-white text-sm font-semibold pointer-events-auto border border-white/10 transition-all ${toast.type === 'success' ? 'bg-[#1a0f2e]' : 'bg-red-600'}`}>
-          {toast.type === 'success' ? <CheckCircle2 size={15} /> : <X size={15} />}
-          <span>{toast.message}</span>
-          <button onClick={() => onRemove(toast.id)} className="ml-1 text-white/50 hover:text-white transition-colors">
-            <X size={13} />
-          </button>
-        </div>
-      ))}
+    <div className="flex items-center gap-1">
+      {opts.pearl && (
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-200">
+          🧋 Pearl
+        </span>
+      )}
+      {opts.ice && (
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-sky-50 text-sky-600 border border-sky-200">
+          🧊 Ice
+        </span>
+      )}
     </div>
   );
-}
+};
 
-// ─── Add Item Modal ───────────────────────────────────────────────────────────
-function AddItemModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (message: string) => void }) {
-  const [form, setForm]               = useState<FormData>(INITIAL_FORM);
-  const [submitting, setSubmitting]   = useState(false);
-  const [errors, setErrors]           = useState<Partial<FormData>>({});
-  const [categories, setCategories]   = useState<Category[]>([]);
-  const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
-  const [loadingCats, setLoadingCats]     = useState(false);
-  const [loadingSubCats, setLoadingSubCats] = useState(false);
-  const overlayRef = useRef<HTMLDivElement>(null);
 
-  const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === overlayRef.current) onClose();
-  };
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [onClose]);
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      setLoadingCats(true);
-      setCategories([]); setSubCategories([]);
-      setForm(prev => ({ ...prev, category: '', sub_category: '' }));
-      try {
-        const response = await api.get('/categories', { params: { type: form.type.toLowerCase() } });
-        setCategories(response.data);
-      } catch (err) { console.error('Failed to fetch categories:', err); }
-      finally { setLoadingCats(false); }
-    };
-    fetchCategories();
-  }, [form.type]);
-
-  useEffect(() => {
-    if (!form.category) { setSubCategories([]); return; }
-    const fetchSubCategories = async () => {
-      setLoadingSubCats(true); setSubCategories([]);
-      setForm(prev => ({ ...prev, sub_category: '' }));
-      try {
-        const selectedCat = categories.find(c => c.name === form.category);
-        if (!selectedCat) return;
-        const response = await api.get('/sub-categories', { params: { category_id: selectedCat.id } });
-        setSubCategories(response.data);
-      } catch (err) { console.error('Failed to fetch sub-categories:', err); }
-      finally { setLoadingSubCats(false); }
-    };
-    fetchSubCategories();
-  }, [form.category, categories]);
-
-  const validate = (): boolean => {
-    const newErrors: Partial<FormData> = {};
-    if (!form.name.trim()) newErrors.name = 'Item name is required.';
-    if (!form.sellingPrice || isNaN(Number(form.sellingPrice))) newErrors.sellingPrice = 'Enter a valid selling price.';
-    if (form.unitCost && isNaN(Number(form.unitCost))) newErrors.unitCost = 'Enter a valid unit cost.';
-    if (form.totalCost && isNaN(Number(form.totalCost))) newErrors.totalCost = 'Enter a valid total cost.';
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const handleChange = (field: keyof FormData, value: string) => {
-    setForm(prev => ({ ...prev, [field]: value }));
-    if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }));
-  };
-
-  const handleSubmit = async () => {
-    if (!validate()) return;
-    setSubmitting(true);
-    try {
-      await api.post('/menu-list', {
-        name: form.name.trim(), barcode: form.barcode.trim() || null,
-        category: form.category || null, sub_category: form.sub_category || null,
-        sellingPrice: Number(form.sellingPrice), status: form.status, type: form.type,
-        unitCost: Number(form.unitCost) || 0, totalCost: Number(form.totalCost) || 0,
-      });
-      localStorage.removeItem('luckyboba_menu_cache');
-      localStorage.removeItem('pos_menu_cache');
-      onSuccess(`"${form.name}" has been added successfully.`);
-      onClose();
-    } catch (err) {
-      const msg = axios.isAxiosError(err) ? (err.response?.data?.message ?? 'Failed to add item.') : 'Failed to add item.';
-      setErrors({ name: msg });
-    } finally { setSubmitting(false); }
-  };
-
-  const inputCls = (hasError?: boolean) =>
-    `w-full px-4 py-3 rounded-xl border text-sm font-semibold outline-none transition-all bg-[#f5f4f8] text-[#1a0f2e] placeholder:text-zinc-300 focus:border-[#ddd6f7] focus:bg-white ${hasError ? 'border-red-300' : 'border-gray-100'}`;
-
-  const selectCls = `w-full px-4 py-3 rounded-xl border border-gray-100 bg-[#f5f4f8] text-[#1a0f2e] font-semibold text-sm outline-none focus:border-[#ddd6f7] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-colors appearance-none`;
-
-  return (
-    <div ref={overlayRef} onClick={handleBackdropClick}
-      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="ml-root bg-white border border-gray-100 shadow-2xl w-full max-w-lg flex flex-col overflow-hidden rounded-2xl">
-
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-gray-50">
+const ModalShell: React.FC<{
+  onClose: () => void; icon: React.ReactNode; title: string; sub: string;
+  children: React.ReactNode; footer: React.ReactNode; maxWidth?: string;
+}> = ({ onClose, icon, title, sub, children, footer, maxWidth = "max-w-lg" }) =>
+  createPortal(
+    <div className="fixed inset-0 z-9999 flex items-center justify-center p-4"
+      style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", backgroundColor: "rgba(0,0,0,0.45)" }}>
+      <div className="absolute inset-0" onClick={onClose} />
+      <div className={`relative bg-white w-full ${maxWidth} border border-zinc-200 rounded-[1.25rem] shadow-2xl flex flex-col max-h-[90vh]`}>
+        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: '#ede9fe', color: '#7c3aed' }}>
-              <Plus size={16} strokeWidth={2.5} />
-            </div>
+            <div className="w-9 h-9 bg-violet-50 border border-violet-200 rounded-lg flex items-center justify-center">{icon}</div>
             <div>
-              <p className="ml-label">Menu Items</p>
-              <h2 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.025em', margin: 0 }}>
-                Add New Item
-              </h2>
+              <p className="text-sm font-bold text-[#1a0f2e]">{title}</p>
+              <p className="text-[10px] text-zinc-400">{sub}</p>
             </div>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center text-zinc-300 hover:text-zinc-500 hover:bg-gray-50 transition-all">
-            <X size={16} />
-          </button>
+          <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600"><X size={16} /></button>
         </div>
-
-        {/* Body */}
-        <div className="px-6 py-5 overflow-y-auto flex flex-col gap-4 max-h-[72vh]">
-
-          {/* Status + Type */}
-          <div className="flex gap-3">
-            <div className="flex-1 space-y-1.5">
-              <label className="ml-label">Status</label>
-              <select value={form.status} onChange={(e) => handleChange('status', e.target.value)} className={selectCls}>
-                <option value="ACTIVE">Active</option>
-                <option value="INACTIVE">Inactive</option>
-              </select>
-            </div>
-            <div className="flex-1 space-y-1.5">
-              <label className="ml-label">Type</label>
-              <select value={form.type} onChange={(e) => handleChange('type', e.target.value)} className={selectCls}>
-                <option value="FOOD">Food</option>
-                <option value="DRINK">Drink</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Item Name */}
-          <div className="space-y-1.5">
-            <label className="ml-label flex items-center gap-1.5"><Tag size={10} /> Item Name</label>
-            <input type="text" value={form.name} onChange={(e) => handleChange('name', e.target.value)}
-              placeholder="Enter product name..." className={inputCls(!!errors.name)} />
-            {errors.name && <p className="text-[11px] text-red-500 font-semibold">{errors.name}</p>}
-          </div>
-
-          {/* Barcode */}
-          <div className="space-y-1.5">
-            <label className="ml-label">Barcode</label>
-            <input type="text" value={form.barcode} onChange={(e) => handleChange('barcode', e.target.value)}
-              placeholder="Scan or type barcode..." className={inputCls()} />
-          </div>
-
-          {/* Category + Sub-Category */}
-          <div className="flex gap-3">
-            <div className="flex-1 space-y-1.5">
-              <label className="ml-label flex items-center gap-1.5"><Layers size={10} /> Category</label>
-              {loadingCats ? (
-                <div className="w-full px-4 py-3 rounded-xl border border-gray-100 bg-[#f5f4f8] text-zinc-400 text-sm font-semibold flex items-center gap-2">
-                  <RefreshCw size={12} className="animate-spin" /> Loading...
-                </div>
-              ) : (
-                <select value={form.category} onChange={(e) => handleChange('category', e.target.value)} className={selectCls}>
-                  <option value="">— Select —</option>
-                  {categories.map(cat => <option key={cat.id} value={cat.name}>{cat.name}</option>)}
-                </select>
-              )}
-            </div>
-            <div className="flex-1 space-y-1.5">
-              <label className="ml-label flex items-center gap-1.5"><Layers size={10} /> Sub-Category</label>
-              {loadingSubCats ? (
-                <div className="w-full px-4 py-3 rounded-xl border border-gray-100 bg-[#f5f4f8] text-zinc-400 text-sm font-semibold flex items-center gap-2">
-                  <RefreshCw size={12} className="animate-spin" /> Loading...
-                </div>
-              ) : (
-                <select value={form.sub_category} onChange={(e) => handleChange('sub_category', e.target.value)}
-                  disabled={!form.category || subCategories.length === 0} className={selectCls}>
-                  <option value="">— Select —</option>
-                  {subCategories.map(sc => <option key={sc.id} value={sc.name}>{sc.name}</option>)}
-                </select>
-              )}
-              {form.category && !loadingSubCats && subCategories.length === 0 && (
-                <p className="ml-label" style={{ color: '#d4d4d8' }}>No sub-categories found.</p>
-              )}
-            </div>
-          </div>
-
-          {/* Pricing */}
-          <div className="flex gap-3 p-4 bg-[#f5f4f8] rounded-xl border border-gray-100">
-            {[
-              { f: 'unitCost',     l: 'Unit Cost' },
-              { f: 'sellingPrice', l: 'Sell Price' },
-              { f: 'totalCost',    l: 'Total Value' },
-            ].map(m => (
-              <div key={m.f} className="flex-1 space-y-1.5">
-                <label className="ml-label">{m.l}</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 font-bold text-sm">₱</span>
-                  <input type="number" value={form[m.f as keyof FormData]}
-                    onChange={(e) => handleChange(m.f as keyof FormData, e.target.value)}
-                    className="w-full pl-7 pr-2 py-3 rounded-xl border border-gray-100 bg-white text-[#1a0f2e] font-semibold text-sm outline-none focus:border-[#ddd6f7] tabular-nums transition-colors"
-                    placeholder="0.00" />
-                </div>
-                {errors[m.f as keyof FormData] && (
-                  <p className="text-[11px] text-red-500 font-semibold">{errors[m.f as keyof FormData]}</p>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Footer */}
-        <div className="flex gap-3 px-6 py-5 border-t border-gray-50">
-          <button onClick={onClose} disabled={submitting}
-            className="flex-1 h-11 bg-white border border-gray-100 text-zinc-500 font-bold text-xs uppercase tracking-widest hover:bg-gray-50 transition-all disabled:opacity-50 rounded-xl">
-            Cancel
-          </button>
-          <button onClick={handleSubmit} disabled={submitting}
-            className="flex-1 h-11 bg-[#1a0f2e] hover:bg-[#2a1647] text-white font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-xl">
-            {submitting ? <RefreshCw size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
-            {submitting ? 'Saving…' : 'Add Item'}
-          </button>
-        </div>
+        <div className="px-6 py-5 flex flex-col gap-4 overflow-y-auto flex-1">{children}</div>
+        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-100 shrink-0">{footer}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
+
+
+
+
+
+
+// ── Category Drinks Manager ───────────────────────────────────────────────────
+
+interface CategoryDrinksManagerProps {
+  categoryId:   number;
+  categoryName: string;
+  allItems:     MenuItem[];
+  onClose:      () => void;
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
-function BM_MenuList() {
-  const [menuData,        setMenuData]        = useState<MenuItem[]>([]);
-  const [loading,         setLoading]         = useState(true);
-  const [filterName,      setFilterName]      = useState('');
-  const [filterCategory,  setFilterCategory]  = useState('');
-  const [showAddModal,    setShowAddModal]     = useState(false);
-  const [toasts,          setToasts]          = useState<Toast[]>([]);
-  const toastCounter = useRef(0);
+const CategoryDrinksManager: React.FC<CategoryDrinksManagerProps> = ({
+  categoryId, categoryName, allItems, onClose,
+}) => {
+  const drinkPool = useMemo(() =>
+    allItems
+      .filter(i => i.category_type === "drink")
+      .sort((a, b) => a.name.localeCompare(b.name) || (a.price - b.price)),
+    [allItems]
+  );
 
-  const addToast = (message: string, type: 'success' | 'error' = 'success') => {
-    const id = ++toastCounter.current;
-    setToasts(prev => [...prev, { id, message, type }]);
-    setTimeout(() => removeToast(id), 4000);
+  const allDrinks = useMemo(() => {
+    const nameCounts = drinkPool.reduce<Record<string, number>>((acc, d) => {
+      acc[d.name] = (acc[d.name] ?? 0) + 1; return acc;
+    }, {});
+    const nameIndex: Record<string, number> = {};
+    return drinkPool.map(drink => {
+      const hasPair = nameCounts[drink.name] > 1;
+      let sizeLabel = drink.size && drink.size !== 'none' ? drink.size.toUpperCase() : '';
+      if (!sizeLabel && hasPair) {
+        nameIndex[drink.name] = (nameIndex[drink.name] ?? 0) + 1;
+        sizeLabel = nameIndex[drink.name] === 1 ? 'M' : 'L';
+      }
+      return { ...drink, _sizeLabel: sizeLabel };
+    });
+  }, [drinkPool]);
+
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [loading,     setLoading]     = useState(true);
+  const [saving,      setSaving]      = useState(false);
+  const [saved,       setSaved]       = useState(false);
+  const [error,       setError]       = useState("");
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/category-drinks?category_id=${categoryId}`, { headers: authHeaders() })
+      .then(r => r.json())
+      .then(data => {
+        const rows: CategoryDrink[] = data.data ?? [];
+        setSelectedIds(new Set(rows.map(r => r.menu_item_id)));
+      })
+      .catch(() => setError("Failed to load drink pool."))
+      .finally(() => setLoading(false));
+  }, [categoryId]);
+
+  const toggle = (id: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) { next.delete(id); } else { next.add(id); }
+      return next;
+    });
+    setSaved(false);
   };
-  const removeToast = (id: number) => setToasts(prev => prev.filter(t => t.id !== id));
 
-  const fetchMenu = async () => {
-    const cached = localStorage.getItem('luckyboba_menu_cache');
-    if (cached) { setMenuData(JSON.parse(cached)); setLoading(false); }
+  const handleSave = async () => {
+    setSaving(true); setError("");
     try {
-      const response = await api.get('/menu-list');
-      setMenuData(response.data);
-      localStorage.setItem('luckyboba_menu_cache', JSON.stringify(response.data));
-    } catch (error) { console.error('Failed to fetch menu list:', error); }
-    finally { setLoading(false); }
+      const res = await fetch("/api/category-drinks", {
+        method:  "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          category_id: categoryId,
+          drinks: allDrinks
+            .filter(d => selectedIds.has(d.id))
+            .map(d => ({ menu_item_id: d.id, size: d._sizeLabel || "M" })),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) { setError("Failed to save."); return; }
+      setSaved(true);
+    } catch { setError("Network error."); }
+    finally { setSaving(false); }
   };
-
-  useEffect(() => { fetchMenu(); }, []);
-
-  const handleAddSuccess = (message: string) => { addToast(message, 'success'); fetchMenu(); };
-
-  const filteredData = menuData.filter(item => {
-    const matchesName     = (item.name?.toLowerCase() || '').includes(filterName.toLowerCase()) || (item.barcode?.toLowerCase() || '').includes(filterName.toLowerCase());
-    const matchesCategory = (item.category?.toLowerCase() || '').includes(filterCategory.toLowerCase());
-    return matchesName && matchesCategory;
-  });
-
-  const generateExcel = useCallback(() => {
-    if (filteredData.length === 0) return;
-    const ws = XLSX.utils.aoa_to_sheet([
-      ['Item Name', 'Barcode', 'Category', 'Unit Cost', 'Selling Price', 'Total Cost'],
-      ...filteredData.map(item => [item.name, item.barcode || '-', item.category || 'Uncategorized', item.unitCost, item.sellingPrice, item.totalCost]),
-    ]);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Menu List');
-    XLSX.writeFile(wb, `LuckyBoba_Menu_${new Date().toISOString().split('T')[0]}.xlsx`);
-  }, [filteredData]);
-
-  // Derived summary stats
-  const avgPrice    = filteredData.length ? filteredData.reduce((a, b) => a + Number(b.sellingPrice || b.price || 0), 0) / filteredData.length : 0;
-  const totalItems  = filteredData.length;
-  const categories  = new Set(filteredData.map(i => i.category).filter(Boolean)).size;
-  const fmtP        = (v: number) => `₱${v.toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
-
-  const summaryCards = [
-    { label: 'Total Items',   sub: 'In current filter', compact: String(totalItems),    icon: <ShoppingBag size={14} strokeWidth={2.5} />, iconBg: '#ede9fe', iconColor: '#7c3aed' },
-    { label: 'Categories',    sub: 'Unique categories',  compact: String(categories),   icon: <Layers size={14} strokeWidth={2.5} />,      iconBg: '#dcfce7', iconColor: '#16a34a' },
-    { label: 'Avg Price',     sub: 'Average sell price', compact: fmtP(avgPrice),       icon: <TrendingUp size={14} strokeWidth={2.5} />,  iconBg: '#e0f2fe', iconColor: '#0284c7' },
-    { label: 'Active Items',  sub: 'Status = Active',    compact: String(filteredData.filter(i => i.status === 'ACTIVE' || !i.status).length),
-      icon: <ArrowUpRight size={14} strokeWidth={2.5} />, iconBg: '#fef9c3', iconColor: '#ca8a04' },
-  ];
-
-  if (loading && menuData.length === 0) {
-    return (
-      <div className="ml-root h-full flex flex-col items-center justify-center gap-3 bg-[#f5f4f8]">
-        <style>{STYLES}</style>
-        <div className="w-9 h-9 border-2 border-[#3b2063] border-t-transparent animate-spin rounded-full" />
-        <p className="ml-label" style={{ color: '#a1a1aa' }}>Loading menu…</p>
-      </div>
-    );
-  }
 
   return (
-    <>
-      <style>{STYLES}</style>
-      <div className="ml-root flex flex-col h-full bg-[#f5f4f8] overflow-hidden">
-        <ToastNotification toasts={toasts} onRemove={removeToast} />
-        {showAddModal && <AddItemModal onClose={() => setShowAddModal(false)} onSuccess={handleAddSuccess} />}
+    <ModalShell
+      onClose={onClose}
+      icon={<Coffee size={15} className="text-rose-600" />}
+      title="Manage Drink Pool"
+      sub={`Shared drinks for "${categoryName}"`}
+      footer={
+        <>
+          <Btn variant="secondary" onClick={onClose} disabled={saving}>Close</Btn>
+          <Btn onClick={handleSave} disabled={saving || loading}>
+            {saving
+              ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving...</span>
+              : saved ? "✓ Saved!" : "Save Drink Pool"
+            }
+          </Btn>
+        </>
+      }
+    >
+      {error && (
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <AlertCircle size={14} className="text-red-500 shrink-0" />
+          <p className="text-xs text-red-600 font-medium">{error}</p>
+        </div>
+      )}
 
-        <div className="flex-1 overflow-y-auto px-5 md:px-8 pb-8 pt-5 flex flex-col gap-5">
+      <div className="p-3 bg-rose-50 border border-rose-200 rounded-lg">
+        <p className="text-xs font-bold text-rose-700 mb-0.5">Shared Drink Pool</p>
+        <p className="text-[10px] text-rose-600 leading-relaxed">
+          All Mix & Match items in <span className="font-bold">{categoryName}</span> will offer these drinks. Changes apply to every item in this category automatically.
+        </p>
+      </div>
 
-          {/* ── SUMMARY STAT CARDS ── */}
-          <div className="grid gap-4 grid-cols-2 xl:grid-cols-4">
-            {summaryCards.map((s, i) => (
-              <div key={i} className="bg-white border border-gray-100 rounded-2xl p-5 flex flex-col gap-2 hover:shadow-md hover:border-[#ddd6f7] transition-all">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="ml-label">{s.label}</p>
-                    <p style={{ fontSize: '0.65rem', color: '#71717a', marginTop: 2 }}>{s.sub}</p>
-                  </div>
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-                    style={{ background: s.iconBg, color: s.iconColor }}>
-                    {s.icon}
-                  </div>
-                </div>
-                <p style={{ fontSize: '1.7rem', fontWeight: 800, letterSpacing: '-0.035em', lineHeight: 1, color: '#1a0f2e' }}>
-                  {s.compact}
-                </p>
-              </div>
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Available Drinks</label>
+          <span className="text-[9px] font-bold text-rose-500 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">
+            {selectedIds.size} selected
+          </span>
+        </div>
+
+        {loading ? (
+          <div className="grid grid-cols-2 gap-1.5">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-10 bg-zinc-100 rounded-lg animate-pulse" />
             ))}
           </div>
-
-          {/* ── FILTER BAR ── */}
-          <div className="bg-white border border-gray-100 rounded-2xl p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: '#ede9fe', color: '#7c3aed' }}>
-                <Search size={13} strokeWidth={2.5} />
-              </div>
-              <h2 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.025em', margin: 0 }}>
-                Menu Items
-              </h2>
-            </div>
-
-            <div className="flex flex-col xl:flex-row gap-3 items-end">
-              <div className="flex-1 w-full space-y-1.5">
-                <label className="ml-label flex items-center gap-1.5"><Search size={11} /> Search</label>
-                <input type="text" value={filterName} onChange={(e) => setFilterName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-100 bg-[#f5f4f8] text-[#1a0f2e] font-semibold text-sm outline-none focus:border-[#ddd6f7] transition-all placeholder:text-zinc-300"
-                  placeholder="Name or barcode…" />
-              </div>
-              <div className="flex-1 w-full space-y-1.5">
-                <label className="ml-label flex items-center gap-1.5"><Layers size={11} /> Category</label>
-                <input type="text" value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-100 bg-[#f5f4f8] text-[#1a0f2e] font-semibold text-sm outline-none focus:border-[#ddd6f7] transition-all placeholder:text-zinc-300"
-                  placeholder="Filter by category…" />
-              </div>
-              <div className="flex gap-2 w-full xl:w-auto">
-                <button onClick={() => setShowAddModal(true)}
-                  className="flex-1 xl:flex-none h-11 px-6 rounded-xl bg-[#1a0f2e] hover:bg-[#2a1647] text-white font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all">
-                  <Plus size={14} strokeWidth={2.5} /> Add Item
+        ) : (
+          <div className="grid grid-cols-2 gap-1.5 max-h-72 overflow-y-auto pr-1">
+            {allDrinks.map(d => {
+              const isSelected = selectedIds.has(d.id);
+              return (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => toggle(d.id)}
+                  className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-left transition-all ${
+                    isSelected
+                      ? 'bg-rose-100 border-rose-400 text-rose-800'
+                      : 'bg-white border-zinc-200 text-zinc-500 hover:border-rose-300'
+                  }`}
+                >
+                  <div className={`w-3 h-3 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                    isSelected ? 'bg-rose-500 border-rose-500' : 'border-zinc-300'
+                  }`}>
+                    {isSelected && (
+                      <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
+                        <path d="M1.5 4L3 5.5L6.5 2" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[10px] font-semibold truncate">{d.name}</span>
+                    {d._sizeLabel && (
+                      <span className={`text-[9px] font-bold uppercase ${isSelected ? 'text-rose-500' : 'text-zinc-400'}`}>
+                        {d._sizeLabel}
+                      </span>
+                    )}
+                  </div>
                 </button>
-                <button onClick={generateExcel}
-                  className="w-11 h-11 rounded-xl bg-white border border-gray-100 text-zinc-400 hover:text-[#3b2063] hover:border-[#ddd6f7] flex items-center justify-center transition-all"
-                  title="Export Excel">
-                  <FileDown size={16} />
-                </button>
-                <button onClick={() => window.print()}
-                  className="w-11 h-11 rounded-xl bg-white border border-gray-100 text-zinc-400 hover:text-[#3b2063] hover:border-[#ddd6f7] flex items-center justify-center transition-all"
-                  title="Print">
-                  <Printer size={16} />
-                </button>
-              </div>
-            </div>
+              );
+            })}
           </div>
+        )}
+      </div>
+    </ModalShell>
+  );
+};
 
-          {/* ── TABLE CARD ── */}
-          <div className="bg-white border border-gray-100 rounded-2xl flex flex-col overflow-hidden">
 
-            {/* Card header */}
-            <div className="px-6 py-5 border-b border-gray-50 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: '#ede9fe', color: '#7c3aed' }}>
-                  <DollarSign size={16} strokeWidth={2.5} />
-                </div>
-                <div>
-                  <h2 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.025em', margin: 0 }}>
-                    Price List
-                  </h2>
-                  <p className="ml-label" style={{ marginTop: 2 }}>All menu items with pricing</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <span style={{
-                  fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
-                  background: '#f4f4f5', color: '#71717a', border: '1px solid #e4e4e7',
-                  borderRadius: '100px', padding: '3px 9px',
-                }}>
-                  {filteredData.length} records
-                </span>
-                <div className="ml-live">
-                  <div className="ml-live-dot" />
-                  <span className="ml-live-text">Live</span>
-                </div>
-              </div>
-            </div>
 
-            {/* Table */}
-            <div className="flex-1 overflow-auto">
-              <table className="w-full text-left">
-                <thead className="sticky top-0 bg-white z-10 border-b border-gray-50">
-                  <tr>
-                    <th className="px-6 py-4 ml-label" style={{ color: '#a1a1aa' }}>Item Name</th>
-                    <th className="px-6 py-4 ml-label" style={{ color: '#a1a1aa' }}>SKU / Barcode</th>
-                    <th className="px-6 py-4 ml-label" style={{ color: '#a1a1aa' }}>Category</th>
-                    <th className="px-6 py-4 ml-label text-right" style={{ color: '#a1a1aa' }}>Unit Cost</th>
-                    <th className="px-6 py-4 ml-label text-right" style={{ color: '#a1a1aa' }}>Sell Price</th>
-                    <th className="px-6 py-4 ml-label text-right" style={{ color: '#a1a1aa' }}>Total Cost</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {filteredData.length > 0 ? filteredData.map((item, idx) => (
-                    <tr key={item.id} className="hover:bg-[#f5f4f8] transition-colors group">
-                      <td className="px-6 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <span style={{
-                            width: 22, height: 22, borderRadius: '0.35rem', flexShrink: 0,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            fontSize: '0.55rem', fontWeight: 800,
-                            background: idx === 0 ? '#3b2063' : '#f4f4f5',
-                            color: idx === 0 ? '#fff' : '#71717a',
-                          }}>{idx + 1}</span>
-                          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1a0f2e' }}>{item.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-3.5">
-                        <span style={{ fontSize: '0.82rem', fontWeight: 500, color: '#a1a1aa', fontFamily: 'monospace' }}>
-                          {item.barcode || '—'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-3.5">
-                        <span style={{
-                          fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
-                          background: '#f4f4f5', color: '#71717a', borderRadius: '100px',
-                          padding: '2px 8px', border: '1px solid #e4e4e7',
-                        }}>
-                          {item.category || 'General'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-3.5 text-right">
-                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#71717a' }}>
-                          ₱{Number(item.unitCost).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </span>
-                      </td>
-                      <td className="px-6 py-3.5 text-right">
-                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#16a34a' }}>
-                          ₱{Number(item.sellingPrice || item.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </span>
-                      </td>
-                      <td className="px-6 py-3.5 text-right">
-                        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#a1a1aa' }}>
-                          ₱{Number(item.totalCost).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </span>
-                      </td>
-                    </tr>
-                  )) : (
-                    <tr>
-                      <td colSpan={6} className="px-8 py-20 text-center">
-                        <div className="w-11 h-11 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ background: '#f4f4f5' }}>
-                          <Package size={18} color="#d4d4d8" strokeWidth={1.5} />
-                        </div>
-                        <p className="ml-label" style={{ color: '#d4d4d8' }}>No items found</p>
-                        <p style={{ fontSize: '0.72rem', color: '#e4e4e7', fontWeight: 500, marginTop: 4 }}>
-                          Try adjusting your filters
-                        </p>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
 
-            {/* Footer — mirrors dashboard dark footer */}
-            <div className="flex justify-between items-center px-6 py-4 border-t border-gray-50 bg-[#1a0f2e] rounded-b-2xl">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                <span style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)' }}>
-                  Synchronized · POS-01
-                </span>
-              </div>
-              <div className="flex items-center gap-6 text-right">
-                <div>
-                  <p style={{ fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: 2 }}>
-                    Items
-                  </p>
-                  <p style={{ fontSize: '1.3rem', fontWeight: 800, letterSpacing: '-0.035em', color: '#fff', lineHeight: 1 }}>
-                    {filteredData.length}
-                  </p>
-                </div>
-                <div>
-                  <p style={{ fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: 2 }}>
-                    Avg Price
-                  </p>
-                  <p style={{ fontSize: '1.3rem', fontWeight: 800, letterSpacing: '-0.035em', color: '#4ade80', lineHeight: 1 }}>
-                    {fmtP(avgPrice)}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
 
+
+
+
+
+
+const BM_MenuList: React.FC = () => {
+  const [items,         setItems]         = useState<MenuItem[]>([]);
+  const [categories,    setCategories]    = useState<Category[]>([]);
+  const [loading,         setLoading]         = useState(true);
+  const [error,           setError]           = useState("");
+  const [search,          setSearch]          = useState("");
+  const [filterCat,       setFilterCat]       = useState("");
+  const [filterAvail,     setFilterAvail]     = useState("");
+  const [filterType,      setFilterType]      = useState("");
+  const [itemOptions,     setItemOptions]     = useState<Record<number, ItemOptions>>({});
+  const [drinkPoolTarget, setDrinkPoolTarget] = useState<Category | null>(null);
+  const [sugarLevels,     setSugarLevels]     = useState<SugarLevel[]>([]);
+
+  // Fetch all item options in bulk when items load
+  const fetchAllOptions = useCallback(async (loadedItems: MenuItem[]) => {
+    const drinkIds = loadedItems
+      .filter(i => ["drink", "combo", "bundle"].includes(i.category_type))
+      .map(i => i.id);
+    if (drinkIds.length === 0) return;
+
+    try {
+      const params = drinkIds.map(id => `ids[]=${id}`).join("&");
+      const res    = await fetch(`/api/menu-item-options/bulk?${params}`, { headers: authHeaders() });
+      const data   = await res.json();
+      const rows: { menu_item_id: number; option_type: string }[] = data.data ?? [];
+
+      const map: Record<number, ItemOptions> = {};
+      drinkIds.forEach(id => { map[id] = { pearl: false, ice: false }; });
+      rows.forEach(r => {
+        if (!map[r.menu_item_id]) map[r.menu_item_id] = { pearl: false, ice: false };
+        if (r.option_type === "pearl") map[r.menu_item_id].pearl = true;
+        if (r.option_type === "ice")   map[r.menu_item_id].ice   = true;
+      });
+      setItemOptions(map);
+    } catch { /* silent */ }
+  }, []);
+
+  const fetchAll = useCallback(async () => {
+    setLoading(true); setError("");
+    try {
+      const [itemsRes, catsRes, sugarRes] = await Promise.all([
+        fetch("/api/menu-items",   { headers: authHeaders() }),
+        fetch("/api/categories",   { headers: authHeaders() }),
+        fetch("/api/sugar-levels", { headers: authHeaders() }),
+      ]);
+      const [itemsData, catsData, sugarData] = await Promise.all([
+        itemsRes.json(), catsRes.json(), sugarRes.json(),
+      ]);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mapItem = (i: any): MenuItem => ({
+        id:             i.id,
+        name:           i.name,
+        category_id:    i.category_id    ?? null,
+        category:       i.category?.name ?? i.category  ?? "—",
+        category_type:  i.category_type  ?? "food",
+        subcategory_id: i.subcategory_id ?? null,
+        subcategory:    i.subcategory?.name ?? i.subcategory ?? "—",
+        price:          Number(i.price      ?? 0),
+        grab_price:     Number(i.grab_price  ?? 0),
+        panda_price:    Number(i.panda_price ?? 0),
+        barcode:        i.barcode    ?? null,
+        size:           i.size       ?? null,
+        image_path:     i.image_path ?? null,
+        is_available:   Boolean(i.is_available ?? true),
+      });
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mapCat = (c: any): Category => ({
+        id:            c.id,
+        name:          c.name,
+        category_type: c.category_type ?? c.type ?? "food",
+      });
+
+      const mapped = (Array.isArray(itemsData) ? itemsData : (itemsData.data ?? [])).map(mapItem);
+      setItems(mapped);
+      fetchAllOptions(mapped);
+
+      setCategories((Array.isArray(catsData) ? catsData : (catsData.data ?? [])).map(mapCat));
+
+      setSugarLevels(
+        (Array.isArray(sugarData) ? sugarData : (sugarData.data ?? []))
+          .filter((s: SugarLevel) => s.is_active)
+      );
+
+    } catch { setError("Failed to load menu items."); }
+    finally { setLoading(false); }
+  }, [fetchAllOptions]);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  useEffect(() => {
+  const handler = (e: Event) => {
+    const cat = (e as CustomEvent<Category>).detail;
+    setDrinkPoolTarget(cat);
+  };
+  window.addEventListener('open-drink-pool', handler);
+  return () => window.removeEventListener('open-drink-pool', handler);
+}, []);
+
+  const toggleAvailable = useCallback(async (item: MenuItem) => {
+    try {
+      const res  = await fetch(`/api/menu-items/${item.id}`, {
+        method: "PUT", headers: authHeaders(),
+        body: JSON.stringify({ is_available: !item.is_available }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success)
+        setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_available: !i.is_available } : i));
+    } catch { /* silent */ }
+  }, []);
+
+
+
+  const filtered = useMemo(() => items.filter(i => {
+    const matchSearch = i.name.toLowerCase().includes(search.toLowerCase()) ||
+                        (i.barcode ?? "").toLowerCase().includes(search.toLowerCase());
+    const matchCat   = !filterCat   || String(i.category_id) === filterCat;
+    const matchAvail = !filterAvail || String(i.is_available) === filterAvail;
+    const matchType  = !filterType  || i.category_type === filterType;
+    return matchSearch && matchCat && matchAvail && matchType;
+  }), [items, search, filterCat, filterAvail, filterType]);
+
+  const fmt = useCallback(
+    (v: number) => `₱${Number(v).toLocaleString(undefined, { minimumFractionDigits: 2 })}`,
+    []
+  );
+
+  const catTypeBadge = useMemo<Record<string, string>>(() => ({
+    food:          "bg-amber-50 text-amber-700 border-amber-200",
+    drink:         "bg-blue-50 text-blue-700 border-blue-200",
+    promo:         "bg-emerald-50 text-emerald-700 border-emerald-200",
+    wings:         "bg-orange-50 text-orange-700 border-orange-200",
+    waffle:        "bg-yellow-50 text-yellow-700 border-yellow-200",
+    combo:         "bg-purple-50 text-purple-700 border-purple-200",
+    bundle:        "bg-indigo-50 text-indigo-700 border-indigo-200",
+    mix_and_match: "bg-rose-50 text-rose-700 border-rose-200",
+  }), []);
+
+  return (
+    <div className="p-6 md:p-8 fade-in">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+        <div>
+          <h2 className="text-base font-bold text-[#1a0f2e]">Menu List</h2>
+          <p className="text-xs text-zinc-400 mt-0.5">
+            {loading ? "Loading..." : `${items.length} items · ${items.filter(i => i.is_available).length} available`}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Btn variant="secondary" onClick={fetchAll} disabled={loading}>
+            <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
+          </Btn>
         </div>
       </div>
-    </>
+
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+        {[
+          { label: "Total Items",  value: items.length,                              color: "bg-violet-50 border-violet-200 text-violet-600"   },
+          { label: "Available",    value: items.filter(i => i.is_available).length,  color: "bg-emerald-50 border-emerald-200 text-emerald-600" },
+          { label: "Unavailable",  value: items.filter(i => !i.is_available).length, color: "bg-red-50 border-red-200 text-red-500"            },
+          { label: "Categories",   value: categories.length,                         color: "bg-amber-50 border-amber-200 text-amber-600"      },
+        ].map((s, i) => (
+          <div key={i} className={`border rounded-[0.625rem] px-4 py-3 ${s.color.split(" ").slice(0, 2).join(" ")}`}>
+            <p className={`text-xl font-black tabular-nums ${s.color.split(" ")[2]}`}>{loading ? "—" : s.value}</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mt-0.5">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {error && (
+        <div className="flex items-center gap-2 mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <AlertCircle size={14} className="text-red-500 shrink-0" />
+          <p className="text-xs text-red-600 font-medium">{error}</p>
+          <Btn variant="secondary" size="sm" onClick={fetchAll} className="ml-auto">Retry</Btn>
+        </div>
+      )}
+
+      {/* Table */}
+      <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
+        {/* Filters */}
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-100 flex-wrap">
+          <div className="flex-1 min-w-48 flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
+            <Search size={13} className="text-zinc-400" />
+            <input value={search} onChange={e => setSearch(e.target.value)}
+              className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400"
+              placeholder="Search items or barcode..." />
+            {search && <button onClick={() => setSearch("")} className="text-zinc-300 hover:text-zinc-500"><X size={12} /></button>}
+          </div>
+          <div className="relative">
+            <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
+              className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
+              <option value="">All Categories</option>
+              {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+            <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          </div>
+          <div className="relative">
+          <select value={filterType} onChange={e => setFilterType(e.target.value)}
+            className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
+            <option value="">All Types</option>
+            <option value="food">Food</option>
+            <option value="drink">Drink</option>
+            <option value="wings">Wings</option>
+            <option value="waffle">Waffle</option>
+            <option value="combo">Combo</option>
+            <option value="bundle">Bundle</option>
+            <option value="mix_and_match">Mix & Match</option>
+            <option value="promo">Promo</option>
+          </select>
+          <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+        </div>
+          <div className="relative">
+            <select value={filterAvail} onChange={e => setFilterAvail(e.target.value)}
+              className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
+              <option value="">All Status</option>
+              <option value="true">Available</option>
+              <option value="false">Unavailable</option>
+            </select>
+            <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          </div>
+          {(filterCat || filterAvail || filterType) && (   // ✅ add filterType
+            <button onClick={() => { setFilterCat(""); setFilterAvail(""); setFilterType(""); }}
+              className="text-xs font-bold text-zinc-400 hover:text-red-500 flex items-center gap-1 transition-colors">
+              <X size={11} /> Clear
+            </button>
+          )}
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-zinc-100">
+                {["Item", "Category", "Type", "Sub-Category", "Price", "Barcode", "Options", "Sugar Levels", "Available"].map(h => (
+                  <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading && [...Array(6)].map((_, i) => (
+                <tr key={i} className="border-b border-zinc-50">
+                  {[...Array(10)].map((_, j) => (
+                    <td key={j} className="px-5 py-4"><SkeletonBar h="h-3" /></td>
+                  ))}
+                </tr>
+              ))}
+              {!loading && filtered.length === 0 && (
+                <tr><td colSpan={10} className="px-5 py-12 text-center text-zinc-400 text-xs font-medium">
+                  {search || filterCat || filterAvail || filterType ? "No items match your filters." : "No menu items found."}
+                </td></tr>
+              )}
+              {!loading && filtered.map(item => (
+                <tr key={item.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-violet-50 border border-violet-100 flex items-center justify-center shrink-0">
+                        <Package size={12} className="text-violet-400" />
+                      </div>
+                      <span className="font-semibold text-[#1a0f2e] text-xs">{item.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-violet-50 text-violet-700 border border-violet-200">
+                      {item.category}
+                    </span>
+                  </td>
+                  {/* ✅ category_type badge */}
+                  <td className="px-5 py-3.5">
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider border ${catTypeBadge[item.category_type] ?? "bg-zinc-100 text-zinc-600 border-zinc-200"}`}>
+                      {item.category_type ?? "—"}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    {item.subcategory !== "—" ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-zinc-100 text-zinc-600 border border-zinc-200">
+                        {item.subcategory}
+                      </span>
+                    ) : <span className="text-zinc-300 text-xs">—</span>}
+                  </td>
+                    <td className="px-5 py-3.5 font-bold text-[#3b2063] text-xs">{fmt(item.price)}</td>
+                    <td className="px-5 py-3.5 text-zinc-400 text-xs font-mono">{item.barcode ?? "—"}</td>
+
+                    {/* ✅ Options column */}
+                    <td className="px-5 py-3.5">
+                      {["drink"].includes(item.category_type)
+                        ? <OptionsBadge opts={itemOptions[item.id] ?? { pearl: false, ice: false }} />
+                        : <span className="text-zinc-300 text-xs">—</span>
+                      }
+                    </td>
+
+                    {/* Sugar Levels column */}
+                    <td className="px-5 py-3.5">
+                      {["drink"].includes(item.category_type) ? (
+                        sugarLevels.length === 0
+                          ? <span className="text-zinc-300 text-xs">—</span>
+                          : (
+                            <div className="flex flex-wrap gap-1 max-w-40">
+                              {sugarLevels.slice(0, 3).map(lvl => (
+                                <span
+                                  key={lvl.id}
+                                  className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-violet-50 text-violet-700 border border-violet-200"
+                                >
+                                  {lvl.value}
+                                </span>
+                              ))}
+                              {sugarLevels.length > 3 && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-zinc-100 text-zinc-500 border border-zinc-200">
+                                  +{sugarLevels.length - 3}
+                                </span>
+                              )}
+                            </div>
+                          )
+                      ) : (
+                        <span className="text-zinc-300 text-xs">—</span>
+                      )}
+                    </td>
+
+                    <td className="px-5 py-3.5">
+                      <button onClick={() => toggleAvailable(item)} className="transition-colors"
+                      title={item.is_available ? "Click to hide" : "Click to show"}>
+                      {item.is_available
+                        ? <ToggleRight size={22} className="text-[#3b2063]" />
+                        : <ToggleLeft  size={22} className="text-zinc-300"  />}
+                    </button>
+                  </td>
+
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {!loading && filtered.length > 0 && (
+          <div className="px-5 py-3 border-t border-zinc-50 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+            Showing {filtered.length} of {items.length} items
+          </div>
+        )}
+      </div>
+
+      {drinkPoolTarget && (
+        <CategoryDrinksManager
+          categoryId={drinkPoolTarget.id}
+          categoryName={drinkPoolTarget.name}
+          allItems={items}
+          onClose={() => setDrinkPoolTarget(null)}
+        />
+      )}
+    </div>
   );
-}
+};
 
 export default BM_MenuList;

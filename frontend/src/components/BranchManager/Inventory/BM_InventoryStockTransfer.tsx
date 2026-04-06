@@ -1,519 +1,568 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import api from '../../../services/api';
-import { isAxiosError } from 'axios';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  ArrowRightLeft, Plus, X, Check, CheckCircle2,
-  RefreshCw, Search, Package, Layers, Clock,
+  Search, Plus, Eye, X, AlertCircle, RefreshCw,
+  ArrowRightLeft, CheckCircle, XCircle, Truck, Clock,
+  ChevronDown, Minus, Building2, Calendar,
 } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import api from '../../../services/api';
 
-// ─── Design tokens ─────────────────────────────────────────────────────────────
-const STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
-  .bst-root, .bst-root * { font-family: 'DM Sans', sans-serif !important; box-sizing: border-box; }
-  .bst-label { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: #71717a; }
-  .bst-live { display:inline-flex;align-items:center;gap:5px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:100px;padding:3px 9px; }
-  .bst-live-dot { width:5px;height:5px;border-radius:50%;background:#22c55e;box-shadow:0 0 5px rgba(34,197,94,.6);animation:bst-pulse 2s infinite; }
-  .bst-live-text { font-size:0.52rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#16a34a; }
-  @keyframes bst-pulse{0%,100%{opacity:1}50%{opacity:.45}}
-`;
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-// ─── Types ─────────────────────────────────────────────────────────────────────
-interface Branch {
-  id: number;
-  name: string;
-  code?: string;
+type TransferStatus = 'Pending' | 'Approved' | 'In Transit' | 'Received' | 'Cancelled';
+
+interface TransferItem {
+  id?:             number;
+  raw_material_id: number;
+  raw_material?:   { name: string; unit: string };
+  material_name?:  string;
+  unit?:           string;
+  quantity:        number | '';
 }
 
-interface RawMaterial {
-  id: number;
-  name: string;
-  unit: string;
-  category: string;
-  current_stock: number;
+interface StockTransfer {
+  id:               number;
+  transfer_number:  string;
+  from_branch_id:   number;
+  to_branch_id:     number;
+  from_branch?:     { name: string };
+  to_branch?:       { name: string };
+  from_branch_name?: string;
+  to_branch_name?:  string;
+  transfer_date?:   string;
+  status:           TransferStatus;
+  notes?:           string;
+  items?:           TransferItem[];
+  stock_transfer_items?: TransferItem[];
+  created_at?:      string;
 }
 
-type TransferStatus = 'Pending' | 'Completed' | 'Cancelled';
+interface Branch     { id: number; name: string; }
+interface RawMaterial { id: number; name: string; unit: string; current_stock?: number; }
 
-interface TransferRecord {
-  id: number;
-  from_branch: string;
-  to_branch: string;
-  item_name: string;
-  quantity: number;
-  unit: string;
-  status: TransferStatus;
-  notes: string | null;
-  created_at: string;
-}
+// ─── Status config ────────────────────────────────────────────────────────────
 
-interface TransferFormItem {
-  raw_material_id: string;
-  quantity: string;
-  _key: number;
-}
+const STATUS_CONFIG: Record<TransferStatus, { bg: string; text: string; border: string; icon: React.ReactNode }> = {
+  Pending:    { bg: '#f4f4f5', text: '#71717a', border: '#e4e4e7', icon: <Clock         size={10} /> },
+  Approved:   { bg: '#eff6ff', text: '#2563eb', border: '#bfdbfe', icon: <CheckCircle   size={10} /> },
+  'In Transit': { bg: '#fff7ed', text: '#ea580c', border: '#fed7aa', icon: <Truck       size={10} /> },
+  Received:   { bg: '#f0fdf4', text: '#16a34a', border: '#bbf7d0', icon: <CheckCircle   size={10} /> },
+  Cancelled:  { bg: '#fef2f2', text: '#dc2626', border: '#fecaca', icon: <XCircle       size={10} /> },
+};
 
-interface Toast { id: number; message: string; type: 'success' | 'error'; }
+const TRANSFER_STATUSES: TransferStatus[] = ['Pending', 'Approved', 'In Transit', 'Received', 'Cancelled'];
 
-// ─── Helpers ───────────────────────────────────────────────────────────────────
-function parseNum(v: unknown): number { const n = parseFloat(String(v)); return isNaN(n) ? 0 : n; }
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-// ─── Toast Stack ──────────────────────────────────────────────────────────────
-function ToastStack({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: number) => void }) {
+const resolveItems = (t: StockTransfer): TransferItem[] =>
+  (t.items ?? t.stock_transfer_items ?? []).map(i => ({
+    ...i,
+    material_name: i.raw_material?.name ?? i.material_name ?? '',
+    unit:          i.raw_material?.unit ?? i.unit ?? '',
+  }));
+
+// ─── Shared UI ────────────────────────────────────────────────────────────────
+
+const inputCls = (err?: string) =>
+  `w-full text-sm font-medium text-zinc-700 bg-zinc-50 border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all ${err ? 'border-red-300 bg-red-50' : 'border-zinc-200'}`;
+
+const Field: React.FC<{ label: string; required?: boolean; error?: string; children: React.ReactNode }> = ({ label, required, error, children }) => (
+  <div>
+    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
+      {label}{required && <span className="text-red-400 ml-0.5">*</span>}
+    </label>
+    {children}
+    {error && <p className="text-[10px] text-red-500 mt-1 font-medium">{error}</p>}
+  </div>
+);
+
+const StatusBadge: React.FC<{ status: TransferStatus }> = ({ status }) => {
+  const c = STATUS_CONFIG[status];
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none">
-      {toasts.map(t => (
-        <div key={t.id} className={`flex items-center gap-3 px-5 py-3 rounded-xl shadow-2xl text-white text-xs font-bold uppercase tracking-widest pointer-events-auto border border-white/10 ${t.type === 'success' ? 'bg-[#1a0f2e]' : 'bg-red-600'}`}>
-          {t.type === 'success' ? <CheckCircle2 size={14} /> : <X size={14} />}
-          <span>{t.message}</span>
-          <button onClick={() => onRemove(t.id)} className="ml-1 opacity-50 hover:opacity-100 transition-opacity"><X size={12} /></button>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ─── Status Badge ──────────────────────────────────────────────────────────────
-function StatusBadge({ status }: { status: TransferStatus }) {
-  const map: Record<TransferStatus, { bg: string; color: string; border: string }> = {
-    Completed: { bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0' },
-    Pending:   { bg: '#fef3c7', color: '#d97706', border: '#fde68a' },
-    Cancelled: { bg: '#fee2e2', color: '#dc2626', border: '#fecaca' },
-  };
-  const s = map[status];
-  return (
-    <span style={{ fontSize: '0.58rem', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', background: s.bg, color: s.color, border: `1px solid ${s.border}`, borderRadius: '100px', padding: '2px 9px' }}>
-      {status}
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border"
+      style={{ background: c.bg, color: c.text, borderColor: c.border }}>
+      {c.icon}{status}
     </span>
   );
-}
+};
 
-// ─── Modal Shell ───────────────────────────────────────────────────────────────
-function ModalShell({ onClose, children, wide }: { onClose: () => void; children: React.ReactNode; wide?: boolean }) {
-  const ref = useRef<HTMLDivElement>(null);
+// ─── Create Transfer Modal ────────────────────────────────────────────────────
+
+const CreateTransferModal: React.FC<{
+  onClose:   () => void;
+  onCreated: (t: StockTransfer) => void;
+  branches:  Branch[];
+}> = ({ onClose, onCreated, branches }) => {
+  const [fromBranchId,   setFromBranchId]   = useState<number | ''>('');
+  const [toBranchId,     setToBranchId]     = useState<number | ''>('');
+  const [transferDate,   setTransferDate]   = useState('');
+  const [notes,          setNotes]          = useState('');
+  const [transferItems,  setTransferItems]  = useState<TransferItem[]>([]);
+  const [rawMaterials,   setRawMaterials]   = useState<RawMaterial[]>([]);
+  const [errors,         setErrors]         = useState<Record<string, string>>({});
+  const [saving,         setSaving]         = useState(false);
+  const [apiErr,         setApiErr]         = useState('');
+
   useEffect(() => {
-    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', h);
-    return () => window.removeEventListener('keydown', h);
-  }, [onClose]);
-  return (
-    <div ref={ref} onClick={e => { if (e.target === ref.current) onClose(); }}
-      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className={`bg-white rounded-2xl shadow-2xl border border-gray-100 w-full overflow-hidden flex flex-col ${wide ? 'max-w-xl' : 'max-w-sm'}`}
-        style={{ maxHeight: '92vh' }}>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-// ─── Shared select styles ─────────────────────────────────────────────
-const selectCls = `w-full px-4 py-2.5 rounded-xl border border-gray-100 bg-[#f5f4f8] text-[#1a0f2e] font-semibold text-sm outline-none focus:border-[#c4b5fd] focus:bg-white cursor-pointer transition-all`;
-
-// ─── Main Component ────────────────────────────────────────────────────────────
-const BM_InventoryStockTransfer = () => {
-  // ── Toast ────────────────────────────────────────────────────────────────
-  const [toasts, setToasts] = useState<Toast[]>([]);
-  const toastCounter = useRef(0);
-  const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
-    const id = ++toastCounter.current;
-    setToasts(prev => [...prev, { id, message, type }]);
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
+    api.get('/raw-materials')
+      .then(r => setRawMaterials(Array.isArray(r.data) ? r.data : r.data?.data ?? []))
+      .catch(console.error);
   }, []);
-  const removeToast = (id: number) => setToasts(prev => prev.filter(t => t.id !== id));
 
-  // ── Data state ───────────────────────────────────────────────────────────
-  const [branches,   setBranches]   = useState<Branch[]>([]);
-  const [materials,  setMaterials]  = useState<RawMaterial[]>([]);
-  const [transfers,  setTransfers]  = useState<TransferRecord[]>([]);
-  const [loading,    setLoading]    = useState(true);
+  const addRow = () => setTransferItems(p => [...p, { raw_material_id: 0, material_name: '', unit: '', quantity: '' }]);
+  const removeRow = (idx: number) => setTransferItems(p => p.filter((_, i) => i !== idx));
 
-  // ── Filters ──────────────────────────────────────────────────────────────
-  const [search,       setSearch]       = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | TransferStatus>('all');
-
-  // ── Transfer form state ──────────────────────────────────────────────────  
-  const [isModalOpen,  setIsModalOpen]  = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [fromBranch,   setFromBranch]   = useState('');
-  const [toBranch,     setToBranch]     = useState('');
-  const [notes,        setNotes]        = useState('');
-  const [formItems,    setFormItems]    = useState<TransferFormItem[]>([{ raw_material_id: '', quantity: '', _key: Date.now() }]);
-
-  // ── Fetch ────────────────────────────────────────────────────────────────
-  const fetchAll = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [branchRes, matRes, transferRes] = await Promise.all([
-        api.get('/branches').catch(() => ({ data: [] })),
-        api.get('/raw-materials').catch(() => ({ data: [] })),
-        api.get('/stock-transfers').catch(() => ({ data: [] })),
-      ]);
-      setBranches(branchRes.data);
-      setMaterials(matRes.data);
-      // Normalize — handle both flat array and paginated shape
-      const raw = Array.isArray(transferRes.data)
-        ? transferRes.data
-        : (transferRes.data?.data ?? transferRes.data?.transfers ?? []);
-      setTransfers(raw);
-    } catch { showToast('Failed to load data.', 'error'); }
-    finally { setLoading(false); }
-  }, [showToast]);
-
-  useEffect(() => { fetchAll(); }, [fetchAll]);
-
-  // ── Computed stats ────────────────────────────────────────────────────────
-  const totalTransfers  = transfers.length;
-  const pendingCount    = transfers.filter(t => t.status === 'Pending').length;
-  const completedCount  = transfers.filter(t => t.status === 'Completed').length;
-
-  // ── Filtered rows ─────────────────────────────────────────────────────────
-  const displayRows = transfers
-    .filter(t => {
-      if (statusFilter !== 'all' && t.status !== statusFilter) return false;
-      if (search) {
-        const q = search.toLowerCase();
-        return t.item_name?.toLowerCase().includes(q) ||
-               t.from_branch?.toLowerCase().includes(q) ||
-               t.to_branch?.toLowerCase().includes(q);
+  const updateRow = (idx: number, field: keyof TransferItem, value: unknown) => {
+    setTransferItems(p => p.map((row, i) => {
+      if (i !== idx) return row;
+      if (field === 'raw_material_id') {
+        const mat = rawMaterials.find(m => m.id === Number(value));
+        return { ...row, raw_material_id: Number(value), material_name: mat?.name ?? '', unit: mat?.unit ?? '' };
       }
-      return true;
-    })
-    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-
-  // ── Form helpers ──────────────────────────────────────────────────────────
-  const addRow    = () => setFormItems(prev => [...prev, { raw_material_id: '', quantity: '', _key: Date.now() }]);
-  const removeRow = (key: number) => setFormItems(prev => prev.filter(r => r._key !== key));
-  const updateRow = (key: number, field: keyof Omit<TransferFormItem, '_key'>, value: string) =>
-    setFormItems(prev => prev.map(r => r._key === key ? { ...r, [field]: value } : r));
-
-  const resetForm = () => {
-    setFromBranch(''); setToBranch(''); setNotes('');
-    setFormItems([{ raw_material_id: '', quantity: '', _key: Date.now() }]);
+      return { ...row, [field]: value };
+    }));
   };
 
-  // ── Submit ────────────────────────────────────────────────────────────────
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!fromBranch || !toBranch) { showToast('Select both branches.', 'error'); return; }
-    if (fromBranch === toBranch)  { showToast('From and To branches must differ.', 'error'); return; }
-    if (formItems.some(r => !r.raw_material_id || !r.quantity)) {
-      showToast('Fill all item rows.', 'error'); return;
-    }
-    setIsSubmitting(true);
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!fromBranchId)               e.from    = 'Source branch is required.';
+    if (!toBranchId)                 e.to      = 'Destination branch is required.';
+    if (fromBranchId === toBranchId && fromBranchId) e.to = 'Source and destination must differ.';
+    if (!transferDate)               e.date    = 'Transfer date is required.';
+    if (transferItems.length === 0)  e.items   = 'Add at least one item.';
+    transferItems.forEach((item, i) => {
+      if (!item.raw_material_id)                           e[`mat_${i}`] = 'Select material.';
+      if (item.quantity === '' || Number(item.quantity) <= 0) e[`qty_${i}`] = 'Enter qty.';
+    });
+    return e;
+  };
+
+  const handleSubmit = async () => {
+    const e = validate();
+    if (Object.keys(e).length) { setErrors(e); return; }
+    setSaving(true); setApiErr('');
     try {
-      await api.post('/stock-transfers', {
-        from_branch_id: parseInt(fromBranch),
-        to_branch_id:   parseInt(toBranch),
-        notes:          notes || null,
-        items: formItems.map(r => ({
-          raw_material_id: parseInt(r.raw_material_id),
-          quantity:        parseFloat(r.quantity),
-        })),
+      const res = await api.post('/stock-transfers', {
+        from_branch_id: fromBranchId,
+        to_branch_id:   toBranchId,
+        transfer_date:  transferDate,
+        notes,
+        items: transferItems.map(i => ({ raw_material_id: i.raw_material_id, quantity: Number(i.quantity) })),
       });
-      showToast('Stock transfer initiated!', 'success');
-      setIsModalOpen(false);
-      resetForm();
-      await fetchAll();
-    } catch (err) {
-      const msg = isAxiosError(err) ? err.response?.data?.message : 'Transfer failed.';
-      showToast(msg || 'Transfer failed.', 'error');
-    } finally { setIsSubmitting(false); }
+      onCreated(res.data?.data ?? res.data);
+      onClose();
+    } catch (err: unknown) {
+      setApiErr((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Something went wrong.');
+    } finally { setSaving(false); }
   };
 
-  // ─────────────────────────────────────────────────────────────────────────
-  return (
-    <>
-      <style>{STYLES}</style>
-      <ToastStack toasts={toasts} onRemove={removeToast} />
+  const fromBranch = branches.find(b => b.id === Number(fromBranchId));
+  const toBranch   = branches.find(b => b.id === Number(toBranchId));
 
-      <div className="bst-root flex flex-col h-full bg-[#f5f4f8] overflow-hidden">
-        <div className="flex-1 overflow-y-auto px-5 md:px-8 pb-8 pt-5 flex flex-col gap-5">
-
-          {/* ── Header ── */}
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="bst-label">Inventory</p>
-              <h1 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.025em', marginTop: 2 }}>Stock Transfer</h1>
+  return createPortal(
+    <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
+      style={{ backdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.45)' }}>
+      <div className="absolute inset-0" onClick={onClose} />
+      <div className="relative bg-white w-full max-w-2xl border border-zinc-200 rounded-[1.25rem] shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center">
+              <ArrowRightLeft size={15} className="text-[#3b2063]" />
             </div>
-            <div className="flex items-center gap-2">
-              <button onClick={() => fetchAll()} disabled={loading}
-                className="h-9 px-4 rounded-xl border border-gray-200 text-zinc-500 font-bold text-xs uppercase tracking-widest hover:bg-white transition-all flex items-center gap-2 disabled:opacity-50">
-                <RefreshCw size={12} className={loading ? 'animate-spin' : ''} /> Refresh
-              </button>
-              <button onClick={() => setIsModalOpen(true)}
-                className="h-9 px-5 rounded-xl bg-[#1a0f2e] hover:bg-[#2a1647] text-white font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-all">
-                <Plus size={13} /> New Transfer
-              </button>
+            <div>
+              <p className="text-sm font-bold text-[#1a0f2e]">Create Stock Transfer</p>
+              <p className="text-[10px] text-zinc-400">Transfer materials between branches</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-400"><X size={16} /></button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-4">
+          {apiErr && <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg"><AlertCircle size={13} className="text-red-500 shrink-0" /><p className="text-xs text-red-600 font-medium">{apiErr}</p></div>}
+
+          {/* Branch selector with arrow visual */}
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <Field label="From Branch" required error={errors.from}>
+                <select value={fromBranchId} onChange={e => { setFromBranchId(Number(e.target.value)); setErrors(p => { const n = {...p}; delete n.from; return n; }); }} className={inputCls(errors.from)}>
+                  <option value="">Select source...</option>
+                  {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
+              </Field>
+            </div>
+            <div className="pt-5 shrink-0">
+              <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-full flex items-center justify-center">
+                <ArrowRightLeft size={14} className="text-[#3b2063]" />
+              </div>
+            </div>
+            <div className="flex-1">
+              <Field label="To Branch" required error={errors.to}>
+                <select value={toBranchId} onChange={e => { setToBranchId(Number(e.target.value)); setErrors(p => { const n = {...p}; delete n.to; return n; }); }} className={inputCls(errors.to)}>
+                  <option value="">Select destination...</option>
+                  {branches.filter(b => b.id !== Number(fromBranchId)).map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                </select>
+              </Field>
             </div>
           </div>
 
-          {/* ── Stat Cards ── */}
-          <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
-            {[
-              { label: 'Total Transfers', value: totalTransfers, sub: 'all time',         icon: <ArrowRightLeft size={14} strokeWidth={2.5} />, iconBg: '#ede9fe', iconColor: '#7c3aed', vc: '#3b2063' },
-              { label: 'Pending',         value: pendingCount,   sub: 'awaiting action',  icon: <Clock size={14} strokeWidth={2.5} />,         iconBg: '#fef3c7', iconColor: '#d97706', vc: pendingCount > 0 ? '#d97706' : '#1a0f2e' },
-              { label: 'Completed',       value: completedCount, sub: 'successfully done', icon: <CheckCircle2 size={14} strokeWidth={2.5} />,  iconBg: '#dcfce7', iconColor: '#16a34a', vc: '#1a0f2e' },
-            ].map((s, i) => (
-              <div key={i} className="bg-white border border-gray-100 rounded-2xl p-4 flex flex-col gap-3 hover:shadow-md hover:border-[#ddd6f7] transition-all">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="bst-label">{s.label}</p>
-                    <p style={{ fontSize: '0.6rem', color: '#a1a1aa', marginTop: 2 }}>{s.sub}</p>
+          {/* Visual branch preview */}
+          {(fromBranch || toBranch) && (
+            <div className="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl">
+              <div className="flex-1 text-center">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 mb-0.5">Source</p>
+                <p className="text-xs font-bold text-zinc-700">{fromBranch?.name ?? '—'}</p>
+              </div>
+              <ArrowRightLeft size={16} className="text-[#3b2063] shrink-0" />
+              <div className="flex-1 text-center">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 mb-0.5">Destination</p>
+                <p className="text-xs font-bold text-zinc-700">{toBranch?.name ?? '—'}</p>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Transfer Date" required error={errors.date}>
+              <input type="date" value={transferDate} onChange={e => { setTransferDate(e.target.value); setErrors(p => { const n = {...p}; delete n.date; return n; }); }} className={inputCls(errors.date)} />
+            </Field>
+            <Field label="Notes">
+              <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Reason or instructions..." className={inputCls()} />
+            </Field>
+          </div>
+
+          {/* Items */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Items <span className="text-red-400">*</span></label>
+              <button onClick={addRow} className="flex items-center gap-1 px-2.5 py-1 bg-[#f5f0ff] border border-[#e9d5ff] text-[#3b2063] rounded-lg text-[10px] font-bold hover:bg-[#ede8ff] transition-colors">
+                <Plus size={11} /> Add Row
+              </button>
+            </div>
+            {errors.items && <p className="text-[10px] text-red-500 mb-2 font-medium">{errors.items}</p>}
+            <div className="border border-zinc-200 rounded-xl overflow-hidden">
+              <div className="grid grid-cols-[1fr_120px_32px] bg-zinc-50 border-b border-zinc-200 px-3 py-2">
+                {['Material', 'Quantity', ''].map(h => <p key={h} className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{h}</p>)}
+              </div>
+              {transferItems.length === 0 ? (
+                <p className="text-xs text-zinc-400 text-center py-5">No items — click Add Row</p>
+              ) : transferItems.map((item, idx) => (
+                <div key={idx} className="grid grid-cols-[1fr_120px_32px] items-center px-3 py-2 border-b border-zinc-100 last:border-0">
+                  <div className="pr-2">
+                    <select value={item.raw_material_id || ''} onChange={e => updateRow(idx, 'raw_material_id', e.target.value)}
+                      className={`w-full text-xs font-medium bg-white border rounded-lg px-2 py-1.5 outline-none focus:ring-1 focus:ring-violet-400 ${errors[`mat_${idx}`] ? 'border-red-300' : 'border-zinc-200'}`}>
+                      <option value="">Select material...</option>
+                      {rawMaterials.map(m => (
+                        <option key={m.id} value={m.id}>{m.name} {m.current_stock != null ? `(${m.current_stock} in stock)` : ''}</option>
+                      ))}
+                    </select>
+                    {errors[`mat_${idx}`] && <p className="text-[9px] text-red-500 mt-0.5">{errors[`mat_${idx}`]}</p>}
                   </div>
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: s.iconBg, color: s.iconColor }}>{s.icon}</div>
+                  <div className="px-1">
+                    <div className="flex items-center gap-1">
+                      <input type="number" min="0" value={item.quantity} onChange={e => updateRow(idx, 'quantity', e.target.value === '' ? '' : Number(e.target.value))}
+                        className={`flex-1 text-xs font-medium bg-white border rounded-lg px-2 py-1.5 outline-none focus:ring-1 focus:ring-violet-400 text-right ${errors[`qty_${idx}`] ? 'border-red-300' : 'border-zinc-200'}`} placeholder="0" />
+                      {item.unit && <span className="text-[9px] font-bold text-zinc-400 bg-zinc-100 px-1.5 py-1 rounded shrink-0">{item.unit}</span>}
+                    </div>
+                    {errors[`qty_${idx}`] && <p className="text-[9px] text-red-500 mt-0.5">{errors[`qty_${idx}`]}</p>}
+                  </div>
+                  <button onClick={() => removeRow(idx)} className="w-7 h-7 flex items-center justify-center text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                    <Minus size={12} />
+                  </button>
                 </div>
-                <p style={{ fontSize: '1.8rem', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1, color: s.vc }}>
-                  {loading ? '…' : s.value}
-                </p>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 px-6 py-4 border-t border-zinc-100 shrink-0">
+          <button onClick={onClose} disabled={saving} className="flex-1 py-2.5 bg-white border border-zinc-200 text-zinc-600 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all disabled:opacity-50">Cancel</button>
+          <button onClick={handleSubmit} disabled={saving} className="flex-1 py-2.5 bg-[#3b2063] hover:bg-[#6a12b8] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">{saving ? 'Creating...' : 'Create Transfer'}</button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+// ─── View Modal ───────────────────────────────────────────────────────────────
+
+const ViewTransferModal: React.FC<{
+  transfer: StockTransfer;
+  onClose:  () => void;
+  onStatusChange: (updated: StockTransfer) => void;
+}> = ({ transfer, onClose, onStatusChange }) => {
+  const [loading, setLoading] = useState(false);
+  const items = resolveItems(transfer);
+
+  const doAction = async (action: string) => {
+    setLoading(true);
+    try {
+      const res = await api.post(`/stock-transfers/${transfer.id}/${action}`);
+      onStatusChange(res.data?.data ?? res.data);
+      onClose();
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
+      style={{ backdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.45)' }}>
+      <div className="absolute inset-0" onClick={onClose} />
+      <div className="relative bg-white w-full max-w-md border border-zinc-200 rounded-[1.25rem] shadow-2xl flex flex-col max-h-[90vh]">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center">
+              <ArrowRightLeft size={15} className="text-[#3b2063]" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-[#1a0f2e]">{transfer.transfer_number}</p>
+              <StatusBadge status={transfer.status} />
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-400"><X size={16} /></button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-4">
+          {/* Branch flow */}
+          <div className="flex items-center gap-3 p-4 bg-zinc-50 border border-zinc-200 rounded-xl">
+            <div className="flex-1 text-center">
+              <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 mb-1">From</p>
+              <div className="flex items-center justify-center gap-1.5">
+                <Building2 size={12} className="text-zinc-400 shrink-0" />
+                <p className="text-xs font-bold text-zinc-700">{transfer.from_branch?.name ?? transfer.from_branch_name ?? '—'}</p>
+              </div>
+            </div>
+            <ArrowRightLeft size={18} className="text-[#3b2063] shrink-0" />
+            <div className="flex-1 text-center">
+              <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 mb-1">To</p>
+              <div className="flex items-center justify-center gap-1.5">
+                <Building2 size={12} className="text-zinc-400 shrink-0" />
+                <p className="text-xs font-bold text-zinc-700">{transfer.to_branch?.name ?? transfer.to_branch_name ?? '—'}</p>
+              </div>
+            </div>
+          </div>
+
+          {transfer.transfer_date && (
+            <div className="flex items-center gap-2 text-xs text-zinc-500">
+              <Calendar size={13} className="text-zinc-400 shrink-0" />
+              Transfer date: <span className="font-bold text-zinc-700">{new Date(transfer.transfer_date).toLocaleDateString()}</span>
+            </div>
+          )}
+
+          {transfer.notes && <p className="text-xs text-zinc-500 bg-zinc-50 border border-zinc-100 rounded-xl p-3">{transfer.notes}</p>}
+
+          {/* Items */}
+          <div className="border border-zinc-200 rounded-xl overflow-hidden">
+            <div className="grid grid-cols-[1fr_80px_60px] bg-zinc-50 border-b border-zinc-200 px-4 py-2">
+              {['Material', 'Quantity', 'Unit'].map(h => <p key={h} className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{h}</p>)}
+            </div>
+            {items.map((item, i) => (
+              <div key={i} className="grid grid-cols-[1fr_80px_60px] px-4 py-2.5 border-b border-zinc-100 last:border-0">
+                <p className="text-xs font-semibold text-zinc-700">{item.material_name}</p>
+                <p className="text-xs font-bold text-[#3b2063] tabular-nums">{item.quantity}</p>
+                <p className="text-xs font-bold text-zinc-400 bg-zinc-100 px-1.5 py-0.5 rounded w-fit">{item.unit}</p>
               </div>
             ))}
           </div>
+        </div>
 
-          {/* ── Table Card ── */}
-          <div className="bg-white border border-gray-100 rounded-2xl flex flex-col overflow-hidden">
+        {/* Actions */}
+        <div className="flex items-center gap-2 px-6 py-4 border-t border-zinc-100 shrink-0">
+          <button onClick={onClose} className="flex-1 py-2.5 bg-white border border-zinc-200 text-zinc-600 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all">Close</button>
+          {transfer.status === 'Pending'    && <button onClick={() => doAction('approve')} disabled={loading} className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">{loading ? '...' : 'Approve'}</button>}
+          {transfer.status === 'Approved'   && <button onClick={() => doAction('receive')} disabled={loading} className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">{loading ? '...' : 'Confirm Received'}</button>}
+          {(transfer.status === 'Pending' || transfer.status === 'Approved') && (
+            <button onClick={() => doAction('cancel')} disabled={loading} className="px-4 py-2.5 bg-red-50 border border-red-200 text-red-600 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-red-100 transition-all disabled:opacity-50">{loading ? '...' : 'Cancel'}</button>
+          )}
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
 
-            {/* Card header + filters */}
-            <div className="px-6 py-4 border-b border-gray-50 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: '#ede9fe', color: '#7c3aed' }}>
-                  <Layers size={16} strokeWidth={2.5} />
-                </div>
-                <div>
-                  <h2 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.02em', margin: 0 }}>Transfer Log</h2>
-                  <p className="bst-label" style={{ color: '#a1a1aa', marginTop: 2 }}>All stock movements between branches</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {/* Status filter */}
-                <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as typeof statusFilter)}
-                  className="border border-gray-100 bg-[#f5f4f8] px-2.5 py-1.5 rounded-lg outline-none text-[#1a0f2e] font-semibold text-xs focus:border-[#c4b5fd] cursor-pointer transition-colors">
-                  <option value="all">All Status</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Cancelled">Cancelled</option>
-                </select>
-                {/* Search */}
-                <div className="flex items-center gap-1.5 border border-gray-100 bg-[#f5f4f8] px-3 py-1.5 rounded-lg focus-within:border-[#c4b5fd] transition-colors">
-                  <Search size={12} className="text-zinc-400 shrink-0" />
-                  <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search…"
-                    className="bg-transparent outline-none text-xs font-semibold text-[#1a0f2e] w-36 placeholder:text-zinc-400" />
-                </div>
-                <div className="bst-live"><div className="bst-live-dot" /><span className="bst-live-text">Live</span></div>
-              </div>
-            </div>
+// ─── Main ─────────────────────────────────────────────────────────────────────
 
-            {/* Table */}
-            <div className="flex-1 overflow-auto">
-              {loading && transfers.length === 0 ? (
-                <div className="py-16 flex flex-col items-center gap-3">
-                  <div className="w-8 h-8 border-2 border-[#3b2063] border-t-transparent animate-spin rounded-full" />
-                  <p className="bst-label" style={{ color: '#a1a1aa' }}>Loading…</p>
-                </div>
-              ) : (
-                <table className="w-full text-left">
-                  <thead className="sticky top-0 bg-white z-10 border-b border-gray-50">
-                    <tr>
-                      {['#', 'Item', 'From', 'To', 'Qty', 'Status', 'Date'].map((h, i) => (
-                        <th key={h} className={`px-5 py-3.5 bst-label ${i === 4 ? 'text-center' : i === 5 ? 'text-center' : ''}`} style={{ color: '#a1a1aa' }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {displayRows.length > 0 ? displayRows.map((t, idx) => (
-                      <tr key={t.id} className="hover:bg-[#f5f4f8] transition-colors">
-                        <td className="px-5 py-3">
-                          <span style={{ width: 22, height: 22, borderRadius: '0.35rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.52rem', fontWeight: 800, background: idx === 0 ? '#3b2063' : '#f4f4f5', color: idx === 0 ? '#fff' : '#71717a' }}>
-                            {idx + 1}
-                          </span>
-                        </td>
-                        <td className="px-5 py-3">
-                          <div className="flex items-center gap-1.5">
-                            <Package size={11} color="#a78bfa" strokeWidth={2.5} />
-                            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1a0f2e' }}>{t.item_name ?? '—'}</span>
-                          </div>
-                          {t.notes && <p className="bst-label mt-0.5" style={{ color: '#a1a1aa' }}>{t.notes}</p>}
-                        </td>
-                        <td className="px-5 py-3">
-                          <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#71717a' }}>{t.from_branch}</span>
-                        </td>
-                        <td className="px-5 py-3">
-                          <div className="flex items-center gap-1">
-                            <ArrowRightLeft size={10} color="#a78bfa" strokeWidth={2.5} />
-                            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#3b2063' }}>{t.to_branch}</span>
-                          </div>
-                        </td>
-                        <td className="px-5 py-3 text-center">
-                          <span style={{ fontSize: '0.78rem', fontWeight: 800, color: '#1a0f2e' }}>{parseNum(t.quantity).toFixed(2)}</span>
-                          <span style={{ fontSize: '0.65rem', color: '#a1a1aa', marginLeft: 3 }}>{t.unit}</span>
-                        </td>
-                        <td className="px-5 py-3 text-center">
-                          <StatusBadge status={t.status} />
-                        </td>
-                        <td className="px-5 py-3">
-                          <span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#71717a' }}>
-                            {new Date(t.created_at).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}
-                          </span>
-                        </td>
-                      </tr>
-                    )) : (
-                      <tr>
-                        <td colSpan={7} className="px-8 py-20 text-center">
-                          <div className="w-11 h-11 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ background: '#f4f4f5' }}>
-                            <ArrowRightLeft size={18} color="#d4d4d8" />
-                          </div>
-                          <p className="bst-label" style={{ color: '#d4d4d8' }}>
-                            {search || statusFilter !== 'all' ? 'No matching transfers' : 'No transfers recorded yet'}
-                          </p>
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              )}
-            </div>
+const BM_InventoryStockTransfer: React.FC = () => {
+  const [transfers,    setTransfers]    = useState<StockTransfer[]>([]);
+  const [branches,     setBranches]     = useState<Branch[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [search,       setSearch]       = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [addOpen,      setAddOpen]      = useState(false);
+  const [viewTarget,   setViewTarget]   = useState<StockTransfer | null>(null);
+  const [expanded,     setExpanded]     = useState<number | null>(null);
 
-            {/* Footer */}
-            <div className="flex justify-between items-center px-6 py-4 bg-[#1a0f2e] rounded-b-2xl">
-              <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                  <ArrowRightLeft size={12} color="rgba(255,255,255,0.5)" strokeWidth={2.5} />
-                </div>
-                <p className="bst-label" style={{ color: 'rgba(255,255,255,0.45)', margin: 0 }}>Stock Transfers</p>
-              </div>
-              <p style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.03em', margin: 0 }}>
-                {displayRows.length}
-              </p>
-            </div>
-          </div>
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [tRes, bRes] = await Promise.allSettled([api.get('/stock-transfers'), api.get('/branches')]);
+      if (tRes.status === 'fulfilled') { const d = tRes.value.data; setTransfers(Array.isArray(d) ? d : d?.data ?? []); }
+      if (bRes.status === 'fulfilled') { const d = bRes.value.data; setBranches(Array.isArray(d) ? d : d?.data ?? []); }
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  const filtered = transfers.filter(t => {
+    const matchSearch = t.transfer_number.toLowerCase().includes(search.toLowerCase()) ||
+      (t.from_branch?.name ?? t.from_branch_name ?? '').toLowerCase().includes(search.toLowerCase()) ||
+      (t.to_branch?.name   ?? t.to_branch_name   ?? '').toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter ? t.status === statusFilter : true;
+    return matchSearch && matchStatus;
+  });
+
+  const counts = { Pending: 0, Approved: 0, 'In Transit': 0, Received: 0, Cancelled: 0 };
+  transfers.forEach(t => { if (counts[t.status] !== undefined) counts[t.status]++; });
+
+  return (
+    <div className="p-6 md:p-8 bg-[#f4f2fb] min-h-full">
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="text-sm font-black uppercase tracking-wide text-[#1a0f2e]">Stock Transfers</h2>
+          <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">{loading ? 'Loading...' : `${transfers.length} transfers · inter-branch stock movements`}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={fetchAll} disabled={loading} className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
+          </button>
+          <button onClick={() => setAddOpen(true)} className="bg-[#3b2063] hover:bg-[#6a12b8] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all">
+            <Plus size={13} /> New Transfer
+          </button>
         </div>
       </div>
 
-      {/* ══ NEW TRANSFER MODAL ══ */}
-      {isModalOpen && (
-        <ModalShell onClose={() => { setIsModalOpen(false); resetForm(); }} wide>
-          {/* Header */}
-          <div className="flex items-center justify-between px-6 py-5 border-b border-gray-50 shrink-0">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-[#1a0f2e]">
-                <ArrowRightLeft size={14} color="#fff" />
+      {/* Status stat cards — 5 statuses in a row */}
+      <div className="grid grid-cols-5 gap-3 mb-5">
+        {(Object.entries(counts) as [TransferStatus, number][]).map(([status, count]) => {
+          const c = STATUS_CONFIG[status];
+          return (
+            <div key={status} className="bg-white border rounded-[0.625rem] px-4 py-3.5 shadow-sm cursor-pointer hover:border-[#3b2063] transition-colors" style={{ borderColor: statusFilter === status ? '#3b2063' : c.border }}
+              onClick={() => setStatusFilter(statusFilter === status ? '' : status)}>
+              <div className="flex items-center gap-1.5 mb-1">
+                <span style={{ color: c.text }}>{c.icon}</span>
+                <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 truncate">{status}</p>
               </div>
-              <div>
-                <p className="bst-label">Inventory</p>
-                <h3 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1a0f2e', margin: 0 }}>New Stock Transfer</h3>
-              </div>
+              <p className="text-xl font-black tabular-nums" style={{ color: c.text }}>{loading ? '—' : count}</p>
             </div>
-            <button onClick={() => { setIsModalOpen(false); resetForm(); }}
-              className="w-8 h-8 rounded-xl flex items-center justify-center text-zinc-400 hover:bg-gray-100 transition-colors">
-              <X size={15} />
-            </button>
+          );
+        })}
+      </div>
+
+      {/* Table */}
+      <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden shadow-sm">
+        <div className="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-zinc-100">
+          <div className="flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 flex-1 min-w-40">
+            <Search size={13} className="text-zinc-400 shrink-0" />
+            <input value={search} onChange={e => setSearch(e.target.value)} className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400" placeholder="Search transfer # or branch..." />
+            {search && <button onClick={() => setSearch('')} className="text-zinc-300 hover:text-red-500"><X size={13} /></button>}
           </div>
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
+            <option value="">All Status</option>
+            {TRANSFER_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest ml-auto">{filtered.length} results</span>
+        </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
-            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
-
-              {/* Branch selectors */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="bst-label ml-1">From Branch *</label>
-                  <select value={fromBranch} onChange={e => setFromBranch(e.target.value)} required className={selectCls}>
-                    <option value="">— Select source —</option>
-                    {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="bst-label ml-1">To Branch *</label>
-                  <select value={toBranch} onChange={e => setToBranch(e.target.value)} required className={selectCls}>
-                    <option value="">— Select destination —</option>
-                    {branches.filter(b => String(b.id) !== fromBranch).map(b => (
-                      <option key={b.id} value={b.id}>{b.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Arrow indicator */}
-              {fromBranch && toBranch && (
-                <div className="flex items-center justify-center gap-3 py-1">
-                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#3b2063', background: '#ede9fe', border: '1px solid #ddd6f7', borderRadius: '100px', padding: '3px 10px' }}>
-                    {branches.find(b => String(b.id) === fromBranch)?.name}
-                  </span>
-                  <ArrowRightLeft size={14} color="#a78bfa" />
-                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#16a34a', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '100px', padding: '3px 10px' }}>
-                    {branches.find(b => String(b.id) === toBranch)?.name}
-                  </span>
-                </div>
-              )}
-
-              {/* Items table */}
-              <div className="border border-gray-100 rounded-2xl overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-3 bg-[#f5f4f8] border-b border-gray-100">
-                  <p className="bst-label">Items to Transfer</p>
-                  <button type="button" onClick={addRow}
-                    className="h-7 px-3 bg-[#1a0f2e] text-white text-xs font-bold uppercase tracking-widest hover:bg-[#2a1647] transition-colors rounded-xl flex items-center gap-1">
-                    <Plus size={11} /> Add Row
-                  </button>
-                </div>
-                {/* Column headers */}
-                <div className="grid grid-cols-[2fr_1fr_auto] bg-white border-b border-gray-50">
-                  {['Raw Material', 'Quantity', ''].map((h, i) => (
-                    <div key={i} className={`px-3 py-2 bst-label ${i === 2 ? 'w-10' : ''}`} style={{ color: '#a1a1aa' }}>{h}</div>
-                  ))}
-                </div>
-                {formItems.map((row, idx) => (
-                  <div key={row._key} className={`grid grid-cols-[2fr_1fr_auto] items-center ${idx < formItems.length - 1 ? 'border-b border-gray-50' : ''}`}>
-                    <div className="px-2 py-2">
-                      <select required value={row.raw_material_id}
-                        onChange={e => updateRow(row._key, 'raw_material_id', e.target.value)}
-                        className="w-full px-2 py-2 rounded-lg border border-gray-100 bg-[#f5f4f8] text-[#1a0f2e] font-semibold text-xs outline-none focus:border-[#c4b5fd] cursor-pointer">
-                        <option value="">— Select item —</option>
-                        {materials.map(m => (
-                          <option key={m.id} value={m.id}>{m.name} ({parseNum(m.current_stock).toFixed(2)} {m.unit})</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="px-2 py-2">
-                      <input required type="number" min="0.0001" step="0.0001" placeholder="0" value={row.quantity}
-                        onChange={e => updateRow(row._key, 'quantity', e.target.value)}
-                        className="w-full px-2 py-2 rounded-lg border border-gray-100 bg-[#f5f4f8] text-xs font-semibold text-[#1a0f2e] outline-none focus:border-[#c4b5fd]" />
-                    </div>
-                    <div className="px-2 py-2 flex justify-center">
-                      <button type="button" onClick={() => removeRow(row._key)} disabled={formItems.length === 1}
-                        className="w-7 h-7 flex items-center justify-center text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-20">
-                        <X size={12} />
-                      </button>
-                    </div>
-                  </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-zinc-100">
+                {['Transfer #', 'From', 'To', 'Date', 'Items', 'Status', 'Actions'].map(h => (
+                  <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
                 ))}
-              </div>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && [...Array(5)].map((_, i) => (
+                <tr key={i} className="border-b border-zinc-50">{[...Array(7)].map((_, j) => (<td key={j} className="px-5 py-4"><div className="h-3 bg-zinc-100 rounded animate-pulse" style={{ width: `${55 + (j * 8) % 35}%` }} /></td>))}</tr>
+              ))}
+              {!loading && filtered.length === 0 && (
+                <tr><td colSpan={7} className="py-16 text-center">
+                  <ArrowRightLeft size={32} className="mx-auto text-zinc-200 mb-3" />
+                  <p className="text-xs font-bold text-zinc-300 uppercase tracking-widest">{search || statusFilter ? 'No transfers match your filters' : 'No stock transfers yet'}</p>
+                </td></tr>
+              )}
+              {!loading && filtered.map(t => {
+                const items  = resolveItems(t);
+                const isExp  = expanded === t.id;
+                return (
+                  <React.Fragment key={t.id}>
+                    <tr className="border-b border-zinc-50 hover:bg-[#faf9ff] transition-colors">
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center shrink-0">
+                            <ArrowRightLeft size={12} className="text-[#3b2063]" />
+                          </div>
+                          <span className="font-black text-[#1a0f2e] text-xs">{t.transfer_number}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-1.5">
+                          <Building2 size={11} className="text-zinc-400 shrink-0" />
+                          <span className="text-xs text-zinc-600">{t.from_branch?.name ?? t.from_branch_name ?? '—'}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-1.5">
+                          <Building2 size={11} className="text-zinc-400 shrink-0" />
+                          <span className="text-xs text-zinc-600">{t.to_branch?.name ?? t.to_branch_name ?? '—'}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        {t.transfer_date ? (
+                          <div className="flex items-center gap-1.5">
+                            <Calendar size={11} className="text-zinc-400 shrink-0" />
+                            <span className="text-xs text-zinc-500">{new Date(t.transfer_date).toLocaleDateString()}</span>
+                          </div>
+                        ) : <span className="text-zinc-300 text-xs">—</span>}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span className="text-xs font-bold text-[#3b2063] bg-[#f5f0ff] px-2 py-0.5 rounded border border-[#e9d5ff]">{items.length} items</span>
+                      </td>
+                      <td className="px-5 py-3.5"><StatusBadge status={t.status} /></td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => setExpanded(isExp ? null : t.id)} className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors">
+                            <ChevronDown size={13} className={`transition-transform ${isExp ? 'rotate-180' : ''}`} />
+                          </button>
+                          <button onClick={() => setViewTarget(t)} className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors">
+                            <Eye size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    {isExp && items.length > 0 && (
+                      <tr className="border-b border-zinc-100 bg-[#faf9ff]">
+                        <td colSpan={7} className="px-5 pb-3 pt-1">
+                          <div className="ml-10 border border-[#e9d5ff] rounded-xl overflow-hidden">
+                            <div className="grid grid-cols-3 bg-[#f5f0ff] px-4 py-2 border-b border-[#e9d5ff]">
+                              {['Material', 'Quantity', 'Unit'].map(h => <p key={h} className="text-[9px] font-bold uppercase tracking-widest text-[#3b2063]">{h}</p>)}
+                            </div>
+                            {items.map((item, i) => (
+                              <div key={i} className="grid grid-cols-3 px-4 py-2.5 border-b border-zinc-100 last:border-0">
+                                <p className="text-xs font-semibold text-zinc-700">{item.material_name}</p>
+                                <p className="text-xs font-bold text-[#3b2063] tabular-nums">{item.quantity}</p>
+                                <span className="text-xs font-bold text-zinc-400 bg-zinc-100 px-1.5 py-0.5 rounded w-fit">{item.unit}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-              {/* Notes */}
-              <div className="space-y-1.5">
-                <label className="bst-label ml-1">Notes (optional)</label>
-                <textarea value={notes} onChange={e => setNotes(e.target.value)}
-                  placeholder="Reason for transfer, reference number, etc."
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-100 bg-[#f5f4f8] text-sm font-semibold outline-none focus:border-[#c4b5fd] focus:bg-white h-16 resize-none transition-all placeholder:text-zinc-400" />
-              </div>
-
-            </div>
-
-            {/* Footer */}
-            <div className="px-6 py-4 border-t border-gray-50 flex gap-2 justify-end shrink-0">
-              <button type="button" onClick={() => { setIsModalOpen(false); resetForm(); }}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest text-zinc-500 bg-white border border-gray-200 hover:bg-gray-50 transition-all">
-                Cancel
-              </button>
-              <button type="submit" disabled={isSubmitting}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest text-white bg-[#1a0f2e] hover:bg-[#2a1647] transition-all disabled:opacity-50 flex items-center gap-2">
-                <Check size={12} />{isSubmitting ? 'Transferring…' : 'Initiate Transfer'}
-              </button>
-            </div>
-          </form>
-        </ModalShell>
-      )}
-    </>
+      {addOpen    && <CreateTransferModal onClose={() => setAddOpen(false)} onCreated={t => setTransfers(p => [t, ...p])} branches={branches} />}
+      {viewTarget && <ViewTransferModal transfer={viewTarget} onClose={() => setViewTarget(null)} onStatusChange={updated => { setTransfers(p => p.map(x => x.id === updated.id ? updated : x)); setViewTarget(null); }} />}
+    </div>
   );
 };
 
