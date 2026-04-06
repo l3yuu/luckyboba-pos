@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Users, BarChart2, ShoppingBag,
   Package, Settings as SettingsIcon, LogOut,
-  ChevronDown, Activity, Monitor, Trash2, X, Smartphone,
+  ChevronDown, Activity, Monitor, Trash2, X, Smartphone, Tag,
 } from 'lucide-react';
 
 // ── Styles (mirrored from SuperAdminSidebar) ──────────────────────────────────
