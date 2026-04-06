@@ -264,6 +264,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post ('/audit-logs',            [AuditLogController::class,    'store']);
 
         Route::apiResource('menu-list',  MenuListController::class)->only(['index', 'store']);
+        Route::get ('/menu-items/export',           [MenuItemController::class, 'export']);
+        Route::get ('/menu-items/import-template', [MenuItemController::class, 'downloadTemplate']);
+        Route::post('/menu-items/import',          [MenuItemController::class, 'import']);
         Route::apiResource('menu-items', MenuItemController::class);
 
         Route::get ('/menu-item-options',       [MenuItemOptionController::class, 'index']);
