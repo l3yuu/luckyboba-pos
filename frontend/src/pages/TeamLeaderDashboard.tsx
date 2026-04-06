@@ -4,24 +4,24 @@ import { LogOut } from 'lucide-react';
 import TeamLeaderSidebar from '../components/TeamLeader/TeamLeaderSidebar';
 import OpsTopBar from '../components/Supervisor/OpsTopBar';
 
-// Reuse Team Leader panels where scope matches
-import TL_DashboardPanel     from '../components/TeamLeader/Home/TL_DashboardPanel';
-import StaffOverviewPanel    from '../components/TeamLeader/Home/StaffOverviewPanel';
-import InventoryListPanel    from '../components/TeamLeader/Inventory/InventoryListPanel';
-import ItemCheckerPanel      from '../components/TeamLeader/Inventory/ItemCheckerPanel';
-import ItemsReportPanel      from '../components/TeamLeader/Reports/ItemsReportPanel';
-import SalesDashboardPanel   from '../components/TeamLeader/Reports/SalesDashboardPanel';
-import XReadingPanel         from '../components/TeamLeader/Reports/XReadingPanel';
-import ZReadingPanel         from '../components/TeamLeader/Reports/ZReadingPanel';
-import VoidLogsPanel         from '../components/TeamLeader/FloorOps/VoidLogsPanel';
+// Import panels
+import TL_DashboardPanel   from '../components/TeamLeader/Home/TL_DashboardPanel';
+import StaffOverviewPanel  from '../components/TeamLeader/Home/StaffOverviewPanel';
+import SalesDashboardPanel from '../components/TeamLeader/Reports/SalesDashboardPanel';
+import ItemsReportPanel    from '../components/TeamLeader/Reports/ItemsReportPanel';
+import XReadingPanel       from '../components/TeamLeader/Reports/XReadingPanel';
+import ZReadingPanel       from '../components/TeamLeader/Reports/ZReadingPanel';
+import InventoryListPanel  from '../components/TeamLeader/Inventory/InventoryListPanel';
+import ItemCheckerPanel    from '../components/TeamLeader/Inventory/ItemCheckerPanel';
+import SV_VoidLogsPanel    from '../components/Supervisor/Logging/SVVoidLogs';
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// ── Styles ────────────────────────────────────────────────────────────────────
 const DASHBOARD_STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
   .tl-root, .tl-root * { font-family: 'DM Sans', sans-serif !important; box-sizing: border-box; }
 `;
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────────────────
 interface AuthUser {
   id:        number;
   name:      string;
@@ -62,23 +62,23 @@ const TeamLeaderDashboard = () => {
   const renderContent = () => {
     const bId = authUser?.branch_id ?? null;
     switch (activeTab) {
-      case 'dashboard':        return <TL_DashboardPanel   branchId={bId} />;
-      case 'users':            return <StaffOverviewPanel  branchId={bId} />;
-      case 'void-logs':        return <VoidLogsPanel       branchId={bId} />;
-      case 'sales-dashboard':  return <SalesDashboardPanel branchId={bId} />;
-      case 'items-report':     return <ItemsReportPanel    branchId={bId} />;
-      case 'x-reading':        return <XReadingPanel       branchId={bId} />;
-      case 'z-reading':        return <ZReadingPanel       branchId={bId} />;
-      case 'inventory-list':   return <InventoryListPanel  branchId={bId} />;
-      case 'item-checker':     return <ItemCheckerPanel    branchId={bId} />;
-      default:                 return <TL_DashboardPanel   branchId={bId} />;
+      case 'dashboard':       return <TL_DashboardPanel />;
+      case 'users':           return <StaffOverviewPanel  branchId={bId} />;
+      case 'void-logs':       return <SV_VoidLogsPanel    branchId={bId} />;
+      case 'sales-dashboard': return <SalesDashboardPanel branchId={bId} />;
+      case 'items-report':    return <ItemsReportPanel    branchId={bId} />;
+      case 'x-reading':       return <XReadingPanel       branchId={bId} />;
+      case 'z-reading':       return <ZReadingPanel       branchId={bId} />;
+      case 'inventory-list':  return <InventoryListPanel  branchId={bId} />;
+      case 'item-checker':    return <ItemCheckerPanel    branchId={bId} />;
+      default:                return <TL_DashboardPanel />;
     }
   };
 
   return (
     <>
       <style>{DASHBOARD_STYLES}</style>
-      <div className="tl-root flex flex-col md:flex-row h-screen bg-[#fcfcfd] overflow-hidden">
+      <div className="tl-root flex flex-col md:flex-row h-screen bg-[#f9fafb] overflow-hidden">
 
         <TeamLeaderSidebar
           isSidebarOpen={isSidebarOpen}
@@ -97,7 +97,7 @@ const TeamLeaderDashboard = () => {
             onMenuClick={() => setSidebarOpen(true)}
           />
 
-          <div className="flex-1 overflow-auto bg-[#f8f9fa]/30">
+          <div className="flex-1 overflow-auto bg-[#f1f5f9]/20">
             <div className="p-4 md:p-6 max-w-[1600px] mx-auto animate-in fade-in duration-500">
               {renderContent()}
             </div>
