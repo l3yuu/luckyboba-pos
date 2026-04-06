@@ -59,7 +59,6 @@ interface Category {
   name:             string;
   type:             CategoryType;
   category_type:    string;
-  sort_order:       number;
   is_active:        boolean;
   menu_items_count: number;
 }
@@ -409,7 +408,6 @@ const CategoryModal: React.FC<{
   const [name,        setName]        = useState(category?.name ?? "");
   const [baseType,    setBaseType]    = useState<CategoryType>(category?.type ?? "food");
   const [posBehavior, setPosBehavior] = useState<string>(category?.category_type ?? "food");
-  const [sortOrder,   setSortOrder]   = useState(String(category?.sort_order ?? 0));
   const [isActive,    setIsActive]    = useState(category?.is_active ?? true);
   const [errors,      setErrors]      = useState<Record<string, string>>({});
   const [loading,     setLoading]     = useState(false);
@@ -433,7 +431,6 @@ const CategoryModal: React.FC<{
         name,
         type:          baseType,
         category_type: posBehavior,
-        sort_order:    Number(sortOrder),
         is_active:     isActive,
       };
       const url    = isEdit ? `/api/categories/${category!.id}` : "/api/categories";
@@ -545,12 +542,6 @@ const CategoryModal: React.FC<{
               )}
             </div>
           )}
-
-          <div>
-            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">Sort Order</label>
-            <input type="number" min="0" value={sortOrder} onChange={e => setSortOrder(e.target.value)}
-              className={inputCls()} placeholder="0" />
-          </div>
 
           <div className="flex items-center justify-between p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
             <div>
@@ -860,7 +851,7 @@ const CategoriesTab: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100">
-                {["Name", "Type", "POS Behavior", "Items", "Sort", "Active", "Actions"].map(h => (
+                {["Name", "Type", "POS Behavior", "Items", "Active", "Actions"].map(h => (
                   <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
                 ))}
               </tr>
@@ -918,7 +909,6 @@ const CategoriesTab: React.FC = () => {
                       <span className="text-[10px] font-medium text-zinc-300">—</span>
                     )}
                   </td>
-                  <td className="px-5 py-3.5 text-zinc-500 text-xs font-medium">{cat.sort_order}</td>
                   <td className="px-5 py-3.5">
                     <button onClick={() => toggleActive(cat)} className="transition-colors">
                       {cat.is_active ? <ToggleRight size={22} className="text-[#3b2063]" /> : <ToggleLeft size={22} className="text-zinc-300" />}

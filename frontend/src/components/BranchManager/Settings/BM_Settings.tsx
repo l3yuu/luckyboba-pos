@@ -9,6 +9,7 @@ import BM_UploadData from './BM_UploadData';
 import BM_AddVouchers from './BM_AddVouchers';
 import BM_ImportData from './BM_ImportData';
 import BM_BackupSystem from './BM_BackupSystem';
+import { Button } from '../SharedUI';
 
 import { 
   Settings as SettingsIcon, UserPlus, Percent, FileUp, 
@@ -21,8 +22,11 @@ import { getCache, setCache } from '../../../utils/cache';
 // ─── Design tokens ─────────────────────────────────────────────────────────────
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
+  *, *::before, *::after { font-family: 'DM Sans', sans-serif !important; box-sizing: border-box; }
   .bm-settings-root, .bm-settings-root * { font-family: 'DM Sans', sans-serif !important; box-sizing: border-box; }
   .bm-label { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #a1a1aa; }
+  .bm-card { transition: box-shadow 0.15s ease, transform 0.15s ease; }
+  .bm-card:hover { box-shadow: 0 4px 24px rgba(59,32,99,0.08); }
 `;
 
 const AUDIT_CACHE_KEY  = 'settings-audit';
@@ -157,57 +161,57 @@ const BM_Settings = () => {
       <div className="bm-settings-root flex-1 overflow-y-auto px-5 md:px-8 pb-8 pt-5 flex flex-col gap-6">
 
         {/* ── System Audit Card ── */}
-        <div className="bg-white border border-gray-100 rounded-2xl flex flex-col overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-50 flex justify-between items-center bg-[#f9f8ff]">
+        <div className="bm-card bg-white border border-zinc-200 rounded-[0.875rem] flex flex-col overflow-hidden">
+          <div className="px-6 py-5 border-b border-zinc-100 flex justify-between items-center bg-[#fafafa]">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 bg-white border border-gray-200 text-[#1a0f2e]">
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-violet-50 border border-violet-200 text-[#3b2063]">
                 <ShieldCheck size={15} strokeWidth={2.5} />
               </div>
               <div>
-                <h2 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.02em', margin: 0 }}>System Audit & Security</h2>
-                <p className="bm-label" style={{ marginTop: 2 }}>Real-time diagnostics</p>
+                <h2 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.02em', margin: 0 }}>System Audit & Security</h2>
+                <p className="bm-label" style={{ marginTop: 3, color: '#71717a' }}>Real-time diagnostics</p>
               </div>
             </div>
-            <button onClick={() => setIsLogOpen(true)} className="h-8 px-4 rounded-xl border border-gray-200 text-[#1a0f2e] font-bold text-[0.65rem] uppercase tracking-widest hover:bg-white transition-all bg-white">
+            <Button variant="secondary" size="sm" onClick={() => setIsLogOpen(true)}>
               View Logs
-            </button>
+            </Button>
           </div>
 
-          <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 divide-y md:divide-y-0 md:divide-x divide-gray-50">
+          <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 divide-y md:divide-y-0 md:divide-x divide-zinc-100">
             {/* Last Backup */}
             <div className="flex flex-col items-center text-center gap-3 px-4">
-              <div className="w-10 h-10 rounded-full bg-[#e0f2fe] text-[#0284c7] flex items-center justify-center">
-                <Clock size={18} strokeWidth={2.5} />
+              <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-200">
+                <Clock size={16} strokeWidth={2.5} />
               </div>
               <div>
                 <p className="bm-label">Last Backup</p>
-                <p style={{ fontSize: '1rem', fontWeight: 800, color: '#1a0f2e', marginTop: 4 }}>
+                <p style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1a0f2e', marginTop: 6 }}>
                   {formatBackupDate(auditInfo.last_backup)}
                 </p>
               </div>
             </div>
             {/* Active Session */}
             <div className="flex flex-col items-center text-center gap-3 px-4">
-              <div className="w-10 h-10 rounded-full bg-[#ede9fe] text-[#7c3aed] flex items-center justify-center">
-                <UserPlus size={18} strokeWidth={2.5} />
+              <div className="w-10 h-10 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center border border-violet-200">
+                <UserPlus size={16} strokeWidth={2.5} />
               </div>
               <div>
                 <p className="bm-label">Active Session</p>
-                <p style={{ fontSize: '1rem', fontWeight: 800, color: '#1a0f2e', marginTop: 4 }}>
+                <p style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1a0f2e', marginTop: 6 }}>
                   {auditInfo.active_session}
                 </p>
               </div>
             </div>
             {/* System Status */}
             <div className="flex flex-col items-center text-center gap-3 px-4">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${auditInfo.system_status === 'Online' ? 'bg-[#dcfce7] text-[#16a34a]' : 'bg-[#fee2e2] text-[#dc2626]'}`}>
-                <Activity size={18} strokeWidth={2.5} />
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center border ${auditInfo.system_status === 'Online' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-red-50 text-red-600 border-red-200'}`}>
+                <Activity size={16} strokeWidth={2.5} />
               </div>
               <div>
                 <p className="bm-label">System Status</p>
-                <div className="flex items-center justify-center gap-2 mt-1">
-                  <div className={`w-2 h-2 rounded-full ${auditInfo.system_status === 'Online' ? 'bg-[#16a34a] animate-pulse' : 'bg-[#dc2626]'}`} />
-                  <p style={{ fontSize: '1rem', fontWeight: 800, color: auditInfo.system_status === 'Online' ? '#1a0f2e' : '#dc2626' }}>
+                <div className="flex items-center justify-center gap-2 mt-2">
+                  <div className={`w-2.5 h-2.5 rounded-full ${auditInfo.system_status === 'Online' ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+                  <p style={{ fontSize: '1.1rem', fontWeight: 700, color: auditInfo.system_status === 'Online' ? '#1a0f2e' : '#dc2626' }}>
                     {auditInfo.system_status}
                   </p>
                 </div>
@@ -220,15 +224,15 @@ const BM_Settings = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 animate-in fade-in duration-300">
           {settingActions.map((item) => (
             <button key={item.id} onClick={item.action} 
-              className="bg-white border border-gray-100 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 hover:shadow-md hover:border-[#ddd6f7] transition-all group text-center active:scale-[0.98]">
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 group-hover:bg-[#1a0f2e] group-hover:text-white" 
-                style={{ background: '#f5f4f8', color: '#1a0f2e' }}>
-                <item.Icon size={22} strokeWidth={2} />
+              className="bm-card bg-white border border-zinc-200 rounded-[0.875rem] p-6 flex flex-col items-center justify-center gap-3 hover:shadow-lg hover:border-violet-300 transition-all group text-center active:scale-[0.98]">
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-[#3b2063] group-hover:text-white group-hover:border-[#3b2063]" 
+                style={{ background: '#f4f4f5', color: '#3b2063', border: '1px solid #e4e4e7' }}>
+                <item.Icon size={20} strokeWidth={2} />
               </div>
-              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.02em', marginTop: 4 }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1a0f2e', letterSpacing: '-0.01em', marginTop: 4 }}>
                 {item.label}
               </span>
-              <div className="bm-label flex items-center gap-1 group-hover:text-[#7c3aed] transition-colors mt-1">
+              <div className="bm-label flex items-center gap-1 group-hover:text-[#3b2063] transition-colors mt-1" style={{ color: '#a1a1aa' }}>
                 Configure <ChevronRight size={10} strokeWidth={3} />
               </div>
             </button>
@@ -240,38 +244,54 @@ const BM_Settings = () => {
       {/* ── Activity Log Modal ── */}
       {isLogOpen && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 bm-settings-root">
-            <div className="bg-[#1a0f2e] px-6 py-5 flex justify-between items-center">
-              <h3 className="text-white font-extrabold text-xs uppercase tracking-widest">Activity Log</h3>
-              <div className="flex items-center gap-4">
-                <button onClick={handleExportLogs} className="text-white/70 hover:text-white transition-colors" title="Export Logs"><FileUp size={16} /></button>
-                <button onClick={() => setIsLogOpen(false)} className="text-white/70 hover:text-white transition-colors"><X size={18} /></button>
+          <div className="bg-white rounded-[1.25rem] border border-zinc-200 shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 bm-settings-root">
+            <div className="bg-white px-6 py-5 border-b border-zinc-100 flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-violet-50 border border-violet-200 rounded-lg flex items-center justify-center">
+                  <Activity size={15} className="text-violet-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-[#1a0f2e]">Activity Log</p>
+                  <p className="text-[10px] text-zinc-400">Recent system events</p>
+                </div>
               </div>
+              <button onClick={() => setIsLogOpen(false)} className="p-1.5 hover:bg-zinc-100 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600">
+                <X size={16} />
+              </button>
             </div>
             
-            <div className="p-2 space-y-1 max-h-[60vh] overflow-y-auto bg-[#f5f4f8]">
+            <div className="p-4 space-y-2 max-h-[60vh] overflow-y-auto">
               {recentLogs.length > 0 ? recentLogs.map((log, i) => {
                 const critical = isCriticalAction(log.action);
                 return (
-                  <div key={i} className={`flex justify-between items-center p-4 rounded-xl bg-white border ${critical ? 'border-red-100' : 'border-gray-50'}`}>
-                    <div className="flex items-start gap-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${critical ? 'bg-red-50 text-red-500' : 'bg-[#f5f4f8] text-[#1a0f2e]'}`}>
-                        {critical ? <AlertTriangle size={14} strokeWidth={2.5}/> : <Activity size={14} strokeWidth={2.5}/>}
+                  <div key={i} className={`flex justify-between items-start p-3 rounded-lg border ${critical ? 'bg-red-50 border-red-200' : 'bg-zinc-50 border-zinc-200'}`}>
+                    <div className="flex items-start gap-2 flex-1">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 flex-shrink-0 ${critical ? 'bg-red-100 text-red-600' : 'bg-violet-100 text-violet-600'}`}>
+                        {critical ? <AlertTriangle size={13} strokeWidth={2.5}/> : <Activity size={13} strokeWidth={2.5}/>}
                       </div>
-                      <div>
-                        <p className="bm-label mb-0.5" style={{ color: critical ? '#dc2626' : '#a1a1aa' }}>{log.user}</p>
-                        <p style={{ fontSize: '0.8rem', fontWeight: 700, color: critical ? '#991b1b' : '#1a0f2e', lineHeight: 1.2 }}>{log.action}</p>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-0.5">{log.user}</p>
+                        <p style={{ fontSize: '0.8rem', fontWeight: 600, color: critical ? '#991b1b' : '#1a0f2e', lineHeight: 1.3 }}>{log.action}</p>
                       </div>
                     </div>
-                    <span className="bm-label shrink-0 text-right">{log.time}</span>
+                    <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 shrink-0 ml-2">{log.time}</span>
                   </div>
                 );
               }) : (
-                <div className="flex flex-col items-center justify-center py-10">
-                  <Activity size={24} color="#d4d4d8" className="mb-3" />
-                  <p className="bm-label" style={{ color: '#d4d4d8' }}>No recent activity</p>
+                <div className="flex flex-col items-center justify-center py-8">
+                  <Activity size={20} color="#e4e4e7" className="mb-2" />
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">No recent activity</p>
                 </div>
               )}
+            </div>
+            
+            <div className="flex items-center justify-between px-6 py-4 border-t border-zinc-100 gap-2">
+              <Button variant="ghost" size="sm" onClick={handleExportLogs}>
+                <FileUp size={12} /> Export
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => setIsLogOpen(false)}>
+                Close
+              </Button>
             </div>
           </div>
         </div>

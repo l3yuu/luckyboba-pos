@@ -84,7 +84,7 @@ const ExportData = ({ onBack }: ExportDataProps) => {
   const reportGroups = [
     {
       title: "Sales Reports",
-      color: "bg-[#7c14d4]",
+      color: "bg-[#3b2063]",
       items: [
         { label: "SALES", action: () => handleExportSales("SALES", "General_Sales") },
         { label: "SALES SUMMARY", action: () => handleExportSales("SUMMARY", "Sales_Summary") },
@@ -97,7 +97,7 @@ const ExportData = ({ onBack }: ExportDataProps) => {
     },
     {
       title: "Lists & Kits",
-      color: "bg-[#7c14d4]",
+      color: "bg-[#3b2063]",
       items: [
         { label: "FOOD LIST", action: handleExportFoodList },
         { label: "ALL LIST", action: () => showToast("Exporting system data...", "success") },
@@ -118,7 +118,7 @@ const ExportData = ({ onBack }: ExportDataProps) => {
           <div className="bg-white rounded-[0.625rem] shadow-sm border border-[#e9d5ff] p-6 relative">
             {loading && (
               <div className="absolute inset-0 bg-white/60 z-10 flex items-center justify-center rounded-[0.625rem] backdrop-blur-[1px]">
-                <Loader2 className="animate-spin text-[#7c14d4]" size={24} />
+                <Loader2 className="animate-spin text-[#3b2063]" size={24} />
               </div>
             )}
             <div className="flex flex-col md:flex-row items-end gap-4">
@@ -129,7 +129,7 @@ const ExportData = ({ onBack }: ExportDataProps) => {
                     type="date" 
                     value={fromDate} 
                     onChange={(e) => setFromDate(e.target.value)} 
-                    className="w-full px-4 py-3 border border-[#e9d5ff] bg-[#f5f0ff] rounded-[0.625rem] text-sm font-semibold outline-none focus:border-[#7c14d4]"
+                    className="w-full px-4 py-3 border border-[#e9d5ff] bg-[#f5f0ff] rounded-[0.625rem] text-sm font-semibold outline-none focus:border-[#3b2063]"
                     disabled={loading}
                   />
                 </div>
@@ -139,7 +139,7 @@ const ExportData = ({ onBack }: ExportDataProps) => {
                     type="date" 
                     value={toDate} 
                     onChange={(e) => setToDate(e.target.value)} 
-                    className="w-full px-4 py-3 border border-[#e9d5ff] bg-[#f5f0ff] rounded-[0.625rem] text-sm font-semibold outline-none focus:border-[#7c14d4]"
+                    className="w-full px-4 py-3 border border-[#e9d5ff] bg-[#f5f0ff] rounded-[0.625rem] text-sm font-semibold outline-none focus:border-[#3b2063]"
                     disabled={loading}
                   />
                 </div>
@@ -147,7 +147,7 @@ const ExportData = ({ onBack }: ExportDataProps) => {
               <button 
                 onClick={() => handleExportSales("SALES", "General_Sales")}
                 disabled={loading}
-                className="w-auto h-11 bg-[#7c14d4] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6 disabled:opacity-50"
+                className="w-auto h-11 bg-[#3b2063] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center justify-center gap-2 px-6 disabled:opacity-50"
               >
                 {loading ? <Loader2 className="animate-spin" size={16} /> : <Download size={14} />}
                 {loading ? 'Processing...' : 'GENERATE'}
@@ -171,7 +171,7 @@ const ExportData = ({ onBack }: ExportDataProps) => {
                         key={label} 
                         onClick={action}
                         disabled={loading}
-                        className="h-11 bg-[#7c14d4] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm disabled:opacity-50"
+                        className="h-11 bg-[#3b2063] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm disabled:opacity-50"
                       >
                         {label}
                       </button>
@@ -186,7 +186,7 @@ const ExportData = ({ onBack }: ExportDataProps) => {
           <div className="mt-auto pt-6 flex justify-start">
             <button 
               onClick={onBack} 
-              className="px-6 py-3 h-11 bg-white border border-[#e9d5ff] text-[#7c14d4] hover:bg-[#f5f0ff] font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center gap-2"
+              className="px-6 py-3 h-11 bg-white border border-[#e9d5ff] text-[#3b2063] hover:bg-[#f5f0ff] font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] shadow-sm flex items-center gap-2"
             >
               <ArrowLeft size={14} /> Back to Settings
             </button>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import {
   Store, UserCheck, AlertTriangle,
-  Download, XCircle, ArrowUpRight, ArrowDownRight,
+  XCircle, ArrowUpRight, ArrowDownRight,
   FileText, Package, RefreshCw, TrendingUp,
 } from "lucide-react";
 import {
@@ -42,7 +42,7 @@ const authHeaders = () => ({
 // ── Shared UI ─────────────────────────────────────────────────────────────────
 const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, trend, color = "violet" }) => {
   const colors: Record<ColorKey, { bg: string; border: string; icon: string }> = {
-    violet:  { bg: "bg-violet-50",  border: "border-violet-200",  icon: "text-violet-600"  },
+    violet:  { bg: "bg-[#f5f0ff]",  border: "border-[#e9d5ff]",  icon: "text-[#3b2063]"  },
     emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
     red:     { bg: "bg-red-50",     border: "border-red-200",     icon: "text-red-500"     },
     amber:   { bg: "bg-amber-50",   border: "border-amber-200",   icon: "text-amber-600"   },
@@ -197,10 +197,18 @@ const OverviewTab: React.FC = () => {
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   // ── Chart data derived from API ───────────────────────────────────────────
+  const formatDateLabel = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr + "T00:00:00");
+      if (period === "daily") return d.toLocaleTimeString("en-US", { hour: "numeric", hour12: true });
+      if (period === "monthly") return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      return d.toLocaleDateString("en-US", { weekday: "short", day: "numeric" });
+    } catch { return dateStr; }
+  };
+
   const revenueChartData = breakdown.map(r => ({
-    month:    r.date,
+    date:     formatDateLabel(r.date),
     revenue:  r.revenue,
-    expenses: 0,
   }));
 
   const PIE_COLORS = ["#3b2063", "#6d3fa8", "#9b6bd4", "#c4a8e8", "#ddd0f8"];
@@ -333,7 +341,6 @@ const OverviewTab: React.FC = () => {
               <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">Revenue Trend</p>
               <p className="text-xl font-bold text-[#1a0f2e] mt-0.5 capitalize">{period} Overview</p>
             </div>
-            <Btn variant="secondary" onClick={() => {}}><Download size={13} /> Export</Btn>
           </div>
           {loading ? (
             <div className="flex flex-col gap-3 mt-2">
@@ -353,7 +360,7 @@ const OverviewTab: React.FC = () => {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fontWeight: 600, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 10, fontWeight: 600, fill: "#a1a1aa" }} axisLine={false} tickLine={false} interval={period === "monthly" ? Math.max(0, Math.floor(revenueChartData.length / 8) - 1) : 0} />
                 <YAxis tick={{ fontSize: 11, fontWeight: 600, fill: "#a1a1aa" }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
                 {/* ✅ Fix: cast value to number */}
                 <Tooltip
@@ -455,8 +462,8 @@ const OverviewTab: React.FC = () => {
                   : 0;
                 return (
                   <div key={i} className="flex items-center gap-3">
-                    <div className="w-5 h-5 rounded-md bg-violet-50 border border-violet-200 flex items-center justify-center shrink-0">
-                      <span className="text-[9px] font-black text-violet-600">{i + 1}</span>
+                    <div className="w-5 h-5 rounded-md bg-[#f5f0ff] border border-[#e9d5ff] flex items-center justify-center shrink-0">
+                      <span className="text-[9px] font-black text-[#3b2063]">{i + 1}</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-0.5">

@@ -93,7 +93,7 @@ export const PAYMENT_METHODS = [
 export const TYPE_BADGE = {
   food:  { pill: 'bg-orange-500 text-white', card: 'hover:bg-orange-500 hover:border-orange-500 hover:text-white' },
   wings: { pill: 'bg-orange-500 text-white', card: 'hover:bg-orange-500 hover:border-orange-500 hover:text-white' },
-  drink: { pill: 'bg-[#7c14d4] text-white',  card: 'hover:bg-[#7c14d4] hover:border-[#7c14d4] hover:text-white'  },
+  drink: { pill: 'bg-[#3b2063] text-white',  card: 'hover:bg-[#3b2063] hover:border-[#3b2063] hover:text-white'  },
   promo: { pill: 'bg-emerald-600 text-white', card: 'hover:bg-emerald-600 hover:border-emerald-600 hover:text-white' },
 };
 
@@ -112,14 +112,14 @@ export const QtyControl = ({
   <div className={`flex items-center justify-between bg-[#f5f0ff] rounded-[0.625rem] p-2 border-2 border-[#e9d5ff] ${className}`}>
     <button
       onClick={onDecrement}
-      className="w-11 h-11 bg-white rounded-lg border border-[#e9d5ff] text-[#7c14d4] hover:text-red-500 hover:border-red-200 transition-colors flex items-center justify-center shadow-sm"
+      className="w-11 h-11 bg-white rounded-lg border border-[#e9d5ff] text-[#3b2063] hover:text-red-500 hover:border-red-200 transition-colors flex items-center justify-center shadow-sm"
     >
       <MinusIcon />
     </button>
     <span className="font-black text-2xl text-black w-16 text-center tabular-nums">{value}</span>
     <button
       onClick={onIncrement}
-      className="w-11 h-11 bg-[#7c14d4] rounded-lg text-white flex items-center justify-center hover:bg-[#6a12b8] transition-colors shadow-sm"
+      className="w-11 h-11 bg-[#3b2063] rounded-lg text-white flex items-center justify-center hover:bg-[#6a12b8] transition-colors shadow-sm"
     >
       <PlusIcon />
     </button>
@@ -148,8 +148,8 @@ export const AddOnGrid = ({
           onClick={() => onToggle(addon.name)}
           className={`p-3 rounded-[0.625rem] text-left border-2 transition-all h-24 flex flex-col justify-between
             ${selected.includes(addon.name)
-              ? 'bg-[#7c14d4] border-[#7c14d4] text-white'
-              : 'bg-white border-[#e9d5ff] text-black hover:border-[#7c14d4]/40 hover:bg-[#f5f0ff]'
+              ? 'bg-[#3b2063] border-[#3b2063] text-white'
+              : 'bg-white border-[#e9d5ff] text-black hover:border-[#3b2063]/40 hover:bg-[#f5f0ff]'
             }`}
         >
           <span className="text-[10px] font-black uppercase leading-tight">{addon.name}</span>
@@ -189,7 +189,7 @@ export const AddOnModalShell = ({
 }) => (
   <div className={`fixed inset-0 ${zIndex} flex items-center justify-center bg-black/60 backdrop-blur-sm p-4`}>
     <div className="bg-white w-full max-w-lg rounded-[0.625rem] shadow-2xl flex flex-col h-[80vh]">
-      <div className="bg-[#7c14d4] p-6 text-white text-center relative shrink-0">
+      <div className="bg-[#3b2063] p-6 text-white text-center relative shrink-0">
         <h2 className="text-lg font-black uppercase tracking-wider">{title}</h2>
         {/* Show active charge badge */}
         {orderCharge && (
@@ -211,7 +211,7 @@ export const AddOnModalShell = ({
       <div className="p-4 border-t border-[#e9d5ff] bg-white">
         <button
           onClick={onClose}
-          className="w-full bg-[#7c14d4] text-white py-4 rounded-[0.625rem] font-black uppercase tracking-widest shadow-lg"
+          className="w-full bg-[#3b2063] text-white py-4 rounded-[0.625rem] font-black uppercase tracking-widest shadow-lg"
         >
           Confirm Selection ({selected.length})
         </button>

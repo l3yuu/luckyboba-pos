@@ -44,7 +44,7 @@ const PAGE_TITLES: Record<TabId, { label: string; desc: string }> = {
   settings:   { label: "System Settings",        desc: "Global configuration & preferences"     },
 
   card_approvals: { label: "Card Approvals",  desc: "Review and approve membership card requests" },
-  card_users:     { label: "Card Members",    desc: "Active subscribers and daily perk usage"     },
+  card_members:     { label: "Card Members",    desc: "Active subscribers and daily perk usage"     },
 };
 
 // ── Pulse animation ───────────────────────────────────────────────────────────

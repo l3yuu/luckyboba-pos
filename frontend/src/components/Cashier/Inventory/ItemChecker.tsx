@@ -69,13 +69,13 @@ const ItemChecker = () => {
                 type="text"
                 value={barcode}
                 onChange={(e) => setBarcode(e.target.value)}
-                className="w-full px-4 py-4 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#7c14d4] focus:bg-white text-center mb-4"
+                className="w-full px-4 py-4 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white text-center mb-4"
                 placeholder="00000000"
               />
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full h-11 bg-[#7c14d4] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] disabled:opacity-50"
+                className="w-full h-11 bg-[#3b2063] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] disabled:opacity-50"
               >
                 {loading ? "Searching..." : "Check Item"}
               </button>
@@ -89,7 +89,7 @@ const ItemChecker = () => {
                 <span className="text-[10px] font-bold text-white uppercase tracking-widest">Product Found</span>
               </div>
               <div className="p-8 text-center space-y-4">
-                <h3 className="text-2xl font-extrabold text-[#7c14d4] uppercase leading-tight">{item.name}</h3>
+                <h3 className="text-2xl font-extrabold text-[#3b2063] uppercase leading-tight">{item.name}</h3>
                 <div className="flex justify-center gap-8 py-4">
                   <div>
                     <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Price</p>

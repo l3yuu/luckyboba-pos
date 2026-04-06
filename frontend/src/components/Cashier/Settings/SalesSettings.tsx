@@ -123,7 +123,7 @@ const SalesSettings = ({ isOpen, onClose, userRole }: SalesSettingsProps) => {
         {/* Left: Settings View */}
         <div className="flex-1 bg-[#f5f0ff] p-8 border-r border-[#e9d5ff] flex flex-col relative overflow-hidden rounded-[0.625rem]">
           <div className="flex-1 flex flex-col animate-in slide-in-from-left-8 duration-300">
-            <h2 className="text-[#7c14d4] font-black text-xs uppercase tracking-[0.15em] mb-8">Sales Configuration</h2>
+            <h2 className="text-[#3b2063] font-black text-xs uppercase tracking-[0.15em] mb-8">Sales Configuration</h2>
 
             <div className={`flex-1 space-y-4 text-xs font-bold text-slate-600 overflow-y-auto relative ${isSyncing ? 'select-none' : ''}`}>
               <div className={`space-y-4 transition-all duration-300 ${isSyncing ? 'blur-[3px] opacity-40 pointer-events-none' : 'blur-0 opacity-100'}`}>
@@ -189,7 +189,7 @@ const SalesSettings = ({ isOpen, onClose, userRole }: SalesSettingsProps) => {
             <div className="mt-8">
               <button
                 onClick={onClose}
-                className="w-full px-4 py-3 bg-[#7c14d4] text-white rounded-[0.625rem] font-black uppercase text-[10px] tracking-widest hover:bg-[#6a12b8] flex items-center justify-center gap-2 shadow-lg transition-all"
+                className="w-full px-4 py-3 bg-[#3b2063] text-white rounded-[0.625rem] font-black uppercase text-[10px] tracking-widest hover:bg-[#6a12b8] flex items-center justify-center gap-2 shadow-lg transition-all"
               >
                 <ArrowLeft size={14} strokeWidth={2.5} />Close
               </button>
@@ -199,7 +199,7 @@ const SalesSettings = ({ isOpen, onClose, userRole }: SalesSettingsProps) => {
 
         {/* Right: Receipt Details */}
         <div className="flex-1 p-8 bg-white flex flex-col items-center text-center">
-          <h2 className="w-full text-left text-[#7c14d4] font-black text-xs uppercase tracking-[0.15em] mb-8">Receipt Details</h2>
+          <h2 className="w-full text-left text-[#3b2063] font-black text-xs uppercase tracking-[0.15em] mb-8">Receipt Details</h2>
           <div className="flex-1 flex flex-col items-center justify-center gap-6 max-w-sm">
             <img src={logo} alt="Lucky Boba" className="w-24 h-auto object-contain mb-2" />
             <div className="space-y-1">

@@ -1,550 +1,598 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import axios from 'axios';
-import api from '../../../services/api';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  LayoutGrid, Plus, Search, Pencil, Trash2,
-  Tag, Activity, X, Check, CheckCircle2, AlertTriangle,
+  Search, Plus, Edit2, Trash2, X, AlertCircle, RefreshCw,
+  ChevronDown, CheckCircle, BookOpen, FlaskConical, Minus,
 } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import api from '../../../services/api';
 
-// ─── Design tokens ─────────────────────────────────────────────────────────────
-const STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
-  .bic-root, .bic-root * { font-family: 'DM Sans', sans-serif !important; box-sizing: border-box; }
-  .bic-label { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: #71717a; }
-  .bic-live  { display:inline-flex;align-items:center;gap:5px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:100px;padding:3px 9px; }
-  .bic-live-dot  { width:5px;height:5px;border-radius:50%;background:#22c55e;box-shadow:0 0 5px rgba(34,197,94,.6);animation:bic-pulse 2s infinite; }
-  .bic-live-text { font-size:0.52rem;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:#16a34a; }
-  @keyframes bic-pulse{0%,100%{opacity:1}50%{opacity:.45}}
-`;
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-// ─── Types — same as Cashier InventoryCategoryList ────────────────────────────
-interface InventoryCategory {
-  id:               number;
-  name:             string;
-  type:             string;
-  description:      string;
-  menu_items_count: number;
+interface RecipeItem {
+  id:              number;
+  raw_material_id: number;
+  raw_material?:   { name: string; unit: string };
+  material_name?:  string;
+  unit?:           string;
+  quantity:        number | '';
+  notes?:          string;
 }
 
-interface Toast { id: number; message: string; type: 'success' | 'error'; }
-
-// ─── Shared input styles ───────────────────────────────────────────────────────
-const inputCls = (err?: boolean) =>
-  `w-full px-4 py-2.5 rounded-xl border text-sm font-semibold outline-none transition-all bg-[#f5f4f8] text-[#1a0f2e] placeholder:text-zinc-400 focus:bg-white focus:border-[#c4b5fd] ${err ? 'border-red-300' : 'border-gray-100'}`;
-const selectCls = `w-full px-4 py-2.5 rounded-xl border border-gray-100 bg-[#f5f4f8] text-[#1a0f2e] font-semibold text-sm outline-none focus:border-[#c4b5fd] focus:bg-white cursor-pointer transition-all`;
-
-// ─── Toast Stack ──────────────────────────────────────────────────────────────
-function ToastStack({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: number) => void }) {
-  return (
-    <div className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none">
-      {toasts.map(t => (
-        <div key={t.id} className={`flex items-center gap-3 px-5 py-3 rounded-xl shadow-2xl text-white text-xs font-bold uppercase tracking-widest pointer-events-auto border border-white/10 ${t.type === 'success' ? 'bg-[#1a0f2e]' : 'bg-red-600'}`}>
-          {t.type === 'success' ? <CheckCircle2 size={14} /> : <X size={14} />}
-          <span>{t.message}</span>
-          <button onClick={() => onRemove(t.id)} className="ml-1 opacity-50 hover:opacity-100 transition-opacity"><X size={12} /></button>
-        </div>
-      ))}
-    </div>
-  );
+interface Recipe {
+  id:          number;
+  menu_item_id: number;
+  menu_item?:  { name: string; category?: { name: string } };
+  menu_item_name?: string;
+  size?:       'M' | 'L' | null;
+  is_active:   boolean;
+  notes?:      string;
+  items?:      RecipeItem[];
+  recipe_items?: RecipeItem[];
 }
 
-// ─── Modal Shell ───────────────────────────────────────────────────────────────
-function ModalShell({ onClose, children }: { onClose: () => void; children: React.ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null);
+interface MenuItem { id: number; name: string; category?: { name: string }; }
+interface RawMaterial { id: number; name: string; unit: string; }
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const sizeLabel = (s?: string | null) => s === 'M' ? 'Medium' : s === 'L' ? 'Large' : 'Fixed';
+
+const resolveItems = (r: Recipe): RecipeItem[] =>
+  (r.items ?? r.recipe_items ?? []).map(i => ({
+    ...i,
+    material_name: i.raw_material?.name ?? i.material_name ?? '',
+    unit:          i.raw_material?.unit ?? i.unit ?? '',
+  }));
+
+// ─── Shared UI ────────────────────────────────────────────────────────────────
+
+const inputCls = (err?: string) =>
+  `w-full text-sm font-medium text-zinc-700 bg-zinc-50 border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all ${err ? 'border-red-300 bg-red-50' : 'border-zinc-200'}`;
+
+const Field: React.FC<{ label: string; required?: boolean; error?: string; children: React.ReactNode }> = ({ label, required, error, children }) => (
+  <div>
+    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
+      {label}{required && <span className="text-red-400 ml-0.5">*</span>}
+    </label>
+    {children}
+    {error && <p className="text-[10px] text-red-500 mt-1 font-medium">{error}</p>}
+  </div>
+);
+
+// ─── Recipe Form Modal ────────────────────────────────────────────────────────
+
+const RecipeFormModal: React.FC<{
+  onClose:  () => void;
+  onSaved:  (r: Recipe) => void;
+  editing?: Recipe | null;
+}> = ({ onClose, onSaved, editing }) => {
+  const [menuItemId,  setMenuItemId]  = useState<number | ''>(editing?.menu_item_id ?? '');
+  const [size,        setSize]        = useState<string>(editing?.size ?? '');
+  const [isActive,    setIsActive]    = useState(editing?.is_active ?? true);
+  const [notes,       setNotes]       = useState(editing?.notes ?? '');
+  const [recipeItems, setRecipeItems] = useState<RecipeItem[]>(resolveItems(editing ?? {} as Recipe));
+  const [menuItems,   setMenuItems]   = useState<MenuItem[]>([]);
+  const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>([]);
+  const [saving,      setSaving]      = useState(false);
+  const [errors,      setErrors]      = useState<Record<string, string>>({});
+  const [apiErr,      setApiErr]      = useState('');
+
   useEffect(() => {
-    const h = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', h);
-    return () => window.removeEventListener('keydown', h);
-  }, [onClose]);
-  return (
-    <div ref={ref} onClick={e => { if (e.target === ref.current) onClose(); }}
-      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 w-full max-w-md overflow-hidden flex flex-col" style={{ maxHeight: '92vh' }}>
-        {children}
-      </div>
-    </div>
-  );
-}
-
-// ─── Add Modal ────────────────────────────────────────────────────────────────
-function AddModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (d: InventoryCategory) => void }) {
-  const [name, setName]               = useState('');
-  const [description, setDescription] = useState('');
-  const [type, setType]               = useState('food');
-  const [cupId, setCupId]             = useState<number | ''>('');
-  const [cups, setCups]               = useState<{ id: number; name: string; code: string }[]>([]);
-  const [saving, setSaving]           = useState(false);
-  const [errors, setErrors]           = useState<{ name?: string }>({});
-
-  useEffect(() => {
-    api.get('/cups').then(res => setCups(res.data)).catch(() => {});
+    Promise.all([api.get('/menu-items'), api.get('/raw-materials')]).then(([mi, rm]) => {
+      setMenuItems(Array.isArray(mi.data) ? mi.data : mi.data?.data ?? []);
+      setRawMaterials(Array.isArray(rm.data) ? rm.data : rm.data?.data ?? []);
+    }).catch(console.error);
   }, []);
 
-  const handleSave = async () => {
-    if (!name.trim()) { setErrors({ name: 'Category name is required.' }); return; }
-    setSaving(true);
+  const addRow = () => setRecipeItems(p => [
+    ...p,
+    { id: Date.now(), raw_material_id: 0, material_name: '', unit: '', quantity: '' },
+  ]);
+
+  const removeRow = (idx: number) => setRecipeItems(p => p.filter((_, i) => i !== idx));
+
+  const updateRow = (idx: number, field: keyof RecipeItem, value: unknown) => {
+    setRecipeItems(p => p.map((row, i) => {
+      if (i !== idx) return row;
+      if (field === 'raw_material_id') {
+        const mat = rawMaterials.find(m => m.id === Number(value));
+        return { ...row, raw_material_id: Number(value), material_name: mat?.name ?? '', unit: mat?.unit ?? '' };
+      }
+      return { ...row, [field]: value };
+    }));
+  };
+
+  const validate = () => {
+    const e: Record<string, string> = {};
+    if (!menuItemId) e.menu_item = 'Menu item is required.';
+    if (recipeItems.length === 0) e.items = 'At least one ingredient is required.';
+    recipeItems.forEach((item, i) => {
+      if (!item.raw_material_id) e[`mat_${i}`] = 'Select a material.';
+      if (item.quantity === '' || Number(item.quantity) <= 0) e[`qty_${i}`] = 'Enter quantity.';
+    });
+    return e;
+  };
+
+  const handleSubmit = async () => {
+    const e = validate();
+    if (Object.keys(e).length) { setErrors(e); return; }
+    setSaving(true); setApiErr('');
     try {
-      const payload: Record<string, unknown> = { name: name.trim(), description: description.trim(), type };
-      if (type === 'drink' && cupId !== '') payload.cup_id = cupId;
-      const res = await api.post('/categories', payload);
-      onSuccess(res.data); onClose();
-    } catch (err) {
-      setErrors({ name: axios.isAxiosError(err) ? (err.response?.data?.message ?? 'Failed to add category.') : 'Failed to add category.' });
+      const payload = {
+        menu_item_id: menuItemId,
+        size:         size || null,
+        is_active:    isActive,
+        notes,
+        items: recipeItems.map(i => ({
+          raw_material_id: i.raw_material_id,
+          quantity:        Number(i.quantity),
+          unit:            i.unit,
+          notes:           i.notes ?? '',
+        })),
+      };
+      const res = editing
+        ? await api.patch(`/recipes/${editing.id}`, payload)
+        : await api.post('/recipes', payload);
+      onSaved(res.data?.data ?? res.data);
+      onClose();
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setApiErr(msg ?? 'Something went wrong.');
     } finally { setSaving(false); }
   };
 
-  return (
-    <ModalShell onClose={onClose}>
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-5 border-b border-gray-50">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-[#1a0f2e]"><Plus size={14} color="#fff" /></div>
-          <div>
-            <p className="bic-label">Inventory</p>
-            <h3 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1a0f2e', margin: 0 }}>Create New Category</h3>
+  return createPortal(
+    <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
+      style={{ backdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.45)' }}>
+      <div className="absolute inset-0" onClick={onClose} />
+      <div className="relative bg-white w-full max-w-2xl border border-zinc-200 rounded-[1.25rem] shadow-2xl flex flex-col max-h-[90vh]">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center">
+              <BookOpen size={15} className="text-[#3b2063]" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-[#1a0f2e]">{editing ? 'Edit Recipe' : 'Add Recipe'}</p>
+              <p className="text-[10px] text-zinc-400">{editing ? `Updating recipe` : 'Define ingredient composition'}</p>
+            </div>
           </div>
-        </div>
-        <button onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center text-zinc-400 hover:bg-gray-100 transition-colors"><X size={15} /></button>
-      </div>
-
-      {/* Body */}
-      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
-        <div className="space-y-1.5">
-          <label className="bic-label ml-1">Category Name *</label>
-          <input autoFocus value={name} onChange={e => { setName(e.target.value); setErrors({}); }}
-            onKeyDown={e => e.key === 'Enter' && handleSave()} placeholder="e.g. Milk Tea" className={inputCls(!!errors.name)} />
-          {errors.name && <p className="text-xs text-red-500 font-semibold">{errors.name}</p>}
+          <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-400"><X size={16} /></button>
         </div>
 
-        <div className="space-y-1.5">
-          <label className="bic-label ml-1">Description</label>
-          <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Optional description..."
-            className="w-full px-4 py-2.5 rounded-xl border border-gray-100 bg-[#f5f4f8] text-sm font-semibold outline-none focus:border-[#c4b5fd] focus:bg-white h-20 resize-none transition-all" />
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="bic-label ml-1">Type *</label>
-          <select value={type} onChange={e => { setType(e.target.value); setCupId(''); }} className={selectCls}>
-            <option value="food">Food</option>
-            <option value="drink">Drink</option>
-            <option value="promo">Promo</option>
-            <option value="standard">Standard</option>
-          </select>
-        </div>
-
-        {type === 'drink' && (
-          <div className="space-y-1.5">
-            <label className="bic-label ml-1">Cup Type</label>
-            <select value={cupId} onChange={e => setCupId(Number(e.target.value))} className={selectCls}>
-              <option value="">— Select Cup —</option>
-              {cups.map(cup => <option key={cup.id} value={cup.id}>{cup.name} ({cup.code})</option>)}
-            </select>
-          </div>
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="px-6 py-4 border-t border-gray-50 flex gap-2 justify-end">
-        <button onClick={onClose} className="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest text-zinc-500 bg-white border border-gray-200 hover:bg-gray-50 transition-all">Cancel</button>
-        <button onClick={handleSave} disabled={saving}
-          className="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest text-white bg-[#1a0f2e] hover:bg-[#2a1647] transition-all disabled:opacity-50 flex items-center gap-2">
-          <Check size={12} />{saving ? 'Saving…' : 'Save Category'}
-        </button>
-      </div>
-    </ModalShell>
-  );
-}
-
-// ─── Edit Modal ────────────────────────────────────────────────────────────────
-function EditModal({ category, onClose, onSuccess }: {
-  category: InventoryCategory; onClose: () => void; onSuccess: (u: InventoryCategory) => void;
-}) {
-  const [name, setName]               = useState(category.name);
-  const [description, setDescription] = useState(category.description || '');
-  const [saving, setSaving]           = useState(false);
-  const [errors, setErrors]           = useState<{ name?: string }>({});
-
-  const handleSave = async () => {
-    if (!name.trim()) { setErrors({ name: 'Category name is required.' }); return; }
-    setSaving(true);
-    try {
-      // Uses PATCH same as Cashier InventoryCategoryList EditModal
-      const res = await api.patch(`/categories/${category.id}`, { name: name.trim(), description: description.trim() });
-      onSuccess(res.data); onClose();
-    } catch (err) {
-      setErrors({ name: axios.isAxiosError(err) ? (err.response?.data?.message ?? 'Update failed.') : 'Update failed.' });
-    } finally { setSaving(false); }
-  };
-
-  return (
-    <ModalShell onClose={onClose}>
-      <div className="flex items-center justify-between px-6 py-5 border-b border-gray-50">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-[#f5f4f8] border border-gray-100"><Pencil size={13} color="#7c3aed" /></div>
-          <div>
-            <p className="bic-label">Inventory</p>
-            <h3 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1a0f2e', margin: 0 }}>Edit Category</h3>
-          </div>
-        </div>
-        <button onClick={onClose} className="w-8 h-8 rounded-xl flex items-center justify-center text-zinc-400 hover:bg-gray-100 transition-colors"><X size={15} /></button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
-        <div className="space-y-1.5">
-          <label className="bic-label ml-1">Category Name *</label>
-          <input value={name} onChange={e => { setName(e.target.value); setErrors({}); }}
-            onKeyDown={e => e.key === 'Enter' && handleSave()} className={inputCls(!!errors.name)} />
-          {errors.name && <p className="text-xs text-red-500 font-semibold">{errors.name}</p>}
-        </div>
-        <div className="space-y-1.5">
-          <label className="bic-label ml-1">Description</label>
-          <textarea value={description} onChange={e => setDescription(e.target.value)}
-            className="w-full px-4 py-2.5 rounded-xl border border-gray-100 bg-[#f5f4f8] text-sm font-semibold outline-none focus:border-[#c4b5fd] focus:bg-white h-20 resize-none transition-all" />
-        </div>
-      </div>
-
-      <div className="px-6 py-4 border-t border-gray-50 flex gap-2 justify-end">
-        <button onClick={onClose} className="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest text-zinc-500 bg-white border border-gray-200 hover:bg-gray-50 transition-all">Cancel</button>
-        <button onClick={handleSave} disabled={saving}
-          className="px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest text-white bg-[#1a0f2e] hover:bg-[#2a1647] transition-all disabled:opacity-50 flex items-center gap-2">
-          <Check size={12} />{saving ? 'Saving…' : 'Update Category'}
-        </button>
-      </div>
-    </ModalShell>
-  );
-}
-
-// ─── Delete Modal ─────────────────────────────────────────────────────────────
-function DeleteModal({ category, onClose, onConfirm }: {
-  category: InventoryCategory; onClose: () => void; onConfirm: () => void;
-}) {
-  return (
-    <ModalShell onClose={onClose}>
-      <div className="p-8 flex flex-col items-center text-center gap-4">
-        <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: '#fee2e2' }}>
-          <Trash2 size={20} color="#dc2626" />
-        </div>
-        <div>
-          <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1a0f2e', marginBottom: 4 }}>Delete Category?</h3>
-          <p style={{ fontSize: '0.85rem', color: '#3b2063', fontWeight: 700 }}>"{category.name}"</p>
-          {category.menu_items_count > 0 && (
-            <div className="flex items-center justify-center gap-1.5 mt-2">
-              <AlertTriangle size={13} color="#f59e0b" />
-              <p style={{ fontSize: '0.7rem', fontWeight: 700, color: '#f59e0b' }}>
-                {category.menu_items_count} linked item{category.menu_items_count > 1 ? 's' : ''} will be affected.
-              </p>
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-4">
+          {apiErr && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <AlertCircle size={13} className="text-red-500 shrink-0" />
+              <p className="text-xs text-red-600 font-medium">{apiErr}</p>
             </div>
           )}
-          <p className="bic-label mt-2" style={{ color: '#a1a1aa' }}>This action cannot be undone.</p>
-        </div>
-        <div className="flex flex-col w-full gap-2 mt-2">
-          <button onClick={onConfirm} className="w-full py-3 text-xs font-bold uppercase tracking-widest text-white bg-red-600 hover:bg-red-700 rounded-xl transition-all">Delete</button>
-          <button onClick={onClose} className="w-full py-3 text-xs font-bold uppercase tracking-widest text-zinc-500 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl transition-all">Cancel</button>
-        </div>
-      </div>
-    </ModalShell>
-  );
-}
 
-// ─── Main Component ────────────────────────────────────────────────────────────
-const BM_InventoryCategories = () => {
-  const [categories,   setCategories]   = useState<InventoryCategory[]>([]);
-  const [loading,      setLoading]      = useState(true);
-  const [toasts,       setToasts]       = useState<Toast[]>([]);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [editTarget,   setEditTarget]   = useState<InventoryCategory | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<InventoryCategory | null>(null);
-  const [searchQuery,  setSearchQuery]  = useState('');
-  const [entriesLimit, setEntriesLimit] = useState(10);
-  const toastCounter = useRef(0);
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Menu Item" required error={errors.menu_item}>
+              <select value={menuItemId} onChange={e => { setMenuItemId(Number(e.target.value)); setErrors(p => { const n = {...p}; delete n.menu_item; return n; }); }}
+                className={inputCls(errors.menu_item)}>
+                <option value="">Select menu item...</option>
+                {menuItems.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+              </select>
+            </Field>
+            <Field label="Size">
+              <select value={size} onChange={e => setSize(e.target.value)} className={inputCls()}>
+                <option value="">Fixed (no size)</option>
+                <option value="M">Medium (M)</option>
+                <option value="L">Large (L)</option>
+              </select>
+            </Field>
+          </div>
 
-  // ── Toast helpers ────────────────────────────────────────────────────────────
-  const addToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
-    const id = ++toastCounter.current;
-    setToasts(prev => [...prev, { id, message, type }]);
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
-  }, []);
-  const removeToast = useCallback((id: number) => setToasts(prev => prev.filter(t => t.id !== id)), []);
+          <Field label="Notes">
+            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
+              className={`${inputCls()} resize-none`} placeholder="Optional recipe notes..." />
+          </Field>
 
-  // ── Fetch — same endpoint + cache key as Cashier InventoryCategoryList ───────
-  const fetchCategories = useCallback(async () => {
-    const cached = localStorage.getItem('luckyboba_inv_categories_cache');
-    if (cached) { setCategories(JSON.parse(cached)); setLoading(false); }
-    try {
-      const res = await api.get('/categories');
-      setCategories(res.data);
-      localStorage.setItem('luckyboba_inv_categories_cache', JSON.stringify(res.data));
-    } catch { addToast('Failed to load categories', 'error'); }
-    finally { setLoading(false); }
-  }, [addToast]);
-
-  useEffect(() => { fetchCategories(); }, [fetchCategories]);
-
-  // ── Filtered / sorted list ───────────────────────────────────────────────────
-  const displayData = useMemo(() => {
-    const sorted = [...categories].sort((a, b) => a.name.localeCompare(b.name));
-    const filtered = sorted.filter(cat =>
-      (cat.name ?? '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (cat.description ?? '').toLowerCase().includes(searchQuery.toLowerCase())
-    );
-    return entriesLimit === -1 ? filtered : filtered.slice(0, entriesLimit);
-  }, [categories, searchQuery, entriesLimit]);
-
-  // ── CRUD handlers ────────────────────────────────────────────────────────────
-  const handleAddSuccess = (data: InventoryCategory) => {
-    setCategories(prev => [...prev, data]);
-    localStorage.removeItem('luckyboba_inv_categories_cache');
-    addToast(`"${data.name}" added successfully.`);
-  };
-
-  const handleEditSuccess = (updated: InventoryCategory) => {
-    setCategories(prev => prev.map(cat => cat.id === updated.id ? { ...cat, ...updated } : cat));
-    localStorage.removeItem('luckyboba_inv_categories_cache');
-    addToast(`"${updated.name}" updated successfully.`);
-  };
-
-  const handleDeleteConfirm = async () => {
-    if (!deleteTarget) return;
-    const target = deleteTarget; setDeleteTarget(null);
-    try {
-      await api.delete(`/categories/${target.id}`);
-      setCategories(prev => prev.filter(cat => cat.id !== target.id));
-      localStorage.removeItem('luckyboba_inv_categories_cache');
-      addToast(`"${target.name}" deleted.`);
-    } catch (err) {
-      addToast(axios.isAxiosError(err) ? (err.response?.data?.message ?? 'Delete failed.') : 'Delete failed.', 'error');
-    }
-  };
-
-  // ── Stat cards ───────────────────────────────────────────────────────────────
-  const totalItems = categories.reduce((a, c) => a + (c.menu_items_count ?? 0), 0);
-  const withItems  = categories.filter(c => (c.menu_items_count ?? 0) > 0).length;
-
-  const statCards = [
-    { label: 'Total Categories', sub: 'All inventory categories',  value: categories.length,              compact: String(categories.length),              iconBg: '#ede9fe', iconColor: '#7c3aed', icon: <LayoutGrid size={14} strokeWidth={2.5} />, vc: '#3b2063' },
-    { label: 'Total Items',      sub: 'Across all categories',     value: totalItems,                     compact: totalItems >= 1000 ? `${(totalItems/1000).toFixed(1)}K` : String(totalItems), iconBg: '#dcfce7', iconColor: '#16a34a', icon: <Tag size={14} strokeWidth={2.5} />, vc: '#1a0f2e' },
-    { label: 'Active (w/ Items)',sub: 'Categories with items',      value: withItems,                      compact: String(withItems),                      iconBg: '#e0f2fe', iconColor: '#0284c7', icon: <Activity size={14} strokeWidth={2.5} />, vc: '#0c4a6e' },
-    { label: 'Empty Categories', sub: 'No items assigned',         value: categories.length - withItems,  compact: String(categories.length - withItems),  iconBg: '#fef9c3', iconColor: '#ca8a04', icon: <Tag size={14} strokeWidth={2.5} />, vc: '#1a0f2e' },
-  ];
-
-  // ── Type badge style ─────────────────────────────────────────────────────────
-  const typeBadge = (type: string) => {
-    const map: Record<string, { bg: string; color: string; border: string }> = {
-      drink:    { bg: '#eff6ff', color: '#2563eb', border: '#bfdbfe' },
-      food:     { bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0' },
-      promo:    { bg: '#fff7ed', color: '#ea580c', border: '#fed7aa' },
-      standard: { bg: '#f4f4f5', color: '#71717a', border: '#e4e4e7' },
-    };
-    const s = map[type] ?? map.standard;
-    return (
-      <span style={{ fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'capitalize', background: s.bg, color: s.color, border: `1px solid ${s.border}`, borderRadius: '100px', padding: '2px 8px' }}>
-        {type || '—'}
-      </span>
-    );
-  };
-
-  // ────────────────────────────────────────────────────────────────────────────
-  return (
-    <>
-      <style>{STYLES}</style>
-      <ToastStack toasts={toasts} onRemove={removeToast} />
-
-      {showAddModal  && <AddModal onClose={() => setShowAddModal(false)} onSuccess={handleAddSuccess} />}
-      {editTarget    && <EditModal category={editTarget} onClose={() => setEditTarget(null)} onSuccess={handleEditSuccess} />}
-      {deleteTarget  && <DeleteModal category={deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDeleteConfirm} />}
-
-      <div className="bic-root flex flex-col h-full bg-[#f5f4f8] overflow-hidden">
-        <div className="flex-1 overflow-y-auto px-5 md:px-8 pb-8 pt-5 flex flex-col gap-5">
-
-          {/* ── Page Header ── */}
-          <div className="flex items-center justify-between">
+          {/* Active toggle */}
+          <label className="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl cursor-pointer hover:bg-[#faf9ff] transition-colors">
+            <div className={`w-10 h-6 rounded-full transition-colors flex items-center ${isActive ? 'bg-[#3b2063]' : 'bg-zinc-300'}`}
+              onClick={() => setIsActive(v => !v)}>
+              <div className={`w-4 h-4 bg-white rounded-full mx-1 transition-transform ${isActive ? 'translate-x-4' : ''}`} />
+            </div>
             <div>
-              <p className="bic-label">Inventory</p>
-              <h1 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.025em', marginTop: 2 }}>Categories</h1>
+              <p className="text-xs font-bold text-[#1a0f2e]">Active Recipe</p>
+              <p className="text-[10px] text-zinc-400">Inactive recipes are not used for stock deduction</p>
             </div>
-            <button onClick={() => setShowAddModal(true)}
-              className="h-9 px-5 rounded-xl bg-[#1a0f2e] hover:bg-[#2a1647] text-white font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-all">
-              <Plus size={13} /> New Category
-            </button>
-          </div>
+          </label>
 
-          {/* ── STAT CARDS ── */}
-          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
-            {statCards.map((s, i) => (
-              <div key={i} className="bg-white border border-gray-100 rounded-2xl p-4 flex flex-col gap-3 hover:shadow-md hover:border-[#ddd6f7] transition-all">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="bic-label">{s.label}</p>
-                    <p style={{ fontSize: '0.6rem', color: '#a1a1aa', marginTop: 2 }}>{s.sub}</p>
-                  </div>
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-                    style={{ background: s.iconBg, color: s.iconColor }}>{s.icon}</div>
-                </div>
-                <div>
-                  <p style={{ fontSize: '1.8rem', fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1, color: s.vc }}>{s.compact}</p>
-                  <p style={{ fontSize: '0.6rem', color: '#a1a1aa', marginTop: 4 }}>{s.value} total</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* ── SEARCH + ADD BAR ── */}
-          <div className="bg-white border border-gray-100 rounded-2xl p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: '#ede9fe', color: '#7c3aed' }}>
-                <Search size={13} strokeWidth={2.5} />
-              </div>
-              <h2 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.02em', margin: 0 }}>Search Categories</h2>
-            </div>
-            <div className="flex gap-3 items-center">
-              <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                placeholder="Search by name or description…"
-                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-100 bg-[#f5f4f8] font-semibold text-sm text-[#1a0f2e] outline-none focus:border-[#ddd6f7] transition-colors" />
-              <div className="flex items-center gap-2">
-                <span className="bic-label">Show</span>
-                <select value={entriesLimit} onChange={e => setEntriesLimit(Number(e.target.value))}
-                  className="border border-gray-100 bg-[#f5f4f8] px-2.5 py-1.5 rounded-lg outline-none text-[#1a0f2e] font-semibold text-xs focus:border-[#c4b5fd] transition-colors cursor-pointer">
-                  <option value={10}>10</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                  <option value={-1}>All</option>
-                </select>
-              </div>
-              <button onClick={() => setShowAddModal(true)}
-                className="flex items-center gap-2 px-5 h-10 rounded-xl bg-[#1a0f2e] hover:bg-[#2a1647] text-white font-bold text-xs uppercase tracking-widest transition-all">
-                <Plus size={13} /> Add Category
+          {/* Ingredient rows */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
+                Ingredients <span className="text-red-400">*</span>
+              </label>
+              <button onClick={addRow}
+                className="flex items-center gap-1 px-2.5 py-1 bg-[#f5f0ff] border border-[#e9d5ff] text-[#3b2063] rounded-lg text-[10px] font-bold hover:bg-[#ede8ff] transition-colors">
+                <Plus size={11} /> Add Row
               </button>
             </div>
-          </div>
 
-          {/* ── TABLE CARD ── */}
-          <div className="bg-white border border-gray-100 rounded-2xl flex flex-col overflow-hidden">
+            {errors.items && <p className="text-[10px] text-red-500 mb-2 font-medium">{errors.items}</p>}
 
-            {/* Table header */}
-            <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: '#ede9fe', color: '#7c3aed' }}>
-                  <LayoutGrid size={16} strokeWidth={2.5} />
-                </div>
-                <div>
-                  <h2 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.02em', margin: 0 }}>Category List</h2>
-                  <p className="bic-label" style={{ color: '#a1a1aa', marginTop: 2 }}>All inventory categories</p>
-                </div>
+            <div className="border border-zinc-200 rounded-xl overflow-hidden">
+              <div className="grid grid-cols-[1fr_120px_80px_32px] gap-0 bg-zinc-50 border-b border-zinc-200 px-3 py-2">
+                {['Material', 'Qty / Serving', 'Unit', ''].map(h => (
+                  <p key={h} className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{h}</p>
+                ))}
               </div>
-              <div className="flex items-center gap-3">
-                <span style={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', background: '#f4f4f5', color: '#71717a', border: '1px solid #e4e4e7', borderRadius: '100px', padding: '3px 9px' }}>
-                  {displayData.length} records
-                </span>
-                <div className="bic-live"><div className="bic-live-dot" /><span className="bic-live-text">Live</span></div>
-              </div>
-            </div>
 
-            {/* Table */}
-            <div className="flex-1 overflow-auto">
-              <table className="w-full text-left">
-                <thead className="sticky top-0 bg-white z-10 border-b border-gray-50">
-                  <tr>
-                    <th className="px-6 py-3.5 bic-label" style={{ color: '#a1a1aa', width: 48 }}>#</th>
-                    <th className="px-6 py-3.5 bic-label" style={{ color: '#a1a1aa' }}>Name</th>
-                    <th className="px-6 py-3.5 bic-label" style={{ color: '#a1a1aa' }}>Type</th>
-                    <th className="px-6 py-3.5 bic-label" style={{ color: '#a1a1aa' }}>Description</th>
-                    <th className="px-6 py-3.5 bic-label text-center" style={{ color: '#a1a1aa' }}>Items</th>
-                    <th className="px-6 py-3.5 bic-label text-center" style={{ color: '#a1a1aa' }}>Edit</th>
-                    <th className="px-6 py-3.5 bic-label text-center" style={{ color: '#a1a1aa' }}>Delete</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {loading && categories.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-6 py-16 text-center">
-                        <div className="flex flex-col items-center gap-3">
-                          <div className="w-8 h-8 border-2 border-[#3b2063] border-t-transparent animate-spin rounded-full" />
-                          <p className="bic-label" style={{ color: '#a1a1aa' }}>Loading…</p>
-                        </div>
-                      </td>
-                    </tr>
-                  ) : displayData.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-6 py-16 text-center">
-                        <div className="w-11 h-11 rounded-2xl flex items-center justify-center mx-auto mb-3" style={{ background: '#f4f4f5' }}>
-                          <LayoutGrid size={18} color="#d4d4d8" />
-                        </div>
-                        <p className="bic-label" style={{ color: '#d4d4d8' }}>No categories found</p>
-                        <p style={{ fontSize: '0.65rem', color: '#e4e4e7', marginTop: 4 }}>Try a different search or add a new category</p>
-                      </td>
-                    </tr>
-                  ) : displayData.map((cat, idx) => (
-                    <tr key={cat.id} className="hover:bg-[#f5f4f8] transition-colors">
-                      {/* Row number */}
-                      <td className="px-6 py-3.5">
-                        <span style={{ width: 22, height: 22, borderRadius: '0.35rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.52rem', fontWeight: 800, background: idx === 0 ? '#3b2063' : '#f4f4f5', color: idx === 0 ? '#fff' : '#71717a' }}>
-                          {idx + 1}
-                        </span>
-                      </td>
-
-                      {/* Name */}
-                      <td className="px-6 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <Tag size={12} color="#a78bfa" strokeWidth={2.5} />
-                          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1a0f2e' }}>{cat.name}</span>
-                        </div>
-                      </td>
-
-                      {/* Type */}
-                      <td className="px-6 py-3.5">{typeBadge(cat.type)}</td>
-
-                      {/* Description */}
-                      <td className="px-6 py-3.5">
-                        <span style={{ fontSize: '0.8rem', color: '#71717a' }}>{cat.description || '—'}</span>
-                      </td>
-
-                      {/* Items count */}
-                      <td className="px-6 py-3.5 text-center">
-                        <span style={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', background: '#f4f4f5', color: '#71717a', borderRadius: '100px', padding: '2px 8px', border: '1px solid #e4e4e7' }}>
-                          {cat.menu_items_count ?? 0}
-                        </span>
-                      </td>
-
-                      {/* Edit */}
-                      <td className="px-6 py-3.5 text-center">
-                        <button onClick={() => setEditTarget(cat)}
-                          className="w-9 h-9 inline-flex items-center justify-center bg-[#1a0f2e] hover:bg-[#2a1647] text-white transition-colors rounded-xl">
-                          <Pencil size={13} strokeWidth={2} />
-                        </button>
-                      </td>
-
-                      {/* Delete */}
-                      <td className="px-6 py-3.5 text-center">
-                        <button onClick={() => setDeleteTarget(cat)}
-                          className="w-9 h-9 inline-flex items-center justify-center bg-white border border-red-200 text-red-500 hover:bg-red-500 hover:text-white hover:border-red-500 transition-all rounded-xl">
-                          <Trash2 size={13} strokeWidth={2} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Footer */}
-            <div className="flex justify-between items-center px-6 py-4 bg-[#1a0f2e] rounded-b-2xl">
-              <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.08)' }}>
-                  <LayoutGrid size={12} color="rgba(255,255,255,0.5)" strokeWidth={2.5} />
+              {recipeItems.length === 0 ? (
+                <div className="px-4 py-6 text-center">
+                  <p className="text-xs text-zinc-400 font-medium">No ingredients yet — click Add Row</p>
                 </div>
-                <p className="bic-label" style={{ color: 'rgba(255,255,255,0.45)', margin: 0 }}>Inventory Categories</p>
-              </div>
-              <p style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.03em', margin: 0 }}>
-                {categories.length}
-              </p>
+              ) : recipeItems.map((item, idx) => (
+                <div key={item.id} className="grid grid-cols-[1fr_120px_80px_32px] gap-0 items-center px-3 py-2 border-b border-zinc-100 last:border-0 hover:bg-zinc-50 transition-colors">
+                  <div className="pr-2">
+                    <select value={item.raw_material_id || ''} onChange={e => updateRow(idx, 'raw_material_id', e.target.value)}
+                      className={`w-full text-xs font-medium text-zinc-700 bg-white border rounded-lg px-2 py-1.5 outline-none focus:ring-1 focus:ring-violet-400 transition-all ${errors[`mat_${idx}`] ? 'border-red-300' : 'border-zinc-200'}`}>
+                      <option value="">Select material...</option>
+                      {rawMaterials.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                    </select>
+                    {errors[`mat_${idx}`] && <p className="text-[9px] text-red-500 mt-0.5">{errors[`mat_${idx}`]}</p>}
+                  </div>
+                  <div className="px-1">
+                    <input type="number" min="0" step="0.01" value={item.quantity}
+                      onChange={e => updateRow(idx, 'quantity', e.target.value === '' ? '' : Number(e.target.value))}
+                      className={`w-full text-xs font-medium text-zinc-700 bg-white border rounded-lg px-2 py-1.5 outline-none focus:ring-1 focus:ring-violet-400 transition-all text-right ${errors[`qty_${idx}`] ? 'border-red-300' : 'border-zinc-200'}`}
+                      placeholder="0" />
+                    {errors[`qty_${idx}`] && <p className="text-[9px] text-red-500 mt-0.5">{errors[`qty_${idx}`]}</p>}
+                  </div>
+                  <div className="px-1">
+                    <span className="text-xs font-bold text-zinc-400 bg-zinc-100 px-2 py-1 rounded">{item.unit || '—'}</span>
+                  </div>
+                  <button onClick={() => removeRow(idx)}
+                    className="w-7 h-7 flex items-center justify-center text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                    <Minus size={12} />
+                  </button>
+                </div>
+              ))}
             </div>
-
           </div>
         </div>
+
+        {/* Footer */}
+        <div className="flex items-center gap-2 px-6 py-4 border-t border-zinc-100 shrink-0">
+          <button onClick={onClose} disabled={saving}
+            className="flex-1 py-2.5 bg-white border border-zinc-200 text-zinc-600 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all disabled:opacity-50">
+            Cancel
+          </button>
+          <button onClick={handleSubmit} disabled={saving}
+            className="flex-1 py-2.5 bg-[#3b2063] hover:bg-[#6a12b8] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">
+            {saving ? 'Saving...' : editing ? 'Save Changes' : 'Create Recipe'}
+          </button>
+        </div>
       </div>
-    </>
+    </div>,
+    document.body
+  );
+};
+
+// ─── Delete Modal ─────────────────────────────────────────────────────────────
+
+const DeleteModal: React.FC<{
+  recipe:    Recipe;
+  onClose:   () => void;
+  onDeleted: (id: number) => void;
+}> = ({ recipe, onClose, onDeleted }) => {
+  const [saving, setSaving] = useState(false);
+  const [error,  setError]  = useState('');
+  const name = recipe.menu_item?.name ?? recipe.menu_item_name ?? `Recipe #${recipe.id}`;
+
+  const handleDelete = async () => {
+    setSaving(true);
+    try {
+      await api.delete(`/recipes/${recipe.id}`);
+      onDeleted(recipe.id);
+      onClose();
+    } catch (e: unknown) {
+      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      setError(msg ?? 'Failed to delete.');
+    } finally { setSaving(false); }
+  };
+
+  return createPortal(
+    <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
+      style={{ backdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.45)' }}>
+      <div className="absolute inset-0" onClick={onClose} />
+      <div className="relative bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] shadow-2xl">
+        <div className="flex flex-col items-center text-center px-6 pt-8 pb-5">
+          <div className="w-14 h-14 bg-red-50 border border-red-200 rounded-full flex items-center justify-center mb-4">
+            <Trash2 size={22} className="text-red-500" />
+          </div>
+          <p className="text-base font-bold text-[#1a0f2e]">Delete Recipe?</p>
+          <p className="text-xs text-zinc-500 mt-1 leading-relaxed">
+            Permanently delete recipe for <span className="font-bold text-zinc-700">{name}</span>. Stock deductions will stop.
+          </p>
+          {error && (
+            <div className="flex items-center gap-2 mt-3 p-3 w-full bg-red-50 border border-red-200 rounded-lg">
+              <AlertCircle size={13} className="text-red-500 shrink-0" />
+              <p className="text-xs text-red-600 font-medium text-left">{error}</p>
+            </div>
+          )}
+        </div>
+        <div className="flex gap-2 px-6 pb-6">
+          <button onClick={onClose} disabled={saving}
+            className="flex-1 py-2.5 bg-white border border-zinc-200 text-zinc-600 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all disabled:opacity-50">
+            Cancel
+          </button>
+          <button onClick={handleDelete} disabled={saving}
+            className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">
+            {saving ? 'Deleting...' : 'Delete'}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+const BM_InventoryCategories: React.FC = () => {
+  const [recipes,      setRecipes]      = useState<Recipe[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [search,       setSearch]       = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [expanded,     setExpanded]     = useState<number | null>(null);
+
+  const [addOpen,     setAddOpen]     = useState(false);
+  const [editTarget,  setEditTarget]  = useState<Recipe | null>(null);
+  const [delTarget,   setDelTarget]   = useState<Recipe | null>(null);
+
+  const fetchRecipes = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/recipes');
+      const data = res.data;
+      setRecipes(Array.isArray(data) ? data : data?.data ?? []);
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { fetchRecipes(); }, [fetchRecipes]);
+
+  const handleToggle = async (recipe: Recipe) => {
+    try {
+      const res = await api.patch(`/recipes/${recipe.id}/toggle`);
+      const updated = res.data?.data ?? res.data;
+      setRecipes(p => p.map(r => r.id === updated.id ? updated : r));
+    } catch (e) { console.error(e); }
+  };
+
+  const filtered = recipes.filter(r => {
+    const name = r.menu_item?.name ?? r.menu_item_name ?? '';
+    const matchSearch = name.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter === 'active'   ? r.is_active
+                      : statusFilter === 'inactive' ? !r.is_active
+                      : true;
+    return matchSearch && matchStatus;
+  });
+
+  const totalRecipes   = recipes.length;
+  const activeRecipes  = recipes.filter(r => r.is_active).length;
+  const missingRecipes = recipes.filter(r => !r.items?.length && !r.recipe_items?.length).length;
+
+  return (
+    <div className="p-6 md:p-8 bg-[#f4f2fb] min-h-full">
+
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
+        <div>
+          <h2 className="text-sm font-black uppercase tracking-wide text-[#1a0f2e]">Recipes</h2>
+          <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
+            {loading ? 'Loading...' : `${recipes.length} recipes · ingredient composition`}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={fetchRecipes} disabled={loading}
+            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
+          </button>
+          <button onClick={() => setAddOpen(true)}
+            className="bg-[#3b2063] hover:bg-[#6a12b8] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all">
+            <Plus size={13} /> Add Recipe
+          </button>
+        </div>
+      </div>
+
+      {/* Stat Cards */}
+      <div className="grid grid-cols-3 gap-4 mb-5">
+        {[
+          { label: 'Total Recipes',  value: totalRecipes,   color: '#3b2063', bg: '#f5f0ff', border: '#e9d5ff' },
+          { label: 'Active',         value: activeRecipes,  color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
+          { label: 'No Ingredients', value: missingRecipes, color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
+        ].map(s => (
+          <div key={s.label} className="bg-white border rounded-[0.625rem] px-5 py-4 shadow-sm" style={{ borderColor: s.border }}>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">{s.label}</p>
+            <p className="text-2xl font-black tabular-nums" style={{ color: s.color }}>{loading ? '—' : s.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Table */}
+      <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden shadow-sm">
+
+        {/* Toolbar */}
+        <div className="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-zinc-100">
+          <div className="flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 flex-1 min-w-40">
+            <Search size={13} className="text-zinc-400 shrink-0" />
+            <input value={search} onChange={e => setSearch(e.target.value)}
+              className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400"
+              placeholder="Search by menu item..." />
+            {search && <button onClick={() => setSearch('')} className="text-zinc-300 hover:text-red-500"><X size={13} /></button>}
+          </div>
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+            className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+          <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest ml-auto">
+            {filtered.length} results
+          </span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-zinc-100">
+                {['Menu Item', 'Size', 'Status', 'Ingredients', 'Actions'].map(h => (
+                  <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading && [...Array(6)].map((_, i) => (
+                <tr key={i} className="border-b border-zinc-50">
+                  {[...Array(5)].map((_, j) => (
+                    <td key={j} className="px-5 py-4">
+                      <div className="h-3 bg-zinc-100 rounded animate-pulse" style={{ width: `${55 + (j * 11) % 35}%` }} />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+
+              {!loading && filtered.length === 0 && (
+                <tr><td colSpan={5} className="py-16 text-center">
+                  <BookOpen size={32} className="mx-auto text-zinc-200 mb-3" />
+                  <p className="text-xs font-bold text-zinc-300 uppercase tracking-widest">
+                    {search || statusFilter ? 'No recipes match your filters' : 'No recipes found'}
+                  </p>
+                </td></tr>
+              )}
+
+              {!loading && filtered.map(r => {
+                const name  = r.menu_item?.name ?? r.menu_item_name ?? `Recipe #${r.id}`;
+                const items = resolveItems(r);
+                const isExpanded = expanded === r.id;
+                const hasItems = items.length > 0;
+
+                return (
+                  <React.Fragment key={r.id}>
+                    <tr className="border-b border-zinc-50 hover:bg-[#faf9ff] transition-colors">
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center shrink-0">
+                            <BookOpen size={12} className="text-[#3b2063]" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-[#1a0f2e] text-xs">{name}</p>
+                            {r.menu_item?.category && (
+                              <p className="text-[10px] text-zinc-400">{r.menu_item.category.name}</p>
+                            )}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span className="text-xs font-bold text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded">
+                          {sizeLabel(r.size)}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <button onClick={() => handleToggle(r)}
+                          className="flex items-center gap-2 group">
+                          <div className={`w-9 h-5 rounded-full transition-colors flex items-center ${r.is_active ? 'bg-[#3b2063]' : 'bg-zinc-300'}`}>
+                            <div className={`w-3.5 h-3.5 bg-white rounded-full mx-0.5 transition-transform ${r.is_active ? 'translate-x-4' : ''}`} />
+                          </div>
+                          <span className={`text-[10px] font-bold uppercase tracking-widest ${r.is_active ? 'text-[#3b2063]' : 'text-zinc-400'}`}>
+                            {r.is_active ? 'Active' : 'Inactive'}
+                          </span>
+                        </button>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        {hasItems ? (
+                          <button onClick={() => setExpanded(isExpanded ? null : r.id)}
+                            className="flex items-center gap-1.5 text-xs font-bold text-[#3b2063] hover:text-[#6a12b8] transition-colors">
+                            <CheckCircle size={12} className="text-emerald-500" />
+                            {items.length} ingredient{items.length !== 1 ? 's' : ''}
+                            {isExpanded ? <ChevronDown size={12} /> : <ChevronDown size={12} className="-rotate-90" />}
+                          </button>
+                        ) : (
+                          <span className="flex items-center gap-1.5 text-xs font-bold text-amber-500">
+                            <AlertCircle size={12} />
+                            Missing
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-1">
+                          <button onClick={() => setEditTarget(r)} title="Edit"
+                            className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors">
+                            <Edit2 size={13} />
+                          </button>
+                          <button onClick={() => setDelTarget(r)} title="Delete"
+                            className="p-1.5 hover:bg-red-50 rounded-[0.4rem] text-zinc-400 hover:text-red-500 transition-colors">
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+
+                    {/* Expanded ingredient rows */}
+                    {isExpanded && (
+                      <tr className="border-b border-zinc-100 bg-[#faf9ff]">
+                        <td colSpan={5} className="px-5 pb-3 pt-1">
+                          <div className="ml-10 border border-[#e9d5ff] rounded-xl overflow-hidden">
+                            <div className="grid grid-cols-3 bg-[#f5f0ff] px-4 py-2 border-b border-[#e9d5ff]">
+                              {['Material', 'Qty / Serving', 'Unit'].map(h => (
+                                <p key={h} className="text-[9px] font-bold uppercase tracking-widest text-[#3b2063]">{h}</p>
+                              ))}
+                            </div>
+                            {items.map((item, idx) => (
+                              <div key={idx} className="grid grid-cols-3 px-4 py-2.5 border-b border-zinc-100 last:border-0 hover:bg-white transition-colors">
+                                <div className="flex items-center gap-2">
+                                  <FlaskConical size={11} className="text-zinc-400 shrink-0" />
+                                  <span className="text-xs font-semibold text-zinc-700">{item.material_name}</span>
+                                </div>
+                                <span className="text-xs font-bold text-[#1a0f2e] tabular-nums">{item.quantity}</span>
+                                <span className="text-xs font-bold text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded w-fit">{item.unit}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Modals */}
+      {addOpen && (
+        <RecipeFormModal
+          onClose={() => setAddOpen(false)}
+          onSaved={r => setRecipes(p => [r, ...p])}
+        />
+      )}
+      {editTarget && (
+        <RecipeFormModal
+          onClose={() => setEditTarget(null)}
+          onSaved={r => { setRecipes(p => p.map(x => x.id === r.id ? r : x)); setEditTarget(null); }}
+          editing={editTarget}
+        />
+      )}
+      {delTarget && (
+        <DeleteModal
+          recipe={delTarget}
+          onClose={() => setDelTarget(null)}
+          onDeleted={id => { setRecipes(p => p.filter(x => x.id !== id)); setDelTarget(null); }}
+        />
+      )}
+    </div>
   );
 };
 

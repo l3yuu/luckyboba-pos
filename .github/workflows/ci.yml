@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4.2.2
+        with:
+          submodules: false
       
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -47,6 +49,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4.2.2
+        with:
+          submodules: false
       - name: Setup Node.js
         uses: actions/setup-node@v4.3.0
         with:
@@ -63,6 +67,26 @@ jobs:
           echo "VITE_API_BASE_URL=https://luckybobastores.com/api" > .env.production
           npm run build
 
+  flutter-app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          submodules: recursive
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.1'
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: cd LUCKYBOBA-APP && flutter pub get
+
+      - name: Analyze Dart Code
+        run: cd LUCKYBOBA-APP && flutter analyze
+
   # ============================================================
   # PRODUCTION DEPLOY — triggers on push to main
   # ============================================================
@@ -73,6 +97,8 @@ jobs:
     environment: production
     steps:
       - uses: actions/checkout@v4.2.2
+        with:
+          submodules: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4.3.0
@@ -173,6 +199,8 @@ jobs:
     environment: staging
     steps:
       - uses: actions/checkout@v4.2.2
+        with:
+          submodules: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4.3.0

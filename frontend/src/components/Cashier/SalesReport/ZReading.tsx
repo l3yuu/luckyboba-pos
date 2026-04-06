@@ -63,7 +63,7 @@ const AdminPinOverlay = ({
   return (
     <div className="fixed inset-0 z-9999 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white rounded-[0.625rem] shadow-2xl w-72 overflow-hidden">
-        <div className="bg-[#7c14d4] px-6 py-5 text-white text-center">
+        <div className="bg-[#3b2063] px-6 py-5 text-white text-center">
           <p className="text-[9px] font-bold uppercase tracking-[0.25em] text-white/50 mb-1">Authorization Required</p>
           <h3 className="text-base font-black uppercase tracking-widest">Admin PIN</h3>
           <p className="text-white/50 text-[10px] mt-1">Enter admin PIN to generate this report</p>
@@ -76,7 +76,7 @@ const AdminPinOverlay = ({
             onKeyDown={e => e.key === 'Enter' && handleSubmit()}
             placeholder="••••"
             autoFocus
-            className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-3 px-4 text-center text-2xl font-black tracking-[0.5em] outline-none focus:border-[#7c14d4] transition-colors"
+            className="w-full bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] py-3 px-4 text-center text-2xl font-black tracking-[0.5em] outline-none focus:border-[#3b2063] transition-colors"
           />
           {error && (
             <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest text-center">{error}</p>
@@ -91,7 +91,7 @@ const AdminPinOverlay = ({
             <button
               onClick={handleSubmit}
               disabled={loading || !pin.trim()}
-              className="flex-1 py-3 rounded-[0.625rem] bg-[#7c14d4] hover:bg-[#6a12b8] text-white font-black text-xs uppercase tracking-widest transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex-1 py-3 rounded-[0.625rem] bg-[#3b2063] hover:bg-[#6a12b8] text-white font-black text-xs uppercase tracking-widest transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {loading ? '...' : 'Confirm'}
             </button>
@@ -200,9 +200,9 @@ interface ZReadingReport {
 }
 
 const Row = ({ label, value, indent = false }: { label: string; value: string | number; indent?: boolean }) => (
-  <div className={`flex justify-between text-[13px] leading-snug ${indent ? 'pl-3' : ''}`}>
+  <div className={`flex justify-between text-[12px] leading-snug font-medium ${indent ? 'pl-3' : ''}`}>
     <span className="uppercase w-[60%] leading-tight">{label}</span>
-    <span className="text-right w-[40%]">{value}</span>
+    <span className="text-right w-[40%] font-bold">{value}</span>
   </div>
 );
 
@@ -406,16 +406,16 @@ const ZReading = () => {
   const handlePrint = () => window.print();
 
   const menuCards = [
-    { label: "REPORT",          title: "HOURLY SALES",         type: "hourly_sales", color: "border-[#7c14d4]" },
+    { label: "REPORT",          title: "HOURLY SALES",         type: "hourly_sales", color: "border-[#3b2063]" },
     { label: "OVERVIEW",        title: "SALES SUMMARY REPORT", type: "summary",      color: "border-amber-400" },
-    { label: "AUDIT",           title: "VOID LOGS",            type: "void_logs",    color: "border-[#7c14d4]" },
-    { label: "TRANSACTION",     title: "SEARCH RECEIPT",       type: "search",       color: "border-[#7c14d4]" },
-    { label: "DATA MANAGEMENT", title: "EXPORT SALES",         type: "export_sales", color: "border-[#7c14d4]" },
-    { label: "ANALYSIS",        title: "SALES DETAILED",       type: "detailed",     color: "border-[#7c14d4]" },
-    { label: "INVENTORY",       title: "EXPORT ITEMS",         type: "export_items", color: "border-[#7c14d4]" },
-    { label: "INVENTORY",       title: "QTY ITEMS",            type: "qty_items",    color: "border-[#7c14d4]" },
+    { label: "AUDIT",           title: "VOID LOGS",            type: "void_logs",    color: "border-[#3b2063]" },
+    { label: "TRANSACTION",     title: "SEARCH RECEIPT",       type: "search",       color: "border-[#3b2063]" },
+    { label: "DATA MANAGEMENT", title: "EXPORT SALES",         type: "export_sales", color: "border-[#3b2063]" },
+    { label: "ANALYSIS",        title: "SALES DETAILED",       type: "detailed",     color: "border-[#3b2063]" },
+    { label: "INVENTORY",       title: "EXPORT ITEMS",         type: "export_items", color: "border-[#3b2063]" },
+    { label: "INVENTORY",       title: "QTY ITEMS",            type: "qty_items",    color: "border-[#3b2063]" },
     { label: "Z-READING",  title: "", isAction: true, type: "z_reading",  actionLabel: "Z-READING",  actionText: "PRINT", color: "border-emerald-500" },
-    { label: "CASH COUNT", title: "", isAction: true, type: "cash_count", actionLabel: "CASH COUNT", actionText: "VIEW",  color: "border-[#7c14d4]" },
+    { label: "CASH COUNT", title: "", isAction: true, type: "cash_count", actionLabel: "CASH COUNT", actionText: "VIEW",  color: "border-[#3b2063]" },
   ];
 
   const renderHourlySales = () => {
@@ -832,6 +832,9 @@ const ZReading = () => {
           .flex-between { display: flex; justify-content: space-between; width: 100%; align-items: flex-end; }
           .receipt-divider { border-top: 1px dashed #000; margin: 6px 0; width: 100%; display: block; }
           @media print {
+           * { opacity: 1 !important; color: #000 !important; }
+            .opacity-50 { opacity: 1 !important; }
+            .line-through { text-decoration: line-through !important; color: #000 !important; }
             @page { 
               size: 80mm 2000mm;
               margin: 3mm 2mm !important; 
@@ -857,6 +860,7 @@ const ZReading = () => {
               padding: 0 !important; 
             }
             .receipt-area { 
+              color: #000 !important;
               width: 76mm !important; 
               max-width: 76mm !important; 
               margin: 0 auto !important; 
@@ -865,23 +869,26 @@ const ZReading = () => {
               background: white !important; 
               color: #000 !important; 
               font-family: Arial, Helvetica, sans-serif !important; 
-              font-size: 11px !important; 
-              line-height: 1.4 !important; 
+              font-size: 12px !important; 
+              font-weight: 500 !important;
+              line-height: 1.5 !important; 
               box-shadow: none !important; 
               border: none !important; 
               border-radius: 0 !important; 
               overflow: visible !important;
+              -webkit-font-smoothing: none !important;
             }
             .receipt-area * {
               overflow: visible !important;
+              -webkit-font-smoothing: none !important;
             }
             .receipt-area > div > div {
               break-inside: avoid !important;
             }
             .flex-between { display: flex !important; justify-content: space-between !important; width: 100% !important; align-items: flex-end !important; }
             table { width: 100% !important; max-width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; font-size: 11px !important; }
-            th { text-align: left !important; border-bottom: 1px solid #000 !important; padding-bottom: 2px !important; text-transform: uppercase !important; font-weight: 500 !important; font-size: 11px !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
-            td { padding: 2px 0 !important; vertical-align: top !important; font-size: 11px !important; font-weight: 400 !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
+            th { text-align: left !important; border-bottom: 1px solid #000 !important; padding-bottom: 2px !important; text-transform: uppercase !important; font-weight: 700 !important; font-size: 12px !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
+            td { padding: 2px 0 !important; vertical-align: top !important; font-size: 12px !important; font-weight: 500 !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
           }
         `}</style>
 
@@ -890,7 +897,7 @@ const ZReading = () => {
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className={`flex items-center gap-2 font-bold text-xs px-4 h-11 border transition-colors rounded-[0.625rem] ${isMenuOpen ? 'bg-[#7c14d4] text-white border-[#7c14d4]' : 'text-zinc-700 border-zinc-300 hover:border-[#7c14d4] hover:text-[#7c14d4] hover:bg-[#f5f0ff]'}`}
+              className={`flex items-center gap-2 font-bold text-xs px-4 h-11 border transition-colors rounded-[0.625rem] ${isMenuOpen ? 'bg-[#3b2063] text-white border-[#3b2063]' : 'text-zinc-700 border-zinc-300 hover:border-[#3b2063] hover:text-[#3b2063] hover:bg-[#f5f0ff]'}`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -904,7 +911,7 @@ const ZReading = () => {
                     <div key={index} onClick={() => handleMenuAction(card.type)}
                       className={`bg-white border-l-4 ${card.color} shadow-sm p-4 h-20 flex flex-col justify-center cursor-pointer group hover:bg-[#f5f0ff] transition-all rounded-[0.625rem]`}>
                       <h3 className="text-zinc-400 font-bold uppercase tracking-widest text-[9px] mb-1">{card.label}</h3>
-                      <h2 className="text-sm font-black text-slate-800 uppercase group-hover:text-[#7c14d4]">{card.title || card.actionLabel}</h2>
+                      <h2 className="text-sm font-black text-slate-800 uppercase group-hover:text-[#3b2063]">{card.title || card.actionLabel}</h2>
                     </div>
                   ))}
                 </div>
@@ -915,39 +922,39 @@ const ZReading = () => {
           <div className="flex-1 w-full flex gap-2">
             {(!reportData || reportData.report_type === 'z_reading') && (
               <div className="flex border border-zinc-300 rounded-[0.625rem] overflow-hidden shrink-0">
-                <button onClick={() => setDateMode('single')} className={`px-3 h-11 text-xs font-black uppercase tracking-widest transition-colors ${dateMode === 'single' ? 'bg-[#7c14d4] text-white' : 'bg-white text-zinc-500 hover:bg-[#f5f0ff]'}`}>Day</button>
-                <button onClick={() => setDateMode('range')} className={`px-3 h-11 text-xs font-black uppercase tracking-widest transition-colors border-l border-zinc-300 ${dateMode === 'range' ? 'bg-[#7c14d4] text-white' : 'bg-white text-zinc-500 hover:bg-[#f5f0ff]'}`}>Range</button>
+                <button onClick={() => setDateMode('single')} className={`px-3 h-11 text-xs font-black uppercase tracking-widest transition-colors ${dateMode === 'single' ? 'bg-[#3b2063] text-white' : 'bg-white text-zinc-500 hover:bg-[#f5f0ff]'}`}>Day</button>
+                <button onClick={() => setDateMode('range')} className={`px-3 h-11 text-xs font-black uppercase tracking-widest transition-colors border-l border-zinc-300 ${dateMode === 'range' ? 'bg-[#3b2063] text-white' : 'bg-white text-zinc-500 hover:bg-[#f5f0ff]'}`}>Range</button>
               </div>
             )}
             {dateMode === 'range' && (!reportData || reportData.report_type === 'z_reading') ? (
               <div className="flex gap-2 flex-1">
                 <div className="flex items-center gap-1.5 flex-1">
                   <span className="text-[10px] font-black uppercase text-zinc-400 shrink-0">From</span>
-                  <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="flex-1 px-3 h-11 border border-zinc-300 bg-[#f5f0ff] font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#7c14d4]" />
+                  <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="flex-1 px-3 h-11 border border-zinc-300 bg-[#f5f0ff] font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#3b2063]" />
                 </div>
                 <div className="flex items-center gap-1.5 flex-1">
                   <span className="text-[10px] font-black uppercase text-zinc-400 shrink-0">To</span>
-                  <input type="date" value={toDate} min={fromDate} onChange={(e) => setToDate(e.target.value)} className="flex-1 px-3 h-11 border border-zinc-300 bg-[#f5f0ff] font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#7c14d4]" />
+                  <input type="date" value={toDate} min={fromDate} onChange={(e) => setToDate(e.target.value)} className="flex-1 px-3 h-11 border border-zinc-300 bg-[#f5f0ff] font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#3b2063]" />
                 </div>
               </div>
             ) : (
-              <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="flex-1 px-4 h-11 border border-zinc-300 bg-[#f5f0ff] font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#7c14d4]" />
+              <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="flex-1 px-4 h-11 border border-zinc-300 bg-[#f5f0ff] font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#3b2063]" />
             )}
             {reportData?.report_type === 'search' && (
               <div className="flex gap-2 flex-1">
-                <input type="text" value={invoiceQuery} onChange={(e) => setInvoiceQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchReportData('search')} placeholder="Search invoice / cashier..." className="flex-1 px-4 h-11 border border-zinc-300 bg-[#f5f0ff] font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#7c14d4]" />
-                <button onClick={() => fetchReportData('search')} disabled={loading} className="px-5 h-11 bg-[#7c14d4] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-colors disabled:opacity-50 rounded-[0.625rem]">Search</button>
+                <input type="text" value={invoiceQuery} onChange={(e) => setInvoiceQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchReportData('search')} placeholder="Search invoice / cashier..." className="flex-1 px-4 h-11 border border-zinc-300 bg-[#f5f0ff] font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#3b2063]" />
+                <button onClick={() => fetchReportData('search')} disabled={loading} className="px-5 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-colors disabled:opacity-50 rounded-[0.625rem]">Search</button>
               </div>
             )}
           </div>
 
           <div className="flex gap-2">
             <button onClick={handleGenerate} disabled={loading}
-              className="px-6 h-11 bg-[#7c14d4] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] active:bg-[#5a0fa0] transition-colors disabled:opacity-50 rounded-[0.625rem] border border-[#7c14d4]">
+              className="px-6 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] active:bg-[#5a0fa0] transition-colors disabled:opacity-50 rounded-[0.625rem] border border-[#3b2063]">
               {loading ? 'Processing...' : 'Generate'}
             </button>
             <button onClick={handlePrint}
-              className="px-6 h-11 bg-white text-[#7c14d4] font-bold text-xs uppercase tracking-widest border border-[#7c14d4] hover:bg-[#f5f0ff] active:bg-[#e9d5ff] transition-colors rounded-[0.625rem]">
+              className="px-6 h-11 bg-white text-[#3b2063] font-bold text-xs uppercase tracking-widest border border-[#3b2063] hover:bg-[#f5f0ff] active:bg-[#e9d5ff] transition-colors rounded-[0.625rem]">
               Print
             </button>
           </div>
@@ -965,12 +972,12 @@ const ZReading = () => {
         <div className="flex-1 flex flex-col items-center justify-start py-10">
           {loading ? (
             <div className="flex flex-col items-center mt-20 opacity-50">
-              <div className="w-8 h-8 border-4 border-[#7c14d4] border-t-transparent rounded-full animate-spin mb-3" />
+              <div className="w-8 h-8 border-4 border-[#3b2063] border-t-transparent rounded-full animate-spin mb-3" />
               <p className="text-sm text-zinc-400 font-bold uppercase">Generating report...</p>
             </div>
           ) : reportData ? (
             <div className="printable-receipt-container">
-              <div className="receipt-area bg-white w-full text-black shadow-md" style={{ fontFamily: "Arial, Helvetica, sans-serif", fontSize: '13px', maxWidth: '180mm', padding: '1.5rem' }}>
+              <div className="receipt-area bg-white w-full text-black shadow-md" style={{ fontFamily: "Arial, Helvetica, sans-serif", fontSize: '13px', maxWidth: '180mm', padding: '1.5rem', fontWeight: 500 }}>
                 <div className="text-center">
                   <p className="uppercase text-[13px] font-bold leading-tight">LUCKY BOBA MILKTEA<br />FOOD AND BEVERAGE TRADING</p>
                   <p className="uppercase text-[11px] mt-0.5">{localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'}</p>
