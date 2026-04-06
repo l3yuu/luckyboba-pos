@@ -9,7 +9,6 @@ import { type CartItem, type BundleComponentCustomization } from '../../../types
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
-
 export interface PosFooterData {
   pos_supplier?:    string;
   pos_address?:     string;
