@@ -97,7 +97,7 @@ const Badge: React.FC<{ cls: string; children: React.ReactNode }> = ({ cls, chil
     'badge-danger':  { background: '#fef2f2', color: '#dc2626', borderColor: '#fecaca' },
     'badge-warning': { background: '#fffbeb', color: '#d97706', borderColor: '#fde68a' },
     'badge-success': { background: '#f0fdf4', color: '#16a34a', borderColor: '#bbf7d0' },
-    'badge-violet':  { background: '#f5f0ff', color: '#7c14d4', borderColor: '#e9d5ff' },
+    'badge-violet':  { background: '#f5f0ff', color: '#3b2063', borderColor: '#e9d5ff' },
   };
   return (
     <span className="inline-flex items-center px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest border"
@@ -183,7 +183,7 @@ if (movementsRes.status === 'fulfilled') {
   const moveDotColor = (type: string) => {
     if (type === 'add')      return '#16a34a';
     if (type === 'subtract') return '#dc2626';
-    return '#7c14d4';
+    return '#3b2063';
   };
 
 const resolveUnit = (unit: unknown): string => {
@@ -227,7 +227,7 @@ const resolveUnit = (unit: unknown): string => {
             {allBranches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
           </select>
           <button onClick={fetchAll} disabled={loading}
-            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#7c14d4] hover:border-[#7c14d4] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
+            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
             Refresh
           </button>
@@ -236,7 +236,7 @@ const resolveUnit = (unit: unknown): string => {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
-        <StatCard label="Total Items"  value={stats.total_items}  sub="Across all branches"    icon={<Package   size={16} color="#7c14d4" />} bg="#f5f0ff" border="#e9d5ff" />
+        <StatCard label="Total Items"  value={stats.total_items}  sub="Across all branches"    icon={<Package   size={16} color="#3b2063" />} bg="#f5f0ff" border="#e9d5ff" />
         <StatCard label="Low Stock"    value={stats.low_stock}    sub="Below reorder level"    icon={<TrendingDown size={16} color="#dc2626" />} bg="#fef2f2" border="#fecaca" valueColor="#dc2626" subColor="#fca5a5" />
         <StatCard label="Out of Stock" value={stats.out_of_stock} sub="Needs restock now"      icon={<XCircle   size={16} color="#d97706" />} bg="#fffbeb" border="#fde68a" valueColor="#d97706" subColor="#fbbf24" />
         <StatCard label="Pending POs"  value={stats.pending_pos}  sub="Awaiting delivery"      icon={<Truck     size={16} color="#16a34a" />} bg="#f0fdf4" border="#bbf7d0" valueColor="#16a34a" subColor="#86efac" />
@@ -249,7 +249,7 @@ const resolveUnit = (unit: unknown): string => {
         <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
           <div className="px-5 py-4 border-b border-[#e9d5ff] bg-[#faf9ff] flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="bg-[#7c14d4] p-2 rounded text-white"><AlertTriangle size={13} /></div>
+              <div className="bg-[#3b2063] p-2 rounded text-white"><AlertTriangle size={13} /></div>
               <div>
                 <p className="text-[11px] font-black uppercase tracking-wide text-[#1a0f2e]">Low Stock Alerts</p>
                 <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Items below reorder level</p>
@@ -285,7 +285,7 @@ const resolveUnit = (unit: unknown): string => {
                           </p>
                         </td>
                         <td className="px-4 py-3">
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#f5f0ff] text-[#7c14d4] border border-[#e9d5ff]">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#f5f0ff] text-[#3b2063] border border-[#e9d5ff]">
                             {item.branch_name}
                           </span>
                         </td>
@@ -308,7 +308,7 @@ const resolveUnit = (unit: unknown): string => {
         <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
           <div className="px-5 py-4 border-b border-[#e9d5ff] bg-[#faf9ff] flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="bg-[#7c14d4] p-2 rounded text-white"><Clock size={13} /></div>
+              <div className="bg-[#3b2063] p-2 rounded text-white"><Clock size={13} /></div>
               <div>
                 <p className="text-[11px] font-black uppercase tracking-wide text-[#1a0f2e]">Recent Movements</p>
                 <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest">Last 20 stock events</p>
@@ -339,7 +339,7 @@ const resolveUnit = (unit: unknown): string => {
       {/* Branch Summary Table */}
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
         <div className="px-5 py-4 border-b border-[#e9d5ff] bg-[#faf9ff] flex items-center gap-3">
-          <div className="bg-[#7c14d4] p-2 rounded text-white">
+          <div className="bg-[#3b2063] p-2 rounded text-white">
             <Package size={13} />
           </div>
           <div>

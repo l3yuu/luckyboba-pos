@@ -197,83 +197,109 @@ class SalesDashboardController extends Controller
         try {
             $user     = auth('sanctum')->user() ?? $request->user();
             $branchId = $user?->branch_id;
+            $now      = now();
 
-            $today     = now()->toDateString();
-            $weekStart = now()->startOfWeek()->toDateString();
-            $weekEnd   = now()->endOfWeek()->toDateString();
+            $todayStart = $now->copy()->startOfDay();
+            $todayEnd   = $now->copy()->endOfDay();
+            $weekStart  = $now->copy()->startOfWeek(\Carbon\Carbon::MONDAY)->startOfDay();
+            $weekEnd    = $now->copy()->endOfWeek(\Carbon\Carbon::SUNDAY)->endOfDay();
+            $monthStart = $now->copy()->startOfMonth()->startOfDay();
+            $monthEnd   = $now->copy()->endOfMonth()->endOfDay();
 
-            $weeklySales = \App\Models\Sale::selectRaw('DATE(created_at) as date, SUM(total_amount) as value')
-                ->whereBetween('created_at', [$weekStart . ' 00:00:00', $weekEnd . ' 23:59:59'])
-                ->where('status', '!=', 'cancelled')
-                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-                ->groupByRaw('DATE(created_at)')
-                ->orderBy('date')
-                ->get()
-                ->map(fn($row) => [
-                    'day'       => \Carbon\Carbon::parse($row->date)->format('D'),
-                    'date'      => \Carbon\Carbon::parse($row->date)->format('M d'),
-                    'value'     => (float) $row->value,
-                    'full_date' => $row->date,
-                ]);
+            // ── Helper: chart data (sales per day) ────────────────────────────
+            $salesByDay = function ($from, $to) use ($branchId) {
+                return DB::table('sales')
+                    ->whereBetween('created_at', [$from, $to])
+                    ->where('status', 'completed')
+                    ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                    ->selectRaw('DATE(created_at) as date, DAYNAME(created_at) as day, SUM(total_amount) as value')
+                    ->groupBy('date', 'day')
+                    ->orderBy('date')
+                    ->get()
+                    ->map(fn($r) => ['date' => $r->date, 'day' => $r->day, 'value' => (float) $r->value])
+                    ->values()
+                    ->toArray();
+            };
 
-            $todaySales = \App\Models\Sale::selectRaw('HOUR(created_at) as hour, SUM(total_amount) as value')
-                ->whereDate('created_at', $today)
-                ->where('status', '!=', 'cancelled')
-                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-                ->groupByRaw('HOUR(created_at)')
-                ->orderBy('hour')
-                ->get()
-                ->map(fn($row) => [
-                    'time'  => \Carbon\Carbon::createFromTime($row->hour)->format('g A'),
-                    'value' => (float) $row->value,
-                ]);
+            // ── Helper: stat summary for a period ─────────────────────────────
+            $statsByPeriod = function ($from, $to) use ($branchId) {
+                $sales = (float) DB::table('sales')
+                    ->whereBetween('created_at', [$from, $to])
+                    ->where('status', 'completed')
+                    ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                    ->sum('total_amount');
 
-            $beginning = \App\Models\Sale::whereDate('created_at', $today)
-                ->where('status', '!=', 'cancelled')
-                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-                ->orderBy('id')->first();
+                $orders = (int) DB::table('sales')
+                    ->whereBetween('created_at', [$from, $to])
+                    ->where('status', 'completed')
+                    ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                    ->count();
 
-            $ending = \App\Models\Sale::whereDate('created_at', $today)
-                ->where('status', '!=', 'cancelled')
-                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-                ->orderBy('id', 'desc')->first();
+                $voided = (float) DB::table('sales')
+                    ->whereBetween('created_at', [$from, $to])
+                    ->where('status', 'cancelled')
+                    ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                    ->sum('total_amount');
 
-            $todayTotal = (float) \App\Models\Sale::whereDate('created_at', $today)
-                ->where('status', '!=', 'cancelled')
-                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-                ->sum('total_amount');
+                $cashIn = (float) DB::table('cash_transactions')
+                    ->whereBetween('created_at', [$from, $to])
+                    ->where('type', 'cash_in')
+                    ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                    ->sum('amount');
 
-            $cancelledTotal = (float) \App\Models\Sale::whereDate('created_at', $today)
-                ->where('status', 'cancelled')
-                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-                ->sum('total_amount');
+                $cashOut = (float) DB::table('cash_transactions')
+                    ->whereBetween('created_at', [$from, $to])
+                    ->where('type', 'cash_out')
+                    ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                    ->sum('amount');
+
+                return [
+                    'total_sales'  => $sales,
+                    'total_orders' => $orders,
+                    'voided_sales' => $voided,
+                    'cash_in'      => $cashIn,
+                    'cash_out'     => $cashOut,
+                ];
+            };
+
+            // ── Top sellers today ──────────────────────────────────────────────
+            $topSellerByPeriod = function ($from, $to) use ($branchId) {
+                return DB::table('sale_items')
+                    ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+                    ->whereBetween('sales.created_at', [$from, $to])
+                    ->where('sales.status', 'completed')
+                    ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+                    ->selectRaw('sale_items.product_name, SUM(sale_items.quantity) as total_qty')
+                    ->groupBy('sale_items.product_name')
+                    ->orderByDesc('total_qty')
+                    ->limit(6)
+                    ->get();
+            };
 
             return response()->json([
                 'success' => true,
-                'data'    => [
-                    'weekly_sales' => [
-                        'data'               => $weeklySales,
-                        'total_revenue'      => $weeklySales->sum('value'),
-                        'start_date'         => \Carbon\Carbon::parse($weekStart)->format('M d, Y'),
-                        'end_date'           => \Carbon\Carbon::parse($weekEnd)->format('M d, Y'),
-                        'current_week_start' => $weekStart,
+                'data' => [
+                    'daily_sales'   => [
+                        'data'         => $salesByDay($todayStart, $todayEnd),
+                        'stats'        => $statsByPeriod($todayStart, $todayEnd),
+                        'top_sellers'  => $topSellerByPeriod($todayStart, $todayEnd),
                     ],
-                    'today_sales' => [
-                        'data' => $todaySales,
-                        'date' => $today,
+                    'weekly_sales'  => [
+                        'data'         => $salesByDay($weekStart, $weekEnd),
+                        'stats'        => $statsByPeriod($weekStart, $weekEnd),
+                        'top_sellers'  => $topSellerByPeriod($weekStart, $weekEnd),
+                    ],
+                    'monthly_sales' => [
+                        'data'         => $salesByDay($monthStart, $monthEnd),
+                        'stats'        => $statsByPeriod($monthStart, $monthEnd),
+                        'top_sellers'  => $topSellerByPeriod($monthStart, $monthEnd),
                     ],
                     'statistics' => [
-                        'beginning_sales' => 0,
-                        'today_sales'     => $todayTotal,
-                        'ending_sales'    => $todayTotal,
-                        'cancelled_sales' => $cancelledTotal,
-                        'beginning_or'    => $beginning?->invoice_number ?? '00000',
-                        'ending_or'       => $ending?->invoice_number    ?? '00000',
+                        'top_seller_today' => $topSellerByPeriod($todayStart, $todayEnd),
                     ],
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error('Dashboard Data Error: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }

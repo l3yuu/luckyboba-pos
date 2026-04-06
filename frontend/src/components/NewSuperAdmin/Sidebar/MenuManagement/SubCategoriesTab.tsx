@@ -24,7 +24,6 @@ interface SubCategory {
   category_id: number;
   category:    string;
   item_count:  number;
-  sort_order:  number;
   is_active:   boolean;
 }
 interface Category { id: number; name: string; color?: string; }
@@ -71,7 +70,6 @@ const SubCategoryModal: React.FC<{
   const isEdit = !!sub;
   const [name,       setName]       = useState(sub?.name        ?? "");
   const [categoryId, setCategoryId] = useState(sub?.category_id ? String(sub.category_id) : "");
-  const [sortOrder,  setSortOrder]  = useState(String(sub?.sort_order ?? 0));
   const [isActive,   setIsActive]   = useState(sub?.is_active   ?? true);
   const [selectedCup, setSelectedCup] = useState<Cup | null>(null);
   const [errors,     setErrors]     = useState<Record<string, string>>({});
@@ -100,7 +98,7 @@ const SubCategoryModal: React.FC<{
     if (Object.keys(e).length) { setErrors(e); return; }
     setLoading(true); setApiError("");
     try {
-      const payload = { name, category_id: Number(categoryId), sort_order: Number(sortOrder), is_active: isActive };
+      const payload = { name, category_id: Number(categoryId), is_active: isActive };
       const url     = isEdit ? `/api/sub-categories/${sub!.id}` : "/api/sub-categories";
       const method  = isEdit ? "PUT" : "POST";
       const res     = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(payload) });
@@ -205,12 +203,6 @@ const SubCategoryModal: React.FC<{
             {errors.name && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.name}</p>}
           </div>
 
-          {/* Sort Order */}
-          <div>
-            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">Sort Order</label>
-            <input type="number" min="0" value={sortOrder} onChange={e => setSortOrder(e.target.value)}
-              className={inputCls()} placeholder="0" />
-          </div>
 
           {/* Active toggle */}
           <div className="flex items-center justify-between p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
@@ -278,7 +270,6 @@ const SubCategoriesTab: React.FC = () => {
         category_id: s.category_id,
         category:    s.mainCategory ?? s.category?.name ?? rawCats.find((c: Category) => c.id === s.category_id)?.name ?? "—",
         item_count:  Number(s.itemCount ?? s.item_count ?? 0),
-        sort_order:  s.sort_order ?? 0,
         is_active:   Boolean(s.is_active ?? true),
       })));
     } catch { setError("Failed to load sub-categories."); }
@@ -328,7 +319,7 @@ const SubCategoriesTab: React.FC = () => {
   }, {} as Record<number, { cat: Category; children: SubCategory[] }>);
   const ungrouped = filtered.filter(s => !categories.find(c => c.id === s.category_id));
 
-  const tableHeaders = ["Name", "Parent Category", "Items", "Sort Order", "Active", "Actions"];
+  const tableHeaders = ["Name", "Parent Category", "Items", "Active", "Actions"];
 
   return (
     <div className="p-6 md:p-8 fade-in">
@@ -450,7 +441,6 @@ const SubCategoriesTab: React.FC = () => {
                           <span className="text-[10px] font-medium text-zinc-300">—</span>
                         )}
                       </td>
-                      <td className="px-5 py-3.5 text-zinc-500 text-xs">{sub.sort_order}</td>
                       <td className="px-5 py-3.5">
                         <button onClick={() => toggleActive(sub)} className="transition-colors">
                           {sub.is_active ? <ToggleRight size={22} className="text-[#3b2063]" /> : <ToggleLeft size={22} className="text-zinc-300" />}
@@ -493,7 +483,6 @@ const SubCategoriesTab: React.FC = () => {
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-50 text-violet-700 border border-violet-200">{sub.item_count} items</span>
                         ) : <span className="text-[10px] font-medium text-zinc-300">—</span>}
                       </td>
-                      <td className="px-5 py-3.5 text-zinc-500 text-xs">{sub.sort_order}</td>
                       <td className="px-5 py-3.5">
                         <button onClick={() => toggleActive(sub)}>
                           {sub.is_active ? <ToggleRight size={22} className="text-[#3b2063]" /> : <ToggleLeft size={22} className="text-zinc-300" />}

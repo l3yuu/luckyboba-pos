@@ -419,34 +419,243 @@ class ReportController extends Controller
 
     public function exportSales(Request $request)
     {
-        $date     = $request->query('date', now()->toDateString());
-        $branchId = $this->resolveBranchId($request);
+        $period   = $request->query('period');       // daily | weekly | monthly
+        $dateFrom = $request->query('date_from');
+        $dateTo   = $request->query('date_to');
+        $branchId = $request->query('branch_id');
 
-        $sales = Sale::whereDate('created_at', $date)
-            ->where('status', '!=', 'cancelled')
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+        // Resolve date range — period-based or explicit range
+        if ($period && in_array($period, ['daily', 'weekly', 'monthly'])) {
+            $anchor = \Carbon\Carbon::today();
+            [$startDate, $endDate] = match ($period) {
+                'daily'   => [$anchor->copy()->startOfDay(),   $anchor->copy()->endOfDay()],
+                'weekly'  => [$anchor->copy()->startOfWeek(),  $anchor->copy()->endOfWeek()],
+                'monthly' => [$anchor->copy()->startOfMonth(), $anchor->copy()->endOfMonth()],
+            };
+        } elseif ($dateFrom && $dateTo) {
+            $startDate = \Carbon\Carbon::parse($dateFrom)->startOfDay();
+            $endDate   = \Carbon\Carbon::parse($dateTo)->endOfDay();
+        } else {
+            // Fallback: today
+            $startDate = \Carbon\Carbon::today()->startOfDay();
+            $endDate   = \Carbon\Carbon::today()->endOfDay();
+            $period    = 'daily';
+        }
+
+        $fromStr = $startDate->toDateString();
+        $toStr   = $endDate->toDateString();
+
+        // Resolve branch name
+        $branchName = 'All Branches';
+        if ($branchId) {
+            $branchName = DB::table('branches')->where('id', $branchId)->value('name') ?? 'Unknown Branch';
+        }
+
+        $branchSlug = $branchId
+            ? strtoupper(preg_replace('/[^a-zA-Z0-9]+/', '-', $branchName))
+            : 'ALL-BRANCHES';
+
+        $filename = "LuckyBoba_SalesReport_{$branchSlug}_{$fromStr}_to_{$toStr}.csv";
+
+        // ── Query sales data ──────────────────────────────────────────────────
+        $salesQuery = DB::table('sales')
+            ->where('status', 'completed')
+            ->whereBetween('created_at', [$startDate, $endDate]);
+
+        if ($branchId) {
+            $salesQuery->where('branch_id', $branchId);
+        }
+
+        // Totals
+        $totals = (clone $salesQuery)->select(
+            DB::raw('SUM(total_amount) as grand_total'),
+            DB::raw('COUNT(id)         as total_orders'),
+            DB::raw('AVG(total_amount) as avg_order_value')
+        )->first();
+
+        // Daily breakdown
+        $breakdown = (clone $salesQuery)->select(
+            DB::raw('DATE(created_at) as date'),
+            DB::raw('COUNT(id)         as orders'),
+            DB::raw('SUM(total_amount) as revenue')
+        )
+        ->groupBy(DB::raw('DATE(created_at)'))
+        ->orderBy('date')
+        ->get();
+
+        // Top products
+        $topProducts = DB::table('sale_items')
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
+            ->where('sales.status', 'completed')
+            ->whereBetween('sales.created_at', [$startDate, $endDate])
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+            ->select(
+                'sale_items.product_name',
+                DB::raw('SUM(sale_items.quantity)    as total_quantity'),
+                DB::raw('SUM(sale_items.final_price * sale_items.quantity) as total_revenue')
+            )
+            ->groupBy('sale_items.product_name')
+            ->orderByDesc('total_quantity')
+            ->limit(20)
             ->get();
 
+        // Payment methods
+        $paymentMethods = (clone $salesQuery)->select(
+            'payment_method',
+            DB::raw('COUNT(id)         as count'),
+            DB::raw('SUM(total_amount) as revenue')
+        )
+        ->groupBy('payment_method')
+        ->orderByDesc('revenue')
+        ->get();
+
+        // Branch breakdown (only when all branches)
+        $branchBreakdown = collect();
+        if (!$branchId) {
+            $branchBreakdown = DB::table('sales')
+                ->join('branches', 'sales.branch_id', '=', 'branches.id')
+                ->where('sales.status', 'completed')
+                ->whereBetween('sales.created_at', [$startDate, $endDate])
+                ->select(
+                    'branches.name as branch_name',
+                    DB::raw('COUNT(sales.id)         as total_orders'),
+                    DB::raw('SUM(sales.total_amount) as total_revenue'),
+                    DB::raw('AVG(sales.total_amount) as avg_order')
+                )
+                ->groupBy('branches.id', 'branches.name')
+                ->orderByDesc('total_revenue')
+                ->get();
+        }
+
+        // Voided sales
+        $voidedTotal = DB::table('sales')
+            ->where('status', 'cancelled')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->sum('total_amount');
+
+        $generatedAt  = now()->format('F d, Y h:i A');
+        $grandTotal   = (float) ($totals->grand_total ?? 0);
+        $totalOrders  = (int) ($totals->total_orders ?? 0);
+        $avgOrder     = (float) ($totals->avg_order_value ?? 0);
+
+        // ── Build CSV ─────────────────────────────────────────────────────────
         $headers = [
-            "Content-type"        => "text/csv",
-            "Content-Disposition" => "attachment; filename=lucky_boba_sales_{$date}.csv",
-            "Pragma"              => "no-cache",
-            "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
-            "Expires"             => "0",
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'Pragma'              => 'no-cache',
+            'Cache-Control'       => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires'             => '0',
         ];
 
-        $callback = function () use ($sales) {
+        $callback = function () use (
+            $generatedAt, $fromStr, $toStr, $branchName, $period,
+            $grandTotal, $totalOrders, $avgOrder, $voidedTotal,
+            $breakdown, $topProducts, $paymentMethods, $branchBreakdown, $branchId
+        ) {
             $file = fopen('php://output', 'w');
-            fputcsv($file, ['Invoice Number', 'Payment Method', 'Total Amount', 'Status', 'Date Time']);
-            foreach ($sales as $sale) {
-                fputcsv($file, [
-                    $sale->invoice_number,
-                    $sale->payment_method,
-                    $sale->total_amount,
-                    $sale->status,
-                    $sale->created_at->format('Y-m-d H:i:s'),
-                ]);
+
+            // BOM for Excel UTF-8 compatibility
+            fwrite($file, "\xEF\xBB\xBF");
+
+            // ── Report Header ──
+            fputcsv($file, ['LUCKY BOBA POS - SALES REPORT']);
+            fputcsv($file, ['Generated', $generatedAt]);
+            fputcsv($file, ['Date Range', date('F d, Y', strtotime($fromStr)) . ' to ' . date('F d, Y', strtotime($toStr))]);
+            if ($period) {
+                fputcsv($file, ['Period', strtoupper($period)]);
             }
+            fputcsv($file, ['Branch', $branchName]);
+            fputcsv($file, []);
+
+            // ── Summary ──
+            fputcsv($file, ['SUMMARY']);
+            fputcsv($file, ['Gross Revenue (PHP)', number_format($grandTotal, 2)]);
+            fputcsv($file, ['Total Orders', $totalOrders]);
+            fputcsv($file, ['Avg Order Value (PHP)', number_format($avgOrder, 2)]);
+            fputcsv($file, ['Voided Sales (PHP)', number_format((float) $voidedTotal, 2)]);
+            fputcsv($file, []);
+
+            // ── Branch Breakdown (all branches mode) ──
+            if (!$branchId && $branchBreakdown->count() > 0) {
+                fputcsv($file, ['BRANCH BREAKDOWN']);
+                fputcsv($file, ['#', 'Branch', 'Orders', 'Revenue (PHP)', 'Avg Order (PHP)', 'Revenue Share']);
+                $rank = 1;
+                foreach ($branchBreakdown as $b) {
+                    $share = $grandTotal > 0 ? round(($b->total_revenue / $grandTotal) * 100, 1) : 0;
+                    fputcsv($file, [
+                        $rank++,
+                        $b->branch_name,
+                        (int) $b->total_orders,
+                        number_format((float) $b->total_revenue, 2),
+                        number_format((float) $b->avg_order, 2),
+                        $share . '%',
+                    ]);
+                }
+                fputcsv($file, []);
+            }
+
+            // ── Daily Breakdown ──
+            if ($breakdown->count() > 0) {
+                fputcsv($file, ['DAILY BREAKDOWN']);
+                fputcsv($file, ['Date', 'Orders', 'Revenue (PHP)', 'Avg Order (PHP)']);
+                foreach ($breakdown as $row) {
+                    $orders = (int) $row->orders;
+                    $rev    = (float) $row->revenue;
+                    fputcsv($file, [
+                        $row->date,
+                        $orders,
+                        number_format($rev, 2),
+                        $orders > 0 ? number_format($rev / $orders, 2) : '0.00',
+                    ]);
+                }
+                // Totals row
+                fputcsv($file, [
+                    'TOTAL',
+                    $totalOrders,
+                    number_format($grandTotal, 2),
+                    $totalOrders > 0 ? number_format($grandTotal / $totalOrders, 2) : '0.00',
+                ]);
+                fputcsv($file, []);
+            }
+
+            // ── Top Products ──
+            if ($topProducts->count() > 0) {
+                $productRevTotal = $topProducts->sum('total_revenue');
+                fputcsv($file, ['TOP PRODUCTS']);
+                fputcsv($file, ['#', 'Product', 'Qty Sold', 'Revenue (PHP)', 'Revenue Share']);
+                $rank = 1;
+                foreach ($topProducts as $p) {
+                    $share = $productRevTotal > 0 ? round(($p->total_revenue / $productRevTotal) * 100, 1) : 0;
+                    fputcsv($file, [
+                        $rank++,
+                        $p->product_name,
+                        (int) $p->total_quantity,
+                        number_format((float) $p->total_revenue, 2),
+                        $share . '%',
+                    ]);
+                }
+                fputcsv($file, []);
+            }
+
+            // ── Payment Methods ──
+            if ($paymentMethods->count() > 0) {
+                $payTotal = $paymentMethods->sum('revenue');
+                fputcsv($file, ['PAYMENT METHODS']);
+                fputcsv($file, ['Method', 'Transactions', 'Revenue (PHP)', 'Share']);
+                foreach ($paymentMethods as $pm) {
+                    $share = $payTotal > 0 ? round(($pm->revenue / $payTotal) * 100, 1) : 0;
+                    fputcsv($file, [
+                        strtoupper($pm->payment_method ?? 'OTHER'),
+                        (int) $pm->count,
+                        number_format((float) $pm->revenue, 2),
+                        $share . '%',
+                    ]);
+                }
+                fputcsv($file, []);
+            }
+
+            fputcsv($file, ['--- End of Report ---']);
             fclose($file);
         };
 

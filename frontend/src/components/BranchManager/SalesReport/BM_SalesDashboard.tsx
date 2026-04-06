@@ -1,491 +1,664 @@
-"use client"
-
-import { useState, useEffect, useRef } from 'react';
-import api from '../../../services/api';
+// components/BranchManager/SalesReport/BM_SalesDashboard.tsx
+// Same UI as SuperAdmin SalesReportTab, but locked to the BM's own branch.
+import { useState, useEffect, useCallback } from "react";
 import {
-  TrendingUp, BarChart3, AlertCircle, Banknote,
-  History, FileText, Activity, ArrowUpRight, ArrowDownRight,
-} from 'lucide-react';
+  Download, RefreshCw, AlertCircle, Search,
+  TrendingUp, FileText, DollarSign, Users,
+  X, ArrowUpRight, ArrowDownRight,
+} from "lucide-react";
+import {
+  AreaChart, Area, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer,
+} from "recharts";
 
-// ─── Design tokens — mirrors BranchManagerDashboard ──────────────────────────
-const STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
-  .sd-root, .sd-root * { font-family: 'DM Sans', sans-serif !important; box-sizing: border-box; }
-  .sd-label { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #3f3f46; }
-  .sd-sub   { font-size: 0.65rem; font-weight: 400; color: #71717a; }
-  .sd-value { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.035em; line-height: 1; }
-  .sd-live  { display: inline-flex; align-items: center; gap: 5px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 100px; padding: 4px 10px; }
-  .sd-live-dot  { width: 5px; height: 5px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 5px rgba(34,197,94,0.6); animation: sd-pulse 2s infinite; }
-  .sd-live-text { font-size: 0.55rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #16a34a; }
-  @keyframes sd-pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-`;
+// ── Types ─────────────────────────────────────────────────────────────────────
+type ColorKey   = "violet" | "emerald" | "red" | "amber";
+type VariantKey = "primary" | "secondary" | "danger" | "ghost";
+type SizeKey    = "sm" | "md" | "lg";
 
-const WEEKLY_HEIGHT   = 180;
-const TODAY_HEIGHT    = 180;
-const CACHE_KEY       = 'lucky_boba_bm_sales_analytics';
-const FIXED_TODAY_MAX = 5000;
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-interface WeeklyDataPoint  { day: string; date: string; value: number; full_date: string; }
-interface TodayDataPoint   { time: string; value: number; }
-interface SalesStats {
-  beginning_sales: number; today_sales: number; ending_sales: number;
-  cancelled_sales: number; beginning_or: number | string; ending_or: number | string;
-  total_revenue?: number;
+interface SummaryTotals {
+  grand_total:     number;
+  total_orders:    number;
+  avg_order_value: number;
+  total_customers: number;
 }
-interface WeeklySalesBlock { data: WeeklyDataPoint[]; total_revenue: number; start_date: string; end_date: string; current_week_start: string; }
-interface TodaySalesBlock  { data: TodayDataPoint[]; date: string; }
-interface DashboardPayload { weekly_sales: WeeklySalesBlock; today_sales: TodaySalesBlock; statistics: SalesStats; }
-interface ApiResponse      { success: boolean; data: DashboardPayload; }
-interface HoveredPoint     { x: number; y: number; value: number; date: string; }
+interface BreakdownRow {
+  date:    string;
+  revenue: number;
+  orders:  number;
+}
+interface BranchMetric {
+  branch_id:       number;
+  branch_name:     string;
+  total_revenue:   number;
+  total_orders:    number;
+  avg_order_value: number;
+  revenue_rank:    number;
+  payment_methods?: PaymentBreakdown[];
+}
+interface TopProduct {
+  product_name:   string;
+  total_quantity: number;
+  total_revenue:  number;
+}
+interface PaymentBreakdown {
+  branch_id:      number;
+  payment_method: string;
+  count:          number;
+  revenue:        number;
+}
 
-// ─── Stat Card — mirrors BranchManagerDashboard statCards ────────────────────
+// ── API ───────────────────────────────────────────────────────────────────────
+const getToken = () =>
+  localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
+const authHeaders = () => ({
+  "Content-Type": "application/json",
+  "Accept":       "application/json",
+  ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
+});
+
+// ── Get current BM's branch_id from localStorage ─────────────────────────────
+const getBMBranchId = (): number | null => {
+  try {
+    // Primary: dedicated key set during login
+    const stored = localStorage.getItem("lucky_boba_user_branch_id");
+    if (stored && stored !== "" && stored !== "null") {
+      const parsed = parseInt(stored, 10);
+      if (!isNaN(parsed) && parsed > 0) return parsed;
+    }
+    // Fallback: auth_user JSON blob (used by some components like BM_DeviceManagement)
+    const authUser = JSON.parse(localStorage.getItem("auth_user") ?? "{}");
+    if (authUser.branch_id) return Number(authUser.branch_id);
+    return null;
+  } catch {
+    return null;
+  }
+};
+
+const getBMBranchName = (): string => {
+  return localStorage.getItem("lucky_boba_user_branch") ?? "";
+};
+
+// ── Shared UI ─────────────────────────────────────────────────────────────────
 interface StatCardProps {
-  label: string; sub: string; value: string; compact: string;
-  icon: React.ReactNode; iconBg: string; iconColor: string;
-  valueColor?: string; accent?: string; trend?: string; trendUp?: boolean;
+  icon: React.ReactNode; label: string; value: string | number;
+  sub?: string; trend?: number; color?: ColorKey;
+}
+interface BtnProps {
+  children: React.ReactNode; variant?: VariantKey; size?: SizeKey;
+  onClick?: () => void; className?: string; disabled?: boolean;
+  type?: "button" | "submit" | "reset";
 }
 
-const StatCard = ({ label, sub, value, compact, icon, iconBg, iconColor, valueColor = '#1a0f2e', trend, trendUp }: StatCardProps) => (
-  <div className="bg-white border border-gray-100 rounded-2xl p-5 flex flex-col gap-3 hover:shadow-md hover:border-[#ddd6f7] transition-all">
-    <div className="flex items-start justify-between">
-      <div>
-        <p className="sd-label">{label}</p>
-        <p className="sd-sub" style={{ marginTop: 2 }}>{sub}</p>
+const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, trend, color = "violet" }) => {
+  const colors: Record<ColorKey, { bg: string; border: string; icon: string }> = {
+    violet:  { bg: "bg-violet-50",  border: "border-violet-200",  icon: "text-violet-600"  },
+    emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
+    red:     { bg: "bg-red-50",     border: "border-red-200",     icon: "text-red-500"     },
+    amber:   { bg: "bg-amber-50",   border: "border-amber-200",   icon: "text-amber-600"   },
+  };
+  const c = colors[color];
+  return (
+    <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className={`w-10 h-10 ${c.bg} border ${c.border} flex items-center justify-center rounded-[0.4rem]`}>
+          <span className={c.icon}>{icon}</span>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{label}</p>
+          <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">{value}</p>
+          {sub && <p className="text-[10px] text-zinc-400 mt-0.5">{sub}</p>}
+        </div>
       </div>
-      <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-        style={{ background: iconBg, color: iconColor }}>
-        {icon}
-      </div>
-    </div>
-    <div>
-      <p className="sd-value" style={{ color: valueColor }}>{compact}</p>
-      <p className="sd-sub" style={{ marginTop: 4 }}>{value}</p>
-    </div>
-    {trend !== undefined && (
-      <div className="flex items-center justify-between pt-1 border-t border-gray-50">
-        <span className="sd-sub">vs yesterday</span>
-        <span style={{ fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.06em', display: 'flex', alignItems: 'center', gap: 3, color: trendUp ? '#16a34a' : '#be2525' }}>
-          {trendUp ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
-          {trend}
-        </span>
-      </div>
-    )}
-  </div>
-);
-
-// ─── Component ────────────────────────────────────────────────────────────────
-const BM_SalesDashboard = () => {
-  const [payload, setPayload] = useState<DashboardPayload | null>(() => {
-    try { const c = localStorage.getItem(CACHE_KEY); return c ? JSON.parse(c) : null; }
-    catch { return null; }
-  });
-  const [loading,       setLoading]       = useState(!payload);
-  const [hoveredValue,  setHoveredValue]  = useState<HoveredPoint | null>(null);
-  const [hoveredBar,    setHoveredBar]    = useState<number | null>(null);
-  const [animatedBars,  setAnimatedBars]  = useState(false);
-  const barRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const r = await api.get<ApiResponse>('/reports/dashboard-data');
-        if (r.data.success) {
-          setPayload(r.data.data);
-          localStorage.setItem(CACHE_KEY, JSON.stringify(r.data.data));
-        }
-      } catch (e) { console.error('Failed to load analytics:', e); }
-      finally { setLoading(false); }
-    })();
-  }, []);
-
-  useEffect(() => {
-    const t = setTimeout(() => setAnimatedBars(true), 100);
-    return () => clearTimeout(t);
-  }, []);
-
-  if (loading && !payload) return (
-    <div className="h-full flex flex-col items-center justify-center gap-3">
-      <div className="w-9 h-9 border-2 border-[#3b2063] border-t-transparent animate-spin rounded-full" />
-      <p className="sd-label" style={{ color: '#a1a1aa' }}>Loading analytics…</p>
+      {trend !== undefined && (
+        <div className={`flex items-center gap-1 text-xs font-bold ${trend >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+          {trend >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+          {Math.abs(trend)}%
+        </div>
+      )}
     </div>
   );
+};
 
-  if (!payload) return null;
+const Btn: React.FC<BtnProps> = ({
+  children, variant = "primary", size = "sm",
+  onClick, className = "", disabled = false, type = "button",
+}) => {
+  const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
+  const variants: Record<VariantKey, string> = {
+    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
+    danger:    "bg-red-600 hover:bg-red-700 text-white",
+    ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
+  };
+  return (
+    <button type={type} onClick={onClick} disabled={disabled}
+      className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 ${sizes[size]} ${variants[variant]} ${className}`}>
+      {children}
+    </button>
+  );
+};
 
-  // ── Derived data ─────────────────────────────────────────────────────────
-  const weekly       = payload.weekly_sales?.data         ?? [];
-  const todayData    = payload.today_sales?.data           ?? [];
-  const stats        = payload.statistics                  ?? {} as SalesStats;
-  const totalRevenue = payload.weekly_sales?.total_revenue ?? 0;
+const SkeletonBar: React.FC<{ h?: string }> = ({ h = "h-4" }) => (
+  <div className={`w-full ${h} bg-zinc-100 rounded animate-pulse`} />
+);
 
-  const WEEKLY_MAX = weekly.length > 0 ? Math.max(...weekly.map(d => d.value), 10000) : 10000;
-  const getLineY   = (v: number) => WEEKLY_HEIGHT - (v / WEEKLY_MAX) * WEEKLY_HEIGHT;
+const PAYMENT_COLORS: Record<string, string> = {
+  cash:   "#3b2063",
+  gcash:  "#0ea5e9",
+  card:   "#10b981",
+  maya:   "#f59e0b",
+  other:  "#a1a1aa",
+};
 
-  const linePoints: HoveredPoint[] = weekly.map((d, i) => ({
-    x: weekly.length > 1 ? (i / (weekly.length - 1)) * 100 : 50,
-    y: getLineY(d.value),
-    value: d.value,
-    date: `${d.day} — ${d.date}`,
+// ── Main Component ────────────────────────────────────────────────────────────
+const BM_SalesDashboard: React.FC = () => {
+  // BM's own branch — locked, no selector
+  const [bmBranchId] = useState<number | null>(() => getBMBranchId());
+  const [bmBranchName, setBmBranchName] = useState<string>(() => getBMBranchName());
+
+  // Period / Date filter
+  const today = new Date().toISOString().split("T")[0];
+  const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+    .toISOString().split("T")[0];
+
+  const [mode,       setMode]       = useState<"period" | "range">("period");
+  const [period,     setPeriod]     = useState<"daily" | "weekly" | "monthly">("monthly");
+  const [dateFrom,   setDateFrom]   = useState(firstOfMonth);
+  const [dateTo,     setDateTo]     = useState(today);
+  const [search,     setSearch]     = useState("");
+
+  // Data
+  const [loading,     setLoading]     = useState(true);
+  const [error,       setError]       = useState("");
+  const [totals,      setTotals]      = useState<SummaryTotals | null>(null);
+  const [breakdown,   setBreakdown]   = useState<BreakdownRow[]>([]);
+
+  const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
+  const [payments,    setPayments]    = useState<PaymentBreakdown[]>([]);
+  const [activeTab,   setActiveTab]   = useState<"overview" | "products" | "payments">("overview");
+
+  const fmt  = (v: number) => `₱${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+  const fmtK = (v: number) => `₱${((v ?? 0) / 1000).toFixed(0)}k`;
+
+  // Fetch branch name from /api/user if not in localStorage
+  useEffect(() => {
+    if (bmBranchName) return;
+    fetch("/api/user", { headers: authHeaders() })
+      .then(r => r.json())
+      .then(d => {
+        if (d.branch_name) setBmBranchName(d.branch_name);
+        if (d.branch_id && !bmBranchId) {
+          // Store for next time
+          localStorage.setItem("lucky_boba_user_branch_id", String(d.branch_id));
+        }
+      })
+      .catch(() => {});
+  }, [bmBranchName, bmBranchId]);
+
+  const fetchAll = useCallback(async () => {
+    if (!bmBranchId) {
+      setError("Unable to determine your branch. Please log in again.");
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setError("");
+    try {
+      const summaryParams = new URLSearchParams();
+      const compParams    = new URLSearchParams();
+
+      // The admin-sales-summary endpoint accepts: period (required), branch_id, date (optional anchor)
+      // The branch-comparison endpoint accepts: period (required), date (optional anchor)
+      summaryParams.set("period", mode === "period" ? period : "daily");
+      compParams.set("period",    mode === "period" ? period : "daily");
+
+      if (mode === "range") {
+        // Use date_from as the anchor date — the backend will compute the range from period + date
+        summaryParams.set("date", dateFrom);
+        compParams.set("date",    dateFrom);
+      }
+
+      // Always lock to BM's own branch
+      summaryParams.set("branch_id", String(bmBranchId));
+      compParams.set("branch_id",    String(bmBranchId));
+
+      const [summaryRes, compRes] = await Promise.all([
+        fetch(`/api/reports/admin-sales-summary?${summaryParams}`, { headers: authHeaders() }),
+        fetch(`/api/reports/branch-comparison?${compParams}`,      { headers: authHeaders() }),
+      ]);
+
+      if (!summaryRes.ok || !compRes.ok) {
+        throw new Error("API returned error");
+      }
+
+      const [summary, comp] = await Promise.all([summaryRes.json(), compRes.json()]);
+
+      setTotals(summary.totals ?? null);
+      setBreakdown(summary.breakdown ?? []);
+      setTopProducts((summary.top_products ?? []).slice(0, 10));
+
+      // Extract payment breakdown from comparison data
+      const allPayments: PaymentBreakdown[] = [];
+      (comp.comparison ?? []).forEach((b: BranchMetric) => {
+        (b.payment_methods ?? []).forEach((pm: PaymentBreakdown) => {
+          allPayments.push(pm);
+        });
+      });
+      setPayments(allPayments);
+
+    } catch {
+      setError("Failed to load report data. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, [mode, period, dateFrom, dateTo, bmBranchId]);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  // Derived
+  const chartData      = breakdown.map(r => ({ date: r.date, revenue: Number(r.revenue), orders: Number(r.orders) }));
+  const grandTotal     = totals?.grand_total ?? 0;
+  const totalOrders    = totals?.total_orders ?? 0;
+  const avgOrderValue  = totals?.avg_order_value ?? 0;
+
+  // Payment totals
+  const paymentTotals: Record<string, number> = {};
+  payments.forEach(p => {
+    const method = p.payment_method?.toLowerCase() ?? "other";
+    paymentTotals[method] = (paymentTotals[method] ?? 0) + Number(p.revenue);
+  });
+  const paymentChartData = Object.entries(paymentTotals).map(([method, revenue]) => ({
+    method: method.charAt(0).toUpperCase() + method.slice(1),
+    revenue,
+    color: PAYMENT_COLORS[method] ?? PAYMENT_COLORS.other,
   }));
 
-  const buildSmoothPath = (pts: { x: number; y: number }[]) => {
-    if (pts.length < 2) return '';
-    let d = `M ${pts[0].x} ${pts[0].y}`;
-    for (let i = 1; i < pts.length; i++) {
-      const cpX = (pts[i-1].x + pts[i].x) / 2;
-      d += ` C ${cpX} ${pts[i-1].y}, ${cpX} ${pts[i].y}, ${pts[i].x} ${pts[i].y}`;
-    }
-    return d;
+  // Filtered products
+  const filteredProducts = topProducts.filter(p =>
+    p.product_name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleExport = () => {
+    const params = new URLSearchParams();
+    if (mode === "period") { params.set("period", period); }
+    else { params.set("date_from", dateFrom); params.set("date_to", dateTo); }
+    if (bmBranchId) params.set("branch_id", String(bmBranchId));
+    window.open(`/api/reports/export-sales?${params}`, "_blank");
   };
 
-  const buildFillPath = (pts: { x: number; y: number }[]) => {
-    if (pts.length < 2) return '';
-    return `${buildSmoothPath(pts)} L ${pts[pts.length-1].x} ${WEEKLY_HEIGHT} L ${pts[0].x} ${WEEKLY_HEIGHT} Z`;
-  };
-
-  const dateRangeText = weekly.length > 0
-    ? `${weekly[0].date} — ${weekly[weekly.length-1].date}, 2026`
-    : 'No data available';
-
-  const getBarHeight  = (v: number) => Math.min((v / FIXED_TODAY_MAX) * 100, 100);
-  const yLabels       = [5000, 4000, 3000, 2000, 1000, 0];
-  const DISPLAY_HOURS = [9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,0];
-  const HOUR_LABELS: Record<number,string> = {
-    9:'9AM',10:'10AM',11:'11AM',12:'12PM',13:'1PM',14:'2PM',
-    15:'3PM',16:'4PM',17:'5PM',18:'6PM',19:'7PM',20:'8PM',
-    21:'9PM',22:'10PM',23:'11PM',0:'12MN',
-  };
-  const parseHour = (t: string): number => {
-    const m = t.toUpperCase().trim().match(/^(\d+)\s*(AM|PM)$/);
-    if (!m) return -1;
-    let h = parseInt(m[1]);
-    if (m[2] === 'PM' && h !== 12) h += 12;
-    if (m[2] === 'AM' && h === 12) h = 0;
-    return h;
-  };
-  const filteredTodayData = DISPLAY_HOURS.map(hour => {
-    const match = todayData.find(d => parseHour(d.time) === hour);
-    return { hour, label: HOUR_LABELS[hour], value: match?.value ?? 0 };
-  });
-  const LABEL_HOURS = new Set([9, 12, 15, 18, 21, 0]);
-
-  const fmt      = (v: number) => `₱${Number(v).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
-  const fmtS     = (v: number) => {
-    if (v >= 1_000_000) return `₱${(v / 1_000_000).toFixed(1)}M`;
-    if (v >= 1_000)     return `₱${(v / 1_000).toFixed(1)}K`;
-    return `₱${v.toFixed(0)}`;
-  };
-
-  // Stat cards — same structure as BranchManagerDashboard
-  const statCards: StatCardProps[] = [
-    {
-      label: 'Beginning Sales', sub: 'Opening balance',
-      value: fmt(stats.beginning_sales ?? 0), compact: fmtS(stats.beginning_sales ?? 0),
-      icon: <Banknote size={14} strokeWidth={2.5} />,
-      iconBg: '#dcfce7', iconColor: '#16a34a',
-    },
-    {
-      label: 'Today Gross', sub: 'Total revenue today',
-      value: fmt(stats.today_sales ?? 0), compact: fmtS(stats.today_sales ?? 0),
-      icon: <TrendingUp size={14} strokeWidth={2.5} />,
-      iconBg: '#ede9fe', iconColor: '#7c3aed', valueColor: '#3b2063',
-    },
-    {
-      label: 'Ending Sales', sub: 'Closing balance',
-      value: fmt(stats.ending_sales ?? 0), compact: fmtS(stats.ending_sales ?? 0),
-      icon: <Activity size={14} strokeWidth={2.5} />,
-      iconBg: '#e0f2fe', iconColor: '#0284c7', valueColor: '#0c4a6e',
-    },
-    {
-      label: 'Voided Journal', sub: 'Cancelled transactions',
-      value: fmt(stats.cancelled_sales ?? 0), compact: fmtS(stats.cancelled_sales ?? 0),
-      icon: <AlertCircle size={14} strokeWidth={2.5} />,
-      iconBg: '#fee2e2', iconColor: '#dc2626',
-    },
-    {
-      label: 'Beginning OR', sub: 'Opening receipt no.',
-      value: String(stats.beginning_or ?? '—'), compact: String(stats.beginning_or ?? '—'),
-      icon: <FileText size={14} strokeWidth={2.5} />,
-      iconBg: '#fef9c3', iconColor: '#ca8a04',
-    },
-    {
-      label: 'Ending OR', sub: 'Closing receipt no.',
-      value: String(stats.ending_or ?? '—'), compact: String(stats.ending_or ?? '—'),
-      icon: <History size={14} strokeWidth={2.5} />,
-      iconBg: '#f4f4f5', iconColor: '#71717a',
-    },
-  ];
-
-  // ── Render ──────────────────────────────────────────────────────────────
   return (
-    <>
-      <style>{STYLES}</style>
-      <section className="sd-root px-5 md:px-8 pb-8 pt-5 space-y-5">
+    <div className="p-6 md:p-8 fade-in flex flex-col gap-5">
 
-        {/* ── WEEKLY REVENUE CHART — mirrors Revenue Overview card ── */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-5 hover:shadow-md hover:border-[#ddd6f7] transition-all">
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-base font-bold text-[#1a0f2e]">Sales Report</h2>
+          <p className="text-xs text-zinc-400 mt-0.5">
+            {bmBranchName ? `Sales breakdown for ${bmBranchName}` : "Sales breakdown for your branch"}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Btn variant="secondary" onClick={fetchAll} disabled={loading}>
+            <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
+          </Btn>
+          <Btn variant="secondary" onClick={handleExport} disabled={loading}>
+            <Download size={13} /> Export CSV
+          </Btn>
+        </div>
+      </div>
 
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: '#ede9fe', color: '#7c3aed' }}>
-                <BarChart3 size={16} strokeWidth={2.5} />
-              </div>
-              <div>
-                <h2 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.025em', margin: 0 }}>
-                  Weekly Sales Audit
-                </h2>
-                <div className="flex items-center gap-4 mt-1">
-                  {[
-                    ['Total',    `₱${totalRevenue.toLocaleString()}`],
-                    ['Peak Day', weekly.reduce((a, b) => b.value > a.value ? b : a, weekly[0] ?? { day: '—', value: 0 })?.day ?? '—'],
-                    ['Period',   dateRangeText],
-                  ].map(([lbl, val], j) => (
-                    <div key={j}>
-                      <span className="sd-label" style={{ color: '#a1a1aa' }}>{lbl}</span>
-                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: j === 1 ? '#7c3aed' : '#1a0f2e', marginLeft: 6, letterSpacing: '-0.01em' }}>{val}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="sd-live shrink-0">
-              <div className="sd-live-dot" />
-              <span className="sd-live-text">Live</span>
-            </div>
+      {/* ── Filters ── */}
+      <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 flex flex-wrap gap-3 items-end">
+        {/* Mode toggle */}
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Filter Mode</p>
+          <div className="flex rounded-lg overflow-hidden border border-zinc-200">
+            {(["period", "range"] as const).map(m => (
+              <button key={m} onClick={() => setMode(m)}
+                className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${mode === m ? "bg-[#3b2063] text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}>
+                {m === "period" ? "Period" : "Date Range"}
+              </button>
+            ))}
           </div>
+        </div>
 
-          {/* Chart body */}
-          <div className="flex gap-4">
-            {/* Y axis */}
-            <div className="flex flex-col justify-between text-right shrink-0 w-10 pb-7"
-              style={{ height: WEEKLY_HEIGHT + 28 }}>
-              {[WEEKLY_MAX, WEEKLY_MAX*0.75, WEEKLY_MAX*0.5, WEEKLY_MAX*0.25, 0].map((v, i) => (
-                <span key={i} className="sd-label" style={{ color: '#d4d4d8', fontSize: '0.58rem' }}>
-                  {v >= 1000 ? `${(v/1000).toFixed(0)}k` : v}
-                </span>
+        {/* Period selector */}
+        {mode === "period" && (
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Period</p>
+            <div className="flex rounded-lg overflow-hidden border border-zinc-200">
+              {(["daily", "weekly", "monthly"] as const).map(p => (
+                <button key={p} onClick={() => setPeriod(p)} disabled={loading}
+                  className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 ${period === p ? "bg-[#3b2063] text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}>
+                  {p}
+                </button>
               ))}
             </div>
+          </div>
+        )}
 
-            <div className="flex-1 flex flex-col">
-              <div className="relative" style={{ height: WEEKLY_HEIGHT }}>
-                {/* Grid lines */}
-                {[0, 0.25, 0.5, 0.75, 1].map((pct, i) => (
-                  <div key={i} className="absolute left-0 right-0 h-px"
-                    style={{ top: `${pct * 100}%`, background: pct === 0 ? '#e4e4e7' : '#f4f4f5' }} />
-                ))}
+        {/* Date range */}
+        {mode === "range" && (
+          <>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Date From</p>
+              <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+                className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Date To</p>
+              <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+                className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
+            </div>
+          </>
+        )}
 
-                <svg className="absolute inset-0 w-full h-full overflow-visible"
-                  viewBox={`0 0 100 ${WEEKLY_HEIGHT}`} preserveAspectRatio="none">
+        {/* Branch badge — display only, not selectable */}
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Branch</p>
+          <div className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
+            {bmBranchName || "Your Branch"}
+          </div>
+        </div>
+
+        {/* Apply */}
+        <Btn onClick={fetchAll} disabled={loading}>
+          {loading ? <><RefreshCw size={12} className="animate-spin" /> Loading...</> : "Apply Filters"}
+        </Btn>
+
+        {/* Clear */}
+        {mode === "range" && (
+          <button onClick={() => { setMode("period"); setPeriod("monthly"); }}
+            className="text-xs font-bold text-zinc-400 hover:text-red-500 flex items-center gap-1 transition-colors">
+            <X size={11} /> Clear
+          </button>
+        )}
+      </div>
+
+      {/* ── Error ── */}
+      {error && (
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+          <AlertCircle size={14} className="text-red-500 shrink-0" />
+          <p className="text-xs text-red-600 font-medium">{error}</p>
+          <Btn variant="secondary" size="sm" onClick={fetchAll} className="ml-auto">Retry</Btn>
+        </div>
+      )}
+
+      {/* ── Stat Cards ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <StatCard icon={<span className="font-black text-base">₱</span>} label="Gross Revenue"
+          value={loading ? "—" : fmt(grandTotal)} color="violet" />
+        <StatCard icon={<FileText size={16} />} label="Total Orders"
+          value={loading ? "—" : totalOrders.toLocaleString()} color="emerald" />
+        <StatCard icon={<TrendingUp size={16} />} label="Avg Order Value"
+          value={loading ? "—" : fmt(avgOrderValue)} color="amber" />
+        <StatCard icon={<Users size={16} />} label="Total Customers"
+          value={loading ? "—" : (totals?.total_customers ?? 0).toLocaleString()} color="red" />
+      </div>
+
+      {/* ── Sub-tabs (no "branches" tab since BM sees only their branch) ── */}
+      <div className="flex gap-2 border-b border-zinc-100 pb-0">
+        {([
+          { id: "overview",  label: "Revenue Trend"     },
+          { id: "products",  label: "Top Products"      },
+          { id: "payments",  label: "Payment Methods"   },
+        ] as const).map(tab => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+            className={`px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-colors -mb-px ${
+              activeTab === tab.id
+                ? "border-[#3b2063] text-[#3b2063]"
+                : "border-transparent text-zinc-400 hover:text-zinc-600"
+            }`}>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ── TAB: Revenue Trend ── */}
+      {activeTab === "overview" && (
+        <div className="grid grid-cols-12 gap-4">
+          {/* Area chart */}
+          <div className="col-span-12 lg:col-span-8 bg-white border border-zinc-200 rounded-[0.625rem] p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">Revenue Over Time</p>
+                <p className="text-sm font-bold text-[#1a0f2e] mt-0.5 capitalize">
+                  {mode === "period" ? `${period} view` : `${dateFrom} → ${dateTo}`}
+                </p>
+              </div>
+              <DollarSign size={16} className="text-zinc-300" />
+            </div>
+            {loading ? <SkeletonBar h="h-[240px]" /> : chartData.length === 0 ? (
+              <div className="h-60 flex items-center justify-center text-zinc-400 text-xs font-medium">No data for this period.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={240}>
+                <AreaChart data={chartData}>
                   <defs>
-                    <linearGradient id="sdLineGrad" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%"   stopColor="#3b2063" />
-                      <stop offset="100%" stopColor="#7c3aed" />
-                    </linearGradient>
-                    <linearGradient id="sdFillGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#7c3aed" stopOpacity="0.22" />
-                      <stop offset="95%" stopColor="#7c3aed" stopOpacity="0" />
+                    <linearGradient id="bmRevGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%"  stopColor="#3b2063" stopOpacity={0.18} />
+                      <stop offset="95%" stopColor="#3b2063" stopOpacity={0}    />
                     </linearGradient>
                   </defs>
-                  {linePoints.length > 1 && (
-                    <path d={buildFillPath(linePoints)} fill="url(#sdFillGrad)" vectorEffect="non-scaling-stroke" />
-                  )}
-                  {linePoints.length > 1 && (
-                    <path d={buildSmoothPath(linePoints)} fill="none"
-                      stroke="url(#sdLineGrad)" strokeWidth="2.5"
-                      vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" />
-                  )}
-                </svg>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11, fontWeight: 600, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fontWeight: 600, fill: "#a1a1aa" }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
+                  <Tooltip formatter={(v) => [`₱${Number(v ?? 0).toLocaleString()}`, "Revenue"] as [string, string]}
+                    contentStyle={{ borderRadius: 10, border: "1px solid #e5e7eb", fontSize: 12 }} />
+                  <Area type="monotone" dataKey="revenue" stroke="#3b2063" strokeWidth={2.5} fill="url(#bmRevGrad)" name="Revenue" />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </div>
 
-                {/* Hover dots */}
-                {linePoints.map((p, i) => (
-                  <div key={i} className="absolute z-10"
-                    style={{ left: `${p.x}%`, top: `${(p.y / WEEKLY_HEIGHT) * 100}%`, transform: 'translate(-50%,-50%)' }}
-                    onMouseEnter={() => setHoveredValue(p)}
-                    onMouseLeave={() => setHoveredValue(null)}
-                  >
-                    <div style={{
-                      width: 10, height: 10, borderRadius: '50%',
-                      background: '#fff', border: '2.5px solid #3b2063',
-                      boxShadow: hoveredValue === p ? '0 0 0 4px rgba(59,32,99,0.12)' : 'none',
-                      transition: 'box-shadow 0.12s, transform 0.12s',
-                      transform: hoveredValue === p ? 'scale(1.5)' : 'scale(1)',
-                    }} />
-                    {hoveredValue === p && (
-                      <div style={{
-                        position: 'absolute', bottom: 'calc(100% + 10px)', left: '50%',
-                        transform: 'translateX(-50%)', zIndex: 30,
-                        background: '#1a0f2e', color: '#fff', borderRadius: '0.625rem',
-                        padding: '6px 12px', whiteSpace: 'nowrap', pointerEvents: 'none',
-                        boxShadow: '0 4px 20px rgba(0,0,0,0.18)', textAlign: 'center',
-                      }}>
-                        <p style={{ fontSize: '0.5rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', opacity: 0.5, margin: 0, marginBottom: 2 }}>
-                          {p.date}
-                        </p>
-                        <p style={{ fontSize: '0.85rem', fontWeight: 800, margin: 0, letterSpacing: '-0.02em' }}>
-                          ₱ {p.value.toLocaleString()}
-                        </p>
-                        <div style={{
-                          position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
-                          width: 0, height: 0,
-                          borderLeft: '5px solid transparent', borderRight: '5px solid transparent',
-                          borderTop: '5px solid #1a0f2e',
-                        }} />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
+          {/* Orders bar chart */}
+          <div className="col-span-12 lg:col-span-4 bg-white border border-zinc-200 rounded-[0.625rem] p-6">
+            <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-1">Orders Volume</p>
+            <p className="text-sm font-bold text-[#1a0f2e] mb-4">Transaction Count</p>
+            {loading ? <SkeletonBar h="h-[240px]" /> : chartData.length === 0 ? (
+              <div className="h-60 flex items-center justify-center text-zinc-400 text-xs">No data.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={240}>
+                <BarChart data={chartData} barSize={12}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fontWeight: 600, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fontWeight: 600, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />
+                  <Tooltip formatter={(v) => [v, "Orders"] as [number, string]}
+                    contentStyle={{ borderRadius: 10, border: "1px solid #e5e7eb", fontSize: 12 }} />
+                  <Bar dataKey="orders" fill="#ede8ff" radius={[4, 4, 0, 0]} name="Orders" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
 
-              {/* X axis labels */}
-              <div className="flex justify-between pt-3 mt-1 border-t border-gray-50">
-                {weekly.map((d, i) => (
-                  <div key={i} className="text-center" style={{ width: `${100 / weekly.length}%` }}>
-                    <p className="sd-label" style={{ color: '#7c3aed', fontSize: '0.58rem' }}>{d.day}</p>
-                    <p className="sd-sub" style={{ color: '#d4d4d8', fontSize: '0.56rem' }}>{d.date.split(' ')[1]}</p>
-                  </div>
-                ))}
-              </div>
+          {/* Summary table */}
+          <div className="col-span-12 bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
+            <div className="px-5 py-4 border-b border-zinc-100">
+              <p className="text-sm font-bold text-[#1a0f2e]">Daily Breakdown</p>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-zinc-100">
+                    {["Date", "Orders", "Revenue", "Avg Order Value"].map(h => (
+                      <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {loading && [...Array(5)].map((_, i) => (
+                    <tr key={i} className="border-b border-zinc-50">
+                      {[...Array(4)].map((_, j) => (
+                        <td key={j} className="px-5 py-3.5"><div className="h-3 bg-zinc-100 rounded animate-pulse w-24" /></td>
+                      ))}
+                    </tr>
+                  ))}
+                  {!loading && breakdown.length === 0 && (
+                    <tr><td colSpan={4} className="px-5 py-10 text-center text-zinc-400 text-xs">No data for this period.</td></tr>
+                  )}
+                  {!loading && breakdown.map((row, i) => (
+                    <tr key={i} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
+                      <td className="px-5 py-3.5 font-medium text-zinc-700">{row.date}</td>
+                      <td className="px-5 py-3.5 text-zinc-600">{Number(row.orders).toLocaleString()}</td>
+                      <td className="px-5 py-3.5 font-bold text-[#3b2063]">{fmt(Number(row.revenue))}</td>
+                      <td className="px-5 py-3.5 text-zinc-600">
+                        {row.orders > 0 ? fmt(Number(row.revenue) / Number(row.orders)) : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                  {!loading && breakdown.length > 0 && (
+                    <tr className="bg-zinc-50 border-t border-zinc-200">
+                      <td className="px-5 py-3.5 font-black text-[#1a0f2e] text-xs uppercase tracking-widest">Total</td>
+                      <td className="px-5 py-3.5 font-black text-[#1a0f2e]">{totalOrders.toLocaleString()}</td>
+                      <td className="px-5 py-3.5 font-black text-[#3b2063]">{fmt(grandTotal)}</td>
+                      <td className="px-5 py-3.5 font-bold text-zinc-600">{fmt(avgOrderValue)}</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
+      )}
 
-        {/* ── STAT CARDS + HOURLY CHART ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-
-          {/* Stat cards grid — same as dashboard statCards */}
-          <div className="grid grid-cols-2 gap-4">
-            {statCards.map((s, i) => <StatCard key={i} {...s} />)}
-          </div>
-
-          {/* Hourly Chart — mirrors Top Sellers card style */}
-          <div className="bg-white border border-gray-100 rounded-2xl p-5 flex flex-col hover:shadow-md hover:border-[#ddd6f7] transition-all">
-
-            {/* Card header */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: '#ede9fe', color: '#7c3aed' }}>
-                  <Activity size={16} strokeWidth={2.5} />
-                </div>
-                <div>
-                  <h2 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.025em', margin: 0 }}>
-                    Hourly Distribution
-                  </h2>
-                  <p className="sd-label" style={{ color: '#a1a1aa', marginTop: 2 }}>Today's shift analytics</p>
-                </div>
-              </div>
-              <div className="sd-live">
-                <div className="sd-live-dot" />
-                <span className="sd-live-text">Live</span>
-              </div>
+      {/* ── TAB: Top Products ── */}
+      {activeTab === "products" && (
+        <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
+          <div className="px-5 py-4 border-b border-zinc-100 flex items-center gap-3">
+            <div className="flex-1 flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
+              <Search size={13} className="text-zinc-400" />
+              <input value={search} onChange={e => setSearch(e.target.value)}
+                className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400"
+                placeholder="Search products..." />
+              {search && <button onClick={() => setSearch("")} className="text-zinc-300 hover:text-zinc-500"><X size={12} /></button>}
             </div>
-
-            {/* Chart */}
-            <div className="flex gap-3 flex-1" ref={barRef}>
-              {/* Y axis */}
-              <div className="flex flex-col justify-between text-right shrink-0 w-8 pb-6"
-                style={{ height: TODAY_HEIGHT + 24 }}>
-                {yLabels.map(v => (
-                  <span key={v} className="sd-label" style={{ color: '#d4d4d8', fontSize: '0.56rem' }}>
-                    {v === 0 ? '0' : `${v/1000}k`}
-                  </span>
-                ))}
-              </div>
-
-              <div className="flex-1 flex flex-col">
-                <div className="relative" style={{ height: TODAY_HEIGHT }}>
-                  {/* Grid lines */}
-                  {yLabels.map((_, i) => (
-                    <div key={i} className="absolute left-0 right-0 h-px"
-                      style={{ top: `${(i / (yLabels.length - 1)) * 100}%`, background: i === yLabels.length - 1 ? '#e4e4e7' : '#f4f4f5' }} />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 shrink-0">
+              {filteredProducts.length} items
+            </span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-zinc-100">
+                  {["#", "Product", "Qty Sold", "Revenue", "Contribution"].map(h => (
+                    <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
                   ))}
-
-                  {filteredTodayData.some(d => d.value > 0) ? (
-                    <div className="absolute inset-0 flex items-end gap-0.5 px-0.5">
-                      {filteredTodayData.map((d, i) => {
-                        const pct       = animatedBars ? getBarHeight(d.value) : 0;
-                        const isHovered = hoveredBar === i;
-                        const hasValue  = d.value > 0;
-                        return (
-                          <div key={i} className="relative flex-1 h-full flex items-end cursor-pointer"
-                            onMouseEnter={() => setHoveredBar(i)}
-                            onMouseLeave={() => setHoveredBar(null)}
-                          >
-                            <div className="w-full rounded-t-sm transition-all duration-700 ease-out"
-                              style={{
-                                height: `${pct}%`,
-                                background: isHovered
-                                  ? 'linear-gradient(to top, #1a0f2e, #7c3aed)'
-                                  : hasValue ? '#3b2063' : '#f4f4f5',
-                                opacity: hasValue ? (isHovered ? 1 : 0.55 + (i / filteredTodayData.length) * 0.35) : 1,
-                                transitionDelay: `${i * 18}ms`,
-                                transform: isHovered ? 'scaleX(1.15)' : 'scaleX(1)',
-                              }}
-                            />
-                            {isHovered && hasValue && (
-                              <div style={{
-                                position: 'absolute', bottom: 'calc(100% + 8px)', left: '50%',
-                                transform: 'translateX(-50%)', zIndex: 20,
-                                background: '#1a0f2e', color: '#fff', borderRadius: '0.5rem',
-                                padding: '5px 10px', whiteSpace: 'nowrap', pointerEvents: 'none',
-                                boxShadow: '0 4px 16px rgba(0,0,0,0.18)', textAlign: 'center',
-                              }}>
-                                <p style={{ fontSize: '0.5rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', opacity: 0.5, margin: 0, marginBottom: 2 }}>
-                                  {d.label}
-                                </p>
-                                <p style={{ fontSize: '0.8rem', fontWeight: 800, margin: 0 }}>
-                                  ₱ {d.value.toLocaleString()}
-                                </p>
-                                <div style={{
-                                  position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)',
-                                  width: 0, height: 0,
-                                  borderLeft: '4px solid transparent', borderRight: '4px solid transparent',
-                                  borderTop: '4px solid #1a0f2e',
-                                }} />
-                              </div>
-                            )}
+                </tr>
+              </thead>
+              <tbody>
+                {loading && [...Array(8)].map((_, i) => (
+                  <tr key={i} className="border-b border-zinc-50">
+                    {[...Array(5)].map((_, j) => (
+                      <td key={j} className="px-5 py-4"><div className="h-3 bg-zinc-100 rounded animate-pulse" style={{ width: `${60 + Math.random() * 40}%` }} /></td>
+                    ))}
+                  </tr>
+                ))}
+                {!loading && filteredProducts.length === 0 && (
+                  <tr><td colSpan={5} className="px-5 py-10 text-center text-zinc-400 text-xs">
+                    {search ? "No products match your search." : "No product data for this period."}
+                  </td></tr>
+                )}
+                {!loading && filteredProducts.map((p, i) => {
+                  const maxQty = topProducts[0]?.total_quantity ?? 1;
+                  const pct    = Math.round((p.total_quantity / maxQty) * 100);
+                  const totalRev = topProducts.reduce((s, x) => s + Number(x.total_revenue), 0);
+                  const revShare = totalRev > 0 ? Math.round((Number(p.total_revenue) / totalRev) * 100) : 0;
+                  return (
+                    <tr key={i} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
+                      <td className="px-5 py-3.5">
+                        <div className="w-5 h-5 rounded-md bg-violet-50 border border-violet-200 flex items-center justify-center shrink-0">
+                          <span className="text-[9px] font-black text-violet-600">{i + 1}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 font-semibold text-[#1a0f2e]">{p.product_name}</td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-16 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full bg-[#3b2063]" style={{ width: `${pct}%` }} />
                           </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-                      <div className="w-10 h-10 rounded-2xl flex items-center justify-center" style={{ background: '#f4f4f5' }}>
-                        <Activity size={16} color="#d4d4d8" />
-                      </div>
-                      <p className="sd-label" style={{ color: '#d4d4d8' }}>No shift activity recorded</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* X axis labels */}
-                <div className="flex gap-0 px-0.5 mt-2 pt-2 border-t border-gray-50">
-                  {filteredTodayData.map((d, i) => (
-                    <div key={i} className="flex-1 text-center">
-                      {LABEL_HOURS.has(d.hour) && (
-                        <p className="sd-label" style={{ color: '#d4d4d8', fontSize: '0.54rem' }}>{d.label}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Footer total — mirrors dashboard's bottom bar */}
-            <div className="mt-4 pt-3 border-t border-gray-50 flex items-center justify-between">
-              <p className="sd-label" style={{ color: '#a1a1aa' }}>Today's total</p>
-              <p style={{ fontSize: '0.92rem', fontWeight: 800, color: '#3b2063', letterSpacing: '-0.02em' }}>
-                {fmt(stats.today_sales ?? 0)}
-              </p>
-            </div>
+                          <span className="text-zinc-600 font-medium">{p.total_quantity.toLocaleString()}x</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 font-bold text-emerald-600">{fmt(Number(p.total_revenue))}</td>
+                      <td className="px-5 py-3.5 text-xs font-bold text-zinc-500">{revShare}%</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
+      )}
 
-      </section>
-    </>
+      {/* ── TAB: Payment Methods ── */}
+      {activeTab === "payments" && (
+        <div className="grid grid-cols-12 gap-4">
+          {/* Bar chart */}
+          <div className="col-span-12 lg:col-span-7 bg-white border border-zinc-200 rounded-[0.625rem] p-6">
+            <p className="text-xs font-bold uppercase tracking-widest text-zinc-500 mb-1">Payment Distribution</p>
+            <p className="text-sm font-bold text-[#1a0f2e] mb-4">Revenue by Payment Method</p>
+            {loading ? <SkeletonBar h="h-[200px]" /> : paymentChartData.length === 0 ? (
+              <div className="h-48 flex items-center justify-center text-zinc-400 text-xs">No payment data for this period.</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={paymentChartData} barSize={32}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" vertical={false} />
+                  <XAxis dataKey="method" tick={{ fontSize: 11, fontWeight: 600, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fontWeight: 600, fill: "#a1a1aa" }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
+                  <Tooltip formatter={(v) => [`₱${Number(v ?? 0).toLocaleString()}`, "Revenue"] as [string, string]}
+                    contentStyle={{ borderRadius: 10, fontSize: 12 }} />
+                  {paymentChartData.map((entry, i) => (
+                    <Bar key={i} dataKey="revenue" fill={entry.color} radius={[4, 4, 0, 0]} />
+                  ))}
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          {/* Payment summary cards */}
+          <div className="col-span-12 lg:col-span-5 flex flex-col gap-3">
+            <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">Summary</p>
+            {loading ? (
+              [...Array(4)].map((_, i) => <SkeletonBar key={i} h="h-16" />)
+            ) : paymentChartData.length === 0 ? (
+              <div className="text-zinc-400 text-xs text-center py-8">No data.</div>
+            ) : (
+              paymentChartData.map((pm, i) => {
+                const totalPay = paymentChartData.reduce((s, x) => s + x.revenue, 0);
+                const share    = totalPay > 0 ? Math.round((pm.revenue / totalPay) * 100) : 0;
+                return (
+                  <div key={i} className="bg-white border border-zinc-200 rounded-[0.625rem] px-4 py-3.5 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 rounded-full shrink-0" style={{ background: pm.color }} />
+                      <div>
+                        <p className="text-xs font-bold text-[#1a0f2e]">{pm.method}</p>
+                        <p className="text-[10px] text-zinc-400">{share}% of total</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm font-black text-[#1a0f2e] tabular-nums">{fmt(pm.revenue)}</p>
+                      <div className="w-20 h-1.5 bg-zinc-100 rounded-full overflow-hidden mt-1 ml-auto">
+                        <div className="h-full rounded-full" style={{ width: `${share}%`, background: pm.color }} />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+            {!loading && paymentChartData.length > 0 && (
+              <div className="bg-zinc-50 border border-zinc-200 rounded-[0.625rem] px-4 py-3.5 flex items-center justify-between">
+                <p className="text-xs font-black text-[#1a0f2e] uppercase tracking-widest">Total</p>
+                <p className="text-sm font-black text-[#3b2063]">
+                  {fmt(paymentChartData.reduce((s, x) => s + x.revenue, 0))}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
