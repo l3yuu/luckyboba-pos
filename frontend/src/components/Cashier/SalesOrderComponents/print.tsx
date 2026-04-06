@@ -20,6 +20,10 @@ interface ReceiptPrintProps {
   vatRegTin?: string;
   minNumber?: string;
   serialNumber?: string;
+  businessName?: string;
+  businessEmail?: string;
+  businessPhone?: string;
+  businessAddress?: string;
   orNumber: string;
   queueNumber: string;
   cashierName: string;
@@ -62,12 +66,14 @@ interface ReceiptPrintProps {
     pos_valid_until?: string;
     pos_ptu?:         string;
     pos_ptu_date?:    string;
+    business_name?:   string;
   };
   receiptFooter?: string;
 }
 
 export const ReceiptPrint = ({
   cart, branchName, brand, companyName, storeAddress, vatRegTin, minNumber, serialNumber, ownerName,
+  businessName, businessEmail, businessPhone, businessAddress,
   orNumber, queueNumber, cashierName,
   formattedDate, formattedTime, orderCharge, totalCount,
   subtotal, amtDue, vatableSales, vatAmount, vatExemptSales = 0, change, cashTendered,
@@ -76,7 +82,7 @@ export const ReceiptPrint = ({
   orderType,
   customerName,
   totalDiscountDisplay, itemDiscountTotal, promoDiscount, addOnsData = [], showDoubleQueueStub = true,
-  isReprint: _isReprint = false,
+  isReprint = false,
   vatType = 'vat',
   paxSenior = 0,
   paxPwd = 0,
@@ -101,7 +107,10 @@ export const ReceiptPrint = ({
         {/* Store header */}
         <div className="text-center mb-4 border-b border-black pb-3">
           <img src={logo} alt="Lucky Boba Logo" className="w-48 h-auto mx-auto mb-2 grayscale" style={{ filter: 'grayscale(100%) contrast(1.2)' }} />
-          <h1 className="uppercase leading-tight font-bold text-xl">{brand || 'LUCKY BOBA MILKTEA'}</h1>
+          <h1 className="uppercase leading-tight font-bold text-xl">{businessName || posFooter.business_name || brand || 'LUCKY BOBA'}</h1>
+          {isReprint && (
+            <div className="absolute top-2 right-2 border-2 border-black px-2 py-1 font-bold text-xs rotate-12 opacity-50">REPRINT</div>
+          )}
           {ownerName && (
             <div className="text-center text-[10px] leading-tight">
               <span>Owned and Operated By:</span>
@@ -406,7 +415,23 @@ export const ReceiptPrint = ({
         </div>
 
         <div className="mt-6 mb-4 text-center text-xs">
-          FOR FRANCHISE<br />EMAIL OR CONTACT US ON<br />luckyboba.franchise@gmail.com<br />09171699894
+          {(businessEmail || businessPhone || businessAddress) && (
+            <>
+              FOR FRANCHISE<br />
+              EMAIL OR CONTACT US ON<br />
+              {businessEmail || 'luckyboba.franchise@gmail.com'}<br />
+              {businessPhone || '09171699894'}<br />
+              {businessAddress && <div className="mt-1 normal-case">{businessAddress}</div>}
+            </>
+          )}
+          {!businessName && !businessEmail && !businessPhone && !businessAddress && (
+            <>
+              FOR FRANCHISE<br />
+              EMAIL OR CONTACT US ON<br />
+              luckyboba.franchise@gmail.com<br />
+              09171699894
+            </>
+          )}
         </div>
 
         {receiptFooter && (
@@ -456,24 +481,40 @@ export const ReceiptPrint = ({
 interface KitchenPrintProps {
   cart: CartItem[];
   branchName: string;
+  brand?: string;
+  businessName?: string;
+  businessEmail?: string;
+  businessPhone?: string;
+  businessAddress?: string;
   orNumber: string;
   queueNumber: string;
+  cashierName: string;
   formattedDate: string;
   formattedTime: string;
   customerName: string;
   orderType: 'dine-in' | 'take-out' | 'delivery';
+  isReprint?: boolean;
+  posFooter?: any;
 }
 
 export const KitchenPrint = ({
-  cart, branchName, orNumber, queueNumber, formattedDate, formattedTime, orderType,
+  cart, branchName, brand, businessName, businessEmail, businessPhone, businessAddress,
+  orNumber, queueNumber, cashierName,
+  formattedDate, formattedTime, orderType,
   customerName,
+  isReprint = false,
+  posFooter = {},
 }: KitchenPrintProps) => (
   <div className="printable-receipt-container hidden print:block">
     <div className="receipt-area bg-white text-black">
       <div className="text-center mb-4 border-b-4 border-black pb-3">
-        <h1 className="uppercase leading-tight font-black text-3xl mb-1">ORDER TICKET</h1>
+        <h1 className="uppercase leading-tight font-black text-2xl mb-1">{businessName || posFooter.business_name || brand || 'LUCKY BOBA'}</h1>
+        {isReprint && (
+          <div className="text-sm font-bold border-2 border-black inline-block px-2 mt-1">REPRINT</div>
+        )}
         <h2 className="font-bold text-lg uppercase tracking-widest">{branchName}</h2>
-        <div className="mt-2 text-sm uppercase">
+        <div className="mt-2 text-sm uppercase font-bold">
+          <div>ORDER TICKET</div>
           <div>Customer: {customerName || 'N/A'}</div>
           <div>Mode: {orderType === 'dine-in' ? 'DINE IN' : 'TAKE OUT'}</div>
         </div>
@@ -532,6 +573,13 @@ export const KitchenPrint = ({
       </div>
 
       <div className="text-center text-sm mt-4 uppercase tracking-widest">--- END OF TICKET ---</div>
+      
+      <div className="mt-4 pt-2 border-t border-black text-center text-[8px] uppercase">
+        {cashierName && <div>Cashier: {cashierName}</div>}
+        {businessEmail && <div>{businessEmail}</div>}
+        {businessPhone && <div>{businessPhone}</div>}
+        {businessAddress && <div className="normal-case">{businessAddress}</div>}
+      </div>
     </div>
   </div>
 );
@@ -543,12 +591,15 @@ export const KitchenPrint = ({
 interface StickerPrintProps {
   cart: CartItem[];
   branchName: string;
+  brand?: string;
+  businessName?: string;
   orNumber: string;
   queueNumber: string;
   customerName: string;
   formattedDate: string;
   formattedTime: string;
   orderType: 'dine-in' | 'take-out' | 'delivery';
+  posFooter?: any;
 }
 
 interface StickerClasses {
@@ -587,15 +638,19 @@ const getStickerClasses = (extraCount: number, nameLength = 0): StickerClasses =
 
 const StickerHeader = ({
   branchName, orNumber, queueNumber, customerName, drinkIndex, totalDrinks, cls, orderType,
+  businessName, brand, posFooter = {},
 }: {
   branchName: string; orNumber: string; queueNumber: string;
   customerName: string; drinkIndex: number; totalDrinks: number;
   cls: StickerClasses;
   orderType: 'dine-in' | 'take-out' | 'delivery';
+  businessName?: string;
+  brand?: string;
+  posFooter?: any;
 }) => (
   <div className="w-full text-center flex flex-col items-center">
     <div className={`font-black uppercase leading-none ${cls.isVeryCrowded ? 'text-[9px]' : 'text-[11px]'}`}>
-      LUCKY BOBA
+      {businessName || posFooter.business_name || brand || 'LUCKY BOBA'}
     </div>
     <div className={`font-bold uppercase leading-none tracking-widest ${cls.isVeryCrowded ? 'text-[4.5px] mt-0' : 'text-[6px] mt-0.5'}`}>
       {branchName.toUpperCase()}
@@ -627,7 +682,9 @@ const StickerFooter = ({ cls, formattedDate, formattedTime }: { cls: StickerClas
 );
 
 export const StickerPrint = ({
-  cart, branchName, orNumber, queueNumber, customerName, formattedDate, formattedTime, orderType
+  cart, branchName, brand, businessName,
+  orNumber, queueNumber, customerName, formattedDate, formattedTime, orderType,
+  posFooter = {},
 }: StickerPrintProps) => {
   const stickers: React.ReactNode[] = [];
   let drinkIndex = 1;
@@ -642,7 +699,7 @@ export const StickerPrint = ({
     return acc + (isSticker ? item.qty : 0) + (!isSticker && isMixMatch ? item.qty : 0) + (!isSticker ? waffleCount : 0);
   }, 0);
 
-  const sharedProps = { branchName, orNumber, queueNumber, customerName, totalDrinks, formattedDate, formattedTime, orderType };
+  const sharedProps = { branchName, orNumber, queueNumber, customerName, totalDrinks, formattedDate, formattedTime, orderType, businessName, brand, posFooter };
 
   cart.forEach((item, cartIndex) => {
 
