@@ -30,6 +30,7 @@ interface XReadingReport {
   non_cash_total?: number;
   report_type?: string;
   logs?: { id: string; reason: string; amount: number; time: string }[];
+  items?: { product_name: string; total_qty: number; total_sales?: number }[];
   hourly_data?: { hour: number; total: number; count: number }[];
   transactions?: {
     Invoice: string; Amount: number; Status: string; Date_Time: string;
@@ -37,7 +38,10 @@ interface XReadingReport {
     Items_Count?: number; Disc?: number;
   }[];
   cash_count?: { denominations: { label: string; qty: number; total: number }[]; grand_total: number };
-  search_results?: { Invoice: string; Amount: number; Status?: string; Date_Time?: string }[];
+  denominations?: { label: string; qty: number; total: number }[];
+  grand_total?: number;
+  search_results?: { Invoice: string; Amount: number; Status?: string; Date_Time?: string; Method?: string; Date?: string; Cashier?: string; Vatable?: number; Tax?: number; Items_Count?: number; Disc?: number }[];
+  results?: { Invoice: string; Amount: number; Status?: string; Date_Time?: string }[];
   grand_total_revenue?: number;
   vatable_sales?: number;
   vat_amount?: number;
@@ -55,12 +59,19 @@ interface XReadingReport {
       add_ons: { name: string; qty: number }[];
     }[];
   }[];
+  from_date?: string;
+  to_date?: string;
   payment_breakdown?: { method: string; amount: number }[];
   total_discounts?: number;
   total_void_amount?: number;
+  average_order_value?: number;
+  sc_pwd_discount?: number;
   sc_discount?: number;
   pwd_discount?: number;
   diplomat_discount?: number;
+  total_senior_pax?: number;
+  total_pwd_pax?: number;
+  total_diplomat_pax?: number;
   beg_si?: string;
   end_si?: string;
   total_qty_sold?: number;
@@ -68,6 +79,7 @@ interface XReadingReport {
   cash_in_drawer?: number;
   cash_in?: number;
   summary_data?: { Sales_Date: string; Total_Orders: number; Daily_Revenue: number }[];
+  data?: { Sales_Date: string; Total_Orders: number; Daily_Revenue: number }[];
 }
 
 interface BtnProps {
@@ -111,7 +123,6 @@ const XReadingTab: React.FC = () => {
 
   const [branchId,     setBranchId]     = useState("");
   const [date,         setDate]         = useState(today);
-  const [shift,        setShift]        = useState("all");
   const [loading,      setLoading]      = useState(false);
   const [error,        setError]        = useState("");
   const [reportData,   setReportData]   = useState<XReadingReport | null>(null);
@@ -129,9 +140,10 @@ const XReadingTab: React.FC = () => {
     fetch("/api/branches", { headers: authHeaders() })
       .then(r => r.json())
       .then(d => {
-        if (d.success && d.data.length > 0) {
-          setBranches(d.data);
-          setBranchId(String(d.data[0].id));
+        const list = d.success ? d.data : (Array.isArray(d) ? d : []);
+        if (list.length > 0) {
+          setBranches(list);
+          setBranchId(String(list[0].id));
         }
       })
       .catch(() => {});
@@ -221,7 +233,6 @@ const fetchReading = useCallback(async () => {
   setReportData(null);
   try {
     const params = new URLSearchParams({ branch_id: branchId, date });
-    if (shift !== "all") params.set("shift", shift);
 
     // ── Special case: summary needs two endpoints merged ──────────────────
     if (reportType === "summary") {
@@ -236,6 +247,27 @@ const fetchReading = useCallback(async () => {
       };
       const normalized = normalizeResponse("summary", merged as Record<string, unknown>);
       setReportData({ ...normalized, report_type: "summary" });
+      return;
+    }
+
+    // ── Handle exports (download CSV, don't render receipt) ────────────────
+    if (reportType === "export_sales" || reportType === "export_items") {
+      try {
+        const endpoint = reportType === "export_sales" ? "export-sales" : "export-items";
+        const res = await fetch(`/api/reports/${endpoint}?${params}`, { headers: authHeaders() });
+        if (!res.ok) throw new Error("Export failed");
+        const blob = await res.blob();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement("a");
+        a.href     = url;
+        a.download = `lucky_boba_${endpoint}_${date}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch {
+        setError("Export failed. Please try again.");
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 
@@ -264,25 +296,27 @@ const fetchReading = useCallback(async () => {
   } finally {
     setLoading(false);
   }
-}, [branchId, date, shift, reportType, invoiceQuery]);
+}, [branchId, date, reportType, invoiceQuery]);
 
   useEffect(() => {
     if (branchId) fetchReading();
-  }, [fetchReading, branchId]);
+  }, [fetchReading]);
 
   const handlePrint = () => window.print();
 
   const selectedBranchName = branches.find(b => String(b.id) === branchId)?.name ?? "—";
 
   const menuCards = [
-    { label: "REPORT",      title: "HOURLY SALES",   type: "hourly_sales", color: "border-[#7c14d4]"   },
-    { label: "OVERVIEW",    title: "SALES SUMMARY",  type: "summary",      color: "border-amber-400"   },
-    { label: "AUDIT",       title: "VOID LOGS",      type: "void_logs",    color: "border-[#7c14d4]"   },
-    { label: "TRANSACTION", title: "SEARCH RECEIPT", type: "search",       color: "border-[#7c14d4]"   },
-    { label: "ANALYSIS",    title: "SALES DETAILED", type: "detailed",     color: "border-[#7c14d4]"   },
-    { label: "INVENTORY",   title: "QTY ITEMS",      type: "qty_items",    color: "border-[#7c14d4]"   },
-    { label: "X-READING",   title: "X-READING",      type: "x_reading",    color: "border-emerald-500" },
-    { label: "CASH COUNT",  title: "CASH COUNT",     type: "cash_count",   color: "border-[#7c14d4]"   },
+    { label: "REPORT",          title: "HOURLY SALES",         type: "hourly_sales", color: "border-[#7c14d4]"   },
+    { label: "OVERVIEW",        title: "SALES SUMMARY REPORT", type: "summary",      color: "border-amber-400"   },
+    { label: "AUDIT",           title: "VOID LOGS",            type: "void_logs",    color: "border-[#7c14d4]"   },
+    { label: "TRANSACTION",     title: "SEARCH RECEIPT",       type: "search",       color: "border-[#7c14d4]"   },
+    { label: "DATA MANAGEMENT", title: "EXPORT SALES",         type: "export_sales", color: "border-[#7c14d4]"   },
+    { label: "ANALYSIS",        title: "SALES DETAILED",       type: "detailed",     color: "border-[#7c14d4]"   },
+    { label: "INVENTORY",       title: "EXPORT ITEMS",         type: "export_items", color: "border-[#7c14d4]"   },
+    { label: "INVENTORY",       title: "QTY ITEMS",            type: "qty_items",    color: "border-[#7c14d4]"   },
+    { label: "X-READING",       title: "X-READING",            type: "x_reading",    color: "border-emerald-500" },
+    { label: "CASH COUNT",      title: "CASH COUNT",           type: "cash_count",   color: "border-[#7c14d4]"   },
   ];
 
   // ── Receipt render functions (ported from cashier) ────────────────────────
@@ -552,7 +586,7 @@ const fetchReading = useCallback(async () => {
               <span className="w-[30%] text-right uppercase">Amount</span>
             </div>
             {reportData.categories.map((cat, catIdx) => {
-              const hasSizes = cat.products.some(p => p.size !== null);
+              const hasSizes = cat.products.some(p => p.size !== null && p.size !== undefined);
               const sizeGroups = new Map<string | null, typeof cat.products>();
               for (const product of cat.products) {
                 const key = product.size ?? null;
@@ -593,8 +627,59 @@ const fetchReading = useCallback(async () => {
                 </div>
               );
             })}
+            {reportData.all_addons_summary && reportData.all_addons_summary.length > 0 && (
+              <div className="mt-1">
+                <p className="text-[11px] uppercase">ADD ONS</p>
+                {reportData.all_addons_summary.map((addon, idx) => (
+                  <div key={idx} className="flex text-[11px] leading-snug">
+                    <span className="w-[70%] uppercase pl-2">{addon.name}</span>
+                    <span className="w-[30%] text-right">x{addon.qty}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-800 mt-1 pt-1">
+                  <span className="uppercase">T. Per: ADD ONS</span>
+                  <span>QTY: {reportData.all_addons_summary.reduce((a, b) => a + b.qty, 0)}</span>
+                </div>
+              </div>
+            )}
           </>
         )}
+        {/* ── Cup size totals ── */}
+        {(() => {
+          const sizeTotals = new Map<string, number>();
+          let noSizeTotal = 0;
+          reportData?.categories?.forEach(cat => {
+            cat.products.forEach(product => {
+              if (product.size) sizeTotals.set(product.size, (sizeTotals.get(product.size) ?? 0) + product.total_qty);
+              else noSizeTotal += product.total_qty;
+            });
+          });
+          const SIZE_ORDER2 = ["SM","UM","PCM","JR","SL","UL","PCL"];
+          const orderedSizes = [...SIZE_ORDER2.filter(s => sizeTotals.has(s)), ...[...sizeTotals.keys()].filter(s => !SIZE_ORDER2.includes(s)).sort()];
+          const grandTotalQty = orderedSizes.reduce((a, s) => a + (sizeTotals.get(s) ?? 0), 0) + noSizeTotal;
+          if (orderedSizes.length === 0 && noSizeTotal === 0) return null;
+          return (
+            <>
+              <p className="text-[11px] uppercase font-bold mb-0.5">CUP SIZE TOTALS</p>
+              {orderedSizes.map(size => (
+                <div key={size} className="flex text-[11px] leading-snug">
+                  <span className="w-[65%] uppercase pl-2">{size}</span>
+                  <span className="w-[35%] text-right">{sizeTotals.get(size) ?? 0} cups</span>
+                </div>
+              ))}
+              {noSizeTotal > 0 && (
+                <div className="flex text-[11px] leading-snug">
+                  <span className="w-[65%] uppercase pl-2">OTHER / NO SIZE</span>
+                  <span className="w-[35%] text-right">{noSizeTotal} pcs</span>
+                </div>
+              )}
+              <div className="flex text-[11px] border-t border-dashed border-zinc-800 mt-0.5 pt-0.5">
+                <span className="w-[65%] uppercase font-bold">TOTAL CUPS SOLD</span>
+                <span className="w-[35%] text-right font-bold">{grandTotalQty}</span>
+              </div>
+            </>
+          );
+        })()}
         <ReceiptDivider />
         <div className="flex text-[11px] justify-end gap-2 mb-0.5">
           <span className="uppercase">Total:</span>
@@ -602,27 +687,30 @@ const fetchReading = useCallback(async () => {
         </div>
         <ReceiptDivider />
         {[
-          { label: "Less PWD Discount:", value: pwdDiscount > 0 ? `-${phCurrency.format(pwdDiscount)}` : phCurrency.format(0) },
-          { label: "Less SC Discount:",  value: scDiscount  > 0 ? `-${phCurrency.format(scDiscount)}`  : phCurrency.format(0) },
-          { label: "Less Diplomat:",     value: diplomat    > 0 ? `-${phCurrency.format(diplomat)}`    : phCurrency.format(0) },
-          { label: "Less Other Disc:",   value: otherDisc   > 0 ? `-${phCurrency.format(otherDisc)}`  : phCurrency.format(0) },
-          { label: "Less 12% VAT:",      value: reportIsVat && vatAmt > 0 ? `-${phCurrency.format(vatAmt)}` : phCurrency.format(0) },
+          { label: "LINE DISC:",             value: phCurrency.format(0) },
+          { label: "LESS POINTS REDEEMED:",  value: phCurrency.format(0) },
+          { label: "LESS REG EMP VIP DISC:", value: phCurrency.format(0) },
+          { label: "LESS PWD DISCOUNT:",     value: pwdDiscount > 0 ? `-${phCurrency.format(pwdDiscount)}` : phCurrency.format(0) },
+          { label: "LESS SC DISCOUNT:",      value: scDiscount  > 0 ? `-${phCurrency.format(scDiscount)}`  : phCurrency.format(0) },
+          { label: "LESS DIPLOMAT:",         value: diplomat    > 0 ? `-${phCurrency.format(diplomat)}`    : phCurrency.format(0) },
+          { label: "LESS OTHER DISC:",       value: otherDisc   > 0 ? `-${phCurrency.format(otherDisc)}`  : phCurrency.format(0) },
+          { label: "LESS 12% VAT:",          value: reportIsVat && vatAmt > 0 ? `-${phCurrency.format(vatAmt)}` : phCurrency.format(0) },
         ].map((r, i) => (
           <div key={i} className="flex text-[11px] leading-snug">
             <span className="flex-1 text-right uppercase pr-1">{r.label}</span>
             <span className="w-[35%] text-right">{r.value}</span>
           </div>
         ))}
-        <div className="flex text-[11px] border-t border-black mt-0.5 pt-0.5">
-          <span className="flex-1 text-right uppercase pr-1 font-bold">Net Amount:</span>
+        <div className="flex text-[11px] leading-snug border-t border-black mt-0.5 pt-0.5">
+          <span className="flex-1 text-right uppercase pr-1 font-bold">NET AMOUNT:</span>
           <span className="w-[35%] text-right font-bold">{phCurrency.format(netAmount)}</span>
         </div>
         <ReceiptDivider />
         {[
-          { label: "Vatable Sales:",    value: phCurrency.format(reportIsVat ? vatableSales : 0) },
-          { label: "VAT Amount:",       value: phCurrency.format(reportIsVat ? vatAmt : 0) },
-          { label: "VAT Exempt Sales:", value: phCurrency.format(reportData?.vat_exempt_sales || 0) },
-          { label: "Zero Rated Sales:", value: phCurrency.format(0) },
+          { label: "VATABLE SALES:",    value: phCurrency.format(reportIsVat ? vatableSales : 0) },
+          { label: "VAT AMOUNT:",       value: phCurrency.format(reportIsVat ? vatAmt : 0) },
+          { label: "VAT EXEMPT SALES:", value: phCurrency.format(reportData?.vat_exempt_sales || 0) },
+          { label: "ZERO RATED SALES:", value: phCurrency.format(0) },
         ].map((r, i) => (
           <div key={i} className="flex text-[11px] leading-snug">
             <span className="flex-1 text-right uppercase pr-1">{r.label}</span>
@@ -630,8 +718,21 @@ const fetchReading = useCallback(async () => {
           </div>
         ))}
         <ReceiptDivider />
-        <ReceiptRow label="SC and PWD Amount:" value={phCurrency.format(scDiscount + pwdDiscount)} />
-        <ReceiptRow label="Total Voids:"       value={phCurrency.format(voids)} />
+        <div className="flex text-[11px] leading-snug">
+          <span className="flex-1 text-right uppercase pr-1">SC AND PWD AMOUNT:</span>
+          <span className="w-[35%] text-right">{phCurrency.format(scDiscount + pwdDiscount)}</span>
+        </div>
+        <div className="flex text-[11px] leading-snug">
+          <span className="flex-1 text-right uppercase pr-1">TOTAL VOIDS:</span>
+          <span className="w-[35%] text-right">{phCurrency.format(voids)}</span>
+        </div>
+        <div className="flex text-[11px] mt-1 leading-snug">
+          <span className="flex-1 text-right uppercase pr-1">PRINTED:</span>
+          <span className="w-[45%] text-right">
+            {new Date().toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" })}{" "}
+            {new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+          </span>
+        </div>
       </div>
     );
   };
@@ -668,50 +769,58 @@ const fetchReading = useCallback(async () => {
     return (
       <div className="my-2">
         <ReceiptDivider />
-        <ReceiptRow label="Report Date"       value={date} />
-        <ReceiptRow label="Branch"            value={selectedBranchName} />
-        <ReceiptRow label="Shift"             value={shift === "all" ? "All Shifts" : shift.toUpperCase() + " Shift"} />
-        <ReceiptRow label="Beg. SI #"         value={reportData?.beg_si || "0000000000"} />
-        <ReceiptRow label="End. SI #"         value={reportData?.end_si || "0000000000"} />
+        <ReceiptRow label="REPORT DATE"       value={date} />
+        <ReceiptRow label="START DATE & TIME" value={`${date} ${new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`} />
+        <ReceiptRow label="END DATE & TIME"   value={`${date} ${new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`} />
+        <ReceiptRow label="TERMINAL #"        value="POS-01" />
+        <ReceiptRow label="BRANCH"            value={selectedBranchName} />
+        <ReceiptRow label="CASHIER"           value={reportData?.prepared_by || "ADMIN USER"} />
+        <ReceiptRow label="BEG. SI #"         value={reportData?.beg_si || "0000000000"} />
+        <ReceiptRow label="END. SI #"         value={reportData?.end_si || "0000000000"} />
         <ReceiptDivider />
-        <p className="text-[11px] uppercase text-center font-bold mb-0.5">Breakdown of Sales</p>
-        <ReceiptRow label="Vatable Sales"    value={phCurrency.format(reportIsVat ? vatableSales : 0)} />
-        <ReceiptRow label="VAT Amount"       value={phCurrency.format(reportIsVat ? vatAmount : 0)} />
-        <ReceiptRow label="VAT Exempt Sales" value={phCurrency.format(vatExempt)} />
-        <ReceiptRow label="Zero-Rated Sales" value={phCurrency.format(0)} />
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">BREAKDOWN OF SALES</p>
+        <ReceiptRow label="VATABLE SALES"    value={phCurrency.format(reportIsVat ? vatableSales : 0)} />
+        <ReceiptRow label="VAT AMOUNT"       value={phCurrency.format(reportIsVat ? vatAmount : 0)} />
+        <ReceiptRow label="VAT EXEMPT SALES" value={phCurrency.format(vatExempt)} />
+        <ReceiptRow label="ZERO-RATED SALES" value={phCurrency.format(0)} />
         <ReceiptDivider />
-        <ReceiptRow label="Net Sales"        value={phCurrency.format(netSales)} />
-        <ReceiptRow label="Total Discounts"  value={phCurrency.format(totalDisc)} />
-        <ReceiptRow label="Gross Amount"     value={phCurrency.format(gross)} />
+        <ReceiptRow label="SERVICE CHARGE"   value={phCurrency.format(0)} />
+        <ReceiptRow label="NET SALES"        value={phCurrency.format(netSales)} />
+        <ReceiptRow label="TOTAL DISCOUNTS"  value={phCurrency.format(totalDisc)} />
+        <ReceiptRow label="GROSS AMOUNT"     value={phCurrency.format(gross)} />
         <ReceiptDivider />
-        <p className="text-[11px] uppercase text-center font-bold mb-0.5">Discount Summary</p>
-        <ReceiptRow label="S.C Disc."    value={phCurrency.format(scDiscount)} />
-        <ReceiptRow label="PWD Disc."    value={phCurrency.format(pwdDiscount)} />
-        <ReceiptRow label="Other Disc."  value={phCurrency.format(otherDisc)} />
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">DISCOUNT SUMMARY</p>
+        <ReceiptRow label="S.C DISC."         value={phCurrency.format(scDiscount)} />
+        <ReceiptRow label="PWD DISC."         value={phCurrency.format(pwdDiscount)} />
+        <ReceiptRow label="NAAC DISC."        value={phCurrency.format(0)} />
+        <ReceiptRow label="SOLO PARENT DISC." value={phCurrency.format(0)} />
+        <ReceiptRow label="OTHER DISC."       value={phCurrency.format(otherDisc)} />
         <ReceiptDivider />
-        <p className="text-[11px] uppercase text-center font-bold mb-0.5">Sales Adjustment</p>
-        <ReceiptRow label="Canceled" value={phCurrency.format(voids)} />
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">SALES ADJUSTMENT</p>
+        <ReceiptRow label="CANCELED" value={phCurrency.format(voids)} />
         <ReceiptDivider />
-        <p className="text-[11px] uppercase text-center font-bold mb-0.5">Payments Received</p>
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">PAYMENTS RECEIVED</p>
         {PAYMENT_METHODS.map((method, i) => (
           <ReceiptRow key={i} label={method.toUpperCase()} value={phCurrency.format(paymentMap.get(method) || 0)} />
         ))}
+        {reportData?.payment_breakdown?.filter(p => { const raw = p.method.toLowerCase().trim(); const normalized = METHOD_ALIASES[raw] ?? raw; return !PAYMENT_METHODS.includes(normalized); }).map((p, i) => { const raw = p.method.toLowerCase().trim(); const normalized = METHOD_ALIASES[raw] ?? raw; return <ReceiptRow key={`extra-${i}`} label={normalized.toUpperCase()} value={phCurrency.format(p.amount)} />; })}
         <ReceiptDivider />
-        <ReceiptRow label="Total Credit"   value={phCurrency.format(totalCredit)} />
-        <ReceiptRow label="Total Debit"    value={phCurrency.format(totalDebit)} />
-        <ReceiptRow label="Total Card"     value={phCurrency.format(totalCard)} />
+        <ReceiptRow label="TOTAL CREDIT"   value={phCurrency.format(totalCredit)} />
+        <ReceiptRow label="TOTAL DEBIT"    value={phCurrency.format(totalDebit)} />
+        <ReceiptRow label="TOTAL CARD"     value={phCurrency.format(totalCard)} />
         <ReceiptDivider />
-        <ReceiptRow label="Total Cash"     value={phCurrency.format(cashTotal)} />
-        <ReceiptRow label="Total Non-Cash" value={phCurrency.format(nonCash)} />
-        <ReceiptRow label="Total Payments" value={phCurrency.format(gross)} />
+        <ReceiptRow label="TOTAL CASH"     value={phCurrency.format(cashTotal)} />
+        <ReceiptRow label="TOTAL NON-CASH" value={phCurrency.format(nonCash)} />
+        <ReceiptRow label="TOTAL PAYMENTS" value={phCurrency.format(gross)} />
+        <ReceiptRow label="CANCELED"       value={phCurrency.format(voids)} />
         <ReceiptDivider />
-        <p className="text-[11px] uppercase text-center font-bold mb-0.5">Transaction Summary</p>
-        <ReceiptRow label="Cash In"          value={phCurrency.format(reportData?.cash_in || 0)} />
-        <ReceiptRow label="Cash In Drawer"   value={phCurrency.format(reportData?.cash_in_drawer || 0)} />
-        <ReceiptRow label="Cash Drop"        value={phCurrency.format(reportData?.cash_drop || 0)} />
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
+        <ReceiptRow label="CASH IN"          value={phCurrency.format(reportData?.cash_in || 0)} />
+        <ReceiptRow label="CASH IN DRAWER"   value={phCurrency.format(reportData?.cash_in_drawer || 0)} />
+        <ReceiptRow label="CASH DROP"        value={phCurrency.format(reportData?.cash_drop || 0)} />
         <ReceiptDivider />
-        <ReceiptRow label="Total Qty Sold"   value={reportData?.total_qty_sold ?? 0} />
-        <ReceiptRow label="Transaction Count" value={txCount} />
+        <ReceiptRow label="TOTAL QTY SOLD"   value={reportData?.total_qty_sold ?? 0} />
+        <ReceiptRow label="TRANSACTION COUNT" value={txCount} />
       </div>
     );
   };
@@ -809,18 +918,6 @@ const fetchReading = useCallback(async () => {
           <input type="date" value={date} onChange={e => setDate(e.target.value)}
             className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
         </div>
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Shift</p>
-          <div className="relative">
-            <select value={shift} onChange={e => setShift(e.target.value)}
-              className="appearance-none text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
-              <option value="all">All Shifts</option>
-              <option value="am">AM Shift</option>
-              <option value="pm">PM Shift</option>
-            </select>
-            <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-          </div>
-        </div>
         {reportType === "search" && (
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Invoice / Cashier</p>
@@ -856,13 +953,13 @@ const fetchReading = useCallback(async () => {
             style={{ fontFamily: "Arial, Helvetica, sans-serif" }}
           >
             <div className="text-center mb-2">
-              <p className="uppercase text-[13px] font-bold leading-tight">Lucky Boba Milktea</p>
+              <p className="uppercase text-[13px] font-bold leading-tight">LUCKY BOBA MILKTEA<br />FOOD AND BEVERAGE TRADING</p>
               <p className="uppercase text-[11px] mt-0.5">{selectedBranchName}</p>
               <ReceiptDivider />
               <p className="uppercase text-[12px] font-bold tracking-widest">
                 [X] {reportData.report_type === "x_reading" ? "X-READING" : (reportData.report_type ?? "REPORT").replace(/_/g, " ").toUpperCase()}
               </p>
-              <p className="text-[10px] text-zinc-500">{date} · {shift === "all" ? "All Shifts" : shift.toUpperCase()}</p>
+              <p className="text-[10px] text-zinc-500">{date}</p>
             </div>
             {renderReceiptContent()}
             {!HIDE_FOOTER.includes(reportData.report_type ?? "") && (
