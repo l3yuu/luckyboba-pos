@@ -94,7 +94,7 @@ const SalesOrder = () => {
   const [branchDetails, setBranchDetails] = useState<{
   brand?: string; companyName?: string; storeAddress?: string;
   vatRegTin?: string; minNumber?: string; serialNumber?: string;
-  owner_name?: string;  // ← just the type, no value here
+  owner_name?: string;
 }>({});
   const [orderType, setOrderType] = useState<'dine-in' | 'take-out' | 'delivery' | null>(null);
   const [cashierName, setCashierName] = useState<string>(() =>
@@ -102,6 +102,8 @@ const SalesOrder = () => {
   );
   const [currentDate, setCurrentDate] = useState(new Date());
 
+  //Receipt Footer
+  const [posFooter, setPosFooter] = useState<Record<string, string>>({});
   // Cart
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
@@ -147,8 +149,10 @@ const SalesOrder = () => {
   const [customerName, setCustomerName] = useState('')
   const [isCustomerNameModalOpen, setIsCustomerNameModalOpen] = useState(false)
 
-  const seqKey    = `last_or_sequence_${branchId ?? 'default'}`      // SI — never resets
-  const queueKey  = `last_queue_sequence_${branchId ?? 'default'}`   // Queue — resets daily
+  // FIX #1 — use branchId in the key so it's always defined at the time
+  // syncNextSequence reads it (avoids stale closure on branchId).
+  const seqKey    = `last_or_sequence_${branchId ?? 'default'}`
+  const queueKey  = `last_queue_sequence_${branchId ?? 'default'}`
   const queueDate = `last_queue_date_${branchId ?? 'default'}`
 
   // Add-ons data
@@ -244,12 +248,10 @@ const SalesOrder = () => {
   })
 
   // ── NEW: per-item per-unit SC/PWD assignments ─────────────────────────────
-  // Key = cart item index (string), Value = array of per-unit 'none'|'sc'|'pwd'
   const [itemPaxAssignments, setItemPaxAssignments] = useState<ItemPaxAssignments>({})
 
   // Single promo discount
   const [selectedDiscount, setSelectedDiscount] = useState<Discount | null>(null)
-  // selectedDiscounts kept for receipt/backend compatibility (derived below)
   const [selectedDiscounts, setSelectedDiscounts] = useState<Discount[]>([])
 
   // OR / Queue
@@ -305,8 +307,7 @@ const SalesOrder = () => {
 
   const isVat = vatType === 'vat'
 
-  // ── NEW: PAX discount from explicit per-unit assignments ─────────────────
-  // For each unit assigned 'sc' or 'pwd': discount = 20% of VAT-exclusive price
+  // ── PAX discount from explicit per-unit assignments ───────────────────────
   const scDiscount = discounts.find(d => d.name.toUpperCase().includes('SENIOR'))
   const pwdDiscount = discounts.find(
     d => d.name.toUpperCase().includes('PWD') || d.name.toUpperCase().includes('DIPLOMAT')
@@ -314,7 +315,6 @@ const SalesOrder = () => {
   const scPct = scDiscount ? Number(scDiscount.amount) : 20
   const pwdPct = pwdDiscount ? Number(pwdDiscount.amount) : 20
 
-  // Compute total pax discount and per-item VAT-exempt coverage
   let totalPaxDiscount = 0
   let totalVatExemptSales = 0
 
@@ -336,7 +336,7 @@ const SalesOrder = () => {
 
   const hasPaxDiscount = totalPaxDiscount > 0
 
-  // ── Derived pax counts for backend ────────────────────────────────────────
+  // ── Derived pax counts for backend ───────────────────────────────────────
   const paxSenior = Object.values(itemPaxAssignments)
     .flat()
     .filter(a => a === 'sc').length
@@ -356,18 +356,15 @@ const SalesOrder = () => {
   // ── VAT split ─────────────────────────────────────────────────────────────
   const vatExemptSales = isVat && hasPaxDiscount ? Math.max(0, round(totalVatExemptSales - totalPaxDiscount)) : 0
 
-  // ── VAT ────────────────────────────────────────────────────────
-const vatableBase = isVat
-  ? Math.max(0, round(grossSubtotal - totalVatExemptSales * 1.12 - itemDiscountTotal - promoDiscount))
-  : 0
-const vatableSales = isVat ? round(vatableBase / 1.12) : 0
-const vatAmount    = isVat ? round(vatableBase - vatableSales) : 0
+  const vatableBase = isVat
+    ? Math.max(0, round(grossSubtotal - totalVatExemptSales * 1.12 - itemDiscountTotal - promoDiscount))
+    : 0
+  const vatableSales = isVat ? round(vatableBase / 1.12) : 0
+  const vatAmount    = isVat ? round(vatableBase - vatableSales) : 0
 
-const amtDue = isVat
-  ? Math.max(0, round(vatableBase + vatExemptSales))
-  : Math.max(0, round(grossSubtotal - itemDiscountTotal - orderLevelDiscount))
-
-
+  const amtDue = isVat
+    ? Math.max(0, round(vatableBase + vatExemptSales))
+    : Math.max(0, round(grossSubtotal - itemDiscountTotal - orderLevelDiscount))
 
   const totalDiscountDisplay = itemDiscountTotal + totalPaxDiscount + promoDiscount
   const change = typeof cashTendered === 'number' ? Math.max(0, cashTendered - amtDue) : 0
@@ -400,14 +397,60 @@ const amtDue = isVat
   const formattedDate = currentDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
   const formattedTime = currentDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
 
-  const logCartAction = (action: string, qty: number) => {
+  // FIX #4 — capture current cashierName and branchName values at call time
+  // instead of relying on stale closure values inside the handler.
+  const logCartAction = (action: string, qty: number, currentCashierName: string = cashierName) => {
     api
       .post('/audit-logs', {
         action: `${action} x${qty}`,
         module: 'sales_order',
-        details: `Cashier: ${cashierName} | Branch: ${branchName} | ${new Date().toLocaleString('en-PH', { timeZone: 'Asia/Manila', hour12: true })}`,
+        details: `Cashier: ${currentCashierName} | Branch: ${branchName} | ${new Date().toLocaleString('en-PH', { timeZone: 'Asia/Manila', hour12: true })}`,
       })
       .catch(() => {})
+  }
+
+  // ── FIX #1 — Define syncNextSequence BEFORE the boot useEffect so it is
+  // not in the temporal dead zone when the effect runs on mount. ─────────────
+  const syncNextSequence = async () => {
+    try {
+      const { data } = await api.get('/receipts/next-sequence')
+      const serverSeq = parseInt(data.next_sequence, 10)
+      if (!isNaN(serverSeq)) {
+        localStorage.setItem(seqKey, String(serverSeq))
+        setOrNumber(generateORNumber(serverSeq))
+
+        const today     = new Date().toDateString()
+        const savedDate = localStorage.getItem(queueDate)
+        const isNewDay  = savedDate !== today
+
+        if (isNewDay) {
+          localStorage.setItem(queueKey,  '1')
+          localStorage.setItem(queueDate, today)
+          setQueueNumber(generateQueueNumber(1))
+        } else {
+          const lastQueue = parseInt(localStorage.getItem(queueKey) || '1', 10)
+          setQueueNumber(generateQueueNumber(lastQueue))
+        }
+      }
+    } catch {
+      // ── Offline fallback ───────────────────────────────────────────────────
+      const lastSeq = parseInt(localStorage.getItem(seqKey) || '0', 10) + 1
+      localStorage.setItem(seqKey, String(lastSeq))
+      setOrNumber(generateORNumber(lastSeq))
+
+      const today     = new Date().toDateString()
+      const savedDate = localStorage.getItem(queueDate)
+      const isNewDay  = savedDate !== today
+
+      if (isNewDay) {
+        localStorage.setItem(queueKey,  '1')
+        localStorage.setItem(queueDate, today)
+        setQueueNumber(generateQueueNumber(1))
+      } else {
+        const lastQueue = parseInt(localStorage.getItem(queueKey) || '1', 10)
+        setQueueNumber(generateQueueNumber(lastQueue))
+      }
+    }
   }
 
   // ── Effects ─────────────────────────────────────────────────────────────────
@@ -431,7 +474,7 @@ const amtDue = isVat
         const b = data.data ?? data;
         setBranchDetails({
           brand: b.brand, companyName: b.company_name, storeAddress: b.store_address,
-          vatRegTin: b.vat_reg_tin, minNumber: b.min_number, serialNumber: b.serial_number, owner_name:   b.owner_name,
+          vatRegTin: b.vat_reg_tin, minNumber: b.min_number, serialNumber: b.serial_number, owner_name: b.owner_name,
         });
         if (b.vat_type) {
           setVatType(b.vat_type as 'vat' | 'non_vat');
@@ -439,6 +482,11 @@ const amtDue = isVat
         }
       }).catch(() => {});
     }
+
+    api
+      .get('/payment-settings')
+      .then(({ data }) => setPosFooter(data))
+      .catch(() => {});
 
     api
       .get('/discounts')
@@ -517,7 +565,6 @@ const amtDue = isVat
       cart.forEach((item, i) => {
         const key = String(i)
         const existing = prev[key] ?? []
-        // Resize array to match current qty
         const arr = Array(item.qty).fill('none').map((_, ui) => existing[ui] ?? 'none') as ('none'|'sc'|'pwd')[];
         updated[key] = arr;
       });
@@ -529,52 +576,6 @@ const amtDue = isVat
 
   const terminalNumber = generateTerminalNumber(branchId)
 
-const syncNextSequence = async () => {
-  try {
-    const { data } = await api.get('/receipts/next-sequence')
-    const serverSeq = parseInt(data.next_sequence, 10)
-    if (!isNaN(serverSeq)) {
-      // ── SI: never resets, always from server ─────────────────
-      localStorage.setItem(seqKey, String(serverSeq))
-      setOrNumber(generateORNumber(serverSeq))
-
-      // ── Queue: resets daily, tracked locally ─────────────────
-      const today     = new Date().toDateString()
-      const savedDate = localStorage.getItem(queueDate)
-      const isNewDay  = savedDate !== today
-
-      if (isNewDay) {
-        // New day → reset to 1
-        localStorage.setItem(queueKey,  '1')
-        localStorage.setItem(queueDate, today)
-        setQueueNumber(generateQueueNumber(1))
-      } else {
-        // Same day → restore last saved queue number (don't increment here,
-        // increment only happens after a successful order submission)
-        const lastQueue = parseInt(localStorage.getItem(queueKey) || '1', 10)
-        setQueueNumber(generateQueueNumber(lastQueue))
-      }
-    }
-  } catch {
-    // ── Offline fallback ──────────────────────────────────────
-    const lastSeq = parseInt(localStorage.getItem(seqKey) || '0', 10) + 1
-    localStorage.setItem(seqKey, String(lastSeq))
-    setOrNumber(generateORNumber(lastSeq))
-
-    const today     = new Date().toDateString()
-    const savedDate = localStorage.getItem(queueDate)
-    const isNewDay  = savedDate !== today
-
-    if (isNewDay) {
-      localStorage.setItem(queueKey,  '1')
-      localStorage.setItem(queueDate, today)
-      setQueueNumber(generateQueueNumber(1))
-    } else {
-      const lastQueue = parseInt(localStorage.getItem(queueKey) || '1', 10)
-      setQueueNumber(generateQueueNumber(lastQueue))
-    }
-  }
-}
   // ── Category / item navigation ─────────────────────────────────────────────
 
   const handleCategoryClick = (cat: Category) => {
@@ -601,7 +602,6 @@ const syncNextSequence = async () => {
   }
 
   const getFilteredItems = (items: MenuItem[]): MenuItem[] => {
-    // When searching, append size label so M and L items with the same name are distinguishable
     if (searchQuery) {
       return items.map(item => {
         if (!item.size || item.size === 'none') return item
@@ -636,13 +636,11 @@ const syncNextSequence = async () => {
 
   const handleItemClick = async (item: MenuItem) => {
     const actualCategory = categories.find(cat => cat.menu_items.some(mi => mi.id === item.id)) ?? selectedCategory
-    
-    // Only drill into category view when NOT searching — during search,
-    // the background should stay on search results while the modal is open
+
     if (!searchQuery.trim()) {
       setSelectedCategory(actualCategory)
     }
-    
+
     const catType = actualCategory?.category_type
 
     if (catType === 'mix_and_match') {
@@ -856,7 +854,7 @@ const syncNextSequence = async () => {
     setSelectedItem(null)
     setIsAddOnModalOpen(false)
     if (searchQuery.trim()) setSelectedCategory(null)
-    logCartAction(newCartItem.name, newCartItem.qty)
+    logCartAction(newCartItem.name, newCartItem.qty, cashierName)
     showToast(`${selectedItem.name} added to order`, 'success')
   }
 
@@ -927,11 +925,11 @@ const syncNextSequence = async () => {
       bundleComponents: newCustomizations,
     }
     mergeIntoCart(cartItem)
-    logCartAction(cartItem.name, 1)
+    logCartAction(cartItem.name, 1, cashierName)
     setIsBundleModalOpen(false)
     setActiveBundleItem(null)
     showToast(`${activeBundleItem.name} added!`, 'success')
-    if (searchQuery.trim()) setSelectedCategory(null) 
+    if (searchQuery.trim()) setSelectedCategory(null)
   }
 
   // ── Combo drink confirm ────────────────────────────────────────────────────
@@ -971,7 +969,7 @@ const syncNextSequence = async () => {
       finalPrice: pendingComboCart.finalPrice + addOnExtraCost * pendingComboCart.qty,
     }
     mergeIntoCart(finalItem)
-    logCartAction(finalItem.name, finalItem.qty)
+    logCartAction(finalItem.name, finalItem.qty, cashierName)
     setIsCombodrinkModalOpen(false)
     setPendingComboCart(null)
     showToast(`${finalItem.name} added!`, 'success')
@@ -1004,7 +1002,7 @@ const syncNextSequence = async () => {
       finalPrice: pendingMixMatchCart.finalPrice + addOnExtraCost,
     }
     mergeIntoCart(finalItem)
-    logCartAction(finalItem.name, finalItem.qty)
+    logCartAction(finalItem.name, finalItem.qty, cashierName)
     setIsMixMatchModalOpen(false)
     setPendingMixMatchCart(null)
     showToast(`${finalItem.name} + ${selectedMixMatchDrink.name} added!`, 'success')
@@ -1085,7 +1083,7 @@ const syncNextSequence = async () => {
     const name = cart[editingCartIndex].name
     const qty = cart[editingCartIndex].qty
     setCart(prev => prev.filter((_, i) => i !== editingCartIndex))
-    logCartAction(`REMOVED: ${name}`, qty)
+    logCartAction(`REMOVED: ${name}`, qty, cashierName)
     showToast(`${name} removed`, 'warning')
     closeCartItemEdit()
   }
@@ -1127,7 +1125,6 @@ const syncNextSequence = async () => {
   const handleSubmitOrder = async (nameOverride?: string) => {
     setSubmitting(true)
 
-    // ── Pre-calculate split discount amounts from explicit assignments ────────
     let scDiscountAmount = 0
     let pwdDiscountAmount = 0
     const diplomatDiscountAmount = 0
@@ -1195,6 +1192,7 @@ const syncNextSequence = async () => {
       cash_tendered: typeof cashTendered === 'number' ? cashTendered : 0,
       pax_senior: paxSenior,
       pax_pwd: paxPwd,
+      // FIX #3 — join the arrays to strings to match the backend's expected scalar fields
       senior_id: seniorIds.length > 0 ? seniorIds.join(',') : null,
       pwd_id: pwdIds.length > 0 ? pwdIds.join(',') : null,
     }
@@ -1203,16 +1201,14 @@ const syncNextSequence = async () => {
       try {
         await api.post('/sales', orderData);
         localStorage.removeItem('pos_cart_cache');
-        // ── After successful api.post('/sales', orderData) ────────────────
         const currentSeq = parseInt(orNumber.split('-').pop() ?? '0', 10)
         if (!isNaN(currentSeq)) {
           localStorage.setItem(seqKey, String(currentSeq))
         }
 
-        // Queue: save current, next order will get +1 via syncNextSequence on handleNewOrder
         const currentQueue = parseInt(queueNumber, 10)
         if (!isNaN(currentQueue)) {
-          localStorage.setItem(queueKey, String(currentQueue + 1))  // ← pre-increment for next order
+          localStorage.setItem(queueKey, String(currentQueue + 1))
           localStorage.setItem(queueDate, new Date().toDateString())
         }
         localStorage.setItem('dashboard_stats_timestamp', '0');
@@ -1252,13 +1248,11 @@ const syncNextSequence = async () => {
       if (!isNaN(currentSeq)) {
         localStorage.setItem(seqKey, String(currentSeq))
       }
-      // ── Add these ──────────────────────────────────────────────
       const currentQueue = parseInt(queueNumber, 10)
       if (!isNaN(currentQueue)) {
         localStorage.setItem(queueKey, String(currentQueue + 1))
         localStorage.setItem(queueDate, new Date().toDateString())
       }
-      // ───────────────────────────────────────────────────────────
       setPrintedReceipt(false); setPrintedKitchen(false); setPrintedStickers(false)
       setIsSuccessModalOpen(true)
       showToast('Offline — order queued and will sync when connected.', 'warning')
@@ -1321,36 +1315,35 @@ const syncNextSequence = async () => {
   // ── Filtered categories ────────────────────────────────────────────────────
 
   const GROUP_TYPES: Record<string, string[]> = {
-  drinks:        ['drink'],
-  bundles:       ['bundle'],
-  food:          ['food', 'combo', 'waffle', 'wings'],
-  mix_and_match: ['mix_and_match'],
-  others:        ['promo', 'other'],
-};
+    drinks:        ['drink'],
+    bundles:       ['bundle'],
+    food:          ['food', 'combo', 'waffle', 'wings'],
+    mix_and_match: ['mix_and_match'],
+    others:        ['promo', 'other'],
+  };
 
-const filteredCategories = categories
-  .map(cat => {
-    const matchedItems = cat.menu_items.filter(item =>
-      item.name.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-    // During search: tag each drink item with its cup size label so M/L duplicates are distinguishable
-    const enrichedItems = searchQuery
-      ? matchedItems.map(item => {
-          if (!item.size || item.size === 'none') return item
-          const cupM = cat.cup?.size_m ?? 'M'
-          const cupL = cat.cup?.size_l ?? 'L'
-          const sizeLabel = item.size === 'L' ? cupL : cupM
-          return { ...item, name: `${item.name} (${sizeLabel})` }
-        })
-      : matchedItems
-    return { ...cat, menu_items: enrichedItems }
-  })
-  .filter(cat => cat.name.toLowerCase().includes(searchQuery.toLowerCase()) || cat.menu_items.length > 0)
-  .filter(cat => {
-    if (!activeCategoryGroup) return true;
-    const allowed = GROUP_TYPES[activeCategoryGroup] ?? [];
-    return allowed.includes(cat.category_type ?? cat.type ?? '');
-  });
+  const filteredCategories = categories
+    .map(cat => {
+      const matchedItems = cat.menu_items.filter(item =>
+        item.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      const enrichedItems = searchQuery
+        ? matchedItems.map(item => {
+            if (!item.size || item.size === 'none') return item
+            const cupM = cat.cup?.size_m ?? 'M'
+            const cupL = cat.cup?.size_l ?? 'L'
+            const sizeLabel = item.size === 'L' ? cupL : cupM
+            return { ...item, name: `${item.name} (${sizeLabel})` }
+          })
+        : matchedItems
+      return { ...cat, menu_items: enrichedItems }
+    })
+    .filter(cat => cat.name.toLowerCase().includes(searchQuery.toLowerCase()) || cat.menu_items.length > 0)
+    .filter(cat => {
+      if (!activeCategoryGroup) return true;
+      const allowed = GROUP_TYPES[activeCategoryGroup] ?? [];
+      return allowed.includes(cat.category_type ?? cat.type ?? '');
+    });
 
   // ── Loading screen ─────────────────────────────────────────────────────────
 
@@ -1379,6 +1372,7 @@ const filteredCategories = categories
     customerName,
     paxSenior,
     paxPwd,
+    // FIX #3 — pass the arrays directly; ReceiptPrint now accepts string[]
     seniorIds,
     pwdIds,
   }
@@ -1444,13 +1438,13 @@ const filteredCategories = categories
             orderCharge={orderCharge} isDrink={isDrink} isCombo={isCombo} isWaffleCategory={isWaffleCategory}
             onQtyChange={setQty} onRemarksChange={setRemarks} onSugarChange={setSugarLevel}
             onToggleOption={toggleOption} onToggleOrderCharge={toggleOrderCharge}
-            isFoodCategory={isFoodCategory}   // ← add
-            filteredAddOns={filteredAddOns}   // ← add
+            isFoodCategory={isFoodCategory}
+            filteredAddOns={filteredAddOns}
             onOpenAddOns={() => setIsAddOnModalOpen(true)} onAddToOrder={addToOrder}
             onClose={() => {
               setSelectedItem(null)
               setIsAddOnModalOpen(false)
-              if (searchQuery.trim()) setSelectedCategory(null)  
+              if (searchQuery.trim()) setSelectedCategory(null)
             }}
             sugarLevels={isDrink ? sugarLevels : []}
           />
@@ -1499,7 +1493,7 @@ const filteredCategories = categories
                 onClose={() => {
                   setIsBundleModalOpen(false)
                   setActiveBundleItem(null)
-                  if (searchQuery.trim()) setSelectedCategory(null) 
+                  if (searchQuery.trim()) setSelectedCategory(null)
                 }}
                 orderCharge={orderCharge}
                 onToggleOrderCharge={toggleBundleOrderCharge}
@@ -1564,7 +1558,7 @@ const filteredCategories = categories
             onClose={() => {
               setIsMixMatchModalOpen(false)
               setPendingMixMatchCart(null)
-              if (searchQuery.trim()) setSelectedCategory(null) 
+              if (searchQuery.trim()) setSelectedCategory(null)
             }}
           />
         )}
@@ -1659,17 +1653,16 @@ const filteredCategories = categories
           remove={remove}
         />
 
-        {/* ── Category nav bar ─────────────────────────────────────────── */}
+        {/* ── Category nav bar ───────────────────────────────────────────── */}
         <div className="flex flex-col bg-white border-b border-zinc-200 print:hidden z-10 shrink-0">
           <div className="flex items-center gap-2 px-4 py-2 overflow-x-auto scrollbar-none">
 
-            {/* Breadcrumb — always visible */}
             <span
-            className={`text-sm font-semibold shrink-0 cursor-pointer transition-colors px-3 py-2 rounded-lg ${
-              !selectedCategory
-                ? 'text-[#3b2063] bg-[#3b2063]/10'
-                : 'text-zinc-400 hover:text-[#3b2063] hover:bg-zinc-100'
-            }`}
+              className={`text-sm font-semibold shrink-0 cursor-pointer transition-colors px-3 py-2 rounded-lg ${
+                !selectedCategory
+                  ? 'text-[#7c14d4] bg-[#7c14d4]/10'
+                  : 'text-zinc-400 hover:text-[#7c14d4] hover:bg-zinc-100'
+              }`}
               onClick={() => { setSelectedCategory(null); setCategorySize(null); setActiveCategoryGroup(null); }}
             >
               All
@@ -1700,18 +1693,16 @@ const filteredCategories = categories
               </>
             )}
 
-            {/* Divider — only when no category selected and tabs are shown */}
             {!selectedCategory && (
               <div className="w-px h-4 bg-zinc-200 mx-1 shrink-0" />
             )}
 
-            {/* Filter tabs — inline alongside breadcrumb when no category selected */}
             {!selectedCategory && [
-              { key: 'drinks',        label: 'Drinks'},
-              { key: 'bundles',       label: 'Bundles'},
-              { key: 'food',          label: 'Food'},
-              { key: 'mix_and_match', label: 'Mix & Match'},
-              { key: 'others',        label: 'Others'},
+              { key: 'drinks',        label: 'Drinks' },
+              { key: 'bundles',       label: 'Bundles' },
+              { key: 'food',          label: 'Food' },
+              { key: 'mix_and_match', label: 'Mix & Match' },
+              { key: 'others',        label: 'Others' },
             ].map(group => {
               const isActive = activeCategoryGroup === group.key;
               const count = filteredCategories.filter(c =>
@@ -1774,7 +1765,33 @@ const filteredCategories = categories
         </div>
       </div>
 
-      {printTarget === 'receipt' && <ReceiptPrint {...printProps} {...branchDetails} ownerName={branchDetails.owner_name} vatType={vatType} addOnsData={addOnsData} orderCharge={orderCharge} totalCount={totalCount} subtotal={grossSubtotal} amtDue={amtDue} vatableSales={vatableSales} vatAmount={vatAmount} vatExemptSales={vatExemptSales} change={change} cashTendered={cashTendered} referenceNumber={referenceNumber} paymentMethod={paymentMethod} selectedDiscount={selectedDiscount} selectedDiscounts={selectedDiscounts} totalDiscountDisplay={totalDiscountDisplay} itemDiscountTotal={itemDiscountTotal} promoDiscount={promoDiscount} itemPaxAssignments={itemPaxAssignments} />}
+      {printTarget === 'receipt' && (
+        <ReceiptPrint
+          {...printProps}
+          {...branchDetails}
+          ownerName={branchDetails.owner_name}
+          vatType={vatType}
+          addOnsData={addOnsData}
+          orderCharge={orderCharge}
+          totalCount={totalCount}
+          subtotal={grossSubtotal}
+          amtDue={amtDue}
+          vatableSales={vatableSales}
+          vatAmount={vatAmount}
+          vatExemptSales={vatExemptSales}
+          change={change}
+          cashTendered={cashTendered}
+          referenceNumber={referenceNumber}
+          paymentMethod={paymentMethod}
+          selectedDiscount={selectedDiscount}
+          selectedDiscounts={selectedDiscounts}
+          totalDiscountDisplay={totalDiscountDisplay}
+          itemDiscountTotal={itemDiscountTotal}
+          promoDiscount={promoDiscount}
+          itemPaxAssignments={itemPaxAssignments}
+          posFooter={posFooter}
+        />
+      )}
       {printTarget === 'kitchen'  && <KitchenPrint  {...printProps} />}
       {printTarget === 'stickers' && <StickerPrint  {...printProps} customerName={customerName} />}
     </>

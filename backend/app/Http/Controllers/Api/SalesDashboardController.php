@@ -201,8 +201,8 @@ class SalesDashboardController extends Controller
 
             $todayStart = $now->copy()->startOfDay();
             $todayEnd   = $now->copy()->endOfDay();
-            $weekStart  = $now->copy()->startOfWeek(\Carbon\Carbon::MONDAY)->startOfDay();
-            $weekEnd    = $now->copy()->endOfWeek(\Carbon\Carbon::SUNDAY)->endOfDay();
+            $weekStart  = $now->copy()->startOfWeek(\Carbon\CarbonInterface::MONDAY)->startOfDay();
+            $weekEnd    = $now->copy()->endOfWeek(\Carbon\CarbonInterface::SUNDAY)->endOfDay();
             $monthStart = $now->copy()->startOfMonth()->startOfDay();
             $monthEnd   = $now->copy()->endOfMonth()->endOfDay();
 
@@ -308,47 +308,51 @@ class SalesDashboardController extends Controller
      * GET /api/reports/z-reading-history
      */
     public function zReadingHistory(Request $request)
-{
-    try {
-        $branchId = $request->branch_id;
+    {
+        try {
+            $branchId = $request->input('branch_id');
 
-        $history = DB::table('z_readings')
-            ->join('branches', 'z_readings.branch_id', '=', 'branches.id')
-            ->select(
-                'z_readings.id',
-                'z_readings.reading_date as date',
-                'branches.name as branch_name',
-                'z_readings.total_sales as gross',
-                'z_readings.net_sales as net',
-                'z_readings.is_closed',
-                'z_readings.closed_at',
-                'z_readings.branch_id'
-            )
-            ->when($branchId, fn($q) => $q->where('z_readings.branch_id', $branchId))
-            ->orderByDesc('z_readings.reading_date')
-            ->limit(50)
-            ->get()
-            ->map(function ($row) {
-                $orders = DB::table('sales')
-                    ->whereDate('created_at', $row->date)
-                    ->where('branch_id', $row->branch_id)
-                    ->where('status', 'completed')
-                    ->count();
+            $history = DB::table('z_readings')
+                ->join('branches', 'z_readings.branch_id', '=', 'branches.id')
+                ->select(
+                    'z_readings.id',
+                    'z_readings.reading_date as date',
+                    'branches.name as branch_name',
+                    'z_readings.total_sales as gross',
+                    'z_readings.data',
+                    'z_readings.is_closed',
+                    'z_readings.closed_at',
+                    'z_readings.branch_id'
+                )
+                ->when($branchId, fn($q) => $q->where('z_readings.branch_id', $branchId))
+                ->orderByDesc('z_readings.reading_date')
+                ->limit(50)
+                ->get()
+                ->map(function ($row) {
+                    $orders = DB::table('sales')
+                        ->whereDate('created_at', $row->date)
+                        ->where('branch_id', $row->branch_id)
+                        ->where('status', 'completed')
+                        ->count();
 
-                $row->total_orders = $orders;
-                $row->gross        = (float) $row->gross;
-                $row->net          = (float) $row->net;
-                unset($row->branch_id);
-                return $row;
-            });
+                    // Extract net_sales from the JSON data column
+                    $jsonData = json_decode($row->data ?? '{}', true);
+                    $net = $jsonData['net_sales'] ?? $row->gross;
 
-        return response()->json(['success' => true, 'data' => $history]);
+                    $row->total_orders = $orders;
+                    $row->gross        = (float) $row->gross;
+                    $row->net          = (float) $net;
+                    unset($row->branch_id, $row->data);
+                    return $row;
+                });
 
-    } catch (\Exception $e) {
-        Log::error('Z Reading History Error: ' . $e->getMessage());
-        return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            return response()->json(['success' => true, 'data' => $history]);
+
+        } catch (\Exception $e) {
+            Log::error('Z Reading History Error: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
-}
 
     /**
      * POST /api/readings/z/print-token

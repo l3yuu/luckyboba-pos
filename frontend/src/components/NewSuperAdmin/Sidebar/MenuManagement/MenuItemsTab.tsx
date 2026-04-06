@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useMemo, startTransition, useRef } fr
 import {
   Search, Plus, Edit2, Trash2, RefreshCw,
   AlertCircle, X, Package, ChevronDown,
-  ToggleLeft, ToggleRight, Barcode, Utensils, Coffee, Info,
+  ToggleLeft, ToggleRight, Barcode, Utensils, Coffee, Info, Printer,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 
@@ -1921,6 +1921,231 @@ const AddOnBuilderModal: React.FC<AddOnBuilderModalProps> = ({ onClose }) => {
   );
 };
 
+// ── Print Menu Modal ─────────────────────────────────────────────────────────
+
+interface PrintMenuModalProps {
+  categories: Category[];
+  items:       MenuItem[];
+  onClose:     () => void;
+}
+
+const PrintMenuModal: React.FC<PrintMenuModalProps> = ({ categories, items, onClose }) => {
+  // Only categories that actually have items
+  const catsWithItems = categories.filter(cat => items.some(i => i.category_id === cat.id));
+  const [selected, setSelected] = useState<Set<number>>(new Set(catsWithItems.map(c => c.id)));
+  const [printing, setPrinting] = useState(false);
+
+  const toggleCat = (id: number) =>
+    setSelected(prev => { const n = new Set(prev); if (n.has(id)) { n.delete(id); } else { n.add(id); } return n; });
+
+  const allChecked = selected.size === catsWithItems.length;
+  const toggleAll  = () => setSelected(allChecked ? new Set() : new Set(catsWithItems.map(c => c.id)));
+
+  const buildReceiptHtml = (cat: Category, catItems: MenuItem[]): string => {
+    const printedAt = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
+      + ' ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+    const rows = catItems
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map(item => {
+        const price = `&#8369;${Number(item.price).toFixed(2)}`;
+        const barcode = item.barcode ?? '&mdash;';
+        return `<tr><td class="td-name">${item.name.toUpperCase()}</td><td class="td-price">${price}</td><td class="td-bc">${barcode}</td></tr>`;
+      }).join('');
+
+    return `
+      <div class="receipt">
+        <div style="text-align:center;">
+          <p class="biz">LUCKY BOBA MILKTEA<br/>FOOD AND BEVERAGE TRADING</p>
+          <hr/>
+          <p class="cat-label">[MENU LIST]</p>
+          <p class="cat-name">${cat.name.toUpperCase()}</p>
+          <p class="cat-type">${cat.category_type.replace(/_/g, ' ').toUpperCase()}</p>
+          <p class="date-line">${printedAt}</p>
+        </div>
+        <hr/>
+        <table>
+          <thead><tr><th class="th-name">DESCRIPTION</th><th class="th-price">PRICE</th><th class="th-bc">BARCODE</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <hr/>
+        <div class="row"><span>TOTAL ITEMS:</span><span>${catItems.length}</span></div>
+        <hr/>
+        <div style="text-align:center;margin-top:18px;">
+          <p style="font-size:11px;">____________________</p>
+          <p style="font-size:9px;text-transform:uppercase;margin-top:2px;">PREPARED BY</p>
+          <p style="font-size:11px;margin-top:16px;">____________________</p>
+          <p style="font-size:9px;text-transform:uppercase;margin-top:2px;">SIGNED BY</p>
+        </div>
+      </div>
+    `;
+  };
+
+  const handlePrint = () => {
+    setPrinting(true);
+    const selectedCats = catsWithItems.filter(c => selected.has(c.id));
+    if (selectedCats.length === 0) { setPrinting(false); return; }
+
+    const bodies = selectedCats
+      .map(cat => {
+        const catItems = items.filter(i => i.category_id === cat.id);
+        return buildReceiptHtml(cat, catItems);
+      })
+      .join('<div class="page-break"></div>');
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Menu Print &mdash; Lucky Boba</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size:13px; color:#000;
+           max-width:80mm; margin:0 auto; padding:10px 6px; }
+    .receipt { padding: 6px 0 20px; }
+    .biz  { font-size:16px; font-weight:bold; line-height:1.3; text-transform:uppercase; }
+    .cat-label { font-size:14px; font-weight:bold; letter-spacing:2px; margin:4px 0 1px; text-transform:uppercase; }
+    .cat-name  { font-size:14px; font-weight:bold; text-transform:uppercase; }
+    .cat-type  { font-size:11px; letter-spacing:2px; color:#555; text-transform:uppercase; margin-bottom:2px; }
+    .date-line { font-size:11px; color:#555; }
+    hr { border:none; border-top:1px dashed #000; margin:5px 0; }
+    table { width:100%; border-collapse:collapse; margin:3px 0; }
+    th { font-size:11px; font-weight:bold; letter-spacing:1px; text-transform:uppercase;
+         padding:3px 4px; border-bottom:1px solid #000; }
+    th.th-name { text-align:left; width:50%; }
+    th.th-price { text-align:right; width:20%; }
+    th.th-bc    { text-align:right; width:30%; }
+    td { padding:3px 4px; font-size:13px; vertical-align:top; text-transform:uppercase; line-height:1.4; }
+    td.td-name  { width:50%; }
+    td.td-price { width:20%; font-weight:bold; text-align:right; white-space:nowrap; }
+    td.td-bc    { width:30%; font-size:10px; color:#555; text-align:right; word-break:break-all; }
+    tbody tr { border-bottom:1px dotted #ccc; }
+    .row { display:flex; justify-content:space-between; font-size:13px; padding:2px 0; text-transform:uppercase; }
+    .page-break { page-break-after: always; }
+    @media print {
+      @page { size: 80mm 2000mm; margin: 3mm 2mm !important; }
+      body { max-width:100% !important; }
+      .page-break { page-break-after: always; break-after: page; }
+    }
+  </style>
+</head>
+<body>${bodies}
+</body></html>`;
+
+    // Use a hidden iframe so print stays in the same tab
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;';
+    document.body.appendChild(iframe);
+
+    const iframeDoc = iframe.contentDocument ?? iframe.contentWindow?.document;
+    if (iframeDoc) {
+      iframeDoc.open();
+      iframeDoc.write(html);
+      iframeDoc.close();
+
+      iframe.contentWindow?.addEventListener('afterprint', () => {
+        document.body.removeChild(iframe);
+      });
+
+      // Small delay lets the iframe render before printing
+      setTimeout(() => {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+        setPrinting(false);
+      }, 300);
+    } else {
+      document.body.removeChild(iframe);
+      setPrinting(false);
+    }
+  };
+
+  return (
+    <ModalShell
+      onClose={onClose}
+      icon={<Printer size={15} className="text-violet-600" />}
+      title="Print Menu"
+      sub="Choose categories to print — one receipt per category"
+      maxWidth="max-w-md"
+      footer={
+        <>
+          <Btn variant="secondary" onClick={onClose} disabled={printing}>Cancel</Btn>
+          <Btn onClick={handlePrint} disabled={printing || selected.size === 0}>
+            {printing
+              ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Printing...</span>
+              : <><Printer size={13} /> Print {selected.size} Receipt{selected.size !== 1 ? 's' : ''}</>
+            }
+          </Btn>
+        </>
+      }
+    >
+      {/* Select All toggle */}
+      <div className="flex items-center justify-between p-3 bg-violet-50 border border-violet-200 rounded-lg">
+        <div>
+          <p className="text-xs font-bold text-violet-800">Select Categories</p>
+          <p className="text-[10px] text-violet-500">{selected.size} of {catsWithItems.length} selected</p>
+        </div>
+        <button
+          type="button"
+          onClick={toggleAll}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${
+            allChecked
+              ? 'bg-violet-600 border-violet-600 text-white'
+              : 'bg-white border-violet-300 text-violet-600 hover:bg-violet-50'
+          }`}
+        >
+          {allChecked ? 'Deselect All' : 'Select All'}
+        </button>
+      </div>
+
+      {/* Category list */}
+      <div className="flex flex-col gap-1.5 max-h-72 overflow-y-auto pr-1">
+        {catsWithItems.map(cat => {
+          const count   = items.filter(i => i.category_id === cat.id).length;
+          const checked = selected.has(cat.id);
+          return (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={() => toggleCat(cat.id)}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-all ${
+                checked
+                  ? 'bg-violet-50 border-violet-400'
+                  : 'bg-white border-zinc-200 hover:border-violet-300'
+              }`}
+            >
+              {/* Checkbox */}
+              <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
+                checked ? 'bg-violet-600 border-violet-600' : 'border-zinc-300'
+              }`}>
+                {checked && (
+                  <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
+                    <path d="M1.5 4.5L3.5 6.5L7.5 2.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </div>
+              {/* Name + badge */}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-zinc-700 truncate">{cat.name}</p>
+                <p className="text-[10px] text-zinc-400 capitalize">{cat.category_type.replace(/_/g, ' ')}</p>
+              </div>
+              {/* Item count */}
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                checked ? 'bg-violet-100 text-violet-700 border-violet-200' : 'bg-zinc-100 text-zinc-500 border-zinc-200'
+              }`}>
+                {count} item{count !== 1 ? 's' : ''}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {catsWithItems.length === 0 && (
+        <p className="text-xs text-zinc-400 text-center py-4 italic">No categories with items found.</p>
+      )}
+    </ModalShell>
+  );
+};
+
 // ── Main Component ────────────────────────────────────────────────────────────
 const MenuItemsTab: React.FC = () => {
   const [items,         setItems]         = useState<MenuItem[]>([]);
@@ -1941,6 +2166,7 @@ const MenuItemsTab: React.FC = () => {
   const [sugarLevels, setSugarLevels] = useState<SugarLevel[]>([]);
   const [addOnBuilderOpen, setAddOnBuilderOpen] = useState(false);
   const [allAddOns, setAllAddOns] = useState<AddOnItem[]>([]);
+  const [printMenuOpen, setPrintMenuOpen] = useState(false);
 
   // Fetch all item options in bulk when items load
   const fetchAllOptions = useCallback(async (loadedItems: MenuItem[]) => {
@@ -2119,6 +2345,9 @@ const MenuItemsTab: React.FC = () => {
               <Coffee size={13} /> Manage Drinks
             </Btn>
           )}
+          <Btn variant="secondary" onClick={() => setPrintMenuOpen(true)} disabled={loading}>
+            <Printer size={13} /> Print Menu
+          </Btn>
           <Btn onClick={() => startTransition(() => setAddOpen(true))} disabled={loading}>
             <Plus size={13} /> Add Item
           </Btn>
@@ -2420,6 +2649,13 @@ const MenuItemsTab: React.FC = () => {
       )}
       {addOnBuilderOpen && (
         <AddOnBuilderModal onClose={() => setAddOnBuilderOpen(false)} />
+      )}
+      {printMenuOpen && (
+        <PrintMenuModal
+          categories={categories}
+          items={items}
+          onClose={() => setPrintMenuOpen(false)}
+        />
       )}
     </div>
   );

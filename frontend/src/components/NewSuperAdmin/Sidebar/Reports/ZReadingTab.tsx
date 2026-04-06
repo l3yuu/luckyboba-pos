@@ -55,8 +55,6 @@ interface CashierRow {
 }
 interface BranchOption { id: number; name: string; }
 
-// ADD after: interface BranchOption { id: number; name: string; }
-
 interface XReadingReport {
   date?: string;
   other_discount?: number;
@@ -67,6 +65,7 @@ interface XReadingReport {
   non_cash_total?: number;
   report_type?: string;
   logs?: { id: string; reason: string; amount: number; time: string }[];
+  items?: { product_name: string; total_qty: number; total_sales?: number }[];
   hourly_data?: { hour: number; total: number; count: number }[];
   transactions?: {
     Invoice: string; Amount: number; Status: string; Date_Time: string;
@@ -74,7 +73,10 @@ interface XReadingReport {
     Items_Count?: number; Disc?: number;
   }[];
   cash_count?: { denominations: { label: string; qty: number; total: number }[]; grand_total: number };
-  search_results?: { Invoice: string; Amount: number; Status?: string; Date_Time?: string }[];
+  denominations?: { label: string; qty: number; total: number }[];
+  grand_total?: number;
+  search_results?: { Invoice: string; Amount: number; Status?: string; Date_Time?: string; Method?: string; Date?: string; Cashier?: string; Vatable?: number; Tax?: number; Items_Count?: number; Disc?: number }[];
+  results?: { Invoice: string; Amount: number; Status?: string; Date_Time?: string }[];
   vatable_sales?: number;
   vat_amount?: number;
   vat_exempt_sales?: number;
@@ -91,12 +93,19 @@ interface XReadingReport {
       add_ons: { name: string; qty: number }[];
     }[];
   }[];
+  from_date?: string;
+  to_date?: string;
   payment_breakdown?: { method: string; amount: number }[];
   total_discounts?: number;
   total_void_amount?: number;
+  average_order_value?: number;
+  sc_pwd_discount?: number;
   sc_discount?: number;
   pwd_discount?: number;
   diplomat_discount?: number;
+  total_senior_pax?: number;
+  total_pwd_pax?: number;
+  total_diplomat_pax?: number;
   beg_si?: string;
   end_si?: string;
   total_qty_sold?: number;
@@ -104,6 +113,17 @@ interface XReadingReport {
   cash_in_drawer?: number;
   cash_in?: number;
   summary_data?: { Sales_Date: string; Total_Orders: number; Daily_Revenue: number }[];
+  data?: { Sales_Date: string; Total_Orders: number; Daily_Revenue: number }[];
+  reset_counter?: number;
+  z_counter?: number;
+  present_accumulated?: number;
+  previous_accumulated?: number;
+  sales_for_the_day?: number;
+  cash_denominations?: { label: string; qty: number; total: number }[];
+  total_cash_count?: number;
+  over_short?: number;
+  net_total?: number;
+  expected_amount?: number;
 }
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
@@ -208,7 +228,6 @@ const ZReadingTab: React.FC = () => {
   const menuRef    = useRef<HTMLDivElement>(null);
   const [reportData,   setReportData]   = useState<XReadingReport | null>(null);
   const [invoiceQuery, setInvoiceQuery] = useState("");
-  const [shift, _setShift] = useState("all");
   const phCurrency = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" });
   const vatType = (localStorage.getItem("lucky_boba_user_branch_vat") ?? "vat") as "vat" | "non_vat";
   const isVat = vatType === "vat";
@@ -220,7 +239,7 @@ const ZReadingTab: React.FC = () => {
     setTimeout(() => setToast(""), 3500);
   };
 
-  // ADD after: const showToast = (msg: string) => { ... };
+
 
   const normalizeResponse = (type: string, raw: Record<string, unknown>): XReadingReport => {
     switch (type) {
@@ -295,7 +314,6 @@ const ZReadingTab: React.FC = () => {
     setReportData(null);
     try {
       const params = new URLSearchParams({ branch_id: branchId, date });
-      if (shift !== "all") params.set("shift", shift);
 
       if (reportType === "summary") {
         const [summaryRes, qtyRes] = await Promise.all([
@@ -329,7 +347,7 @@ const ZReadingTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [branchId, date, shift, reportType, invoiceQuery]);
+  }, [branchId, date, reportType, invoiceQuery]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -341,59 +359,88 @@ const ZReadingTab: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Fetch branches once
   useEffect(() => {
     fetch("/api/branches", { headers: authHeaders() })
       .then(r => r.json())
       .then(d => {
-        if (d.success && d.data.length > 0) {
-          setBranches(d.data);
-          setBranchId(String(d.data[0].id));
+        const list = d.success ? d.data : (Array.isArray(d) ? d : []);
+        if (list.length > 0) {
+          setBranches(list);
+          setBranchId(String(list[0].id));
         }
       })
       .catch(() => {});
   }, []);
 
-  const fetchReading = useCallback(async () => {
+  // ── Full Z-Reading = merge z-reading + cash-counts + item-quantities + void-logs ──
+  const fetchFullZReading = useCallback(async () => {
     if (!branchId) return;
     setLoading(true);
     setError("");
-    setData(null);   // ← clear stale data from previous branch
+    setReportData(null);
     try {
-      const params = new URLSearchParams({ branch_id: branchId, date });
-      const res    = await fetch(`/api/reports/z-reading?${params}`, { headers: authHeaders() });
-      const json   = await res.json();
+      const p = new URLSearchParams({ branch_id: branchId, date });
+      const [zRes, cashRes, qtyRes, voidRes] = await Promise.all([
+        fetch(`/api/reports/z-reading?from=${date}&to=${date}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
+        fetch(`/api/cash-counts/summary?date=${date}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
+        fetch(`/api/reports/item-quantities?${p}`, { headers: authHeaders() }).then(r => r.json()),
+        fetch(`/api/reports/void-logs?${p}`, { headers: authHeaders() }).then(r => r.json()),
+      ]);
+      const zData = (zRes?.data ?? zRes) as Record<string, unknown>;
+      const ccData = cashRes as Record<string, unknown>;
+      const ccNested = ccData.cash_count as { denominations: { label: string; qty: number; total: number }[]; grand_total: number } | undefined;
 
-      if (json.success && json.data) {
-        setData(json.data);
-      } else {
-        // Fallback: build from branch analytics
-        const branchRes  = await fetch(`/api/branches/${branchId}/analytics`, { headers: authHeaders() });
-        const branchData = await branchRes.json();
-        if (branchData.success) {
-          const d = branchData.data;
-          setData({
-            branch_id:    Number(branchId),
-            branch_name:  branches.find(b => String(b.id) === branchId)?.name ?? `Branch #${branchId}`,
-            date,
-            gross_sales:  d.today_total ?? 0,
-            discount:     0,
-            net_sales:    d.today_total ?? 0,
-            cash:         0,
-            gcash:        0,
-            card:         0,
-            returns:      0,
-            total_orders: d.total_transactions ?? 0,
-            is_closed:    false,
-            cashier_breakdown: [],
-          });
-        } else {
-          setError("No Z Reading data available for this branch and date.");
-          setData(null);
-        }
-      }
+      const ALL_DENOMS = [1000, 500, 200, 100, 50, 20, 10, 5, 1, 0.25];
+      const storedDenoms = ccNested?.denominations ?? [];
+      const storedMap = new Map(storedDenoms.map(d => [parseFloat(d.label.replace(/,/g, '')), d.qty]));
+      const cashDenominations = ALL_DENOMS.map(denom => ({
+        label: denom === 0.25 ? '0.25' : String(denom),
+        qty:   storedMap.get(denom) ?? 0,
+        total: denom * (storedMap.get(denom) ?? 0),
+      }));
+
+      const totalCashCount = ccNested?.grand_total ?? (ccData.actual_amount as number) ?? 0;
+      const expectedAmount = (ccData.expected_amount as number) ?? 0;
+
+      const rawGross  = Number(zData.gross_sales ?? 0);
+      const netSales  = Number(zData.net_sales   ?? 0);
+      const scDisc    = Number(zData.sc_discount       ?? 0);
+      const pwdDisc   = Number(zData.pwd_discount      ?? 0);
+      const otherDisc = Number(zData.diplomat_discount ?? 0) + Number(zData.other_discount ?? 0);
+      const totalDisc = scDisc + pwdDisc + otherDisc;
+      const computedGross = rawGross > 0 ? rawGross : (netSales + totalDisc);
+
+      const merged = {
+        ...zData,
+        gross_sales:        computedGross,
+        cash_denominations: cashDenominations,
+        total_cash_count:   totalCashCount,
+        expected_amount:    expectedAmount,
+        over_short:         totalCashCount - (Number(zData.cash_total ?? 0) + Number(zData.cash_in ?? 0) - Number(zData.cash_drop ?? 0)),
+        categories:         (qtyRes as Record<string, unknown>).categories ?? [],
+        all_addons_summary: (qtyRes as Record<string, unknown>).all_addons_summary ?? [],
+        logs:               (voidRes as Record<string, unknown>).logs ?? (Array.isArray(voidRes) ? voidRes : []),
+      };
+      setReportData({ ...(merged as unknown as XReadingReport), report_type: "z_reading" });
+      // also set Z summary data
+      setData({
+        branch_id:    Number(branchId),
+        branch_name:  branches.find(b => String(b.id) === branchId)?.name ?? `Branch #${branchId}`,
+        date,
+        gross_sales:  computedGross,
+        discount:     totalDisc,
+        net_sales:    netSales,
+        cash:         Number(zData.cash_total ?? 0),
+        gcash:        0,
+        card:         0,
+        returns:      0,
+        total_orders: Number(zData.transaction_count ?? 0),
+        is_closed:    Boolean(zData.is_closed),
+        closed_at:    zData.closed_at as string | undefined,
+        cashier_breakdown: zData.cashier_breakdown as CashierRow[] | undefined,
+      });
     } catch {
-      setError("Failed to load Z Reading data.");
+      setError("Failed to load full Z Reading data.");
     } finally {
       setLoading(false);
     }
@@ -419,17 +466,14 @@ const ZReadingTab: React.FC = () => {
 
   useEffect(() => {
     if (branchId) {
-      fetchReading();
+      if (reportType === "z_reading") {
+        fetchFullZReading();
+      } else {
+        fetchXReport();
+      }
       fetchHistory();
     }
-  }, [fetchReading, fetchHistory, branchId]);
-
-  useEffect(() => {
-    if (branchId && reportType !== "z_reading") {
-      fetchXReport();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reportType]);
+  }, [fetchFullZReading, fetchXReport, fetchHistory, branchId, reportType]);
 
   const handleCloseShift = async () => {
     if (!branchId || !data) return;
@@ -483,8 +527,6 @@ const handlePrint = async () => {
 };
 
   const selectedBranchName = branches.find(b => String(b.id) === branchId)?.name ?? "—";
-
-  // ADD before: return (
 
   // ── Receipt helpers ────────────────────────────────────────────────────────
   const ReceiptRow = ({ label, value }: { label: string; value: string | number }) => (
@@ -913,79 +955,184 @@ const handlePrint = async () => {
     );
   };
 
-  const renderZReadingSummary = () => {
-  if (!data) return null;
-  const gross    = data.gross_sales  ?? 0;
-  const net      = data.net_sales    ?? 0;
-  const discount = data.discount     ?? 0;
-  const cash     = data.cash         ?? 0;
-  const gcash    = data.gcash        ?? 0;
-  const card     = data.card         ?? 0;
-  const returns  = data.returns      ?? 0;
-  const orders   = data.total_orders ?? 0;
+  const renderFullZReading = () => {
+    const gross          = reportData?.gross_sales || 0;
+    const scDiscount     = reportData?.sc_discount || 0;
+    const pwdDiscount    = reportData?.pwd_discount || 0;
+    const diplomat       = reportData?.diplomat_discount || 0;
+    const otherDiscount  = reportData?.other_discount || 0;
+    const totalDisc      = reportData?.total_discounts ?? (scDiscount + pwdDiscount + diplomat + otherDiscount);
+    const netSales       = reportData?.net_sales ?? (gross - totalDisc);
+    const netTotal       = reportData?.net_sales ?? reportData?.net_total ?? (gross - totalDisc);
+    const txCount        = reportData?.transaction_count || 0;
+    const vatableSales   = reportData?.vatable_sales || 0;
+    const vatAmount      = reportData?.vat_amount || 0;
+    const voids          = reportData?.total_void_amount || 0;
+    const qtyTotal       = reportData?.total_qty_sold || 0;
+    const cashDrop       = reportData?.cash_drop || 0;
+    const cashIn         = reportData?.cash_in || 0;
+    const resetCounter   = reportData?.reset_counter ?? 0;
+    const zCounter       = reportData?.z_counter ?? 1;
+    const presentAccumulated  = reportData?.present_accumulated ?? gross;
+    const previousAccumulated = reportData?.previous_accumulated ?? 0;
+    const salesForDay    = reportData?.sales_for_the_day ?? gross;
+    const reportIsVat    = reportData?.is_vat !== undefined ? reportData.is_vat : isVat;
 
-  return (
-    <div className="my-2">
-      <ReceiptDivider />
-      <ReceiptRow label="Report Date" value={data.date} />
-      <ReceiptRow label="Branch"      value={data.branch_name} />
-      <ReceiptDivider />
-      <p className="text-[11px] uppercase text-center font-bold mb-0.5">Sales Summary</p>
-      <ReceiptRow label="Gross Sales"     value={fmt(gross)} />
-      <ReceiptRow label="Total Discounts" value={fmt(discount)} />
-      <ReceiptRow label="Returns"         value={fmt(returns)} />
-      <div className="flex justify-between text-[11px] border-t border-black mt-0.5 pt-0.5 font-bold">
-        <span className="uppercase">Net Sales</span>
-        <span>{fmt(net)}</span>
-      </div>
-      <ReceiptDivider />
-      <p className="text-[11px] uppercase text-center font-bold mb-0.5">Payment Breakdown</p>
-      <ReceiptRow label="Cash"  value={fmt(cash)} />
-      <ReceiptRow label="GCash" value={fmt(gcash)} />
-      <ReceiptRow label="Card"  value={fmt(card)} />
-      <ReceiptDivider />
-      <ReceiptRow label="Total Orders" value={orders} />
-      {data.is_closed && data.closed_at && (
-        <>
-          <ReceiptDivider />
-          <ReceiptRow
-            label="Closed At"
-            value={new Date(data.closed_at).toLocaleString("en-PH", {
-              month: "short", day: "numeric",
-              hour: "2-digit", minute: "2-digit",
-            })}
-          />
-        </>
-      )}
-      {(data.cashier_breakdown ?? []).length > 0 && (
-        <>
-          <ReceiptDivider />
-          <p className="text-[11px] uppercase text-center font-bold mb-0.5">Cashier Breakdown</p>
-          <div className="flex text-[10px] border-b border-black pb-0.5 mb-0.5">
-            <span className="w-[35%] uppercase">Cashier</span>
-            <span className="w-[15%] text-center uppercase">Ord</span>
-            <span className="w-[25%] text-right uppercase">Gross</span>
-            <span className="w-[25%] text-right uppercase">Net</span>
-          </div>
-          {data.cashier_breakdown!.map((row, i) => (
-            <div key={i} className="flex text-[10px] leading-snug border-b border-dotted border-zinc-300">
-              <span className="w-[35%] uppercase truncate">{row.cashier_name}</span>
-              <span className="w-[15%] text-center">{row.orders}</span>
-              <span className="w-[25%] text-right">{fmt(row.gross)}</span>
-              <span className="w-[25%] text-right">{fmt(row.net)}</span>
+    const PAYMENT_METHODS = ["food panda","grab","gcash","visa","mastercard","cash"];
+    const METHOD_ALIASES: Record<string, string> = {
+      panda: "food panda", foodpanda: "food panda", food_panda: "food panda",
+      grabfood: "grab", "grab food": "grab",
+      "master card": "mastercard", master: "mastercard",
+      "visa card": "visa", "e-wallet": "gcash", ewallet: "gcash",
+    };
+    const paymentMap = new Map<string, number>();
+    (reportData?.payment_breakdown ?? []).forEach(p => {
+      const raw = (p.method ?? "").toLowerCase().trim();
+      const key = METHOD_ALIASES[raw] ?? raw;
+      paymentMap.set(key, (paymentMap.get(key) ?? 0) + Number(p.amount ?? 0));
+    });
+    const creditMethods = ["visa","mastercard","food panda","grab","gcash"];
+    const totalCredit = creditMethods.reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
+    const totalDebit  = 0;
+    const totalCard   = totalCredit + totalDebit;
+    const actualCash    = paymentMap.get("cash") || 0;
+    const actualNonCash = gross - actualCash;
+    const cashDenominations = reportData?.cash_denominations ?? reportData?.cash_count?.denominations ?? [];
+    const totalCashCount = reportData?.total_cash_count ?? reportData?.cash_count?.grand_total ?? 0;
+    const apiExpected = reportData?.expected_amount ?? 0;
+    const expectedEOD = apiExpected > 0 ? apiExpected : (actualCash + cashIn - cashDrop);
+    const overShort   = reportData?.over_short ?? (totalCashCount - expectedEOD);
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+
+    return (
+      <div className="my-2">
+        <ReceiptDivider />
+        <ReceiptRow label="REPORT DATE" value={now.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" })} />
+        <ReceiptRow label="REPORT TIME" value={timeStr} />
+        <ReceiptRow label="START DATE & TIME" value={`${date} ${timeStr}`} />
+        <ReceiptRow label="END DATE & TIME" value={`${date} ${timeStr}`} />
+        <ReceiptRow label="TERMINAL #" value="ALL" />
+        <ReceiptRow label="BRANCH" value={selectedBranchName} />
+        <ReceiptRow label="CASHIER" value={reportData?.prepared_by || "ADMIN USER"} />
+        <ReceiptRow label="BEG. SI #" value={reportData?.beg_si || "0000000000"} />
+        <ReceiptRow label="END. SI #" value={reportData?.end_si || "0000000000"} />
+        <ReceiptDivider />
+        <ReceiptRow label="RESET COUNTER NO." value={resetCounter} />
+        <ReceiptRow label="Z COUNTER NO." value={zCounter} />
+        <ReceiptRow label="PRESENT ACCUMULATED" value={phCurrency.format(presentAccumulated)} />
+        <ReceiptRow label="PREVIOUS ACCUMULATED" value={phCurrency.format(previousAccumulated)} />
+        <ReceiptRow label="SALES FOR THE DAY(S)" value={phCurrency.format(salesForDay)} />
+        <ReceiptDivider />
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">BREAKDOWN OF SALES</p>
+        <ReceiptRow label="VATABLE SALES" value={phCurrency.format(reportIsVat ? vatableSales : 0)} />
+        <ReceiptRow label="VAT AMOUNT" value={phCurrency.format(reportIsVat ? vatAmount : 0)} />
+        <ReceiptRow label="VAT EXEMPT SALES" value={phCurrency.format(reportData?.vat_exempt_sales || 0)} />
+        <ReceiptRow label="ZERO-RATED SALES" value={phCurrency.format(0)} />
+        <ReceiptDivider />
+        <ReceiptRow label="SERVICE CHARGE" value={phCurrency.format(0)} />
+        <ReceiptRow label="NET SALES" value={phCurrency.format(netSales)} />
+        <ReceiptRow label="TOTAL DISCOUNTS" value={phCurrency.format(totalDisc)} />
+        <ReceiptRow label="GROSS AMOUNT" value={phCurrency.format(gross)} />
+        <ReceiptDivider />
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">DISCOUNT SUMMARY</p>
+        <ReceiptRow label="S.C DISC." value={phCurrency.format(scDiscount)} />
+        <ReceiptRow label="PWD DISC." value={phCurrency.format(pwdDiscount)} />
+        <ReceiptRow label="NAAC DISC." value={phCurrency.format(0)} />
+        <ReceiptRow label="SOLO PARENT DISC." value={phCurrency.format(0)} />
+        <ReceiptRow label="OTHER DISC." value={phCurrency.format(diplomat + otherDiscount)} />
+        <ReceiptDivider />
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">SALES ADJUSTMENT</p>
+        <ReceiptRow label={`CANCELED (${voids > 0 ? reportData?.logs?.length ?? 0 : 0})`} value={phCurrency.format(voids)} />
+        <ReceiptDivider />
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">PAYMENTS RECEIVED</p>
+        {PAYMENT_METHODS.map((method, i) => (
+          <ReceiptRow key={i} label={method.toUpperCase()} value={phCurrency.format(paymentMap.get(method) || 0)} />
+        ))}
+        {reportData?.payment_breakdown?.filter(p => { if (!p.method) return false; const raw = p.method.toLowerCase().trim(); const normalized = METHOD_ALIASES[raw] ?? raw; return !PAYMENT_METHODS.includes(normalized); }).map((p, i) => { const raw = (p.method ?? "").toLowerCase().trim(); const normalized = METHOD_ALIASES[raw] ?? raw; return <ReceiptRow key={`extra-${i}`} label={normalized.toUpperCase()} value={phCurrency.format(p.amount)} />; })}
+        <ReceiptDivider />
+        <ReceiptRow label="TOTAL CREDIT" value={phCurrency.format(totalCredit)} />
+        <ReceiptRow label="TOTAL DEBIT" value={phCurrency.format(totalDebit)} />
+        <ReceiptRow label="TOTAL CARD" value={phCurrency.format(totalCard)} />
+        <ReceiptDivider />
+        <ReceiptRow label="TOTAL CASH" value={phCurrency.format(actualCash)} />
+        <ReceiptRow label="TOTAL NON-CASH" value={phCurrency.format(actualNonCash)} />
+        <ReceiptRow label="TOTAL PAYMENTS" value={phCurrency.format(gross)} />
+        <ReceiptDivider />
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
+        <ReceiptRow label="TRANSACTION COUNT" value={txCount} />
+        <ReceiptRow label="TOTAL QTY SOLD" value={qtyTotal} />
+        <ReceiptRow label="CASH IN" value={phCurrency.format(cashIn)} />
+        <ReceiptRow label="CASH DROP" value={phCurrency.format(cashDrop)} />
+        {cashDenominations.length > 0 && (
+          <>
+            <ReceiptDivider />
+            <p className="text-[11px] uppercase text-center font-bold mb-0.5">CASH COUNT</p>
+            {cashDenominations.map((d, i) => (
+              <div key={i} className="flex text-[11px] leading-snug">
+                <span className="w-[30%] uppercase">{d.label}</span>
+                <span className="w-[10%] text-center">X</span>
+                <span className="w-[25%] text-center">{d.qty}</span>
+                <span className="w-[35%] text-right">{phCurrency.format(d.total)}</span>
+              </div>
+            ))}
+            <ReceiptDivider />
+            <ReceiptRow label="TOTAL CASH COUNT" value={phCurrency.format(totalCashCount)} />
+            <ReceiptRow label="EXPECTED EOD CASH" value={phCurrency.format(expectedEOD)} />
+            {overShort >= 0 ? (
+              <div className="flex justify-between text-[11px] leading-snug font-bold">
+                <span className="uppercase w-[60%]">OVER</span>
+                <span className="text-right w-[40%] text-green-700">{phCurrency.format(overShort)}</span>
+              </div>
+            ) : (
+              <div className="flex justify-between text-[11px] leading-snug font-bold">
+                <span className="uppercase w-[60%]">SHORT</span>
+                <span className="text-right w-[40%] text-red-600">-{phCurrency.format(Math.abs(overShort))}</span>
+              </div>
+            )}
+            <ReceiptRow label="DISCREPANCY" value={phCurrency.format(Math.abs(overShort))} />
+          </>
+        )}
+        {reportData?.categories && reportData.categories.length > 0 && (
+          <>
+            <ReceiptDivider />
+            <p className="text-[11px] uppercase text-center font-bold mb-0.5">ITEM BREAKDOWN</p>
+            <div className="flex text-[11px] font-bold border-b border-black pb-0.5 mb-0.5 uppercase">
+              <span className="w-[50%]">Item</span>
+              <span className="w-[15%] text-center">Size</span>
+              <span className="w-[15%] text-center">Qty</span>
+              <span className="w-[20%] text-right">Total</span>
             </div>
-          ))}
-        </>
-      )}
-    </div>
-  );
-};
+            {reportData.categories.map((cat, catIdx) => (
+              <React.Fragment key={catIdx}>
+                <p className="text-[15px] font-bold uppercase mt-0.5">{cat.category_name}</p>
+                {cat.products.map((item, i) => (
+                  <div key={i} className="flex text-[11px] leading-snug border-b border-dotted border-zinc-200">
+                    <span className="w-[50%] uppercase leading-tight pl-1">{item.product_name}</span>
+                    <span className="w-[15%] text-center">{item.size ?? "—"}</span>
+                    <span className="w-[15%] text-center">{item.total_qty}</span>
+                    <span className="w-[20%] text-right">{phCurrency.format(item.total_sales)}</span>
+                  </div>
+                ))}
+              </React.Fragment>
+            ))}
+            <ReceiptDivider />
+            <div className="flex text-[11px] font-bold justify-between">
+              <span className="uppercase">GROSS TOTAL</span>
+              <span>{phCurrency.format(gross)}</span>
+            </div>
+            <div className="flex text-[11px] font-bold justify-between">
+              <span className="uppercase">NET TOTAL</span>
+              <span>{phCurrency.format(netTotal)}</span>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
 
   const HIDE_FOOTER    = ["summary","qty_items","search","detailed"];
   const renderReceiptContent = () => {
-    if (!reportData && data && reportType === "z_reading") {
-      return renderZReadingSummary(); // renders from `data` state
-    }
     switch (reportData?.report_type) {
       case "hourly_sales": return renderHourlySales();
       case "void_logs":    return renderVoidLogs();
@@ -994,6 +1141,7 @@ const handlePrint = async () => {
       case "detailed":
       case "search":       return renderDetailedSales();
       case "summary":      return renderSummary();
+      case "z_reading":    return renderFullZReading();
       default:             return renderXReading();
     }
   };
@@ -1074,7 +1222,7 @@ const handlePrint = async () => {
               if (activeView === "history") {
                 fetchHistory();
               } else if (reportType === "z_reading") {
-                fetchReading();
+                fetchFullZReading();
               } else {
                 fetchXReport();
               }
@@ -1110,7 +1258,7 @@ const handlePrint = async () => {
           <input type="date" value={date} onChange={e => setDate(e.target.value)}
             className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
         </div>
-        <Btn onClick={() => reportType === "z_reading" ? fetchReading() : fetchXReport()} disabled={loading || !branchId}>
+        <Btn onClick={() => reportType === "z_reading" ? fetchFullZReading() : fetchXReport()} disabled={loading || !branchId}>
           {loading ? <><RefreshCw size={12} className="animate-spin" /> Loading...</> : "Load Reading"}
         </Btn>
         {reportType === "search" && (
@@ -1160,14 +1308,14 @@ const handlePrint = async () => {
             </div>
           )}
 
-          {!loading && (reportData || (data && reportType === "z_reading")) && (
+          {!loading && reportData && (
             <div className="flex justify-center">
               <div
                 className="printable-receipt-area bg-white border border-zinc-200 rounded-[0.625rem] shadow-sm p-6 w-full max-w-sm"
                 style={{ fontFamily: "Arial, Helvetica, sans-serif" }}
               >
                 <div className="text-center mb-2">
-                  <p className="uppercase text-[13px] font-bold leading-tight">Lucky Boba Milktea</p>
+                  <p className="uppercase text-[13px] font-bold leading-tight">LUCKY BOBA MILKTEA<br />FOOD AND BEVERAGE TRADING</p>
                   <p className="uppercase text-[11px] mt-0.5">{selectedBranchName}</p>
                   <ReceiptDivider />
                   <p className="uppercase text-[12px] font-bold tracking-widest">

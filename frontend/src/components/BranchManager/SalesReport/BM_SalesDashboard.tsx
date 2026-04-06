@@ -254,7 +254,7 @@ const BM_SalesDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [mode, period, dateFrom, dateTo, bmBranchId]);
+  }, [mode, period, dateFrom, bmBranchId]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
