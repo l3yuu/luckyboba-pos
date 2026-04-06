@@ -152,6 +152,7 @@ export const Field: React.FC<FieldProps> = ({ label, required, error, hint, chil
 
 // ─── Input Helpers ──────────────────────────────────────────────────────────
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const inputClass = (error?: string): string =>
   `w-full text-sm font-medium text-zinc-700 bg-zinc-50 border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all ${
     error ? 'border-red-300 bg-red-50' : 'border-zinc-200'

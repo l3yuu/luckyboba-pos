@@ -9,7 +9,7 @@ import BM_UploadData from './BM_UploadData';
 import BM_AddVouchers from './BM_AddVouchers';
 import BM_ImportData from './BM_ImportData';
 import BM_BackupSystem from './BM_BackupSystem';
-import { Button, AlertBox } from '../SharedUI';
+import { Button } from '../SharedUI';
 
 import { 
   Settings as SettingsIcon, UserPlus, Percent, FileUp, 
