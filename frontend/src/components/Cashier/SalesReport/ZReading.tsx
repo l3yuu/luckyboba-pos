@@ -832,6 +832,9 @@ const ZReading = () => {
           .flex-between { display: flex; justify-content: space-between; width: 100%; align-items: flex-end; }
           .receipt-divider { border-top: 1px dashed #000; margin: 6px 0; width: 100%; display: block; }
           @media print {
+           * { opacity: 1 !important; color: #000 !important; }
+            .opacity-50 { opacity: 1 !important; }
+            .line-through { text-decoration: line-through !important; color: #000 !important; }
             @page { 
               size: 80mm 2000mm;
               margin: 3mm 2mm !important; 
@@ -857,6 +860,7 @@ const ZReading = () => {
               padding: 0 !important; 
             }
             .receipt-area { 
+              color: #000 !important;
               width: 76mm !important; 
               max-width: 76mm !important; 
               margin: 0 auto !important; 
@@ -881,7 +885,7 @@ const ZReading = () => {
             .flex-between { display: flex !important; justify-content: space-between !important; width: 100% !important; align-items: flex-end !important; }
             table { width: 100% !important; max-width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; font-size: 11px !important; }
             th { text-align: left !important; border-bottom: 1px solid #000 !important; padding-bottom: 2px !important; text-transform: uppercase !important; font-weight: 500 !important; font-size: 11px !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
-            td { padding: 2px 0 !important; vertical-align: top !important; font-size: 11px !important; font-weight: 400 !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
+            td { padding: 2px 0 !important; vertical-align: top !important; font-size: 11px !important; font-weight: 400 !important; color: #000 !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
           }
         `}</style>
 
