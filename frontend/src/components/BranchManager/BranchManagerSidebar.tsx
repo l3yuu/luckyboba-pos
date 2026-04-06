@@ -224,20 +224,20 @@ const SB_STYLES = `
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface BranchManagerSidebarProps {
-  isSidebarOpen:  boolean;
+  isSidebarOpen: boolean;
   setSidebarOpen: (v: boolean) => void;
-  logo:           string;
-  currentTab:     string;
-  setCurrentTab:  (tab: string) => void;
-  onLogout?:      () => void;
-  isLoggingOut?:  boolean;
+  logo: string;
+  currentTab: string;
+  setCurrentTab: (tab: string) => void;
+  onLogout?: () => void;
+  isLoggingOut?: boolean;
 }
 
 interface AuthUser {
-  id:    number;
-  name:  string;
+  id: number;
+  name: string;
   email: string;
-  role:  string;
+  role: string;
 }
 
 const getToken = () =>
@@ -247,38 +247,38 @@ const getToken = () =>
 // ── Nav data ──────────────────────────────────────────────────────────────────
 const salesItems = [
   { tab: 'sales-dashboard', label: 'Sales Dashboard' },
-  { tab: 'items-report',    label: 'Items Report'    },
-  { tab: 'x-reading',       label: 'X-Reading'       },
-  { tab: 'z-reading',       label: 'Z-Reading'       },
+  { tab: 'items-report', label: 'Items Report' },
+  { tab: 'x-reading', label: 'X-Reading' },
+  { tab: 'z-reading', label: 'Z-Reading' },
 ];
 const menuItems = [
-  { tab: 'menu-list',         label: 'Menu List'      },
-  { tab: 'category-list',     label: 'Categories'     },
+  { tab: 'menu-list', label: 'Menu List' },
+  { tab: 'category-list', label: 'Categories' },
   { tab: 'sub-category-list', label: 'Sub-Categories' },
 ];
 const inventoryItems = [
-  { tab: 'inventory-dashboard', label: 'Dashboard'       },
-  { tab: 'inventory-list',      label: 'Inventory List'  },
-  { tab: 'inventory-category',  label: 'Categories'      },
-  { tab: 'purchase-order',      label: 'Purchase Orders' },
-  { tab: 'stock-transfer',      label: 'Stock Transfer'  },
-  { tab: 'supplier',            label: 'Suppliers'       },
-  { tab: 'item-checker',        label: 'Item Checker'    },
-  { tab: 'item-serials',        label: 'Item Serials'    },
-  { tab: 'inventory-report',    label: 'Reports'         },
+  { tab: 'inventory-dashboard', label: 'Dashboard' },
+  { tab: 'inventory-list', label: 'Inventory List' },
+  { tab: 'inventory-category', label: 'Categories' },
+  { tab: 'purchase-order', label: 'Purchase Orders' },
+  { tab: 'stock-transfer', label: 'Stock Transfer' },
+  { tab: 'supplier', label: 'Suppliers' },
+  { tab: 'item-checker', label: 'Item Checker' },
+  { tab: 'item-serials', label: 'Item Serials' },
+  { tab: 'inventory-report', label: 'Reports' },
 ];
 const appItems = [
-  { tab: 'app-orders',      label: 'App Orders'       },
+  { tab: 'app-orders', label: 'App Orders' },
   { tab: 'menu-management', label: 'Menu Availability' },
 ];
 
-const SALES_TABS     = salesItems.map(i => i.tab);
-const MENU_TABS      = menuItems.map(i => i.tab);
+const SALES_TABS = salesItems.map(i => i.tab);
+const MENU_TABS = menuItems.map(i => i.tab);
 const INVENTORY_TABS = inventoryItems.map(i => i.tab);
 
 // ── Desktop: collapsible group ────────────────────────────────────────────────
 const NavGroup = ({
-  label, icon, items, currentTab, expanded, onToggle, onNavigate,
+  label, icon, items, currentTab, expanded, onToggle, onNavigate, badge,
 }: {
   label: string;
   icon: React.ReactNode;
@@ -287,6 +287,7 @@ const NavGroup = ({
   expanded: boolean;
   onToggle: () => void;
   onNavigate: (tab: string) => void;
+  badge?: number;
 }) => {
   const isGroupActive = items.some(i => i.tab === currentTab);
   return (
@@ -299,6 +300,7 @@ const NavGroup = ({
           {icon}
         </span>
         <span style={{ flex: 1 }}>{label}</span>
+        {badge != null && badge > 0 && <span className="bm-sb-badge">{badge}</span>}
         <ChevronDown size={12} className={`bm-chevron ${expanded ? 'open' : ''}`} />
       </button>
       <div className={`bm-accordion ${expanded ? 'open' : ''}`}>
@@ -320,7 +322,7 @@ const NavGroup = ({
 
 // ── Mobile: group with accordion ──────────────────────────────────────────────
 const MobileGroup = ({
-  label, icon, items, currentTab, expanded, onToggle, onNavigate,
+  label, icon, items, currentTab, expanded, onToggle, onNavigate, badge,
 }: {
   label: string;
   icon: React.ReactNode;
@@ -329,6 +331,7 @@ const MobileGroup = ({
   expanded: boolean;
   onToggle: () => void;
   onNavigate: (tab: string) => void;
+  badge?: number;
 }) => {
   const isGroupActive = items.some(i => i.tab === currentTab);
   return (
@@ -336,6 +339,7 @@ const MobileGroup = ({
       <button onClick={onToggle} className="bm-m-group-btn">
         <span className="bm-m-icon" style={{ color: isGroupActive ? '#3b2063' : '#71717a' }}>{icon}</span>
         <span style={{ flex: 1 }}>{label}</span>
+        {badge != null && badge > 0 && <span className="bm-sb-badge">{badge}</span>}
         <ChevronDown size={16} style={{ color: '#a1a1aa', flexShrink: 0, transition: 'transform 0.32s cubic-bezier(0.4,0,0.2,1)', transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)' }} />
       </button>
       <div className={`bm-m-accordion ${expanded ? 'open' : ''}`}>
@@ -361,33 +365,33 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
   onLogout, isLoggingOut: externalLoggingOut,
 }) => {
   const [internalLoggingOut] = useState(false);
-  const [authUser,           setAuthUser]           = useState<AuthUser | null>(null);
-  const [isClosing,          setIsClosing]          = useState(false);
-  const [pendingOrderCount,  setPendingOrderCount]  = useState(0);
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [isClosing, setIsClosing] = useState(false);
+  const [pendingOrderCount, setPendingOrderCount] = useState(0);
 
   // Desktop accordion state
-  const [salesExp,     setSalesExp]     = useState(false);
-  const [menuExp,      setMenuExp]      = useState(false);
+  const [salesExp, setSalesExp] = useState(false);
+  const [menuExp, setMenuExp] = useState(false);
   const [inventoryExp, setInventoryExp] = useState(false);
-  const [appExp,       setAppExp]       = useState(false);
+  const [appExp, setAppExp] = useState(false);
 
   // Mobile accordion state
-  const [mSalesExp,     setMSalesExp]     = useState(false);
-  const [mMenuExp,      setMMenuExp]      = useState(false);
+  const [mSalesExp, setMSalesExp] = useState(false);
+  const [mMenuExp, setMMenuExp] = useState(false);
   const [mInventoryExp, setMInventoryExp] = useState(false);
-  const [mAppExp,       setMAppExp]       = useState(false);
+  const [mAppExp, setMAppExp] = useState(false);
 
   const APP_TABS = appItems.map(i => i.tab);
 
-  const salesOpen     = SALES_TABS.includes(currentTab)     || salesExp;
-  const menuOpen      = MENU_TABS.includes(currentTab)      || menuExp;
+  const salesOpen = SALES_TABS.includes(currentTab) || salesExp;
+  const menuOpen = MENU_TABS.includes(currentTab) || menuExp;
   const inventoryOpen = INVENTORY_TABS.includes(currentTab) || inventoryExp;
-  const appOpen       = APP_TABS.includes(currentTab)       || appExp;
+  const appOpen = APP_TABS.includes(currentTab) || appExp;
 
-  const mSalesOpen     = SALES_TABS.includes(currentTab)     || mSalesExp;
-  const mMenuOpen      = MENU_TABS.includes(currentTab)      || mMenuExp;
+  const mSalesOpen = SALES_TABS.includes(currentTab) || mSalesExp;
+  const mMenuOpen = MENU_TABS.includes(currentTab) || mMenuExp;
   const mInventoryOpen = INVENTORY_TABS.includes(currentTab) || mInventoryExp;
-  const mAppOpen       = APP_TABS.includes(currentTab)       || mAppExp;
+  const mAppOpen = APP_TABS.includes(currentTab) || mAppExp;
 
   const isLoggingOut = externalLoggingOut ?? internalLoggingOut;
 
@@ -416,7 +420,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
       try {
         const res = await fetch('/api/branch/app-orders', {
           headers: {
-            'Accept':        'application/json',
+            'Accept': 'application/json',
             'Authorization': `Bearer ${getToken()}`,
           },
         });
@@ -480,8 +484,8 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
         <div className="flex-1 bm-scroll px-3 py-2 min-h-0 overflow-y-auto">
           <p className="px-2 pt-4 pb-1 text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">Home</p>
           {[
-            { tab: 'dashboard',         label: 'Dashboard',         icon: <LayoutDashboard size={14} /> },
-            { tab: 'users',             label: 'User Management',   icon: <Users size={14} /> },
+            { tab: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={14} /> },
+            { tab: 'users', label: 'User Management', icon: <Users size={14} /> },
             { tab: 'device-management', label: 'Device Management', icon: <Monitor size={14} /> },
           ].map(t => (
             <button key={t.tab} onClick={() => go(t.tab)}
@@ -494,7 +498,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
           <p className="px-2 pt-4 pb-1 text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">Mobile App</p>
           <NavGroup label="App Management" icon={<Smartphone size={14} />}
             items={appItems} currentTab={currentTab}
-            expanded={appOpen} onToggle={() => setAppExp(v => !v)} onNavigate={go} />
+            expanded={appOpen} onToggle={() => setAppExp(v => !v)} onNavigate={go} badge={pendingOrderCount} />
 
           <p className="px-2 pt-4 pb-1 text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">Reports</p>
           <NavGroup label="Sales Reports" icon={<BarChart2 size={14} />}
@@ -600,18 +604,18 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
             <div className="bm-divider" style={{ margin: '0 20px' }} />
 
             {/* Scrollable nav */}
-            <div className="bm-scroll" style={{ 
-              flex: 1, 
-              minHeight: 0, 
-              padding: '8px 14px', 
+            <div className="bm-scroll" style={{
+              flex: 1,
+              minHeight: 0,
+              padding: '8px 14px',
               overflowY: 'auto',
-              WebkitOverflowScrolling: 'touch' 
+              WebkitOverflowScrolling: 'touch'
             }}>
 
               <div className="bm-sec">Home</div>
               {[
-                { tab: 'dashboard',         label: 'Dashboard',         icon: <LayoutDashboard size={18} /> },
-                { tab: 'users',             label: 'User Management',   icon: <Users size={18} /> },
+                { tab: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
+                { tab: 'users', label: 'User Management', icon: <Users size={18} /> },
                 { tab: 'device-management', label: 'Device Management', icon: <Monitor size={18} /> },
               ].map(t => (
                 <button key={t.tab} onClick={() => go(t.tab)} className={`bm-m-item ${currentTab === t.tab ? 'active' : ''}`}>
@@ -623,7 +627,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
               <div className="bm-sec">Mobile App</div>
               <MobileGroup label="App Management" icon={<Smartphone size={18} />}
                 items={appItems} currentTab={currentTab}
-                expanded={mAppOpen} onToggle={() => setMAppExp(v => !v)} onNavigate={go} />
+                expanded={mAppOpen} onToggle={() => setMAppExp(v => !v)} onNavigate={go} badge={pendingOrderCount} />
 
               <div className="bm-sec">Reports</div>
               <MobileGroup label="Sales Reports" icon={<BarChart2 size={18} />}

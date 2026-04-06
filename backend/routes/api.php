@@ -165,6 +165,33 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         return response()->json(['message' => 'Name updated successfully', 'user' => $user]);
     });
 
+    Route::put('/user/{id}/update-email', function (Request $request, $id) {
+        $request->validate([
+            'email'    => 'required|string|email|max:255|unique:users,email,' . $id,
+            'password' => 'required|string',
+        ]);
+
+        $user = $request->user();
+
+        // Ensure the authenticated user matches the target ID
+        if ((string) $user->id !== (string) $id) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+
+        // Verify current password
+        if (!Hash::check($request->password, $user->password)) {
+            return response()->json(['message' => 'Incorrect password.'], 422);
+        }
+
+        $user->email = $request->email;
+        $user->save();
+
+        return response()->json([
+            'message' => 'Email updated successfully.',
+            'user'    => $user,
+        ]);
+    });
+
     Route::post('/user/avatar', function (Request $request) {
         $request->validate([
             'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:5120',
