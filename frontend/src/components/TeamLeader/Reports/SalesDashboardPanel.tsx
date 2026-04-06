@@ -26,6 +26,10 @@ interface SalesTileProps {
   trend?: number;
 }
 
+interface SalesDashboardProps {
+  branchId?: number | null;
+}
+
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
   
@@ -102,7 +106,7 @@ const SalesTile = ({ label, value, icon: Icon, color, trend }: SalesTileProps) =
   </div>
 );
 
-const SalesDashboardPanel = () => {
+const SalesDashboardPanel = ({ branchId }: SalesDashboardProps) => {
   const [data,       setData]       = useState<SalesData[]>([]);
   const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -121,7 +125,7 @@ const SalesDashboardPanel = () => {
       const from = fromDate.toISOString().split('T')[0];
       const to   = today.toISOString().split('T')[0];
 
-      const response = await api.get('/reports/sales', { params: { from, to, type: 'SUMMARY' } });
+      const response = await api.get('/reports/sales', { params: { from, to, type: 'SUMMARY', branch_id: branchId } });
       const raw = Array.isArray(response.data) ? response.data : Object.values(response.data);
       
       const transformed: SalesData[] = raw.map((r: { 
@@ -142,7 +146,7 @@ const SalesDashboardPanel = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [period]);
+  }, [period, branchId]);
 
   useEffect(() => { load(); }, [load]);
 
