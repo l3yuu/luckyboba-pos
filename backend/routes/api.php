@@ -395,8 +395,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::get('/mall-accreditation', [SalesDashboardController::class, 'mallReport']);
         });
 
-        Route::get ('/settings', [SettingsController::class, 'index']);
-        Route::post('/settings', [SettingsController::class, 'update']);
+        Route::get  ('/settings', [SettingsController::class, 'index']);
+        Route::post ('/settings', [SettingsController::class, 'update']);
+        Route::patch('/settings', [SettingsController::class, 'update']);
 
         Route::get('/item-checker/search',    [ItemCheckerController::class, 'search']);
         Route::get('/item-checker/{barcode}', [ItemCheckerController::class, 'lookup']);
