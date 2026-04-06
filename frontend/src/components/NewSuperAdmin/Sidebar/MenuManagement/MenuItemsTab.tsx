@@ -1936,7 +1936,7 @@ const PrintMenuModal: React.FC<PrintMenuModalProps> = ({ categories, items, onCl
   const [printing, setPrinting] = useState(false);
 
   const toggleCat = (id: number) =>
-    setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+    setSelected(prev => { const n = new Set(prev); if (n.has(id)) { n.delete(id); } else { n.add(id); } return n; });
 
   const allChecked = selected.size === catsWithItems.length;
   const toggleAll  = () => setSelected(allChecked ? new Set() : new Set(catsWithItems.map(c => c.id)));
