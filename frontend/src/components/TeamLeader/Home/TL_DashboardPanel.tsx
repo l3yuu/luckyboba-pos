@@ -437,7 +437,15 @@ const BMAnalyticsView = ({ branchId }: { branchId: number | null }) => {
 };
 
 // ─── Main Dashboard Panel (exported) ─────────────────────────────────────────
-const TL_DashboardPanel = ({ branchId }: { branchId: number | null }) => {
+const TL_DashboardPanel = ({
+  branchId,
+  roleLabel = 'Team Leader',
+  roleDesc  = 'Floor Operations View',
+}: {
+  branchId:   number | null;
+  roleLabel?: string;
+  roleDesc?:  string;
+}) => {
   const [stats,        setStats]        = useState<DashStats | null>(null);
   const [cashiers,     setCashiers]     = useState<ActiveCashier[]>([]);
   const [lowStock,     setLowStock]     = useState<LowStockItem[]>([]);
@@ -521,8 +529,8 @@ const TL_DashboardPanel = ({ branchId }: { branchId: number | null }) => {
               <div className="tl-badge tl-badge-green"><span className="tl-pulse" style={{ width:5, height:5 }} />Shift Active</div>
             </div>
             <h1 style={{ color:'#fff', fontSize:'1.4rem', fontWeight:800, letterSpacing:'-0.035em', margin:0, lineHeight:1.15 }}>
-              Team Leader<br />
-              <span style={{ color:'rgba(255,255,255,0.5)', fontSize:'0.85rem', fontWeight:500 }}>Floor Operations View</span>
+              {roleLabel}<br />
+              <span style={{ color:'rgba(255,255,255,0.5)', fontSize:'0.85rem', fontWeight:500 }}>{roleDesc}</span>
             </h1>
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:10 }}>

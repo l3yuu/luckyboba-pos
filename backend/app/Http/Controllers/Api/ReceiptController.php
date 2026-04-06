@@ -82,6 +82,15 @@ class ReceiptController extends Controller
                 WHERE si.sale_id = sales.id
                 AND c.type = 'drink'
             ) as has_stickers
+        ")
+        ->selectRaw("
+            (
+                SELECT COUNT(*)
+                FROM sales s2
+                WHERE s2.branch_id  = sales.branch_id
+                AND DATE(s2.created_at) = DATE(sales.created_at)
+                AND s2.id <= sales.id
+            ) as daily_order_number
         ");
 
     // Branch restriction — include APP- orders for all branches
@@ -276,6 +285,7 @@ public function voidRequest(Request $request, $id)
             // ✅ New keys
             'bir'     => $birFields,
             'vat'     => $vatFields,
+            'settings' => \App\Models\Setting::pluck('value', 'key'),
         ]);
     }
 

@@ -113,7 +113,7 @@ const SupervisorDashboard = () => {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard':       return <TL_DashboardPanel   branchId={authUser?.branch_id ?? null} />;
+      case 'dashboard':       return <TL_DashboardPanel   branchId={authUser?.branch_id ?? null} roleLabel="Supervisor" roleDesc="Floor & Operations View" />;
       case 'users':           return <StaffOverviewPanel  branchId={authUser?.branch_id ?? null} />;
       // Floor Ops
       case 'void-logs':       return <SV_VoidLogsPanel    branchId={authUser?.branch_id ?? null} />;
