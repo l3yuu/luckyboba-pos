@@ -29,6 +29,10 @@ interface StatTileProps {
   trend?: number;
 }
 
+interface TL_DashboardProps {
+  branchId?: number | null;
+}
+
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
   
@@ -93,7 +97,7 @@ const StatTile = ({ label, value, icon: Icon, color, trend }: StatTileProps) => 
   </div>
 );
 
-const TL_DashboardPanel = () => {
+const TL_DashboardPanel = ({ branchId }: TL_DashboardProps) => {
   const [stats,        setStats]        = useState<DashStats | null>(null);
   const [lowStock,     setLowStock]     = useState<LowStockItem[]>([]);
   const [pendingVoids, setPendingVoids] = useState<PendingVoid[]>([]);
@@ -105,11 +109,12 @@ const TL_DashboardPanel = () => {
   const load = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true); else setLoading(true);
     try {
+      const params = { date: today, branch_id: branchId };
       const [statsRes, hourlyRes, stockRes, voidsRes] = await Promise.allSettled([
-        api.get('/dashboard/stats'),
-        api.get('/reports/hourly-sales', { params: { date: today } }),
-        api.get('/raw-materials/low-stock'),
-        api.get('/reports/void-logs',    { params: { date: today } }),
+        api.get('/dashboard/stats', { params: { branch_id: branchId } }),
+        api.get('/reports/hourly-sales', { params }),
+        api.get('/raw-materials/low-stock', { params: { branch_id: branchId } }),
+        api.get('/reports/void-logs',    { params }),
       ]);
 
       if (statsRes.status  === 'fulfilled') { 
@@ -153,7 +158,7 @@ const TL_DashboardPanel = () => {
       setLoading(false); 
       setRefreshing(false); 
     }
-  }, [today]);
+  }, [today, branchId]);
 
   useEffect(() => { load(); }, [load]);
 
