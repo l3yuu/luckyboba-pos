@@ -1,7 +1,7 @@
 // components/NewSuperAdmin/Tabs/Reports/CrossBranchTab.tsx
 import { useState, useEffect, useCallback } from "react";
 import {
-  TrendingUp, TrendingDown, DollarSign, FileText,
+  TrendingUp, TrendingDown, PhilippinePeso , FileText,
   Download, ArrowUpRight, ArrowDownRight, RefreshCw, AlertCircle,
 } from "lucide-react";
 import {
@@ -236,7 +236,7 @@ const CrossBranchTab: React.FC = () => {
         <StatCard icon={<TrendingUp   size={16} />} label="Gross Revenue"    value={loading ? "—" : fmt(grandTotal)}                              color="violet"  />
         <StatCard icon={<FileText     size={16} />} label="Total Orders"     value={loading ? "—" : (totals?.total_orders ?? 0).toLocaleString()}  color="emerald" />
         <StatCard icon={<TrendingDown size={16} />} label="Avg Order Value"  value={loading ? "—" : fmt(totals?.avg_order_value ?? 0)}             color="red"     />
-        <StatCard icon={<DollarSign   size={16} />} label="Net Profit (est)" value={loading ? "—" : fmt(netProfit)}                               color="amber"   />
+        <StatCard icon={<PhilippinePeso   size={16} />} label="Net Profit (est)" value={loading ? "—" : fmt(netProfit)}                               color="amber"   />
       </div>
 
       {/* Chart + P&L */}
