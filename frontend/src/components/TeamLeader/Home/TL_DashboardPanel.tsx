@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type ElementType } from 'react';
 import api from '../../../services/api';
 import {
   Users, ShoppingBag, AlertTriangle, TrendingUp,
@@ -20,6 +20,14 @@ interface DashStats {
 interface LowStockItem   { id: number; name: string; quantity: number; minimum: number; }
 interface PendingVoid    { id: number; invoice: string; amount: number; cashier_name?: string; cashier?: string; reason: string; created_at: string; }
 interface HourlyStat     { hour: number; total: number; count: number; }
+
+interface StatTileProps {
+  label: string;
+  value: string | number;
+  icon: ElementType;
+  color: string;
+  trend?: number;
+}
 
 const STYLES = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
@@ -65,7 +73,7 @@ const fmtS = (v?: number) => {
 };
 
 // ── Components ───────────────────────────────────────────────────────────────
-const StatTile = ({ label, value, icon: Icon, color, trend }: any) => (
+const StatTile = ({ label, value, icon: Icon, color, trend }: StatTileProps) => (
   <div className="tl-tile p-6 flex flex-col justify-between min-h-[140px]">
     <div className="flex items-start justify-between">
       <div className="p-2.5 rounded-lg" style={{ background: `${color}08`, color }}>
@@ -111,17 +119,33 @@ const TL_DashboardPanel = () => {
       if (hourlyRes.status === 'fulfilled') {
         const raw = hourlyRes.value.data; 
         const arr = Array.isArray(raw) ? raw : (raw?.hourly_data ?? []);
-        setHourly(arr.map((r: HourlyStat) => ({ hour: Number(r.hour ?? 0), total: Number(r.total ?? 0), count: Number(r.count ?? 0) })));
+        setHourly(arr.map((r: { hour?: number; total?: number; count?: number }) => ({ 
+          hour: Number(r.hour ?? 0), 
+          total: Number(r.total ?? 0), 
+          count: Number(r.count ?? 0) 
+        })));
       }
       if (stockRes.status === 'fulfilled') {
         const raw = stockRes.value.data; 
         const arr = Array.isArray(raw) ? raw : (raw?.data ?? []);
-        setLowStock(arr.slice(0,5).map((r: any) => ({ id: Number(r.id), name: String(r.name || r.item_name || ''), quantity: Number(r.quantity ?? 0), minimum: Number(r.minimum ?? 5) })));
+        setLowStock(arr.slice(0,5).map((r: { id?: number; name?: string; item_name?: string; quantity?: number; minimum?: number }) => ({ 
+          id: Number(r.id), 
+          name: String(r.name || r.item_name || ''), 
+          quantity: Number(r.quantity ?? 0), 
+          minimum: Number(r.minimum ?? 5) 
+        })));
       }
       if (voidsRes.status === 'fulfilled') {
         const raw = voidsRes.value.data; 
         const arr = Array.isArray(raw) ? raw : (raw?.logs ?? []);
-        setPendingVoids(arr.slice(0,5).map((r: any) => ({ ...r, cashier_name: r.cashier_name || r.cashier })));
+        setPendingVoids(arr.slice(0,5).map((r: { id?: number; invoice?: string; amount?: number; cashier_name?: string; cashier?: string; reason?: string; created_at?: string }) => ({ 
+          id: Number(r.id || 0), 
+          invoice: String(r.invoice || ''), 
+          amount: Number(r.amount || 0), 
+          reason: String(r.reason || ''), 
+          created_at: String(r.created_at || ''), 
+          cashier_name: String(r.cashier_name || r.cashier || '') 
+        })));
       }
     } catch (e) { 
       console.error('TL load error', e); 

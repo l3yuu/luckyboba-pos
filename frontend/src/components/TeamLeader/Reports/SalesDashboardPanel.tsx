@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, type ElementType } from 'react';
 import api from '../../../services/api';
 import { 
   TrendingUp, ShoppingBag, DollarSign, Calendar, 
@@ -16,6 +16,14 @@ interface SalesData {
   sales: number;
   orders: number;
   avg_order?: number;
+}
+
+interface SalesTileProps {
+  label: string;
+  value: string | number;
+  icon: ElementType;
+  color: string;
+  trend?: number;
 }
 
 const STYLES = `
@@ -74,7 +82,7 @@ const fmtS = (v?: number) => {
 };
 
 // ── Components ───────────────────────────────────────────────────────────────
-const SalesTile = ({ label, value, icon: Icon, color, trend }: any) => (
+const SalesTile = ({ label, value, icon: Icon, color, trend }: SalesTileProps) => (
   <div className="sdb-tile p-6 flex flex-col justify-between min-h-[140px]">
     <div className="flex items-start justify-between">
       <div className="p-2.5 rounded-lg" style={{ background: `${color}08`, color }}>
@@ -104,7 +112,7 @@ const SalesDashboardPanel = () => {
     if (isRefresh) setRefreshing(true); else setLoading(true);
     try {
       const today = new Date();
-      let fromDate = new Date();
+      const fromDate = new Date();
       
       if (period === '7days')   fromDate.setDate(today.getDate() - 7);
       if (period === '30days')  fromDate.setDate(today.getDate() - 30);
@@ -116,11 +124,16 @@ const SalesDashboardPanel = () => {
       const response = await api.get('/reports/sales', { params: { from, to, type: 'SUMMARY' } });
       const raw = Array.isArray(response.data) ? response.data : Object.values(response.data);
       
-      const transformed: SalesData[] = raw.map((r: any) => ({
-        date: String(r.date || r.created_at || '').split('T')[0],
-        sales: Number(r.total_sales || r.sales || r.amount || 0),
-        orders: Number(r.total_orders || r.orders || r.count || 0),
-      })).sort((a,b) => a.date.localeCompare(b.date));
+      const transformed: SalesData[] = raw.map((r: { 
+        Sales_Date?: string; Daily_Revenue?: number; Total_Orders?: number; 
+        date?: string; total_sales?: number; total_orders?: number; 
+        created_at?: string; sales?: number; orders?: number; 
+        amount?: number; count?: number 
+      }) => ({
+        date: String(r.date || r.created_at || r.Sales_Date || '').split('T')[0],
+        sales: Number(r.Daily_Revenue || r.total_sales || r.sales || r.amount || 0),
+        orders: Number(r.Total_Orders || r.total_orders || r.orders || r.count || 0),
+      })).sort((a: SalesData, b: SalesData) => a.date.localeCompare(b.date));
 
       setData(transformed);
     } catch (e) {
