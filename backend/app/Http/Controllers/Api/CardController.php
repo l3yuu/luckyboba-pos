@@ -126,7 +126,7 @@ class CardController extends Controller
                 $claimedToday = DB::table('card_usage_logs')
                     ->where('user_id', $member->user_id)
                     ->where('card_id', $member->card_id)
-                    ->whereDate('created_at', today())
+                    ->whereDate('used_date', today())
                     ->pluck('promo_type')
                     ->toArray();
 
@@ -152,7 +152,7 @@ class CardController extends Controller
             ->where('user_id', $userId)
             ->where('card_id', $request->card_id)
             ->where('promo_type', $request->promo_type)
-            ->whereDate('created_at', today())
+            ->whereDate('used_date', today())
             ->exists();
 
         if ($alreadyClaimed) {
@@ -166,6 +166,7 @@ class CardController extends Controller
             'user_id'    => $userId,
             'card_id'    => $request->card_id,
             'promo_type' => $request->promo_type,
+            'used_date'  => today(),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -263,4 +264,85 @@ class CardController extends Controller
 
         return response()->json(['success' => true, 'message' => 'Card deleted.']);
     }
+
+    public function generateQr(Request $request)
+{
+    $request->validate(['perk_name' => 'required|string']);
+
+    // Normalize: accept either internal ID or display name → always store display name
+    $perkNameMap = [
+        'buy_1_take_1'   => 'Buy 1, Get 1 Free',
+        '10_percent_off' => '10% Off All Items',
+    ];
+    $perkName = $perkNameMap[$request->input('perk_name')] 
+                ?? $request->input('perk_name');
+
+    // Whitelist — reject anything not recognized
+    if (!in_array($perkName, ['Buy 1, Get 1 Free', '10% Off All Items'])) {
+        return response()->json(['message' => 'Invalid perk name.'], 422);
+    }
+
+    $user  = $request->user();
+    $today = now()->toDateString();
+
+    $alreadyUsed = DB::table('card_usage_logs')
+        ->where('user_id', $user->id)
+        ->where('promo_type', $perkName)
+        ->whereDate('used_date', today())
+        ->exists();
+
+    if ($alreadyUsed) {
+        return response()->json(['message' => 'Perk already used today.'], 409);
+    }
+
+    // Get the user's active card_id
+    $cardId = DB::table('user_cards')
+        ->where('user_id', $user->id)
+        ->where('status', 'active')
+        ->whereRaw('expires_at > NOW()')
+        ->value('card_id');
+
+    if (!$cardId) {
+        return response()->json([
+            'message' => 'No active card found.',
+        ], 403);
+    }
+
+    // Record usage immediately when QR is revealed
+    DB::table('card_usage_logs')->insert([
+        'user_id'    => $user->id,
+        'card_id'    => $cardId,
+        'promo_type' => $perkName,
+        'used_date'  => $today,
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+
+    // Generate token and display code
+    $expiresAt   = now()->addMinutes(20);
+    $displayCode = strtoupper(substr(md5($user->id . $perkName . now()), 0, 6));
+    $signedToken = base64_encode(json_encode([
+        'user_id'    => $user->id,
+        'perk_name'  => $perkName,
+        'expires_at' => $expiresAt->toIso8601String(),
+        'code'       => $displayCode,
+    ]));
+
+    return response()->json([
+        'signed_token' => $signedToken,
+        'display_code' => $displayCode,
+        'expires_at'   => $expiresAt->toIso8601String(),
+    ]);
+}
+
+public function perkStatus(Request $request)
+{
+    $used = DB::table('card_usage_logs')
+        ->where('user_id', $request->user()->id)
+        ->where('promo_type', $request->query('perk_name'))
+        ->whereDate('used_date', today())
+        ->exists();
+
+    return response()->json(['used' => $used]);
+}
 }

@@ -1,5 +1,4 @@
 <?php
-// app/Http/Controllers/OnlineOrderController.php
 
 namespace App\Http\Controllers;
 
@@ -9,18 +8,13 @@ use Illuminate\Http\JsonResponse;
 
 class OnlineOrderController extends Controller
 {
-    /**
-     * Return online orders matching the logged-in Cashier's branch.
-     */
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user();
-
+        $user  = $request->user();
         $query = Sale::with(['items', 'user', 'branch'])
             ->where('invoice_number', 'like', 'APP-%')
             ->whereNotIn('status', ['cancelled']);
 
-        // 🟢 FILTER BY BRANCH: Only show orders for this cashier's branch
         if (!empty($user->branch_id)) {
             $query->where('branch_id', $user->branch_id);
         } elseif (!empty($user->branch_name)) {
@@ -37,42 +31,37 @@ class OnlineOrderController extends Controller
         return response()->json($orders);
     }
 
-    /**
-     * Update the status of an online order (Secured by branch).
-     */
     public function updateStatus(Request $request, int $id): JsonResponse
     {
         $request->validate([
-            'status' => ['required', 'in:pending,preparing,completed'],
+            'status'      => ['required', 'in:pending,preparing,completed'],
             'branch_name' => 'required|string|exists:branches,name',
         ]);
 
-        $user = $request->user();
-
+        $user  = $request->user();
         $query = Sale::where('id', $id)
             ->where('invoice_number', 'like', 'APP-%');
 
-        // 🟢 SECURITY: Ensure cashiers can only update orders for their own branch
         if (!empty($user->branch_id)) {
             $query->where('branch_id', $user->branch_id);
-        } elseif (!empty($user->branch_name)) {
-            $branch = \App\Models\Branch::where('name', $user->branch_name)->first();
+        } else {
+            $branchName = !empty($user->branch_name)
+                ? $user->branch_name
+                : $request->input('branch_name');
+
+            $branch = \App\Models\Branch::where('name', $branchName)->first();
             if ($branch) {
                 $query->where('branch_id', $branch->id);
             }
         }
 
-        $sale = $query->firstOrFail();
-
+        $sale         = $query->firstOrFail();
         $sale->status = $request->status;
         $sale->save();
 
         return response()->json($this->formatOrder($sale->load(['items', 'user'])));
     }
 
-    /**
-     * Return online orders exclusively for the logged-in mobile app customer.
-     */
     public function myOrders(Request $request): JsonResponse
     {
         $orders = Sale::with(['items', 'user', 'branch'])
@@ -94,19 +83,79 @@ class OnlineOrderController extends Controller
             'payment_method' => 'required|string',
             'order_type'     => 'required|string',
             'items'          => 'required|array',
-            'branch_name'    => 'required|string', // Ensure this is expected
+            'branch_name'    => 'required|string',
         ]);
 
-        $branch = \App\Models\Branch::whereRaw('LOWER(name) = ?', [strtolower($request->input('branch_name'))])->first();
-\Log::info('Branch lookup', [
-    'requested' => $request->input('branch_name'),
-    'found'     => $branch?->name,
-    'found_id'  => $branch?->id,
-]);
+        $promoApplied = $request->input('promo_applied'); 
+        $allowedPromos = ['Buy 1, Get 1 Free', '10% Off All Items'];
+        if ($promoApplied !== null && !in_array($promoApplied, $allowedPromos)) {
+            return response()->json(['message' => 'Invalid promo type.'], 422);
+        }
+
+        // ── B1T1 validation: only valid for Classic Milktea items ─────────────
+        if ($promoApplied === 'Buy 1, Get 1 Free') {
+            $items    = collect($request->input('items', []));
+            $itemIds  = $items->pluck('menu_item_id')->filter()->values()->toArray();
+
+            $classicItems = \DB::table('menu_items')
+                ->whereIn('id', $itemIds)
+                ->where('category_id', 22)
+                ->get();
+
+            $classicQty = 0;
+            foreach ($classicItems as $classicItem) {
+                $ordered     = $items->firstWhere('menu_item_id', $classicItem->id);
+                $classicQty += $ordered['quantity'] ?? 1;
+            }
+
+            if ($classicQty < 2) {
+                return response()->json([
+                    'message' => 'Buy 1 Take 1 requires at least 2 Classic Milktea items in your cart.',
+                ], 422);
+            }
+        }
+
+        // ── Record perk usage ─────────────────────────────────────────────────
+        if ($promoApplied && $request->input('card_id')) {
+            $today  = now()->toDateString();
+            $userId = $request->user()->id;
+            $cardId = $request->input('card_id');
+
+            $alreadyUsed = \DB::table('card_usage_logs')
+                ->where('user_id', $userId)
+                ->where('promo_type', $promoApplied)
+                ->whereDate('used_date', $today)
+                ->exists();
+
+            if ($alreadyUsed) {
+                return response()->json([
+                    'message' => 'You have already used this perk today.',
+                ], 409);
+            }
+
+            \DB::table('card_usage_logs')->insert([
+                'user_id'    => $userId,
+                'card_id'    => $cardId,
+                'promo_type' => $promoApplied, // stores 'Buy 1, Get 1 Free' or '10% Off All Items'
+                'used_date'  => $today,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        $branch = \App\Models\Branch::whereRaw(
+            'LOWER(name) = ?', [strtolower($request->input('branch_name'))]
+        )->first();
+
+        \Log::info('Branch lookup', [
+            'requested' => $request->input('branch_name'),
+            'found'     => $branch?->name,
+            'found_id'  => $branch?->id,
+        ]);
 
         $sale = Sale::create([
-            'invoice_number' => $request->si_number, 
-            'branch_id'      => $branch?->id, // This links the sale to SM Novaliches
+            'invoice_number' => $request->si_number,
+            'branch_id'      => $branch?->id,
             'user_id'        => $request->user()->id,
             'customer_name'  => $request->user()->name,
             'total_amount'   => $request->total,
@@ -115,12 +164,11 @@ class OnlineOrderController extends Controller
             'vat_amount'     => $request->input('vat_amount', 0),
             'payment_method' => $request->payment_method,
             'order_type'     => $request->order_type,
-            'cashier_name'   => 'Customer App', // Good to distinguish it was made via the app
+            'cashier_name'   => 'Customer App',
             'status'         => 'pending',
             'cash_tendered'  => $request->input('cash_tendered', $request->total),
         ]);
 
-        // Create the sale items
         foreach ($request->items as $item) {
             $sale->items()->create([
                 'product_name' => $item['name'],
@@ -136,15 +184,36 @@ class OnlineOrderController extends Controller
 
         $sale->load(['items', 'user', 'branch']);
 
+        $pointsEarned = (int) floor($request->total);
+        if ($request->input('card_id')) {
+            $pointsEarned *= 2;
+        }
+
+        DB::table('user_points')->updateOrInsert(
+            ['user_id' => $request->user()->id],
+            ['points'  => DB::raw("points + $pointsEarned"), 'updated_at' => now()]
+        );
+
+        DB::table('point_transactions')->insert([
+            'user_id'      => $request->user()->id,
+            'type'         => 'earn',
+            'points'       => $pointsEarned,
+            'source'       => 'order',
+            'reference_id' => $sale->id,
+            'note'         => "Earned from order {$sale->invoice_number}",
+            'created_at'   => now(),
+        ]);
+
         return response()->json([
-            'success'    => true,
-            'si_number'  => $sale->invoice_number,
-            'qr_code'    => str_replace('APP-', '', $sale->invoice_number),
-            'order'      => $this->formatOrder($sale),
+            'success'   => true,
+            'si_number' => $sale->invoice_number,
+            'qr_code'   => str_replace('APP-', '', $sale->invoice_number),
+            'points_earned' => $pointsEarned, 
+            'order'     => $this->formatOrder($sale),
         ], 201);
     }
 
-    // ─── Private helpers ──────────────────────────────────────────────────
+    
 
     private function formatOrder(Sale $sale): array
     {
@@ -160,16 +229,13 @@ class OnlineOrderController extends Controller
             'total_amount'   => (float) $sale->total_amount,
             'status'         => $sale->status ?? 'pending',
             'created_at'     => $sale->created_at,
-            'items'          => $sale->items->map(function($item) {
-                
-                // --- SAFETY NET FOR ADD-ONS ---
+            'items'          => $sale->items->map(function ($item) {
                 $rawAddons = $item->add_ons;
                 if (is_string($rawAddons)) {
-                    $decoded = json_decode($rawAddons, true);
+                    $decoded   = json_decode($rawAddons, true);
                     $rawAddons = (json_last_error() === JSON_ERROR_NONE) ? $decoded : [$rawAddons];
                 }
                 $finalAddons = is_array($rawAddons) ? $rawAddons : [];
-                // ------------------------------
 
                 return [
                     'id'       => $item->id,
@@ -177,7 +243,7 @@ class OnlineOrderController extends Controller
                     'qty'      => (int) $item->quantity,
                     'price'    => (float) $item->final_price,
                     'cup_size' => $item->size ?? null,
-                    'add_ons'  => $finalAddons, // <- Use the safe variable
+                    'add_ons'  => $finalAddons,
                 ];
             })->values()->toArray(),
         ];
