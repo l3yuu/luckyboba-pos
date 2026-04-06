@@ -215,7 +215,7 @@ const resolveUnit = (unit: unknown): string => {
         <div>
           <h2 className="text-sm font-black uppercase tracking-wide text-[#1a0f2e]">Inventory Overview</h2>
           <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
-            {loading ? 'Loading...' : 'All branches · Live stock health'}
+            {loading ? 'Loading...' : `${allBranches.find(b => String(b.id) === branch)?.name || 'All Branches'} · Live stock health`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -236,10 +236,34 @@ const resolveUnit = (unit: unknown): string => {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
-        <StatCard label="Total Items"  value={stats.total_items}  sub="Across all branches"    icon={<Package   size={16} color="#3b2063" />} bg="#f5f0ff" border="#e9d5ff" />
-        <StatCard label="Low Stock"    value={stats.low_stock}    sub="Below reorder level"    icon={<TrendingDown size={16} color="#dc2626" />} bg="#fef2f2" border="#fecaca" valueColor="#dc2626" subColor="#fca5a5" />
-        <StatCard label="Out of Stock" value={stats.out_of_stock} sub="Needs restock now"      icon={<XCircle   size={16} color="#d97706" />} bg="#fffbeb" border="#fde68a" valueColor="#d97706" subColor="#fbbf24" />
-        <StatCard label="Pending POs"  value={stats.pending_pos}  sub="Awaiting delivery"      icon={<Truck     size={16} color="#16a34a" />} bg="#f0fdf4" border="#bbf7d0" valueColor="#16a34a" subColor="#86efac" />
+        <StatCard 
+          label="Total Items"  
+          value={stats.total_items}  
+          sub={branch ? "In selected branch" : "Across all branches"}    
+          icon={<Package   size={16} color="#3b2063" />} 
+          bg="#f5f0ff" border="#e9d5ff" 
+        />
+        <StatCard 
+          label="Low Stock"    
+          value={stats.low_stock}    
+          sub="Below reorder level"    
+          icon={<TrendingDown size={16} color="#dc2626" />} 
+          bg="#fef2f2" border="#fecaca" valueColor="#dc2626" subColor="#fca5a5" 
+        />
+        <StatCard 
+          label="Out of Stock" 
+          value={stats.out_of_stock} 
+          sub="Needs restock now"      
+          icon={<XCircle   size={16} color="#d97706" />} 
+          bg="#fffbeb" border="#fde68a" valueColor="#d97706" subColor="#fbbf24" 
+        />
+        <StatCard 
+          label="Pending POs"  
+          value={stats.pending_pos}  
+          sub="Awaiting delivery"      
+          icon={<Truck     size={16} color="#16a34a" />} 
+          bg="#f0fdf4" border="#bbf7d0" valueColor="#16a34a" subColor="#86efac" 
+        />
       </div>
 
       {/* Two-column: Alerts + Movements */}
