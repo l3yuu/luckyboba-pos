@@ -24,16 +24,17 @@ import { ReceiptPrint, KitchenPrint, StickerPrint }
 // ============================================================
 
 interface SaleItem {
-  sale_id:       number;
-  si_number:     string;
-  status:        string;
-  terminal:      string;
-  items_count:   number;
-  total_amount:  number;
-  created_at:    string;
-  has_stickers:  boolean;
-  cashier_name?: string;
-  customer_name?: string; // FIXED: added missing property
+  sale_id:            number;
+  si_number:          string;
+  daily_order_number: number;
+  status:             string;
+  terminal:           string;
+  items_count:        number;
+  total_amount:       number;
+  created_at:         string;
+  has_stickers:       boolean;
+  cashier_name?:      string;
+  customer_name?:     string;
 }
 
 interface Stats { gross: number; voided: number; net: number; }
@@ -68,6 +69,7 @@ interface ReprintPayload {
     branch_name?:  string;
     total_amount?: number;
   } | null;
+  settings?: Record<string, string>;
 }
 
 interface RawSaleItem {
@@ -319,6 +321,8 @@ return {
   paxPwd: 0,
   seniorId: sale.tin ?? sale.senior_id ?? '',
 pwdId: sale.pwd_id ?? '',
+posFooter: payload.settings ?? {},
+receiptFooter: payload.settings?.receipt_footer ?? '',
 };
 };
 
@@ -361,7 +365,7 @@ pwdId: sale.pwd_id ?? '',
                 .queue-stub { page-break-before: always !important; break-before: page !important; }
               }
             `}</style>
-            {printType === 'receipt' && <ReceiptPrint {...props} showDoubleQueueStub={false} isReprint={true} />}
+            {printType === 'receipt' && <ReceiptPrint {...props} posFooter={props.posFooter} receiptFooter={props.receiptFooter} showDoubleQueueStub={false} isReprint={true} />}
             {printType === 'kitchen' && <KitchenPrint {...props} />}
             {printType === 'sticker' && <StickerPrint {...props} customerName={props.customerName} />}
           </>
@@ -444,7 +448,9 @@ pwdId: sale.pwd_id ?? '',
                     <tr key={item.sale_id} className="border-b border-zinc-50 hover:bg-[#f5f0ff] transition-colors">
                       <td className="px-7 py-4">
                         <div className="flex items-center gap-2.5">
-                          <span className="font-bold text-black text-sm tabular-nums">#{item.si_number}</span>
+                          <span className="font-bold text-black text-sm tabular-nums">
+                            #{String(item.daily_order_number ?? '—').padStart(3, '0')}
+                          </span>
                           <span className={`text-[9px] font-bold px-2 py-0.5 border uppercase tracking-widest ${
                             item.status === 'cancelled'
                               ? 'bg-red-50 text-red-600 border-red-100'
@@ -453,6 +459,9 @@ pwdId: sale.pwd_id ?? '',
                             {item.status}
                           </span>
                         </div>
+                        <p className="text-[10px] text-zinc-300 font-medium mt-0.5 tabular-nums">
+                          SI-{item.si_number}
+                        </p>
                         <p className="text-[11px] text-zinc-400 font-medium mt-0.5">
                           {item.created_at
                             ? new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })

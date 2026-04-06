@@ -26,6 +26,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login',  [AuthController::class, 'login'])->middleware('throttle:5,2');
+Route::post('/verify-2fa', [AuthController::class, 'verify2FA'])->middleware('throttle:5,2');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 
 
@@ -395,8 +396,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::get('/mall-accreditation', [SalesDashboardController::class, 'mallReport']);
         });
 
-        Route::get ('/settings', [SettingsController::class, 'index']);
-        Route::post('/settings', [SettingsController::class, 'update']);
+        Route::get  ('/settings', [SettingsController::class, 'index']);
+        Route::post ('/settings', [SettingsController::class, 'update']);
+        Route::patch('/settings', [SettingsController::class, 'update']);
 
         Route::get('/item-checker/search',    [ItemCheckerController::class, 'search']);
         Route::get('/item-checker/{barcode}', [ItemCheckerController::class, 'lookup']);
@@ -442,7 +444,10 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         });
 
         Route::prefix('system')->group(function () {
+            Route::get ('/info',              [SettingsController::class, 'getSystemInfo']);
             Route::get ('/audit',             [SettingsController::class, 'getAuditLogs']);
+            Route::delete('/audit/clear',     [SettingsController::class, 'clearAuditLogs']);
+            Route::post('/reset',             [SettingsController::class, 'resetSystem']);
             Route::get ('/backup-status',     [BackupController::class,   'lastBackupStatus']);
             Route::post('/run-backup',        [BackupController::class,   'runBackup']);
             Route::post('/upload',            [UploadController::class,   'upload']);

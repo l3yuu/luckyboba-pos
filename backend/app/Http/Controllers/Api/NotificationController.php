@@ -17,48 +17,55 @@ class NotificationController extends Controller
     {
         $notifications = [];
 
-        // ── 1. Low stock items ─────────────────────────────────────────────
+        // ── 1. Low stock items (Raw Materials) ──────────────────────────────
         try {
-            $lowStock = DB::table('inventory_items')
-                ->where('quantity', '<=', DB::raw('reorder_point'))
-                ->where('status', 'active')
-                ->select('id', 'name', 'quantity', 'reorder_point', 'unit')
-                ->orderBy('quantity')
+            $lowStock = DB::table('raw_materials')
+                ->where('current_stock', '<=', DB::raw('reorder_level'))
+                ->select('id', 'name', 'current_stock', 'reorder_level', 'unit')
+                ->orderBy('current_stock')
                 ->limit(10)
                 ->get();
 
             foreach ($lowStock as $item) {
                 $notifications[] = [
-                    'id'       => 'stock_' . $item->id,
-                    'type'     => 'low_stock',
-                    'title'    => 'Low Stock: ' . $item->name,
-                    'message'  => "Only {$item->quantity} {$item->unit} left (reorder at {$item->reorder_point}).",
-                    'severity' => $item->quantity == 0 ? 'critical' : 'warning',
-                    'at'       => now()->toISOString(),
+                    'id'          => 'stock_' . $item->id,
+                    'type'        => 'low_stock',
+                    'title'       => 'Low Stock: ' . $item->name,
+                    'message'     => "Only {$item->current_stock} {$item->unit} left (reorder at {$item->reorder_level}).",
+                    'severity'    => $item->current_stock <= 0 ? 'critical' : 'warning',
+                    'at'          => now()->toISOString(),
+                    'branch_name' => 'Main Inventory', // raw_materials is global in this schema
                 ];
             }
-        } catch (\Throwable $e) {
-            // Table may not exist in all environments — skip silently
-        }
+        } catch (\Throwable $e) {}
 
         // ── 2. Recent void / cancelled transactions (last 24 h) ────────────
         try {
             $voids = DB::table('sales')
-                ->where('status', 'cancelled')
-                ->where('updated_at', '>=', Carbon::now()->subDay())
-                ->select('id', 'si_number', 'total', 'updated_at', 'cashier_name')
-                ->orderByDesc('updated_at')
+                ->leftJoin('branches', 'sales.branch_id', '=', 'branches.id')
+                ->where('sales.status', 'cancelled')
+                ->where('sales.updated_at', '>=', Carbon::now()->subDay())
+                ->select(
+                    'sales.id', 
+                    'sales.invoice_number', 
+                    'sales.total_amount', 
+                    'sales.updated_at', 
+                    'sales.customer_name',
+                    'branches.name as branch_name'
+                )
+                ->orderByDesc('sales.updated_at')
                 ->limit(5)
                 ->get();
 
             foreach ($voids as $sale) {
                 $notifications[] = [
-                    'id'       => 'void_' . $sale->id,
-                    'type'     => 'void',
-                    'title'    => 'Voided: #' . $sale->si_number,
-                    'message'  => '₱' . number_format($sale->total, 2) . ' voided by ' . ($sale->cashier_name ?? 'staff') . '.',
-                    'severity' => 'info',
-                    'at'       => $sale->updated_at,
+                    'id'          => 'void_' . $sale->id,
+                    'type'        => 'void',
+                    'title'       => 'Voided: #' . ($sale->invoice_number ?? $sale->id),
+                    'message'     => '₱' . number_format($sale->total_amount, 2) . ' voided for ' . ($sale->customer_name ?? 'Customer') . '.',
+                    'severity'    => 'info',
+                    'at'          => $sale->updated_at,
+                    'branch_name' => $sale->branch_name ?? 'Unknown Branch',
                 ];
             }
         } catch (\Throwable $e) {}
@@ -66,19 +73,28 @@ class NotificationController extends Controller
         // ── 3. Cash-in not done today ──────────────────────────────────────
         try {
             $today = Carbon::today();
-            $cashedIn = DB::table('cash_transactions')
-                ->whereDate('created_at', $today)
-                ->where('type', 'cash_in')
-                ->exists();
+            // Get branches that HAVENT cashed in today
+            $branchesMissingCashIn = DB::table('branches')
+                ->whereNotExists(function ($query) use ($today) {
+                    $query->select(DB::raw(1))
+                        ->from('cash_transactions')
+                        ->whereRaw('cash_transactions.branch_id = branches.id')
+                        ->whereDate('cash_transactions.created_at', $today)
+                        ->where('cash_transactions.type', 'cash_in');
+                })
+                ->where('branches.status', 'active')
+                ->select('id', 'name')
+                ->get();
 
-            if (!$cashedIn) {
+            foreach ($branchesMissingCashIn as $branch) {
                 $notifications[] = [
-                    'id'       => 'cash_in_missing',
-                    'type'     => 'cash_in',
-                    'title'    => 'Cash-In Not Started',
-                    'message'  => 'No cash-in recorded for today. Terminal is locked for new orders.',
-                    'severity' => 'critical',
-                    'at'       => now()->toISOString(),
+                    'id'          => 'cash_in_missing_' . $branch->id,
+                    'type'        => 'cash_in',
+                    'title'       => 'Cash-In Missing',
+                    'message'     => "No cash-in recorded for today at {$branch->name}.",
+                    'severity'    => 'critical',
+                    'at'          => now()->toISOString(),
+                    'branch_name' => $branch->name,
                 ];
             }
         } catch (\Throwable $e) {}
@@ -86,20 +102,21 @@ class NotificationController extends Controller
         // ── 4. Pending purchase orders ─────────────────────────────────────
         try {
             $pendingPos = DB::table('purchase_orders')
-                ->where('status', 'pending')
-                ->select('id', 'po_number', 'created_at', 'supplier_name')
+                ->where('status', 'Pending')
+                ->select('id', 'po_number', 'created_at', 'supplier', 'total_amount')
                 ->orderByDesc('created_at')
                 ->limit(5)
                 ->get();
 
             foreach ($pendingPos as $po) {
                 $notifications[] = [
-                    'id'       => 'po_' . $po->id,
-                    'type'     => 'purchase_order',
-                    'title'    => 'Pending PO: #' . ($po->po_number ?? $po->id),
-                    'message'  => 'Purchase order from ' . ($po->supplier_name ?? 'supplier') . ' is awaiting approval.',
-                    'severity' => 'info',
-                    'at'       => $po->created_at,
+                    'id'          => 'po_' . $po->id,
+                    'type'        => 'purchase_order',
+                    'title'       => 'Pending PO: #' . ($po->po_number ?? $po->id),
+                    'message'     => 'PO for ₱' . number_format($po->total_amount, 2) . ' from ' . $po->supplier . ' is awaiting approval.',
+                    'severity'    => 'info',
+                    'at'          => $po->created_at,
+                    'branch_name' => 'Main Office',
                 ];
             }
         } catch (\Throwable $e) {}

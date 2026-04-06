@@ -23,7 +23,8 @@ interface AuthContextType {
   user:      User | null;
   isLoading: boolean;
   error:     string | null;
-  login:     (credentials: LoginCredentials) => Promise<User | null>;
+  login:     (credentials: LoginCredentials) => Promise<User | { requires_2fa: true } | null>;
+  verify2FA: (credentials: LoginCredentials, code: string) => Promise<User | null>;
   logout:    () => Promise<void>;
 }
 
@@ -69,7 +70,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const login = useCallback(async (credentials: LoginCredentials): Promise<User | null> => {
+  const login = useCallback(async (credentials: LoginCredentials): Promise<User | { requires_2fa: true } | null> => {
     setError(null);
 
     // ── Lockout check ───────────────────────────────────────────────────────
@@ -93,7 +94,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error(response.data.message || 'Invalid credentials.');
       }
 
-      const { token, user: userData, pos_number, branch_id } = response.data;
+      const { requires_2fa, token, user: userData, pos_number, branch_id } = response.data;
+
+      if (requires_2fa) {
+        return { requires_2fa: true };
+      }
 
       // ── Persist auth ──────────────────────────────────────────────────────
       localStorage.setItem('lucky_boba_token',          token);
@@ -139,6 +144,49 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
+  const verify2FA = useCallback(async (credentials: LoginCredentials, code: string): Promise<User | null> => {
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const response = await api.post('/verify-2fa', { ...credentials, code });
+
+      if (response.data.success === false) {
+        throw new Error(response.data.message || 'Invalid or expired 2FA code.');
+      }
+
+      const { token, user: userData, pos_number, branch_id } = response.data;
+
+      localStorage.setItem('lucky_boba_token',          token);
+      localStorage.setItem('lucky_boba_user_name',      userData.name);
+      localStorage.setItem('lucky_boba_user_role',      userData.role || 'cashier');
+      localStorage.setItem('lucky_boba_user_branch',    userData.branch_name ?? '');
+      localStorage.setItem('lucky_boba_user_branch_id', String(userData.branch_id ?? ''));
+      localStorage.setItem('lucky_boba_user_id',        String(userData.id));
+      localStorage.setItem('lucky_boba_user_branch_vat', userData.branch_vat_type ?? 'vat');
+      localStorage.removeItem('login_attempts');
+      localStorage.removeItem('login_lockout_end');
+
+      sessionStorage.setItem('pos_number', pos_number ?? '');
+      sessionStorage.setItem('branch_id',  String(branch_id ?? ''));
+
+      setUser(userData);
+      return userData;
+
+    } catch (err: unknown) {
+      let message = 'Verification failed.';
+      if (axios.isAxiosError(err)) {
+        message = err.response?.data?.message || message;
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
+      setError(message);
+      throw new Error(message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const logout = useCallback(async (): Promise<void> => {
     try {
       await api.post('/logout');
@@ -150,8 +198,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [clearSession]);
 
   const value = useMemo(
-    () => ({ user, isLoading, error, login, logout }),
-    [user, isLoading, error, login, logout]
+    () => ({ user, isLoading, error, login, verify2FA, logout }),
+    [user, isLoading, error, login, verify2FA, logout]
   );
 
   return (
