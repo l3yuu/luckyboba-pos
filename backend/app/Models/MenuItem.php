@@ -26,6 +26,7 @@ class MenuItem extends Model
         'size',
         'type',
         'status',
+        'branch_id',
     ];
 
     protected $casts = [

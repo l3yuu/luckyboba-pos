@@ -179,85 +179,117 @@ public function getCategories()
     }
 
     public function overview(Request $request)
-{
-    try {
-        $branchId = $request->query('branch_id');
-
-        // Low stock = quantity <= 5 (matching your existing getStockAlerts threshold)
-        $baseQuery = MenuItem::join('categories', 'menu_items.category_id', '=', 'categories.id')
-            ->where('categories.type', '!=', 'standard');
-
-        $totalItems  = (clone $baseQuery)->count();
-        $lowStock    = (clone $baseQuery)->where('menu_items.quantity', '>', 0)->where('menu_items.quantity', '<=', 5)->count();
-        $outOfStock  = (clone $baseQuery)->where('menu_items.quantity', '<=', 0)->count();
-
-        // Pending POs — guard in case the table doesn't exist yet
-        $pendingPos = 0;
+    {
         try {
-            $pendingPos = \App\Models\PurchaseOrder::whereIn('status', ['Draft', 'Approved'])->count();
-        } catch (\Exception $e) { /* table may not exist yet */ }
+            $branchId = $request->query('branch_id');
 
-        // Branch summary — use branches table if available
-        $branchSummary = [];
-        try {
-            $branches = \App\Models\Branch::all();
-            $branchSummary = $branches->map(function ($branch) {
-                // Since menu_items may not have branch_id, return global data per branch
-                // You can update this once branch_id is on menu_items
-                return [
-                    'branch_id'    => $branch->id,
-                    'branch_name'  => $branch->name,
-                    'total_items'  => 0,
-                    'low_stock'    => 0,
-                    'out_of_stock' => 0,
-                    'pending_pos'  => 0,
-                    'health_pct'   => 100,
-                ];
-            })->values()->toArray();
-        } catch (\Exception $e) { /* branches table may differ */ }
+            // 1. Stats calculation (filtered by branch if provided)
+            $baseQuery = MenuItem::join('categories', 'menu_items.category_id', '=', 'categories.id')
+                ->where('categories.type', '!=', 'standard');
 
-        return response()->json([
-            'total_items'    => $totalItems,
-            'low_stock'      => $lowStock,
-            'out_of_stock'   => $outOfStock,
-            'pending_pos'    => $pendingPos,
-            'branch_summary' => $branchSummary,
-        ]);
+            if ($branchId) {
+                $baseQuery->where('menu_items.branch_id', $branchId);
+            }
 
-    } catch (\Exception $e) {
-        Log::error('Inventory overview error: ' . $e->getMessage());
-        return response()->json(['message' => 'Failed to load overview.'], 500);
-    }
-}
+            $totalItems  = (clone $baseQuery)->count();
+            $lowStock    = (clone $baseQuery)->where('menu_items.quantity', '>', 0)->where('menu_items.quantity', '<=', 5)->count();
+            $outOfStock  = (clone $baseQuery)->where('menu_items.quantity', '<=', 0)->count();
 
-public function alerts(Request $request)
-{
-    try {
-        $alerts = MenuItem::join('categories', 'menu_items.category_id', '=', 'categories.id')
-            ->select('menu_items.id', 'menu_items.name', 'menu_items.quantity', 'categories.name as category')
-            ->where('categories.type', '!=', 'standard')
-            ->where('menu_items.quantity', '<=', 5)
-            ->orderBy('menu_items.quantity', 'asc')
-            ->get()
-            ->map(fn($item) => [
-                'id'            => $item->id,
-                'name'          => $item->name,
-                'category'      => $item->category,
-                'unit'          => 'PC',
-                'current_stock' => $item->quantity,
-                'reorder_level' => 5,
-                'branch_name'   => 'Main Branch',
-                'status'        => $item->quantity <= 0 ? 'out_of_stock'
-                                 : ($item->quantity <= 2  ? 'critical' : 'low'),
+            // Pending POs
+            $poQuery = \App\Models\PurchaseOrder::whereIn('status', ['Draft', 'Approved', 'Pending']);
+            // If POs eventually get branch_id, add filter here
+            $pendingPos = 0;
+            try { $pendingPos = $poQuery->count(); } catch (\Exception $e) {}
+
+            // 2. Branch Summary calculation
+            $branchSummary = [];
+            try {
+                $branches = \App\Models\Branch::all();
+                $branchSummary = $branches->map(function ($branch) {
+                    $bStats = MenuItem::join('categories', 'menu_items.category_id', '=', 'categories.id')
+                        ->where('categories.type', '!=', 'standard')
+                        ->where('menu_items.branch_id', $branch->id)
+                        ->selectRaw('
+                            COUNT(*) as total,
+                            SUM(CASE WHEN quantity > 0 AND quantity <= 5 THEN 1 ELSE 0 END) as low,
+                            SUM(CASE WHEN quantity <= 0 THEN 1 ELSE 0 END) as out_of
+                        ')->first();
+
+                    $total = $bStats->total ?? 0;
+                    $low   = $bStats->low   ?? 0;
+                    $out   = $bStats->out_of ?? 0;
+                    
+                    // Stock health: % of items NOT low/out
+                    $health = $total > 0 ? round((($total - ($low + $out)) / $total) * 100) : 100;
+
+                    return [
+                        'branch_id'    => $branch->id,
+                        'branch_name'  => $branch->name,
+                        'total_items'  => $total,
+                        'low_stock'    => $low,
+                        'out_of_stock' => $out,
+                        'pending_pos'  => 0, 
+                        'health_pct'   => $health,
+                    ];
+                });
+            } catch (\Exception $e) {}
+
+            return response()->json([
+                'total_items'    => $totalItems,
+                'low_stock'      => $lowStock,
+                'out_of_stock'   => $outOfStock,
+                'pending_pos'    => $pendingPos,
+                'branch_summary' => $branchSummary,
             ]);
 
-        return response()->json($alerts->values());
-
-    } catch (\Exception $e) {
-        Log::error('Inventory alerts error: ' . $e->getMessage());
-        return response()->json(['message' => 'Failed to load alerts.'], 500);
+        } catch (\Exception $e) {
+            Log::error('Inventory overview error: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to load overview.'], 500);
+        }
     }
-}
+
+    public function alerts(Request $request)
+    {
+        try {
+            $branchId = $request->query('branch_id');
+
+            $query = MenuItem::join('categories', 'menu_items.category_id', '=', 'categories.id')
+                ->leftJoin('branches', 'menu_items.branch_id', '=', 'branches.id')
+                ->select(
+                    'menu_items.id', 
+                    'menu_items.name', 
+                    'menu_items.quantity', 
+                    'categories.name as category',
+                    'branches.name as branch_name'
+                )
+                ->where('categories.type', '!=', 'standard')
+                ->where('menu_items.quantity', '<=', 5);
+
+            if ($branchId) {
+                $query->where('menu_items.branch_id', $branchId);
+            }
+
+            $alerts = $query->orderBy('menu_items.quantity', 'asc')
+                ->get()
+                ->map(fn($item) => [
+                    'id'            => $item->id,
+                    'name'          => $item->name,
+                    'category'      => $item->category,
+                    'unit'          => 'PC',
+                    'current_stock' => $item->quantity,
+                    'reorder_level' => 5,
+                    'branch_name'   => $item->branch_name ?? 'Main Office',
+                    'status'        => $item->quantity <= 0 ? 'out_of_stock'
+                                     : ($item->quantity <= 2  ? 'critical' : 'low'),
+                ]);
+
+            return response()->json($alerts->values());
+
+        } catch (\Exception $e) {
+            Log::error('Inventory alerts error: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to load alerts.'], 500);
+        }
+    }
 public function usageReport(Request $request)
 {
     try {

@@ -16,6 +16,7 @@ class RawMaterial extends Model
         'reorder_level',
         'is_intermediate',
         'notes',
+        'branch_id',
     ];
 
     protected $casts = [
