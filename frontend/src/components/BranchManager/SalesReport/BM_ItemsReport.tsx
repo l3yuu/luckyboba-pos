@@ -1,228 +1,290 @@
 
-import * as XLSX from 'xlsx';
-import { useState, useCallback, useEffect } from 'react';
-import api from '../../../services/api';
+// components/BranchManager/SalesReport/BM_ItemsReport.tsx
+// Mirrors the SuperAdmin ItemsReportTab UI, locked to BM's own branch.
+import { useState, useEffect, useCallback, useMemo } from "react";
+import * as XLSX from "xlsx";
 import {
-  Calendar,
-  FileText,
-  LayoutGrid,
-  FileDown,
-  Printer,
-  Database,
-  ChevronDown,
-  Activity,
-  TrendingUp,
-  ShoppingBag,
-  DollarSign,
-  ArrowUpRight,
-  Search,
-} from 'lucide-react';
+  Search, Download, RefreshCw, AlertCircle,
+  ChevronDown, ChevronUp, X, Package,
+  ArrowUpRight, ArrowDownRight, Printer,
+} from "lucide-react";
+import api from "../../../services/api";
 
-// ============================================================
-// STYLES — mirrors BranchManagerDashboard token set
-// ============================================================
+type ColorKey = "violet" | "emerald" | "red" | "amber";
+type VariantKey = "primary" | "secondary" | "danger" | "ghost";
+type SizeKey = "sm" | "md" | "lg";
+type SortDir = "asc" | "desc";
+type SortKey = "product_name" | "category" | "total_quantity" | "total_revenue" | "avg_price";
 
-const STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
-  .ir-root, .ir-root * { font-family: 'DM Sans', sans-serif !important; box-sizing: border-box; }
-  .ir-label { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #3f3f46; }
-  .ir-sub   { font-size: 0.65rem; font-weight: 400; color: #71717a; }
-  .ir-value { font-size: 1.9rem; font-weight: 800; letter-spacing: -0.035em; line-height: 1; }
-  .ir-tab { font-size: 0.6rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; padding: 6px 13px; border-radius: 0.4rem; border: none; cursor: pointer; transition: background 0.12s, color 0.12s; }
-  .ir-tab-on  { background: #1a0f2e; color: #fff; }
-  .ir-tab-off { background: transparent; color: #a1a1aa; }
-  .ir-tab-off:hover { background: #ede8ff; color: #3b2063; }
-  .ir-pill { font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; border-radius: 100px; padding: 3px 9px; border: 1px solid #e4e4e7; background: #f4f4f5; color: #71717a; }
-  .ir-live  {
-    display: inline-flex; align-items: center; gap: 5px;
-    background: #f0fdf4; border: 1px solid #bbf7d0;
-    border-radius: 100px; padding: 4px 10px;
-  }
-  .ir-live-dot  { width: 5px; height: 5px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 5px rgba(34,197,94,0.6); animation: ir-pulse 2s infinite; }
-  .ir-live-text { font-size: 0.55rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #16a34a; }
-  @keyframes ir-pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+// ── Get BM branch info from localStorage ──────────────────────────────────────
+const getBMBranchName = (): string =>
+  localStorage.getItem("lucky_boba_user_branch") ?? "";
 
-  .printable-receipt { display: none; }
-  @media print {
-    @page { size: 80mm auto; margin: 0; }
-    html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
-    #items-report-main { display: none !important; }
-    .printable-receipt { display: block !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 80mm !important; padding: 6mm !important; background: white !important; color: black !important; font-family: 'Courier New', monospace; }
-    .receipt-divider { border-top: 1px dashed #000 !important; margin: 8px 0; width: 100%; }
-    .flex-between { display: flex !important; justify-content: space-between !important; width: 100%; }
-  }
-  .receipt-divider { border-top: 1px dashed #000; margin: 8px 0; width: 100%; }
-  .flex-between { display: flex; justify-content: space-between; width: 100%; }
-`;
-
-// ============================================================
-// TYPE DEFINITIONS
-// ============================================================
-
-interface ReportItem {
-  id: number;
-  name: string;
+// ── Types ─────────────────────────────────────────────────────────────────────
+interface ItemRow {
+  product_name: string;
   category: string;
-  qty: number;
-  amount: number;
+  total_quantity: number;
+  total_revenue: number;
+  avg_price: number;
+  times_ordered: number;
 }
 
-interface ReportResponse {
-  items: ReportItem[];
-  total_qty: number;
-  grand_total: number;
-  cashier_name?: string;
+interface CategoryOption { id: number; name: string; }
+
+interface ApiItemRow {
+  name: string;
+  category: string | null;
+  qty: string | number;
+  amount: string | number;
 }
 
-// ============================================================
-// HELPERS
-// ============================================================
+// ── Shared UI ─────────────────────────────────────────────────────────────────
+interface StatCardProps {
+  icon: React.ReactNode; label: string; value: string | number;
+  sub?: string; trend?: number; color?: ColorKey;
+}
+interface BtnProps {
+  children: React.ReactNode; variant?: VariantKey; size?: SizeKey;
+  onClick?: () => void; className?: string; disabled?: boolean;
+}
 
-const CACHE_KEY_PREFIX = 'lucky_boba_items_report_';
-
-const buildCacheKey = (from: string, to: string, type: string) =>
-  `${CACHE_KEY_PREFIX}${from}_${to}_${type}`;
-
-const getLocalToday = () => {
-  const now = new Date();
-  const offset = now.getTimezoneOffset() * 60000;
-  return new Date(now.getTime() - offset).toISOString().split('T')[0];
+const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, trend, color = "violet" }) => {
+  const colors: Record<ColorKey, { bg: string; border: string; icon: string }> = {
+    violet: { bg: "bg-violet-50", border: "border-violet-200", icon: "text-violet-600" },
+    emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
+    red: { bg: "bg-red-50", border: "border-red-200", icon: "text-red-500" },
+    amber: { bg: "bg-amber-50", border: "border-amber-200", icon: "text-amber-600" },
+  };
+  const c = colors[color];
+  return (
+    <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className={`w-10 h-10 ${c.bg} border ${c.border} flex items-center justify-center rounded-[0.4rem]`}>
+          <span className={c.icon}>{icon}</span>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{label}</p>
+          <p className="text-xl font-bold text-[#1a0f2e] tabular-nums">{value}</p>
+          {sub && <p className="text-[10px] text-zinc-400 mt-0.5">{sub}</p>}
+        </div>
+      </div>
+      {trend !== undefined && (
+        <div className={`flex items-center gap-1 text-xs font-bold ${trend >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+          {trend >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+          {Math.abs(trend)}%
+        </div>
+      )}
+    </div>
+  );
 };
 
-// ============================================================
-// COMPONENT
-// ============================================================
-
-const BM_ItemsReport = () => {
-  const today = getLocalToday();
-  const phCurrency = new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' });
-  const fmtCompact = (v: number) => {
-    if (v >= 1_000_000) return `₱${(v / 1_000_000).toFixed(1)}M`;
-    if (v >= 1_000) return `₱${(v / 1_000).toFixed(1)}K`;
-    return `₱${v.toFixed(0)}`;
+const Btn: React.FC<BtnProps> = ({
+  children, variant = "primary", size = "sm",
+  onClick, className = "", disabled = false,
+}) => {
+  const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
+  const variants: Record<VariantKey, string> = {
+    primary: "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
+    danger: "bg-red-600 hover:bg-red-700 text-white",
+    ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
   };
-
-  const [fromDate, setFromDate] = useState(today);
-  const [toDate, setToDate] = useState(today);
-  const [reportType, setReportType] = useState<'item-list' | 'category-summary'>('item-list');
-  const [loading, setLoading] = useState(false);
-  const [_error, _setError] = useState<string | null>(null);
-
-  const [data, setData] = useState<ReportResponse | null>(() => {
-    const key = buildCacheKey(today, today, 'item-list');
-    const saved = localStorage.getItem(key);
-    return saved ? JSON.parse(saved) : null;
-  });
-
-  const getCacheKey = useCallback(
-    (from: string, to: string, type: string) => buildCacheKey(from, to, type),
-    []
+  return (
+    <button onClick={onClick} disabled={disabled}
+      className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 ${sizes[size]} ${variants[variant]} ${className}`}>
+      {children}
+    </button>
   );
+};
 
-  const fetchReport = useCallback(async () => {
-    const key = getCacheKey(fromDate, toDate, reportType);
+const SortIcon: React.FC<{ col: SortKey; active: SortKey; dir: SortDir }> = ({ col, active, dir }) => {
+  if (col !== active) return <ChevronDown size={11} className="text-zinc-300 ml-0.5" />;
+  return dir === "asc"
+    ? <ChevronUp size={11} className="text-[#3b2063] ml-0.5" />
+    : <ChevronDown size={11} className="text-[#3b2063] ml-0.5" />;
+};
+
+// ── Main Component ─────────────────────────────────────────────────────────────
+const BM_ItemsReport: React.FC = () => {
+  const today = new Date().toISOString().split("T")[0];
+  const firstMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+    .toISOString().split("T")[0];
+
+  const [bmBranchName] = useState(() => getBMBranchName());
+  const [dateFrom, setDateFrom] = useState(firstMonth);
+  const [dateTo, setDateTo] = useState(today);
+  const [categoryId, setCategoryId] = useState("");
+  const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("total_quantity");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [items, setItems] = useState<ItemRow[]>([]);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
+
+  const phCurrency = useMemo(() => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }), []);
+  const fmt = (v: number) => `₱${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+
+  // Fetch categories once
+  useEffect(() => {
+    api.get("/categories")
+      .then(res => {
+        const data = res.data;
+        if (data.success !== false) {
+          setCategories(Array.isArray(data) ? data : (data.data ?? []));
+        }
+      })
+      .catch(() => { });
+  }, []);
+
+  const fetchItems = useCallback(async () => {
     setLoading(true);
+    setError("");
     try {
-      const response = await api.get('/reports/items-report', {
-        params: { from: fromDate, to: toDate, type: reportType },
+      const res = await api.get("/reports/items-report", {
+        params: {
+          from: dateFrom,
+          to: dateTo,
+          type: "item-list",
+        },
       });
-      localStorage.setItem(key, JSON.stringify(response.data));
-      setData(response.data);
-    } catch (error) {
-      console.error('Error fetching fresh report:', error);
+
+      const data = res.data as {
+        items: ApiItemRow[];
+        total_qty: number;
+        grand_total: number;
+      };
+
+      if (data.items && data.items.length > 0) {
+        let mapped = data.items.map((p) => ({
+          product_name: p.name,
+          category: p.category ?? "—",
+          total_quantity: Number(p.qty),
+          total_revenue: Number(p.amount),
+          avg_price: Number(p.qty) > 0 ? Number(p.amount) / Number(p.qty) : 0,
+          times_ordered: 0, // not provided by this endpoint
+        }));
+
+        // Client-side category filter
+        if (categoryId) {
+          const cat = categories.find(c => String(c.id) === categoryId);
+          if (cat) {
+            mapped = mapped.filter(item =>
+              item.category.toLowerCase() === cat.name.toLowerCase()
+            );
+          }
+        }
+
+        setItems(mapped);
+      } else {
+        setItems([]);
+      }
+    } catch {
+      setError("Failed to load items report.");
     } finally {
       setLoading(false);
     }
-  }, [fromDate, toDate, reportType, getCacheKey]);
+  }, [dateFrom, dateTo, categoryId, categories]);
 
-  useEffect(() => {
-    const key = getCacheKey(fromDate, toDate, reportType);
-    const saved = localStorage.getItem(key);
-    if (saved) setData(JSON.parse(saved));
-    else fetchReport();
-  }, [fromDate, toDate, reportType, getCacheKey, fetchReport]);
+  useEffect(() => { fetchItems(); }, [fetchItems]);
 
-  const generateExcel = useCallback(() => {
-    if (!data || data.items.length === 0) { alert('No data to export'); return; }
-    const rows = data.items.map((item, index) => ({
-      '#': index + 1,
-      [reportType === 'category-summary' ? 'Category' : 'Item Name']: item.name,
-      Category: item.category,
-      'Qty Sold': item.qty,
-      'Total Sales': item.amount,
+  // Client-side sort + search
+  const filtered = useMemo(() => {
+    let rows = items.filter(r =>
+      r.product_name.toLowerCase().includes(search.toLowerCase()) ||
+      r.category.toLowerCase().includes(search.toLowerCase())
+    );
+    rows = [...rows].sort((a, b) => {
+      const av = a[sortKey];
+      const bv = b[sortKey];
+      if (typeof av === "string" && typeof bv === "string")
+        return sortDir === "asc" ? av.localeCompare(bv) : bv.localeCompare(av);
+      return sortDir === "asc" ? Number(av) - Number(bv) : Number(bv) - Number(av);
+    });
+    return rows;
+  }, [items, search, sortKey, sortDir]);
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir("desc"); }
+  };
+
+  const totalQty = filtered.reduce((s, r) => s + r.total_quantity, 0);
+  const totalRevenue = filtered.reduce((s, r) => s + r.total_revenue, 0);
+  const topItem = filtered[0];
+
+  const handleExport = () => {
+    if (filtered.length === 0) { alert("No data to export"); return; }
+    const rows = filtered.map((item, index) => ({
+      "#": index + 1,
+      "Item Name": item.product_name,
+      "Category": item.category,
+      "Qty Sold": item.total_quantity,
+      "Avg Price": Number(item.avg_price.toFixed(2)),
+      "Total Sales": Number(item.total_revenue.toFixed(2)),
+      "Contribution %": totalRevenue > 0 ? `${Math.round((item.total_revenue / totalRevenue) * 100)}%` : "0%",
     }));
-    rows.push({ '#': '', [reportType === 'category-summary' ? 'Category' : 'Item Name']: 'GRAND TOTAL', Category: '', 'Qty Sold': data.total_qty, 'Total Sales': data.grand_total } as never);
+    rows.push({
+      "#": "",
+      "Item Name": "GRAND TOTAL",
+      "Category": "",
+      "Qty Sold": totalQty,
+      "Avg Price": "",
+      "Total Sales": Number(totalRevenue.toFixed(2)),
+      "Contribution %": "100%",
+    } as never);
     const ws = XLSX.utils.json_to_sheet(rows);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Report');
-    XLSX.writeFile(wb, `items_report_${fromDate}_to_${toDate}.xlsx`);
-  }, [data, fromDate, toDate, reportType]);
+    XLSX.utils.book_append_sheet(wb, ws, "Items Report");
+    const branchSlug = (bmBranchName || "MY-BRANCH")
+      .toUpperCase().replace(/[^A-Z0-9]+/g, "-");
+    XLSX.writeFile(wb, `LuckyBoba_ItemsReport_${branchSlug}_${dateFrom}_to_${dateTo}.xlsx`);
+  };
 
   const handlePrint = () => {
-    if (!data || data.items.length === 0) { alert('No data to print'); return; }
+    if (filtered.length === 0) { alert("No data to print"); return; }
     setTimeout(() => window.print(), 150);
   };
 
-  const hasData = data && data.items.length > 0;
-  const grandTotal = data?.grand_total ?? 0;
-  const totalQty = data?.total_qty ?? 0;
-  const avgOrderValue = totalQty > 0 ? grandTotal / totalQty : 0;
-  const topItem = data?.items.reduce((a, b) => b.qty > a.qty ? b : a, data.items[0]);
-
-  // Summary stat cards — mirrors dashboard statCards pattern
-  const summaryCards = [
-    {
-      label: 'Total Revenue',
-      sub: 'Gross for selected range',
-      value: phCurrency.format(grandTotal),
-      compact: fmtCompact(grandTotal),
-      icon: <DollarSign size={14} strokeWidth={2.5} />,
-      iconBg: '#ede9fe', iconColor: '#7c3aed', valueColor: '#3b2063',
-    },
-    {
-      label: 'Total Items Sold',
-      sub: 'Units across all products',
-      value: totalQty.toLocaleString(),
-      compact: totalQty >= 1000 ? `${(totalQty / 1000).toFixed(1)}K` : String(totalQty),
-      icon: <ShoppingBag size={14} strokeWidth={2.5} />,
-      iconBg: '#dcfce7', iconColor: '#16a34a', valueColor: '#1a0f2e',
-    },
-    {
-      label: 'Avg Revenue / Item',
-      sub: 'Revenue per unit sold',
-      value: phCurrency.format(avgOrderValue),
-      compact: fmtCompact(avgOrderValue),
-      icon: <TrendingUp size={14} strokeWidth={2.5} />,
-      iconBg: '#e0f2fe', iconColor: '#0284c7', valueColor: '#0c4a6e',
-    },
-    {
-      label: 'Top Performer',
-      sub: 'Highest qty this period',
-      value: topItem?.name ?? '—',
-      compact: topItem ? `${topItem.qty} sold` : '—',
-      icon: <ArrowUpRight size={14} strokeWidth={2.5} />,
-      iconBg: '#fef9c3', iconColor: '#ca8a04', valueColor: '#1a0f2e',
-    },
-  ];
+  const SortTh: React.FC<{ col: SortKey; label: string }> = ({ col, label }) => (
+    <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400 cursor-pointer hover:text-zinc-600 select-none"
+      onClick={() => toggleSort(col)}>
+      <span className="inline-flex items-center gap-0.5">
+        {label}
+        <SortIcon col={col} active={sortKey} dir={sortDir} />
+      </span>
+    </th>
+  );
 
   return (
     <>
-      <style>{STYLES}</style>
+      {/* ── Print Receipt (hidden on screen) ── */}
+      <style>{`
+        .bm-printable-receipt { display: none; }
+        @media print {
+          @page { size: 80mm auto; margin: 0; }
+          html, body { background: white !important; margin: 0 !important; padding: 0 !important; }
+          .bm-items-main { display: none !important; }
+          .bm-printable-receipt { display: block !important; position: absolute !important; left: 0 !important; top: 0 !important; width: 80mm !important; padding: 6mm !important; background: white !important; color: black !important; font-family: 'Courier New', monospace; }
+          .receipt-divider { border-top: 1px dashed #000 !important; margin: 8px 0; width: 100%; }
+          .flex-between { display: flex !important; justify-content: space-between !important; width: 100%; }
+        }
+        .receipt-divider { border-top: 1px dashed #000; margin: 8px 0; width: 100%; }
+        .flex-between { display: flex; justify-content: space-between; width: 100%; }
+      `}</style>
 
-      {/* ── PRINTABLE RECEIPT (unchanged logic) ── */}
-      <div className="printable-receipt text-slate-800">
+      <div className="bm-printable-receipt text-slate-800">
         <div className="text-center space-y-1">
           <h1 className="font-black text-[14px] uppercase leading-tight">Lucky Boba Milktea</h1>
-          <p className="text-[10px] uppercase font-bold">Main Branch - QC</p>
+          <p className="text-[10px] uppercase font-bold">{bmBranchName || "My Branch"}</p>
           <div className="receipt-divider" />
-          <h2 className="font-black text-[11px] uppercase tracking-widest">
-            {reportType === 'category-summary' ? 'Category Summary' : 'Item Sales'} Report
-          </h2>
+          <h2 className="font-black text-[11px] uppercase tracking-widest">Item Sales Report</h2>
           <div className="text-left text-[10px] space-y-0.5 mt-2 uppercase">
-            <div className="flex-between"><span>From Date</span><span>{fromDate}</span></div>
-            <div className="flex-between"><span>To Date</span><span>{toDate}</span></div>
+            <div className="flex-between"><span>From Date</span><span>{dateFrom}</span></div>
+            <div className="flex-between"><span>To Date</span><span>{dateTo}</span></div>
             <div className="flex-between"><span>Print Time</span><span>{new Date().toLocaleTimeString()}</span></div>
-            <div className="flex-between"><span>Terminal</span><span>POS-01</span></div>
           </div>
         </div>
         <div className="my-4 pt-2">
@@ -230,326 +292,252 @@ const BM_ItemsReport = () => {
           <table className="w-full text-[10px]">
             <thead>
               <tr className="font-black border-b border-black text-left">
-                <th className="pb-1 uppercase tracking-tighter w-1/2">{reportType === 'category-summary' ? 'Category' : 'Item'}</th>
+                <th className="pb-1 uppercase tracking-tighter w-1/2">Item</th>
                 <th className="pb-1 text-center">QTY</th>
                 <th className="pb-1 text-right">TOTAL</th>
               </tr>
             </thead>
             <tbody>
-              {data?.items.map((item, idx) => (
+              {filtered.map((item, idx) => (
                 <tr key={idx}>
-                  <td className="py-1 uppercase text-[9px] font-bold">{item.name}</td>
-                  <td className="py-1 text-center font-bold">x{item.qty}</td>
-                  <td className="py-1 text-right">{phCurrency.format(item.amount)}</td>
+                  <td className="py-1 uppercase text-[9px] font-bold">{item.product_name}</td>
+                  <td className="py-1 text-center font-bold">x{item.total_quantity}</td>
+                  <td className="py-1 text-right">{phCurrency.format(item.total_revenue)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
           <div className="receipt-divider" />
           <div className="space-y-1 mt-2">
-            <div className="flex-between text-[10px]"><span>TOTAL ITEMS SOLD</span><span className="font-bold">{data?.total_qty || 0}</span></div>
-            <div className="flex-between font-black text-[12px] pt-1 border-t border-black"><span>TOTAL REVENUE</span><span>{phCurrency.format(data?.grand_total || 0)}</span></div>
-          </div>
-        </div>
-        <div className="mt-8 text-center space-y-4">
-          <div className="receipt-divider" />
-          <div className="pt-2">
-            <p className="text-[10px] font-bold uppercase">{data?.cashier_name || 'System Admin'}</p>
-            <p className="text-[10px] leading-none">____________________</p>
-            <p className="text-[8px] uppercase mt-1">Prepared By</p>
+            <div className="flex-between text-[10px]"><span>TOTAL ITEMS SOLD</span><span className="font-bold">{totalQty}</span></div>
+            <div className="flex-between font-black text-[12px] pt-1 border-t border-black"><span>TOTAL REVENUE</span><span>{phCurrency.format(totalRevenue)}</span></div>
           </div>
         </div>
       </div>
 
-      {/* ══════════════════════════════════════════════
-          MAIN UI  — consistent with BranchManagerDashboard
-      ══════════════════════════════════════════════ */}
-      <div id="items-report-main" className="ir-root flex flex-col h-full w-full bg-[#f5f4f8] overflow-hidden relative print:hidden">
-        <div className="flex-1 overflow-y-auto px-5 md:px-8 pb-8 pt-5 flex flex-col gap-5">
+      {/* ── Main UI ── */}
+      <div className="bm-items-main p-6 md:p-8 fade-in flex flex-col gap-5">
 
-          {/* ── SUMMARY STAT CARDS ── mirrors statCards grid */}
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
-            {summaryCards.map((s, i) => (
-              <div key={i} className="bg-white border border-gray-100 rounded-2xl p-5 flex flex-col gap-3 hover:shadow-md hover:border-[#ddd6f7] transition-all">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="ir-label">{s.label}</p>
-                    <p className="ir-sub" style={{ marginTop: 2 }}>{s.sub}</p>
-                  </div>
-                  <div className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0"
-                    style={{ background: s.iconBg, color: s.iconColor }}>
-                    {s.icon}
-                  </div>
-                </div>
-                <div>
-                  <p className="ir-value" style={{ color: s.valueColor }}>{s.compact}</p>
-                  <p className="ir-sub" style={{ marginTop: 4, wordBreak: 'break-word' }}>{s.value}</p>
-                </div>
-              </div>
-            ))}
+        {/* ── Header ── */}
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h2 className="text-base font-bold text-[#1a0f2e]">Items Report</h2>
+            <p className="text-xs text-zinc-400 mt-0.5">
+              {bmBranchName
+                ? `Per-item sales performance for ${bmBranchName}`
+                : "Per-item sales performance — quantity sold, revenue & pricing"}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Btn variant="secondary" onClick={fetchItems} disabled={loading}>
+              <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
+            </Btn>
+            <Btn variant="secondary" onClick={handleExport} disabled={loading || filtered.length === 0}>
+              <Download size={13} /> Export Excel
+            </Btn>
+            <Btn variant="secondary" onClick={handlePrint} disabled={loading || filtered.length === 0}>
+              <Printer size={13} /> Print
+            </Btn>
+          </div>
+        </div>
+
+        {/* ── Filters ── */}
+        <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 flex flex-wrap gap-3 items-end">
+          {/* Date From */}
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Date From</p>
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+              className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
+          </div>
+          {/* Date To */}
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Date To</p>
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
+              className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
+          </div>
+          {/* Branch badge — display only, not selectable */}
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Branch</p>
+            <div className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
+              {bmBranchName || "Your Branch"}
+            </div>
+          </div>
+          {/* Category */}
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Category</p>
+            <div className="relative">
+              <select value={categoryId} onChange={e => setCategoryId(e.target.value)}
+                className="appearance-none text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
+                <option value="">All Categories</option>
+                {categories.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
+              </select>
+              <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+            </div>
           </div>
 
-          {/* ── FILTER BAR ── */}
-          <div className="bg-white border border-gray-100 rounded-2xl p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-7 h-7 rounded-xl flex items-center justify-center"
-                style={{ background: '#ede9fe', color: '#7c3aed' }}>
-                <Search size={13} strokeWidth={2.5} />
-              </div>
-              <h2 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.025em', margin: 0 }}>
-                Report Filters
-              </h2>
-            </div>
-
-            <div className="flex flex-col lg:flex-row gap-3 items-end">
-
-              {/* From Date */}
-              <div className="flex-1 w-full space-y-1.5">
-                <label className="ir-label flex items-center gap-1.5 ml-1">
-                  <Calendar size={11} /> From Date
-                </label>
-                <input
-                  type="date" value={fromDate}
-                  onChange={(e) => setFromDate(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-100 bg-[#f5f4f8] font-semibold text-sm text-[#1a0f2e] outline-none focus:border-[#ddd6f7] transition-colors"
-                />
-              </div>
-
-              {/* To Date */}
-              <div className="flex-1 w-full space-y-1.5">
-                <label className="ir-label flex items-center gap-1.5 ml-1">
-                  <Calendar size={11} /> To Date
-                </label>
-                <input
-                  type="date" value={toDate}
-                  onChange={(e) => setToDate(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-100 bg-[#f5f4f8] font-semibold text-sm text-[#1a0f2e] outline-none focus:border-[#ddd6f7] transition-colors"
-                />
-              </div>
-
-              {/* Report Type */}
-              <div className="flex-1 w-full space-y-1.5">
-                <label className="ir-label flex items-center gap-1.5 ml-1">
-                  <LayoutGrid size={11} /> Report Mode
-                </label>
-                <div className="relative">
-                  <select
-                    value={reportType}
-                    onChange={(e) => setReportType(e.target.value as 'item-list' | 'category-summary')}
-                    className="w-full px-4 py-3 pr-10 rounded-xl border border-gray-100 bg-[#f5f4f8] font-bold text-[#3b2063] text-xs uppercase tracking-widest outline-none cursor-pointer appearance-none"
-                  >
-                    <option value="item-list">Detailed Item List</option>
-                    <option value="category-summary">Category Summary</option>
-                  </select>
-                  <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-2 w-full lg:w-auto">
-                <button
-                  onClick={fetchReport} disabled={loading}
-                  className="flex-1 lg:flex-none px-6 h-11 rounded-xl bg-[#1a0f2e] hover:bg-[#2a1647] text-white font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  <Activity size={13} />
-                  {loading ? 'Loading…' : 'Query'}
-                </button>
-                <button
-                  onClick={generateExcel} disabled={!hasData}
-                  className="w-11 h-11 rounded-xl bg-white border border-gray-100 text-zinc-400 hover:text-[#3b2063] hover:border-[#ddd6f7] flex items-center justify-center transition-all disabled:opacity-30"
-                  title="Export to Excel"
-                >
-                  <FileDown size={16} />
-                </button>
-                <button
-                  onClick={handlePrint} disabled={!hasData}
-                  className="w-11 h-11 rounded-xl bg-white border border-gray-100 text-zinc-400 hover:text-[#3b2063] hover:border-[#ddd6f7] flex items-center justify-center transition-all disabled:opacity-30"
-                  title="Print Report"
-                >
-                  <Printer size={16} />
-                </button>
-              </div>
-            </div>
-
-            {_error && (
-              <p className="mt-3 text-xs font-bold text-red-500 bg-red-50 px-4 py-2 rounded-xl">{_error}</p>
+          {/* ── Apply + Clear grouped together ── */}
+          <div className="flex items-center gap-2">
+            <Btn onClick={fetchItems} disabled={loading}>
+              {loading ? <><RefreshCw size={12} className="animate-spin" /> Loading...</> : "Apply Filters"}
+            </Btn>
+            {categoryId && (
+              <button
+                onClick={() => setCategoryId("")}
+                className="inline-flex items-center gap-1 px-3 py-2 text-xs font-bold text-zinc-400 hover:text-red-500 hover:bg-red-50 border border-zinc-200 hover:border-red-200 rounded-lg transition-colors"
+              >
+                <X size={11} /> Clear
+              </button>
             )}
           </div>
+        </div>
 
-          {/* ── REPORT TABLE ── */}
-          <div className="bg-white border border-gray-100 rounded-2xl flex flex-col overflow-hidden relative">
+        {/* ── Error ── */}
+        {error && (
+          <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <AlertCircle size={14} className="text-red-500 shrink-0" />
+            <p className="text-xs text-red-600 font-medium">{error}</p>
+            <Btn variant="secondary" size="sm" onClick={fetchItems} className="ml-auto">Retry</Btn>
+          </div>
+        )}
 
-            {/* Card Header — mirrors Top Sellers header style */}
-            <div className="px-6 py-5 border-b border-gray-50 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ background: '#ede9fe', color: '#7c3aed' }}>
-                  <FileText size={16} strokeWidth={2.5} />
-                </div>
-                <div>
-                  <h2 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.025em', margin: 0 }}>
-                    {reportType === 'category-summary' ? 'Category Summary' : 'Item Performance Ledger'}
-                  </h2>
-                  <p className="ir-label" style={{ color: '#a1a1aa', marginTop: 2 }}>
-                    {data?.cashier_name ? `Operator: ${data.cashier_name}` : 'Terminal Audit · POS-01'}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="hidden sm:flex items-center gap-1.5 ir-sub">
-                  <span style={{
-                    fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
-                    background: '#f4f4f5', color: '#71717a', border: '1px solid #e4e4e7',
-                    borderRadius: '100px', padding: '3px 9px',
-                  }}>
-                    {data?.items.length ?? 0} records
-                  </span>
-                </div>
-                <div className="ir-live">
-                  <div className="ir-live-dot" />
-                  <span className="ir-live-text">Live</span>
-                </div>
-              </div>
+        {/* ── Stat Cards ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <StatCard icon={<Package size={16} />}
+            label="Total Items" value={loading ? "—" : filtered.length.toLocaleString()} color="violet" />
+          <StatCard icon={<span className="font-black text-sm">Qty</span>}
+            label="Total Qty Sold" value={loading ? "—" : totalQty.toLocaleString()} color="emerald" />
+          <StatCard icon={<span className="font-black text-base">₱</span>}
+            label="Total Revenue" value={loading ? "—" : fmt(totalRevenue)}
+            sub={topItem ? `Top: ${topItem.product_name}` : undefined} color="amber" />
+        </div>
+
+        {/* ── Table ── */}
+        <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
+
+          {/* Search bar */}
+          <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-100 flex-wrap">
+            <div className="flex-1 min-w-48 flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2">
+              <Search size={13} className="text-zinc-400 shrink-0" />
+              <input value={search} onChange={e => setSearch(e.target.value)}
+                className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400"
+                placeholder="Search items or category..." />
+              {search && (
+                <button onClick={() => setSearch("")} className="text-zinc-300 hover:text-zinc-500">
+                  <X size={12} />
+                </button>
+              )}
             </div>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 shrink-0">
+              {filtered.length} items · click column header to sort
+            </span>
+          </div>
 
-            {/* Table */}
-            <div className="flex-1 overflow-auto">
-              <table className="w-full text-left">
-                <thead className="sticky top-0 bg-white z-10 border-b border-gray-50">
-                  <tr>
-                    <th className="px-6 py-4 ir-label" style={{ color: '#a1a1aa' }}>
-                      {reportType === 'category-summary' ? 'Category' : 'Item Description'}
-                    </th>
-                    {reportType === 'item-list' && (
-                      <th className="px-6 py-4 ir-label text-left" style={{ color: '#a1a1aa' }}>Category</th>
-                    )}
-                    <th className="px-6 py-4 ir-label text-right" style={{ color: '#a1a1aa' }}>Units Sold</th>
-                    <th className="px-6 py-4 ir-label text-right" style={{ color: '#a1a1aa' }}>Revenue</th>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-zinc-100">
+                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400 w-8">#</th>
+                  <SortTh col="product_name" label="Item Name" />
+                  <SortTh col="category" label="Category" />
+                  <SortTh col="total_quantity" label="Qty Sold" />
+                  <SortTh col="total_revenue" label="Revenue" />
+                  <SortTh col="avg_price" label="Avg Price" />
+                  <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">Contribution</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* Skeleton */}
+                {loading && [...Array(8)].map((_, i) => (
+                  <tr key={i} className="border-b border-zinc-50">
+                    {[...Array(7)].map((_, j) => (
+                      <td key={j} className="px-5 py-4">
+                        <div className="h-3 bg-zinc-100 rounded animate-pulse" style={{ width: `${50 + Math.random() * 40}%` }} />
+                      </td>
+                    ))}
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {data?.items.map((item, idx) => {
-                    const rowPct = totalQty > 0 ? (item.qty / totalQty) * 100 : 0;
-                    return (
-                      <tr key={idx} className="hover:bg-[#f5f4f8] transition-colors group">
-                        <td className="px-6 py-3.5">
-                          <div className="flex items-center gap-3">
-                            <span style={{
-                              width: 22, height: 22, borderRadius: '0.35rem', flexShrink: 0,
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              fontSize: '0.55rem', fontWeight: 800,
-                              background: idx === 0 ? '#3b2063' : '#f4f4f5',
-                              color: idx === 0 ? '#fff' : '#71717a',
-                            }}>
-                              {idx + 1}
-                            </span>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#1a0f2e' }}>
-                              {item.name}
-                            </span>
-                          </div>
-                        </td>
-                        {reportType === 'item-list' && (
-                          <td className="px-6 py-3.5">
-                            <span style={{
-                              fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase',
-                              background: '#f4f4f5', color: '#71717a', borderRadius: '100px',
-                              padding: '2px 8px', border: '1px solid #e4e4e7',
-                            }}>
-                              {item.category}
-                            </span>
-                          </td>
-                        )}
-                        <td className="px-6 py-3.5 text-right">
-                          <div className="flex items-center justify-end gap-3">
-                            {/* Mini progress bar */}
-                            <div className="hidden md:flex items-center gap-1.5 w-20">
-                              <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                <div
-                                  className="h-full rounded-full"
-                                  style={{ width: `${rowPct}%`, background: idx === 0 ? '#3b2063' : '#d4d4d8' }}
-                                />
-                              </div>
-                              <span style={{ fontSize: '0.6rem', fontWeight: 700, color: '#a1a1aa', width: 28, textAlign: 'right' }}>
-                                {rowPct.toFixed(0)}%
-                              </span>
-                            </div>
-                            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1a0f2e', letterSpacing: '-0.01em', minWidth: 32, textAlign: 'right' }}>
-                              {item.qty.toLocaleString()}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-3.5 text-right">
-                          <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#3b2063', letterSpacing: '-0.01em' }}>
-                            {phCurrency.format(item.amount)}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                ))}
 
-                  {!loading && !hasData && (
-                    <tr>
-                      <td colSpan={reportType === 'item-list' ? 4 : 3} className="px-8 py-20 text-center">
-                        <div className="w-11 h-11 rounded-2xl flex items-center justify-center mx-auto mb-3"
-                          style={{ background: '#f4f4f5' }}>
-                          <Database size={18} color="#d4d4d8" />
+                {/* Empty */}
+                {!loading && filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="px-5 py-12 text-center text-zinc-400 text-xs font-medium">
+                      {search ? "No items match your search." : "No items data for this period."}
+                    </td>
+                  </tr>
+                )}
+
+                {/* Rows */}
+                {!loading && filtered.map((item, i) => {
+                  const revShare = totalRevenue > 0
+                    ? Math.round((item.total_revenue / totalRevenue) * 100) : 0;
+                  const maxQty = filtered[0]?.total_quantity ?? 1;
+                  const qtyPct = Math.round((item.total_quantity / maxQty) * 100);
+
+                  return (
+                    <tr key={i} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
+                      <td className="px-5 py-3.5 text-zinc-300 text-xs font-bold">{i + 1}</td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-md bg-violet-50 border border-violet-200 flex items-center justify-center shrink-0">
+                            <Package size={9} className="text-violet-600" />
+                          </div>
+                          <span className="font-semibold text-[#1a0f2e] text-xs">{item.product_name}</span>
                         </div>
-                        <p className="ir-label" style={{ color: '#d4d4d8' }}>No records for selected range</p>
-                        <p className="ir-sub" style={{ color: '#e4e4e7', marginTop: 4 }}>Adjust dates and query again</p>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        {item.category !== "—" ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-zinc-100 text-zinc-600 border border-zinc-200">
+                            {item.category}
+                          </span>
+                        ) : (
+                          <span className="text-zinc-400 text-xs">—</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-12 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full bg-[#3b2063]" style={{ width: `${qtyPct}%` }} />
+                          </div>
+                          <span className="text-zinc-700 font-medium text-xs">{item.total_quantity.toLocaleString()}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3.5 font-bold text-[#3b2063] text-xs">{fmt(item.total_revenue)}</td>
+                      <td className="px-5 py-3.5 text-zinc-600 text-xs">{item.avg_price > 0 ? fmt(item.avg_price) : "—"}</td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-12 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
+                            <div className="h-full rounded-full bg-emerald-400" style={{ width: `${revShare}%` }} />
+                          </div>
+                          <span className="text-xs font-bold text-zinc-500">{revShare}%</span>
+                        </div>
                       </td>
                     </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                  );
+                })}
 
-            {/* Grand Total Footer — mirrors dashboard's bottom bar */}
-            <div className="flex justify-between items-center px-6 py-5 border-t border-gray-50 bg-[#1a0f2e] rounded-b-2xl">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                  style={{ background: 'rgba(255,255,255,0.08)' }}>
-                  <Activity size={14} color="rgba(255,255,255,0.5)" strokeWidth={2.5} />
-                </div>
-                <div>
-                  <p style={{ fontSize: '0.6rem', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', margin: 0 }}>
-                    Period Total
-                  </p>
-                  <p style={{ fontSize: '0.78rem', fontWeight: 700, color: 'rgba(255,255,255,0.7)', margin: 0 }}>
-                    {fromDate} → {toDate}
-                  </p>
-                </div>
-              </div>
-              <div className="flex gap-8 text-right">
-                <div>
-                  <p style={{ fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: 2 }}>
-                    Volume
-                  </p>
-                  <p style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.035em', color: '#fff', lineHeight: 1 }}>
-                    {totalQty.toLocaleString()}
-                  </p>
-                </div>
-                <div>
-                  <p style={{ fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)', marginBottom: 2 }}>
-                    Revenue
-                  </p>
-                  <p style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.035em', color: '#4ade80', lineHeight: 1 }}>
-                    {fmtCompact(grandTotal)}
-                  </p>
-                  <p style={{ fontSize: '0.65rem', fontWeight: 500, color: 'rgba(255,255,255,0.35)', marginTop: 2 }}>
-                    {phCurrency.format(grandTotal)}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Loading progress bar overlay */}
-            {loading && data && (
-              <div className="absolute top-0 left-0 right-0 h-0.5 bg-purple-100 rounded-t-2xl overflow-hidden">
-                <div className="h-full bg-[#3b2063] animate-pulse" />
-              </div>
-            )}
+                {/* Totals footer */}
+                {!loading && filtered.length > 0 && (
+                  <tr className="bg-zinc-50 border-t border-zinc-200">
+                    <td className="px-5 py-3.5" />
+                    <td className="px-5 py-3.5 font-black text-[#1a0f2e] text-xs uppercase tracking-widest" colSpan={2}>
+                      Total ({filtered.length} items)
+                    </td>
+                    <td className="px-5 py-3.5 font-black text-[#1a0f2e] text-xs">{totalQty.toLocaleString()}</td>
+                    <td className="px-5 py-3.5 font-black text-[#3b2063] text-xs">{fmt(totalRevenue)}</td>
+                    <td className="px-5 py-3.5" />
+                    <td className="px-5 py-3.5 font-black text-zinc-600 text-xs">100%</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
 
+          {/* Footer */}
+          {!loading && filtered.length > 0 && (
+            <div className="px-5 py-3 border-t border-zinc-50 text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
+              {dateFrom} → {dateTo} · {bmBranchName || "Your Branch"} · {filtered.length} items · sorted by {sortKey.replace("_", " ")} {sortDir}
+            </div>
+          )}
         </div>
       </div>
     </>
