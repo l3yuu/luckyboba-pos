@@ -14,6 +14,7 @@ interface Notification {
   message: string;
   severity: Severity;
   at: string;
+  branch_name?: string;
 }
 
 const SEVERITY_CONFIG: Record<Severity, { bg: string; border: string; icon: string; dot: string }> = {
@@ -296,6 +297,13 @@ const SuperAdminTopBar: React.FC<SuperAdminTopBarProps> = ({
                             <p className="text-[0.72rem] text-gray-500 leading-normal mt-0.5 line-clamp-2">
                               {notif.message}
                             </p>
+                            {notif.branch_name && (
+                              <div className="mt-1.5 flex items-center gap-1">
+                                <span className="bg-zinc-100 text-zinc-500 text-[8px] font-bold px-1.5 py-0.5 rounded-[0.25rem] uppercase tracking-wider">
+                                  {notif.branch_name}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       );
