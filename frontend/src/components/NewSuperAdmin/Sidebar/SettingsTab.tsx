@@ -1,6 +1,7 @@
 // components/NewSuperAdmin/Tabs/SettingsTab.tsx
 import { useState, useEffect } from "react";
-import { Database, Mail, Phone, MapPin, Star } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Database, Mail, Phone, MapPin, Star, AlertCircle } from "lucide-react";
 
 type VariantKey = "primary" | "secondary" | "danger" | "ghost";
 type SizeKey    = "sm" | "md" | "lg";
@@ -50,6 +51,56 @@ const Btn: React.FC<BtnProps> = ({
   );
 };
 
+const ConfirmModal: React.FC<{
+  title: string;
+  desc: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  isDanger?: boolean;
+  requireInput?: string;
+}> = ({ title, desc, onConfirm, onCancel, isDanger, requireInput }) => {
+  const [typedMsg, setTypedMsg] = useState("");
+  const isValid = !requireInput || typedMsg === requireInput;
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6"
+      style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", backgroundColor: "rgba(0,0,0,0.45)" }}>
+      <div className="absolute inset-0" onClick={onCancel} />
+      <div className="relative bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] shadow-2xl flex flex-col overflow-hidden animate-fade-in">
+        <div className="px-6 pt-8 pb-6 flex flex-col items-center text-center">
+           <div className={`w-14 h-14 border rounded-full flex items-center justify-center mb-4 ${isDanger ? 'bg-red-50 border-red-100 text-red-500' : 'bg-violet-50 border-violet-100 text-violet-500'}`}>
+             <AlertCircle size={24} />
+           </div>
+           <p className="text-base font-bold text-[#1a0f2e]">{title}</p>
+           <p className="text-xs text-zinc-500 mt-3 leading-relaxed">{desc}</p>
+           
+           {requireInput && (
+             <div className="mt-5 w-full text-left">
+               <p className="text-[10px] font-bold text-zinc-700 mb-1.5 uppercase tracking-wider text-center">
+                 Type <span className="text-red-600 select-all font-mono font-black border border-red-200 bg-red-50 px-1.5 py-0.5 rounded">{requireInput}</span> to confirm
+               </p>
+               <input 
+                 autoFocus
+                 type="text"
+                 value={typedMsg}
+                 onChange={e => setTypedMsg(e.target.value)}
+                 placeholder={requireInput}
+                 className="w-full text-sm font-bold text-zinc-800 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-red-400 text-center transition-all"
+               />
+             </div>
+           )}
+        </div>
+        <div className="flex items-center gap-2 px-6 pb-6 mt-2">
+          <Btn variant="secondary" className="flex-1 justify-center" onClick={onCancel}>Cancel</Btn>
+          <Btn variant={isDanger ? "danger" : "primary"} className="flex-1 justify-center" onClick={onConfirm} disabled={!isValid}>
+            {isDanger ? "Proceed" : "Confirm"}
+          </Btn>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
 type PosFooterKey =
   | 'pos_supplier' | 'pos_address' | 'pos_tin'
   | 'pos_accred_no' | 'pos_date_issued' | 'pos_valid_until'
@@ -91,7 +142,12 @@ const SettingsTab: React.FC = () => {
   const [savingTax,     setSavingTax]     = useState(false);
   const [savingPos,     setSavingPos]     = useState(false);
   const [savingPrefs,   setSavingPrefs]   = useState(false);
+  const [clearingLogs,  setClearingLogs]  = useState(false);
+  const [resettingSys,  setResettingSys]  = useState(false);
+  const [runningBackup, setRunningBackup] = useState(false);
   const [saveMsg,       setSaveMsg]       = useState<string | null>(null);
+  const [confirmConfig, setConfirmConfig] = useState<{ title: string; desc: string; isDanger?: boolean; requireInput?: string; onConfirm: () => void } | null>(null);
+  const [sysInfo, setSysInfo] = useState<{ version: string; db_status: string; uptime: string; last_backup: string } | null>(null);
   // FIX #12 — surface fetch errors in the UI instead of silently swallowing them
   const [loadError,     setLoadError]     = useState<string | null>(null);
 
@@ -162,6 +218,11 @@ const SettingsTab: React.FC = () => {
         console.error('Failed to load settings:', err);
         setLoadError('Could not load settings. Check your connection or log in again.');
       });
+
+    fetch(`${API_BASE}/system/info`, { headers: getHeaders() })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data) setSysInfo(data); })
+      .catch(err => console.error("Could not load system info:", err));
   }, []);
 
   const showSaved = (msg = 'Saved successfully!') => {
@@ -180,7 +241,7 @@ const SettingsTab: React.FC = () => {
     setSaving(true);
     try {
       const res = await fetch(`${API_BASE}/settings`, {
-        method:  'PATCH',
+        method:  'POST',
         headers: getHeaders(),
         body:    JSON.stringify(payload),
       });
@@ -200,7 +261,7 @@ const SettingsTab: React.FC = () => {
     setSavingPrefs(true);
     try {
       const res = await fetch(`${API_BASE}/settings`, {
-        method:  'PATCH',
+        method:  'POST',
         headers: getHeaders(),
         body:    JSON.stringify({
           notifications: String(prefs.notifications),
@@ -209,8 +270,11 @@ const SettingsTab: React.FC = () => {
         }),
       });
       if (!res.ok) throw new Error(`Server returned ${res.status}`);
+      showSaved('Preferences updated!');
     } catch (e) {
       console.error('Preference save failed:', e);
+      setSaveMsg('Failed to update preferences.');
+      setTimeout(() => setSaveMsg(null), 3000);
     } finally {
       setSavingPrefs(false);
     }
@@ -228,13 +292,94 @@ const SettingsTab: React.FC = () => {
     savePreferences(next);
   };
 
+  const clearAuditLogs = async () => {
+    setClearingLogs(true);
+    try {
+      const res = await fetch(`${API_BASE}/system/audit/clear`, {
+        method:  'DELETE',
+        headers: getHeaders(),
+      });
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
+      showSaved('Audit logs cleared!');
+    } catch (e) {
+      console.error('Clear logs failed:', e);
+      setSaveMsg('Failed to clear logs.');
+      setTimeout(() => setSaveMsg(null), 3000);
+    } finally {
+      setClearingLogs(false);
+    }
+  };
+
+  const resetSystem = async () => {
+    setResettingSys(true);
+    try {
+      const res = await fetch(`${API_BASE}/system/reset`, {
+        method:  'POST',
+        headers: getHeaders(),
+      });
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
+      showSaved('System factory reset completed!');
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (e) {
+      console.error('Reset system failed:', e);
+      setSaveMsg('Failed to reset system.');
+      setTimeout(() => setSaveMsg(null), 3000);
+    } finally {
+      setResettingSys(false);
+    }
+  };
+
+  const executeBackup = async () => {
+    setRunningBackup(true);
+    try {
+      const res = await fetch(`${API_BASE}/system/run-backup`, {
+        method: 'POST',
+        headers: getHeaders()
+      });
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
+      
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      const contentDisposition = res.headers.get('Content-Disposition');
+      let filename = `lucky_boba_backup_${new Date().toISOString().split('T')[0]}.sql`;
+      if (contentDisposition) {
+        const fileMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (fileMatch && fileMatch[1]) filename = fileMatch[1];
+      }
+      
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      
+      showSaved('Backup downloaded successfully!');
+      
+      // Refetch system info so the 'Last Backup' timestamp instantly updates
+      setTimeout(() => {
+        fetch(`${API_BASE}/system/info`, { headers: getHeaders() })
+          .then(r => r.ok ? r.json() : null)
+          .then(data => { if (data) setSysInfo(data); })
+      }, 1000);
+    } catch (e) {
+      console.error('Backup failed:', e);
+      setSaveMsg('Failed to run backup.');
+      setTimeout(() => setSaveMsg(null), 3000);
+    } finally {
+      setRunningBackup(false);
+    }
+  };
+
   const Toggle: React.FC<ToggleProps> = ({ on, toggle }) => (
     <button
       onClick={toggle}
       disabled={savingPrefs}
-      className={`relative w-10 h-5 rounded-full transition-colors disabled:opacity-60 ${on ? "toggle-on" : "toggle-off"}`}
+      className={`relative w-10 h-5 rounded-full transition-colors disabled:opacity-60 ${on ? "bg-violet-500" : "bg-zinc-300"}`}
     >
-      <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${on ? "translate-x-5" : "translate-x-0.5"}`} />
+      <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${on ? "translate-x-5" : "translate-x-0"}`} />
     </button>
   );
 
@@ -284,7 +429,11 @@ const SettingsTab: React.FC = () => {
               ))}
             </div>
             <div className="flex justify-end mt-4">
-              <Btn onClick={() => saveSection(generalFields, setSavingGeneral)} disabled={savingGeneral}>
+              <Btn onClick={() => setConfirmConfig({
+                title: "Save General Settings",
+                desc: "Are you sure you want to apply these global changes across the system?",
+                onConfirm: () => { setConfirmConfig(null); saveSection(generalFields, setSavingGeneral); }
+              })} disabled={savingGeneral}>
                 {savingGeneral ? 'Saving...' : 'Save Changes'}
               </Btn>
             </div>
@@ -311,7 +460,11 @@ const SettingsTab: React.FC = () => {
               ))}
             </div>
             <div className="flex justify-end mt-4">
-              <Btn onClick={() => saveSection(taxFields, setSavingTax)} disabled={savingTax}>
+              <Btn onClick={() => setConfirmConfig({
+                title: "Save Tax & Receipt Settings",
+                desc: "Are you sure you want to update the system tax and receipt configuration?",
+                onConfirm: () => { setConfirmConfig(null); saveSection(taxFields, setSavingTax); }
+              })} disabled={savingTax}>
                 {savingTax ? 'Saving...' : 'Save Changes'}
               </Btn>
             </div>
@@ -351,7 +504,11 @@ const SettingsTab: React.FC = () => {
               </div>
             )}
             <div className="flex justify-end mt-4">
-              <Btn onClick={() => saveSection(posFooter, setSavingPos)} disabled={savingPos}>
+              <Btn onClick={() => setConfirmConfig({
+                title: "Save POS Supplier Info",
+                desc: "Are you sure you want to update the POS footer details printed on receipts?",
+                onConfirm: () => { setConfirmConfig(null); saveSection(posFooter, setSavingPos); }
+              })} disabled={savingPos}>
                 {savingPos ? 'Saving...' : 'Save POS Info'}
               </Btn>
             </div>
@@ -387,39 +544,72 @@ const SettingsTab: React.FC = () => {
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-xs font-bold text-red-700 mb-1">Clear All Audit Logs</p>
                 <p className="text-[10px] text-red-400 mb-2">This action cannot be undone.</p>
-                <Btn variant="danger" size="sm" onClick={() => {}}>Clear Logs</Btn>
+                <Btn variant="danger" size="sm" onClick={() => setConfirmConfig({
+                  title: "Clear Audit Logs",
+                  desc: "Are you absolutely sure you want to clear the entire log history? This action cannot be undone.",
+                  isDanger: true,
+                  onConfirm: () => { setConfirmConfig(null); clearAuditLogs(); }
+                })} disabled={clearingLogs}>
+                  {clearingLogs ? 'Clearing...' : 'Clear Logs'}
+                </Btn>
               </div>
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-xs font-bold text-red-700 mb-1">Reset System</p>
-                <p className="text-[10px] text-red-400 mb-2">Resets all settings to defaults.</p>
-                <Btn variant="danger" size="sm" onClick={() => {}}>Reset</Btn>
+                <p className="text-xs font-bold text-red-700 mb-1">Factory Reset System</p>
+                <p className="text-[10px] text-red-400 mb-2">Wipes all transactions. Requires verification.</p>
+                <Btn variant="danger" size="sm" onClick={() => setConfirmConfig({
+                  title: "Factory Reset System",
+                  desc: "CAUTION: This will wipe ALL transactions, receipts, logs, and reset settings to default values. You cannot recover from this.",
+                  isDanger: true,
+                  requireInput: "reset system",
+                  onConfirm: () => { setConfirmConfig(null); resetSystem(); }
+                })} disabled={resettingSys}>
+                  {resettingSys ? 'Resetting...' : 'Factory Reset'}
+                </Btn>
               </div>
             </div>
           </div>
 
-          <div className="bg-[#1e0f3c] rounded-[0.625rem] p-5 relative overflow-hidden">
-            <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
-            <div className="relative">
-              <div className="flex items-center gap-2 mb-3">
-                <Database size={14} className="text-violet-300" />
-                <p className="text-xs font-bold uppercase tracking-widest text-zinc-300">System Info</p>
+          <div className="bg-gradient-to-br from-[#3b1774] via-[#1e0f3c] to-[#0d0620] rounded-[0.625rem] p-5 relative overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-white/5">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/20 rounded-full blur-[40px] -translate-y-10 translate-x-10" />
+            <div className="absolute bottom-0 left-0 w-32 h-32 bg-fuchsia-500/10 rounded-full blur-[40px] translate-y-10 -translate-x-10" />
+            <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)", backgroundSize: "16px 16px" }} />
+            
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-6 h-6 rounded bg-white/10 flex items-center justify-center border border-white/5 backdrop-blur-sm">
+                  <Database size={12} className="text-violet-200" />
+                </div>
+                <p className="text-xs font-black uppercase tracking-[0.15em] text-white/90">System Info</p>
               </div>
               {[
-                { label: "Version",     val: "v2.4.1"        },
-                { label: "DB Status",   val: "Connected"      },
-                { label: "Uptime",      val: "14d 6h 22m"     },
-                { label: "Last Backup", val: "Today 03:00 AM" },
+                { label: "Version",     val: sysInfo?.version     || "Loading..." },
+                { label: "DB Status",   val: sysInfo?.db_status   || "Loading..." },
+                { label: "Uptime",      val: sysInfo?.uptime      || "Loading..." },
+                { label: "Last Backup", val: sysInfo?.last_backup || "Loading..." },
               ].map((r, i) => (
                 <div key={i} className="flex justify-between mb-1.5">
                   <span className="text-[10px] text-zinc-500">{r.label}</span>
-                  <span className="text-[10px] font-bold text-zinc-300">{r.val}</span>
+                  <span className={`text-[10px] font-bold ${r.val === "Disconnected" ? "text-red-400" : "text-zinc-300"}`}>{r.val}</span>
                 </div>
               ))}
+              
+              <div className="mt-5 pt-4 border-t border-white/10">
+                <Btn variant="primary" size="sm" className="w-full justify-center bg-white/10 hover:bg-white/20 text-white border border-white/10 backdrop-blur-md transition-all shadow-[0_4px_12px_rgba(0,0,0,0.2)]" onClick={executeBackup} disabled={runningBackup}>
+                   {runningBackup ? "Exporting SQL..." : "Run System Backup"}
+                </Btn>
+              </div>
             </div>
           </div>
         </div>
 
       </div>
+
+      {confirmConfig && (
+        <ConfirmModal
+          {...confirmConfig}
+          onCancel={() => setConfirmConfig(null)}
+        />
+      )}
     </div>
   );
 };

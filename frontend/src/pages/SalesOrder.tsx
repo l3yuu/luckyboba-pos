@@ -1790,6 +1790,7 @@ const SalesOrder = () => {
           promoDiscount={promoDiscount}
           itemPaxAssignments={itemPaxAssignments}
           posFooter={posFooter}
+          receiptFooter={posFooter.receipt_footer}
         />
       )}
       {printTarget === 'kitchen'  && <KitchenPrint  {...printProps} />}

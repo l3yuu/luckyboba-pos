@@ -63,6 +63,7 @@ interface ReceiptPrintProps {
     pos_ptu?:         string;
     pos_ptu_date?:    string;
   };
+  receiptFooter?: string;
 }
 
 export const ReceiptPrint = ({
@@ -84,6 +85,7 @@ export const ReceiptPrint = ({
   pwdIds = [],
   itemPaxAssignments = {},
   posFooter = {},
+  receiptFooter = '',
 }: ReceiptPrintProps) => {
 
   // FIX #6 + #7 — removed dead coveredUnitMap / itemCoverageMap computation that
@@ -403,10 +405,15 @@ export const ReceiptPrint = ({
           ))}
         </div>
 
-        {/* Franchise info */}
         <div className="mt-6 mb-4 text-center text-xs">
           FOR FRANCHISE<br />EMAIL OR CONTACT US ON<br />luckyboba.franchise@gmail.com<br />09171699894
         </div>
+
+        {receiptFooter && (
+          <div className="text-center text-xs whitespace-pre-wrap font-bold mb-4 uppercase px-4 leading-relaxed">
+            {receiptFooter}
+          </div>
+        )}
 
         {/* ── POS Supplier Footer ── */}
         {(posFooter.pos_supplier || posFooter.pos_tin) && (
