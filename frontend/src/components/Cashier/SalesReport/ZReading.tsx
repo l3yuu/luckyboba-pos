@@ -832,6 +832,9 @@ const ZReading = () => {
           .flex-between { display: flex; justify-content: space-between; width: 100%; align-items: flex-end; }
           .receipt-divider { border-top: 1px dashed #000; margin: 6px 0; width: 100%; display: block; }
           @media print {
+           * { opacity: 1 !important; color: #000 !important; }
+            .opacity-50 { opacity: 1 !important; }
+            .line-through { text-decoration: line-through !important; color: #000 !important; }
             @page { 
               size: 80mm 2000mm;
               margin: 3mm 2mm !important; 
@@ -857,6 +860,7 @@ const ZReading = () => {
               padding: 0 !important; 
             }
             .receipt-area { 
+              color: #000 !important;
               width: 76mm !important; 
               max-width: 76mm !important; 
               margin: 0 auto !important; 

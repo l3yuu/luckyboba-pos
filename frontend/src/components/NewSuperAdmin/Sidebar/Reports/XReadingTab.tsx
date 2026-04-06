@@ -2,18 +2,18 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import React from "react";
 import {
-  RefreshCw, AlertCircle, Printer, ChevronDown, TrendingUp, 
-   Menu,
+  RefreshCw, AlertCircle, Printer, ChevronDown, TrendingUp,
+  Menu,
 } from "lucide-react";
 
 type VariantKey = "primary" | "secondary" | "danger" | "ghost";
-type SizeKey    = "sm" | "md" | "lg";
+type SizeKey = "sm" | "md" | "lg";
 
 const getToken = () =>
   localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
 const authHeaders = () => ({
   "Content-Type": "application/json",
-  "Accept":       "application/json",
+  "Accept": "application/json",
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
 
@@ -92,12 +92,12 @@ const Btn: React.FC<BtnProps> = ({
   children, variant = "primary", size = "sm",
   onClick, className = "", disabled = false,
 }) => {
-  const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
+  const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#3b2063] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
-    danger:    "bg-red-600 hover:bg-red-700 text-white",
-    ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
+    danger: "bg-red-600 hover:bg-red-700 text-white",
+    ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
   };
   return (
     <button onClick={onClick} disabled={disabled}
@@ -121,15 +121,15 @@ const ReceiptDivider = () => <div className="border-t border-dashed border-black
 const XReadingTab: React.FC = () => {
   const today = new Date().toISOString().split("T")[0];
 
-  const [branchId,     setBranchId]     = useState("");
-  const [date,         setDate]         = useState(today);
-  const [loading,      setLoading]      = useState(false);
-  const [error,        setError]        = useState("");
-  const [reportData,   setReportData]   = useState<XReadingReport | null>(null);
-  const [branches,     setBranches]     = useState<BranchOption[]>([]);
-  const [isMenuOpen,   setIsMenuOpen]   = useState(false);
+  const [branchId, setBranchId] = useState("");
+  const [date, setDate] = useState(today);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [reportData, setReportData] = useState<XReadingReport | null>(null);
+  const [branches, setBranches] = useState<BranchOption[]>([]);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [invoiceQuery, setInvoiceQuery] = useState("");
-  const [reportType,   setReportType]   = useState("x_reading");
+  const [reportType, setReportType] = useState("x_reading");
   const menuRef = useRef<HTMLDivElement>(null);
 
   const phCurrency = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" });
@@ -146,7 +146,7 @@ const XReadingTab: React.FC = () => {
           setBranchId(String(list[0].id));
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -165,7 +165,7 @@ const XReadingTab: React.FC = () => {
       case "cash_count": {
         const nested = raw.cash_count as { denominations: unknown[]; grand_total: number } | undefined;
         const flatDenoms = raw.denominations as { label: string; qty: number; total: number }[] | undefined;
-        const flatTotal  = raw.grand_total as number | undefined;
+        const flatTotal = raw.grand_total as number | undefined;
         if (nested?.denominations) return raw as unknown as XReadingReport;
         if (flatDenoms) return { ...raw, cash_count: { denominations: flatDenoms, grand_total: flatTotal ?? 0 } } as unknown as XReadingReport;
         return raw as unknown as XReadingReport;
@@ -177,29 +177,29 @@ const XReadingTab: React.FC = () => {
       case "search": {
         const arr = (Array.isArray(raw) ? raw : []) as Record<string, unknown>[];
         const txData = arr.map(r => ({
-          Invoice:   String(r.si_number    ?? r.Invoice   ?? ""),
-          Amount:    Number(r.total_amount ?? r.Amount    ?? 0),
-          Status:    String(r.status       ?? r.Status    ?? ""),
-          Date_Time: String(r.created_at   ?? r.Date_Time ?? ""),
+          Invoice: String(r.si_number ?? r.Invoice ?? ""),
+          Amount: Number(r.total_amount ?? r.Amount ?? 0),
+          Status: String(r.status ?? r.Status ?? ""),
+          Date_Time: String(r.created_at ?? r.Date_Time ?? ""),
         }));
         return { ...raw, transactions: txData } as unknown as XReadingReport;
       }
       case "hourly_sales": {
         const arr = (Array.isArray(raw) ? raw : ((raw.hourly_data ?? []) as unknown[])) as Record<string, unknown>[];
         const hourlyData = arr.map(r => ({
-          hour:  Number(r.hour  ?? r.Hour  ?? 0),
+          hour: Number(r.hour ?? r.Hour ?? 0),
           total: Number(r.total ?? r.Total ?? r.amount ?? 0),
-          count: Number(r.count ?? r.Count ?? r.qty    ?? 0),
+          count: Number(r.count ?? r.Count ?? r.qty ?? 0),
         }));
         return { ...raw, hourly_data: hourlyData } as unknown as XReadingReport;
       }
       case "void_logs": {
         type VoidLog = { id?: unknown; reason?: unknown; invoice?: unknown; amount?: unknown; created_at?: unknown };
         const logs = ((raw.logs as VoidLog[]) ?? []).map((l: VoidLog) => ({
-          id:     String(l.id ?? ""),
+          id: String(l.id ?? ""),
           reason: String(l.reason ?? l.invoice ?? ""),
           amount: Number(l.amount ?? 0),
-          time:   l.created_at
+          time: l.created_at
             ? new Date(l.created_at as string).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
             : "—",
         }));
@@ -208,16 +208,16 @@ const XReadingTab: React.FC = () => {
       case "detailed": {
         const arr = (raw.transactions ?? raw.search_results ?? raw.results ?? (Array.isArray(raw) ? raw : null)) as Record<string, unknown>[] | null;
         const txData = (arr ?? []).map(r => ({
-          Invoice:     String(r.Invoice     ?? r.invoice_number ?? ""),
-          Amount:      Number(r.Amount      ?? r.total_amount   ?? 0),
-          Status:      String(r.Status      ?? r.status         ?? ""),
-          Date_Time:   String(r.Date_Time   ?? r.created_at     ?? ""),
-          Method:      String(r.Method      ?? r.payment_method ?? ""),
-          Cashier:     String(r.Cashier     ?? r.cashier_name   ?? ""),
-          Vatable:     Number(r.Vatable     ?? 0),
-          Tax:         Number(r.Tax         ?? 0),
+          Invoice: String(r.Invoice ?? r.invoice_number ?? ""),
+          Amount: Number(r.Amount ?? r.total_amount ?? 0),
+          Status: String(r.Status ?? r.status ?? ""),
+          Date_Time: String(r.Date_Time ?? r.created_at ?? ""),
+          Method: String(r.Method ?? r.payment_method ?? ""),
+          Cashier: String(r.Cashier ?? r.cashier_name ?? ""),
+          Vatable: Number(r.Vatable ?? 0),
+          Tax: Number(r.Tax ?? 0),
           Items_Count: Number(r.Items_Count ?? 0),
-          Disc:        Number(r.Disc_Pax    ?? 0),
+          Disc: Number(r.Disc_Pax ?? 0),
         }));
         return { ...raw, transactions: txData } as unknown as XReadingReport;
       }
@@ -226,77 +226,77 @@ const XReadingTab: React.FC = () => {
     }
   };
 
-const fetchReading = useCallback(async () => {
-  if (!branchId) return;
-  setLoading(true);
-  setError("");
-  setReportData(null);
-  try {
-    const params = new URLSearchParams({ branch_id: branchId, date });
+  const fetchReading = useCallback(async () => {
+    if (!branchId) return;
+    setLoading(true);
+    setError("");
+    setReportData(null);
+    try {
+      const params = new URLSearchParams({ branch_id: branchId, date });
 
-    // ── Special case: summary needs two endpoints merged ──────────────────
-    if (reportType === "summary") {
-      const [summaryRes, qtyRes] = await Promise.all([
-        fetch(`/api/reports/sales-summary?from=${date}&to=${date}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
-        fetch(`/api/reports/item-quantities?date=${date}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
-      ]);
-      const merged = {
-        ...summaryRes,
-        categories:         qtyRes.categories         ?? [],
-        all_addons_summary: qtyRes.all_addons_summary ?? [],
-      };
-      const normalized = normalizeResponse("summary", merged as Record<string, unknown>);
-      setReportData({ ...normalized, report_type: "summary" });
-      return;
-    }
-
-    // ── Handle exports (download CSV, don't render receipt) ────────────────
-    if (reportType === "export_sales" || reportType === "export_items") {
-      try {
-        const endpoint = reportType === "export_sales" ? "export-sales" : "export-items";
-        const res = await fetch(`/api/reports/${endpoint}?${params}`, { headers: authHeaders() });
-        if (!res.ok) throw new Error("Export failed");
-        const blob = await res.blob();
-        const url  = URL.createObjectURL(blob);
-        const a    = document.createElement("a");
-        a.href     = url;
-        a.download = `lucky_boba_${endpoint}_${date}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-      } catch {
-        setError("Export failed. Please try again.");
-      } finally {
-        setLoading(false);
+      // ── Special case: summary needs two endpoints merged ──────────────────
+      if (reportType === "summary") {
+        const [summaryRes, qtyRes] = await Promise.all([
+          fetch(`/api/reports/sales-summary?from=${date}&to=${date}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
+          fetch(`/api/reports/item-quantities?date=${date}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
+        ]);
+        const merged = {
+          ...summaryRes,
+          categories: qtyRes.categories ?? [],
+          all_addons_summary: qtyRes.all_addons_summary ?? [],
+        };
+        const normalized = normalizeResponse("summary", merged as Record<string, unknown>);
+        setReportData({ ...normalized, report_type: "summary" });
+        return;
       }
-      return;
+
+      // ── Handle exports (download CSV, don't render receipt) ────────────────
+      if (reportType === "export_sales" || reportType === "export_items") {
+        try {
+          const endpoint = reportType === "export_sales" ? "export-sales" : "export-items";
+          const res = await fetch(`/api/reports/${endpoint}?${params}`, { headers: authHeaders() });
+          if (!res.ok) throw new Error("Export failed");
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `lucky_boba_${endpoint}_${date}.csv`;
+          a.click();
+          URL.revokeObjectURL(url);
+        } catch {
+          setError("Export failed. Please try again.");
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
+
+      // ── Determine URL ──────────────────────────────────────────────────────
+      let url = "";
+      switch (reportType) {
+        case "hourly_sales": url = `/api/reports/hourly-sales?${params}`; break;
+        case "void_logs": url = `/api/reports/void-logs?${params}`; break;
+        case "detailed": url = `/api/reports/sales-detailed?${params}`; break;
+        case "qty_items": url = `/api/reports/item-quantities?${params}`; break;
+        case "cash_count": url = `/api/cash-counts/summary?${params}`; break;
+        case "search":
+          params.set("query", invoiceQuery);
+          url = `/api/receipts/search?${params}`;
+          break;
+        default: url = `/api/reports/x-reading?${params}`; break;
+      }
+
+      const res = await fetch(url, { headers: authHeaders() });
+      const json = await res.json() as Record<string, unknown>;
+      const normalized = normalizeResponse(reportType, json);
+      setReportData({ ...normalized, report_type: reportType });
+
+    } catch {
+      setError("Failed to load report data.");
+    } finally {
+      setLoading(false);
     }
-
-    // ── Determine URL ──────────────────────────────────────────────────────
-    let url = "";
-    switch (reportType) {
-      case "hourly_sales": url = `/api/reports/hourly-sales?${params}`; break;
-      case "void_logs":    url = `/api/reports/void-logs?${params}`; break;
-      case "detailed":     url = `/api/reports/sales-detailed?${params}`; break;
-      case "qty_items":    url = `/api/reports/item-quantities?${params}`; break;
-      case "cash_count":   url = `/api/cash-counts/summary?${params}`; break;
-      case "search":
-        params.set("query", invoiceQuery);
-        url = `/api/receipts/search?${params}`;
-        break;
-      default:             url = `/api/reports/x-reading?${params}`; break;
-    }
-
-    const res  = await fetch(url, { headers: authHeaders() });
-    const json = await res.json() as Record<string, unknown>;
-    const normalized = normalizeResponse(reportType, json);
-    setReportData({ ...normalized, report_type: reportType });
-
-  } catch {
-    setError("Failed to load report data.");
-  } finally {
-    setLoading(false);
-  }
-}, [branchId, date, reportType, invoiceQuery]);
+  }, [branchId, date, reportType, invoiceQuery]);
 
   useEffect(() => {
     if (branchId) fetchReading();
@@ -307,21 +307,21 @@ const fetchReading = useCallback(async () => {
   const selectedBranchName = branches.find(b => String(b.id) === branchId)?.name ?? "—";
 
   const menuCards = [
-    { label: "REPORT",          title: "HOURLY SALES",         type: "hourly_sales", color: "border-[#7c14d4]"   },
-    { label: "OVERVIEW",        title: "SALES SUMMARY REPORT", type: "summary",      color: "border-amber-400"   },
-    { label: "AUDIT",           title: "VOID LOGS",            type: "void_logs",    color: "border-[#7c14d4]"   },
-    { label: "TRANSACTION",     title: "SEARCH RECEIPT",       type: "search",       color: "border-[#7c14d4]"   },
-    { label: "DATA MANAGEMENT", title: "EXPORT SALES",         type: "export_sales", color: "border-[#7c14d4]"   },
-    { label: "ANALYSIS",        title: "SALES DETAILED",       type: "detailed",     color: "border-[#7c14d4]"   },
-    { label: "INVENTORY",       title: "EXPORT ITEMS",         type: "export_items", color: "border-[#7c14d4]"   },
-    { label: "INVENTORY",       title: "QTY ITEMS",            type: "qty_items",    color: "border-[#7c14d4]"   },
-    { label: "X-READING",       title: "X-READING",            type: "x_reading",    color: "border-emerald-500" },
-    { label: "CASH COUNT",      title: "CASH COUNT",           type: "cash_count",   color: "border-[#7c14d4]"   },
+    { label: "REPORT", title: "HOURLY SALES", type: "hourly_sales", color: "border-[#7c14d4]" },
+    { label: "OVERVIEW", title: "SALES SUMMARY REPORT", type: "summary", color: "border-amber-400" },
+    { label: "AUDIT", title: "VOID LOGS", type: "void_logs", color: "border-[#7c14d4]" },
+    { label: "TRANSACTION", title: "SEARCH RECEIPT", type: "search", color: "border-[#7c14d4]" },
+    { label: "DATA MANAGEMENT", title: "EXPORT SALES", type: "export_sales", color: "border-[#7c14d4]" },
+    { label: "ANALYSIS", title: "SALES DETAILED", type: "detailed", color: "border-[#7c14d4]" },
+    { label: "INVENTORY", title: "EXPORT ITEMS", type: "export_items", color: "border-[#7c14d4]" },
+    { label: "INVENTORY", title: "QTY ITEMS", type: "qty_items", color: "border-[#7c14d4]" },
+    { label: "X-READING", title: "X-READING", type: "x_reading", color: "border-emerald-500" },
+    { label: "CASH COUNT", title: "CASH COUNT", type: "cash_count", color: "border-[#7c14d4]" },
   ];
 
   // ── Receipt render functions (ported from cashier) ────────────────────────
   const renderHourlySales = () => {
-    const HOUR_LABELS = ["12am","1am","2am","3am","4am","5am","6am","7am","8am","9am","10am","11am","12pm","1pm","2pm","3pm","4pm","5pm","6pm","7pm","8pm","9pm","10pm","11pm"];
+    const HOUR_LABELS = ["12am", "1am", "2am", "3am", "4am", "5am", "6am", "7am", "8am", "9am", "10am", "11am", "12pm", "1pm", "2pm", "3pm", "4pm", "5pm", "6pm", "7pm", "8pm", "9pm", "10pm", "11pm"];
     const salesMap = new Map<number, { total: number; count: number }>();
     reportData?.hourly_data?.forEach(item => salesMap.set(Number(item.hour), { total: Number(item.total), count: Number(item.count) }));
     const totalSales = reportData?.hourly_data?.reduce((a, c) => a + Number(c.total), 0) ?? 0;
@@ -346,7 +346,7 @@ const fetchReading = useCallback(async () => {
         })}
         <ReceiptDivider />
         <ReceiptRow label="Total Items Sold" value={totalItems} />
-        <ReceiptRow label="Total Revenue"    value={phCurrency.format(totalSales)} />
+        <ReceiptRow label="Total Revenue" value={phCurrency.format(totalSales)} />
       </div>
     );
   };
@@ -362,15 +362,15 @@ const fetchReading = useCallback(async () => {
       </div>
       {reportData?.logs?.length
         ? reportData.logs.map((log, i) => (
-            <div key={i} className="flex text-[11px] leading-snug border-b border-dotted border-zinc-300">
-              <span className="w-[25%]">{log.time}</span>
-              <span className="w-[50%] uppercase">{log.reason}</span>
-              <span className="w-[25%] text-right">{phCurrency.format(log.amount)}</span>
-            </div>
-          ))
+          <div key={i} className="flex text-[11px] leading-snug border-b border-dotted border-zinc-300">
+            <span className="w-[25%]">{log.time}</span>
+            <span className="w-[50%] uppercase">{log.reason}</span>
+            <span className="w-[25%] text-right">{phCurrency.format(log.amount)}</span>
+          </div>
+        ))
         : <p className="text-[11px]">No voids recorded.</p>}
       <ReceiptDivider />
-      <ReceiptRow label="Total Voids"  value={reportData?.logs?.length ?? 0} />
+      <ReceiptRow label="Total Voids" value={reportData?.logs?.length ?? 0} />
       <ReceiptRow label="Total Amount" value={phCurrency.format(reportData?.logs?.reduce((a, l) => a + l.amount, 0) ?? 0)} />
     </div>
   );
@@ -378,7 +378,7 @@ const fetchReading = useCallback(async () => {
   const renderQtyItems = () => {
     if (!reportData?.categories)
       return <p className="text-[11px] mt-4 text-center">No category data.</p>;
-    const SIZE_ORDER = ["SM","UM","PCM","JR","SL","UL","PCL"];
+    const SIZE_ORDER = ["SM", "UM", "PCM", "JR", "SL", "UL", "PCL"];
     const totalItems = reportData.categories.reduce((acc, cat) => acc + cat.products.reduce((p, pr) => p + pr.total_qty, 0), 0);
     return (
       <div className="my-2">
@@ -443,7 +443,7 @@ const fetchReading = useCallback(async () => {
 
   const renderCashCount = () => {
     const denominations = reportData?.cash_count?.denominations;
-    const grandTotal    = reportData?.cash_count?.grand_total ?? 0;
+    const grandTotal = reportData?.cash_count?.grand_total ?? 0;
     return (
       <div className="my-2">
         <ReceiptDivider />
@@ -492,35 +492,35 @@ const fetchReading = useCallback(async () => {
           {rows.length === 0
             ? <p className="text-[11px] text-center py-2">No transactions found.</p>
             : rows.map((tx, i) => {
-                const isCancelled = tx.Status?.toLowerCase() === "cancelled";
-                const timeOnly = tx.Date_Time ? new Date(tx.Date_Time).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) : "";
-                const siDisplay = String(tx.Invoice).replace(/^OR-0+/, "#").replace(/^OR-/, "#");
-                return (
-                  <div key={i} className={`border-b border-dotted border-zinc-300 py-0.5 ${isCancelled ? "opacity-50" : ""}`}>
-                    <div className="flex text-[8px] leading-snug items-start">
-                      <span className="w-[30%] uppercase">{siDisplay}<br /><span className="text-zinc-500 text-[7px]">{timeOnly}</span></span>
-                      <span className="w-[10%] text-center text-zinc-600">
-                        {"Items_Count" in tx && tx.Items_Count != null
-                          ? String(tx.Items_Count)
-                          : <span className="text-zinc-400">—</span>}
-                      </span>
-                      <span className="w-[20%] text-center text-zinc-600 truncate" style={{ fontSize: "7px" }}>
-                        {"Cashier" in tx && tx.Cashier != null
-                          ? String(tx.Cashier)
-                          : <span className="text-zinc-400">—</span>}
-                      </span>
-                      <span className="w-[20%] text-right text-zinc-600">{"Vatable" in tx && tx.Vatable ? phCurrency.format(Number(tx.Vatable)) : "—"}</span>
-                      <span className={`w-[20%] text-right font-medium ${isCancelled ? "line-through text-zinc-400" : ""}`}>{phCurrency.format(tx.Amount)}</span>
-                    </div>
+              const isCancelled = tx.Status?.toLowerCase() === "cancelled";
+              const timeOnly = tx.Date_Time ? new Date(tx.Date_Time).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) : "";
+              const siDisplay = String(tx.Invoice).replace(/^OR-0+/, "#").replace(/^OR-/, "#");
+              return (
+                <div key={i} className={`border-b border-dotted border-zinc-300 py-0.5 ${isCancelled ? "opacity-50" : ""}`}>
+                  <div className="flex text-[8px] leading-snug items-start">
+                    <span className="w-[30%] uppercase">{siDisplay}<br /><span className="text-zinc-500 text-[7px]">{timeOnly}</span></span>
+                    <span className="w-[10%] text-center text-zinc-600">
+                      {"Items_Count" in tx && tx.Items_Count != null
+                        ? String(tx.Items_Count)
+                        : <span className="text-zinc-400">—</span>}
+                    </span>
+                    <span className="w-[20%] text-center text-zinc-600 truncate" style={{ fontSize: "7px" }}>
+                      {"Cashier" in tx && tx.Cashier != null
+                        ? String(tx.Cashier)
+                        : <span className="text-zinc-400">—</span>}
+                    </span>
+                    <span className="w-[20%] text-right text-zinc-600">{"Vatable" in tx && tx.Vatable ? phCurrency.format(Number(tx.Vatable)) : "—"}</span>
+                    <span className={`w-[20%] text-right font-medium ${isCancelled ? "line-through text-zinc-400" : ""}`}>{phCurrency.format(tx.Amount)}</span>
                   </div>
-                );
-              })}
+                </div>
+              );
+            })}
           <ReceiptDivider />
           <div className="flex text-[9px] justify-between mb-0.5 text-zinc-500"><span className="uppercase">Cancelled</span><span>{phCurrency.format(cancelledTotal)}</span></div>
           <div className="flex text-[10px] font-bold justify-between"><span className="uppercase">Total Sales</span><span>{phCurrency.format(completedTotal)}</span></div>
           <ReceiptDivider />
           <ReceiptRow label="Total Transactions" value={rows.length} />
-          <ReceiptRow label="Total Amount"       value={phCurrency.format(total)} />
+          <ReceiptRow label="Total Amount" value={phCurrency.format(total)} />
         </div>
       );
     }
@@ -537,7 +537,7 @@ const fetchReading = useCallback(async () => {
               </div>
               {rows.map((tx, i) => {
                 const isCancelled = (tx as { Status?: string }).Status?.toLowerCase() === "cancelled";
-                const dateTime    = (tx as { Date_Time?: string }).Date_Time ?? "";
+                const dateTime = (tx as { Date_Time?: string }).Date_Time ?? "";
                 return (
                   <div key={i} className="border-b border-dotted border-zinc-300 py-0.5">
                     <div className="flex text-[11px] leading-snug">
@@ -555,25 +555,25 @@ const fetchReading = useCallback(async () => {
           )}
         <div className="mt-3">
           <ReceiptRow label="Total Transactions" value={rows.length} />
-          <ReceiptRow label="Total Amount"       value={phCurrency.format(total)} />
+          <ReceiptRow label="Total Amount" value={phCurrency.format(total)} />
         </div>
       </div>
     );
   };
 
   const renderSummary = () => {
-    const SIZE_ORDER = ["SM","UM","PCM","JR","SL","UL","PCL"];
-    const gross            = reportData?.gross_sales        || 0;
+    const SIZE_ORDER = ["SM", "UM", "PCM", "JR", "SL", "UL", "PCL"];
+    const gross = reportData?.gross_sales || 0;
     const preDiscountGross = reportData?.pre_discount_gross || gross;
-    const vatAmt           = reportData?.vat_amount         || 0;
-    const vatableSales     = reportData?.vatable_sales      || 0;
-    const scDiscount       = reportData?.sc_discount        || 0;
-    const pwdDiscount      = reportData?.pwd_discount       || 0;
-    const diplomat         = reportData?.diplomat_discount  || 0;
-    const otherDisc        = reportData?.other_discount     || 0;
-    const voids            = reportData?.total_void_amount  || 0;
-    const netAmount        = preDiscountGross - scDiscount - pwdDiscount - diplomat - otherDisc - vatAmt;
-    const reportIsVat      = reportData?.is_vat !== undefined ? reportData.is_vat : isVat;
+    const vatAmt = reportData?.vat_amount || 0;
+    const vatableSales = reportData?.vatable_sales || 0;
+    const scDiscount = reportData?.sc_discount || 0;
+    const pwdDiscount = reportData?.pwd_discount || 0;
+    const diplomat = reportData?.diplomat_discount || 0;
+    const otherDisc = reportData?.other_discount || 0;
+    const voids = reportData?.total_void_amount || 0;
+    const netAmount = preDiscountGross - scDiscount - pwdDiscount - diplomat - otherDisc - vatAmt;
+    const reportIsVat = reportData?.is_vat !== undefined ? reportData.is_vat : isVat;
 
     return (
       <div className="my-2">
@@ -654,7 +654,7 @@ const fetchReading = useCallback(async () => {
               else noSizeTotal += product.total_qty;
             });
           });
-          const SIZE_ORDER2 = ["SM","UM","PCM","JR","SL","UL","PCL"];
+          const SIZE_ORDER2 = ["SM", "UM", "PCM", "JR", "SL", "UL", "PCL"];
           const orderedSizes = [...SIZE_ORDER2.filter(s => sizeTotals.has(s)), ...[...sizeTotals.keys()].filter(s => !SIZE_ORDER2.includes(s)).sort()];
           const grandTotalQty = orderedSizes.reduce((a, s) => a + (sizeTotals.get(s) ?? 0), 0) + noSizeTotal;
           if (orderedSizes.length === 0 && noSizeTotal === 0) return null;
@@ -687,14 +687,14 @@ const fetchReading = useCallback(async () => {
         </div>
         <ReceiptDivider />
         {[
-          { label: "LINE DISC:",             value: phCurrency.format(0) },
-          { label: "LESS POINTS REDEEMED:",  value: phCurrency.format(0) },
+          { label: "LINE DISC:", value: phCurrency.format(0) },
+          { label: "LESS POINTS REDEEMED:", value: phCurrency.format(0) },
           { label: "LESS REG EMP VIP DISC:", value: phCurrency.format(0) },
-          { label: "LESS PWD DISCOUNT:",     value: pwdDiscount > 0 ? `-${phCurrency.format(pwdDiscount)}` : phCurrency.format(0) },
-          { label: "LESS SC DISCOUNT:",      value: scDiscount  > 0 ? `-${phCurrency.format(scDiscount)}`  : phCurrency.format(0) },
-          { label: "LESS DIPLOMAT:",         value: diplomat    > 0 ? `-${phCurrency.format(diplomat)}`    : phCurrency.format(0) },
-          { label: "LESS OTHER DISC:",       value: otherDisc   > 0 ? `-${phCurrency.format(otherDisc)}`  : phCurrency.format(0) },
-          { label: "LESS 12% VAT:",          value: reportIsVat && vatAmt > 0 ? `-${phCurrency.format(vatAmt)}` : phCurrency.format(0) },
+          { label: "LESS PWD DISCOUNT:", value: pwdDiscount > 0 ? `-${phCurrency.format(pwdDiscount)}` : phCurrency.format(0) },
+          { label: "LESS SC DISCOUNT:", value: scDiscount > 0 ? `-${phCurrency.format(scDiscount)}` : phCurrency.format(0) },
+          { label: "LESS DIPLOMAT:", value: diplomat > 0 ? `-${phCurrency.format(diplomat)}` : phCurrency.format(0) },
+          { label: "LESS OTHER DISC:", value: otherDisc > 0 ? `-${phCurrency.format(otherDisc)}` : phCurrency.format(0) },
+          { label: "LESS 12% VAT:", value: reportIsVat && vatAmt > 0 ? `-${phCurrency.format(vatAmt)}` : phCurrency.format(0) },
         ].map((r, i) => (
           <div key={i} className="flex text-[11px] leading-snug">
             <span className="flex-1 text-right uppercase pr-1">{r.label}</span>
@@ -707,8 +707,8 @@ const fetchReading = useCallback(async () => {
         </div>
         <ReceiptDivider />
         {[
-          { label: "VATABLE SALES:",    value: phCurrency.format(reportIsVat ? vatableSales : 0) },
-          { label: "VAT AMOUNT:",       value: phCurrency.format(reportIsVat ? vatAmt : 0) },
+          { label: "VATABLE SALES:", value: phCurrency.format(reportIsVat ? vatableSales : 0) },
+          { label: "VAT AMOUNT:", value: phCurrency.format(reportIsVat ? vatAmt : 0) },
           { label: "VAT EXEMPT SALES:", value: phCurrency.format(reportData?.vat_exempt_sales || 0) },
           { label: "ZERO RATED SALES:", value: phCurrency.format(0) },
         ].map((r, i) => (
@@ -738,23 +738,23 @@ const fetchReading = useCallback(async () => {
   };
 
   const renderXReading = () => {
-    const gross        = reportData?.gross_sales        || 0;
-    const netSales     = reportData?.net_sales          || 0;
-    const cashTotal    = reportData?.cash_total         || 0;
-    const nonCash      = reportData?.non_cash_total     || 0;
-    const txCount      = reportData?.transaction_count  || 0;
-    const scDiscount   = reportData?.sc_discount        || 0;
-    const pwdDiscount  = reportData?.pwd_discount       || 0;
-    const diplomat     = reportData?.diplomat_discount  || 0;
-    const otherDisc    = reportData?.other_discount     || 0;
-    const totalDisc    = scDiscount + pwdDiscount + diplomat + otherDisc;
-    const reportIsVat  = reportData?.is_vat !== undefined ? reportData.is_vat : isVat;
-    const vatableSales = reportData?.vatable_sales    || 0;
-    const vatAmount    = reportData?.vat_amount       || 0;
-    const vatExempt    = reportData?.vat_exempt_sales || 0;
-    const voids        = reportData?.total_void_amount || 0;
+    const gross = reportData?.gross_sales || 0;
+    const netSales = reportData?.net_sales || 0;
+    const cashTotal = reportData?.cash_total || 0;
+    const nonCash = reportData?.non_cash_total || 0;
+    const txCount = reportData?.transaction_count || 0;
+    const scDiscount = reportData?.sc_discount || 0;
+    const pwdDiscount = reportData?.pwd_discount || 0;
+    const diplomat = reportData?.diplomat_discount || 0;
+    const otherDisc = reportData?.other_discount || 0;
+    const totalDisc = scDiscount + pwdDiscount + diplomat + otherDisc;
+    const reportIsVat = reportData?.is_vat !== undefined ? reportData.is_vat : isVat;
+    const vatableSales = reportData?.vatable_sales || 0;
+    const vatAmount = reportData?.vat_amount || 0;
+    const vatExempt = reportData?.vat_exempt_sales || 0;
+    const voids = reportData?.total_void_amount || 0;
 
-    const PAYMENT_METHODS = ["food panda","grab","gcash","visa","mastercard","cash"];
+    const PAYMENT_METHODS = ["food panda", "grab", "gcash", "visa", "mastercard", "cash"];
     const METHOD_ALIASES: Record<string, string> = { panda: "food panda", foodpanda: "food panda", food_panda: "food panda", grabfood: "grab", "grab food": "grab", "master card": "mastercard", master: "mastercard", "visa card": "visa", "e-wallet": "gcash" };
     const paymentMap = new Map<string, number>();
     reportData?.payment_breakdown?.forEach(p => {
@@ -762,39 +762,39 @@ const fetchReading = useCallback(async () => {
       const key = METHOD_ALIASES[raw] ?? raw;
       paymentMap.set(key, (paymentMap.get(key) ?? 0) + Number(p.amount));
     });
-    const totalCredit = ["visa","mastercard"].reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
-    const totalDebit  = ["gcash"].reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
-    const totalCard   = totalCredit + totalDebit;
+    const totalCredit = ["visa", "mastercard"].reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
+    const totalDebit = ["gcash"].reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
+    const totalCard = totalCredit + totalDebit;
 
     return (
       <div className="my-2">
         <ReceiptDivider />
-        <ReceiptRow label="REPORT DATE"       value={date} />
+        <ReceiptRow label="REPORT DATE" value={date} />
         <ReceiptRow label="START DATE & TIME" value={`${date} ${new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`} />
-        <ReceiptRow label="END DATE & TIME"   value={`${date} ${new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`} />
-        <ReceiptRow label="TERMINAL #"        value="POS-01" />
-        <ReceiptRow label="BRANCH"            value={selectedBranchName} />
-        <ReceiptRow label="CASHIER"           value={reportData?.prepared_by || "ADMIN USER"} />
-        <ReceiptRow label="BEG. SI #"         value={reportData?.beg_si || "0000000000"} />
-        <ReceiptRow label="END. SI #"         value={reportData?.end_si || "0000000000"} />
+        <ReceiptRow label="END DATE & TIME" value={`${date} ${new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`} />
+        <ReceiptRow label="TERMINAL #" value="POS-01" />
+        <ReceiptRow label="BRANCH" value={selectedBranchName} />
+        <ReceiptRow label="CASHIER" value={reportData?.prepared_by || "ADMIN USER"} />
+        <ReceiptRow label="BEG. SI #" value={reportData?.beg_si || "0000000000"} />
+        <ReceiptRow label="END. SI #" value={reportData?.end_si || "0000000000"} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">BREAKDOWN OF SALES</p>
-        <ReceiptRow label="VATABLE SALES"    value={phCurrency.format(reportIsVat ? vatableSales : 0)} />
-        <ReceiptRow label="VAT AMOUNT"       value={phCurrency.format(reportIsVat ? vatAmount : 0)} />
+        <ReceiptRow label="VATABLE SALES" value={phCurrency.format(reportIsVat ? vatableSales : 0)} />
+        <ReceiptRow label="VAT AMOUNT" value={phCurrency.format(reportIsVat ? vatAmount : 0)} />
         <ReceiptRow label="VAT EXEMPT SALES" value={phCurrency.format(vatExempt)} />
         <ReceiptRow label="ZERO-RATED SALES" value={phCurrency.format(0)} />
         <ReceiptDivider />
-        <ReceiptRow label="SERVICE CHARGE"   value={phCurrency.format(0)} />
-        <ReceiptRow label="NET SALES"        value={phCurrency.format(netSales)} />
-        <ReceiptRow label="TOTAL DISCOUNTS"  value={phCurrency.format(totalDisc)} />
-        <ReceiptRow label="GROSS AMOUNT"     value={phCurrency.format(gross)} />
+        <ReceiptRow label="SERVICE CHARGE" value={phCurrency.format(0)} />
+        <ReceiptRow label="NET SALES" value={phCurrency.format(netSales)} />
+        <ReceiptRow label="TOTAL DISCOUNTS" value={phCurrency.format(totalDisc)} />
+        <ReceiptRow label="GROSS AMOUNT" value={phCurrency.format(gross)} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">DISCOUNT SUMMARY</p>
-        <ReceiptRow label="S.C DISC."         value={phCurrency.format(scDiscount)} />
-        <ReceiptRow label="PWD DISC."         value={phCurrency.format(pwdDiscount)} />
-        <ReceiptRow label="NAAC DISC."        value={phCurrency.format(0)} />
+        <ReceiptRow label="S.C DISC." value={phCurrency.format(scDiscount)} />
+        <ReceiptRow label="PWD DISC." value={phCurrency.format(pwdDiscount)} />
+        <ReceiptRow label="NAAC DISC." value={phCurrency.format(0)} />
         <ReceiptRow label="SOLO PARENT DISC." value={phCurrency.format(0)} />
-        <ReceiptRow label="OTHER DISC."       value={phCurrency.format(otherDisc)} />
+        <ReceiptRow label="OTHER DISC." value={phCurrency.format(otherDisc)} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">SALES ADJUSTMENT</p>
         <ReceiptRow label="CANCELED" value={phCurrency.format(voids)} />
@@ -805,38 +805,38 @@ const fetchReading = useCallback(async () => {
         ))}
         {reportData?.payment_breakdown?.filter(p => { const raw = p.method.toLowerCase().trim(); const normalized = METHOD_ALIASES[raw] ?? raw; return !PAYMENT_METHODS.includes(normalized); }).map((p, i) => { const raw = p.method.toLowerCase().trim(); const normalized = METHOD_ALIASES[raw] ?? raw; return <ReceiptRow key={`extra-${i}`} label={normalized.toUpperCase()} value={phCurrency.format(p.amount)} />; })}
         <ReceiptDivider />
-        <ReceiptRow label="TOTAL CREDIT"   value={phCurrency.format(totalCredit)} />
-        <ReceiptRow label="TOTAL DEBIT"    value={phCurrency.format(totalDebit)} />
-        <ReceiptRow label="TOTAL CARD"     value={phCurrency.format(totalCard)} />
+        <ReceiptRow label="TOTAL CREDIT" value={phCurrency.format(totalCredit)} />
+        <ReceiptRow label="TOTAL DEBIT" value={phCurrency.format(totalDebit)} />
+        <ReceiptRow label="TOTAL CARD" value={phCurrency.format(totalCard)} />
         <ReceiptDivider />
-        <ReceiptRow label="TOTAL CASH"     value={phCurrency.format(cashTotal)} />
+        <ReceiptRow label="TOTAL CASH" value={phCurrency.format(cashTotal)} />
         <ReceiptRow label="TOTAL NON-CASH" value={phCurrency.format(nonCash)} />
         <ReceiptRow label="TOTAL PAYMENTS" value={phCurrency.format(gross)} />
-        <ReceiptRow label="CANCELED"       value={phCurrency.format(voids)} />
+        <ReceiptRow label="CANCELED" value={phCurrency.format(voids)} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
-        <ReceiptRow label="CASH IN"          value={phCurrency.format(reportData?.cash_in || 0)} />
-        <ReceiptRow label="CASH IN DRAWER"   value={phCurrency.format(reportData?.cash_in_drawer || 0)} />
-        <ReceiptRow label="CASH DROP"        value={phCurrency.format(reportData?.cash_drop || 0)} />
+        <ReceiptRow label="CASH IN" value={phCurrency.format(reportData?.cash_in || 0)} />
+        <ReceiptRow label="CASH IN DRAWER" value={phCurrency.format(reportData?.cash_in_drawer || 0)} />
+        <ReceiptRow label="CASH DROP" value={phCurrency.format(reportData?.cash_drop || 0)} />
         <ReceiptDivider />
-        <ReceiptRow label="TOTAL QTY SOLD"   value={reportData?.total_qty_sold ?? 0} />
+        <ReceiptRow label="TOTAL QTY SOLD" value={reportData?.total_qty_sold ?? 0} />
         <ReceiptRow label="TRANSACTION COUNT" value={txCount} />
       </div>
     );
   };
 
-  const HIDE_FOOTER = ["summary","qty_items","search","detailed"];
+  const HIDE_FOOTER = ["summary", "qty_items", "search", "detailed"];
 
   const renderReceiptContent = () => {
     switch (reportData?.report_type) {
       case "hourly_sales": return renderHourlySales();
-      case "void_logs":    return renderVoidLogs();
-      case "qty_items":    return renderQtyItems();
-      case "cash_count":   return renderCashCount();
+      case "void_logs": return renderVoidLogs();
+      case "qty_items": return renderQtyItems();
+      case "cash_count": return renderCashCount();
       case "detailed":
-      case "search":       return renderDetailedSales();
-      case "summary":      return renderSummary();
-      default:             return renderXReading();
+      case "search": return renderDetailedSales();
+      case "summary": return renderSummary();
+      default: return renderXReading();
     }
   };
 
@@ -866,9 +866,8 @@ const fetchReading = useCallback(async () => {
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all px-3 py-2 text-xs border ${
-                isMenuOpen ? "bg-[#3b2063] text-white border-[#3b2063]" : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50"
-              }`}
+              className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all px-3 py-2 text-xs border ${isMenuOpen ? "bg-[#3b2063] text-white border-[#3b2063]" : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50"
+                }`}
             >
               <Menu size={13} /> Menu
             </button>
@@ -879,9 +878,8 @@ const fetchReading = useCallback(async () => {
                     <button
                       key={card.type}
                       onClick={() => { setReportType(card.type); setIsMenuOpen(false); }}
-                      className={`border-l-4 ${card.color} p-3 h-16 flex flex-col justify-center text-left hover:bg-violet-50 transition-all rounded-[0.625rem] w-full ${
-                        reportType === card.type ? "bg-violet-50" : "bg-white"
-                      }`}
+                      className={`border-l-4 ${card.color} p-3 h-16 flex flex-col justify-center text-left hover:bg-violet-50 transition-all rounded-[0.625rem] w-full ${reportType === card.type ? "bg-violet-50" : "bg-white"
+                        }`}
                     >
                       <p className="text-zinc-400 font-bold uppercase tracking-widest text-[8px] mb-0.5">{card.label}</p>
                       <p className="text-xs font-black text-slate-800 uppercase leading-tight">{card.title}</p>
