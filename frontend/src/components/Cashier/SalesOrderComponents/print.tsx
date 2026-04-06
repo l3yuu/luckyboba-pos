@@ -499,7 +499,7 @@ interface KitchenPrintProps {
   customerName: string;
   orderType: 'dine-in' | 'take-out' | 'delivery';
   isReprint?: boolean;
-  posFooter?: any;
+  posFooter?: PosFooterData;
 }
 
 export const KitchenPrint = ({
@@ -604,7 +604,7 @@ interface StickerPrintProps {
   formattedDate: string;
   formattedTime: string;
   orderType: 'dine-in' | 'take-out' | 'delivery';
-  posFooter?: any;
+  posFooter?: PosFooterData;
 }
 
 interface StickerClasses {
@@ -651,7 +651,7 @@ const StickerHeader = ({
   orderType: 'dine-in' | 'take-out' | 'delivery';
   businessName?: string;
   brand?: string;
-  posFooter?: any;
+  posFooter?: PosFooterData;
 }) => (
   <div className="w-full text-center flex flex-col items-center">
     <div className={`font-black uppercase leading-none ${cls.isVeryCrowded ? 'text-[9px]' : 'text-[11px]'}`}>
