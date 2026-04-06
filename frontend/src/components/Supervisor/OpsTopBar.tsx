@@ -22,10 +22,11 @@ const PAGE_TITLES: Record<string, { label: string; desc: string }> = {
   "item-checker":    { label: "Item Checker",        desc: "Verify product details and availability"  },
 };
 
-// ── Pulse animation ───────────────────────────────────────────────────────────
-const PULSE_STYLE = `
-  @keyframes ops-topbar-pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
-  .ops-topbar-pulse { animation: ops-topbar-pulse 2s infinite; }
+// ── Animations ────────────────────────────────────────────────────────────────
+const STYLES = `
+  @keyframes ops-topbar-pulse { 0%,100%{opacity:1} 50%{opacity:0.6} }
+  .ops-topbar-pulse { animation: ops-topbar-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+  .ops-topbar-header { background: linear-gradient(135deg, #3b2063 0%, #4c2b7d 100%); }
 `;
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -46,108 +47,112 @@ const OpsTopBar: React.FC<OpsTopBarProps> = ({
 
   return (
     <>
-      <style>{PULSE_STYLE}</style>
-      <div className="shrink-0 flex items-center justify-between px-6 md:px-8 py-2.5 bg-white border-b border-zinc-100 shadow-sm min-h-[52px]">
+      <style>{STYLES}</style>
+      <div className="shrink-0 flex items-center justify-between px-5 md:px-8 py-2.5 ops-topbar-header border-b border-[#2d184d] shadow-lg relative z-10 min-h-[56px]">
 
         {/* ── Left: hamburger + title + date badge + branch pill ── */}
-        <div className="flex items-center gap-3 min-w-0">
+        <div className="flex items-center gap-4 min-w-0">
 
           {/* Mobile hamburger */}
           <button
             onClick={onMenuClick}
-            className="md:hidden p-1.5 rounded-[0.4rem] text-[#3b2063] hover:bg-[#f5f3ff] transition-colors shrink-0"
+            className="md:hidden p-2 rounded-[0.5rem] bg-[#4c2b7d]/50 text-white hover:bg-[#5d3891] transition-all shrink-0"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <line x1="3" y1="6"  x2="21" y2="6"  />
               <line x1="3" y1="12" x2="21" y2="12" />
               <line x1="3" y1="18" x2="21" y2="18" />
             </svg>
           </button>
 
-          {/* Page title */}
+          {/* Page title area */}
           <div className="min-w-0">
-            <h1 style={{ fontSize: '0.88rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.025em', margin: 0, flexShrink: 0, lineHeight: 1.2 }}>
-              {page.label}
-            </h1>
-            <p style={{ fontSize: '0.62rem', fontWeight: 500, color: '#a1a1aa', margin: 0 }}
-              className="hidden sm:block truncate opacity-80">
-              {roleLabel} View • {page.desc}
+            <div className="flex items-center gap-2">
+               <h1 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#ffffff', letterSpacing: '-0.015em', margin: 0, flexShrink: 0, lineHeight: 1.2 }}>
+                {page.label}
+              </h1>
+              <div className="hidden lg:flex items-center px-1.5 py-0.5 rounded-full bg-[#5d3891]/40 border border-[#b794f4]/20">
+                <span style={{ fontSize: '0.48rem', fontWeight: 800, color: '#b794f4', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{roleLabel} View</span>
+              </div>
+            </div>
+            <p style={{ fontSize: '0.62rem', fontWeight: 500, color: '#ddd5ff', margin: '2px 0 0 0' }}
+              className="hidden sm:block truncate opacity-90 max-w-[300px]">
+              {page.desc}
             </p>
           </div>
 
-          {/* Date badge */}
-          <span
-            className="hidden lg:inline-block shrink-0"
-            style={{
-              fontSize: '0.58rem', fontWeight: 700, letterSpacing: '0.12em',
-              textTransform: 'uppercase', color: '#a1a1aa',
-              background: '#f8f9fa', padding: '3px 7px', borderRadius: '0.3rem',
-              border: '1px solid #f0f0f2'
-            }}
-          >
-            {time.toLocaleDateString('en-PH', {
-              weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
-            })}
-          </span>
-
-          {/* Branch pill */}
-          {branchLabel && (
+          {/* Date & Branch Pill */}
+          <div className="hidden xl:flex items-center gap-2">
             <span
-              className="hidden sm:inline-flex items-center gap-1.5 shrink-0"
+              className="shrink-0"
               style={{
-                fontSize: '0.56rem', fontWeight: 700, letterSpacing: '0.08em',
-                textTransform: 'uppercase', background: '#f5f3ff', color: '#7c3aed',
-                border: '1px solid #e9d5ff', borderRadius: '100px', padding: '2px 8px',
+                fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.12em',
+                textTransform: 'uppercase', color: '#ffffff',
+                background: '#ffffff15', padding: '3px 8px', borderRadius: '100px',
+                border: '1px solid #ffffff20'
               }}
             >
-              <MapPin size={8} strokeWidth={2.5} />
-              {branchLabel}
+              {time.toLocaleDateString('en-PH', { weekday: 'short', month: 'short', day: 'numeric' })}
             </span>
-          )}
+
+            {branchLabel && (
+              <span
+                className="inline-flex items-center gap-1.5 shrink-0"
+                style={{
+                  fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.1em',
+                  textTransform: 'uppercase', background: '#ebf4ff15', color: '#93c5fd',
+                  border: '1px solid #93c5fd20', borderRadius: '100px', padding: '3px 8px',
+                }}
+              >
+                <MapPin size={9} strokeWidth={2.5} />
+                {branchLabel}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* ── Right: clock + bell + live badge ── */}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-4 shrink-0">
 
           {/* Live clock */}
           <div
-            className="hidden sm:flex items-center gap-2"
-            style={{ fontSize: '0.65rem', fontWeight: 500, color: '#a1a1aa' }}
+            className="hidden lg:flex items-center gap-2"
+            style={{ fontSize: '0.68rem', fontWeight: 600, color: '#ddd5ff' }}
           >
-            <Clock size={11} strokeWidth={2.5} />
+            <Clock size={12} strokeWidth={2.5} />
             <span className="tabular-nums">
               {time.toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
 
           {/* Bell */}
-          <button className="relative p-1.5 hover:bg-zinc-100 rounded-[0.4rem] transition-colors">
-            <Bell size={13} className="text-zinc-400" />
-            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-red-500 rounded-full border border-white" />
+          <button className="relative p-2 bg-[#ffffff10] hover:bg-[#ffffff20] rounded-[0.5rem] transition-all border border-[#ffffff10]">
+            <Bell size={14} className="text-[#ffffff90]" />
+            <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-amber-400 rounded-full border border-[#3b2063]" />
           </button>
 
           {/* Live badge */}
           <div
             style={{
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-              background: '#f0fdf4', border: '1px solid #dcfce7',
-              borderRadius: '100px', padding: '3px 8px',
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              background: '#22c55e15', border: '1px solid #22c55e40',
+              borderRadius: '100px', padding: '4px 10px',
             }}
           >
             <div
               className="ops-topbar-pulse"
               style={{
-                width: 4, height: 4, borderRadius: '50%',
-                background: '#22c55e', boxShadow: '0 0 4px rgba(34,197,94,0.5)',
+                width: 5, height: 5, borderRadius: '50%',
+                background: '#4ade80', boxShadow: '0 0 8px rgba(74,222,128,0.4)',
               }}
             />
             <span
               style={{
-                fontSize: '0.52rem', fontWeight: 700,
-                letterSpacing: '0.14em', textTransform: 'uppercase', color: '#16a34a',
+                fontSize: '0.5rem', fontWeight: 900,
+                letterSpacing: '0.16em', textTransform: 'uppercase', color: '#4ade80',
               }}
             >
-              Live
+              Terminal Active
             </span>
           </div>
         </div>
