@@ -35,7 +35,7 @@ const Login: React.FC = () => {
     if (!user) return;
     hasRedirected.current = true;
     navigate(getHomeForRole(user.role), { replace: true });
-  }, [isLoading, user]);
+  }, [isLoading, user, navigate]);
 
   useEffect(() => {
     if (searchParams.get('reason') === 'expired') {
@@ -44,7 +44,7 @@ const Login: React.FC = () => {
       p.delete('reason');
       setSearchParams(p, { replace: true });
     }
-  }, []);
+  }, [searchParams, setSearchParams, showToast]);
 
   useEffect(() => {
     const check = () => {
@@ -65,7 +65,7 @@ const Login: React.FC = () => {
     const credentials: LoginCredentials = { email, password };
     try {
       const result = await login(credentials);
-      if (result && (result as any).requires_2fa) {
+      if (result && 'requires_2fa' in result) {
         setRequires2FA(true);
         setOtp(""); 
         showToast('Verification code sent! Please check your Gmail.', 'warning');
