@@ -20,12 +20,16 @@ class ReceiptController extends Controller
         $branchId = $request->user()?->branch_id;
 
         if (!$branchId) {
-            return response()->json(['next_sequence' => 1]);
+            return response()->json([
+                'next_sequence' => 1,
+                'next_queue'    => 1
+            ]);
         }
 
+        // SI sequence logic
         $latest = Sale::where('invoice_number', 'LIKE', 'SI-%')
             ->whereRaw("invoice_number REGEXP '^SI-[0-9]+$'")
-            ->where('branch_id', $branchId)          // always filter by branch
+            ->where('branch_id', $branchId)
             ->orderByRaw('CAST(SUBSTRING(invoice_number, 4) AS UNSIGNED) DESC')
             ->first();
 
@@ -33,8 +37,14 @@ class ReceiptController extends Controller
             ? ((int) substr($latest->invoice_number, 3)) + 1
             : 1;
 
+        // Daily Queue logic
+        $todayCount = Sale::where('branch_id', $branchId)
+            ->whereDate('created_at', now()->toDateString())
+            ->count();
+
         return response()->json([
-            'next_sequence' => $nextSeq
+            'next_sequence' => $nextSeq,
+            'next_queue'    => $todayCount + 1
         ]);
     }
 

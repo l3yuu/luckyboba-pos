@@ -20,6 +20,10 @@ class RawMaterialController extends Controller
     {
         $query = RawMaterial::query();
 
+        if ($request->filled('branch_id')) {
+            $query->where('branch_id', $request->branch_id);
+        }
+
         if ($request->filled('category')) {
             $query->where('category', $request->category);
         }
@@ -64,11 +68,25 @@ class RawMaterialController extends Controller
             'reorder_level'   => 'nullable|numeric|min:0',
             'is_intermediate' => 'nullable|boolean',
             'notes'           => 'nullable|string',
+            'branch_id'       => 'nullable|exists:branches,id',
         ]);
 
-        $material = RawMaterial::create($validated);
+        return DB::transaction(function() use ($validated) {
+            $material = RawMaterial::create($validated);
 
-        return response()->json($material, 201);
+            // ✅ If this is a global material, auto-clone it for all existing branches
+            if (empty($validated['branch_id'])) {
+                $branches = \App\Models\Branch::all();
+                foreach ($branches as $branch) {
+                    $clone = $material->replicate();
+                    $clone->branch_id = $branch->id;
+                    $clone->parent_id = $material->id;
+                    $clone->save();
+                }
+            }
+
+            return response()->json($material, 201);
+        });
     }
 
     /**
@@ -137,6 +155,7 @@ class RawMaterialController extends Controller
                 // Record in stock_movements so Usage Report reflects manual adjustments
                 StockMovement::create([
                     'raw_material_id' => $rawMaterial->id,
+                    'branch_id'       => $rawMaterial->branch_id,
                     'type'            => $validated['type'],
                     'quantity'        => $validated['quantity'],
                     'reason'          => $validated['reason'] ?? ucfirst($validated['type']) . ' (manual)',
