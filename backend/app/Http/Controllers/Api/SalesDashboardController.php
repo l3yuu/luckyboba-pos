@@ -201,8 +201,8 @@ class SalesDashboardController extends Controller
 
             $todayStart = $now->copy()->startOfDay();
             $todayEnd   = $now->copy()->endOfDay();
-            $weekStart  = $now->copy()->startOfWeek(\Carbon\Carbon::MONDAY)->startOfDay();
-            $weekEnd    = $now->copy()->endOfWeek(\Carbon\Carbon::SUNDAY)->endOfDay();
+            $weekStart  = $now->copy()->startOfWeek(\Carbon\CarbonInterface::MONDAY)->startOfDay();
+            $weekEnd    = $now->copy()->endOfWeek(\Carbon\CarbonInterface::SUNDAY)->endOfDay();
             $monthStart = $now->copy()->startOfMonth()->startOfDay();
             $monthEnd   = $now->copy()->endOfMonth()->endOfDay();
 
