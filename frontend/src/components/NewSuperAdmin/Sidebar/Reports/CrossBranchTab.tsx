@@ -55,6 +55,10 @@ interface TopProduct {
   total_quantity: number;
   total_revenue:  number;
 }
+interface BranchOption {
+  id:   number;
+  name: string;
+}
 
 const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, trend, color = "violet" }) => {
   const colors: Record<ColorKey, { bg: string; border: string; icon: string }> = {
@@ -110,16 +114,26 @@ const SkeletonBar: React.FC<{ h?: string }> = ({ h = "h-4" }) => (
 );
 
 const CrossBranchTab: React.FC = () => {
-  const [period,      setPeriod]      = useState<"daily" | "weekly" | "monthly">("monthly");
-  const [loading,     setLoading]     = useState(true);
-  const [error,       setError]       = useState("");
-  const [totals,      setTotals]      = useState<SummaryTotals | null>(null);
-  const [breakdown,   setBreakdown]   = useState<BreakdownRow[]>([]);
-  const [branchPerf,  setBranchPerf]  = useState<BranchMetric[]>([]);
-  const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
+  const [period,        setPeriod]        = useState<"daily" | "weekly" | "monthly">("monthly");
+  const [loading,       setLoading]       = useState(true);
+  const [error,         setError]         = useState("");
+  const [totals,        setTotals]        = useState<SummaryTotals | null>(null);
+  const [breakdown,     setBreakdown]     = useState<BreakdownRow[]>([]);
+  const [branchPerf,    setBranchPerf]    = useState<BranchMetric[]>([]);
+  const [topProducts,   setTopProducts]   = useState<TopProduct[]>([]);
+  const [branches,      setBranches]      = useState<BranchOption[]>([]);
+  const [exportBranchId, setExportBranchId] = useState<string>("");
 
   const fmt  = (v: number) => `₱${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
   const fmtK = (v: number) => `₱${((v ?? 0) / 1000).toFixed(0)}k`;
+
+  // Fetch branches for export selector
+  useEffect(() => {
+    fetch("/api/branches", { headers: authHeaders() })
+      .then(r => r.json())
+      .then(d => { if (d.success) setBranches(d.data); })
+      .catch(() => {});
+  }, []);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -143,6 +157,30 @@ const CrossBranchTab: React.FC = () => {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  const handleExport = async () => {
+    const params = new URLSearchParams();
+    params.set("period", period);
+    if (exportBranchId) params.set("branch_id", exportBranchId);
+
+    try {
+      const res = await fetch(`/api/reports/export-sales?${params}`, { headers: authHeaders() });
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href     = url;
+
+      const cd    = res.headers.get("Content-Disposition");
+      const match = cd?.match(/filename="?([^"]+)"?/);
+      a.download  = match?.[1] ?? `LuckyBoba_CrossBranch_Report.csv`;
+
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert("Export failed. Please try again.");
+    }
+  };
+
   const chartData    = breakdown.map(r => ({ month: r.date, revenue: Number(r.revenue) }));
   const totalRevenue = branchPerf.reduce((s, b) => s + Number(b.total_revenue), 0);
   const cogsPct      = 0.34;
@@ -160,7 +198,7 @@ const CrossBranchTab: React.FC = () => {
           <h2 className="text-base font-bold text-[#1a0f2e]">Cross-Branch Reports</h2>
           <p className="text-xs text-zinc-400 mt-0.5">Consolidated performance across all locations</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <div className="flex rounded-lg overflow-hidden border border-zinc-200">
             {(["daily", "weekly", "monthly"] as const).map(p => (
               <button key={p} onClick={() => setPeriod(p)} disabled={loading}
@@ -172,7 +210,16 @@ const CrossBranchTab: React.FC = () => {
           <Btn variant="secondary" onClick={fetchAll} disabled={loading}>
             <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
           </Btn>
-          <Btn variant="secondary"><Download size={13} /> Export</Btn>
+          <div className="flex items-center gap-1.5">
+            <select value={exportBranchId} onChange={e => setExportBranchId(e.target.value)}
+              className="appearance-none text-[10px] font-bold uppercase tracking-wider text-zinc-600 bg-white border border-zinc-200 rounded-lg pl-2.5 pr-6 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
+              <option value="">All Branches</option>
+              {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
+            </select>
+            <Btn variant="secondary" onClick={handleExport} disabled={loading}>
+              <Download size={13} /> Export CSV
+            </Btn>
+          </div>
         </div>
       </div>
 

@@ -245,12 +245,34 @@ const SalesReportTab: React.FC = () => {
     p.product_name.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const params = new URLSearchParams();
-    if (mode === "period") { params.set("period", period); }
-    else { params.set("date_from", dateFrom); params.set("date_to", dateTo); }
+    if (mode === "period") {
+      params.set("period", period);
+    } else {
+      params.set("date_from", dateFrom);
+      params.set("date_to",   dateTo);
+    }
     if (branchId) params.set("branch_id", branchId);
-    window.open(`/api/reports/export-sales?${params}`, "_blank");
+
+    try {
+      const res = await fetch(`/api/reports/export-sales?${params}`, { headers: authHeaders() });
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement("a");
+      a.href     = url;
+
+      // Build filename from Content-Disposition or fallback
+      const cd = res.headers.get("Content-Disposition");
+      const match = cd?.match(/filename="?([^"]+)"?/);
+      a.download = match?.[1] ?? `LuckyBoba_SalesReport.csv`;
+
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      alert("Export failed. Please try again.");
+    }
   };
 
   return (
