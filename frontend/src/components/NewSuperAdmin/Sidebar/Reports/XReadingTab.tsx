@@ -300,7 +300,7 @@ const XReadingTab: React.FC = () => {
 
   useEffect(() => {
     if (branchId) fetchReading();
-  }, [fetchReading]);
+  }, [fetchReading, branchId]);
 
   const handlePrint = () => window.print();
 

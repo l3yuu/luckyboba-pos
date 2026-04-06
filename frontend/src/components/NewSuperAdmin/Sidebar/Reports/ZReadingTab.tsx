@@ -473,7 +473,7 @@ const ZReadingTab: React.FC = () => {
       }
       fetchHistory();
     }
-  }, [fetchFullZReading, fetchXReport, fetchHistory]);
+  }, [fetchFullZReading, fetchXReport, fetchHistory, branchId, reportType]);
 
   const handleCloseShift = async () => {
     if (!branchId || !data) return;
