@@ -1785,6 +1785,10 @@ const SalesOrder = () => {
           itemPaxAssignments={itemPaxAssignments}
           posFooter={posFooter}
           receiptFooter={posFooter.receipt_footer}
+          businessName={posFooter.business_name}
+          businessEmail={posFooter.contact_email}
+          businessPhone={posFooter.contact_phone}
+          businessAddress={posFooter.address}
         />
       )}
       {printTarget === 'kitchen'  && <KitchenPrint  {...printProps} />}

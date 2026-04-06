@@ -69,20 +69,38 @@ class SaleObserver
             foreach ($recipe->items as $recipeItem) {
                 $totalQty = $recipeItem->quantity * $saleItem->quantity;
 
-                RawMaterial::where('id', $recipeItem->raw_material_id)
-                    ->decrement('current_stock', $totalQty);
+                // ✅ NEW: Find the branch-specific raw material
+                $material = RawMaterial::where('branch_id', $sale->branch_id)
+                    ->where(function ($q) use ($recipeItem) {
+                        $q->where('id', $recipeItem->raw_material_id)
+                          ->orWhere('parent_id', $recipeItem->raw_material_id);
+                    })
+                    ->first();
+
+                if (!$material) {
+                    Log::warning("[Inventory] No branch-specific material found for deduction.", [
+                        'branch_id'       => $sale->branch_id,
+                        'recipe_item_id'  => $recipeItem->raw_material_id,
+                        'product'         => $saleItem->product_name,
+                    ]);
+                    // Fallback to global if branch-specific is missing (optional, but safer to skip/warn)
+                    continue;
+                }
+
+                $material->decrement('current_stock', $totalQty);
 
                 StockDeduction::create([
                     'sale_id'           => $sale->id,
                     'sale_item_id'      => $saleItem->id,
-                    'raw_material_id'   => $recipeItem->raw_material_id,
+                    'raw_material_id'   => $material->id, // Use branch-specific ID
                     'recipe_item_id'    => $recipeItem->id,
                     'quantity_deducted' => $totalQty,
                 ]);
 
                 // Also create a StockMovement so it shows in the Usage Report
                 StockMovement::create([
-                    'raw_material_id' => $recipeItem->raw_material_id,
+                    'raw_material_id' => $material->id, // Use branch-specific ID
+                    'branch_id'       => $sale->branch_id,
                     'type'            => 'subtract',
                     'quantity'        => $totalQty,
                     'reason'          => "Sale #{$sale->invoice_number} · {$saleItem->product_name}",
@@ -96,6 +114,7 @@ class SaleObserver
         $deductions = StockDeduction::where('sale_id', $sale->id)->get();
         if ($deductions->isEmpty()) return;
 
+        /** @var \App\Models\StockDeduction $d */
         foreach ($deductions as $d) {
             RawMaterial::where('id', $d->raw_material_id)
                 ->increment('current_stock', $d->quantity_deducted);
