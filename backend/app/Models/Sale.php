@@ -14,7 +14,10 @@ class Sale extends Model
 
     protected $fillable = [
         'total_amount',
+        'subtotal',
         'payment_method',
+        'order_type',
+        'cashier_name',
         'reference_number',
         'charge_type',
         'pax',
