@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, type ElementType } from 'react';
 import api from '../../../services/api';
 import {
   Users, ShoppingBag, AlertTriangle, TrendingUp,
-  RefreshCw, CheckCircle2, Clock, Package, Search, 
+  RefreshCw, CheckCircle2, Clock, Package, Search,
   ArrowUpRight, ArrowDownRight, FileText, Activity, BarChart2
 } from 'lucide-react';
 import {
@@ -12,14 +12,14 @@ import {
 
 // ── Types ────────────────────────────────────────────────────────────────────
 interface DashStats {
-  total_orders_today:  number;
-  total_sales_today:   number;
-  voided_sales_today:  number;
-  top_seller_today:    { product_name: string; total_qty: number }[];
+  total_orders_today: number;
+  total_sales_today: number;
+  voided_sales_today: number;
+  top_seller_today: { product_name: string; total_qty: number }[];
 }
-interface LowStockItem   { id: number; name: string; quantity: number; minimum: number; }
-interface PendingVoid    { id: number; invoice: string; amount: number; cashier_name?: string; cashier?: string; reason: string; created_at: string; }
-interface HourlyStat     { hour: number; total: number; count: number; }
+interface LowStockItem { id: number; name: string; quantity: number; minimum: number; }
+interface PendingVoid { id: number; invoice: string; amount: number; cashier_name?: string; cashier?: string; reason: string; created_at: string; }
+interface HourlyStat { hour: number; total: number; count: number; }
 
 interface StatTileProps {
   label: string;
@@ -99,27 +99,26 @@ const STYLES = `
 `;
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-const fmtS = (v?: number) => { 
-  const n = Number(v ?? 0); 
-  if (n >= 1_000_000) return `₱${(n/1_000_000).toFixed(1)}M`; 
-  if (n >= 1_000) return `₱${(n/1_000).toFixed(1)}K`; 
-  return `₱${n.toLocaleString()}`; 
+const fmtS = (v?: number) => {
+  const n = Number(v ?? 0);
+  if (n >= 1_000_000) return `₱${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `₱${(n / 1_000).toFixed(1)}K`;
+  return `₱${n.toLocaleString()}`;
 };
 
 // ── Components ───────────────────────────────────────────────────────────────
 const StatTile = ({ label, value, icon: Icon, color, trend }: StatTileProps) => (
   <div className="sv-tile sv-glass p-6 flex flex-col justify-between min-h-[150px]">
     <div className="flex items-start justify-between">
-      <div 
-        className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shadow-[#3b2063]/10" 
+      <div
+        className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg shadow-[#3b2063]/10"
         style={{ background: `linear-gradient(135deg, ${color}20 0%, ${color}10 100%)`, color }}
       >
         <Icon size={24} strokeWidth={2.5} />
       </div>
       {trend !== undefined && (
-        <div className={`px-2.5 py-1 rounded-full text-[10px] font-black flex items-center gap-1 ${
-          trend > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'
-        }`}>
+        <div className={`px-2.5 py-1 rounded-full text-[10px] font-black flex items-center gap-1 ${trend > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'
+          }`}>
           {trend > 0 ? <ArrowUpRight size={12} strokeWidth={3} /> : <ArrowDownRight size={12} strokeWidth={3} />}
           {Math.abs(trend)}%
         </div>
@@ -136,12 +135,12 @@ const StatTile = ({ label, value, icon: Icon, color, trend }: StatTileProps) => 
 );
 
 const SV_DashboardPanel = ({ branchId }: SV_DashboardProps) => {
-  const [stats,        setStats]        = useState<DashStats | null>(null);
-  const [lowStock,     setLowStock]     = useState<LowStockItem[]>([]);
+  const [stats, setStats] = useState<DashStats | null>(null);
+  const [lowStock, setLowStock] = useState<LowStockItem[]>([]);
   const [pendingVoids, setPendingVoids] = useState<PendingVoid[]>([]);
-  const [hourly,       setHourly]       = useState<HourlyStat[]>([]);
-  const [loading,      setLoading]      = useState(true);
-  const [refreshing,   setRefreshing]   = useState(false);
+  const [hourly, setHourly] = useState<HourlyStat[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const today = new Date().toISOString().split('T')[0];
 
   const load = useCallback(async (isRefresh = false) => {
@@ -152,49 +151,52 @@ const SV_DashboardPanel = ({ branchId }: SV_DashboardProps) => {
         api.get('/dashboard/stats', { params: { branch_id: branchId } }),
         api.get('/reports/hourly-sales', { params }),
         api.get('/raw-materials/low-stock', { params: { branch_id: branchId } }),
-        api.get('/reports/void-logs',    { params }),
+        api.get('/reports/void-logs', { params }),
       ]);
 
-      if (statsRes.status  === 'fulfilled') { 
-        const d = statsRes.value.data; 
-        setStats(d?.stats ?? d); 
+      if (statsRes.status === 'fulfilled') {
+        const d = statsRes.value.data as any;
+        setStats((d?.stats ?? d) as DashStats);
       }
       if (hourlyRes.status === 'fulfilled') {
-        const raw = hourlyRes.value.data; 
+        const raw = hourlyRes.value.data as any;
         const arr = Array.isArray(raw) ? raw : (raw?.hourly_data ?? []);
-        setHourly(arr.map((r: { hour?: number; total?: number; count?: number }) => ({ 
-          hour: Number(r.hour ?? 0), 
-          total: Number(r.total ?? 0), 
-          count: Number(r.count ?? 0) 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setHourly(arr.map((r: any) => ({
+          hour: Number(r.hour ?? 0),
+          total: Number(r.total ?? 0),
+          count: Number(r.count ?? 0)
         })));
       }
       if (stockRes.status === 'fulfilled') {
-        const raw = stockRes.value.data; 
+        const raw = stockRes.value.data as any;
         const arr = Array.isArray(raw) ? raw : (raw?.data ?? []);
-        setLowStock(arr.slice(0,5).map((r: { id?: number; name?: string; item_name?: string; quantity?: number; minimum?: number }) => ({ 
-          id: Number(r.id), 
-          name: String(r.name || r.item_name || ''), 
-          quantity: Number(r.quantity ?? 0), 
-          minimum: Number(r.minimum ?? 5) 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setLowStock(arr.slice(0, 5).map((r: any) => ({
+          id: Number(r.id),
+          name: String(r.name || r.item_name || ''),
+          quantity: Number(r.quantity ?? 0),
+          minimum: Number(r.minimum ?? r.minimum_stock ?? 0)
         })));
       }
       if (voidsRes.status === 'fulfilled') {
-        const raw = voidsRes.value.data; 
+        const raw = voidsRes.value.data as any;
         const arr = Array.isArray(raw) ? raw : (raw?.logs ?? []);
-        setPendingVoids(arr.slice(0,5).map((r: { id?: number; invoice?: string; amount?: number; cashier_name?: string; cashier?: string; reason?: string; created_at?: string }) => ({ 
-          id: Number(r.id || 0), 
-          invoice: String(r.invoice || ''), 
-          amount: Number(r.amount || 0), 
-          reason: String(r.reason || ''), 
-          created_at: String(r.created_at || ''), 
-          cashier_name: String(r.cashier_name || r.cashier || '') 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setPendingVoids(arr.slice(0, 5).map((r: any) => ({
+          id: Number(r.id || 0),
+          invoice: String(r.invoice || ''),
+          amount: Number(r.amount || 0),
+          reason: String(r.reason || ''),
+          created_at: String(r.created_at || ''),
+          cashier_name: String(r.cashier_name || r.cashier || '')
         })));
       }
-    } catch (e) { 
-      console.error('SV load error', e); 
-    } finally { 
-      setLoading(false); 
-      setRefreshing(false); 
+    } catch (e) {
+      console.error('SV load error', e);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
   }, [today, branchId]);
 
@@ -208,7 +210,7 @@ const SV_DashboardPanel = ({ branchId }: SV_DashboardProps) => {
         <div className="h-10 w-32 sv-skeleton sv-pulse" />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
-        {[1,2,3,4].map(i => <div key={i} className="h-36 sv-skeleton sv-pulse" />)}
+        {[1, 2, 3, 4].map(i => <div key={i} className="h-36 sv-skeleton sv-pulse" />)}
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         <div className="lg:col-span-2 h-[500px] sv-skeleton sv-pulse" />
@@ -217,10 +219,10 @@ const SV_DashboardPanel = ({ branchId }: SV_DashboardProps) => {
     </div>
   );
 
-  const totalOrders = stats?.total_orders_today  ?? 0;
-  const totalSales  = stats?.total_sales_today   ?? 0;
-  const voidedSales = stats?.voided_sales_today  ?? 0;
-  
+  const totalOrders = stats?.total_orders_today ?? 0;
+  const totalSales = stats?.total_sales_today ?? 0;
+  const voidedSales = stats?.voided_sales_today ?? 0;
+
   const activeStaffTodayCount = Array.from(new Set([
     ...pendingVoids.map(v => v.cashier_name || v.cashier),
     'Supervisor'
@@ -234,11 +236,11 @@ const SV_DashboardPanel = ({ branchId }: SV_DashboardProps) => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-12">
         <div>
           <div className="flex items-center gap-3 mb-3">
-             <div className="px-2 py-0.5 rounded bg-[#3b2063] text-white text-[10px] font-black uppercase tracking-widest">
-               Supervisor View
-             </div>
-             <div className="h-1 w-1 rounded-full bg-slate-300" />
-             <p className="sv-label !text-[#3b2063] tracking-widest font-black">Shift Performance Dashboard</p>
+            <div className="px-2 py-0.5 rounded bg-[#3b2063] text-white text-[10px] font-black uppercase tracking-widest">
+              Supervisor View
+            </div>
+            <div className="h-1 w-1 rounded-full bg-slate-300" />
+            <p className="sv-label !text-[#3b2063] tracking-widest font-black">Shift Performance Dashboard</p>
           </div>
           <h1 className="text-[2.6rem] font-black text-slate-900 tracking-tight leading-none">
             Operational Overview
@@ -250,8 +252,8 @@ const SV_DashboardPanel = ({ branchId }: SV_DashboardProps) => {
         </div>
 
         <div className="flex items-center gap-4">
-          <button 
-            onClick={() => load(true)} 
+          <button
+            onClick={() => load(true)}
             className="group flex items-center gap-3 px-6 py-3.5 bg-white border border-slate-200 text-slate-600 hover:text-[#3b2063] hover:border-[#3b2063]/30 rounded-2xl transition-all shadow-xl shadow-[#3b2063]/5 font-black text-xs uppercase tracking-widest"
           >
             <RefreshCw size={14} className={refreshing ? 'sv-spin' : 'group-hover:rotate-180 transition-transform duration-500'} />
@@ -269,11 +271,11 @@ const SV_DashboardPanel = ({ branchId }: SV_DashboardProps) => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        
+
         {/* ── VISUAL ANALYTICS ENGINE ── */}
         <div className="lg:col-span-2 sv-monitoring-card bg-white p-8 relative overflow-hidden shadow-2xl shadow-[#3b2063]/5">
           <div className="absolute top-0 left-0 w-1.5 h-full bg-[#3b2063]" />
-          
+
           <div className="flex items-center justify-between mb-12">
             <div>
               <div className="flex items-center gap-2 mb-1.5">
@@ -295,38 +297,38 @@ const SV_DashboardPanel = ({ branchId }: SV_DashboardProps) => {
               <AreaChart data={hourly} margin={{ top: 10, right: 30, left: 10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b2063" stopOpacity={0.1}/>
-                    <stop offset="95%" stopColor="#3b2063" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#3b2063" stopOpacity={0.1} />
+                    <stop offset="95%" stopColor="#3b2063" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid vertical={false} stroke="#f1f5f9" strokeDasharray="4 4" />
-                <XAxis 
-                  dataKey="hour" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{fontSize: 10, fontWeight: 800, fill: '#94a3b8'}} 
+                <XAxis
+                  dataKey="hour"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fontWeight: 800, fill: '#94a3b8' }}
                   dy={15}
                   tickFormatter={(h) => `${h}:00`}
                 />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{fontSize: 10, fontWeight: 800, fill: '#94a3b8'}} 
-                  tickFormatter={(v) => `₱${v >= 1000 ? (v/1000).toFixed(1) + 'K' : v}`}
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 10, fontWeight: 800, fill: '#94a3b8' }}
+                  tickFormatter={(v) => `₱${v >= 1000 ? (v / 1000).toFixed(1) + 'K' : v}`}
                 />
-                <Tooltip 
+                <Tooltip
                   contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', background: '#1e293b', padding: '16px 20px' }}
                   itemStyle={{ color: '#fff', fontSize: '12px', fontWeight: 700, padding: 0 }}
                   labelStyle={{ fontSize: '10px', color: '#c7d2fe', marginBottom: '8px', textTransform: 'uppercase', fontWeight: 900, letterSpacing: '0.1em' }}
                   cursor={{ stroke: '#3b2063', strokeWidth: 1.5, strokeDasharray: '5 5' }}
                   formatter={(v) => [`₱${Number(v).toLocaleString()}`, 'HOURLY SALES']}
                 />
-                <Area 
-                  type="monotone" 
-                  dataKey="total" 
-                  stroke="#3b2063" 
-                  strokeWidth={4} 
-                  fillOpacity={1} 
+                <Area
+                  type="monotone"
+                  dataKey="total"
+                  stroke="#3b2063"
+                  strokeWidth={4}
+                  fillOpacity={1}
                   fill="url(#colorSales)"
                   dot={{ r: 5, strokeWidth: 2.5, fill: '#fff', stroke: '#3b2063' }}
                   activeDot={{ r: 8, strokeWidth: 3, fill: '#3b2063', stroke: '#fff' }}
@@ -338,11 +340,11 @@ const SV_DashboardPanel = ({ branchId }: SV_DashboardProps) => {
 
         {/* ── INTELLIGENT MONITORING STACK ── */}
         <div className="space-y-10">
-          
+
           <div className="sv-monitoring-card bg-rose-50/20 border-rose-100/50">
             <div className="sv-monitoring-head border-rose-100/30">
               <h3 className="font-black text-rose-600 tracking-tight uppercase text-[10px] flex items-center gap-2">
-                <AlertTriangle size={16} strokeWidth={2.5}/> Stock Depletion Audit
+                <AlertTriangle size={16} strokeWidth={2.5} /> Stock Depletion Audit
               </h3>
             </div>
             <div className="p-6 space-y-3.5">
@@ -366,7 +368,7 @@ const SV_DashboardPanel = ({ branchId }: SV_DashboardProps) => {
           <div className="sv-monitoring-card">
             <div className="sv-monitoring-head">
               <h3 className="font-black text-slate-800 tracking-tight uppercase text-[10px] flex items-center gap-2">
-                <Clock size={16} className="text-[#3b2063]" strokeWidth={2.5}/> Void Event Log
+                <Clock size={16} className="text-[#3b2063]" strokeWidth={2.5} /> Void Event Log
               </h3>
             </div>
             <div className="p-6 space-y-5">
@@ -374,7 +376,7 @@ const SV_DashboardPanel = ({ branchId }: SV_DashboardProps) => {
                 <div key={v.id} className="flex items-center justify-between group">
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#3b2063]/10 group-hover:text-[#3b2063] transition-colors">
-                      <FileText size={18}/>
+                      <FileText size={18} />
                     </div>
                     <div>
                       <p className="text-[0.85rem] font-black text-slate-900 leading-tight tracking-tight">{v.invoice}</p>
@@ -409,18 +411,17 @@ const SV_DashboardPanel = ({ branchId }: SV_DashboardProps) => {
         ].map((act, i) => (
           <button key={i} className="group px-6 py-4 bg-white border border-slate-200 rounded-2xl flex items-center gap-4 hover:border-[#3b2063]/30 hover:shadow-xl hover:shadow-[#3b2063]/5 transition-all active:scale-[0.98]">
             <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-[#3b2063] group-hover:text-white transition-all duration-300">
-              {/* @ts-ignore */}
               <act.icon size={20} strokeWidth={2.5} />
             </div>
             <span className="text-[0.7rem] font-black text-slate-600 uppercase tracking-widest group-hover:text-[#3b2063] transition-colors">{act.label}</span>
           </button>
         ))}
       </div>
-      
+
       <div className="mt-20 flex items-center justify-center gap-3 opacity-20 group cursor-default">
-         <span className="w-12 h-px bg-slate-400 group-hover:w-20 transition-all duration-500" />
-         <p className="text-[0.65rem] font-black tracking-[0.4em] uppercase">Executive Audit Engine V3.0</p>
-         <span className="w-12 h-px bg-slate-400 group-hover:w-20 transition-all duration-500" />
+        <span className="w-12 h-px bg-slate-400 group-hover:w-20 transition-all duration-500" />
+        <p className="text-[0.65rem] font-black tracking-[0.4em] uppercase">Executive Audit Engine V3.0</p>
+        <span className="w-12 h-px bg-slate-400 group-hover:w-20 transition-all duration-500" />
       </div>
     </div>
   );

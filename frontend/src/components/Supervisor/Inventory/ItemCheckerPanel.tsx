@@ -66,7 +66,7 @@ const ItemCheckerPanel = ({ branchId }: { branchId: number | null }) => {
       const res = await api.get('/menu', { params: { branch_id: branchId } });
       const raw = Array.isArray(res.data) ? res.data : (res.data?.data || []);
 
-      const mapped: Item[] = raw.map((r: any) => {
+      const mapped: Item[] = raw.map((r: Record<string, unknown>) => {
         const qty = Number(r.quantity || 0);
         let stock_status: 'in_stock' | 'low_stock' | 'out_of_stock' = 'in_stock';
         if (qty <= 0) stock_status = 'out_of_stock';

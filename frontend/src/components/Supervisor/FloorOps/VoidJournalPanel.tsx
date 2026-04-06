@@ -64,7 +64,7 @@ const StatusBadge: React.FC<{ status: VoidStatus }> = ({ status }) => {
   const map: Record<string, { bg: string; text: string; icon: React.ReactNode }> = {
     pending: { bg: 'bg-amber-500/10 text-amber-500 border-amber-500/20', icon: <Clock size={10} />, text: 'Pending Approval' },
     approved: { bg: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20', icon: <CheckCircle2 size={10} />, text: 'Approved' },
-    completed: { bg: 'bg-[#3b2063]/10 text-[#3b2063] border-[#3b2063]/200/20', icon: <FileText size={10} />, text: 'Legitimate' },
+    completed: { bg: 'bg-[#3b2063]/10 text-[#3b2063] border-[#3b2063]/20', icon: <FileText size={10} />, text: 'Legitimate' },
     cancelled: { bg: 'bg-rose-500/10 text-rose-500 border-rose-500/20', icon: <ShieldAlert size={10} />, text: 'Voided' },
   };
   const config = map[status] || map.completed;

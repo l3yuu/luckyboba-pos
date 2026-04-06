@@ -65,6 +65,7 @@ const StockLevelsPanel = ({ branchId }: { branchId: number | null }) => {
       const res = await api.get('/raw-materials', { params: { branch_id: branchId } });
       const raw = Array.isArray(res.data) ? res.data : (res.data?.data || []);
       
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const mapped: InventoryItem[] = raw.map((r: any) => {
         const current = Number(r.quantity || 0);
         const min = Number(r.minimum || r.minimum_stock || 10);
