@@ -696,7 +696,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
   } else if (status === 422) {
     setError('Missing branch info. Please refresh.');
   } else {
-    setError('Failed to update order status.');333
+    setError('Failed to update order status.');
   }
     } finally {
       setUpdatingId(null);
