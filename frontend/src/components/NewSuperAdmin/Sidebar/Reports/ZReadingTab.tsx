@@ -500,31 +500,7 @@ const ZReadingTab: React.FC = () => {
     }
   };
 
-const handlePrint = async () => {
-  try {
-    const res = await fetch('/api/readings/z/print-token', {
-      method:  'POST',
-      headers: authHeaders(),
-      body:    JSON.stringify({ branch_id: branchId, date }),
-    });
-    const json = await res.json();
-    if (!json.token) { setError('Failed to generate print token.'); return; }
-
-    const params = new URLSearchParams({ branch_id: branchId, date, token: json.token });
-    
-    // Use anchor click instead of window.open — never blocked by popup blocker
-    const a = document.createElement('a');
-    a.href = `/api/readings/z/print?${params}`;
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-
-  } catch {
-    setError('Failed to open print view.');
-  }
-};
+const handlePrint = () => window.print();
 
   const selectedBranchName = branches.find(b => String(b.id) === branchId)?.name ?? "—";
 
@@ -1147,7 +1123,7 @@ const handlePrint = async () => {
   };
 
   return (
-    <div className="p-6 md:p-8 fade-in flex flex-col gap-5">
+    <div className="p-6 md:p-8 fade-in flex flex-col gap-5 print:p-0 print:gap-0">
 
       {/* ── Toast ── */}
       {toast && (
@@ -1170,7 +1146,7 @@ const handlePrint = async () => {
       )}
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="flex items-center justify-between flex-wrap gap-3 print:hidden">
         <div>
           <h2 className="text-base font-bold text-[#1a0f2e]">Z Reading</h2>
           <p className="text-xs text-zinc-400 mt-0.5">End-of-day closing report — finalizes and locks shift totals</p>
@@ -1241,7 +1217,7 @@ const handlePrint = async () => {
       </div>
 
       {/* ── Filters ── */}
-      <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 flex flex-wrap gap-3 items-end">
+      <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 flex flex-wrap gap-3 items-end print:hidden">
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Branch <span className="text-red-400">*</span></p>
           <div className="relative">
@@ -1274,7 +1250,7 @@ const handlePrint = async () => {
 
       {/* ── Error ── */}
       {error && (
-        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
+        <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg print:hidden">
           <AlertCircle size={14} className="text-red-500 shrink-0" />
           <p className="text-xs text-red-600 font-medium">{error}</p>
           <button onClick={() => setError("")} className="ml-auto text-red-300 hover:text-red-500"><X size={14} /></button>
@@ -1282,7 +1258,7 @@ const handlePrint = async () => {
       )}
 
       {/* ── Sub-tabs ── */}
-      <div className="flex gap-2 border-b border-zinc-100">
+      <div className="flex gap-2 border-b border-zinc-100 print:hidden">
         {([
           { id: "receipt", label: "Receipt",  icon: <Printer  size={12} /> },
           { id: "history", label: "History",  icon: <History  size={12} /> },
@@ -1301,6 +1277,70 @@ const handlePrint = async () => {
       {/* ── RECEIPT VIEW ── */}
       {activeView === "receipt" && (
         <>
+          <style>{`
+            .flex-between { display: flex; justify-content: space-between; width: 100%; align-items: flex-end; }
+            .receipt-divider { border-top: 1px dashed #000; margin: 6px 0; width: 100%; display: block; }
+            @media print {
+             * { opacity: 1 !important; color: #000 !important; }
+              .opacity-50 { opacity: 1 !important; }
+              .line-through { text-decoration: line-through !important; color: #000 !important; }
+              @page { 
+                size: 80mm 2000mm;
+                margin: 3mm 2mm !important; 
+              }
+              body * { visibility: hidden; }
+              nav, header, aside, button, .print\\\\:hidden, .TopNavbar, .TopNavbar * { display: none !important; }
+              html, body { 
+                width: 80mm !important; 
+                margin: 0 !important; 
+                padding: 0 !important; 
+                background: white !important; 
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important; 
+              }
+              .printable-receipt-container, .printable-receipt-container * { visibility: visible !important; }
+              .printable-receipt-container { 
+                position: absolute !important; 
+                left: 0 !important; 
+                top: 0 !important; 
+                width: 80mm !important; 
+                display: block !important; 
+                margin: 0 !important; 
+                padding: 0 !important; 
+              }
+              .receipt-area { 
+                color: #000 !important;
+                width: 76mm !important; 
+                max-width: 76mm !important; 
+                margin: 0 auto !important; 
+                padding: 2mm !important; 
+                box-sizing: border-box !important; 
+                background: white !important; 
+                color: #000 !important; 
+                font-family: Arial, Helvetica, sans-serif !important; 
+                font-size: 12px !important; 
+                font-weight: 500 !important;
+                line-height: 1.5 !important; 
+                box-shadow: none !important; 
+                border: none !important; 
+                border-radius: 0 !important; 
+                overflow: visible !important;
+                -webkit-font-smoothing: none !important;
+              }
+              .receipt-area * {
+                overflow: visible !important;
+                -webkit-font-smoothing: none !important;
+              }
+              .receipt-area > div > div {
+                break-inside: avoid !important;
+              }
+              .flex-between { display: flex !important; justify-content: space-between !important; width: 100% !important; align-items: flex-end !important; }
+              table { width: 100% !important; max-width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; font-size: 11px !important; }
+              th { text-align: left !important; border-bottom: 1px solid #000 !important; padding-bottom: 2px !important; text-transform: uppercase !important; font-weight: 700 !important; font-size: 12px !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
+              td { padding: 2px 0 !important; vertical-align: top !important; font-size: 12px !important; font-weight: 500 !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
+            }
+          `}</style>
+
           {loading && (
             <div className="flex flex-col items-center mt-20 opacity-50">
               <div className="w-8 h-8 border-4 border-violet-500 border-t-transparent rounded-full animate-spin mb-3" />
@@ -1309,10 +1349,10 @@ const handlePrint = async () => {
           )}
 
           {!loading && reportData && (
-            <div className="flex justify-center">
+            <div className="flex justify-center printable-receipt-container">
               <div
-                className="printable-receipt-area bg-white border border-zinc-200 rounded-[0.625rem] shadow-sm p-6 w-full max-w-sm"
-                style={{ fontFamily: "Arial, Helvetica, sans-serif" }}
+                className="receipt-area printable-receipt-area bg-white border border-zinc-200 rounded-[0.625rem] shadow-sm p-6 w-full max-w-sm"
+                style={{ fontFamily: "Arial, Helvetica, sans-serif", fontSize: '13px', maxWidth: '180mm', padding: '1.5rem', fontWeight: 500 }}
               >
                 <div className="text-center mb-2">
                   <p className="uppercase text-[13px] font-bold leading-tight">LUCKY BOBA MILKTEA<br />FOOD AND BEVERAGE TRADING</p>
