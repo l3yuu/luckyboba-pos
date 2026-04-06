@@ -19,7 +19,7 @@ export type TabId =
   | "recipes" | "supplier" | "item_checker"
   | "item_serials" | "purchase_order" | "stock_transfer"
   | "expenses"
-  | "card_approvals"
+  | "card_management" | "card_approvals"
   | "card_members"
   | "promotions" | "audit" | "settings";
 
@@ -216,6 +216,7 @@ const EXPENSES_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
 ];
 
 const APP_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
+  { id: "card_management", label: "Card Management", icon: <CreditCard size={14} /> },
   { id: "card_approvals", label: "Card Approvals", icon: <CreditCard size={14} /> },
   { id: "card_members",     label: "Card Members",   icon: <Users      size={14} /> },
 ];
