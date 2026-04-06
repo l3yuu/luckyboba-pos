@@ -197,15 +197,36 @@ class RawMaterialController extends Controller
      */
     public function movements(Request $request)
     {
-        $query = StockMovement::with('rawMaterial:id,name,unit')
-            ->orderBy('created_at', 'desc')
-            ->orderBy('id', 'desc');
+        $query = StockMovement::with(['rawMaterial:id,name,unit', 'branch:id,name']);
+        
+        $branchId = $request->query('branch_id');
+        $selectedBranchName = $branchId ? \App\Models\Branch::find($branchId)?->name : null;
+
+        if ($branchId) {
+            // Strict filtering for movements: only show results for the selected branch
+            $query->where('branch_id', $branchId);
+        }
 
         if ($request->filled('raw_material_id')) {
             $query->where('raw_material_id', $request->raw_material_id);
         }
 
-        $movements = $query->get();
+        $movements = $query->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
+            ->limit($request->integer('limit', 50))
+            ->get()
+            ->map(fn($m) => [
+                'id'           => $m->id,
+                'raw_material' => $m->rawMaterial->name ?? 'Unknown',
+                'type'         => $m->type,
+                'quantity'     => $m->quantity,
+                'unit'         => $m->rawMaterial->unit ?? '',
+                'branch_name'  => $m->branch->name ?? ($selectedBranchName ?? 'Main Office'),
+                'reason'       => $m->reason,
+                'performed_by' => 'System', 
+                'created_at'   => $m->created_at,
+            ]);
+
         return response()->json($movements);
     }
 }

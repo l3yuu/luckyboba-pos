@@ -26,6 +26,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/login',  [AuthController::class, 'login'])->middleware('throttle:5,2');
+Route::post('/verify-2fa', [AuthController::class, 'verify2FA'])->middleware('throttle:5,2');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 
 
@@ -263,6 +264,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post ('/audit-logs',            [AuditLogController::class,    'store']);
 
         Route::apiResource('menu-list',  MenuListController::class)->only(['index', 'store']);
+        Route::get ('/menu-items/export',           [MenuItemController::class, 'export']);
+        Route::get ('/menu-items/import-template', [MenuItemController::class, 'downloadTemplate']);
+        Route::post('/menu-items/import',          [MenuItemController::class, 'import']);
         Route::apiResource('menu-items', MenuItemController::class);
 
         Route::get ('/menu-item-options',       [MenuItemOptionController::class, 'index']);
@@ -443,7 +447,10 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         });
 
         Route::prefix('system')->group(function () {
+            Route::get ('/info',              [SettingsController::class, 'getSystemInfo']);
             Route::get ('/audit',             [SettingsController::class, 'getAuditLogs']);
+            Route::delete('/audit/clear',     [SettingsController::class, 'clearAuditLogs']);
+            Route::post('/reset',             [SettingsController::class, 'resetSystem']);
             Route::get ('/backup-status',     [BackupController::class,   'lastBackupStatus']);
             Route::post('/run-backup',        [BackupController::class,   'runBackup']);
             Route::post('/upload',            [UploadController::class,   'upload']);
