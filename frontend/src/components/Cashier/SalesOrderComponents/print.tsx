@@ -7,6 +7,22 @@ import logo from '../../../assets/logo.png';
 import { type CartItem, type BundleComponentCustomization } from '../../../types/index';
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface PosFooterData {
+  pos_supplier?:    string;
+  pos_address?:     string;
+  pos_tin?:         string;
+  pos_accred_no?:   string;
+  pos_date_issued?: string;
+  pos_valid_until?: string;
+  pos_ptu?:         string;
+  pos_ptu_date?:    string;
+  business_name?:   string;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // ReceiptPrint
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -57,17 +73,7 @@ interface ReceiptPrintProps {
   seniorIds?: string[];
   pwdIds?: string[];
   itemPaxAssignments?: Record<string, ('none' | 'sc' | 'pwd')[]>;
-  posFooter?: {
-    pos_supplier?:    string;
-    pos_address?:     string;
-    pos_tin?:         string;
-    pos_accred_no?:   string;
-    pos_date_issued?: string;
-    pos_valid_until?: string;
-    pos_ptu?:         string;
-    pos_ptu_date?:    string;
-    business_name?:   string;
-  };
+  posFooter?: PosFooterData;
   receiptFooter?: string;
 }
 
