@@ -30,7 +30,7 @@ export const PublicRoute = () => {
             display: flex;
             align-items: center;
             justify-content: center;
-            background-color: #7c14d4;
+            background-color: #3b2063;
             background-image:
               radial-gradient(ellipse 80% 60% at 50% 50%, #8b1fe0 0%, #6a0ec0 100%),
               repeating-linear-gradient(

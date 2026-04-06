@@ -61,7 +61,7 @@ const BackupSystem = ({ onBack, readOnly = false }: { onBack: () => void; readOn
     <div className="flex-1 bg-[#f4f2fb] h-full flex flex-col font-sans">
       <div className="p-6 flex flex-col gap-6">
         <div>
-          <h1 className="text-xl font-black text-[#7c14d4] uppercase tracking-widest">System Backup</h1>
+          <h1 className="text-xl font-black text-[#3b2063] uppercase tracking-widest">System Backup</h1>
           {readOnly && (
             <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">View Only</p>
           )}
@@ -79,7 +79,7 @@ const BackupSystem = ({ onBack, readOnly = false }: { onBack: () => void; readOn
         <div className="bg-white p-6 rounded-[0.625rem] border border-[#e9d5ff] flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-4">
             <div className="p-3 bg-[#f5f0ff] rounded-[0.625rem] border border-[#e9d5ff]">
-              <Database className="text-[#7c14d4]" size={24} />
+              <Database className="text-[#3b2063]" size={24} />
             </div>
             <div>
               <p className="text-[10px] font-black text-zinc-400 uppercase tracking-tighter">Database Status</p>
@@ -92,7 +92,7 @@ const BackupSystem = ({ onBack, readOnly = false }: { onBack: () => void; readOn
             <button
               onClick={handleRunBackup}
               disabled={isProcessing}
-              className="px-6 py-3 bg-[#7c14d4] text-white rounded-[0.625rem] font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:bg-[#6a12b8] transition-all disabled:opacity-50"
+              className="px-6 py-3 bg-[#3b2063] text-white rounded-[0.625rem] font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:bg-[#6a12b8] transition-all disabled:opacity-50"
             >
               {isProcessing ? <Loader2 className="animate-spin" size={14} /> : <Download size={14} />}
               {isProcessing ? 'Generating...' : 'Run New Backup'}
@@ -107,7 +107,7 @@ const BackupSystem = ({ onBack, readOnly = false }: { onBack: () => void; readOn
 
         <button
           onClick={onBack}
-          className="w-fit px-6 py-3 bg-white border border-[#e9d5ff] text-[#7c14d4] rounded-[0.625rem] font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:bg-[#f5f0ff] transition-colors"
+          className="w-fit px-6 py-3 bg-white border border-[#e9d5ff] text-[#3b2063] rounded-[0.625rem] font-black uppercase text-[10px] tracking-widest flex items-center gap-2 hover:bg-[#f5f0ff] transition-colors"
         >
           <ArrowLeft size={14} /> Back
         </button>

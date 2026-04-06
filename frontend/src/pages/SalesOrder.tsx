@@ -1356,9 +1356,9 @@ const filteredCategories = categories
 
   if (checkingCashIn || loading)
     return (
-      <div className="h-screen flex items-center justify-center font-black text-[#7c14d4] bg-[#f4f2fb]">
+      <div className="h-screen flex items-center justify-center font-black text-[#3b2063] bg-[#f4f2fb]">
         <div className="text-center">
-          <DrinkIcon className="w-16 h-16 mx-auto mb-4 text-[#7c14d4]/30 animate-pulse" />
+          <DrinkIcon className="w-16 h-16 mx-auto mb-4 text-[#3b2063]/30 animate-pulse" />
           <div className="text-sm tracking-widest uppercase opacity-50">Loading...</div>
         </div>
       </div>
@@ -1667,8 +1667,8 @@ const filteredCategories = categories
             <span
             className={`text-sm font-semibold shrink-0 cursor-pointer transition-colors px-3 py-2 rounded-lg ${
               !selectedCategory
-                ? 'text-[#7c14d4] bg-[#7c14d4]/10'
-                : 'text-zinc-400 hover:text-[#7c14d4] hover:bg-zinc-100'
+                ? 'text-[#3b2063] bg-[#3b2063]/10'
+                : 'text-zinc-400 hover:text-[#3b2063] hover:bg-zinc-100'
             }`}
               onClick={() => { setSelectedCategory(null); setCategorySize(null); setActiveCategoryGroup(null); }}
             >
@@ -1681,8 +1681,8 @@ const filteredCategories = categories
                 <span
                   className={`text-xs font-semibold shrink-0 px-2 py-1.5 rounded-lg transition-colors ${
                     !categorySize
-                      ? 'text-[#7c14d4] bg-[#7c14d4]/10'
-                      : 'text-zinc-400 hover:text-[#7c14d4] hover:bg-zinc-100 cursor-pointer'
+                      ? 'text-[#3b2063] bg-[#3b2063]/10'
+                      : 'text-zinc-400 hover:text-[#3b2063] hover:bg-zinc-100 cursor-pointer'
                   }`}
                   onClick={() => { if (categorySize && !categoryHasOnlyOneSize) setCategorySize(null); }}
                 >
@@ -1694,7 +1694,7 @@ const filteredCategories = categories
             {selectedCategory && categorySize && !categoryHasOnlyOneSize && (
               <>
                 <ChevronRight size={11} className="text-zinc-300 shrink-0" />
-                <span className="text-xs font-bold text-[#7c14d4] bg-[#7c14d4]/10 px-2 py-1.5 rounded-lg shrink-0">
+                <span className="text-xs font-bold text-[#3b2063] bg-[#3b2063]/10 px-2 py-1.5 rounded-lg shrink-0">
                   {categorySize}
                 </span>
               </>
@@ -1724,8 +1724,8 @@ const filteredCategories = categories
                   onClick={() => setActiveCategoryGroup(isActive ? null : group.key)}
                   className={`shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition-all border ${
                     isActive
-                      ? 'bg-[#7c14d4] text-white border-[#7c14d4] shadow-sm'
-                      : 'bg-zinc-50 text-zinc-500 border-zinc-200 hover:border-[#7c14d4]/40 hover:text-[#7c14d4] hover:bg-violet-50'
+                      ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-sm'
+                      : 'bg-zinc-50 text-zinc-500 border-zinc-200 hover:border-[#3b2063]/40 hover:text-[#3b2063] hover:bg-violet-50'
                   }`}
                 >
                   <span>{group.label}</span>

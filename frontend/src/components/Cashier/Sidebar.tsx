@@ -197,7 +197,7 @@ const salesReportItems: MenuItem[] = [
           <div className="flex flex-col w-full gap-2">
             <button
               onClick={action}
-              className={`w-full py-3 text-[10px] font-bold tracking-[0.18em] uppercase text-white transition-all rounded-[0.625rem] active:scale-[0.98] ${danger ? 'bg-[#be2525] hover:bg-[#a11f1f]' : 'bg-[#7c14d4] hover:bg-[#6b11b8]'}`}
+              className={`w-full py-3 text-[10px] font-bold tracking-[0.18em] uppercase text-white transition-all rounded-[0.625rem] active:scale-[0.98] ${danger ? 'bg-[#be2525] hover:bg-[#a11f1f]' : 'bg-[#3b2063] hover:bg-[#6b11b8]'}`}
             >
               {btnText}
             </button>
@@ -256,7 +256,7 @@ const salesReportItems: MenuItem[] = [
         .sb-btn.active { background: #ede9fe; }
         .sb-btn.active::before {
           content: ''; position: absolute; left: 0; top: 20%; bottom: 20%;
-          width: 3px; background: #7c14d4; border-radius: 0 2px 2px 0;
+          width: 3px; background: #3b2063; border-radius: 0 2px 2px 0;
         }
 
         .sb-dh {
@@ -269,7 +269,7 @@ const salesReportItems: MenuItem[] = [
         .sb-dh.active { background: #ede9fe; }
         .sb-dh.active::before {
           content: ''; position: absolute; left: 0; top: 20%; bottom: 20%;
-          width: 3px; background: #7c14d4; border-radius: 0 2px 2px 0;
+          width: 3px; background: #3b2063; border-radius: 0 2px 2px 0;
         }
 
         .sb-sub {
@@ -280,8 +280,8 @@ const salesReportItems: MenuItem[] = [
           border-radius: 0.5rem;
           transition: background 0.12s, color 0.12s, padding-left 0.12s;
         }
-        .sb-sub:hover { background: #f0e8ff; color: #7c14d4; padding-left: 14px; }
-        .sb-sub.active { background: #ede9fe; color: #7c14d4; font-weight: 700; padding-left: 14px; }
+        .sb-sub:hover { background: #f0e8ff; color: #3b2063; padding-left: 14px; }
+        .sb-sub.active { background: #ede9fe; color: #3b2063; font-weight: 700; padding-left: 14px; }
 
         .sb-chevron { transition: transform 0.25s cubic-bezier(0.4,0,0.2,1); color: #a1a1aa; }
         .sb-chevron.open { transform: rotate(180deg); }
@@ -291,7 +291,7 @@ const salesReportItems: MenuItem[] = [
       `}</style>
 
       {/* Modals */}
-      <Modal show={showCashInRequired} icon={<Lock size={19} className="text-[#7c14d4]" />}
+      <Modal show={showCashInRequired} icon={<Lock size={19} className="text-[#3b2063]" />}
         title="Menu Locked" desc="Shift not started. Please input Cash In first to unlock the terminal."
         action={() => { setShowCashInRequired(false); setPosOpen(true); setCurrentTab('cash-in'); }}
         btnText="Go to Cash In" cancel={() => setShowCashInRequired(false)} />
@@ -318,7 +318,7 @@ const salesReportItems: MenuItem[] = [
           <div className="px-5 pt-7 pb-6 flex flex-col items-center border-b border-zinc-100">
             <img src={logo} alt="Lucky Boba" className="w-40 h-auto object-contain mb-3 hidden md:block" />
             {/* POINT OF SALE pill — violet to match login */}
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#7c14d4] rounded-md">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#3b2063] rounded-md">
               <span className="w-1.5 h-1.5 rounded-full bg-white opacity-90" />
               <span className="text-[9px] font-black uppercase tracking-[0.22em] text-white">Point of Sale</span>
             </span>
@@ -340,7 +340,7 @@ const salesReportItems: MenuItem[] = [
                 <div key={dd.id}>
                   <button onClick={() => toggle(dd.id)} className={`sb-dh ${groupActive ? 'active' : ''}`}>
                     <div className="flex items-center gap-2.5">
-                      <span className={groupActive || dd.state ? 'text-[#7c14d4]' : 'text-zinc-400'}>{dd.icon}</span>
+                      <span className={groupActive || dd.state ? 'text-[#3b2063]' : 'text-zinc-400'}>{dd.icon}</span>
                       <span className={`text-[13px] font-bold uppercase tracking-[0.14em] ${groupActive || dd.state ? 'text-[#1a0f2e]' : 'text-zinc-600'}`}>
                         {dd.label}
                       </span>
@@ -401,14 +401,14 @@ const salesReportItems: MenuItem[] = [
         <div className="shrink-0 px-4 py-4 bg-white border-t border-zinc-100">
           {user && (
             <div className="flex items-center gap-2.5 px-3 py-2.5 mb-3 bg-[#f5f0ff] border border-[#e9d5ff] rounded-[0.625rem]">
-              <div className="w-7 h-7 rounded-full bg-[#7c14d4] flex items-center justify-center shrink-0">
+              <div className="w-7 h-7 rounded-full bg-[#3b2063] flex items-center justify-center shrink-0">
                 <span className="text-[10px] font-black text-white uppercase">
                   {user.name?.charAt(0) ?? '?'}
                 </span>
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="text-[11px] font-bold text-[#1a0f2e] truncate leading-tight">{user.name}</span>
-                <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#7c14d4] leading-tight">{user.role}</span>
+                <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[#3b2063] leading-tight">{user.role}</span>
               </div>
             </div>
           )}
@@ -447,7 +447,7 @@ const salesReportItems: MenuItem[] = [
 
 const NavBtn = ({ active, icon, label, onClick }: NavBtnProps) => (
   <button onClick={onClick} className={`sb-btn ${active ? 'active' : ''}`}>
-    <span className={active ? 'text-[#7c14d4]' : 'text-zinc-400'}>{icon}</span>
+    <span className={active ? 'text-[#3b2063]' : 'text-zinc-400'}>{icon}</span>
     <span className={`text-[13px] font-bold uppercase tracking-[0.14em] ${active ? 'text-[#1a0f2e]' : 'text-zinc-600'}`}>
       {label}
     </span>

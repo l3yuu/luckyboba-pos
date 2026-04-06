@@ -143,12 +143,12 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked }) => {
 
         {/* Branch */}
         <div className="flex items-center gap-2.5 bg-[#f5f0ff] border border-[#e9d5ff] px-4 py-2.5 rounded-[0.625rem]">
-          <div className="w-7 h-7 bg-[#7c14d4] flex items-center justify-center shrink-0 rounded-[0.625rem]">
+          <div className="w-7 h-7 bg-[#3b2063] flex items-center justify-center shrink-0 rounded-[0.625rem]">
             <Store size={13} className="text-white" strokeWidth={2.5} />
           </div>
           <div>
-            <div className="text-[9px] font-bold text-[#7c14d4]/50 uppercase tracking-widest leading-none">Branch</div>
-            <div className="text-[11px] font-black text-[#7c14d4] uppercase leading-tight mt-0.5">{cashierInfo.branch}</div>
+            <div className="text-[9px] font-bold text-[#3b2063]/50 uppercase tracking-widest leading-none">Branch</div>
+            <div className="text-[11px] font-black text-[#3b2063] uppercase leading-tight mt-0.5">{cashierInfo.branch}</div>
           </div>
         </div>
 
@@ -192,8 +192,8 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked }) => {
           onClick={handleBellClick}
           className={`relative w-10 h-10 flex items-center justify-center border transition-all rounded-[0.625rem] ${
             isNotifOpen
-              ? 'bg-[#7c14d4] border-[#7c14d4] text-white'
-              : 'bg-zinc-50 border-zinc-200 text-zinc-400 hover:border-[#7c14d4] hover:text-[#7c14d4] hover:bg-[#f5f0ff]'
+              ? 'bg-[#3b2063] border-[#3b2063] text-white'
+              : 'bg-zinc-50 border-zinc-200 text-zinc-400 hover:border-[#3b2063] hover:text-[#3b2063] hover:bg-[#f5f0ff]'
           }`}
         >
           {/* Badge dot */}
@@ -211,7 +211,7 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked }) => {
           <div className="absolute right-0 mt-2 w-80 bg-white border border-zinc-200 shadow-xl z-50 overflow-hidden rounded-[0.625rem]">
 
             {/* Header */}
-            <div className="bg-[#7c14d4] px-5 py-4 flex items-center justify-between">
+            <div className="bg-[#3b2063] px-5 py-4 flex items-center justify-between">
               <p className="text-white text-sm font-bold uppercase tracking-widest">Notifications</p>
               <div className="flex items-center gap-2">
                 {fetching && (
@@ -283,7 +283,7 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ isEodLocked }) => {
               <button
                 onClick={() => { fetchNotifications(); }}
                 disabled={fetching || isOffline}
-                className="ml-auto flex items-center gap-1.5 py-2 px-3 bg-white border border-zinc-200 text-[10px] font-bold text-zinc-500 uppercase tracking-widest hover:border-[#7c14d4] hover:text-[#7c14d4] hover:bg-[#f5f0ff] transition-all rounded-[0.625rem] disabled:opacity-40"
+                className="ml-auto flex items-center gap-1.5 py-2 px-3 bg-white border border-zinc-200 text-[10px] font-bold text-zinc-500 uppercase tracking-widest hover:border-[#3b2063] hover:text-[#3b2063] hover:bg-[#f5f0ff] transition-all rounded-[0.625rem] disabled:opacity-40"
               >
                 <RefreshCw size={10} className={fetching ? 'animate-spin' : ''} />
                 Refresh

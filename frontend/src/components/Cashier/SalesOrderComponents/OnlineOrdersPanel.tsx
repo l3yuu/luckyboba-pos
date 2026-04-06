@@ -159,7 +159,7 @@ const OrderCard = ({ order, onMove, updating }: OrderCardProps) => {
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 bg-[#f5f0ff] rounded-lg flex items-center justify-center shrink-0">
-              <User size={13} className="text-[#7c14d4]" />
+              <User size={13} className="text-[#3b2063]" />
             </div>
             <div>
               <div className="text-xs font-black text-[#1a0f2e] leading-tight">
@@ -179,7 +179,7 @@ const OrderCard = ({ order, onMove, updating }: OrderCardProps) => {
               onClick={() => setShowQr(v => !v)}
               className="flex items-center gap-1 px-2 py-1 bg-[#f5f0ff]
                 border border-[#e9d5ff] rounded-lg text-[10px] font-bold
-                text-[#7c14d4] hover:bg-[#ede9fe] transition-colors"
+                text-[#3b2063] hover:bg-[#ede9fe] transition-colors"
             >
               <QrCode size={11} />
               QR
@@ -191,7 +191,7 @@ const OrderCard = ({ order, onMove, updating }: OrderCardProps) => {
         {showQr && (
           <div className="flex flex-col items-center gap-2 py-3 bg-[#f5f0ff]
             rounded-lg border border-[#e9d5ff]">
-            <div className="text-[10px] font-black uppercase tracking-widest text-[#7c14d4]">
+            <div className="text-[10px] font-black uppercase tracking-widest text-[#3b2063]">
               Order Code
             </div>
             <div className="text-2xl font-black text-[#1a0f2e] tracking-widest font-mono">
@@ -257,7 +257,7 @@ const OrderCard = ({ order, onMove, updating }: OrderCardProps) => {
             )}
           </div>
         </div>
-        <span className="font-bold text-[#7c14d4] shrink-0">
+        <span className="font-bold text-[#3b2063] shrink-0">
           {fmt(itemPrice(item) * itemQty(item))}
         </span>
       </div>
@@ -446,8 +446,8 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
   if (loading) return (
     <div className="flex items-center justify-center h-full bg-[#f4f2fb]">
       <div className="flex flex-col items-center gap-3">
-        <div className="w-10 h-10 border-4 border-[#7c14d4]/20 border-t-[#7c14d4] rounded-full animate-spin" />
-        <p className="text-xs font-black uppercase tracking-widest text-[#7c14d4]/60">
+        <div className="w-10 h-10 border-4 border-[#3b2063]/20 border-t-[#3b2063] rounded-full animate-spin" />
+        <p className="text-xs font-black uppercase tracking-widest text-[#3b2063]/60">
           Loading orders...
         </p>
       </div>
@@ -466,7 +466,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
             <button
               onClick={() => navigate(-1)}
               className="w-9 h-9 flex items-center justify-center rounded-xl
-                bg-[#f5f0ff] hover:bg-[#ede9fe] text-[#7c14d4] transition-colors
+                bg-[#f5f0ff] hover:bg-[#ede9fe] text-[#3b2063] transition-colors
                 mr-1 border border-[#e9d5ff]"
               title="Back"
             >
@@ -474,7 +474,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
             </button>
           )}
 
-          <div className="w-9 h-9 bg-[#7c14d4] rounded-xl flex items-center justify-center">
+          <div className="w-9 h-9 bg-[#3b2063] rounded-xl flex items-center justify-center">
             <ShoppingBag size={16} className="text-white" />
           </div>
           <div>
@@ -504,7 +504,7 @@ export const OnlineOrdersPanel = ({ isPage = false }: OnlineOrdersPanelProps) =>
           <button
             onClick={() => fetchOrders(true)}
             disabled={isRefreshing}
-            className="flex items-center gap-2 px-4 py-2 bg-[#7c14d4] text-white
+            className="flex items-center gap-2 px-4 py-2 bg-[#3b2063] text-white
               rounded-lg text-[11px] font-black uppercase tracking-widest
               hover:bg-[#6b11b8] transition-colors disabled:opacity-60"
           >

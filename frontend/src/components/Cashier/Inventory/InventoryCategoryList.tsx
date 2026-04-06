@@ -42,8 +42,8 @@ function ToastNotification({ toasts, onRemove }: { toasts: Toast[]; onRemove: (i
 
 // ─── Shared styles ────────────────────────────────────────────────────────────
 const inputCls = (hasError?: boolean) =>
-  `w-full px-4 py-3 rounded-[0.625rem] border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#7c14d4] focus:bg-white ${hasError ? 'border-red-400' : 'border-[#e9d5ff]'}`;
-const selectCls = `w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] bg-white text-[#1c1c1e] font-semibold text-sm outline-none focus:border-[#7c14d4] cursor-pointer`;
+  `w-full px-4 py-3 rounded-[0.625rem] border text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white ${hasError ? 'border-red-400' : 'border-[#e9d5ff]'}`;
+const selectCls = `w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] bg-white text-[#1c1c1e] font-semibold text-sm outline-none focus:border-[#3b2063] cursor-pointer`;
 
 // ─── Add Modal ────────────────────────────────────────────────────────────────
 function AddModal({ onClose, onSuccess }: {
@@ -91,7 +91,7 @@ function AddModal({ onClose, onSuccess }: {
   return (
     <div ref={overlayRef} onClick={handleBackdropClick} className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white rounded-[0.625rem] border border-[#e9d5ff] shadow-2xl w-full max-w-md flex flex-col overflow-hidden" style={dashboardFont}>
-        <div className="flex items-center justify-between px-7 py-5 border-b border-[#e9d5ff] bg-[#7c14d4] rounded-t-[0.625rem]">
+        <div className="flex items-center justify-between px-7 py-5 border-b border-[#e9d5ff] bg-[#3b2063] rounded-t-[0.625rem]">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-purple-200">Inventory</p>
             <h2 className="text-sm font-extrabold text-white mt-0.5">Create New Category</h2>
@@ -119,7 +119,7 @@ function AddModal({ onClose, onSuccess }: {
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#7c14d4] h-24 resize-none"
+              className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] h-24 resize-none"
               placeholder="Optional description..."
             />
           </div>
@@ -149,7 +149,7 @@ function AddModal({ onClose, onSuccess }: {
 
         <div className="flex gap-3 px-7 py-5 border-t border-[#e9d5ff]">
           <button onClick={onClose} disabled={submitting} className="flex-1 h-11 bg-white border border-red-300 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 hover:border-red-400 transition-all disabled:opacity-50 rounded-[0.625rem]">Cancel</button>
-          <button onClick={handleSubmit} disabled={submitting} className="flex-1 h-11 bg-[#7c14d4] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]">
+          <button onClick={handleSubmit} disabled={submitting} className="flex-1 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]">
             {submitting ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Saving...</> : 'Save Category'}
           </button>
         </div>
@@ -196,7 +196,7 @@ function EditModal({ category, onClose, onSuccess }: {
   return (
     <div ref={overlayRef} onClick={handleBackdropClick} className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white rounded-[0.625rem] border border-[#e9d5ff] shadow-2xl w-full max-w-md flex flex-col overflow-hidden" style={dashboardFont}>
-        <div className="flex items-center justify-between px-7 py-5 border-b border-[#e9d5ff] bg-[#7c14d4] rounded-t-[0.625rem]">
+        <div className="flex items-center justify-between px-7 py-5 border-b border-[#e9d5ff] bg-[#3b2063] rounded-t-[0.625rem]">
           <div>
             <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-purple-200">Inventory</p>
             <h2 className="text-sm font-extrabold text-white mt-0.5">Edit Category</h2>
@@ -221,14 +221,14 @@ function EditModal({ category, onClose, onSuccess }: {
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#7c14d4] h-24 resize-none"
+              className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] h-24 resize-none"
             />
           </div>
         </div>
 
         <div className="flex gap-3 px-7 py-5 border-t border-[#e9d5ff]">
           <button onClick={onClose} disabled={submitting} className="flex-1 h-11 bg-white border border-red-300 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 hover:border-red-400 transition-all rounded-[0.625rem]">Cancel</button>
-          <button onClick={handleSubmit} disabled={submitting} className="flex-1 h-11 bg-[#7c14d4] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]">
+          <button onClick={handleSubmit} disabled={submitting} className="flex-1 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]">
             {submitting ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Saving...</> : 'Update Category'}
           </button>
         </div>
@@ -269,7 +269,7 @@ function DeleteModal({ category, onClose, onConfirm }: {
               <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
             </svg>
           </div>
-          <p className="text-sm font-bold text-[#1c1c1e]">Delete <span className="text-[#7c14d4]">"{category.name}"</span>?</p>
+          <p className="text-sm font-bold text-[#1c1c1e]">Delete <span className="text-[#3b2063]">"{category.name}"</span>?</p>
           {category.menu_items_count > 0 && (
             <p className="text-[11px] font-bold text-amber-500">⚠ This category has {category.menu_items_count} linked item{category.menu_items_count > 1 ? 's' : ''}.</p>
           )}
@@ -379,7 +379,7 @@ const InventoryCategoryList = () => {
             </div>
             <button
               onClick={() => setShowAddModal(true)}
-              className="h-11 px-7 bg-[#7c14d4] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-colors rounded-[0.625rem] shadow-sm"
+              className="h-11 px-7 bg-[#3b2063] hover:bg-[#6a12b8] text-white font-bold text-xs uppercase tracking-widest flex items-center gap-2 transition-colors rounded-[0.625rem] shadow-sm"
             >
               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-4 h-4">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -398,7 +398,7 @@ const InventoryCategoryList = () => {
                 <select
                   value={entriesLimit}
                   onChange={(e) => setEntriesLimit(Number(e.target.value))}
-                  className="border border-[#e9d5ff] bg-white px-2 py-1.5 outline-none text-[#1c1c1e] font-semibold text-xs rounded-[0.625rem] focus:border-[#7c14d4]"
+                  className="border border-[#e9d5ff] bg-white px-2 py-1.5 outline-none text-[#1c1c1e] font-semibold text-xs rounded-[0.625rem] focus:border-[#3b2063]"
                 >
                   <option value={10}>10</option>
                   <option value={25}>25</option>
@@ -414,7 +414,7 @@ const InventoryCategoryList = () => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Find category..."
-                  className="border border-[#e9d5ff] bg-white px-4 py-2 text-sm outline-none focus:border-[#7c14d4] w-56 font-semibold text-[#1c1c1e] rounded-[0.625rem] placeholder:text-zinc-400"
+                  className="border border-[#e9d5ff] bg-white px-4 py-2 text-sm outline-none focus:border-[#3b2063] w-56 font-semibold text-[#1c1c1e] rounded-[0.625rem] placeholder:text-zinc-400"
                 />
               </div>
             </div>
@@ -438,7 +438,7 @@ const InventoryCategoryList = () => {
                     {displayData.length > 0 ? displayData.map((cat) => (
                       <tr key={cat.id} className="hover:bg-[#f5f0ff] transition-colors">
                         <td className="px-7 py-3.5">
-                          <span className="text-[13px] font-extrabold text-[#7c14d4]">{cat.name}</span>
+                          <span className="text-[13px] font-extrabold text-[#3b2063]">{cat.name}</span>
                         </td>
                         <td className="px-5 py-3.5">
                           <span className="text-[12px] font-semibold text-zinc-500">{cat.description || '—'}</span>
@@ -449,7 +449,7 @@ const InventoryCategoryList = () => {
                         <td className="px-5 py-3.5 text-center">
                           <button
                             onClick={() => setEditTarget(cat)}
-                            className="h-9 w-9 inline-flex items-center justify-center bg-[#7c14d4] hover:bg-[#6a12b8] text-white transition-colors rounded-[0.625rem]"
+                            className="h-9 w-9 inline-flex items-center justify-center bg-[#3b2063] hover:bg-[#6a12b8] text-white transition-colors rounded-[0.625rem]"
                             title="Edit"
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">

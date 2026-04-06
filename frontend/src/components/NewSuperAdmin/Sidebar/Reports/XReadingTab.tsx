@@ -275,14 +275,14 @@ const fetchReading = useCallback(async () => {
   const selectedBranchName = branches.find(b => String(b.id) === branchId)?.name ?? "—";
 
   const menuCards = [
-    { label: "REPORT",      title: "HOURLY SALES",   type: "hourly_sales", color: "border-[#7c14d4]"   },
+    { label: "REPORT",      title: "HOURLY SALES",   type: "hourly_sales", color: "border-[#3b2063]"   },
     { label: "OVERVIEW",    title: "SALES SUMMARY",  type: "summary",      color: "border-amber-400"   },
-    { label: "AUDIT",       title: "VOID LOGS",      type: "void_logs",    color: "border-[#7c14d4]"   },
-    { label: "TRANSACTION", title: "SEARCH RECEIPT", type: "search",       color: "border-[#7c14d4]"   },
-    { label: "ANALYSIS",    title: "SALES DETAILED", type: "detailed",     color: "border-[#7c14d4]"   },
-    { label: "INVENTORY",   title: "QTY ITEMS",      type: "qty_items",    color: "border-[#7c14d4]"   },
+    { label: "AUDIT",       title: "VOID LOGS",      type: "void_logs",    color: "border-[#3b2063]"   },
+    { label: "TRANSACTION", title: "SEARCH RECEIPT", type: "search",       color: "border-[#3b2063]"   },
+    { label: "ANALYSIS",    title: "SALES DETAILED", type: "detailed",     color: "border-[#3b2063]"   },
+    { label: "INVENTORY",   title: "QTY ITEMS",      type: "qty_items",    color: "border-[#3b2063]"   },
     { label: "X-READING",   title: "X-READING",      type: "x_reading",    color: "border-emerald-500" },
-    { label: "CASH COUNT",  title: "CASH COUNT",     type: "cash_count",   color: "border-[#7c14d4]"   },
+    { label: "CASH COUNT",  title: "CASH COUNT",     type: "cash_count",   color: "border-[#3b2063]"   },
   ];
 
   // ── Receipt render functions (ported from cashier) ────────────────────────
