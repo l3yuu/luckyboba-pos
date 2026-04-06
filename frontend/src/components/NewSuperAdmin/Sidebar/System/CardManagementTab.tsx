@@ -35,7 +35,7 @@ const CardManagementTab = () => {
 
   const getToken = () => localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
 
-  const fetchCards = async () => {
+  const fetchCards = React.useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/cards", {
@@ -48,16 +48,16 @@ const CardManagementTab = () => {
       if (data.success) {
         setCards(data.data);
       }
-    } catch (err) {
-      console.error("Failed to fetch cards", err);
+    } catch (_err) {
+      console.error("Failed to fetch cards", _err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchCards();
-  }, []);
+  }, [fetchCards]);
 
   const handleOpenModal = (card?: CardItem) => {
     setError(null);
@@ -118,7 +118,7 @@ const CardManagementTab = () => {
     }
 
     let url = "/api/admin/cards";
-    let method = "POST";
+    const method = "POST";
 
     if (editingCard) {
       url = `/api/admin/cards/${editingCard.id}`;
@@ -142,7 +142,7 @@ const CardManagementTab = () => {
       } else {
         setError(data.message || "Failed to save card.");
       }
-    } catch (err) {
+    } catch (_err) {
       setError("Network error occurred.");
     } finally {
       setIsSaving(false);
@@ -160,8 +160,8 @@ const CardManagementTab = () => {
         },
       });
       if (res.ok) fetchCards();
-    } catch (err) {
-      console.error(err);
+    } catch (_err) {
+      console.error(_err);
     }
   };
 
@@ -175,8 +175,8 @@ const CardManagementTab = () => {
         },
       });
       if (res.ok) fetchCards();
-    } catch (err) {
-      console.error(err);
+    } catch (_err) {
+      console.error(_err);
     }
   };
 
