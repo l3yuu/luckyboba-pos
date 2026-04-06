@@ -18,8 +18,8 @@ interface DashStats {
   spark_sales?:        number[];
 }
 interface ActiveCashier { id: number; name: string; orders: number; status: 'active' | 'idle' | 'break'; }
-interface LowStockItem   { id: number; name: string; quantity: number; minimum: number; }
-interface PendingVoid    { id: number; invoice: string; amount: number; cashier: string; reason: string; created_at: string; }
+interface LowStockItem   { id: number; name: string; item_name?: string; quantity: number; minimum: number; }
+interface PendingVoid    { id: number; invoice: string; si_number?: string; amount: number; cashier: string; cashier_name?: string; reason: string; created_at: string; time?: string; }
 interface HourlyStat     { hour: number; total: number; count: number; }
 
 // ── Styles ────────────────────────────────────────────────────────────────────
@@ -101,11 +101,11 @@ const TL_DashboardPanel = ({
       if (statsRes.status  === 'fulfilled') { const d = statsRes.value.data; setStats(d?.stats ?? d); }
       if (hourlyRes.status === 'fulfilled') {
         const raw = hourlyRes.value.data; const arr = Array.isArray(raw) ? raw : (raw?.hourly_data ?? []);
-        setHourly(arr.map((r: any) => ({ hour: Number(r.hour ?? 0), total: Number(r.total ?? 0), count: Number(r.count ?? 0) })));
+        setHourly(arr.map((r: HourlyStat) => ({ hour: Number(r.hour ?? 0), total: Number(r.total ?? 0), count: Number(r.count ?? 0) })));
       }
       if (stockRes.status === 'fulfilled') {
         const raw = stockRes.value.data; const arr = Array.isArray(raw) ? raw : (raw?.data ?? []);
-        setLowStock(arr.slice(0,5).map((r: any) => ({ id: Number(r.id), name: String(r.name || r.item_name || ''), quantity: Number(r.quantity ?? 0), minimum: Number(r.minimum ?? 5) })));
+        setLowStock(arr.slice(0,5).map((r: LowStockItem) => ({ id: Number(r.id), name: String(r.name || r.item_name || ''), quantity: Number(r.quantity ?? 0), minimum: Number(r.minimum ?? 5) })));
       }
       if (voidsRes.status === 'fulfilled') {
         const raw = voidsRes.value.data; const arr = Array.isArray(raw) ? raw : (raw?.logs ?? []);
@@ -256,7 +256,7 @@ const TL_DashboardPanel = ({
           <SectionHeader title="Recent Voids" desc="Audit trail of today's voids" />
           <div className="flex flex-col gap-2">
             {pendingVoids.length > 0 ? (
-              pendingVoids.map((v: any) => (
+              pendingVoids.map((v: PendingVoid) => (
                 <div key={v.id} className="flex items-center justify-between p-2.5 bg-[#fcfcfd] border border-zinc-100 rounded-lg">
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-red-50 flex items-center justify-center text-red-500 shrink-0">
