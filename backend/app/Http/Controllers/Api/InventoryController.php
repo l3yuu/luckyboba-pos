@@ -188,7 +188,10 @@ public function getCategories()
                 ->where('categories.type', '!=', 'standard');
 
             if ($branchId) {
-                $baseQuery->where('menu_items.branch_id', $branchId);
+                $baseQuery->where(function($q) use ($branchId) {
+                    $q->where('menu_items.branch_id', $branchId)
+                      ->orWhereNull('menu_items.branch_id');
+                });
             }
 
             $totalItems  = (clone $baseQuery)->count();
@@ -252,6 +255,7 @@ public function getCategories()
     {
         try {
             $branchId = $request->query('branch_id');
+            $selectedBranchName = $branchId ? \App\Models\Branch::find($branchId)?->name : null;
 
             $query = MenuItem::join('categories', 'menu_items.category_id', '=', 'categories.id')
                 ->leftJoin('branches', 'menu_items.branch_id', '=', 'branches.id')
@@ -266,7 +270,10 @@ public function getCategories()
                 ->where('menu_items.quantity', '<=', 5);
 
             if ($branchId) {
-                $query->where('menu_items.branch_id', $branchId);
+                $query->where(function($q) use ($branchId) {
+                    $q->where('menu_items.branch_id', $branchId)
+                      ->orWhereNull('menu_items.branch_id');
+                });
             }
 
             $alerts = $query->orderBy('menu_items.quantity', 'asc')
@@ -278,7 +285,7 @@ public function getCategories()
                     'unit'          => 'PC',
                     'current_stock' => $item->quantity,
                     'reorder_level' => 5,
-                    'branch_name'   => $item->branch_name ?? 'Main Office',
+                    'branch_name'   => $item->branch_name ?? ($selectedBranchName ?? 'Main Office'),
                     'status'        => $item->quantity <= 0 ? 'out_of_stock'
                                      : ($item->quantity <= 2  ? 'critical' : 'low'),
                 ]);

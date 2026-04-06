@@ -198,9 +198,13 @@ class RawMaterialController extends Controller
     public function movements(Request $request)
     {
         $query = StockMovement::with(['rawMaterial:id,name,unit', 'branch:id,name']);
+        
+        $branchId = $request->query('branch_id');
+        $selectedBranchName = $branchId ? \App\Models\Branch::find($branchId)?->name : null;
 
-        if ($request->filled('branch_id')) {
-            $query->where('branch_id', $request->branch_id);
+        if ($branchId) {
+            // Strict filtering for movements: only show results for the selected branch
+            $query->where('branch_id', $branchId);
         }
 
         if ($request->filled('raw_material_id')) {
@@ -217,7 +221,7 @@ class RawMaterialController extends Controller
                 'type'         => $m->type,
                 'quantity'     => $m->quantity,
                 'unit'         => $m->rawMaterial->unit ?? '',
-                'branch_name'  => $m->branch->name ?? 'Main Office',
+                'branch_name'  => $m->branch->name ?? ($selectedBranchName ?? 'Main Office'),
                 'reason'       => $m->reason,
                 'performed_by' => 'System', 
                 'created_at'   => $m->created_at,
