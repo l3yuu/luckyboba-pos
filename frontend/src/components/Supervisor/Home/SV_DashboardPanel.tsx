@@ -155,10 +155,12 @@ const SV_DashboardPanel = ({ branchId }: SV_DashboardProps) => {
       ]);
 
       if (statsRes.status === 'fulfilled') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const d = statsRes.value.data as any;
         setStats((d?.stats ?? d) as DashStats);
       }
       if (hourlyRes.status === 'fulfilled') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const raw = hourlyRes.value.data as any;
         const arr = Array.isArray(raw) ? raw : (raw?.hourly_data ?? []);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -169,6 +171,7 @@ const SV_DashboardPanel = ({ branchId }: SV_DashboardProps) => {
         })));
       }
       if (stockRes.status === 'fulfilled') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const raw = stockRes.value.data as any;
         const arr = Array.isArray(raw) ? raw : (raw?.data ?? []);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -180,6 +183,7 @@ const SV_DashboardPanel = ({ branchId }: SV_DashboardProps) => {
         })));
       }
       if (voidsRes.status === 'fulfilled') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const raw = voidsRes.value.data as any;
         const arr = Array.isArray(raw) ? raw : (raw?.logs ?? []);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

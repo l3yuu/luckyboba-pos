@@ -72,6 +72,7 @@ const ItemsReportPanel = ({ branchId }: { branchId: number | null }) => {
       const raw = Array.isArray(res.data) ? res.data : (res.data?.data || []);
       
       // Map response to ItemReport interface
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const mapped = raw.map((r: any) => ({
         name: String(r.name || r.item_name || 'Unknown Item'),
         quantity: Number(r.quantity || r.total_sold || 0),
