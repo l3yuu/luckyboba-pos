@@ -35,6 +35,7 @@ interface SaleItem {
   has_stickers:       boolean;
   cashier_name?:      string;
   customer_name?:     string;
+  display_order_number?: number;
 }
 
 interface Stats { gross: number; voided: number; net: number; }
@@ -59,7 +60,16 @@ interface ReprintPayload {
     vat_amount?:      number;
     discount_amount?: number;
     vat_type?:        string;   // ← add this
-    branch?: { name?: string };
+    branch?: {
+      name?:           string;
+      brand?:          string;
+      company_name?:   string;
+      store_address?:  string;
+      vat_reg_tin?:    string;
+      min_number?:     string;
+      serial_number?:  string;
+      owner_name?:     string;
+    };
     sale_items?: RawSaleItem[];
   };
   receipt: {
@@ -230,7 +240,27 @@ const SearchReceipts = () => {
     setHasSearched(true);
     try {
       const { data } = await api.get('/receipts/search', { params: { query, date } });
-      setSearchResults(data.results ?? []);
+      const results = (data.results ?? []) as SaleItem[];
+
+      // ── Assign daily order numbers based on chronological order ─────────────
+      // 1. Sort oldest first
+      const sorted = [...results].sort((a, b) =>
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+
+      // 2. Assign numbers (reset per day)
+      const dayCounts: Record<string, number> = {};
+      const processed = sorted.map(item => {
+        const dStr = new Date(item.created_at).toDateString();
+        dayCounts[dStr] = (dayCounts[dStr] || 0) + 1;
+        return { ...item, display_order_number: dayCounts[dStr] };
+      });
+
+      // 3. Set display newest-first
+      setSearchResults(processed.sort((a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      ));
+
       setStats(data.stats ?? { gross: 0, voided: 0, net: 0 });
     } catch (err) {
       console.error('Search error:', err);
@@ -264,7 +294,7 @@ const SearchReceipts = () => {
 
   // ── Derive print props from payload ──────────────────────────────────────
 
-const buildPrintProps = (payload: ReprintPayload) => {
+const buildPrintProps = (payload: ReprintPayload, displayOrderNumber?: number) => {
   const addOnsData = (() => {
     try { return JSON.parse(localStorage.getItem('pos_addons_cache') ?? '[]'); }
     catch { return []; }
@@ -294,7 +324,7 @@ return {
   branchName,
   orNumber,
   addOnsData,
-  queueNumber: String(sale.queue_number ?? ''),
+  queueNumber: displayOrderNumber ? String(displayOrderNumber).padStart(3, '0') : String(sale.queue_number ?? ''),
   customerName: sale.customer_name?.trim() || '',
   cashierName,
   formattedDate: dt.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
@@ -317,6 +347,13 @@ return {
   orderType: ((sale as unknown as { order_type?: string }).order_type ?? 'dine-in') as 'dine-in' | 'take-out',
 
   // ✅ ADD THESE
+  brand:           sale.branch?.brand,
+  companyName:     sale.branch?.company_name,
+  storeAddress:    sale.branch?.store_address,
+  vatRegTin:       sale.branch?.vat_reg_tin,
+  minNumber:       sale.branch?.min_number,
+  serialNumber:    sale.branch?.serial_number,
+  ownerName:        sale.branch?.owner_name ?? payload.settings?.receipt_owner,
   paxSenior: 0,
   paxPwd: 0,
   seniorId: sale.tin ?? sale.senior_id ?? '',
@@ -343,7 +380,7 @@ receiptFooter: payload.settings?.receipt_footer ?? '',
 
       {/* ── Hidden print target ── */}
       {printPayload && printType && (() => {
-        const props = buildPrintProps(printPayload);
+        const props = buildPrintProps(printPayload, reprintSale?.display_order_number);
         return (
           <>
             <style>{`
@@ -449,7 +486,7 @@ receiptFooter: payload.settings?.receipt_footer ?? '',
                       <td className="px-7 py-4">
                         <div className="flex items-center gap-2.5">
                           <span className="font-bold text-black text-sm tabular-nums">
-                            #{String(item.daily_order_number ?? '—').padStart(3, '0')}
+                            #{String(item.display_order_number ?? item.daily_order_number ?? '—').padStart(3, '0')}
                           </span>
                           <span className={`text-[9px] font-bold px-2 py-0.5 border uppercase tracking-widest ${
                             item.status === 'cancelled'
