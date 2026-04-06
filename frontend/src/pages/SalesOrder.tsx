@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 'use client'
 
 import React, { useState, useEffect } from 'react'
@@ -73,8 +74,6 @@ const SalesOrder = () => {
   }, [])
 
   const branchId = user?.branch_id ?? null
-  const seqKey  = `last_or_sequence_${branchId ?? 'default'}`
-  const dateKey = `last_or_date_${branchId ?? 'default'}`
   const branchName = user?.branch_name ?? localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'
   const [vatType, setVatType] = useState<'vat' | 'non_vat'>(
     () => (localStorage.getItem('lucky_boba_user_branch_vat') ?? 'vat') as 'vat' | 'non_vat'
@@ -147,6 +146,10 @@ const SalesOrder = () => {
   const [isAddOnModalOpen, setIsAddOnModalOpen] = useState(false)
   const [customerName, setCustomerName] = useState('')
   const [isCustomerNameModalOpen, setIsCustomerNameModalOpen] = useState(false)
+
+  const seqKey    = `last_or_sequence_${branchId ?? 'default'}`      // SI — never resets
+  const queueKey  = `last_queue_sequence_${branchId ?? 'default'}`   // Queue — resets daily
+  const queueDate = `last_queue_date_${branchId ?? 'default'}`
 
   // Add-ons data
   const [addOnsData, setAddOnsData] = useState<
@@ -353,13 +356,16 @@ const SalesOrder = () => {
   // ── VAT split ─────────────────────────────────────────────────────────────
   const vatExemptSales = isVat && hasPaxDiscount ? Math.max(0, round(totalVatExemptSales - totalPaxDiscount)) : 0
 
-  const vatableBase = isVat
-    ? Math.max(0, round(grossSubtotal - totalVatExemptSales * 1.12 - itemDiscountTotal - promoDiscount))
-    : 0
-  const vatableSales = isVat ? round(vatableBase / 1.12) : 0
-  const vatAmount = isVat ? round(vatableBase - vatableSales) : 0
+  // ── VAT ────────────────────────────────────────────────────────
+const vatableBase = isVat
+  ? Math.max(0, round(grossSubtotal - totalVatExemptSales * 1.12 - itemDiscountTotal - promoDiscount))
+  : 0
+const vatableSales = isVat ? round(vatableBase / 1.12) : 0
+const vatAmount    = isVat ? round(vatableBase - vatableSales) : 0
 
-  const amtDue = Math.max(0, round(vatableBase + vatExemptSales))
+const amtDue = isVat
+  ? Math.max(0, round(vatableBase + vatExemptSales))
+  : Math.max(0, round(grossSubtotal - itemDiscountTotal - orderLevelDiscount))
 
 
 
@@ -523,34 +529,52 @@ const SalesOrder = () => {
 
   const terminalNumber = generateTerminalNumber(branchId)
 
-  const syncNextSequence = async () => {
-    try {
-      const { data } = await api.get('/receipts/next-sequence')
-      const serverSeq = parseInt(data.next_sequence, 10)
-      if (!isNaN(serverSeq)) {
-        // ── Check if it's a new day and reset sequence ────────────────────
-        const savedDate = localStorage.getItem(dateKey);
-        const today     = new Date().toDateString();
-        const isNewDay  = savedDate !== today;
-        const seq       = isNewDay ? 1 : serverSeq;
+const syncNextSequence = async () => {
+  try {
+    const { data } = await api.get('/receipts/next-sequence')
+    const serverSeq = parseInt(data.next_sequence, 10)
+    if (!isNaN(serverSeq)) {
+      // ── SI: never resets, always from server ─────────────────
+      localStorage.setItem(seqKey, String(serverSeq))
+      setOrNumber(generateORNumber(serverSeq))
 
-        localStorage.setItem(seqKey, String(seq));
-        localStorage.setItem(dateKey, today);
-        setOrNumber(generateORNumber(seq));
-        setQueueNumber(generateQueueNumber(seq));
+      // ── Queue: resets daily, tracked locally ─────────────────
+      const today     = new Date().toDateString()
+      const savedDate = localStorage.getItem(queueDate)
+      const isNewDay  = savedDate !== today
+
+      if (isNewDay) {
+        // New day → reset to 1
+        localStorage.setItem(queueKey,  '1')
+        localStorage.setItem(queueDate, today)
+        setQueueNumber(generateQueueNumber(1))
+      } else {
+        // Same day → restore last saved queue number (don't increment here,
+        // increment only happens after a successful order submission)
+        const lastQueue = parseInt(localStorage.getItem(queueKey) || '1', 10)
+        setQueueNumber(generateQueueNumber(lastQueue))
       }
-    } catch {
-      const savedDate = localStorage.getItem(dateKey)
-      const today = new Date().toDateString()
-      const isNewDay = savedDate !== today
-      const fallback = isNewDay ? 1 : parseInt(localStorage.getItem(seqKey) || '0') + 1
-      localStorage.setItem(seqKey, String(fallback))
-      localStorage.setItem(dateKey, today)
-      setOrNumber(generateORNumber(fallback))
-      setQueueNumber(generateQueueNumber(fallback))
+    }
+  } catch {
+    // ── Offline fallback ──────────────────────────────────────
+    const lastSeq = parseInt(localStorage.getItem(seqKey) || '0', 10) + 1
+    localStorage.setItem(seqKey, String(lastSeq))
+    setOrNumber(generateORNumber(lastSeq))
+
+    const today     = new Date().toDateString()
+    const savedDate = localStorage.getItem(queueDate)
+    const isNewDay  = savedDate !== today
+
+    if (isNewDay) {
+      localStorage.setItem(queueKey,  '1')
+      localStorage.setItem(queueDate, today)
+      setQueueNumber(generateQueueNumber(1))
+    } else {
+      const lastQueue = parseInt(localStorage.getItem(queueKey) || '1', 10)
+      setQueueNumber(generateQueueNumber(lastQueue))
     }
   }
-
+}
   // ── Category / item navigation ─────────────────────────────────────────────
 
   const handleCategoryClick = (cat: Category) => {
@@ -1179,10 +1203,17 @@ const SalesOrder = () => {
       try {
         await api.post('/sales', orderData);
         localStorage.removeItem('pos_cart_cache');
-        const currentSeq = parseInt(orNumber.split('-').pop() ?? '0', 10);
+        // ── After successful api.post('/sales', orderData) ────────────────
+        const currentSeq = parseInt(orNumber.split('-').pop() ?? '0', 10)
         if (!isNaN(currentSeq)) {
-          localStorage.setItem(seqKey, String(currentSeq));
-          localStorage.setItem(dateKey, new Date().toDateString());
+          localStorage.setItem(seqKey, String(currentSeq))
+        }
+
+        // Queue: save current, next order will get +1 via syncNextSequence on handleNewOrder
+        const currentQueue = parseInt(queueNumber, 10)
+        if (!isNaN(currentQueue)) {
+          localStorage.setItem(queueKey, String(currentQueue + 1))  // ← pre-increment for next order
+          localStorage.setItem(queueDate, new Date().toDateString())
         }
         localStorage.setItem('dashboard_stats_timestamp', '0');
         const today = new Date().toISOString().split('T')[0];
@@ -1216,15 +1247,21 @@ const SalesOrder = () => {
         showToast('Order saved locally — will sync when server is available.', 'warning')
       }
     } else {
-      enqueue(orderData);
-      const currentSeq = parseInt(orNumber.replace('SI-', ''), 10);
+      enqueue(orderData)
+      const currentSeq = parseInt(orNumber.replace('SI-', ''), 10)
       if (!isNaN(currentSeq)) {
-        localStorage.setItem(seqKey, String(currentSeq));
-        localStorage.setItem(dateKey, new Date().toDateString());
+        localStorage.setItem(seqKey, String(currentSeq))
       }
-      setPrintedReceipt(false); setPrintedKitchen(false); setPrintedStickers(false);
-      setIsSuccessModalOpen(true);
-      showToast('Offline — order queued and will sync when connected.', 'warning');
+      // ── Add these ──────────────────────────────────────────────
+      const currentQueue = parseInt(queueNumber, 10)
+      if (!isNaN(currentQueue)) {
+        localStorage.setItem(queueKey, String(currentQueue + 1))
+        localStorage.setItem(queueDate, new Date().toDateString())
+      }
+      // ───────────────────────────────────────────────────────────
+      setPrintedReceipt(false); setPrintedKitchen(false); setPrintedStickers(false)
+      setIsSuccessModalOpen(true)
+      showToast('Offline — order queued and will sync when connected.', 'warning')
     }
 
     setSubmitting(false)

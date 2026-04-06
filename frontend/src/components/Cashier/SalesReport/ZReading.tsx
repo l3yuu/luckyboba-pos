@@ -191,6 +191,7 @@ interface ZReadingReport {
   total_cash_count?: number;
   over_short?: number;
   net_total?: number;
+  expected_amount?: number;
   vat_type?:   string;
   vat_exempt?: number;
   is_vat?: boolean;           // ← add
@@ -199,9 +200,9 @@ interface ZReadingReport {
 }
 
 const Row = ({ label, value, indent = false }: { label: string; value: string | number; indent?: boolean }) => (
-  <div className={`flex justify-between text-[13px] leading-snug ${indent ? 'pl-3' : ''}`}>
+  <div className={`flex justify-between text-[12px] leading-snug font-medium ${indent ? 'pl-3' : ''}`}>
     <span className="uppercase w-[60%] leading-tight">{label}</span>
-    <span className="text-right w-[40%]">{value}</span>
+    <span className="text-right w-[40%] font-bold">{value}</span>
   </div>
 );
 
@@ -268,30 +269,44 @@ const ZReading = () => {
   api.get('/reports/void-logs',       { params: { date: dateMode === 'range' ? toDate : selectedDate } }),
 ]);
 
-// ← ADD HERE, before const zData
-console.log('zData categories:', (zRes.data as Record<string, unknown>).categories);
-        console.log('qtyRes categories:', qtyRes.data.categories);
-        console.log('qtyRes categories:', JSON.stringify(qtyRes.data.categories, null, 2));
+
 
 
         
-        const zData  = zRes.data  as Record<string, unknown>;
-        const ccData = cashRes.data as Record<string, unknown>;
+        const zData    = (zRes.data?.data ?? zRes.data) as Record<string, unknown>;
+        const ccData   = cashRes.data as Record<string, unknown>;
         const ccNested = ccData.cash_count as { denominations: { label: string; qty: number; total: number }[]; grand_total: number } | undefined;
+
         const ALL_DENOMS = [1000, 500, 200, 100, 50, 20, 10, 5, 1, 0.25];
         const storedDenoms = ccNested?.denominations ?? [];
         const storedMap = new Map(storedDenoms.map(d => [parseFloat(d.label.replace(/,/g, '')), d.qty]));
-        const cashDenominations = ALL_DENOMS.map(denom => ({ label: denom === 0.25 ? '0.25' : String(denom), qty: storedMap.get(denom) ?? 0, total: denom * (storedMap.get(denom) ?? 0) }));
+        const cashDenominations = ALL_DENOMS.map(denom => ({
+          label: denom === 0.25 ? '0.25' : String(denom),
+          qty:   storedMap.get(denom) ?? 0,
+          total: denom * (storedMap.get(denom) ?? 0),
+        }));
+
         const totalCashCount = ccNested?.grand_total ?? (ccData.actual_amount as number) ?? 0;
         const expectedAmount = (ccData.expected_amount as number) ?? 0;
+
+        const rawGross  = Number(zData.gross_sales ?? 0);
+        const netSales  = Number(zData.net_sales   ?? 0);
+        const scDisc    = Number(zData.sc_discount       ?? 0);
+        const pwdDisc   = Number(zData.pwd_discount      ?? 0);
+        const otherDisc = Number(zData.diplomat_discount ?? 0) + Number(zData.other_discount ?? 0);
+        const totalDisc = scDisc + pwdDisc + otherDisc;
+        const computedGross = rawGross > 0 ? rawGross : (netSales + totalDisc);
+
         const merged = {
           ...zData,
+          gross_sales:        computedGross,
           cash_denominations: cashDenominations,
-          total_cash_count: totalCashCount,
-          expected_amount: expectedAmount,
-          categories: (qtyRes.data as Record<string, unknown>).categories ?? [],
+          total_cash_count:   totalCashCount,
+          expected_amount:    expectedAmount,
+          over_short:         totalCashCount - (Number(zData.cash_total ?? 0) + Number(zData.cash_in ?? 0) - Number(zData.cash_drop ?? 0)),
+          categories:         (qtyRes.data as Record<string, unknown>).categories ?? [],
           all_addons_summary: (qtyRes.data as Record<string, unknown>).all_addons_summary ?? [],
-          logs: (voidRes.data as Record<string, unknown>).logs ?? (Array.isArray(voidRes.data) ? voidRes.data : [])
+          logs:               (voidRes.data as Record<string, unknown>).logs ?? (Array.isArray(voidRes.data) ? voidRes.data : []),
         };
         setRawApiResponse(merged as Record<string, unknown>);
         setReportData({ ...merged as unknown as ZReadingReport, report_type: type });
@@ -684,8 +699,9 @@ console.log('zData categories:', (zRes.data as Record<string, unknown>).categori
     const actualNonCash = gross - actualCash;
     const cashDenominations = reportData?.cash_denominations ?? reportData?.cash_count?.denominations ?? [];
     const totalCashCount = reportData?.total_cash_count ?? reportData?.cash_count?.grand_total ?? 0;
-    const expectedEOD = actualCash + cashIn - cashDrop;
-    const overShort = reportData?.over_short ?? (totalCashCount - expectedEOD);
+    const apiExpected = reportData?.expected_amount ?? 0;
+    const expectedEOD = apiExpected > 0 ? apiExpected : (actualCash + cashIn - cashDrop);
+    const overShort   = reportData?.over_short ?? (totalCashCount - expectedEOD);
     const isRange = dateMode === 'range';
     const now = new Date();
     const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -849,23 +865,26 @@ console.log('zData categories:', (zRes.data as Record<string, unknown>).categori
               background: white !important; 
               color: #000 !important; 
               font-family: Arial, Helvetica, sans-serif !important; 
-              font-size: 11px !important; 
-              line-height: 1.4 !important; 
+              font-size: 12px !important; 
+              font-weight: 500 !important;
+              line-height: 1.5 !important; 
               box-shadow: none !important; 
               border: none !important; 
               border-radius: 0 !important; 
               overflow: visible !important;
+              -webkit-font-smoothing: none !important;
             }
             .receipt-area * {
               overflow: visible !important;
+              -webkit-font-smoothing: none !important;
             }
             .receipt-area > div > div {
               break-inside: avoid !important;
             }
             .flex-between { display: flex !important; justify-content: space-between !important; width: 100% !important; align-items: flex-end !important; }
             table { width: 100% !important; max-width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; font-size: 11px !important; }
-            th { text-align: left !important; border-bottom: 1px solid #000 !important; padding-bottom: 2px !important; text-transform: uppercase !important; font-weight: 500 !important; font-size: 11px !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
-            td { padding: 2px 0 !important; vertical-align: top !important; font-size: 11px !important; font-weight: 400 !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
+            th { text-align: left !important; border-bottom: 1px solid #000 !important; padding-bottom: 2px !important; text-transform: uppercase !important; font-weight: 700 !important; font-size: 12px !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
+            td { padding: 2px 0 !important; vertical-align: top !important; font-size: 12px !important; font-weight: 500 !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
           }
         `}</style>
 
@@ -954,7 +973,7 @@ console.log('zData categories:', (zRes.data as Record<string, unknown>).categori
             </div>
           ) : reportData ? (
             <div className="printable-receipt-container">
-              <div className="receipt-area bg-white w-full text-black shadow-md" style={{ fontFamily: "Arial, Helvetica, sans-serif", fontSize: '13px', maxWidth: '180mm', padding: '1.5rem' }}>
+              <div className="receipt-area bg-white w-full text-black shadow-md" style={{ fontFamily: "Arial, Helvetica, sans-serif", fontSize: '13px', maxWidth: '180mm', padding: '1.5rem', fontWeight: 500 }}>
                 <div className="text-center">
                   <p className="uppercase text-[13px] font-bold leading-tight">LUCKY BOBA MILKTEA<br />FOOD AND BEVERAGE TRADING</p>
                   <p className="uppercase text-[11px] mt-0.5">{localStorage.getItem('lucky_boba_user_branch') ?? 'Main Branch'}</p>

@@ -292,9 +292,9 @@ export const ReceiptPrint = ({
                   {/* Item-level discount label (e.g. BOGO, promo) */}
                   {isFirstGroupForItem && item.discountLabel && item.discountType && item.discountValue && Number(item.discountValue) > 0 && (() => {
                     const unitPrice = Number(item.price ?? 0);
-                    const discAmt = item.discountType === 'percent'
-                      ? unitPrice * (Number(item.discountValue) / 100)
-                      : Math.min(Number(item.discountValue), unitPrice);
+const discAmt = item.discountType === 'percent'
+  ? unitPrice * item.qty * (Number(item.discountValue) / 100)
+  : Math.min(Number(item.discountValue), unitPrice * item.qty);
                     return (
                       <div className="flex justify-between w-full text-[10px] italic text-gray-600">
                         <span>  • {item.discountLabel}</span>

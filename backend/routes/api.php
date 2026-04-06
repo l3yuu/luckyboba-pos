@@ -113,7 +113,8 @@ Route::post('/register', function (Request $request) {
     $token = $user->createToken('auth-token')->plainTextToken;
     return response()->json(['token' => $token, 'user' => $user], 201);
 });
-
+// ── Z Reading print — public, auth handled via one-time cache token ───────────
+Route::get('/readings/z/print', [SalesDashboardController::class, 'zReadingPrint']);
 // ── Authenticated routes ─────────────────────────────────────────────────────
 Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
@@ -297,6 +298,11 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::get('/export-sales',      [ReportController::class,          'exportSales']);
             Route::get('/export-items',      [ReportController::class,          'exportItems']);
         });
+        // ── Z Reading print + close ───────────────────────────────────────────────────
+        Route::prefix('readings')->group(function () {
+            Route::post('/z/close',       [SalesDashboardController::class, 'zReadingClose']);
+            Route::post('/z/print-token', [SalesDashboardController::class, 'zReadingPrintToken']);
+        });
 
         // ── Branch read routes (cashiers need these) ──────────────────────────
         Route::get('/branches/ownership-summary', [BranchController::class, 'ownershipSummary']);
@@ -403,9 +409,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/audit-logs/stats', [AuditLogController::class, 'stats']);
 
         Route::prefix('reports')->group(function () {
-            Route::get('/admin-sales-summary', [SuperAdminReportController::class, 'salesSummary']);
-            Route::get('/branch-comparison',   [SuperAdminReportController::class, 'branchComparison']);
             Route::get('/z-reading/history',   [SalesDashboardController::class,   'zReadingHistory']);
+            Route::get('/items-all',           [SuperAdminReportController::class, 'itemsReport']);
+            Route::get('/items-export',        [SuperAdminReportController::class, 'exportItems']);
         });
 
         Route::prefix('system')->group(function () {
@@ -458,6 +464,12 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::get ('/users',                     [CardController::class, 'getCardUsers']);
             Route::post('/users/{userId}/log-usage',  [CardController::class, 'logUsage']);
         });
+    });
+
+    // ── SUPERADMIN + BRANCH MANAGER — shared report endpoints ────────────────
+    Route::middleware(['role:superadmin,branch_manager'])->prefix('reports')->group(function () {
+        Route::get('/admin-sales-summary', [SuperAdminReportController::class, 'salesSummary']);
+        Route::get('/branch-comparison',   [SuperAdminReportController::class, 'branchComparison']);
     });
 
     // ── POS DEVICES — superadmin, branch_manager, team_leader ────────────────

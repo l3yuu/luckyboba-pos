@@ -153,7 +153,7 @@ const RecipeFormModal: React.FC<{
         <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center">
-              <BookOpen size={15} className="text-[#7c14d4]" />
+              <BookOpen size={15} className="text-[#3b2063]" />
             </div>
             <div>
               <p className="text-sm font-bold text-[#1a0f2e]">{editing ? 'Edit Recipe' : 'Add Recipe'}</p>
@@ -196,7 +196,7 @@ const RecipeFormModal: React.FC<{
 
           {/* Active toggle */}
           <label className="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl cursor-pointer hover:bg-[#faf9ff] transition-colors">
-            <div className={`w-10 h-6 rounded-full transition-colors flex items-center ${isActive ? 'bg-[#7c14d4]' : 'bg-zinc-300'}`}
+            <div className={`w-10 h-6 rounded-full transition-colors flex items-center ${isActive ? 'bg-[#3b2063]' : 'bg-zinc-300'}`}
               onClick={() => setIsActive(v => !v)}>
               <div className={`w-4 h-4 bg-white rounded-full mx-1 transition-transform ${isActive ? 'translate-x-4' : ''}`} />
             </div>
@@ -213,7 +213,7 @@ const RecipeFormModal: React.FC<{
                 Ingredients <span className="text-red-400">*</span>
               </label>
               <button onClick={addRow}
-                className="flex items-center gap-1 px-2.5 py-1 bg-[#f5f0ff] border border-[#e9d5ff] text-[#7c14d4] rounded-lg text-[10px] font-bold hover:bg-[#ede8ff] transition-colors">
+                className="flex items-center gap-1 px-2.5 py-1 bg-[#f5f0ff] border border-[#e9d5ff] text-[#3b2063] rounded-lg text-[10px] font-bold hover:bg-[#ede8ff] transition-colors">
                 <Plus size={11} /> Add Row
               </button>
             </div>
@@ -268,7 +268,7 @@ const RecipeFormModal: React.FC<{
             Cancel
           </button>
           <button onClick={handleSubmit} disabled={saving}
-            className="flex-1 py-2.5 bg-[#7c14d4] hover:bg-[#6a12b8] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">
+            className="flex-1 py-2.5 bg-[#3b2063] hover:bg-[#6a12b8] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">
             {saving ? 'Saving...' : editing ? 'Save Changes' : 'Create Recipe'}
           </button>
         </div>
@@ -396,11 +396,11 @@ const RecipesTab: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           <button onClick={fetchRecipes} disabled={loading}
-            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#7c14d4] hover:border-[#7c14d4] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
+            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
           </button>
           <button onClick={() => setAddOpen(true)}
-            className="bg-[#7c14d4] hover:bg-[#6a12b8] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all">
+            className="bg-[#3b2063] hover:bg-[#6a12b8] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all">
             <Plus size={13} /> Add Recipe
           </button>
         </div>
@@ -409,7 +409,7 @@ const RecipesTab: React.FC = () => {
       {/* Stat Cards */}
       <div className="grid grid-cols-3 gap-4 mb-5">
         {[
-          { label: 'Total Recipes',  value: totalRecipes,   color: '#7c14d4', bg: '#f5f0ff', border: '#e9d5ff' },
+          { label: 'Total Recipes',  value: totalRecipes,   color: '#3b2063', bg: '#f5f0ff', border: '#e9d5ff' },
           { label: 'Active',         value: activeRecipes,  color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
           { label: 'No Ingredients', value: missingRecipes, color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
         ].map(s => (
@@ -484,7 +484,7 @@ const RecipesTab: React.FC = () => {
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2.5">
                           <div className="w-7 h-7 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center shrink-0">
-                            <BookOpen size={12} className="text-[#7c14d4]" />
+                            <BookOpen size={12} className="text-[#3b2063]" />
                           </div>
                           <div>
                             <p className="font-bold text-[#1a0f2e] text-xs">{name}</p>
@@ -502,10 +502,10 @@ const RecipesTab: React.FC = () => {
                       <td className="px-5 py-3.5">
                         <button onClick={() => handleToggle(r)}
                           className="flex items-center gap-2 group">
-                          <div className={`w-9 h-5 rounded-full transition-colors flex items-center ${r.is_active ? 'bg-[#7c14d4]' : 'bg-zinc-300'}`}>
+                          <div className={`w-9 h-5 rounded-full transition-colors flex items-center ${r.is_active ? 'bg-[#3b2063]' : 'bg-zinc-300'}`}>
                             <div className={`w-3.5 h-3.5 bg-white rounded-full mx-0.5 transition-transform ${r.is_active ? 'translate-x-4' : ''}`} />
                           </div>
-                          <span className={`text-[10px] font-bold uppercase tracking-widest ${r.is_active ? 'text-[#7c14d4]' : 'text-zinc-400'}`}>
+                          <span className={`text-[10px] font-bold uppercase tracking-widest ${r.is_active ? 'text-[#3b2063]' : 'text-zinc-400'}`}>
                             {r.is_active ? 'Active' : 'Inactive'}
                           </span>
                         </button>
@@ -513,7 +513,7 @@ const RecipesTab: React.FC = () => {
                       <td className="px-5 py-3.5">
                         {hasItems ? (
                           <button onClick={() => setExpanded(isExpanded ? null : r.id)}
-                            className="flex items-center gap-1.5 text-xs font-bold text-[#7c14d4] hover:text-[#6a12b8] transition-colors">
+                            className="flex items-center gap-1.5 text-xs font-bold text-[#3b2063] hover:text-[#6a12b8] transition-colors">
                             <CheckCircle size={12} className="text-emerald-500" />
                             {items.length} ingredient{items.length !== 1 ? 's' : ''}
                             {isExpanded ? <ChevronDown size={12} /> : <ChevronDown size={12} className="-rotate-90" />}
@@ -528,7 +528,7 @@ const RecipesTab: React.FC = () => {
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-1">
                           <button onClick={() => setEditTarget(r)} title="Edit"
-                            className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#7c14d4] transition-colors">
+                            className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors">
                             <Edit2 size={13} />
                           </button>
                           <button onClick={() => setDelTarget(r)} title="Delete"
@@ -546,7 +546,7 @@ const RecipesTab: React.FC = () => {
                           <div className="ml-10 border border-[#e9d5ff] rounded-xl overflow-hidden">
                             <div className="grid grid-cols-3 bg-[#f5f0ff] px-4 py-2 border-b border-[#e9d5ff]">
                               {['Material', 'Qty / Serving', 'Unit'].map(h => (
-                                <p key={h} className="text-[9px] font-bold uppercase tracking-widest text-[#7c14d4]">{h}</p>
+                                <p key={h} className="text-[9px] font-bold uppercase tracking-widest text-[#3b2063]">{h}</p>
                               ))}
                             </div>
                             {items.map((item, idx) => (

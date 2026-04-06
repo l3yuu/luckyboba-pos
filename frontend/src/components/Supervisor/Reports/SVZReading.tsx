@@ -197,8 +197,8 @@ const SVZReading: React.FC<SVZReadingProps> = ({ branchId }) => {
           api.get('/reports/void-logs',       { params: { date: ccDate, ...branchParam } }),
         ]);
 
-        const zData    = zRes.data  as Record<string, unknown>;
-        const ccData   = ccRes.data as Record<string, unknown>;
+        const zData    = (zRes.data?.data ?? zRes.data)   as Record<string, unknown>;
+const ccData   = ccRes.data as Record<string, unknown>;
         const ccNested = ccData.cash_count as { denominations: { label: string; qty: number; total: number }[]; grand_total: number } | undefined;
 
         const ALL_DENOMS = [1000, 500, 200, 100, 50, 20, 10, 5, 1, 0.25];
@@ -216,8 +216,7 @@ const SVZReading: React.FC<SVZReadingProps> = ({ branchId }) => {
         const naacDisc  = Number(zData.naac_discount        ?? 0);
         const soloDisc  = Number(zData.solo_parent_discount ?? 0);
         const otherDisc = Number(zData.diplomat_discount ?? 0) + Number(zData.other_discount ?? 0);
-        const totalDisc = scDisc + pwdDisc + naacDisc + soloDisc + otherDisc;
-        const computedGross = netSales + totalDisc;
+        const computedGross = Number(zData.gross_sales ?? 0);
 
         const presentAcc  = Number(zData.present_accumulated  ?? computedGross);
         const previousAcc = Number(zData.previous_accumulated ?? 0);
@@ -580,7 +579,7 @@ const SVZReading: React.FC<SVZReadingProps> = ({ branchId }) => {
     const totalCredit  = ['visa', 'mastercard', 'food panda', 'grab', 'gcash'].reduce((a, m) => a + (pMap.get(m) ?? 0), 0);
     const totalDebit   = 0;
     const actualCash   = pMap.get('cash') ?? 0;
-    const actualNonCash = Math.max(0, gross - actualCash);
+    const actualNonCash = totalCredit + totalDebit;
 
     const cashDenoms     = reportData?.cash_denominations ?? reportData?.cash_count?.denominations ?? [];
     const totalCashCount = reportData?.total_cash_count   ?? reportData?.cash_count?.grand_total   ?? 0;
@@ -650,7 +649,7 @@ const SVZReading: React.FC<SVZReadingProps> = ({ branchId }) => {
         <Divider />
         <Row label="TOTAL CASH"     value={phCurrency.format(actualCash)} />
         <Row label="TOTAL NON-CASH" value={phCurrency.format(actualNonCash)} />
-        <Row label="TOTAL PAYMENTS" value={phCurrency.format(netSales)} />
+        <Row label="TOTAL PAYMENTS" value={phCurrency.format(gross)} />
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
         <Row label="Transaction Count" value={txCount} />

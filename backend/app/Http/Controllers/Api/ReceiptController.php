@@ -19,9 +19,13 @@ class ReceiptController extends Controller
     {
         $branchId = $request->user()?->branch_id;
 
+        if (!$branchId) {
+            return response()->json(['next_sequence' => 1]);
+        }
+
         $latest = Sale::where('invoice_number', 'LIKE', 'SI-%')
             ->whereRaw("invoice_number REGEXP '^SI-[0-9]+$'")
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->where('branch_id', $branchId)          // always filter by branch
             ->orderByRaw('CAST(SUBSTRING(invoice_number, 4) AS UNSIGNED) DESC')
             ->first();
 

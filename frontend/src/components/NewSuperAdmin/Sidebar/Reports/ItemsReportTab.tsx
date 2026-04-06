@@ -1,3 +1,4 @@
+ 
 // components/NewSuperAdmin/Tabs/Reports/ItemsReportTab.tsx
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
@@ -32,6 +33,15 @@ interface ItemRow {
 }
 interface BranchOption   { id: number; name: string; }
 interface CategoryOption { id: number; name: string; }
+
+interface ApiItemRow {
+  product_name:   string;
+  category:       string | null;
+  total_quantity: string | number;
+  total_revenue:  string | number;
+  avg_unit_price: string | number | null;
+  times_ordered:  string | number | null;
+}
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
 interface StatCardProps {
@@ -138,25 +148,19 @@ const ItemsReportTab: React.FC = () => {
     setError("");
     try {
       const params = new URLSearchParams({
-        period:    "daily",
         date_from: dateFrom,
         date_to:   dateTo,
       });
       if (branchId)   params.set("branch_id",   branchId);
       if (categoryId) params.set("category_id", categoryId);
 
-      // Use admin-sales-summary which returns top_products, or items-report if available
-      const res  = await fetch(`/api/reports/admin-sales-summary?${params}`, { headers: authHeaders() });
-      const data = await res.json();
+      const res  = await fetch(`/api/reports/items-all?${params}`, { headers: authHeaders() });
+      const data = await res.json() as { top_products?: ApiItemRow[] };
 
       if (data.top_products) {
-        // Map top_products to ItemRow format
-        setItems((data.top_products as {
-          product_name: string; total_quantity: number;
-          total_revenue: number; avg_unit_price: number; times_ordered: number;
-        }[]).map(p => ({
+        setItems(data.top_products.map((p) => ({
           product_name:   p.product_name,
-          category:       "—",
+          category:       p.category ?? "—",
           total_quantity: Number(p.total_quantity),
           total_revenue:  Number(p.total_revenue),
           avg_price:      Number(p.avg_unit_price ?? 0),
@@ -200,10 +204,26 @@ const ItemsReportTab: React.FC = () => {
   const topItem      = filtered[0];
 
   const handleExport = () => {
-    const params = new URLSearchParams({ date_from: dateFrom, date_to: dateTo });
-    if (branchId)   params.set("branch_id",   branchId);
-    if (categoryId) params.set("category_id", categoryId);
-    window.open(`/api/reports/export-items?${params}`, "_blank");
+      const params = new URLSearchParams({ date_from: dateFrom, date_to: dateTo });
+      if (branchId)   params.set("branch_id",   branchId);
+      if (categoryId) params.set("category_id", categoryId);
+      
+      const branchSlug = branchId
+          ? (branches.find(b => String(b.id) === branchId)?.name ?? "BRANCH")
+              .toUpperCase().replace(/[^A-Z0-9]+/g, "-")
+          : "ALL-BRANCHES";
+
+      fetch(`/api/reports/items-export?${params}`, { headers: authHeaders() })
+          .then(res => res.blob())
+          .then(blob => {
+              const url  = URL.createObjectURL(blob);
+              const a    = document.createElement('a');
+              a.href     = url;
+              a.download = `LuckyBoba_ItemsReport_${branchSlug}_${dateFrom}_to_${dateTo}.csv`; // ← updated
+              a.click();
+              URL.revokeObjectURL(url);
+          })
+          .catch(() => alert('Export failed.'));
   };
 
   const SortTh: React.FC<{ col: SortKey; label: string }> = ({ col, label }) => (
@@ -273,17 +293,21 @@ const ItemsReportTab: React.FC = () => {
             <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           </div>
         </div>
-        {/* Apply */}
-        <Btn onClick={fetchItems} disabled={loading}>
-          {loading ? <><RefreshCw size={12} className="animate-spin" /> Loading...</> : "Apply Filters"}
-        </Btn>
-        {/* Clear */}
-        {(branchId || categoryId) && (
-          <button onClick={() => { setBranchId(""); setCategoryId(""); }}
-            className="text-xs font-bold text-zinc-400 hover:text-red-500 flex items-center gap-1 transition-colors">
-            <X size={11} /> Clear
-          </button>
-        )}
+
+        {/* ── Apply + Clear grouped together ── */}
+        <div className="flex items-center gap-2">
+          <Btn onClick={fetchItems} disabled={loading}>
+            {loading ? <><RefreshCw size={12} className="animate-spin" /> Loading...</> : "Apply Filters"}
+          </Btn>
+          {(branchId || categoryId) && (
+            <button
+              onClick={() => { setBranchId(""); setCategoryId(""); }}
+              className="inline-flex items-center gap-1 px-3 py-2 text-xs font-bold text-zinc-400 hover:text-red-500 hover:bg-red-50 border border-zinc-200 hover:border-red-200 rounded-lg transition-colors"
+            >
+              <X size={11} /> Clear
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ── Error ── */}

@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import {
   Search, Plus, Eye, Edit2, Trash2, Store,
-  CheckCircle, XCircle, DollarSign, ArrowUpRight, ArrowDownRight,
+  CheckCircle, XCircle, PhilippinePeso, ArrowUpRight, ArrowDownRight,
   X, AlertCircle, RefreshCw, MapPin, Trash,
 } from "lucide-react";
 import { createPortal } from "react-dom";
@@ -861,7 +861,7 @@ const BranchesTab: React.FC = () => {
         <StatCard icon={<Store       size={16} />} label="Total Branches" value={loading ? "—" : branches.length}                                     color="violet"  />
         <StatCard icon={<CheckCircle size={16} />} label="Active"         value={loading ? "—" : branches.filter(b => b.status === "active").length}  color="emerald" />
         <StatCard icon={<XCircle     size={16} />} label="Inactive"       value={loading ? "—" : branches.filter(b => b.status !== "active").length}  color="red"     />
-        <StatCard icon={<DollarSign  size={16} />} label="Today Revenue"  value={loading ? "—" : fmt(branches.reduce((s, b) => s + b.today, 0))}     color="amber"   />
+        <StatCard icon={<PhilippinePeso  size={16} />} label="Today Revenue"  value={loading ? "—" : fmt(branches.reduce((s, b) => s + b.today, 0))}     color="amber"   />
       </div>
 
       {/* Table */}

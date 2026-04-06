@@ -47,26 +47,25 @@ class BranchController extends Controller
 public function store(Request $request)
 {
     $validator = Validator::make($request->all(), [
-        'name'           => 'required|string|max:255|unique:branches,name',
-        'location'       => 'required|string|max:255',
-        'status'         => 'required|in:active,inactive',
-        'ownership_type' => 'sometimes|in:company,franchise',
-        'vat_type'       => 'sometimes|in:vat,non_vat',
-        // ✅ Add these
-        'owner_name'     => 'nullable|string|max:255',
-        'brand'          => 'sometimes|string|max:255',
-        'company_name'   => 'sometimes|string|max:255',
-        'store_address'  => 'sometimes|string|max:500',
-        'vat_reg_tin'    => 'sometimes|string|max:255',
-        'min_number'     => 'sometimes|string|max:255',
-        'serial_number'  => 'sometimes|string|max:255',
-    ], [
-        'name.required'     => 'Branch name is required.',
-        'name.unique'       => 'A branch with this name already exists.',
-        'location.required' => 'Location is required.',
-        'status.required'   => 'Status is required.',
-        'status.in'         => 'Status must be active or inactive.',
-    ]);
+    'name'           => 'required|string|max:255|unique:branches,name',
+    'location'       => 'required|string|max:255',
+    'status'         => 'required|in:active,inactive',
+    'ownership_type' => 'sometimes|in:company,franchise',
+    'vat_type'       => 'sometimes|in:vat,non_vat',
+    'owner_name'     => 'sometimes|nullable|string|max:255',
+    'brand'          => 'sometimes|nullable|string|max:255',
+    'company_name'   => 'sometimes|nullable|string|max:255',
+    'store_address'  => 'sometimes|nullable|string|max:500',
+    'vat_reg_tin'    => 'sometimes|nullable|string|max:255',
+    'min_number'     => 'sometimes|nullable|string|max:255',
+    'serial_number'  => 'sometimes|nullable|string|max:255',
+], [
+    'name.required'     => 'Branch name is required.',
+    'name.unique'       => 'A branch with this name already exists.',
+    'location.required' => 'Location is required.',
+    'status.required'   => 'Status is required.',
+    'status.in'         => 'Status must be active or inactive.',
+]);
 
     if ($validator->fails()) {
         return response()->json([
