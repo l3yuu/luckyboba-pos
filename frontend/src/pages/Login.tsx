@@ -3,10 +3,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import type { LoginCredentials } from '../types/user';
+import type { LoginCredentials, User } from '../types/user';
 import { useToast } from '../hooks/useToast';
 import { ROLE_HOME } from '../utils/roleRoutes';
-import { Eye, EyeOff, LogIn } from 'lucide-react';
+import { Eye, EyeOff, LogIn, ShieldCheck } from 'lucide-react';
 
 import logo from '../assets/logo.png';
 
@@ -19,9 +19,11 @@ const Login: React.FC = () => {
   const [password, setPassword]         = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [lockoutTimer, setLockoutTimer] = useState<number>(0);
+  const [requires2FA, setRequires2FA]   = useState(false);
+  const [otp, setOtp]                   = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const { login, isLoading, user } = useAuth();
+  const { login, verify2FA, isLoading, user } = useAuth();
   const navigate        = useNavigate();
   const hasRedirected   = useRef(false);
   const didJustLogin    = useRef(false);
@@ -33,7 +35,6 @@ const Login: React.FC = () => {
     if (!user) return;
     hasRedirected.current = true;
     navigate(getHomeForRole(user.role), { replace: true });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, user]);
 
   useEffect(() => {
@@ -43,7 +44,6 @@ const Login: React.FC = () => {
       p.delete('reason');
       setSearchParams(p, { replace: true });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -62,13 +62,40 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // device_name is resolved inside AuthContext via getDeviceIdAsync()
-    const credentials: LoginCredentials = {
-      email,
-      password,
-    };
+    const credentials: LoginCredentials = { email, password };
     try {
-      const loggedInUser = await login(credentials);
+      const result = await login(credentials);
+      if (result && (result as any).requires_2fa) {
+        setRequires2FA(true);
+        setOtp(""); 
+        showToast('Verification code sent! Please check your Gmail.', 'warning');
+        return;
+      }
+      if (result) {
+        const loggedInUser = result as User;
+        localStorage.setItem('user_role', loggedInUser.role);
+        localStorage.setItem('lucky_boba_user_name',      loggedInUser.name);
+        localStorage.setItem('lucky_boba_user_role',      loggedInUser.role);
+        localStorage.setItem('lucky_boba_user_branch_id', String(loggedInUser.branch_id ?? ''));
+        showToast(`Welcome back, ${loggedInUser.name}!`, 'success');
+        didJustLogin.current  = true;
+        hasRedirected.current = true;
+        navigate(getHomeForRole(loggedInUser.role), { replace: true });
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Invalid email or password.';
+      showToast(message, 'error');
+    }
+  };
+
+  const handleVerify2FA = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (otp.length !== 6) {
+      showToast('Please enter a valid 6-digit code.', 'warning');
+      return;
+    }
+    try {
+      const loggedInUser = await verify2FA({ email, password }, otp);
       if (loggedInUser) {
         localStorage.setItem('user_role', loggedInUser.role);
         localStorage.setItem('lucky_boba_user_branch_id', String(loggedInUser.branch_id ?? ''));
@@ -78,7 +105,7 @@ const Login: React.FC = () => {
         navigate(getHomeForRole(loggedInUser.role), { replace: true });
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Invalid email or password.';
+      const message = err instanceof Error ? err.message : 'Invalid or expired 2FA code.';
       showToast(message, 'error');
     }
   };
@@ -174,49 +201,6 @@ const Login: React.FC = () => {
           height: 420px;
           object-fit: contain;
           filter: drop-shadow(0 8px 24px rgba(0,0,0,0.35));
-        }
-
-        @media (min-width: 1300px) and (max-width: 1400px) and (max-height: 800px) {
-          .lb-logo-hero {
-            margin-top: 0;
-            margin-bottom: -2rem;
-          }
-          .lb-logo-hero img {
-            width: 260px;
-            height: 260px;
-          }
-          .lb-left-center {
-            margin-top: -20px;
-          }
-          .lb-form-title {
-            font-size: 2.1rem;
-          }
-          .lb-form-sub {
-            font-size: 0.92rem;
-            margin-bottom: 1.8rem;
-          }
-          .lb-label {
-            font-size: 0.72rem;
-          }
-          .lb-input {
-            padding: 14px 18px;
-            font-size: 1rem;
-          }
-          .lb-btn {
-            padding: 15px 20px;
-            font-size: 0.8rem;
-          }
-          .lb-form-wrap {
-            max-width: 460px;
-          }
-        }
-
-        .lb-logo-tagline {
-          font-size: 0.55rem;
-          font-weight: 800;
-          color: rgba(255,255,255,0.55);
-          letter-spacing: 0.3em;
-          text-transform: uppercase;
         }
 
         .lb-pills {
@@ -322,20 +306,6 @@ const Login: React.FC = () => {
           to   { opacity: 1; transform: translateY(0); }
         }
 
-        .lb-mobile-logo {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 4px;
-          margin-bottom: 2rem;
-        }
-        @media (min-width: 900px) { .lb-mobile-logo { display: none; } }
-        .lb-mobile-logo img { width: 120px; height: auto; object-fit: contain; }
-        .lb-mobile-logo-tag {
-          font-size: 0.52rem; font-weight: 700;
-          letter-spacing: 0.28em; text-transform: uppercase; color: #3b2063;
-        }
-
         .lb-form-title {
           font-size: 1.75rem;
           font-weight: 800;
@@ -437,14 +407,6 @@ const Login: React.FC = () => {
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        .lb-terms {
-          margin-top: 1.4rem;
-          font-size: 0.62rem;
-          color: #a1a1aa;
-          text-align: center;
-          line-height: 1.65;
-        }
-
         .lb-right-bottom {
           padding: 1.1rem 2.5rem;
           border-top: 1.5px solid #f4f4f5;
@@ -477,11 +439,59 @@ const Login: React.FC = () => {
           font-size: 0.52rem; font-weight: 700;
           letter-spacing: 0.16em; text-transform: uppercase; color: #16a34a;
         }
+
+        /* ── VANILLA CSS 2FA MODAL (CLEAN) ── */
+        .otp-overlay {
+          position: fixed;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: rgba(0,0,0,0.73);
+          backdrop-filter: blur(6px);
+          -webkit-backdrop-filter: blur(6px);
+          z-index: 99999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+        }
+        .otp-modal {
+          background: white;
+          width: 100%;
+          max-width: 380px;
+          border-radius: 16px;
+          padding: 35px;
+          box-shadow: 0 25px 70px -15px rgba(0, 0, 0, 0.4);
+          text-align: center;
+          border: 1px solid #f3e8ff;
+        }
+        .otp-title {
+          font-size: 1.4rem; font-weight: 800; color: #1f2937; margin-bottom: 6px;
+        }
+        .otp-sub {
+          font-size: 0.8rem; color: #6b7280; margin-bottom: 25px; line-height: 1.5;
+        }
+        .otp-input-field {
+          width: 100%;
+          text-align: center;
+          font-size: 2.2rem;
+          letter-spacing: 0.35em;
+          font-weight: 900;
+          padding: 12px;
+          background: #f9fafb;
+          border: 2px solid #e5e7eb;
+          border-radius: 12px;
+          color: #6d28d9;
+          outline: none;
+          margin-bottom: 20px;
+        }
+        .otp-cancel {
+          background: none; border: none; color: #9ca3af;
+          font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+          letter-spacing: 0.1em; cursor: pointer; margin-top: 15px;
+        }
       `}</style>
 
       <div className="lb-page">
-
-        {/* ── LEFT — purple branding ── */}
+        {/* ── LEFT ── */}
         <div className="lb-left">
           <div className="lb-blob lb-blob-tl" />
           <div className="lb-blob lb-blob-br" />
@@ -544,25 +554,18 @@ const Login: React.FC = () => {
           </div>
         </div>
 
-        {/* ── RIGHT — white form ── */}
+        {/* ── RIGHT ── */}
         <div className="lb-right">
-
           <div className="lb-right-top">
             <span className="lb-top-link">Staff Portal</span>
           </div>
 
           <div className="lb-right-body">
             <div className="lb-form-wrap">
-
-              <div className="lb-mobile-logo">
-                <img src={logo} alt="Lucky Boba" />
-                <span className="lb-mobile-logo-tag">Point of Sale System</span>
-              </div>
-
               <h1 className="lb-form-title">Welcome Back!</h1>
               <p className="lb-form-sub">Enter your credentials to access the terminal</p>
 
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit} id="login-form">
                 <div className="lb-field">
                   <label className="lb-label">Email Address</label>
                   <div className="lb-wrap">
@@ -573,7 +576,6 @@ const Login: React.FC = () => {
                       className="lb-input"
                       placeholder="name@luckyboba.com"
                       required
-                      autoComplete="email"
                     />
                   </div>
                 </div>
@@ -589,40 +591,48 @@ const Login: React.FC = () => {
                       className="lb-input lb-input-pw"
                       placeholder="••••••••"
                       required
-                      autoComplete="current-password"
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="lb-eye"
-                      tabIndex={-1}
-                    >
-                      {showPassword ? <EyeOff size={15} strokeWidth={2} /> : <Eye size={15} strokeWidth={2} />}
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="lb-eye">
+                      {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
                     </button>
                   </div>
                 </div>
 
                 <div className="lb-btn-wrap">
-                  <button
-                    type="submit"
-                    disabled={isLoading || lockoutTimer > 0}
-                    className="lb-btn"
-                  >
-                    {isLoading ? (
-                      <><div className="lb-spinner" />Authenticating...</>
-                    ) : lockoutTimer > 0 ? (
-                      `Locked — ${lockoutTimer}s`
-                    ) : (
-                      <><LogIn size={13} strokeWidth={2.5} />Sign In</>
-                    )}
+                  <button type="submit" disabled={isLoading || lockoutTimer > 0} className="lb-btn">
+                    {isLoading ? "Authenticating..." : lockoutTimer > 0 ? `Locked - ${lockoutTimer}s` : <><LogIn size={13} strokeWidth={2.5} />Sign In</>}
                   </button>
                 </div>
               </form>
 
-              <p className="lb-terms">
-                By signing in, you agree to Lucky Boba's Terms of Service and Privacy Policy.
-              </p>
+              {/* ── 2FA MODAL (OVERLAY ONLY) ── */}
+              {requires2FA && (
+                <div className="otp-overlay">
+                  <div className="otp-modal">
+                    <div style={{ width: '60px', height: '60px', background: '#f5f3ff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 15px', color: '#7c3aed' }}>
+                      <ShieldCheck size={28} strokeWidth={2.5} />
+                    </div>
+                    <h2 className="otp-title">Verify Identity</h2>
+                    <p className="otp-sub">A 6-digit code was sent to <br/><strong>{email}</strong></p>
 
+                    <form onSubmit={handleVerify2FA}>
+                      <input
+                        type="text"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        className="otp-input-field"
+                        placeholder="000000"
+                        autoFocus
+                        required
+                      />
+                      <button type="submit" disabled={isLoading || otp.length !== 6} className="lb-btn" style={{ padding: '14px' }}>
+                        {isLoading ? "Checking..." : "Confirm Verification"}
+                      </button>
+                      <button type="button" onClick={() => setRequires2FA(false)} className="otp-cancel">Cancel</button>
+                    </form>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -633,7 +643,6 @@ const Login: React.FC = () => {
               <span className="lb-secure-text">Secure</span>
             </div>
           </div>
-
         </div>
       </div>
     </>
