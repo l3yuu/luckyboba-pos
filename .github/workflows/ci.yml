@@ -11,6 +11,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4.2.2
+        with:
+          submodules: false
       
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -47,6 +49,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4.2.2
+        with:
+          submodules: false
       - name: Setup Node.js
         uses: actions/setup-node@v4.3.0
         with:
@@ -93,6 +97,8 @@ jobs:
     environment: production
     steps:
       - uses: actions/checkout@v4.2.2
+        with:
+          submodules: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4.3.0
@@ -193,6 +199,8 @@ jobs:
     environment: staging
     steps:
       - uses: actions/checkout@v4.2.2
+        with:
+          submodules: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4.3.0
