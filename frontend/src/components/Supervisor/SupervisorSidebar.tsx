@@ -80,6 +80,7 @@ const STYLES = `
     content: ''; position: absolute; left: 0; top: 18%; bottom: 18%;
     width: 2.5px; background: #3b2063; border-radius: 0 2px 2px 0;
   }
+  .ops-topbar-header { background: linear-gradient(135deg, #3b2063 0%, #4c2b7d 100%); }
 `;
 
 const SupervisorSidebar: React.FC<SupervisorSidebarProps> = ({
@@ -131,17 +132,17 @@ const SupervisorSidebar: React.FC<SupervisorSidebarProps> = ({
         isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
       }`}>
         
-        {/* User profile section */}
-        <div className="shrink-0 px-4 pt-6 pb-4 border-b border-zinc-100">
+        {/* User profile section - Unified Header Style */}
+        <div className="shrink-0 px-4 pt-6 pb-4 border-b border-[#2d184d] ops-topbar-header">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-[0.4rem] bg-[#3b2063] flex items-center justify-center shrink-0 shadow-sm">
+            <div className="w-8 h-8 rounded-[0.4rem] bg-[#ffffff20] border border-[#ffffff20] flex items-center justify-center shrink-0 shadow-sm">
               <span className="text-[0.55rem] font-black text-white tracking-wide">{initials}</span>
             </div>
             <div className="min-w-0">
-              <p className="text-[0.82rem] font-bold text-[#1a0f2e] leading-tight truncate">
+              <p className="text-[0.82rem] font-bold text-white leading-tight truncate">
                 {authUser?.name || 'Supervisor'}
               </p>
-              <p className="text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">
+              <p className="text-[0.58rem] font-bold uppercase tracking-widest text-[#ddd5ff]">
                 Supervisor Terminal
               </p>
             </div>
