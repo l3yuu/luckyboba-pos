@@ -12,7 +12,6 @@ return new class extends Migration
             $table->decimal('subtotal', 10, 2)->default(0)->after('total_amount');
             $table->string('order_type')->default('dine_in')->after('payment_method'); // dine_in, take_out, online
             $table->string('cashier_name')->nullable()->after('order_type');
-            $table->string('cashier_name')->nullable()->after('order_type');
         });
     }
 
@@ -23,7 +22,6 @@ return new class extends Migration
                 'subtotal',
                 'order_type',
                 'cashier_name',
-                'cashier_name'
             ]);
         });
     }
