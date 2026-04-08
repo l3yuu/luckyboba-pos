@@ -76,6 +76,7 @@ const PAGE_TITLES: Record<TabId, { label: string; desc: string }> = {
   subcategories: { label: "Sub-Categories", desc: "Nested category structure" },
 
   inv_overview: { label: "Inventory Overview", desc: "Stock summary across all branches" },
+  inventory_alerts: { label: "Inventory Alert Center", desc: "Global monitoring of low-stock items" },
   raw_materials: { label: "Raw Materials", desc: "Ingredients & packaging stock" },
   usage_report: { label: "Usage Report", desc: "Material consumption & variance" },
   recipes: { label: "Recipes", desc: "Ingredient composition per menu item" },

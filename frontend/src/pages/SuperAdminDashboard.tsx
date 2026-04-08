@@ -34,6 +34,7 @@ import ItemCheckerTab from "../components/NewSuperAdmin/Sidebar/Inventory/ItemCh
 import ItemSerialsTab from "../components/NewSuperAdmin/Sidebar/Inventory/ItemSerialsTab";
 import PurchaseOrderTab from "../components/NewSuperAdmin/Sidebar/Inventory/PurchaseOrderTab";
 import StockTransferTab from "../components/NewSuperAdmin/Sidebar/Inventory/StockTransferTab";
+import InventoryAlertsTab from "../components/NewSuperAdmin/Sidebar/Inventory/InventoryAlertsTab";
 
 import ExpensesTab from "../components/NewSuperAdmin/Sidebar/Expenses/ExpensesTab";
 import CardUsersTab from "../components/NewSuperAdmin/Sidebar/System/CardUsersTab";
@@ -110,6 +111,7 @@ const SuperAdminDashboard: React.FC = () => {
       case "item_serials": return <ItemSerialsTab />;
       case "purchase_order": return <PurchaseOrderTab />;
       case "stock_transfer": return <StockTransferTab />;
+      case "inventory_alerts": return <InventoryAlertsTab />;
 
       // ── Expenses ──────────────────────────────────────────────────────────
       case "expenses": return <ExpensesTab />;
