@@ -27,6 +27,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/login',  [AuthController::class, 'login'])->middleware('throttle:5,2');
 Route::post('/verify-2fa', [AuthController::class, 'verify2FA'])->middleware('throttle:5,2');
+Route::post('/resend-2fa', [AuthController::class, 'resend2FA'])->middleware('throttle:5,2');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 
 

@@ -23,8 +23,18 @@ const Login: React.FC = () => {
   const [otp, setOtp] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const { login, verify2FA, isLoading, user } = useAuth();
+  const { login, verify2FA, resend2FA, isLoading, user } = useAuth();
   const navigate = useNavigate();
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const otpRefs = [
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+  ];
   const hasRedirected = useRef(false);
   const didJustLogin = useRef(false);
 
@@ -55,6 +65,13 @@ const Login: React.FC = () => {
     const id = setInterval(check, 1000);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.getModifierState('CapsLock')) showToast('Caps Lock is ON', 'warning');
@@ -108,7 +125,45 @@ const Login: React.FC = () => {
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Invalid or expired 2FA code.';
+      setOtpError(message);
       showToast(message, 'error');
+    }
+  };
+
+  const handleResendOTP = async () => {
+    if (resendCooldown > 0) return;
+    try {
+      setOtpError(null);
+      await resend2FA({ email, password });
+      showToast('New code sent to your email!', 'success');
+      setResendCooldown(60);
+      setOtp("");
+      otpRefs[0].current?.focus();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to resend code.';
+      showToast(message, 'error');
+    }
+  };
+
+  const handleOtpChange = (value: string, index: number) => {
+    const digit = value.slice(-1); // Only take the last character
+    if (digit && !/^\d$/.test(digit)) return; // Only allow digits
+
+    setOtpError(null);
+    const newOtp = otp.split('');
+    newOtp[index] = digit;
+    const combined = newOtp.join('');
+    setOtp(combined);
+
+    // Auto-focus next box
+    if (digit && index < 5) {
+      otpRefs[index + 1].current?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (e: React.KeyboardEvent, index: number) => {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      otpRefs[index - 1].current?.focus();
     }
   };
 
@@ -490,31 +545,89 @@ const Login: React.FC = () => {
         .otp-sub strong { color: #3f3f46; font-weight: 600; }
 
         .otp-input-container {
-          position: relative;
+          display: flex;
+          gap: 10px;
+          justify-content: center;
           margin-bottom: 24px;
         }
-        .otp-input-field {
-          width: 100%;
+        .otp-box {
+          width: 42px;
+          height: 54px;
           text-align: center;
-          font-size: 1.8rem;
-          letter-spacing: 0.4em;
-          font-weight: 700;
-          padding: 16px;
+          font-size: 1.5rem;
+          font-weight: 800;
           background: #fbfbfb;
           border: 1.5px solid #e4e4e7;
-          border-radius: 14px;
+          border-radius: 12px;
           color: #18181b;
           outline: none;
           transition: all 0.2s ease;
         }
-        .otp-input-field:focus {
+        .otp-box:focus {
           border-color: #7c3aed;
           background: #ffffff;
           box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.08);
+          transform: translateY(-2px);
         }
-        .otp-input-field::placeholder {
+        .otp-box.otp-error {
+          border-color: #ef4444;
+          background: #fef2f2;
+          animation: otp-shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes otp-shake {
+          10%, 90% { transform: translate3d(-1px, -2px, 0); }
+          20%, 80% { transform: translate3d(2px, -2px, 0); }
+          30%, 50%, 70% { transform: translate3d(-4px, -2px, 0); }
+          40%, 60% { transform: translate3d(4px, -2px, 0); }
+        }
+
+        .otp-error-msg {
+          color: #ef4444;
+          font-size: 0.72rem;
+          font-weight: 600;
+          margin-top: -12px;
+          margin-bottom: 20px;
+          animation: lb-rise 0.3s ease;
+        }
+
+        .otp-error-alert {
+          background: #fef2f2;
+          border: 1px solid #fee2e2;
+          color: #991b1b;
+          font-size: 0.75rem;
+          font-weight: 600;
+          padding: 10px 14px;
+          border-radius: 12px;
+          margin: 0 0 24px 0;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          animation: lb-rise 0.3s ease;
+        }
+
+        .otp-box::placeholder {
           color: #e4e4e7;
-          letter-spacing: 0.4em;
+        }
+
+        .otp-resend {
+          font-size: 0.75rem;
+          color: #71717a;
+          margin-bottom: 24px;
+        }
+        .otp-resend-btn {
+          background: none;
+          border: none;
+          color: #7c3aed;
+          font-weight: 700;
+          cursor: pointer;
+          padding: 0 4px;
+          text-decoration: underline;
+          text-underline-offset: 2px;
+        }
+        .otp-resend-btn:disabled {
+          color: #a1a1aa;
+          cursor: not-allowed;
+          text-decoration: none;
         }
 
         .otp-actions {
@@ -695,18 +808,42 @@ const Login: React.FC = () => {
               <strong>{email}</strong>
             </p>
 
+            {otpError && (
+              <div className="otp-error-alert">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                {otpError}
+              </div>
+            )}
+
             <form onSubmit={handleVerify2FA}>
               <div className="otp-input-container">
-                <input
-                  type="text"
-                  value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  className="otp-input-field"
-                  placeholder="&bull;&bull;&bull;&bull;&bull;&bull;"
-                  autoFocus
-                  required
-                  autoComplete="one-time-code"
-                />
+                {[0, 1, 2, 3, 4, 5].map((idx) => (
+                  <input
+                    key={idx}
+                    ref={otpRefs[idx]}
+                    type="text"
+                    value={otp[idx] || ""}
+                    onChange={(e) => handleOtpChange(e.target.value, idx)}
+                    onKeyDown={(e) => handleOtpKeyDown(e, idx)}
+                    className={`otp-box ${otpError ? 'otp-error' : ''}`}
+                    placeholder="0"
+                    maxLength={1}
+                    required
+                    autoFocus={idx === 0}
+                  />
+                ))}
+              </div>
+
+              <div className="otp-resend">
+                Didn't receive code? 
+                <button 
+                  type="button" 
+                  onClick={handleResendOTP} 
+                  disabled={resendCooldown > 0 || isLoading}
+                  className="otp-resend-btn"
+                >
+                  {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend Code"}
+                </button>
               </div>
 
               <div className="otp-actions">

@@ -26,6 +26,7 @@ interface AuthContextType {
   error:     string | null;
   login:     (credentials: LoginCredentials) => Promise<User | { requires_2fa: true } | null>;
   verify2FA: (credentials: LoginCredentials, code: string) => Promise<User | null>;
+  resend2FA: (credentials: LoginCredentials) => Promise<boolean>;
   logout:    () => Promise<void>;
 }
 
@@ -194,6 +195,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
+  const resend2FA = useCallback(async (credentials: LoginCredentials): Promise<boolean> => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      const response = await api.post('/resend-2fa', credentials);
+      if (response.data.success === false) {
+        throw new Error(response.data.message || 'Failed to resend code.');
+      }
+      return true;
+    } catch (err: unknown) {
+      let message = 'Resend failed.';
+      if (axios.isAxiosError(err)) {
+        message = err.response?.data?.message || message;
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
+      setError(message);
+      throw new Error(message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const logout = useCallback(async (): Promise<void> => {
     try {
       await api.post('/logout');
@@ -205,8 +229,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [clearSession]);
 
   const value = useMemo(
-    () => ({ user, isLoading, isInitialAuthCheck, error, login, verify2FA, logout }),
-    [user, isLoading, isInitialAuthCheck, error, login, verify2FA, logout]
+    () => ({ user, isLoading, isInitialAuthCheck, error, login, verify2FA, resend2FA, logout }),
+    [user, isLoading, isInitialAuthCheck, error, login, verify2FA, resend2FA, logout]
   );
 
   return (
