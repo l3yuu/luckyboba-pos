@@ -1,41 +1,41 @@
 // pages/SuperAdminDashboard.tsx
 import { useState } from "react";
 import SuperAdminSidebar from "../components/NewSuperAdmin/SuperAdminSidebar";
-import SuperAdminTopBar  from "../components/NewSuperAdmin/SuperAdminTopBar";
-import type { TabId }    from "../components/NewSuperAdmin/SuperAdminSidebar";
+import SuperAdminTopBar from "../components/NewSuperAdmin/SuperAdminTopBar";
+import type { TabId } from "../components/NewSuperAdmin/SuperAdminSidebar";
 
 // ── Existing tabs ──────────────────────────────────────────────────────────────
-import OverviewTab   from "../components/NewSuperAdmin/Sidebar/Navigation/OverviewTab";
-import BranchesTab   from "../components/NewSuperAdmin/Sidebar/Navigation/BranchesTab";
-import UsersTab      from "../components/NewSuperAdmin/Sidebar/Navigation/UsersTab";
+import OverviewTab from "../components/NewSuperAdmin/Sidebar/Navigation/OverviewTab";
+import BranchesTab from "../components/NewSuperAdmin/Sidebar/Navigation/BranchesTab";
+import UsersTab from "../components/NewSuperAdmin/Sidebar/Navigation/UsersTab";
 import DeviceManagementTab from "../components/NewSuperAdmin/Sidebar/Navigation/DeviceManagementTab";
-import AuditLogsTab  from "../components/NewSuperAdmin/Sidebar/System/AuditLogsTab";
+import AuditLogsTab from "../components/NewSuperAdmin/Sidebar/System/AuditLogsTab";
 import PromotionsTab from "../components/NewSuperAdmin/Sidebar/System/PromotionsTab";
-import SettingsTab   from "../components/NewSuperAdmin/Sidebar/SettingsTab";
+import SettingsTab from "../components/NewSuperAdmin/Sidebar/SettingsTab";
 
 import SalesReportTab from "../components/NewSuperAdmin/Sidebar/Reports/SalesReportTab";
 import CrossBranchTab from "../components/NewSuperAdmin/Sidebar/Reports/CrossBranchTab";
-import AnalyticsTab   from "../components/NewSuperAdmin/Sidebar/Reports/AnalyticsTab";
+import AnalyticsTab from "../components/NewSuperAdmin/Sidebar/Reports/AnalyticsTab";
 import ItemsReportTab from "../components/NewSuperAdmin/Sidebar/Reports/ItemsReportTab";
 import XReadingTab from "../components/NewSuperAdmin/Sidebar/Reports/XReadingTab";
 import ZReadingTab from "../components/NewSuperAdmin/Sidebar/Reports/ZReadingTab";
 
-import MenuItemsTab    from "../components/NewSuperAdmin/Sidebar/MenuManagement/MenuItemsTab";
-import CategoriesTab   from "../components/NewSuperAdmin/Sidebar/MenuManagement/CategoriesTab";
+import MenuItemsTab from "../components/NewSuperAdmin/Sidebar/MenuManagement/MenuItemsTab";
+import CategoriesTab from "../components/NewSuperAdmin/Sidebar/MenuManagement/CategoriesTab";
 import SubCategoriesTab from "../components/NewSuperAdmin/Sidebar/MenuManagement/SubCategoriesTab";
 
-import InventoryOverview from "../components/NewSuperAdmin/Sidebar/Inventory/InventoryOverview";  
+import InventoryOverview from "../components/NewSuperAdmin/Sidebar/Inventory/InventoryOverview";
 import RawMaterialsTab from "../components/NewSuperAdmin/Sidebar/Inventory/RawMaterialsTab";
 import UsageReportTab from "../components/NewSuperAdmin/Sidebar/Inventory/UsageReportTab";
-import RecipesTab     from "../components/NewSuperAdmin/Sidebar/Inventory/RecipesTab";
-import SupplierTab    from "../components/NewSuperAdmin/Sidebar/Inventory/SupplierTab";
+import RecipesTab from "../components/NewSuperAdmin/Sidebar/Inventory/RecipesTab";
+import SupplierTab from "../components/NewSuperAdmin/Sidebar/Inventory/SupplierTab";
 import ItemCheckerTab from "../components/NewSuperAdmin/Sidebar/Inventory/ItemCheckerTab";
-import ItemSerialsTab   from "../components/NewSuperAdmin/Sidebar/Inventory/ItemSerialsTab";
+import ItemSerialsTab from "../components/NewSuperAdmin/Sidebar/Inventory/ItemSerialsTab";
 import PurchaseOrderTab from "../components/NewSuperAdmin/Sidebar/Inventory/PurchaseOrderTab";
 import StockTransferTab from "../components/NewSuperAdmin/Sidebar/Inventory/StockTransferTab";
 
 import ExpensesTab from "../components/NewSuperAdmin/Sidebar/Expenses/ExpensesTab";
-import CardUsersTab     from "../components/NewSuperAdmin/Sidebar/System/CardUsersTab";
+import CardUsersTab from "../components/NewSuperAdmin/Sidebar/System/CardUsersTab";
 import CardApprovalTab from "../components/NewSuperAdmin/Sidebar/System/CardApprovalTab";
 import CardManagementTab from "../components/NewSuperAdmin/Sidebar/System/CardManagementTab";
 
@@ -73,39 +73,39 @@ const GlobalStyles = () => (
 );
 
 const SuperAdminDashboard: React.FC = () => {
-  const [active,      setActive]      = useState<TabId>("overview");
+  const [active, setActive] = useState<TabId>("overview");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const renderContent = () => {
     switch (active) {
 
       // ── Navigation ────────────────────────────────────────────────────────
-      case "overview":  return <OverviewTab />;
-      case "branches":  return <BranchesTab />;
-      case "users":     return <UsersTab    />;
+      case "overview": return <OverviewTab />;
+      case "branches": return <BranchesTab />;
+      case "users": return <UsersTab />;
       case "devices": return <DeviceManagementTab />;
 
       // ── Reports ───────────────────────────────────────────────────────────
-      case "sales_report":         return <SalesReportTab />;
-      case "analytics":    return <AnalyticsTab   />;
+      case "sales_report": return <SalesReportTab />;
+      case "analytics": return <AnalyticsTab />;
       case "items_report": return <ItemsReportTab />;
       case "cross_branch_reports": return <CrossBranchTab />;
       case "x_reading": return <XReadingTab />;
       case "z_reading": return <ZReadingTab />;
 
       // ── Menu Management ───────────────────────────────────────────────────
-      case "menu_items":    return <MenuItemsTab    />;
-      case "categories":    return <CategoriesTab   />;
+      case "menu_items": return <MenuItemsTab />;
+      case "categories": return <CategoriesTab />;
       case "subcategories": return <SubCategoriesTab />;
 
       // ── Inventory ─────────────────────────────────────────────────────────
-      case "inv_overview":   return <InventoryOverview />;
+      case "inv_overview": return <InventoryOverview />;
       case "raw_materials": return <RawMaterialsTab />;
       case "usage_report": return <UsageReportTab />;
-      case "recipes":      return <RecipesTab />;
-      case "supplier":     return <SupplierTab    />;
+      case "recipes": return <RecipesTab />;
+      case "supplier": return <SupplierTab />;
       case "item_checker": return <ItemCheckerTab />;
-      case "item_serials":   return <ItemSerialsTab   />;
+      case "item_serials": return <ItemSerialsTab />;
       case "purchase_order": return <PurchaseOrderTab />;
       case "stock_transfer": return <StockTransferTab />;
 
@@ -114,13 +114,13 @@ const SuperAdminDashboard: React.FC = () => {
 
       // ── System ────────────────────────────────────────────────────────────
       case "promotions": return <PromotionsTab />;
-      case "audit":      return <AuditLogsTab  />;
-      case "settings":   return <SettingsTab   />;
+      case "audit": return <AuditLogsTab />;
+      case "settings": return <SettingsTab />;
 
       // ── App ───────────────────────────────────────────────────────────────────
       case "card_management": return <CardManagementTab />;
       case "card_approvals": return <CardApprovalTab />;
-      case "card_members":   return <CardUsersTab    />;
+      case "card_members": return <CardUsersTab />;
     }
   };
 
