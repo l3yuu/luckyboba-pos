@@ -105,8 +105,8 @@ const BM_PaymentSettings: React.FC<BM_PaymentSettingsProps> = ({ onBack }) => {
       formData.append('maya_name', settings.maya_name || '');
       formData.append('maya_number', settings.maya_number || '');
 
-      const gcashFile = (settings as any).gcash_qr_file;
-      const mayaFile = (settings as any).maya_qr_file;
+      const gcashFile = (settings as { gcash_qr_file?: File }).gcash_qr_file;
+      const mayaFile = (settings as { maya_qr_file?: File }).maya_qr_file;
 
       if (gcashFile) formData.append('gcash_qr', gcashFile);
       if (mayaFile) formData.append('maya_qr', mayaFile);
