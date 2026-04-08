@@ -17,6 +17,14 @@ interface Notification {
   branch_name?: string;
 }
 
+interface SearchResult {
+  title: string;
+  type: string;
+  tab: TabId;
+  sub?: string;
+  id?: string | number;
+}
+
 const SEVERITY_CONFIG: Record<Severity, { bg: string; border: string; icon: string; dot: string }> = {
   critical: { bg: 'bg-red-50', border: 'border-red-100', icon: 'text-red-600', dot: 'bg-red-500' },
   warning: { bg: 'bg-amber-50', border: 'border-amber-100', icon: 'text-amber-600', dot: 'bg-amber-500' },
@@ -141,8 +149,8 @@ const SuperAdminTopBar: React.FC<SuperAdminTopBarProps> = ({
 
   // ── Search State ──────────────────────────────────────────────────────────
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [recentSearches, setRecentSearches] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [recentSearches, setRecentSearches] = useState<SearchResult[]>([]);
   const [isSearchOpen, setSearchOpen] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -154,7 +162,7 @@ const SuperAdminTopBar: React.FC<SuperAdminTopBarProps> = ({
      if (saved) setRecentSearches(JSON.parse(saved));
   }, []);
 
-  const saveToHistory = (item: any) => {
+  const saveToHistory = (item: SearchResult) => {
     const updated = [item, ...recentSearches.filter(r => r.title !== item.title || r.type !== item.type)].slice(0, 5);
     setRecentSearches(updated);
     localStorage.setItem('sa_search_history', JSON.stringify(updated));
@@ -374,7 +382,7 @@ const SuperAdminTopBar: React.FC<SuperAdminTopBarProps> = ({
                                     {highlightMatch(res.title, searchQuery)}
                                   </span>
                                   <span className="text-[0.65rem] text-zinc-500">
-                                    {highlightMatch(res.sub, searchQuery)}
+                                    {highlightMatch(res.sub || "", searchQuery)}
                                   </span>
                                 </button>
                               ))}

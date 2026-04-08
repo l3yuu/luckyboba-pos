@@ -145,8 +145,8 @@ const StatCardSkeleton = () => (
 const ChartSkeleton = ({ height = "h-[300px]" }: { height?: string }) => (
   <div className={`w-full ${height} bg-zinc-50 border border-zinc-100 rounded-[0.4rem] p-4 flex flex-col justify-end gap-2 animate-pulse`}>
     <div className="flex items-end gap-1 h-3/4">
-      {[...Array(12)].map((_, i) => (
-        <div key={i} className="flex-1 bg-zinc-200 rounded-t" style={{ height: `${20 + Math.random() * 80}%` }} />
+      {[45, 78, 52, 91, 33, 67, 84, 42, 59, 73, 28, 65].map((h, i) => (
+        <div key={i} className="flex-1 bg-zinc-200 rounded-t" style={{ height: `${h}%` }} />
       ))}
     </div>
     <div className="flex justify-between">

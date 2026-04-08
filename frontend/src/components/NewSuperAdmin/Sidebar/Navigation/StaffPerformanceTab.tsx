@@ -70,13 +70,14 @@ const StaffPerformanceTab = () => {
   const [selectedStaff, setSelectedStaff] = useState<StaffMetric | null>(null);
 
   // ── Auth ───────────────────────────────────────────────────────────────────
-  const getToken = () =>
-    localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
-  const authHeaders = () => ({
+  const getToken = useCallback(() =>
+    localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "", []);
+
+  const authHeaders = useCallback(() => ({
     "Content-Type": "application/json",
     "Accept": "application/json",
     ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
-  });
+  }), [getToken]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -91,7 +92,7 @@ const StaffPerformanceTab = () => {
     } finally {
       setLoading(false);
     }
-  }, [period]);
+  }, [period, authHeaders]);
 
   useEffect(() => {
     fetchData();
