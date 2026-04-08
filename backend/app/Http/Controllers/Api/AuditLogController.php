@@ -139,7 +139,7 @@ class AuditLogController extends Controller
             'details' => 'nullable|string|max:1000',
         ]);
 
-        AuditLog::create([
+        \App\Jobs\ProcessAuditLog::dispatch([
             'user_id' => auth()->id(),
             'action'  => $request->action,
             'module'  => $request->module,
