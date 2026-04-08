@@ -335,13 +335,13 @@ export const ReceiptPrint = ({
         {/* Totals */}
         <div className="text-xs space-y-1 border-t border-dashed border-black pt-2">
           <div className="flex justify-between"><span>Total Items</span><span>{totalCount}</span></div>
-          <div className="flex justify-between"><span>Sub Total</span><span>{subtotal.toFixed(2)}</span></div>
+          <div className="flex justify-between"><span>Sub Total</span><span>{Number(subtotal || 0).toFixed(2)}</span></div>
           {totalDiscountDisplay > 0 && (
             <>
               {itemDiscountTotal > 0 && (
                 <div className="flex justify-between">
                   <span>Item Discount(s)</span>
-                  <span>- {itemDiscountTotal.toFixed(2)}</span>
+                  <span>- {Number(itemDiscountTotal || 0).toFixed(2)}</span>
                 </div>
               )}
               {selectedDiscount && promoDiscount > 0 && (
@@ -354,16 +354,16 @@ export const ReceiptPrint = ({
                       ? ` (-₱${(selectedDiscount as { name: string; amount?: number; type?: string }).amount})`
                       : ''}
                   </span>
-                  <span>- {promoDiscount.toFixed(2)}</span>
+                  <span>- {Number(promoDiscount || 0).toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between font-bold border-t border-dashed border-black pt-1 mt-1">
                 <span>Total Discount</span>
-                <span>- {totalDiscountDisplay.toFixed(2)}</span>
+                <span>- {Number(totalDiscountDisplay || 0).toFixed(2)}</span>
               </div>
             </>
           )}
-          <div className="flex justify-between text-base font-bold mt-1"><span>TOTAL DUE</span><span>{amtDue.toFixed(2)}</span></div>
+          <div className="flex justify-between text-base font-bold mt-1"><span>TOTAL DUE</span><span>{Number(amtDue || 0).toFixed(2)}</span></div>
         </div>
 
         {/* Payment */}
@@ -371,8 +371,8 @@ export const ReceiptPrint = ({
           <div className="flex justify-between"><span>Payment Method</span><span className="uppercase font-bold">{paymentMethod}</span></div>
           {paymentMethod === 'cash' && (
             <>
-              <div className="flex justify-between"><span>Cash (Tendered)</span><span>{typeof cashTendered === 'number' ? cashTendered.toFixed(2) : amtDue.toFixed(2)}</span></div>
-              <div className="flex justify-between"><span>Change</span><span>{change.toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>Cash (Tendered)</span><span>{cashTendered !== '' ? Number(cashTendered || 0).toFixed(2) : Number(amtDue || 0).toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>Change</span><span>{Number(change || 0).toFixed(2)}</span></div>
             </>
           )}
           {referenceNumber && (
