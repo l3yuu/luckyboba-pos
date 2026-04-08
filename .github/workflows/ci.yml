@@ -145,6 +145,7 @@ jobs:
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
+            php artisan queue:restart
             php artisan schedule:run >> /dev/null 2>&1
             cd ..
 
@@ -254,6 +255,7 @@ jobs:
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
+            php artisan queue:restart
             php artisan schedule:run >> /dev/null 2>&1
             cd ..
 

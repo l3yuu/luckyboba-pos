@@ -10,15 +10,15 @@ import { type CartItem, type BundleComponentCustomization } from '../../../types
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 export interface PosFooterData {
-  pos_supplier?:    string;
-  pos_address?:     string;
-  pos_tin?:         string;
-  pos_accred_no?:   string;
+  pos_supplier?: string;
+  pos_address?: string;
+  pos_tin?: string;
+  pos_accred_no?: string;
   pos_date_issued?: string;
   pos_valid_until?: string;
-  pos_ptu?:         string;
-  pos_ptu_date?:    string;
-  business_name?:   string;
+  pos_ptu?: string;
+  pos_ptu_date?: string;
+  business_name?: string;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -227,8 +227,8 @@ export const ReceiptPrint = ({
                 return item.charges?.grab && Number(a.grab_price ?? 0) > 0
                   ? Number(a.grab_price)
                   : item.charges?.panda && Number(a.panda_price ?? 0) > 0
-                  ? Number(a.panda_price)
-                  : Number(a.price);
+                    ? Number(a.panda_price)
+                    : Number(a.price);
               };
 
               const addOnCostPerUnit = (item.addOns ?? []).reduce(
@@ -335,13 +335,13 @@ export const ReceiptPrint = ({
         {/* Totals */}
         <div className="text-xs space-y-1 border-t border-dashed border-black pt-2">
           <div className="flex justify-between"><span>Total Items</span><span>{totalCount}</span></div>
-          <div className="flex justify-between"><span>Sub Total</span><span>{subtotal.toFixed(2)}</span></div>
+          <div className="flex justify-between"><span>Sub Total</span><span>{Number(subtotal).toFixed(2)}</span></div>
           {totalDiscountDisplay > 0 && (
             <>
               {itemDiscountTotal > 0 && (
                 <div className="flex justify-between">
                   <span>Item Discount(s)</span>
-                  <span>- {itemDiscountTotal.toFixed(2)}</span>
+                  <span>- {Number(itemDiscountTotal || 0).toFixed(2)}</span>
                 </div>
               )}
               {selectedDiscount && promoDiscount > 0 && (
@@ -351,19 +351,19 @@ export const ReceiptPrint = ({
                     {(selectedDiscount as { name: string; amount?: number; type?: string }).type?.includes('Percent')
                       ? ` (${(selectedDiscount as { name: string; amount?: number; type?: string }).amount}%)`
                       : (selectedDiscount as { name: string; amount?: number; type?: string }).amount
-                      ? ` (-₱${(selectedDiscount as { name: string; amount?: number; type?: string }).amount})`
-                      : ''}
+                        ? ` (-₱${(selectedDiscount as { name: string; amount?: number; type?: string }).amount})`
+                        : ''}
                   </span>
-                  <span>- {promoDiscount.toFixed(2)}</span>
+                  <span>- {Number(promoDiscount || 0).toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between font-bold border-t border-dashed border-black pt-1 mt-1">
                 <span>Total Discount</span>
-                <span>- {totalDiscountDisplay.toFixed(2)}</span>
+                <span>- {Number(totalDiscountDisplay || 0).toFixed(2)}</span>
               </div>
             </>
           )}
-          <div className="flex justify-between text-base font-bold mt-1"><span>TOTAL DUE</span><span>{amtDue.toFixed(2)}</span></div>
+          <div className="flex justify-between text-base font-bold mt-1"><span>TOTAL DUE</span><span>{Number(amtDue || 0).toFixed(2)}</span></div>
         </div>
 
         {/* Payment */}
@@ -371,8 +371,8 @@ export const ReceiptPrint = ({
           <div className="flex justify-between"><span>Payment Method</span><span className="uppercase font-bold">{paymentMethod}</span></div>
           {paymentMethod === 'cash' && (
             <>
-              <div className="flex justify-between"><span>Cash (Tendered)</span><span>{typeof cashTendered === 'number' ? cashTendered.toFixed(2) : amtDue.toFixed(2)}</span></div>
-              <div className="flex justify-between"><span>Change</span><span>{change.toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>Cash (Tendered)</span><span>{cashTendered !== '' ? Number(cashTendered || 0).toFixed(2) : Number(amtDue || 0).toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>Change</span><span>{Number(change || 0).toFixed(2)}</span></div>
             </>
           )}
           {referenceNumber && (
@@ -448,14 +448,14 @@ export const ReceiptPrint = ({
         {/* ── POS Supplier Footer ── */}
         {(posFooter.pos_supplier || posFooter.pos_tin) && (
           <div className="mt-2 mb-4 text-left text-[10px] border-t border-dashed border-black pt-3 space-y-0.5 leading-snug">
-            {posFooter.pos_supplier    && <div className="font-bold uppercase">POS SUPPLIER: {posFooter.pos_supplier}</div>}
-            {posFooter.pos_address     && <div>{posFooter.pos_address}</div>}
-            {posFooter.pos_tin         && <div>TIN: {posFooter.pos_tin}</div>}
-            {posFooter.pos_accred_no   && <div>Accred No: {posFooter.pos_accred_no}</div>}
+            {posFooter.pos_supplier && <div className="font-bold uppercase">POS SUPPLIER: {posFooter.pos_supplier}</div>}
+            {posFooter.pos_address && <div>{posFooter.pos_address}</div>}
+            {posFooter.pos_tin && <div>TIN: {posFooter.pos_tin}</div>}
+            {posFooter.pos_accred_no && <div>Accred No: {posFooter.pos_accred_no}</div>}
             {posFooter.pos_date_issued && <div>Date Issued: {posFooter.pos_date_issued}</div>}
             {posFooter.pos_valid_until && <div>Valid Until: {posFooter.pos_valid_until}</div>}
-            {posFooter.pos_ptu         && <div>PTU No: {posFooter.pos_ptu}</div>}
-            {posFooter.pos_ptu_date    && <div>PTU Date Issued: {posFooter.pos_ptu_date}</div>}
+            {posFooter.pos_ptu && <div>PTU No: {posFooter.pos_ptu}</div>}
+            {posFooter.pos_ptu_date && <div>PTU Date Issued: {posFooter.pos_ptu_date}</div>}
           </div>
         )}
 
@@ -542,14 +542,14 @@ export const KitchenPrint = ({
                 </div>
 
                 {item.size === 'none' ? (
-  <>
-    <div className="pl-2 text-[10px]">• Classic Pearl</div>
-    {item.sugarLevel != null && (
-      <div className="pl-4 text-[10px]">• Sugar {item.sugarLevel}</div>
-    )}
-    {item.options?.map(o => <div key={o} className="pl-4 text-[10px]">• {o}</div>)}
-  </>
-) : (
+                  <>
+                    <div className="pl-2 text-[10px]">• Classic Pearl</div>
+                    {item.sugarLevel != null && (
+                      <div className="pl-4 text-[10px]">• Sugar {item.sugarLevel}</div>
+                    )}
+                    {item.options?.map(o => <div key={o} className="pl-4 text-[10px]">• {o}</div>)}
+                  </>
+                ) : (
                   <>
                     {item.sugarLevel != null && item.sugarLevel !== '' && (
                       <div className="text-sm mt-1">Sugar: {item.sugarLevel}</div>
@@ -578,7 +578,7 @@ export const KitchenPrint = ({
       </div>
 
       <div className="text-center text-sm mt-4 uppercase tracking-widest">--- END OF TICKET ---</div>
-      
+
       <div className="mt-4 pt-2 border-t border-black text-center text-[8px] uppercase">
         {cashierName && <div>Cashier: {cashierName}</div>}
         {businessEmail && <div>{businessEmail}</div>}
@@ -618,25 +618,25 @@ interface StickerClasses {
 }
 
 const getStickerClasses = (extraCount: number, nameLength = 0): StickerClasses => {
-  const isCrowded       = extraCount >= 2;
-  const isVeryCrowded   = extraCount >= 4;
-  const isUltraCrowded  = extraCount >= 6;
-  const isLongName      = nameLength > 12;
-  const isVeryLongName  = nameLength > 18;
+  const isCrowded = extraCount >= 2;
+  const isVeryCrowded = extraCount >= 4;
+  const isUltraCrowded = extraCount >= 6;
+  const isLongName = nameLength > 12;
+  const isVeryLongName = nameLength > 18;
   const isUltraLongName = nameLength > 25;
   return {
-    paddingClass:  isUltraCrowded ? 'p-0' : isVeryCrowded ? 'p-0.5' : 'p-1',
-    titleSize:     isUltraCrowded ? 'text-[8px]' : isVeryCrowded ? 'text-[9px]' : isCrowded ? 'text-[10px]' : 'text-[11px]',
-    nameSize:      isUltraCrowded || isUltraLongName
-                     ? 'text-[7px]'
-                     : isVeryCrowded || isVeryLongName
-                     ? 'text-[8px]'
-                     : isCrowded || isLongName
-                     ? 'text-[9px]'
-                     : 'text-[11px]',
-    addOnSize:     isUltraCrowded ? 'text-[5.5px]' : isVeryCrowded ? 'text-[6px]' : isCrowded ? 'text-[7px]' : 'text-[8px]',
-    gapClass:      isUltraCrowded ? 'space-y-0 leading-none' : isVeryCrowded ? 'space-y-0 leading-tight' : 'space-y-0.5 leading-tight',
-    marginClass:   isUltraCrowded || isVeryCrowded ? 'mb-0' : 'mb-0.5',
+    paddingClass: isUltraCrowded ? 'p-0' : isVeryCrowded ? 'p-0.5' : 'p-1',
+    titleSize: isUltraCrowded ? 'text-[8px]' : isVeryCrowded ? 'text-[9px]' : isCrowded ? 'text-[10px]' : 'text-[11px]',
+    nameSize: isUltraCrowded || isUltraLongName
+      ? 'text-[7px]'
+      : isVeryCrowded || isVeryLongName
+        ? 'text-[8px]'
+        : isCrowded || isLongName
+          ? 'text-[9px]'
+          : 'text-[11px]',
+    addOnSize: isUltraCrowded ? 'text-[5.5px]' : isVeryCrowded ? 'text-[6px]' : isCrowded ? 'text-[7px]' : 'text-[8px]',
+    gapClass: isUltraCrowded ? 'space-y-0 leading-none' : isVeryCrowded ? 'space-y-0 leading-tight' : 'space-y-0.5 leading-tight',
+    marginClass: isUltraCrowded || isVeryCrowded ? 'mb-0' : 'mb-0.5',
     isVeryCrowded: isVeryCrowded || isUltraCrowded,
   };
 };
@@ -698,8 +698,8 @@ export const StickerPrint = ({
     if (item.isBundle) {
       return acc + (item.bundleComponents?.reduce((s, c) => s + c.quantity, 0) ?? 0) * item.qty;
     }
-    const isSticker   = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
-    const isMixMatch  = item.remarks?.startsWith('[Drink:') ?? false;
+    const isSticker = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
+    const isMixMatch = item.remarks?.startsWith('[Drink:') ?? false;
     const waffleCount = (item.addOns?.filter(a => a.toLowerCase().includes('waffle combo')).length ?? 0) * item.qty;
     return acc + (isSticker ? item.qty : 0) + (!isSticker && isMixMatch ? item.qty : 0) + (!isSticker ? waffleCount : 0);
   }, 0);
@@ -743,7 +743,7 @@ export const StickerPrint = ({
     }
 
     // ── Waffle combo add-on stickers ──────────────────────────────────────────
-    const isSticker         = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
+    const isSticker = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
     const waffleComboAddOns = item.addOns?.filter(a => a.toLowerCase().includes('waffle combo')) ?? [];
 
     if (!isSticker && waffleComboAddOns.length > 0) {
@@ -775,13 +775,13 @@ export const StickerPrint = ({
     if (!isSticker && isMixMatch) {
       for (let i = 0; i < item.qty; i++) {
         const remarksContent = item.remarks?.replace(/^\[|\]$/g, '') ?? '';
-        const parts      = remarksContent.split(' | ');
-        const drinkName  = parts.find(p => p.startsWith('Drink:'))?.replace('Drink: ', '') ?? '';
-        const sugarPart  = parts.find(p => p.startsWith('Sugar:'))?.replace('Sugar: ', '') ?? '';
-        const options    = parts.filter(p => !p.startsWith('Drink:') && !p.startsWith('Sugar:') && !p.startsWith('+'));
-        const addOns     = parts.filter(p => p.startsWith('+')).map(p => p.replace('+', '').trim());
+        const parts = remarksContent.split(' | ');
+        const drinkName = parts.find(p => p.startsWith('Drink:'))?.replace('Drink: ', '') ?? '';
+        const sugarPart = parts.find(p => p.startsWith('Sugar:'))?.replace('Sugar: ', '') ?? '';
+        const options = parts.filter(p => !p.startsWith('Drink:') && !p.startsWith('Sugar:') && !p.startsWith('+'));
+        const addOns = parts.filter(p => p.startsWith('+')).map(p => p.replace('+', '').trim());
         const extraCount = options.length + addOns.length;
-        const cls        = getStickerClasses(extraCount);
+        const cls = getStickerClasses(extraCount);
 
         stickers.push(
           <div
@@ -850,7 +850,7 @@ export const StickerPrint = ({
     // ── Standard drink stickers ───────────────────────────────────────────────
     for (let i = 0; i < item.qty; i++) {
       const extraCount = (item.options?.length ?? 0) + (item.addOns?.length ?? 0);
-      const cls        = getStickerClasses(extraCount, item.name.length);
+      const cls = getStickerClasses(extraCount, item.name.length);
 
       stickers.push(
         <div

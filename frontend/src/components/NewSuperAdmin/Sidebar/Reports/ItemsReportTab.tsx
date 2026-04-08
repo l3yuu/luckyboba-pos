@@ -25,6 +25,8 @@ const authHeaders = () => ({
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface ItemRow {
   product_name:   string;
+  size?:          string;
+  cup_size_label?: string;
   category:       string;
   total_quantity: number;
   total_revenue:  number;
@@ -36,6 +38,8 @@ interface CategoryOption { id: number; name: string; }
 
 interface ApiItemRow {
   product_name:   string;
+  size?:          string;
+  cup_size_label?: string;
   category:       string | null;
   total_quantity: string | number;
   total_revenue:  string | number;
@@ -160,6 +164,8 @@ const ItemsReportTab: React.FC = () => {
       if (data.top_products) {
         setItems(data.top_products.map((p) => ({
           product_name:   p.product_name,
+          size:           p.size,
+          cup_size_label: p.cup_size_label,
           category:       p.category ?? "—",
           total_quantity: Number(p.total_quantity),
           total_revenue:  Number(p.total_revenue),
@@ -357,6 +363,7 @@ const ItemsReportTab: React.FC = () => {
               <tr className="border-b border-zinc-100">
                 <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400 w-8">#</th>
                 <SortTh col="product_name"   label="Item Name"    />
+                <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">Size</th>
                 <SortTh col="category"       label="Category"     />
                 <SortTh col="total_quantity" label="Qty Sold"     />
                 <SortTh col="total_revenue"  label="Revenue"      />
@@ -404,6 +411,9 @@ const ItemsReportTab: React.FC = () => {
                         <span className="font-semibold text-[#1a0f2e] text-xs">{item.product_name}</span>
                       </div>
                     </td>
+                    <td className="px-5 py-3.5 text-zinc-600 text-xs font-bold">
+                        {item.cup_size_label || item.size || "—"}
+                    </td>
                     <td className="px-5 py-3.5">
                       {item.category !== "—" ? (
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-zinc-100 text-zinc-600 border border-zinc-200">
@@ -440,7 +450,7 @@ const ItemsReportTab: React.FC = () => {
               {!loading && filtered.length > 0 && (
                 <tr className="bg-zinc-50 border-t border-zinc-200">
                   <td className="px-5 py-3.5" />
-                  <td className="px-5 py-3.5 font-black text-[#1a0f2e] text-xs uppercase tracking-widest" colSpan={2}>
+                  <td className="px-5 py-3.5 font-black text-[#1a0f2e] text-xs uppercase tracking-widest" colSpan={3}>
                     Total ({filtered.length} items)
                   </td>
                   <td className="px-5 py-3.5 font-black text-[#1a0f2e] text-xs">{totalQty.toLocaleString()}</td>

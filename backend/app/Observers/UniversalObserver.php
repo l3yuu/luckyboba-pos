@@ -69,7 +69,7 @@ class UniversalObserver
     {
         // Only log if meaningful fields changed (ignore timestamps)
         $dirty = collect($model->getDirty())
-            ->except(['updated_at', 'created_at', 'remember_token'])
+            ->except(['updated_at', 'created_at', 'remember_token', 'password', 'pin', 'two_factor_secret', 'two_factor_recovery_codes'])
             ->keys()
             ->implode(', ');
 
