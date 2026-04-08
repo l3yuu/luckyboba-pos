@@ -12,7 +12,6 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('sales', function (Blueprint $table) {
-            $table->index('branch_id');
             $table->index('status');
             $table->index('is_synced');
             $table->index(['branch_id', 'created_at']);
@@ -25,7 +24,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('sales', function (Blueprint $table) {
-            $table->dropIndex(['branch_id']);
             $table->dropIndex(['status']);
             $table->dropIndex(['is_synced']);
             $table->dropIndex(['branch_id', 'created_at']);
