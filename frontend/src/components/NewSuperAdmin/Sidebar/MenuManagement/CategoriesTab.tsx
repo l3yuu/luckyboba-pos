@@ -781,7 +781,7 @@ const CategoriesTab: React.FC = () => {
       });
       if (res.ok) {
         setCategories(p => p.map(c => c.id === cat.id ? { ...c, is_active: !c.is_active } : c));
-        try { new BroadcastChannel('pos-updates').postMessage('menu-updated'); } catch {}
+        try { new BroadcastChannel('pos-updates').postMessage('menu-updated'); } catch { /* ignored */ }
       }
     } catch { /* silent */ }
   };

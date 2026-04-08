@@ -2467,7 +2467,7 @@ const MenuItemsTab: React.FC = () => {
       const data = await res.json();
       if (res.ok && data.success) {
         setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_available: !i.is_available } : i));
-        try { new BroadcastChannel('pos-updates').postMessage('menu-updated'); } catch {}
+        try { new BroadcastChannel('pos-updates').postMessage('menu-updated'); } catch { /* ignored */ }
       }
     } catch { /* silent */ }
   }, []);
