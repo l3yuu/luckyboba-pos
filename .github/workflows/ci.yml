@@ -112,6 +112,12 @@ jobs:
           npm install
           npm run build
 
+      - name: Debug Connectivity (Production)
+        run: |
+          echo "Checking if host is reachable..."
+          nslookup ${{ secrets.SSH_HOST }} || echo "DNS Lookup Failed"
+          nc -zv -w 5 ${{ secrets.SSH_HOST }} ${{ secrets.SSH_PORT }} || echo "TCP Connection to Port ${{ secrets.SSH_PORT }} Failed"
+
       - name: Upload Build to Hostinger (Production)
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -215,6 +221,12 @@ jobs:
           echo "VITE_API_BASE_URL=https://staging.luckybobastores.com/api" > .env.production
           npm install
           npm run build
+
+      - name: Debug Connectivity (Staging)
+        run: |
+          echo "Checking if host is reachable..."
+          nslookup ${{ secrets.SSH_HOST }} || echo "DNS Lookup Failed"
+          nc -zv -w 5 ${{ secrets.SSH_HOST }} ${{ secrets.SSH_PORT }} || echo "TCP Connection to Port ${{ secrets.SSH_PORT }} Failed"
 
       - name: Upload Build to Hostinger (Staging)
         uses: appleboy/scp-action@v0.1.7

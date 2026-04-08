@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Expense;
-use App\Models\Branch;
+use App\Models\Sale;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
@@ -17,44 +17,59 @@ class ExpenseController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Expense::with('branch:id,name');
+        $from = $request->date_from ?? $request->from ?? now()->startOfMonth()->toDateString();
+        $to   = $request->date_to   ?? $request->to   ?? now()->toDateString();
+        $user = $request->user();
 
-        // Filters
-        if ($request->branch_id) {
+        $query = Expense::with(['branch:id,name', 'recorder:id,name']);
+
+        // Role-based filtering
+        if ($user->role !== 'superadmin') {
+            $query->where('branch_id', $user->branch_id);
+        } elseif ($request->branch_id) {
             $query->where('branch_id', $request->branch_id);
         }
-        if ($request->category) {
+
+        // Date Range Filtering
+        $query->whereBetween('date', [$from, $to]);
+
+        // Category Filter
+        if ($request->category && $request->category !== 'ALL') {
             $query->where('category', $request->category);
         }
-        if ($request->date_from) {
-            $query->whereDate('date', '>=', $request->date_from);
-        }
-        if ($request->date_to) {
-            $query->whereDate('date', '<=', $request->date_to);
+
+        // Search by Title or Ref #
+        if ($request->search) {
+            $query->where(function($q) use ($request) {
+                $q->where('title', 'like', '%' . $request->search . '%')
+                  ->orWhere('ref_num', 'like', '%' . $request->search . '%');
+            });
         }
 
         $expenses = $query->orderBy('date', 'desc')->get();
 
-        // Transform for frontend
-        $data = $expenses->map(function ($e) {
-            return [
-                'id'           => $e->id,
-                'title'        => $e->title,
-                'amount'       => (float) $e->amount,
-                'category'     => $e->category,
-                'branch_id'    => $e->branch_id,
-                'branch_name'  => $e->branch->name ?? '—',
-                'expense_date' => Carbon::parse($e->date)->format('Y-m-d'),
-                'receipt_path' => $e->receipt_path,
-                'notes'        => $e->notes,
-                'recorded_by'  => $e->recorded_by ?? 'Admin',
-                'created_at'   => $e->created_at->toISOString(),
-            ];
-        });
+        // Calculate Totals for Stats
+        $totalExpense = (float) $expenses->sum('amount');
+
+        // Total Sales calculation (scoped same as expenses for comparison)
+        $salesQuery = Sale::whereBetween('created_at', [$from . ' 00:00:00', $to . ' 23:59:59'])
+            ->where('status', 'completed');
+
+        if ($user->role !== 'superadmin') {
+            $salesQuery->where('branch_id', $user->branch_id);
+        } elseif ($request->branch_id) {
+            $salesQuery->where('branch_id', $request->branch_id);
+        }
+        $totalSales = (float) $salesQuery->sum('total_amount');
 
         return response()->json([
             'success' => true,
-            'data'    => $data
+            'data'    => $expenses->map(function(Expense $e) { return $this->transform($e); }),
+            'summary' => [
+                'total_expense' => $totalExpense,
+                'total_sales'   => $totalSales,
+                'count'         => $expenses->count()
+            ]
         ]);
     }
 
@@ -70,7 +85,8 @@ class ExpenseController extends Controller
             'branch_id'    => 'required|integer|exists:branches,id',
             'expense_date' => 'required|date',
             'notes'        => 'nullable|string',
-            'receipt'      => 'nullable|image|max:2048', // max 2MB
+            'receipt'      => 'nullable|image|max:2048',
+            'refNum'       => 'nullable|string|unique:expenses,ref_num'
         ]);
 
         $receiptPath = null;
@@ -87,25 +103,24 @@ class ExpenseController extends Controller
             'date'         => $validated['expense_date'],
             'notes'        => $validated['notes'] ?? null,
             'receipt_path' => $receiptPath,
-            'recorded_by'  => auth()->user()->name ?? 'Admin',
-            'ref_num'      => 'EXP-' . strtoupper(uniqid()),
+            'recorded_by'  => $request->user()->id,
+            'ref_num'      => $validated['refNum'] ?? 'EXP-' . strtoupper(uniqid()),
         ]);
-
-        // Load branch relation for response
-        $expense->load('branch:id,name');
 
         return response()->json([
             'success' => true,
             'message' => 'Expense recorded successfully',
-            'data'    => $this->transform($expense)
+            'data'    => $this->transform($expense->load(['branch', 'recorder']))
         ], 201);
     }
 
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, Expense $expense)
+    public function update(Request $request, $id)
     {
+        $expense = Expense::findOrFail($id);
+
         $validated = $request->validate([
             'title'        => 'required|string|max:255',
             'amount'       => 'required|numeric|min:0',
@@ -114,7 +129,13 @@ class ExpenseController extends Controller
             'expense_date' => 'required|date',
             'notes'        => 'nullable|string',
             'receipt'      => 'nullable|image|max:2048',
+            'refNum'       => 'nullable|string|unique:expenses,ref_num,' . $id
         ]);
+
+        $user = $request->user();
+        if ($user->role !== 'superadmin' && $expense->branch_id !== $user->branch_id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
 
         $data = [
             'title'     => $validated['title'],
@@ -123,10 +144,10 @@ class ExpenseController extends Controller
             'branch_id' => $validated['branch_id'],
             'date'      => $validated['expense_date'],
             'notes'     => $validated['notes'] ?? null,
+            'ref_num'   => $validated['refNum'] ?? $expense->ref_num,
         ];
 
         if ($request->hasFile('receipt')) {
-            // Delete old receipt if exists
             if ($expense->receipt_path) {
                 $oldPath = str_replace(asset('storage/'), '', $expense->receipt_path);
                 Storage::disk('public')->delete($oldPath);
@@ -136,20 +157,26 @@ class ExpenseController extends Controller
         }
 
         $expense->update($data);
-        $expense->load('branch:id,name');
 
         return response()->json([
             'success' => true,
             'message' => 'Expense updated successfully',
-            'data'    => $this->transform($expense)
+            'data'    => $this->transform($expense->load(['branch', 'recorder']))
         ]);
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Expense $expense)
+    public function destroy(Request $request, $id)
     {
+        $expense = Expense::findOrFail($id);
+        $user = $request->user();
+
+        if ($user->role !== 'superadmin' && $expense->branch_id !== $user->branch_id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
         if ($expense->receipt_path) {
             $oldPath = str_replace(asset('storage/'), '', $expense->receipt_path);
             Storage::disk('public')->delete($oldPath);
@@ -168,46 +195,49 @@ class ExpenseController extends Controller
      */
     public function export(Request $request)
     {
-        $query = Expense::with('branch:id,name');
+        $from = $request->from ?? now()->startOfMonth()->toDateString();
+        $to   = $request->to   ?? now()->toDateString();
+        $user = $request->user();
 
-        if ($request->branch_id) {
+        $query = Expense::with(['branch', 'recorder']);
+
+        if ($user->role !== 'superadmin') {
+            $query->where('branch_id', $user->branch_id);
+        } elseif ($request->branch_id) {
             $query->where('branch_id', $request->branch_id);
         }
-        if ($request->category) {
+
+        $query->whereBetween('date', [$from, $to]);
+
+        if ($request->category && $request->category !== 'ALL') {
             $query->where('category', $request->category);
-        }
-        if ($request->date_from) {
-            $query->whereDate('date', '>=', $request->date_from);
-        }
-        if ($request->date_to) {
-            $query->whereDate('date', '<=', $request->date_to);
         }
 
         $expenses = $query->orderBy('date', 'desc')->get();
 
+        $filename = "expenses_export_" . now()->format('Y-m-d_H-i-s') . ".csv";
         $headers = [
             "Content-type"        => "text/csv",
-            "Content-Disposition" => "attachment; filename=expenses-" . now()->format('Y-m-d') . ".csv",
+            "Content-Disposition" => "attachment; filename=$filename",
             "Pragma"              => "no-cache",
             "Cache-Control"       => "must-revalidate, post-check=0, pre-check=0",
             "Expires"             => "0"
         ];
 
-        $columns = ['Date', 'Title', 'Category', 'Branch', 'Amount', 'Recorded By', 'Notes'];
-
-        $callback = function() use($expenses, $columns) {
+        $callback = function() use ($expenses) {
             $file = fopen('php://output', 'w');
-            fputcsv($file, $columns);
+            fputcsv($file, ['Date', 'Reference #', 'Title', 'Category', 'Branch', 'Amount', 'Recorded By', 'Notes']);
 
-            foreach ($expenses as $e) {
+            foreach ($expenses as $exp) {
                 fputcsv($file, [
-                    Carbon::parse($e->date)->format('Y-m-d'),
-                    $e->title,
-                    $e->category,
-                    $e->branch->name ?? '—',
-                    $e->amount,
-                    $e->recorded_by ?? 'Admin',
-                    $e->notes
+                    Carbon::parse($exp->date)->format('Y-m-d'),
+                    $exp->ref_num,
+                    $exp->title,
+                    $exp->category,
+                    $exp->branch?->name ?? 'N/A',
+                    $exp->amount,
+                    $exp->recorder?->name ?? 'Admin',
+                    $exp->notes
                 ]);
             }
 
@@ -218,7 +248,7 @@ class ExpenseController extends Controller
     }
 
     /**
-     * Transform model for frontend
+     * Transform model to standardized frontend format.
      */
     private function transform(Expense $e)
     {
@@ -232,7 +262,8 @@ class ExpenseController extends Controller
             'expense_date' => Carbon::parse($e->date)->format('Y-m-d'),
             'receipt_path' => $e->receipt_path,
             'notes'        => $e->notes,
-            'recorded_by'  => $e->recorded_by ?? 'Admin',
+            'ref_num'      => $e->ref_num,
+            'recorded_by'  => $e->recorder->name ?? 'Admin',
             'created_at'   => $e->created_at->toISOString(),
         ];
     }
