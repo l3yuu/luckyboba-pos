@@ -176,11 +176,12 @@ class MenuItemController extends Controller
     public function import(Request $request)
     {
         $request->validate([
-            'file' => 'required|mimes:xlsx,xls,csv|max:10240',
+            'file' => 'required|mimes:xlsx,xls,csv|max:4096',
+            'branch_id' => 'required|exists:branches,id',
         ]);
 
         try {
-            Excel::import(new MenuItemImport, $request->file('file'));
+            Excel::import(new MenuItemImport($request->branch_id), $request->file('file'));
             return response()->json(['success' => true, 'message' => 'Items imported/updated successfully.']);
         } catch (\Exception $e) {
             \Log::error('Import Error: ' . $e->getMessage());

@@ -12,6 +12,13 @@ use Illuminate\Support\Str;
 
 class MenuItemImport implements ToModel, WithHeadingRow, SkipsEmptyRows
 {
+    protected $branchId;
+
+    public function __construct($branchId)
+    {
+        $this->branchId = $branchId;
+    }
+
     /**
     * @param array $row
     *
@@ -41,6 +48,7 @@ class MenuItemImport implements ToModel, WithHeadingRow, SkipsEmptyRows
         }
 
         $data = [
+            'branch_id'       => $this->branchId,
             'name'            => $name,
             'category_id'     => $categoryId,
             'sub_category_id' => $subCategoryId,
