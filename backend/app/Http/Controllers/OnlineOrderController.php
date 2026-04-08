@@ -76,141 +76,157 @@ class OnlineOrderController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $request->validate([
-            'si_number'      => 'required|string',
-            'subtotal'       => 'required|numeric',
-            'total'          => 'required|numeric',
-            'payment_method' => 'required|string',
-            'order_type'     => 'required|string',
-            'items'          => 'required|array',
-            'branch_name'    => 'required|string',
-        ]);
-
-        $promoApplied = $request->input('promo_applied'); 
-        $allowedPromos = ['Buy 1, Get 1 Free', '10% Off All Items'];
-        if ($promoApplied !== null && !in_array($promoApplied, $allowedPromos)) {
-            return response()->json(['message' => 'Invalid promo type.'], 422);
-        }
-
-        // ── B1T1 validation: only valid for Classic Milktea items ─────────────
-        if ($promoApplied === 'Buy 1, Get 1 Free') {
-            $items    = collect($request->input('items', []));
-            $itemIds  = $items->pluck('menu_item_id')->filter()->values()->toArray();
-
-            $classicItems = \DB::table('menu_items')
-                ->whereIn('id', $itemIds)
-                ->where('category_id', 22)
-                ->get();
-
-            $classicQty = 0;
-            foreach ($classicItems as $classicItem) {
-                $ordered     = $items->firstWhere('menu_item_id', $classicItem->id);
-                $classicQty += $ordered['quantity'] ?? 1;
-            }
-
-            if ($classicQty < 2) {
-                return response()->json([
-                    'message' => 'Buy 1 Take 1 requires at least 2 Classic Milktea items in your cart.',
-                ], 422);
-            }
-        }
-
-        // ── Record perk usage ─────────────────────────────────────────────────
-        if ($promoApplied && $request->input('card_id')) {
-            $today  = now()->toDateString();
-            $userId = $request->user()->id;
-            $cardId = $request->input('card_id');
-
-            $alreadyUsed = \DB::table('card_usage_logs')
-                ->where('user_id', $userId)
-                ->where('promo_type', $promoApplied)
-                ->whereDate('used_date', $today)
-                ->exists();
-
-            if ($alreadyUsed) {
-                return response()->json([
-                    'message' => 'You have already used this perk today.',
-                ], 409);
-            }
-
-            \DB::table('card_usage_logs')->insert([
-                'user_id'    => $userId,
-                'card_id'    => $cardId,
-                'promo_type' => $promoApplied, // stores 'Buy 1, Get 1 Free' or '10% Off All Items'
-                'used_date'  => $today,
-                'created_at' => now(),
-                'updated_at' => now(),
+        try {
+            $request->validate([
+                'si_number'      => 'required|string',
+                'subtotal'       => 'required|numeric',
+                'total'          => 'required|numeric',
+                'payment_method' => 'required|string',
+                'order_type'     => 'required|string',
+                'items'          => 'required|array',
+                'branch_name'    => 'required|string',
             ]);
-        }
 
-        $branch = \App\Models\Branch::whereRaw(
-            'LOWER(name) = ?', [strtolower($request->input('branch_name'))]
-        )->first();
+            $promoApplied = $request->input('promo_applied'); 
+            $allowedPromos = ['Buy 1, Get 1 Free', '10% Off All Items'];
+            if ($promoApplied !== null && !in_array($promoApplied, $allowedPromos)) {
+                return response()->json(['message' => 'Invalid promo type.'], 422);
+            }
 
-        \Log::info('Branch lookup', [
-            'requested' => $request->input('branch_name'),
-            'found'     => $branch?->name,
-            'found_id'  => $branch?->id,
-        ]);
+            // ── B1T1 validation: only valid for Classic Milktea items ─────────────
+            if ($promoApplied === 'Buy 1, Get 1 Free') {
+                $items    = collect($request->input('items', []));
+                $itemIds  = $items->pluck('menu_item_id')->filter()->values()->toArray();
 
-        $sale = Sale::create([
-            'invoice_number' => $request->si_number,
-            'branch_id'      => $branch?->id,
-            'user_id'        => $request->user()->id,
-            'customer_name'  => $request->user()->name,
-            'total_amount'   => $request->total,
-            'subtotal'       => $request->subtotal,
-            'vatable_sales'  => $request->input('vatable_sales', 0),
-            'vat_amount'     => $request->input('vat_amount', 0),
-            'payment_method' => $request->payment_method,
-            'order_type'     => $request->order_type,
-            'cashier_name'   => 'Customer App',
-            'status'         => 'pending',
-            'cash_tendered'  => $request->input('cash_tendered', $request->total),
-        ]);
+                $classicItems = \DB::table('menu_items')
+                    ->whereIn('id', $itemIds)
+                    ->where('category_id', 22)
+                    ->get();
 
-        foreach ($request->items as $item) {
-            $sale->items()->create([
-                'product_name' => $item['name'],
-                'quantity'     => $item['quantity'],
-                'unit_price'   => $item['unit_price'],
-                'price'        => $item['unit_price'],
-                'final_price'  => $item['total_price'],
-                'menu_item_id' => $item['menu_item_id'] ?? null,
-                'size'         => $item['cup_size'] ?? null,
-                'add_ons'      => $item['add_ons'] ?? null,
+                $classicQty = 0;
+                foreach ($classicItems as $classicItem) {
+                    $ordered     = $items->firstWhere('menu_item_id', $classicItem->id);
+                    $classicQty += $ordered['quantity'] ?? 1;
+                }
+
+                if ($classicQty < 2) {
+                    return response()->json([
+                        'message' => 'Buy 1 Take 1 requires at least 2 Classic Milktea items in your cart.',
+                    ], 422);
+                }
+            }
+
+            // ── Record perk usage ─────────────────────────────────────────────────
+            if ($promoApplied && $request->input('card_id')) {
+                $today  = now()->toDateString();
+                $userId = $request->user()->id;
+                $cardId = $request->input('card_id');
+
+                $alreadyUsed = \DB::table('card_usage_logs')
+                    ->where('user_id', $userId)
+                    ->where('promo_type', $promoApplied)
+                    ->whereDate('used_date', $today)
+                    ->exists();
+
+                if ($alreadyUsed) {
+                    return response()->json([
+                        'message' => 'You have already used this perk today.',
+                    ], 409);
+                }
+
+                \DB::table('card_usage_logs')->insert([
+                    'user_id'    => $userId,
+                    'card_id'    => $cardId,
+                    'promo_type' => $promoApplied, // stores 'Buy 1, Get 1 Free' or '10% Off All Items'
+                    'used_date'  => $today,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            $branch = \App\Models\Branch::whereRaw(
+                'LOWER(name) = ?', [strtolower($request->input('branch_name'))]
+            )->first();
+
+            \Log::info('Branch lookup', [
+                'requested' => $request->input('branch_name'),
+                'found'     => $branch?->name,
+                'found_id'  => $branch?->id,
             ]);
+
+            $sale = Sale::create([
+                'invoice_number' => $request->si_number,
+                'branch_id'      => $branch?->id,
+                'user_id'        => $request->user()->id,
+                'customer_name'  => $request->user()->name,
+                'total_amount'   => $request->total,
+                'subtotal'       => $request->subtotal,
+                'vatable_sales'  => $request->input('vatable_sales', 0),
+                'vat_amount'     => $request->input('vat_amount', 0),
+                'payment_method' => $request->payment_method,
+                'order_type'     => $request->order_type,
+                'cashier_name'   => 'Customer App',
+                'status'         => 'pending',
+                'cash_tendered'  => $request->input('cash_tendered', $request->total),
+            ]);
+
+            foreach ($request->items as $item) {
+                $sale->items()->create([
+                    'product_name' => $item['name'],
+                    'quantity'     => $item['quantity'],
+                    'unit_price'   => $item['unit_price'],
+                    'price'        => $item['unit_price'],
+                    'final_price'  => $item['total_price'],
+                    'menu_item_id' => $item['menu_item_id'] ?? null,
+                    'size'         => $item['cup_size'] ?? null,
+                    'add_ons'      => $item['add_ons'] ?? null,
+                ]);
+            }
+
+            $sale->load(['items', 'user', 'branch']);
+
+            $pointsEarned = (int) floor($request->total);
+            if ($request->input('card_id')) {
+                $pointsEarned *= 2;
+            }
+
+            \DB::table('user_points')->updateOrInsert(
+                ['user_id' => $request->user()->id],
+                ['points'  => \DB::raw("points + $pointsEarned"), 'updated_at' => now()]
+            );
+
+            \DB::table('point_transactions')->insert([
+                'user_id'      => $request->user()->id,
+                'type'         => 'earn',
+                'points'       => $pointsEarned,
+                'source'       => 'order',
+                'reference_id' => $sale->id,
+                'note'         => "Earned from order {$sale->invoice_number}",
+                'created_at'   => now(),
+            ]);
+
+            return response()->json([
+                'success'   => true,
+                'si_number' => $sale->invoice_number,
+                'qr_code'   => str_replace('APP-', '', $sale->invoice_number),
+                'points_earned' => $pointsEarned, 
+                'order'     => $this->formatOrder($sale),
+            ], 201);
+
+        } catch (\Exception $e) {
+            \Log::error('Order placement failed', [
+                'error' => $e->getMessage(),
+                'line'  => $e->getLine(),
+                'file'  => $e->getFile(),
+                'trace' => $e->getTraceAsString(),
+                'data'  => $request->all(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Server Error: ' . $e->getMessage(), // Show message temporarily for debugging
+            ], 500);
         }
-
-        $sale->load(['items', 'user', 'branch']);
-
-        $pointsEarned = (int) floor($request->total);
-        if ($request->input('card_id')) {
-            $pointsEarned *= 2;
-        }
-
-        DB::table('user_points')->updateOrInsert(
-            ['user_id' => $request->user()->id],
-            ['points'  => DB::raw("points + $pointsEarned"), 'updated_at' => now()]
-        );
-
-        DB::table('point_transactions')->insert([
-            'user_id'      => $request->user()->id,
-            'type'         => 'earn',
-            'points'       => $pointsEarned,
-            'source'       => 'order',
-            'reference_id' => $sale->id,
-            'note'         => "Earned from order {$sale->invoice_number}",
-            'created_at'   => now(),
-        ]);
-
-        return response()->json([
-            'success'   => true,
-            'si_number' => $sale->invoice_number,
-            'qr_code'   => str_replace('APP-', '', $sale->invoice_number),
-            'points_earned' => $pointsEarned, 
-            'order'     => $this->formatOrder($sale),
-        ], 201);
     }
 
     
