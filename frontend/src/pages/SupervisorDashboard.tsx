@@ -5,15 +5,16 @@ import SupervisorSidebar from '../components/Supervisor/SupervisorSidebar';
 import OpsTopBar from '../components/Supervisor/OpsTopBar';
 
 // Reuse Team Leader panels where scope matches
-import TL_DashboardPanel   from '../components/TeamLeader/Home/TL_DashboardPanel';
-import StaffOverviewPanel  from '../components/TeamLeader/Home/StaffOverviewPanel';
-import SalesDashboardPanel from '../components/TeamLeader/Reports/SalesDashboardPanel';
-import ItemsReportPanel    from '../components/TeamLeader/Reports/ItemsReportPanel';
+// New Supervisor Panels (Premium UI)
+import SV_DashboardPanel   from '../components/Supervisor/Home/SV_DashboardPanel';
+import SV_StaffOverview    from '../components/Supervisor/Home/StaffOverviewPanel';
+import SV_VoidJournal      from '../components/Supervisor/FloorOps/VoidJournalPanel';
+import SV_SalesAnalytics   from '../components/Supervisor/Reports/SalesAnalyticsPanel';
+import SV_ItemsReport      from '../components/Supervisor/Reports/ItemsReportPanel';
+import SV_StockLevels      from '../components/Supervisor/Inventory/StockLevelsPanel';
+import SV_ItemChecker      from '../components/Supervisor/Inventory/ItemCheckerPanel';
+import SVZReading          from '../components/Supervisor/Reports/SVZReading';
 import XReadingPanel       from '../components/TeamLeader/Reports/XReadingPanel';
-import SVZReading from '../components/Supervisor/Reports/SVZReading';
-import SV_VoidLogsPanel    from '../components/Supervisor/Logging/SVVoidLogs';
-import InventoryListPanel  from '../components/TeamLeader/Inventory/InventoryListPanel';
-import ItemCheckerPanel    from '../components/TeamLeader/Inventory/ItemCheckerPanel';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const DASHBOARD_STYLES = `
@@ -62,16 +63,16 @@ const SupervisorDashboard = () => {
   const renderContent = () => {
     const bId = authUser?.branch_id ?? null;
     switch (activeTab) {
-      case 'dashboard':       return <TL_DashboardPanel />;
-      case 'users':           return <StaffOverviewPanel  branchId={bId} />;
-      case 'void-logs':       return <SV_VoidLogsPanel    branchId={bId} />;
-      case 'sales-dashboard': return <SalesDashboardPanel branchId={bId} />;
-      case 'items-report':    return <ItemsReportPanel    branchId={bId} />;
-      case 'x-reading':       return <XReadingPanel       branchId={bId} />;
-      case 'z-reading':       return <SVZReading          branchId={bId} />;
-      case 'inventory-list':  return <InventoryListPanel  branchId={bId} />;
-      case 'item-checker':    return <ItemCheckerPanel    branchId={bId} />;
-      default:                return <TL_DashboardPanel />;
+      case 'dashboard':       return <SV_DashboardPanel branchId={bId} />;
+      case 'users':           return <SV_StaffOverview  branchId={bId} />;
+      case 'void-logs':       return <SV_VoidJournal    branchId={bId} />;
+      case 'sales-dashboard': return <SV_SalesAnalytics branchId={bId} />;
+      case 'items-report':    return <SV_ItemsReport    branchId={bId} />;
+      case 'x-reading':       return <XReadingPanel     branchId={bId} />;
+      case 'z-reading':       return <SVZReading        branchId={bId} />;
+      case 'inventory-list':  return <SV_StockLevels    branchId={bId} />;
+      case 'item-checker':    return <SV_ItemChecker    branchId={bId} />;
+      default:                return <SV_DashboardPanel branchId={bId} />;
     }
   };
 
@@ -97,8 +98,8 @@ const SupervisorDashboard = () => {
             onMenuClick={() => setSidebarOpen(true)}
           />
 
-          <div className="flex-1 overflow-auto bg-[#f1f5f9]/20">
-            <div className="p-4 md:p-6 max-w-[1600px] mx-auto animate-in fade-in duration-500">
+          <div className="flex-1 overflow-auto bg-[#fdfcff]">
+            <div className="animate-in fade-in duration-500">
               {renderContent()}
             </div>
           </div>

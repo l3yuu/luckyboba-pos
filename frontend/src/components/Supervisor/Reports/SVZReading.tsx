@@ -78,16 +78,16 @@ const Divider = () => <div className="border-t border-dashed border-black my-1.5
 
 // ─── Menu card config ─────────────────────────────────────────────────────────
 const MENU_CARDS = [
-  { label: 'Report',      title: 'Hourly Sales',   type: 'hourly_sales', icon: <BarChart3 size={15} />,   iconBg: '#ede9fe', iconColor: '#7c3aed' },
-  { label: 'Overview',    title: 'Sales Summary',  type: 'summary',      icon: <Activity size={15} />,    iconBg: '#dcfce7', iconColor: '#16a34a' },
-  { label: 'Audit',       title: 'Void Logs',      type: 'void_logs',    icon: <AlertCircle size={15} />, iconBg: '#fee2e2', iconColor: '#dc2626' },
-  { label: 'Transaction', title: 'Search Receipt', type: 'search',       icon: <Search size={15} />,      iconBg: '#e0f2fe', iconColor: '#0284c7' },
-  { label: 'Export',      title: 'Export Sales',   type: 'export_sales', icon: <FileText size={15} />,    iconBg: '#fef9c3', iconColor: '#ca8a04' },
-  { label: 'Analysis',    title: 'Sales Detailed', type: 'detailed',     icon: <CreditCard size={15} />,  iconBg: '#f4f4f5', iconColor: '#71717a' },
-  { label: 'Inventory',   title: 'Export Items',   type: 'export_items', icon: <ShoppingBag size={15} />, iconBg: '#fef9c3', iconColor: '#ca8a04' },
-  { label: 'Inventory',   title: 'Qty Items',      type: 'qty_items',    icon: <Hash size={15} />,        iconBg: '#f4f4f5', iconColor: '#71717a' },
-  { label: 'Z-Reading',   title: 'Z-Reading',      type: 'z_reading',    icon: <FileText size={15} />,    iconBg: '#dcfce7', iconColor: '#16a34a' },
-  { label: 'Cash',        title: 'Cash Count',     type: 'cash_count',   icon: <Banknote size={15} />,    iconBg: '#dcfce7', iconColor: '#16a34a' },
+  { label: 'Report',      title: 'Hourly Sales',   type: 'hourly_sales', icon: <BarChart3 size={15} />,   iconBg: '#3b206310', iconColor: '#3b2063' },
+  { label: 'Overview',    title: 'Sales Summary',  type: 'summary',      icon: <Activity size={15} />,    iconBg: '#3b206310', iconColor: '#3b2063' },
+  { label: 'Audit',       title: 'Void Logs',      type: 'void_logs',    icon: <AlertCircle size={15} />, iconBg: '#3b206310', iconColor: '#3b2063' },
+  { label: 'Transaction', title: 'Search Receipt', type: 'search',       icon: <Search size={15} />,      iconBg: '#3b206310', iconColor: '#3b2063' },
+  { label: 'Export',      title: 'Export Sales',   type: 'export_sales', icon: <FileText size={15} />,    iconBg: '#3b206310', iconColor: '#3b2063' },
+  { label: 'Analysis',    title: 'Sales Detailed', type: 'detailed',     icon: <CreditCard size={15} />,  iconBg: '#3b206310', iconColor: '#3b2063' },
+  { label: 'Inventory',   title: 'Export Items',   type: 'export_items', icon: <ShoppingBag size={15} />, iconBg: '#3b206310', iconColor: '#3b2063' },
+  { label: 'Inventory',   title: 'Qty Items',      type: 'qty_items',    icon: <Hash size={15} />,        iconBg: '#3b206310', iconColor: '#3b2063' },
+  { label: 'Z-Reading',   title: 'Z-Reading',      type: 'z_reading',    icon: <FileText size={15} />,    iconBg: '#3b206310', iconColor: '#3b2063' },
+  { label: 'Cash',        title: 'Cash Count',     type: 'cash_count',   icon: <Banknote size={15} />,    iconBg: '#3b206310', iconColor: '#3b2063' },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -740,7 +740,7 @@ const ccData   = ccRes.data as Record<string, unknown>;
               <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: '#dcfce7', color: '#16a34a' }}>
                 <FileText size={13} strokeWidth={2.5} />
               </div>
-              <h2 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.025em', margin: 0 }}>
+              <h2 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#3b2063', letterSpacing: '-0.025em', margin: 0 }}>
                 Report Controls
               </h2>
             </div>
@@ -752,7 +752,7 @@ const ccData   = ccRes.data as Record<string, unknown>;
                 <button
                   onClick={() => setIsMenuOpen(!isMenuOpen)}
                   className="flex items-center gap-2 h-11 px-5 rounded-xl font-bold text-xs uppercase tracking-widest transition-all"
-                  style={{ background: isMenuOpen ? '#1a0f2e' : '#f5f4f8', color: isMenuOpen ? '#fff' : '#3b2063', border: `1px solid ${isMenuOpen ? '#1a0f2e' : '#e4e4e7'}` }}
+                  style={{ background: isMenuOpen ? '#3b2063' : '#f5f4f8', color: isMenuOpen ? '#fff' : '#3b2063', border: `1px solid ${isMenuOpen ? '#3b2063' : '#e4e4e7'}` }}
                 >
                   <Menu size={14} strokeWidth={2.5} />
                   Select Report
@@ -789,9 +789,9 @@ const ccData   = ccRes.data as Record<string, unknown>;
                     <label className="zr-label flex items-center gap-1.5 ml-1"><ToggleLeft size={11} /> Date Mode</label>
                     <div className="flex rounded-xl overflow-hidden border border-gray-100">
                       <button onClick={() => setDateMode('single')} className="px-4 h-11 text-xs font-bold uppercase tracking-widest transition-all"
-                        style={{ background: dateMode === 'single' ? '#1a0f2e' : '#f5f4f8', color: dateMode === 'single' ? '#fff' : '#a1a1aa' }}>Day</button>
+                        style={{ background: dateMode === 'single' ? '#3b2063' : '#f5f4f8', color: dateMode === 'single' ? '#fff' : '#a1a1aa' }}>Day</button>
                       <button onClick={() => setDateMode('range')} className="px-4 h-11 text-xs font-bold uppercase tracking-widest transition-all border-l border-gray-100"
-                        style={{ background: dateMode === 'range' ? '#1a0f2e' : '#f5f4f8', color: dateMode === 'range' ? '#fff' : '#a1a1aa' }}>Range</button>
+                        style={{ background: dateMode === 'range' ? '#3b2063' : '#f5f4f8', color: dateMode === 'range' ? '#fff' : '#a1a1aa' }}>Range</button>
                     </div>
                   </div>
                 </div>
@@ -845,8 +845,12 @@ const ccData   = ccRes.data as Record<string, unknown>;
 
               {/* Action buttons */}
               <div className="flex gap-2 w-full lg:w-auto">
-                <button onClick={() => fetchReportData(reportData?.report_type ?? 'z_reading')} disabled={loading}
-                  className="flex-1 lg:flex-none px-5 h-11 rounded-xl bg-[#1a0f2e] hover:bg-[#2a1647] text-white font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                <button 
+                  onClick={() => fetchReportData(reportData?.report_type ?? 'z_reading')} 
+                  disabled={loading}
+                  style={{ backgroundColor: '#3b2063' }}
+                  className="flex-1 lg:flex-none px-5 h-11 rounded-xl text-white font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
                   <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
                   {loading ? 'Loading…' : 'Generate'}
                 </button>
