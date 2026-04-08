@@ -85,14 +85,14 @@ const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, trend, col
   };
   const c = colors[color];
   return (
-    <div className="bg-white border border-zinc-200 rounded-[1.25rem] px-6 py-5 flex items-center justify-between card shadow-sm">
+    <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center justify-between card shadow-sm">
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <div className={`w-10 h-10 ${c.bg} border ${c.border} flex items-center justify-center rounded-[0.4rem] shrink-0`}>
           <span className={c.icon}>{icon}</span>
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{label}</p>
-          <p className="text-lg font-bold text-[#1a0f2e] tabular-nums whitespace-nowrap">{value}</p>
+          <p className="text-xl font-bold text-[#1a0f2e] tabular-nums whitespace-nowrap">{value}</p>
         </div>
       </div>
       {trend !== undefined && (
@@ -125,9 +125,36 @@ const Btn: React.FC<BtnProps> = ({
   );
 };
 
-const SkeletonBar: React.FC<{ w?: string; h?: string }> = ({ w = "w-full", h = "h-4" }) => (
-  <div className={`${w} ${h} bg-zinc-100 rounded animate-pulse`} />
+const Skeleton: React.FC<{ className?: string }> = ({ className }) => (
+  <div className={`bg-zinc-100 animate-pulse rounded ${className}`} />
 );
+
+const StatCardSkeleton = () => (
+  <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center justify-between shadow-sm">
+    <div className="flex items-center gap-3">
+      <Skeleton className="w-10 h-10 rounded-[0.4rem]" />
+      <div className="space-y-2">
+        <Skeleton className="w-16 h-2" />
+        <Skeleton className="w-24 h-5" />
+      </div>
+    </div>
+    <Skeleton className="w-12 h-3" />
+  </div>
+);
+
+const ChartSkeleton = ({ height = "h-[300px]" }: { height?: string }) => (
+  <div className={`w-full ${height} bg-zinc-50 border border-zinc-100 rounded-[0.4rem] p-4 flex flex-col justify-end gap-2 animate-pulse`}>
+    <div className="flex items-end gap-1 h-3/4">
+      {[...Array(12)].map((_, i) => (
+        <div key={i} className="flex-1 bg-zinc-200 rounded-t" style={{ height: `${20 + Math.random() * 80}%` }} />
+      ))}
+    </div>
+    <div className="flex justify-between">
+      {[...Array(6)].map((_, i) => <Skeleton key={i} className="w-8 h-2" />)}
+    </div>
+  </div>
+);
+
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface SummaryTotals {
@@ -290,16 +317,16 @@ const OverviewTab: React.FC = () => {
       `}</style>
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-xl font-bold text-[#1a0f2e]">Overview</h2>
+            <h2 className="text-xl font-black text-[#1a0f2e]">Overview</h2>
             <div className="flex items-center gap-1.5 px-2 py-0.5 bg-rose-50 text-rose-600 rounded-full border border-rose-100">
               <span className="w-1.5 h-1.5 rounded-full bg-rose-600 pulse-indicator" />
-              <span className="text-[0.6rem] font-bold uppercase tracking-wider">Live</span>
+              <span className="text-[0.6rem] font-black uppercase tracking-wider">Live</span>
             </div>
           </div>
-          <p className="text-xs text-zinc-400 mt-0.5">Real-time control center for business operations</p>
+          <p className="text-xs text-zinc-400 font-bold uppercase tracking-tighter opacity-70 mt-0.5">Real-time control center for business operations</p>
         </div>
         <div className="flex items-center gap-2 text-right">
           <div className="mr-2 hidden sm:block">
@@ -320,77 +347,87 @@ const OverviewTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Row 1: Main Stats (Classic UI Cards) */}
+      {/* Row 1: Main Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        {/* Revenue Performance Card */}
-        <StatCard
-          icon={<DollarSign size={18} strokeWidth={2.5} />}
-          label="Revenue Performance"
-          value={loading ? "—" : fmt(totals?.grand_total ?? 0)}
-          sub={`${period.toUpperCase()} TOTAL`}
-          color="violet"
-        />
-
-        {/* Live Sales Today Card */}
-        <div className="bg-white border border-zinc-200 rounded-[1.25rem] px-6 py-5 card relative overflow-hidden group shadow-sm">
-          <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-          </div>
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <div className="w-10 h-10 bg-rose-50 border border-rose-200 flex items-center justify-center rounded-[0.4rem] shrink-0">
-              <span className="text-rose-600"><TrendingUp size={18} strokeWidth={2.5} /></span>
+        {loading && !totals ? (
+           [...Array(5)].map((_, i) => <StatCardSkeleton key={i} />)
+        ) : (
+          <>
+            <StatCard
+              icon={<DollarSign size={18} strokeWidth={2.5} />}
+              label="Revenue Performance"
+              value={fmt(totals?.grand_total ?? 0)}
+              sub={`${period.toUpperCase()} TOTAL`}
+              color="violet"
+            />
+            <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 card relative overflow-hidden group shadow-sm">
+              <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+              </div>
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="w-10 h-10 bg-rose-50 border border-rose-200 flex items-center justify-center rounded-[0.4rem] shrink-0">
+                  <span className="text-rose-600"><TrendingUp size={18} strokeWidth={2.5} /></span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Live Sales Today</p>
+                  <p className="text-xl font-black text-rose-600 tabular-nums">₱{liveSalesToday.toLocaleString()}</p>
+                </div>
+              </div>
+              <div className="mt-1 flex items-center gap-1">
+                <span className="w-1 h-1 rounded-full bg-rose-500" />
+                <p className="text-[0.6rem] font-black text-rose-500">REAL-TIME</p>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Live Sales Today</p>
-              <p className="text-lg font-black text-rose-600 tabular-nums">₱{liveSalesToday.toLocaleString()}</p>
-            </div>
-          </div>
-          <div className="mt-1 flex items-center gap-1">
-            <span className="w-1 h-1 rounded-full bg-rose-500" />
-            <p className="text-[0.6rem] font-black text-rose-500">REAL-TIME</p>
-          </div>
-        </div>
-
-        <StatCard
-          icon={<GitBranch size={18} strokeWidth={2.5} />}
-          label="Active Branches"
-          value={pulse?.stats.online_branches ?? branchStats.active}
-          sub={`${branchStats.total} total`}
-          color="emerald"
-        />
-        <StatCard
-          icon={<UsersIcon size={18} strokeWidth={2.5} />}
-          label="Active Staff"
-          value={pulse?.stats.active_staff ?? userStats.active}
-          sub="Staff Online"
-          color="amber"
-        />
-        <StatCard
-          icon={<ShoppingBag size={18} strokeWidth={2.5} />}
-          label="Total Orders"
-          value={loading ? "—" : (totals?.total_orders ?? 0).toLocaleString()}
-          sub={`Count this ${period}`}
-          color="violet"
-        />
+            <StatCard
+              icon={<GitBranch size={18} strokeWidth={2.5} />}
+              label="Active Branches"
+              value={pulse?.stats.online_branches ?? branchStats.active}
+              sub={`${branchStats.total} total`}
+              color="emerald"
+            />
+            <StatCard
+              icon={<UsersIcon size={18} strokeWidth={2.5} />}
+              label="Active Staff"
+              value={pulse?.stats.active_staff ?? userStats.active}
+              sub="Staff Online"
+              color="amber"
+            />
+            <StatCard
+              icon={<ShoppingBag size={18} strokeWidth={2.5} />}
+              label="Total Orders"
+              value={(totals?.total_orders ?? 0).toLocaleString()}
+              sub={`Count this ${period}`}
+              color="violet"
+            />
+          </>
+        )}
       </div>
 
-      {/* Row 2: Ownership Breakdown (Now 2nd from top) */}
-      {!loading && ownership && (
-        <div className="bg-white border border-zinc-200 rounded-[1.25rem] p-6 shadow-sm">
-          <h3 className="text-sm font-bold text-[#1a0f2e] mb-4">Ownership Breakdown</h3>
+      {/* Row 2: Ownership Breakdown */}
+      {(loading && !ownership) ? (
+        <div className="bg-white border border-zinc-200 rounded-[0.625rem] p-6 shadow-sm">
+           <Skeleton className="w-48 h-4 mb-4" />
+           <div className="grid grid-cols-2 gap-4">
+             <Skeleton className="h-20 rounded-2xl" />
+             <Skeleton className="h-20 rounded-2xl" />
+           </div>
+        </div>
+      ) : ownership && (
+        <div className="bg-white border border-zinc-200 rounded-[0.625rem] p-6 shadow-sm">
+          <h3 className="text-sm font-black text-[#1a0f2e] mb-4 uppercase tracking-wider opacity-80">Ownership Breakdown</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="p-4 bg-violet-50/50 border border-violet-100 rounded-2xl">
+            <div className="p-4 bg-violet-50/50 border border-violet-100 rounded-2xl transition-all hover:shadow-md">
               <p className="text-[10px] font-black text-violet-400 uppercase tracking-widest mb-1">Company Owned</p>
               <p className="text-xl font-black text-violet-700">{fmt(ownership.company.total_revenue)}</p>
               <div className="mt-2 flex items-center gap-2">
-                <span className="text-[10px] px-2 py-0.5 bg-violet-100 text-violet-600 rounded-full font-bold">{ownership.company.branch_count} Branches</span>
+                <span className="text-[10px] px-2 py-0.5 bg-violet-100 text-violet-600 rounded-full font-black uppercase">{ownership.company.branch_count} Branches</span>
               </div>
             </div>
-            <div className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-2xl">
+            <div className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-2xl transition-all hover:shadow-md">
               <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1">Franchisee</p>
               <p className="text-xl font-black text-emerald-700">{fmt(ownership.franchise.total_revenue)}</p>
               <div className="mt-2 flex items-center gap-2">
-                <span className="text-[10px] px-2 py-0.5 bg-emerald-100 text-emerald-600 rounded-full font-bold">{ownership.franchise.branch_count} Branches</span>
+                <span className="text-[10px] px-2 py-0.5 bg-emerald-100 text-emerald-600 rounded-full font-black uppercase">{ownership.franchise.branch_count} Branches</span>
               </div>
             </div>
           </div>
@@ -399,21 +436,28 @@ const OverviewTab: React.FC = () => {
 
       {/* Row 3: Live Pulse Monitoring */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-        {/* Sales Ticker Card */}
-        <div className="xl:col-span-8 bg-white border border-zinc-200 rounded-[1.25rem] p-6 shadow-sm">
+        <div className="xl:col-span-8 bg-white border border-zinc-200 rounded-[0.625rem] p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <ShoppingBag size={16} className="text-[#3b2063]" />
-              <h3 className="text-sm font-bold text-[#1a0f2e]">Live Sales Ticker</h3>
+              <h3 className="text-sm font-black text-[#1a0f2e] uppercase tracking-wider opacity-80">Live Sales Ticker</h3>
             </div>
-            <span className="text-[10px] font-bold text-[#3b2063] uppercase bg-[#ede8ff] px-2 py-0.5 rounded-md">
+            <span className="text-[10px] font-black text-[#3b2063] uppercase bg-[#ede8ff] px-2 py-0.5 rounded-md">
               {pulse?.recent_sales.length ?? 0} Transactions
             </span>
           </div>
-          <div className="max-h-[200px] overflow-y-auto pr-2 custom-scroll space-y-2">
-            {!pulse || pulse.recent_sales.length === 0 ? (
-              <div className="py-10 text-center text-zinc-400 text-xs font-medium italic">Waiting for transactions...</div>
-            ) : (
+          <div className="max-h-[220px] overflow-y-auto pr-2 custom-scroll space-y-2">
+            {loading && !pulse ? (
+               [...Array(5)].map((_, i) => (
+                 <div key={i} className="flex justify-between items-center p-3 bg-zinc-50 rounded-lg">
+                    <div className="flex gap-3 items-center">
+                       <Skeleton className="w-8 h-8 rounded" />
+                       <div className="space-y-1"><Skeleton className="w-24 h-2" /><Skeleton className="w-16 h-2" /></div>
+                    </div>
+                    <Skeleton className="w-12 h-3" />
+                 </div>
+               ))
+            ) : pulse ? (
               pulse.recent_sales.map((sale) => (
                 <div key={sale.id} className="sa-ticker-item bg-zinc-50/50 hover:bg-white hover:border-[#ede8ff] hover:shadow-md border border-transparent p-3 rounded-xl transition-all flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -423,55 +467,56 @@ const OverviewTab: React.FC = () => {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-[0.75rem] font-black text-[#1a0f2e]">{sale.invoice_number}</span>
-                        <span className="text-[0.6rem] font-bold text-zinc-400 truncate">{sale.branch_name}</span>
+                        <span className="text-[0.6rem] font-bold text-zinc-400 truncate uppercase">{sale.branch_name}</span>
                       </div>
-                      <p className="text-[0.65rem] font-medium text-zinc-500 truncate">Cashier: {sale.cashier_name}</p>
+                      <p className="text-[0.65rem] font-bold text-zinc-500 truncate opacity-70">Cashier: {sale.cashier_name}</p>
                     </div>
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-sm font-black text-[#1a0f2e]">₱{Number(sale.total_amount).toLocaleString()}</p>
-                    <p className="text-[0.6rem] font-bold text-zinc-400 capitalize">{sale.created_at}</p>
+                    <p className="text-[0.6rem] font-black text-zinc-400 uppercase">{sale.created_at}</p>
                   </div>
                 </div>
               ))
-            )}
+            ) : <div className="py-10 text-center text-zinc-400 text-xs font-medium italic">No pulse data available...</div>}
           </div>
         </div>
 
-        {/* Branch Online Card (formerly Network Health) */}
-        <div className="xl:col-span-4 bg-white border border-zinc-200 rounded-[1.25rem] p-6 shadow-sm">
+        <div className="xl:col-span-4 bg-white border border-zinc-200 rounded-[0.625rem] p-6 shadow-sm">
           <div className="flex items-center gap-2 mb-4">
             <Activity size={16} className="text-[#3b2063]" />
-            <h3 className="text-sm font-bold text-[#1a0f2e]">Branch Online</h3>
+            <h3 className="text-sm font-black text-[#1a0f2e] uppercase tracking-wider opacity-80">Online Status</h3>
           </div>
-          <div className="max-h-[200px] overflow-y-auto pr-2 custom-scroll space-y-1.5">
-            {!pulse ? (
-              <div className="py-10 text-center text-zinc-400 text-xs font-medium italic">Checking connectivity...</div>
-            ) : pulse.branch_status.map((branch) => (
-              <div key={branch.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-zinc-50 transition-colors">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className={`w-2 h-2 rounded-full ${branch.status === 'online' ? 'bg-emerald-500 pulse-indicator' : 'bg-zinc-300'} shrink-0`} />
-                  <span className="text-xs font-bold text-[#1a0f2e] truncate">{branch.name}</span>
+          <div className="max-h-[220px] overflow-y-auto pr-1 custom-scroll space-y-1.5">
+            {loading && !pulse ? (
+               [...Array(6)].map((_, i) => <Skeleton key={i} className="h-8 w-full rounded-lg" />)
+            ) : pulse ? (
+              pulse.branch_status.map((branch) => (
+                <div key={branch.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-zinc-50 transition-colors">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className={`w-2 h-2 rounded-full ${branch.status === 'online' ? 'bg-emerald-500 pulse-indicator' : 'bg-zinc-300'} shrink-0`} />
+                    <span className="text-xs font-black text-[#1a0f2e] truncate">{branch.name}</span>
+                  </div>
+                  <span className={`text-[0.55rem] font-black uppercase px-1.5 py-0.5 rounded shrink-0 ${branch.status === 'online' ? 'bg-emerald-50 text-emerald-600' : 'bg-zinc-100 text-zinc-400'}`}>
+                    {branch.status}
+                  </span>
                 </div>
-                <span className={`text-[0.55rem] font-black uppercase px-1.5 py-0.5 rounded shrink-0 ${branch.status === 'online' ? 'bg-emerald-50 text-emerald-600' : 'bg-zinc-100 text-zinc-400'}`}>
-                  {branch.status}
-                </span>
-              </div>
-            ))}
+              ))
+            ) : <div className="py-10 text-center text-zinc-400 text-xs font-medium italic">Wait...</div>}
           </div>
         </div>
       </div>
 
-      {/* Row 3: Financial Analytics (Classic Display) */}
+      {/* Row 4: Financial Analytics */}
       <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-12 lg:col-span-8 bg-white border border-zinc-200 rounded-[1.25rem] p-6 shadow-sm">
+        <div className="col-span-12 lg:col-span-8 bg-white border border-zinc-200 rounded-[0.625rem] p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-zinc-400">Revenue Trend</p>
-              <h3 className="text-base font-bold text-[#1a0f2e] mt-0.5 capitalize">{period} Overview</h3>
+              <h3 className="text-base font-black text-[#1a0f2e] mt-0.5 capitalize">{period} Overview</h3>
             </div>
           </div>
-          {loading ? <SkeletonBar h="h-[220px]" /> : (
+          {loading && !breakdown.length ? <ChartSkeleton height="h-[220px]" /> : (
             <ResponsiveContainer width="100%" height={220}>
               <AreaChart data={revenueChartData}>
                 <defs>
@@ -493,10 +538,10 @@ const OverviewTab: React.FC = () => {
           )}
         </div>
 
-        <div className="col-span-12 lg:col-span-4 bg-white border border-zinc-200 rounded-[1.25rem] p-6 shadow-sm">
+        <div className="col-span-12 lg:col-span-4 bg-white border border-zinc-200 rounded-[0.625rem] p-6 shadow-sm">
           <p className="text-xs font-bold uppercase tracking-widest text-zinc-400 mb-1">Revenue Share</p>
-          <h3 className="text-base font-bold text-[#1a0f2e] mb-4">By Branch</h3>
-          {loading ? <SkeletonBar h="h-[180px]" /> : (
+          <h3 className="text-base font-black text-[#1a0f2e] mb-4">By Branch</h3>
+          {loading && !pieData.length ? <Skeleton className="h-[200px] w-full rounded-full" /> : (
             <>
               <ResponsiveContainer width="100%" height={160}>
                 <RePieChart>
@@ -522,15 +567,15 @@ const OverviewTab: React.FC = () => {
         </div>
       </div>
 
-      {/* Row 4: Regional Analysis & Products */}
+      {/* Row 5: Regional Analysis & Products */}
       <div className="grid grid-cols-12 gap-6">
-        <div className="col-span-12 lg:col-span-7 bg-white border border-zinc-200 rounded-[1.25rem] p-6 shadow-sm">
+        <div className="col-span-12 lg:col-span-7 bg-white border border-zinc-200 rounded-[0.625rem] p-6 shadow-sm">
           <div className="mb-4">
-            <h3 className="text-base font-bold text-[#1a0f2e]">Branch Performance</h3>
-            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{period} Revenue Summary</p>
+            <h3 className="text-base font-black text-[#1a0f2e]">Branch Performance</h3>
+            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-none">{period} Revenue Summary</p>
           </div>
           <div className="h-[200px]">
-            {loading ? <SkeletonBar h="w-full h-full" /> : (
+            {loading && !barData.length ? <Skeleton className="w-full h-full" /> : (
               <ResponsiveContainer width="100%" height="100%">
                 <ReBarChart data={barData} barSize={20}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" vertical={false} />
@@ -544,27 +589,29 @@ const OverviewTab: React.FC = () => {
           </div>
         </div>
 
-        <div className="col-span-12 lg:col-span-5 bg-white border border-zinc-200 rounded-[1.25rem] p-6 shadow-sm">
+        <div className="col-span-12 lg:col-span-5 bg-white border border-zinc-200 rounded-[0.625rem] p-6 shadow-sm">
           <div className="mb-4">
-            <h3 className="text-base font-bold text-[#1a0f2e]">Best Sellers</h3>
-            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Top products this {period}</p>
+            <h3 className="text-base font-black text-[#1a0f2e]">Best Sellers</h3>
+            <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest leading-none">Top products this {period}</p>
           </div>
           <div className="space-y-3">
-            {loading ? <div className="space-y-3">{[...Array(5)].map((_, i) => <SkeletonBar key={i} h="h-8" />)}</div> : topProducts.length === 0 ? <p className="text-center py-10 text-xs text-zinc-400 italic">No sales info</p> : (
+            {loading && !topProducts.length ? (
+               [...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)
+            ) : topProducts.length === 0 ? <p className="text-center py-10 text-xs text-zinc-400 italic">No sales info</p> : (
               topProducts.map((p, i) => {
                 const pct = Math.round((p.total_quantity / (topProducts[0]?.total_quantity || 1)) * 100);
                 return (
                   <div key={i} className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-lg bg-[#f5f0ff] border border-[#e9d5ff] flex items-center justify-center shrink-0">
+                    <div className="w-6 h-6 rounded-[0.625rem] bg-[#f5f0ff] border border-[#e9d5ff] flex items-center justify-center shrink-0">
                       <span className="text-[10px] font-black text-[#3b2063]">{i + 1}</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-[11px] font-black text-zinc-600 truncate">{p.product_name}</span>
-                        <span className="text-[10px] font-bold text-zinc-400 shrink-0">{p.total_quantity} sold</span>
+                        <span className="text-[10px] font-bold text-zinc-400 shrink-0 uppercase tracking-tighter">{p.total_quantity} sold</span>
                       </div>
                       <div className="w-full h-1.5 bg-zinc-100 rounded-full overflow-hidden">
-                        <div className="h-full bg-indigo-500 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                        <div className="h-full bg-[#3b2063] rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
                       </div>
                     </div>
                     <span className="text-[10px] font-black text-[#3b2063] shrink-0 w-20 text-right">₱{Number(p.total_revenue).toLocaleString()}</span>

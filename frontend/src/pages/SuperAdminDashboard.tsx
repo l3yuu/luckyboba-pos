@@ -19,6 +19,7 @@ import AnalyticsTab from "../components/NewSuperAdmin/Sidebar/Reports/AnalyticsT
 import ItemsReportTab from "../components/NewSuperAdmin/Sidebar/Reports/ItemsReportTab";
 import XReadingTab from "../components/NewSuperAdmin/Sidebar/Reports/XReadingTab";
 import ZReadingTab from "../components/NewSuperAdmin/Sidebar/Reports/ZReadingTab";
+import StaffPerformanceTab from "../components/NewSuperAdmin/Sidebar/Navigation/StaffPerformanceTab";
 
 import MenuItemsTab from "../components/NewSuperAdmin/Sidebar/MenuManagement/MenuItemsTab";
 import CategoriesTab from "../components/NewSuperAdmin/Sidebar/MenuManagement/CategoriesTab";
@@ -89,6 +90,7 @@ const SuperAdminDashboard: React.FC = () => {
       case "sales_report": return <SalesReportTab />;
       case "analytics": return <AnalyticsTab />;
       case "items_report": return <ItemsReportTab />;
+      case "staff_performance": return <StaffPerformanceTab />;
       case "cross_branch_reports": return <CrossBranchTab />;
       case "x_reading": return <XReadingTab />;
       case "z_reading": return <ZReadingTab />;
@@ -138,6 +140,7 @@ const SuperAdminDashboard: React.FC = () => {
           <SuperAdminTopBar
             active={active}
             onMenuClick={() => setSidebarOpen(v => !v)}
+            onNavigate={setActive}
           />
           <div className="flex-1 overflow-y-auto">{renderContent()}</div>
         </main>
