@@ -75,6 +75,7 @@ class SaleObserver
                         $q->where('id', $recipeItem->raw_material_id)
                           ->orWhere('parent_id', $recipeItem->raw_material_id);
                     })
+                    ->lockForUpdate()
                     ->first();
 
                 if (!$material) {

@@ -232,6 +232,8 @@ class SuperAdminReportController extends Controller
             ->leftJoin('categories', 'menu_items.category_id', '=', 'categories.id')
             ->select(
                 'sale_items.product_name',
+                'sale_items.size',
+                'sale_items.cup_size_label',
                 DB::raw("COALESCE(categories.name, 'Uncategorized') as category"),
                 DB::raw('SUM(sale_items.quantity)           as total_quantity'),
                 DB::raw('SUM(sale_items.final_price * sale_items.quantity) as total_revenue'),
@@ -244,7 +246,7 @@ class SuperAdminReportController extends Controller
                 $to   . ' 23:59:59',
             ])
             ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
-            ->groupBy('sale_items.product_name', 'categories.name')
+            ->groupBy('sale_items.product_name', 'sale_items.size', 'sale_items.cup_size_label', 'categories.name')
             ->orderByDesc('total_quantity')
             ->get();                          // ← no limit, returns everything
 
@@ -277,6 +279,8 @@ class SuperAdminReportController extends Controller
                 'branches.id   as branch_id',
                 'branches.name as branch_name',
                 'sale_items.product_name',
+                'sale_items.size',
+                'sale_items.cup_size_label',
                 DB::raw("COALESCE(categories.name, 'Uncategorized') as category"),
                 DB::raw('SUM(sale_items.quantity) as total_quantity'),
                 DB::raw('SUM(sale_items.final_price * sale_items.quantity) as total_revenue'),
@@ -289,7 +293,7 @@ class SuperAdminReportController extends Controller
                 $to   . ' 23:59:59',
             ])
             ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
-            ->groupBy('branches.id', 'branches.name', 'sale_items.product_name', 'categories.name')
+            ->groupBy('branches.id', 'branches.name', 'sale_items.product_name', 'sale_items.size', 'sale_items.cup_size_label', 'categories.name')
             ->orderBy('branches.name')
             ->orderByDesc('total_quantity')
             ->get();
@@ -379,7 +383,7 @@ class SuperAdminReportController extends Controller
     // ── Reusable table builder ─────────────────────────────────────────────────────
     private function buildItemsTable($items, float $totalRevenue): string
     {
-        $csv  = "#,Item Name,Category,Qty Sold,Total Revenue (PHP),Avg Price (PHP),Times Ordered,Revenue Share\n";
+        $csv  = "#,Item Name,Size,Category,Qty Sold,Total Revenue (PHP),Avg Price (PHP),Times Ordered,Revenue Share\n";
 
         $rank = 1;
         foreach ($items as $item) {
@@ -387,9 +391,11 @@ class SuperAdminReportController extends Controller
                 ? round(($item->total_revenue / $totalRevenue) * 100, 1) . '%'
                 : '0%';
 
+            $size = $item->cup_size_label ?: ($item->size ?: '—');
             $csv .= implode(',', [
                 $rank++,
                 '"' . str_replace('"', '""', $item->product_name) . '"',
+                '"' . str_replace('"', '""', $size) . '"',
                 '"' . str_replace('"', '""', $item->category) . '"',
                 (int) $item->total_quantity,
                 '"' . number_format((float) $item->total_revenue, 2) . '"',

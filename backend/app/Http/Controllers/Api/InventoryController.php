@@ -297,9 +297,19 @@ public function usageReport(Request $request)
         $period   = $request->query('period', now()->format('Y-m'));
         $branchId = $request->query('branch_id');
 
-        [$year, $month] = explode('-', $period);
-        $startDate = "{$year}-{$month}-01";
-        $endDate   = date('Y-m-t', strtotime($startDate));
+        // Handle YYYY-MM (Month) or YYYY-MM-DD (Specific Day)
+        $parts = explode('-', $period);
+        if (count($parts) === 3) {
+            // Single day: YYYY-MM-DD
+            $startDate = $period;
+            $endDate   = $period;
+        } else {
+            // Monthly: YYYY-MM
+            $year      = $parts[0] ?? now()->format('Y');
+            $month     = $parts[1] ?? now()->format('m');
+            $startDate = "{$year}-{$month}-01";
+            $endDate   = date('Y-m-t', strtotime($startDate));
+        }
 
         $materialsQuery = \App\Models\RawMaterial::query();
         if ($branchId) {

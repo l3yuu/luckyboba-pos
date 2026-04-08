@@ -30,18 +30,17 @@ Route::post('/verify-2fa', [AuthController::class, 'verify2FA'])->middleware('th
 Route::post('/resend-2fa', [AuthController::class, 'resend2FA'])->middleware('throttle:5,2');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 
-
 // ── DEVICE CHECK — public, no auth, called before login ──────────────────────
-Route::post('/devices/check', [PosDeviceController::class, 'check']);
+Route::post('/devices/check', [PosDeviceController::class, 'check'])->middleware('throttle:10,1');
 // ─────────────────────────────────────────────────────────────────────────────
 
-Route::post('/purchase-card',             [CardPurchaseController::class, 'purchase']);
-Route::get('/check-card-status/{userId}', [CardPurchaseController::class, 'checkStatus']);
+Route::post('/purchase-card',             [CardPurchaseController::class, 'purchase'])->middleware('throttle:30,1');
+Route::get('/check-card-status/{userId}', [CardPurchaseController::class, 'checkStatus'])->middleware('throttle:30,1');
 
 // ✅ PUBLIC MOBILE ROUTES
-Route::get('/cards',            [CardController::class, 'index']);
-Route::get('/payment-settings', [SettingsController::class, 'index']);
-Route::get('/add-ons',          [AddOnController::class, 'index']);
+Route::get('/cards',            [CardController::class, 'index'])->middleware('throttle:60,1');
+Route::get('/payment-settings', [SettingsController::class, 'index'])->middleware('throttle:60,1');
+Route::get('/add-ons',          [AddOnController::class, 'index'])->middleware('throttle:60,1');
 
 // ── PUBLIC MENU ───────────────────────────────────────────────────────────────
 Route::get('/public-menu', function (Illuminate\Http\Request $request) {
@@ -95,10 +94,10 @@ if ($branchId) {
         });
 
     return response()->json($items);
-});
+})->middleware('throttle:30,1');
 // ─────────────────────────────────────────────────────────────────────────────
 
-Route::post('/google-login', [AuthController::class, 'googleLogin']);
+Route::post('/google-login', [AuthController::class, 'googleLogin'])->middleware('throttle:10,1');
 Route::post('/register', function (Request $request) {
     $request->validate([
         'name'     => 'required|string|max:255',

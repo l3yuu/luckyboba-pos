@@ -37,7 +37,17 @@ interface RawMaterial { id: number; name: string; unit: string; }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const sizeLabel = (s?: string | null) => s === 'M' ? 'Medium' : s === 'L' ? 'Large' : 'Fixed';
+const sizeLabel = (s?: string | null) => {
+  if (!s || s === '' || s === 'none') return 'Fixed';
+  const mapping: Record<string, string> = {
+    'JR': 'Junior (JR)',
+    'SM': 'Small (SM)',
+    'M':  'Medium (M)',
+    'L':  'Large (L)',
+    'SL': 'Solo (SL)',
+  };
+  return mapping[s] || s;
+};
 
 const resolveItems = (r: Recipe): RecipeItem[] =>
   (r.items ?? r.recipe_items ?? []).map(i => ({
@@ -183,8 +193,11 @@ const RecipeFormModal: React.FC<{
             <Field label="Size">
               <select value={size} onChange={e => setSize(e.target.value)} className={inputCls()}>
                 <option value="">Fixed (no size)</option>
+                <option value="JR">Junior (JR)</option>
+                <option value="SM">Small (SM)</option>
                 <option value="M">Medium (M)</option>
                 <option value="L">Large (L)</option>
+                <option value="SL">Solo (SL)</option>
               </select>
             </Field>
           </div>
