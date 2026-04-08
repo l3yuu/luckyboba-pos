@@ -210,7 +210,7 @@ class SalesController extends Controller
                 ]);
 
                 if (!empty($item['menu_item_id'])) {
-                    $menuItem = MenuItem::find($item['menu_item_id']);
+                    $menuItem = MenuItem::where('id', $item['menu_item_id'])->lockForUpdate()->first();
                     if ($menuItem) {
                         $menuItem->decrement('quantity', $item['quantity']);
                     }
