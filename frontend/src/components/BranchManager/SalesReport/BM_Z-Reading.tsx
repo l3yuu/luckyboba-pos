@@ -65,9 +65,19 @@ interface ZReading {
   total_cash_count?: number;
   expected_amount?: number;
   over_short?: number;
-  categories?: any[];
-  all_addons_summary?: any[];
-  logs?: any[];
+  categories?: {
+    category_name: string;
+    category_total: number;
+    products: {
+      product_name: string;
+      size?: string | null;
+      total_qty: number;
+      total_sales: number;
+      add_ons?: { name: string; qty: number }[];
+    }[];
+  }[];
+  all_addons_summary?: { name: string; qty: number }[];
+  logs?: { id?: string; reason?: string; amount?: number; time?: string }[];
   cash_total?: number;
 }
 interface ZHistory {
@@ -445,7 +455,7 @@ const BM_ZReading: React.FC = () => {
         const ccData = cashRes; 
         const ccNested = ccData?.cash_count;
         const storedDenoms = ccNested?.denominations ?? ccData?.denominations ?? [];
-        const storedMap = new Map(storedDenoms.map((d: any) => [parseFloat(String(d.label).replace(/,/g, '')), d.qty]));
+        const storedMap = new Map(storedDenoms.map((d: { label: string | number; qty: number }) => [parseFloat(String(d.label).replace(/,/g, '')), d.qty]));
         const cashDenominations = ALL_DENOMS.map(denom => ({
           label: denom === 0.25 ? '0.25' : String(denom),
           qty:   Number(storedMap.get(denom) ?? 0),
@@ -1196,7 +1206,7 @@ const handlePrint = async () => {
             {data.categories.map((cat, catIdx) => (
               <React.Fragment key={catIdx}>
                 <p className="text-[15px] font-bold uppercase mt-0.5">{cat.category_name}</p>
-                {cat.products.map((item: any, i: number) => (
+                {cat.products.map((item, i) => (
                   <div key={i} className="flex text-[11px] leading-snug border-b border-dotted border-zinc-200 font-bold">
                     <span className="w-[50%] uppercase leading-tight pl-1">{item.product_name}</span>
                     <span className="w-[15%] text-center">{item.size ?? '—'}</span>
