@@ -106,10 +106,10 @@ class SearchController extends Controller
 
         // 6. Search Expenses
         if (!$filter || in_array($filter, ['exp', 'expense', 'cost'])) {
-            $expenses = Expense::where('description', 'like', "%{$q}%")
+            $expenses = Expense::where('title', 'like', "%{$q}%")
                 ->orWhere('ref_num', 'like', "%{$q}%")
                 ->limit(5)->get()->map(fn($e) => [
-                    'id' => $e->id, 'title' => $e->description, 
+                    'id' => $e->id, 'title' => $e->title, 
                     'sub' => "₱" . number_format((float)$e->amount, 2) . " | " . $e->date, 
                     'type' => 'expense', 'tab' => 'expenses'
                 ]);
