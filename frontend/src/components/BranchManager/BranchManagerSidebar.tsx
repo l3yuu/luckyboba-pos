@@ -270,6 +270,7 @@ const inventoryItems = [
 const appItems = [
   { tab: 'app-orders', label: 'App Orders' },
   { tab: 'menu-management', label: 'Menu Availability' },
+  { tab: 'payment-settings', label: 'Payment Settings' },
 ];
 
 const SALES_TABS = salesItems.map(i => i.tab);
@@ -525,7 +526,6 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
           {[
             { tab: 'audit-logs', label: 'Audit Logs', icon: <Activity size={14} /> },
             { tab: 'promos-discounts', label: 'Promos & Discounts', icon: <Tag size={14} /> },
-            { tab: 'payment-settings', label: 'Payment Settings', icon: <Smartphone size={14} /> },
           ].map(t => (
             <button key={t.tab} onClick={() => go(t.tab)} className={`bm-item ${currentTab === t.tab ? 'active' : ''}`}>
               <span style={{ flexShrink: 0, width: 15, display: 'flex', alignItems: 'center', justifyContent: 'center', color: currentTab === t.tab ? '#3b2063' : '#a1a1aa' }}>{t.icon}</span>
@@ -661,10 +661,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
                 <span className="bm-m-icon" style={{ color: currentTab === 'promos-discounts' ? '#3b2063' : '#71717a' }}><Tag size={18} /></span>
                 Promos & Discounts
               </button>
-              <button onClick={() => go('payment-settings')} className={`bm-m-item ${currentTab === 'payment-settings' ? 'active' : ''}`}>
-                <span className="bm-m-icon" style={{ color: currentTab === 'payment-settings' ? '#3b2063' : '#71717a' }}><Smartphone size={18} /></span>
-                Payment Settings
-              </button>
+
 
             </div>
 
