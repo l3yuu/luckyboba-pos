@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\SubCategory;
+use App\Traits\MenuCache;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -11,6 +12,8 @@ use Illuminate\Support\Facades\Cache;
 
 class SubCategoryController extends Controller
 {
+    use MenuCache;
+
     public function index(Request $request)
     {
         $query = DB::table('sub_categories')
@@ -52,7 +55,7 @@ class SubCategoryController extends Controller
 
         try {
             $sub = SubCategory::create($validated);
-            Cache::forget('menu_data_v3');
+            $this->clearMenuCache();
 
             return response()->json([
                 'id'          => $sub->id,
@@ -84,7 +87,7 @@ class SubCategoryController extends Controller
             $subCategory->load('category');
             $subCategory->loadCount('menuItems');
 
-            Cache::forget('menu_data_v3');
+            $this->clearMenuCache();
 
             return response()->json([
                 'id'          => $subCategory->id,
@@ -113,7 +116,7 @@ class SubCategoryController extends Controller
             }
 
             $subCategory->delete();
-            Cache::forget('menu_data_v3');
+            $this->clearMenuCache();
 
             return response()->json(['message' => 'Sub-category deleted successfully'], 200);
 

@@ -19,7 +19,7 @@ class UserController extends Controller
      * Transform user to return branch as a plain string (not object).
      * Also includes active card info for the Flutter app.
      */
-    private function transformUser(User $user, ?string $lastLoginAt = null, int $loginCount = 0): array
+    private function transformUser($user, ?string $lastLoginAt = null, int $loginCount = 0): array
     {
         $activeCard = DB::table('user_cards')
             ->where('user_id', $user->id)
@@ -28,7 +28,7 @@ class UserController extends Controller
 
         // ── ADD THIS ──────────────────────────────────────────────────────────
         $branch = $user->branch_id
-            ? \App\Models\Branch::select('id', 'vat_type')->find($user->branch_id)
+            ? Branch::select('id', 'vat_type')->find($user->branch_id)
             : null;
         // ─────────────────────────────────────────────────────────────────────
 
@@ -514,20 +514,26 @@ class UserController extends Controller
     public function updatePin(Request $request, $id)
     {
         $user = User::findOrFail($id);
+        $authUser = Auth::user();
 
-        \Log::info('updatePin called', [
-            'user_id' => $user->id,
-            'pin'     => $request->pin,
-        ]);
+        // 🛡️ SECURITY: Only SuperAdmin can reset others' PINs. Users can reset their own.
+        // IT Admin and Branch Managers cannot reset a SuperAdmin's PIN.
+        if ($authUser->id !== $user->id && $authUser->role !== 'superadmin') {
+            return response()->json(['message' => 'Unauthorized to update this PIN.'], 403);
+        }
+
+        if ($user->role === 'superadmin' && $authUser->role !== 'superadmin') {
+             return response()->json(['message' => 'Only a SuperAdmin can update a SuperAdmin PIN.'], 403);
+        }
 
         $request->validate([
             'pin'              => ['required', 'digits_between:4,8', 'confirmed'],
             'pin_confirmation' => ['required'],
         ]);
 
-        DB::table('users')
-            ->where('id', $user->id)
-            ->update(['manager_pin' => bcrypt($request->pin)]);
+        $user->update(['manager_pin' => Hash::make($request->pin)]);
+
+        AuditHelper::log('user', "Updated PIN for user: {$user->name}", "ID: {$user->id}");
 
         return response()->json(['message' => 'PIN updated successfully.']);
     }
@@ -538,18 +544,30 @@ class UserController extends Controller
     public function verifyManagerPin(Request $request)
     {
         $request->validate(['pin' => 'required|string']);
+        $authUser = Auth::user();
 
-        $admins = User::whereIn('role', ['superadmin', 'system_admin', 'branch_manager', 'team_leader', 'it_admin'])
+        // 🛡️ SECURITY: Scope check to the requester's branch unless they are SuperAdmin.
+        // This prevents a manager from Branch A authorizing actions in Branch B.
+        $query = User::whereIn('role', ['superadmin', 'system_admin', 'branch_manager', 'team_leader', 'it_admin'])
             ->where('status', 'ACTIVE')
-            ->whereNotNull('manager_pin')
-            ->get();
+            ->whereNotNull('manager_pin');
+
+        if ($authUser->role !== 'superadmin') {
+            $query->where('branch_id', $authUser->branch_id);
+        }
+
+        $admins = $query->get();
 
         foreach ($admins as $admin) {
             if (Hash::check($request->pin, $admin->manager_pin)) {
-                return response()->json(['success' => true, 'message' => 'Authorized']);
+                return response()->json([
+                    'success' => true, 
+                    'message' => 'Authorized',
+                    'auth_by' => $admin->name
+                ]);
             }
         }
 
-        return response()->json(['success' => false, 'message' => 'Incorrect PIN.']);
+        return response()->json(['success' => false, 'message' => 'Incorrect PIN.'], 401);
     }
 }
