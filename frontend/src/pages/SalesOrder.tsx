@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useOfflineQueue } from '../hooks/useOfflineQueue'
 import OfflineQueueBanner from '../components/Cashier/SalesOrderComponents/OfflineQueueBanner'
@@ -291,90 +291,140 @@ const SalesOrder = () => {
 
   const totalCount = cart.reduce((acc, item) => acc + item.qty, 0)
 
-  const grossSubtotal = cart.reduce(
-    (acc, item) => acc + (item.originalPrice ?? item.finalPrice) + getItemSurcharge(item),
-    0
-  )
+  const {
+    grossSubtotal,
+    itemDiscountTotal,
+    eligibleForPromo,
+    scDiscount,
+    pwdDiscount,
+    paxSenior,
+    paxPwd,
+    promoDiscount,
+    orderLevelDiscount,
+    vatExemptSales,
+    vatableSales,
+    vatAmount,
+    amtDue,
+    totalDiscountDisplay,
+    subtotal,
+    change,
+    isVat,
+    scPct,
+    pwdPct
+  } = useMemo(() => {
+    const isVat = vatType === 'vat'
+    
+    const grossSubtotal = cart.reduce(
+      (acc, item) => acc + (item.originalPrice ?? item.finalPrice) + getItemSurcharge(item),
+      0
+    )
 
-  const itemDiscountTotal = cart.reduce((acc, item) => {
-    if (!item.discountType || item.discountType === 'none') return acc
-    if (!item.discountValue || Number(item.discountValue) === 0) return acc
-    const discountVal = Number(item.discountValue)
-    const discountAmt =
-      item.discountType === 'percent'
-        ? Number(item.price) * item.qty * (discountVal / 100)
-        : Math.min(discountVal, Number(item.price) * item.qty)
-    return acc + discountAmt
-  }, 0)
+    const itemDiscountTotal = cart.reduce((acc, item) => {
+      if (!item.discountType || item.discountType === 'none') return acc
+      if (!item.discountValue || Number(item.discountValue) === 0) return acc
+      const discountVal = Number(item.discountValue)
+      const discountAmt =
+        item.discountType === 'percent'
+          ? Number(item.price) * item.qty * (discountVal / 100)
+          : Math.min(discountVal, Number(item.price) * item.qty)
+      return acc + discountAmt
+    }, 0)
 
-  const eligibleForPromo = cart
-    .filter(item => !item.discountId)
-    .reduce((acc, item) => acc + Number(item.price) * item.qty + getItemSurcharge(item), 0)
+    const eligibleForPromo = cart
+      .filter(item => !item.discountId)
+      .reduce((acc, item) => acc + Number(item.price) * item.qty + getItemSurcharge(item), 0)
 
-  const isVat = vatType === 'vat'
+    const scDiscount = discounts.find(d => d.name.toUpperCase().includes('SENIOR'))
+    const pwdDiscount = discounts.find(
+      d => d.name.toUpperCase().includes('PWD') || d.name.toUpperCase().includes('DIPLOMAT')
+    )
+    const scPct = scDiscount ? Number(scDiscount.amount) : 20
+    const pwdPct = pwdDiscount ? Number(pwdDiscount.amount) : 20
 
-  // ── PAX discount from explicit per-unit assignments ───────────────────────
-  const scDiscount = discounts.find(d => d.name.toUpperCase().includes('SENIOR'))
-  const pwdDiscount = discounts.find(
-    d => d.name.toUpperCase().includes('PWD') || d.name.toUpperCase().includes('DIPLOMAT')
-  )
-  const scPct = scDiscount ? Number(scDiscount.amount) : 20
-  const pwdPct = pwdDiscount ? Number(pwdDiscount.amount) : 20
+    let totalPaxDiscount = 0
+    let totalVatExemptSales = 0
 
-  let totalPaxDiscount = 0
-  let totalVatExemptSales = 0
-
-  cart.forEach((item, cartIndex) => {
-    const assignments = itemPaxAssignments[String(cartIndex)] ?? []
-    assignments.forEach(assignment => {
-      if (assignment === 'none') return
-      const unitPrice = Number(item.price)
-      const unitVatExcl = isVat ? unitPrice / 1.12 : unitPrice
-      const pct = assignment === 'sc' ? scPct : pwdPct
-      const discAmt = unitVatExcl * (pct / 100)
-      totalPaxDiscount += discAmt
-      totalVatExemptSales += unitVatExcl
+    cart.forEach((item, cartIndex) => {
+      const assignments = itemPaxAssignments[String(cartIndex)] ?? []
+      assignments.forEach(assignment => {
+        if (assignment === 'none') return
+        const unitPrice = Number(item.price)
+        const unitVatExcl = isVat ? unitPrice / 1.12 : unitPrice
+        const pct = assignment === 'sc' ? scPct : pwdPct
+        const discAmt = unitVatExcl * (pct / 100)
+        totalPaxDiscount += discAmt
+        totalVatExemptSales += unitVatExcl
+      })
     })
-  })
 
-  totalPaxDiscount = round(totalPaxDiscount)
-  totalVatExemptSales = round(totalVatExemptSales)
+    const totalPaxDiscountRounded = round(totalPaxDiscount)
+    const totalVatExemptSalesRounded = round(totalVatExemptSales)
+    const hasPaxDiscount = totalPaxDiscountRounded > 0
 
-  const hasPaxDiscount = totalPaxDiscount > 0
+    const paxSenior = Object.values(itemPaxAssignments)
+      .flat()
+      .filter(a => a === 'sc').length
+    const paxPwd = Object.values(itemPaxAssignments)
+      .flat()
+      .filter(a => a === 'pwd').length
 
-  // ── Derived pax counts for backend ───────────────────────────────────────
-  const paxSenior = Object.values(itemPaxAssignments)
-    .flat()
-    .filter(a => a === 'sc').length
-  const paxPwd = Object.values(itemPaxAssignments)
-    .flat()
-    .filter(a => a === 'pwd').length
+    const promoDiscount = selectedDiscount
+      ? selectedDiscount.type.includes('Percent')
+        ? eligibleForPromo * (Number(selectedDiscount.amount) / 100)
+        : Number(selectedDiscount.amount)
+      : 0
 
-  // ── Promo discount ────────────────────────────────────────────────────────
-  const promoDiscount = selectedDiscount
-    ? selectedDiscount.type.includes('Percent')
-      ? eligibleForPromo * (Number(selectedDiscount.amount) / 100)
-      : Number(selectedDiscount.amount)
-    : 0
+    const orderLevelDiscount = totalPaxDiscountRounded + promoDiscount
 
-  const orderLevelDiscount = totalPaxDiscount + promoDiscount
+    const vatExemptSales = isVat && hasPaxDiscount ? Math.max(0, round(totalVatExemptSalesRounded - totalPaxDiscountRounded)) : 0
 
-  // ── VAT split ─────────────────────────────────────────────────────────────
-  const vatExemptSales = isVat && hasPaxDiscount ? Math.max(0, round(totalVatExemptSales - totalPaxDiscount)) : 0
+    const vatableBase = isVat
+      ? Math.max(0, round(grossSubtotal - totalVatExemptSalesRounded * 1.12 - itemDiscountTotal - promoDiscount))
+      : 0
+    const vatableSales = isVat ? round(vatableBase / 1.12) : 0
+    const vatAmount    = isVat ? round(vatableBase - vatableSales) : 0
 
-  const vatableBase = isVat
-    ? Math.max(0, round(grossSubtotal - totalVatExemptSales * 1.12 - itemDiscountTotal - promoDiscount))
-    : 0
-  const vatableSales = isVat ? round(vatableBase / 1.12) : 0
-  const vatAmount    = isVat ? round(vatableBase - vatableSales) : 0
+    const amtDue = isVat
+      ? Math.max(0, round(vatableBase + vatExemptSales))
+      : Math.max(0, round(grossSubtotal - itemDiscountTotal - orderLevelDiscount))
 
-  const amtDue = isVat
-    ? Math.max(0, round(vatableBase + vatExemptSales))
-    : Math.max(0, round(grossSubtotal - itemDiscountTotal - orderLevelDiscount))
+    const totalDiscountDisplay = itemDiscountTotal + totalPaxDiscountRounded + promoDiscount
+    const change = typeof cashTendered === 'number' ? Math.max(0, cashTendered - amtDue) : 0
+    const subtotal = grossSubtotal - itemDiscountTotal
 
-  const totalDiscountDisplay = itemDiscountTotal + totalPaxDiscount + promoDiscount
-  const change = typeof cashTendered === 'number' ? Math.max(0, cashTendered - amtDue) : 0
-  const subtotal = grossSubtotal - itemDiscountTotal
+    return {
+      grossSubtotal,
+      itemDiscountTotal,
+      eligibleForPromo,
+      scDiscount,
+      pwdDiscount,
+      totalPaxDiscount: totalPaxDiscountRounded,
+      totalVatExemptSales: totalVatExemptSalesRounded,
+      hasPaxDiscount,
+      paxSenior,
+      paxPwd,
+      promoDiscount,
+      orderLevelDiscount,
+      vatExemptSales,
+      vatableBase,
+      vatableSales,
+      vatAmount,
+      amtDue,
+      totalDiscountDisplay,
+      subtotal,
+      change,
+      isVat,
+      scPct,
+      pwdPct
+    }
+  }, [
+    cart, 
+    itemPaxAssignments, 
+    discounts, 
+    selectedDiscount, 
+    vatType, 
+    cashTendered
+  ])
 
   // ── Sync selectedDiscounts for backend/receipt ────────────────────────────
   useEffect(() => {
