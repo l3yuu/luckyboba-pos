@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Search, Plus, Edit2, Trash2, X, AlertCircle, RefreshCw,
-  Download, Receipt, Wallet, Building2, Calendar, Tag,
-  User, FileText, ChevronDown, ChevronUp, ArrowUpRight, ArrowDownRight,
+  Download, Receipt, Wallet, Building2, Calendar,
+  User, ChevronDown, ChevronUp,
   TrendingDown, Package
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
