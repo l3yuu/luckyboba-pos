@@ -77,7 +77,7 @@ interface ReceiptPrintProps {
 }
 
 export const ReceiptPrint = ({
-  cart,  brand, companyName, storeAddress, vatRegTin, minNumber, serialNumber, ownerName,
+  cart, brand, companyName, storeAddress, vatRegTin, minNumber, serialNumber, ownerName,
   businessName, businessEmail, businessPhone, businessAddress,
   orNumber, queueNumber, cashierName,
   formattedDate, formattedTime, orderCharge, totalCount,
