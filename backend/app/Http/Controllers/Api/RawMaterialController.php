@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\RawMaterial;
 use App\Models\RawMaterialLog;
+use App\Models\StockMovement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -19,17 +20,18 @@ class RawMaterialController extends Controller
     {
         $query = RawMaterial::query();
 
-        // Filter by category
+        if ($request->filled('branch_id')) {
+            $query->where('branch_id', $request->branch_id);
+        }
+
         if ($request->filled('category')) {
             $query->where('category', $request->category);
         }
 
-        // Filter low stock only
         if ($request->boolean('low_stock')) {
             $query->whereColumn('current_stock', '<=', 'reorder_level');
         }
 
-        // Search by name
         if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
         }
@@ -66,11 +68,25 @@ class RawMaterialController extends Controller
             'reorder_level'   => 'nullable|numeric|min:0',
             'is_intermediate' => 'nullable|boolean',
             'notes'           => 'nullable|string',
+            'branch_id'       => 'nullable|exists:branches,id',
         ]);
 
-        $material = RawMaterial::create($validated);
+        return DB::transaction(function() use ($validated) {
+            $material = RawMaterial::create($validated);
 
-        return response()->json($material, 201);
+            // ✅ If this is a global material, auto-clone it for all existing branches
+            if (empty($validated['branch_id'])) {
+                $branches = \App\Models\Branch::all();
+                foreach ($branches as $branch) {
+                    $clone = $material->replicate();
+                    $clone->branch_id = $branch->id;
+                    $clone->parent_id = $material->id;
+                    $clone->save();
+                }
+            }
+
+            return response()->json($material, 201);
+        });
     }
 
     /**
@@ -98,7 +114,6 @@ class RawMaterialController extends Controller
      */
     public function destroy(RawMaterial $rawMaterial)
     {
-        // Prevent deletion if it has recipe items linked
         if ($rawMaterial->recipeItems()->exists()) {
             return response()->json([
                 'message' => 'Cannot delete: this material is used in ' .
@@ -113,7 +128,7 @@ class RawMaterialController extends Controller
 
     /**
      * POST /api/raw-materials/{id}/adjust
-     * Manual stock adjustment (restock, correction, spoilage entry).
+     * Manual stock adjustment — also writes to stock_movements for Usage Report.
      */
     public function adjust(Request $request, RawMaterial $rawMaterial)
     {
@@ -136,6 +151,15 @@ class RawMaterialController extends Controller
                         $rawMaterial->update(['current_stock' => $validated['quantity']]);
                         break;
                 }
+
+                // Record in stock_movements so Usage Report reflects manual adjustments
+                StockMovement::create([
+                    'raw_material_id' => $rawMaterial->id,
+                    'branch_id'       => $rawMaterial->branch_id,
+                    'type'            => $validated['type'],
+                    'quantity'        => $validated['quantity'],
+                    'reason'          => $validated['reason'] ?? ucfirst($validated['type']) . ' (manual)',
+                ]);
             });
 
             $rawMaterial->refresh();
@@ -183,5 +207,45 @@ class RawMaterialController extends Controller
             'count' => $items->count(),
             'items' => $items,
         ]);
+    }
+
+    /**
+     * GET /api/raw-materials/movements
+     * Stock movement log across all raw materials.
+     * Used by the Inventory Dashboard Usage Report tab.
+     */
+    public function movements(Request $request)
+    {
+        $query = StockMovement::with(['rawMaterial:id,name,unit', 'branch:id,name']);
+        
+        $branchId = $request->query('branch_id');
+        $selectedBranchName = $branchId ? \App\Models\Branch::find($branchId)?->name : null;
+
+        if ($branchId) {
+            // Strict filtering for movements: only show results for the selected branch
+            $query->where('branch_id', $branchId);
+        }
+
+        if ($request->filled('raw_material_id')) {
+            $query->where('raw_material_id', $request->raw_material_id);
+        }
+
+        $movements = $query->orderBy('created_at', 'desc')
+            ->orderBy('id', 'desc')
+            ->limit($request->integer('limit', 50))
+            ->get()
+            ->map(fn($m) => [
+                'id'           => $m->id,
+                'raw_material' => $m->rawMaterial->name ?? 'Unknown',
+                'type'         => $m->type,
+                'quantity'     => $m->quantity,
+                'unit'         => $m->rawMaterial->unit ?? '',
+                'branch_name'  => $m->branch->name ?? ($selectedBranchName ?? 'Main Office'),
+                'reason'       => $m->reason,
+                'performed_by' => 'System', 
+                'created_at'   => $m->created_at,
+            ]);
+
+        return response()->json($movements);
     }
 }

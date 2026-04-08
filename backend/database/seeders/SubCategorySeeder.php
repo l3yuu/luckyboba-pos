@@ -47,7 +47,7 @@ public function run(): void
     // ── Step 2: Normal mapping ─────────────────────────────────────────────
     $mapping = [
         'CHEESECAKE MILK TEA'  => ['SM', 'SL'],
-        'CREAM CHEESE M. TEA'  => ['SM', 'SL'],
+        'CREAM CHEESE MILK TEA'  => ['SM', 'SL'],
         'FLAVORED MILK TEA'    => ['SM', 'SL'],
         'GREEN TEA SERIES'     => ['SM', 'SL'],
         'ICED COFFEE'          => ['SM', 'SL'],
@@ -60,13 +60,15 @@ public function run(): void
         'GF DUO BUNDLES'       => ['SL'],
         'NOVA SERIES'          => ['SL'],
         'PUMPKIN SPICE'        => ['SL'],
-        'CLASSIC MILKTEA'      => ['JR'],
+        'CLASSIC MILKTEA'      => ['SM', 'SL'],
         'COFFEE FRAPPE'        => ['UM', 'UL'],
         'FRAPPE SERIES'        => ['UM', 'UL'],
         'FP COFFEE BUNDLES'    => ['UL'],
         'HOT COFFEE'           => ['PCM', 'PCL'],
         'HOT DRINKS'           => ['PCM', 'PCL'],
         'CHICKEN WINGS'        => ['3pc', '4pc', '6pc', '12pc'],
+        'LUCKY CLASSIC JR'        => ['JR'], 
+        'HOLI-YEY'    => ['UL'],
     ];
 
     $smslId = Cup::where('code', 'SM/SL')->first()?->id;

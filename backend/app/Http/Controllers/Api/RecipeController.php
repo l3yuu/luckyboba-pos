@@ -59,7 +59,7 @@ class RecipeController extends Controller
     {
         $validated = $request->validate([
             'menu_item_id'            => 'required|exists:menu_items,id',
-            'size'                    => 'nullable|string|in:M,L',
+            'size'                    => 'nullable|string|max:10',
             'is_active'               => 'boolean',
             'notes'                   => 'nullable|string',
             'items'                   => 'required|array|min:1',

@@ -143,7 +143,7 @@ public function getCategories()
     public function checkByBarcode($barcode)
     {
         try {
-            $item = \App\Models\MenuItem::where('barcode', $barcode)->first();
+            $item = MenuItem::where('barcode', $barcode)->first();
 
             if (!$item) {
                 return response()->json(['message' => 'Item not found'], 404);
@@ -177,4 +177,209 @@ public function getCategories()
             return response()->json(['error' => 'Failed to fetch transaction history'], 500);
         }
     }
+
+    public function overview(Request $request)
+    {
+        try {
+            $branchId = $request->query('branch_id');
+
+            // 1. Stats calculation (filtered by branch if provided)
+            $baseQuery = MenuItem::join('categories', 'menu_items.category_id', '=', 'categories.id')
+                ->where('categories.type', '!=', 'standard');
+
+            if ($branchId) {
+                $baseQuery->where('menu_items.branch_id', $branchId);
+            }
+
+            $totalItems  = (clone $baseQuery)->count();
+            $lowStock    = (clone $baseQuery)->where('menu_items.quantity', '>', 0)->where('menu_items.quantity', '<=', 5)->count();
+            $outOfStock  = (clone $baseQuery)->where('menu_items.quantity', '<=', 0)->count();
+
+            // Pending POs
+            $poQuery = \App\Models\PurchaseOrder::whereIn('status', ['Draft', 'Approved', 'Pending']);
+            // If POs eventually get branch_id, add filter here
+            $pendingPos = 0;
+            try { $pendingPos = $poQuery->count(); } catch (\Exception $e) {}
+
+            // 2. Branch Summary calculation
+            $branchSummary = [];
+            try {
+                $branches = \App\Models\Branch::all();
+                $branchSummary = $branches->map(function ($branch) {
+                    $bStats = MenuItem::join('categories', 'menu_items.category_id', '=', 'categories.id')
+                        ->where('categories.type', '!=', 'standard')
+                        ->where('menu_items.branch_id', $branch->id)
+                        ->selectRaw('
+                            COUNT(*) as total,
+                            SUM(CASE WHEN quantity > 0 AND quantity <= 5 THEN 1 ELSE 0 END) as low,
+                            SUM(CASE WHEN quantity <= 0 THEN 1 ELSE 0 END) as out_of
+                        ')->first();
+
+                    $total = $bStats->total ?? 0;
+                    $low   = $bStats->low   ?? 0;
+                    $out   = $bStats->out_of ?? 0;
+                    
+                    // Stock health: % of items NOT low/out
+                    $health = $total > 0 ? round((($total - ($low + $out)) / $total) * 100) : 100;
+
+                    return [
+                        'branch_id'    => $branch->id,
+                        'branch_name'  => $branch->name,
+                        'total_items'  => $total,
+                        'low_stock'    => $low,
+                        'out_of_stock' => $out,
+                        'pending_pos'  => 0, 
+                        'health_pct'   => $health,
+                    ];
+                });
+            } catch (\Exception $e) {}
+
+            return response()->json([
+                'total_items'    => $totalItems,
+                'low_stock'      => $lowStock,
+                'out_of_stock'   => $outOfStock,
+                'pending_pos'    => $pendingPos,
+                'branch_summary' => $branchSummary,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Inventory overview error: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to load overview.'], 500);
+        }
+    }
+
+    public function alerts(Request $request)
+    {
+        try {
+            $branchId = $request->query('branch_id');
+            $selectedBranchName = $branchId ? \App\Models\Branch::find($branchId)?->name : null;
+
+            $query = MenuItem::join('categories', 'menu_items.category_id', '=', 'categories.id')
+                ->leftJoin('branches', 'menu_items.branch_id', '=', 'branches.id')
+                ->select(
+                    'menu_items.id', 
+                    'menu_items.name', 
+                    'menu_items.quantity', 
+                    'categories.name as category',
+                    'branches.name as branch_name'
+                )
+                ->where('categories.type', '!=', 'standard')
+                ->where('menu_items.quantity', '<=', 5);
+
+            if ($branchId) {
+                $query->where('menu_items.branch_id', $branchId);
+            }
+
+            $alerts = $query->orderBy('menu_items.quantity', 'asc')
+                ->get()
+                ->map(fn($item) => [
+                    'id'            => $item->id,
+                    'name'          => $item->name,
+                    'category'      => $item->category,
+                    'unit'          => 'PC',
+                    'current_stock' => $item->quantity,
+                    'reorder_level' => 5,
+                    'branch_name'   => $item->branch_name ?? ($selectedBranchName ?? 'Main Office'),
+                    'status'        => $item->quantity <= 0 ? 'out_of_stock'
+                                     : ($item->quantity <= 2  ? 'critical' : 'low'),
+                ]);
+
+            return response()->json($alerts->values());
+
+        } catch (\Exception $e) {
+            Log::error('Inventory alerts error: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to load alerts.'], 500);
+        }
+    }
+public function usageReport(Request $request)
+{
+    try {
+        $period   = $request->query('period', now()->format('Y-m'));
+        $branchId = $request->query('branch_id');
+
+        [$year, $month] = explode('-', $period);
+        $startDate = "{$year}-{$month}-01";
+        $endDate   = date('Y-m-t', strtotime($startDate));
+
+        $materialsQuery = \App\Models\RawMaterial::query();
+        if ($branchId) {
+            $materialsQuery->where('branch_id', $branchId);
+        }
+        $materials = $materialsQuery->get();
+
+        $rows = $materials->map(function ($mat) use ($startDate, $endDate, $branchId) {
+            // Get all movements for this period
+            $movementsQuery = \App\Models\StockMovement::where('raw_material_id', $mat->id)
+                ->whereBetween('created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59']);
+            
+            if ($branchId) {
+                $movementsQuery->where('branch_id', $branchId);
+            }
+
+            $movements = $movementsQuery->get();
+
+            $del    = $movements->where('type', 'add')->sum('quantity');
+            $out    = $movements->where('type', 'subtract')->sum('quantity');
+            $set    = $movements->where('type', 'set')->last();
+            $spoil  = 0; // extend later with a spoilage type
+            $cooked = 0; // extend later with an intermediate type
+
+            // Reconstruct beginning stock
+            $end = $mat->current_stock;
+            $beg = max(0, $end - $del + $out + $spoil - $cooked);
+
+            $usage    = $out + $spoil;
+            $expected = $beg + $del + $cooked - $out - $spoil;
+            $variance = $end - $expected;
+
+            return [
+                'id'       => $mat->id,
+                'name'     => $mat->name,
+                'unit'     => $mat->unit,
+                'category' => $mat->category,
+                'beg'      => round($beg, 2),
+                'del'      => round($del, 2),
+                'cooked'   => round($cooked, 2),
+                'out'      => round($out, 2),
+                'spoil'    => round($spoil, 2),
+                'end'      => round($end, 2),
+                'usage'    => round($usage, 2),
+                'variance' => round($variance, 2),
+            ];
+        });
+
+        return response()->json($rows->values());
+
+    } catch (\Exception $e) {
+        Log::error('Usage report error: ' . $e->getMessage());
+        return response()->json(['message' => 'Failed to generate usage report.'], 500);
+    }
+}
+
+public function exportUsageReport(Request $request)
+{
+    try {
+        $period = $request->query('period', now()->format('Y-m'));
+        $data   = json_decode($this->usageReport($request)->getContent(), true);
+
+        $csv  = "Item,Unit,Category,BEG,DEL,COOKED,OUT,SPOIL,END,USAGE,VARIANCE\n";
+        foreach ($data as $row) {
+            $csv .= implode(',', [
+                "\"{$row['name']}\"", $row['unit'], $row['category'],
+                $row['beg'], $row['del'], $row['cooked'],
+                $row['out'], $row['spoil'], $row['end'],
+                $row['usage'], $row['variance'],
+            ]) . "\n";
+        }
+
+        return response($csv, 200, [
+            'Content-Type'        => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"usage-report-{$period}.csv\"",
+        ]);
+
+    } catch (\Exception $e) {
+        Log::error('Export usage report error: ' . $e->getMessage());
+        return response()->json(['message' => 'Export failed.'], 500);
+    }
+}
 }

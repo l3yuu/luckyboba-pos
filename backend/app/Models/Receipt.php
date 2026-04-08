@@ -14,13 +14,22 @@ class Receipt extends Model
      * The attributes that are mass assignable.
      */
     protected $fillable = [
-        'si_number',
-        'terminal',
-        'items_count',
-        'cashier_name',
-        'total_amount',
-        'sale_id',
-    ];
+    'si_number',
+    'terminal',
+    'items_count',
+    'cashier_name',
+    'total_amount',
+    'sale_id',
+    'branch_id', 
+    'brand',
+    'owner_name',
+    'company_name',
+    'store_address',
+    'vat_reg_tin',
+    'min_number',
+    'serial_number',
+    'vat_type',
+];
 
     /**
      * The attributes that should be cast.

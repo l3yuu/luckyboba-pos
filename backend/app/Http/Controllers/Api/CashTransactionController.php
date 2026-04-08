@@ -41,21 +41,23 @@ class CashTransactionController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        $userId = Auth::id();
-        $today = now()->toDateString();
+        $user   = Auth::user();
+        $userId = $user->id;
+        $branchId = $user->branch_id; // ← get from authenticated user
+        $today  = now()->toDateString();
 
         // 1. GLOBAL LOCK: Check if EOD is already done for today
         $isEodDone = CashCount::where('user_id', $userId)
             ->where(function($query) use ($today) {
                 $query->whereDate('date', $today)
-                      ->orWhereDate('created_at', $today);
+                    ->orWhereDate('created_at', $today);
             })->exists();
 
         if ($isEodDone) {
             return response()->json([
                 'success' => false,
                 'message' => 'Terminal is locked. End of Day has already been processed.'
-            ], 403); 
+            ], 403);
         }
 
         $validated = $request->validate([
@@ -70,7 +72,6 @@ class CashTransactionController extends Controller
             ->whereDate('created_at', $today)
             ->exists();
 
-        // Prevent Cash Out or Cash Drop if they haven't Cashed In yet
         if (!$hasCashedIn && $validated['type'] !== 'cash_in') {
             return response()->json([
                 'success' => false,
@@ -88,16 +89,17 @@ class CashTransactionController extends Controller
 
         try {
             $transaction = CashTransaction::create([
-                'user_id' => $userId,
-                'type'    => $validated['type'],
-                'amount'  => $validated['amount'],
-                'note'    => $validated['note']
+                'user_id'   => $userId,
+                'branch_id' => $branchId, // ← added
+                'type'      => $validated['type'],
+                'amount'    => $validated['amount'],
+                'note'      => $validated['note'],
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Transaction recorded successfully',
-                'data' => $transaction
+                'data'    => $transaction
             ], 201);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);

@@ -12,7 +12,7 @@ class Category extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'type', 'cup_id', 'description', 'sub_category_id'];
+    protected $fillable = ['name', 'type', 'category_type', 'cup_id', 'description', 'sub_category_id', 'is_active'];
 
     public function cup(): BelongsTo
     {

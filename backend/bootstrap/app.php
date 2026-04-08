@@ -13,7 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        $middleware->statefulApi();
+        // ❌ REMOVED: $middleware->statefulApi();
+        // This was adding EnsureFrontendRequestsAreStateful to all API routes,
+        // which broke Bearer token auth for the mobile app.
 
         $middleware->validateCsrfTokens(except: [
             'api/*',
@@ -21,9 +23,15 @@ return Application::configure(basePath: dirname(__DIR__))
             'logout'
         ]);
 
-        $middleware->append(\App\Http\Middleware\ContentSecurityPolicy::class); 
+        $middleware->append(\App\Http\Middleware\ContentSecurityPolicy::class);
+        $middleware->append(\App\Http\Middleware\UpdateLastActivity::class);
+
+        $middleware->alias([
+            'role'   => \App\Http\Middleware\CheckRole::class,
+            'active' => \App\Http\Middleware\CheckUserActive::class,
+        ]);
     })
-    ->withSchedule(function (Schedule $schedule) {          
+    ->withSchedule(function (Schedule $schedule) {
         $schedule->command('sanctum:prune-expired --hours=8')->daily();
     })
     ->withExceptions(function (Exceptions $exceptions) {

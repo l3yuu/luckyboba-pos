@@ -13,10 +13,24 @@ class SettingsController extends Controller
     /**
      * Get all system settings
      */
-    public function index()
+    public function index(Request $request)
     {
-        // Returns: { "tax_rate": "12", "service_charge": "5" }
-        return response()->json(Setting::pluck('value', 'key'));
+        $settings = Setting::pluck('value', 'key');
+        
+        $branchId = $request->query('branch_id');
+        if ($branchId) {
+            $branch = \App\Models\Branch::find($branchId);
+            if ($branch) {
+                // Override or add branch-specific payment settings
+                $settings['gcash_qr_url'] = $branch->gcash_qr ? url('storage/' . $branch->gcash_qr) : ($settings['gcash_qr_url'] ?? null);
+                $settings['maya_qr_url']  = $branch->maya_qr ? url('storage/' . $branch->maya_qr) : ($settings['maya_qr_url'] ?? null);
+                $settings['gcash_number'] = $branch->gcash_number ?: ($settings['gcash_number'] ?? '');
+                $settings['maya_number']  = $branch->maya_number ?: ($settings['maya_number'] ?? '');
+                $settings['account_name'] = $branch->owner_name ?: $branch->name;
+            }
+        }
+
+        return response()->json($settings);
     }
 
     /**
@@ -47,11 +61,11 @@ class SettingsController extends Controller
     /**
      * Fetch System Audit Logs (Fixes the 404 error in Settings.tsx)
      */
-public function getAuditLogs()
+public function getAuditLogs(Request $request)
 {
     try {
-        // Gets the authenticated Cashier Ichigo user
-        $user = auth()->user(); 
+        /** @var \App\Models\User $user */
+        $user = $request->user();
 
         $logs = \App\Models\AuditLog::with('user')
             ->latest()
@@ -109,4 +123,127 @@ public function exportAuditLogs(): \Symfony\Component\HttpFoundation\StreamedRes
 
     return response()->stream($callback, 200, $headers);
 }
+
+    /**
+     * Clear all system audit logs
+     */
+    public function clearAuditLogs(Request $request)
+    {
+        try {
+            \App\Models\AuditLog::truncate();
+            
+            \App\Models\AuditLog::create([
+                'user_id' => $request->user()->id,
+                'action' => 'Cleared all audit logs',
+                'module' => 'Settings',
+                'details' => 'Superadmin cleared the entire system audit log history.',
+                'ip_address' => $request->ip()
+            ]);
+
+            return response()->json(['message' => 'Audit logs cleared successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to clear audit logs: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Reset System Settings & Factory Reset Transactions
+     */
+    public function resetSystem(Request $request)
+    {
+        try {
+            // Disable foreign key checks so we can truncate safely
+            \Illuminate\Support\Facades\Schema::disableForeignKeyConstraints();
+
+            // 1. TRUNCATE ALL TRANSACTIONAL DATA (Sales, Cash, Receipts, Stock Logs)
+            \App\Models\Sale::truncate();
+            \App\Models\SaleItem::truncate();
+            \App\Models\CashCount::truncate();
+            \App\Models\CashTransaction::truncate();
+            \App\Models\Expense::truncate();
+            \App\Models\Receipt::truncate();
+            \App\Models\ZReading::truncate();
+            \App\Models\VoidRequest::truncate();
+            \App\Models\PurchaseOrder::truncate();
+            \App\Models\PurchaseOrderItem::truncate();
+            \App\Models\StockTransfer::truncate();
+            \App\Models\StockTransferItem::truncate();
+            \App\Models\StockTransaction::truncate();
+            \App\Models\StockMovement::truncate();
+            \App\Models\StockDeduction::truncate();
+            \App\Models\RawMaterialLog::truncate();
+            if (class_exists(\App\Models\CardUsageLog::class)) \App\Models\CardUsageLog::truncate();
+            if (class_exists(\App\Models\PerkUsage::class)) \App\Models\PerkUsage::truncate();
+
+            // 2. RESET SETTINGS
+            Setting::truncate();
+            $defaults = [
+                'business_name' => 'Lucky Boba',
+                'contact_email' => 'admin@luckyboba.com',
+                'contact_phone' => '+63 912 345 6789',
+                'address' => 'Cebu City, Philippines',
+                'vat_rate' => '12%',
+                'receipt_footer' => 'Thank you for visiting Lucky Boba!',
+                'currency' => 'PHP – Philippine Peso',
+                'notifications' => 'true',
+                'auto_reports' => 'true',
+                'two_factor' => 'false'
+            ];
+
+            foreach ($defaults as $key => $value) {
+                Setting::create(['key' => $key, 'value' => $value]);
+            }
+
+            // 3. WIPE AUDIT LOGS AND INSERT FACTORY RESET EVENT
+            \App\Models\AuditLog::truncate();
+            \App\Models\AuditLog::create([
+                'user_id' => $request->user()->id,
+                'action' => 'Factory Reset System',
+                'module' => 'Settings',
+                'details' => 'Superadmin performed a complete system factory reset. All transactional data wiped.',
+                'ip_address' => $request->ip()
+            ]);
+
+            \Illuminate\Support\Facades\Schema::enableForeignKeyConstraints();
+
+            return response()->json(['message' => 'System successfully reset to factory defaults.']);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Schema::enableForeignKeyConstraints();
+            return response()->json(['error' => 'Failed to reset system: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Get System Info (Version, DB Status, Uptime, Last Backup)
+     */
+    public function getSystemInfo()
+    {
+        try {
+            $dbStatus = \Illuminate\Support\Facades\DB::connection()->getPdo() ? 'Connected' : 'Disconnected';
+        } catch (\Exception $e) {
+            $dbStatus = 'Disconnected';
+        }
+
+        $backupDir = storage_path('app/backups');
+        $lastBackupStr = 'Never';
+
+        if (file_exists($backupDir)) {
+            $files = glob($backupDir . '/*.sql');
+            if (!empty($files)) {
+                usort($files, function($a, $b) {
+                    return filemtime($b) - filemtime($a);
+                });
+                $lastBackupStr = \Carbon\Carbon::createFromTimestamp(filemtime($files[0]))
+                    ->timezone('Asia/Manila')
+                    ->format('M d, Y h:i A');
+            }
+        }
+
+        return response()->json([
+            'version' => 'v2.6.0',
+            'db_status' => $dbStatus,
+            'uptime' => 'Online', // Calculating OS server uptime in PHP isn't universally portable
+            'last_backup' => $lastBackupStr
+        ]);
+    }
 }

@@ -11,9 +11,9 @@ export const WINGS_QUANTITIES = ['3pc', '4pc', '6pc', '12pc'] as const;
 export interface Cup {
     id: number;
     name: string;
-    code: string;         // e.g. "SM/SL", "JR", "UM/UL", "PCM/PCL"
-    size_m: string;       // e.g. "22oz", "12oz" — label shown on the M button
-    size_l: string;       // e.g. "32oz", "16oz" — label shown on the L button
+    code: string;
+    size_m: string;
+    size_l: string;
     created_at?: string;
     updated_at?: string;
 }
@@ -26,22 +26,23 @@ export interface MenuItem {
     cost?: number | string;
     quantity?: number;
     barcode: string;
-    /**
-     * 'M' | 'L' | 'none'
-     * Populated by the MenuSeeder from the `size` column.
-     * Used to filter which items appear when the cashier picks M or L.
-     */
     size: 'M' | 'L' | 'none';
     cup_id?: number | null;
     sub_category_id?: number | null;
     created_at?: string;
     updated_at?: string;
+    grab_price?: number;
+    panda_price?: number;
+    /** Flat array from API: e.g. ["pearl", "ice"] — populated from menu_item_options table */
+    options?: string[];
+    sugar_levels?: { id: number; label: string; value: string }[];
 }
 
 export interface Category {
     id: number;
     name: string;
     type: string;
+    category_type:  string;
     cup?: {
         id: number;
         code: string;
@@ -50,6 +51,41 @@ export interface Category {
     };
     sub_categories?: { id: number; name: string }[];
     menu_items: MenuItem[];
+}
+
+// ─── BUNDLES ──────────────────────────────────────────────────────────────────
+
+export interface BundleComponent {
+    id: number;
+    bundle_id: number;
+    menu_item_id: number | null;
+    custom_name: string | null;
+    quantity: number;
+    size: string;
+    display_name: string;
+}
+
+export interface Bundle {
+    id: number;
+    name: string;
+    display_name: string | null;
+    category: string;
+    barcode: string;
+    price: number;
+    grab_price?: number;   // ← add
+    panda_price?: number;  // ← add
+    size: string;
+    cup_id: number | null;
+    is_active: boolean;
+    items: BundleComponent[];
+}
+
+export interface BundleComponentCustomization {
+    name: string;
+    quantity: number;
+    sugarLevel: string;
+    options: string[];
+    addOns: string[];
 }
 
 // ─── CART ─────────────────────────────────────────────────────────────────────
@@ -61,18 +97,24 @@ export interface CartItem extends MenuItem {
         grab: boolean;
         panda: boolean;
     };
-    /** Sugar level chosen in modal — only set for drink items */
     sugarLevel?: string;
-    /** Size chosen in the size-picker screen — only set for drink items */
     size: 'M' | 'L' | 'none';
-    /**
-     * Full cup size label from the category's cup relationship.
-     * e.g. "SM", "SL", "UM", "UL", "PCM", "PCL", "JR"
-     * Used for display in cart, receipt, kitchen ticket, and stickers.
-     * Only set for drink/oz items.
-     */
     cupSizeLabel?: string;
+    /** Selected options for this cart item (e.g. ["NO PRL", "NO ICE"]) */
     options?: string[];
     addOns?: string[];
     finalPrice: number;
+    originalPrice?: number;
+    discountLabel?: string;
+
+    // ── Discount Metadata ──────────────────────────────────────────────────
+    // Adding these will clear your VS Code property errors
+    discountId?: number | null;
+    discountType?: 'none' | 'percent' | 'fixed';
+    discountValue?: number | '';
+
+    // ── Bundle-specific fields ──────────────────────────────────────────────
+    isBundle?: boolean;
+    bundleId?: number;
+    bundleComponents?: BundleComponentCustomization[];
 }

@@ -1,44 +1,146 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import SalesOrder from './pages/SalesOrder'; 
-import { ProtectedRoute } from './components/ProtectedRoute'; 
-import { PublicRoute } from './components/PublicRoute'; // Import the new guard
-import { ErrorFallback } from './components/ErrorFallback';
+import Login                   from './pages/Login';
+import Dashboard               from './pages/Dashboard';
+import SalesOrder              from './pages/SalesOrder';
+import SuperAdminDashboard     from './pages/SuperAdminDashboard';
+import BranchManagerDashboard  from './pages/BranchManagerDashboard';
+import TeamLeaderDashboard     from './pages/TeamLeaderDashboard';
+import ITDashboard             from './pages/ITDashboard';
+import Calendar                from './pages/Calendar';
+import { ProtectedRoute }      from './components/ProtectedRoute';
+import { PublicRoute }         from './components/PublicRoute';
+import { ErrorFallback }       from './components/ErrorFallback';
+import PosDeviceManager        from './pages/PosDeviceManager';
+import OnlineOrdersPage        from './components/Cashier/SalesOrder/OnlineOrdersPage'; // ← NEW
+import SupervisorDashboard from './pages/SupervisorDashboard';  // ← ADD THIS IMPORT
+import { DeviceGate } from './components/DeviceGate';
 
 export const router = createBrowserRouter([
+
+  // ── Public ──────────────────────────────────────────────────────────────
   {
-    // Wrap Login in PublicRoute
-    element: <PublicRoute />,
+    element:      <PublicRoute />,
     errorElement: <ErrorFallback />,
     children: [
-      {
-        path: '/login',
-        element: <Login />,
-      }
-    ]
+      { path: '/login', element: <Login /> },
+    ],    
   },
+
+  // ── Super Admin only ─────────────────────────────────────────────────────
   {
-    // Existing Protected Routes
-    element: <ProtectedRoute />,
+    element:      <ProtectedRoute allowedRoles={['super_admin', 'superadmin']} />,
     errorElement: <ErrorFallback />,
     children: [
       {
-        path: '/dashboard',
-        element: <Dashboard />,
-      },
-      {
-        path: '/pos',
-        element: <SalesOrder />, 
+        children: [
+          { path: '/super-admin', element: <SuperAdminDashboard /> },
+          { path: '/pos-devices',  element: <PosDeviceManager /> },
+        ],
       },
     ],
   },
+
+  // ── System Admin (same dashboard as Super Admin) ──────────────────────────
   {
-    path: '/',
-    element: <Navigate to="/dashboard" replace />,
+    element:      <ProtectedRoute allowedRoles={['admin', 'system_admin']} />,
+    errorElement: <ErrorFallback />,
+    children: [
+      {
+        children: [
+          { path: '/dashboard', element: <Dashboard /> },
+          { path: '/calendar',  element: <Calendar /> },
+        ],
+      },
+    ],
   },
+
+  // ── Branch Manager only ──────────────────────────────────────────────────
   {
-    path: '*',
-    element: <ErrorFallback />,
+    element:      <ProtectedRoute allowedRoles={['manager', 'branch_manager']} />,
+    errorElement: <ErrorFallback />,
+    children: [
+      {
+        children: [
+          { path: '/branch-manager', element: <BranchManagerDashboard /> },
+          { path: '/calendar',       element: <Calendar /> },
+        ],
+      },
+    ],
   },
+
+  // ── Supervisor only ──────────────────────────────────────────────────────
+{
+  element:      <ProtectedRoute allowedRoles={['supervisor']} />,
+  errorElement: <ErrorFallback />,
+  children: [
+    {
+      children: [
+        { path: '/supervisor', element: <SupervisorDashboard /> },
+      ],
+    },
+  ],
+},
+
+
+  // ── Team Leader only ─────────────────────────────────────────────────────
+  {
+    element:      <ProtectedRoute allowedRoles={['team_leader']} />,
+    errorElement: <ErrorFallback />,
+    children: [
+      {
+        children: [
+          { path: '/team-leader', element: <TeamLeaderDashboard /> },
+        ],
+      },
+    ],
+  },
+
+  // ── IT Admin only ────────────────────────────────────────────────────────
+  {
+    element:      <ProtectedRoute allowedRoles={['it_admin']} />,
+    errorElement: <ErrorFallback />,
+    children: [
+      {
+        children: [
+          { path: '/it-admin', element: <ITDashboard /> },
+        ],
+      },
+    ],
+  },
+
+  // ── Cashier only ─────────────────────────────────────────────────────────
+{
+  element: <ProtectedRoute allowedRoles={['cashier']} />,
+  errorElement: <ErrorFallback />,
+  children: [
+    {
+      // DeviceGate wraps every cashier child route
+      element: <DeviceGate />,          // ← WRAP HERE (layout route)
+      children: [
+        { path: '/cashier',               element: <Dashboard /> },
+        { path: '/cashier/pos',           element: <SalesOrder /> },
+        { path: '/cashier/online-orders', element: <OnlineOrdersPage /> },
+      ],
+    },
+  ],
+},
+
+// ── POS — accessible to cashier, branch_manager, superadmin ──────────────
+// If cashiers also reach /pos, gate it here too
+{
+  element: <ProtectedRoute allowedRoles={['cashier', 'branch_manager', 'superadmin']} />,
+  errorElement: <ErrorFallback />,
+  children: [
+    {
+      element: <DeviceGate />,          // ← WRAP HERE TOO if cashiers use /pos
+      children: [
+        { path: '/pos', element: <SalesOrder /> },
+      ],
+    },
+  ],
+},
+
+  // ── Root & catch-all ─────────────────────────────────────────────────────
+  { path: '/',  element: <Navigate to="/login" replace /> },
+  { path: '*',  element: <ErrorFallback /> },
 ]);
