@@ -10,10 +10,16 @@ class StockMovement extends Model
         'type',
         'quantity',
         'reason',
+        'branch_id',
     ];
 
     public function rawMaterial()
     {
         return $this->belongsTo(RawMaterial::class);
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
     }
 }

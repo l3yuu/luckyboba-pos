@@ -227,6 +227,7 @@ const ZReading = () => {
   const isVat = reportData?.is_vat !== undefined ? reportData.is_vat : localVatType === 'vat';
   const [cashierName, setCashierName] = useState("ADMIN USER");
   const [invoiceQuery, setInvoiceQuery] = useState("");
+  const [showBreakdown, setShowBreakdown] = useState(true);
 
   // ── PIN overlay state ──────────────────────────────────────────────────────
   const [showPinOverlay, setShowPinOverlay]         = useState(false);
@@ -525,8 +526,74 @@ const ZReading = () => {
     const SIZE_ORDER = ['SM', 'UM', 'PCM', 'JR', 'SL', 'UL', 'PCL'];
     return (
       <div className="my-2">
-        {reportData?.categories && reportData.categories.length > 0 && (<><Divider /><div className="flex text-[11px] border-b border-black pb-0.5 mb-0.5"><span className="w-[55%] uppercase">DESCRIPTION</span><span className="w-[15%] text-center uppercase">QTY</span><span className="w-[30%] text-right uppercase">AMOUNT</span></div>{reportData.categories.map((cat, catIdx) => { const hasSizes = cat.products.some(p => p.size !== null && p.size !== undefined); const sizeGroups = new Map<string | null, typeof cat.products>(); for (const product of cat.products) { const key = product.size ?? null; if (!sizeGroups.has(key)) sizeGroups.set(key, []); sizeGroups.get(key)!.push(product); } const orderedKeys: (string | null)[] = [...SIZE_ORDER.filter(s => sizeGroups.has(s)), ...(sizeGroups.has(null) ? [null] : [])]; return (<div key={catIdx} className="mb-1"><p className="text-[11px] font-bold uppercase mt-1">{cat.category_name}</p>{orderedKeys.map((sizeKey, si) => { const products = sizeGroups.get(sizeKey) ?? []; return (<div key={si}>{hasSizes && sizeKey !== null && <p className="text-[11px] uppercase pl-2">{sizeKey}:</p>}{products.map((item, i) => (<React.Fragment key={i}><div className="flex text-[11px] leading-snug"><span className={`w-[55%] uppercase leading-tight ${hasSizes && sizeKey !== null ? 'pl-4' : 'pl-2'}`}>{item.product_name}{item.size ? ` (${item.size})` : ''}</span><span className="w-[15%] text-center">{item.total_qty}</span><span className="w-[30%] text-right">{phCurrency.format(item.total_sales)}</span></div>{item.add_ons?.map((addon, aIdx) => (<div key={aIdx} className="flex text-[10px] pl-4 leading-snug"><span className="w-[70%]">+ {addon.name}</span><span className="w-[30%] text-right">x{addon.qty}</span></div>))}</React.Fragment>))}</div>); })}<div className="flex justify-between text-[11px] border-t border-dashed border-zinc-800 mt-1 pt-1"><span className="uppercase">T. PER: {cat.category_name}</span><span>{phCurrency.format(cat.category_total || 0)}</span></div><Divider /></div>); })}
-        {reportData.all_addons_summary && reportData.all_addons_summary.length > 0 && (<div className="mt-1"><p className="text-[11px] uppercase">ADD ONS</p>{reportData.all_addons_summary.map((addon, idx) => (<div key={idx} className="flex text-[11px] leading-snug"><span className="w-[70%] uppercase pl-2">{addon.name}</span><span className="w-[30%] text-right">x{addon.qty}</span></div>))}<div className="flex justify-between text-[11px] border-t border-dashed border-zinc-800 mt-1 pt-1"><span className="uppercase">T. PER: ADD ONS</span><span>QTY: {reportData.all_addons_summary.reduce((a, b) => a + b.qty, 0)}</span></div></div>)}</>)}
+        {showBreakdown && reportData?.categories && reportData.categories.length > 0 && (
+          <>
+            <Divider />
+            <div className="flex text-[11px] border-b border-black pb-0.5 mb-0.5 font-bold">
+              <span className="w-[55%] uppercase">DESCRIPTION</span>
+              <span className="w-[15%] text-center uppercase">QTY</span>
+              <span className="w-[30%] text-right uppercase">AMOUNT</span>
+            </div>
+            {reportData.categories.map((cat, catIdx) => {
+              const hasSizes = cat.products.some(p => p.size !== null && p.size !== undefined);
+              const sizeGroups = new Map<string | null, typeof cat.products>();
+              for (const product of cat.products) {
+                const key = product.size ?? null;
+                if (!sizeGroups.has(key)) sizeGroups.set(key, []);
+                sizeGroups.get(key)!.push(product);
+              }
+              const orderedKeys: (string | null)[] = [...SIZE_ORDER.filter(s => sizeGroups.has(s)), ...(sizeGroups.has(null) ? [null] : [])];
+              return (
+                <div key={catIdx} className="mb-1">
+                  <p className="text-[11px] font-bold uppercase mt-1">{cat.category_name}</p>
+                  {orderedKeys.map((sizeKey, si) => {
+                    const products = sizeGroups.get(sizeKey) ?? [];
+                    return (
+                      <div key={si}>
+                        {hasSizes && sizeKey !== null && <p className="text-[11px] uppercase pl-2 font-bold">{sizeKey}:</p>}
+                        {products.map((item, i) => (
+                          <React.Fragment key={i}>
+                            <div className="flex text-[11px] leading-snug font-bold">
+                              <span className={`w-[55%] uppercase leading-tight ${hasSizes && sizeKey !== null ? 'pl-4' : 'pl-2'}`}>{item.product_name}{item.size ? ` (${item.size})` : ''}</span>
+                              <span className="w-[15%] text-center">{item.total_qty}</span>
+                              <span className="w-[30%] text-right">{phCurrency.format(item.total_sales)}</span>
+                            </div>
+                            {item.add_ons?.map((addon, aIdx) => (
+                              <div key={aIdx} className="flex text-[10px] pl-4 leading-snug font-bold">
+                                <span className="w-[70%]">+ {addon.name}</span>
+                                <span className="w-[30%] text-right">x{addon.qty}</span>
+                              </div>
+                            ))}
+                          </React.Fragment>
+                        ))}
+                      </div>
+                    );
+                  })}
+                  <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-800 mt-1 pt-1 font-bold">
+                    <span className="uppercase">T. PER: {cat.category_name}</span>
+                    <span>{phCurrency.format(cat.category_total || 0)}</span>
+                  </div>
+                  <Divider />
+                </div>
+              );
+            })}
+            {reportData.all_addons_summary && reportData.all_addons_summary.length > 0 && (
+              <div className="mt-1">
+                <p className="text-[11px] uppercase font-bold text-center">ADD ONS SUMMARY</p>
+                {reportData.all_addons_summary.map((addon, idx) => (
+                  <div key={idx} className="flex text-[11px] leading-snug font-bold">
+                    <span className="w-[70%] uppercase pl-2">{addon.name}</span>
+                    <span className="w-[30%] text-right">x{addon.qty}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-800 mt-1 pt-1 font-bold">
+                  <span className="uppercase">T. PER: ADD ONS</span>
+                  <span>QTY: {reportData.all_addons_summary.reduce((a, b) => a + b.qty, 0)}</span>
+                </div>
+              </div>
+            )}
+          </>
+        )}
         {(() => {
           const sizeTotals = new Map<string, number>();
           let noSizeTotal = 0;
@@ -775,7 +842,7 @@ const ZReading = () => {
         <Row label="Cash In" value={phCurrency.format(cashIn)} />
         <Row label="Cash Drop" value={phCurrency.format(cashDrop)} />
         {cashDenominations.length > 0 && (<><Divider /><p className="text-[11px] uppercase text-center font-bold mb-0.5">CASH COUNT</p>{cashDenominations.map((d, i) => (<div key={i} className="flex text-[11px] leading-snug"><span className="w-[30%] uppercase">{d.label}</span><span className="w-[10%] text-center">X</span><span className="w-[25%] text-center">{d.qty}</span><span className="w-[35%] text-right">{phCurrency.format(d.total)}</span></div>))}<Divider /><Row label="TOTAL CASH COUNT" value={phCurrency.format(totalCashCount)} /><Row label="EXPECTED EOD CASH" value={phCurrency.format(expectedEOD)} />{overShort >= 0 ? <div className="flex justify-between text-[11px] leading-snug font-bold"><span className="uppercase w-[60%]">OVER</span><span className="text-right w-[40%] text-green-700">{phCurrency.format(overShort)}</span></div> : <div className="flex justify-between text-[11px] leading-snug font-bold"><span className="uppercase w-[60%]">SHORT</span><span className="text-right w-[40%] text-red-600">-{phCurrency.format(Math.abs(overShort))}</span></div>}<Row label="DISCREPANCY" value={phCurrency.format(Math.abs(overShort))} /></>)}
-        {reportData?.categories && reportData.categories.length > 0 && (
+        {showBreakdown && reportData?.categories && reportData.categories.length > 0 && (
           <>
             <Divider />
             <p className="text-[11px] uppercase text-center font-bold mb-0.5">ITEM BREAKDOWN</p>
@@ -789,7 +856,7 @@ const ZReading = () => {
               <React.Fragment key={catIdx}>
                 <p className="text-[15px] font-bold uppercase mt-0.5">{cat.category_name}</p>
                 {cat.products.map((item, i) => (
-                  <div key={i} className="flex text-[11px] leading-snug border-b border-dotted border-zinc-200">
+                  <div key={i} className="flex text-[11px] leading-snug border-b border-dotted border-zinc-200 font-bold">
                     <span className="w-[50%] uppercase leading-tight pl-1">{item.product_name}</span>
                     <span className="w-[15%] text-center">{item.size ?? '—'}</span>
                     <span className="w-[15%] text-center">{item.total_qty}</span>
@@ -798,17 +865,17 @@ const ZReading = () => {
                 ))}
               </React.Fragment>
             ))}
-            <Divider />
-            <div className="flex text-[11px] font-bold justify-between">
-              <span className="uppercase">GROSS TOTAL</span>
-              <span>{phCurrency.format(gross)}</span>
-            </div>
-            <div className="flex text-[11px] font-bold justify-between">
-              <span className="uppercase">NET TOTAL</span>
-              <span>{phCurrency.format(netTotal)}</span>
-            </div>
           </>
         )}
+        <Divider />
+        <div className="flex text-[11px] font-bold justify-between">
+          <span className="uppercase">GROSS TOTAL</span>
+          <span>{phCurrency.format(gross)}</span>
+        </div>
+        <div className="flex text-[11px] font-bold justify-between">
+          <span className="uppercase">NET TOTAL</span>
+          <span>{phCurrency.format(netTotal)}</span>
+        </div>
       </div>
     );
   };
@@ -945,6 +1012,19 @@ const ZReading = () => {
                 <input type="text" value={invoiceQuery} onChange={(e) => setInvoiceQuery(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && fetchReportData('search')} placeholder="Search invoice / cashier..." className="flex-1 px-4 h-11 border border-zinc-300 bg-[#f5f0ff] font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#3b2063]" />
                 <button onClick={() => fetchReportData('search')} disabled={loading} className="px-5 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-colors disabled:opacity-50 rounded-[0.625rem]">Search</button>
               </div>
+            )}
+
+            {/* Toggle Breakdown */}
+            {(reportData?.report_type === 'z_reading' || reportData?.report_type === 'summary') && (
+              <label className="flex items-center gap-2 cursor-pointer bg-white border border-zinc-300 px-4 h-11 rounded-[0.625rem] hover:bg-zinc-50 transition-colors">
+                <input 
+                  type="checkbox" 
+                  checked={showBreakdown} 
+                  onChange={(e) => setShowBreakdown(e.target.checked)}
+                  className="w-4 h-4 rounded border-zinc-300 text-[#3b2063] focus:ring-[#3b2063]"
+                />
+                <span className="text-[10px] font-black uppercase text-zinc-600">Show Breakdown</span>
+              </label>
             )}
           </div>
 

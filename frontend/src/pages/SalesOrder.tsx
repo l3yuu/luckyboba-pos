@@ -414,23 +414,17 @@ const SalesOrder = () => {
   const syncNextSequence = async () => {
     try {
       const { data } = await api.get('/receipts/next-sequence')
-      const serverSeq = parseInt(data.next_sequence, 10)
+      const serverSeq   = parseInt(data.next_sequence, 10)
+      const serverQueue = parseInt(data.next_queue, 10) || 1
+
       if (!isNaN(serverSeq)) {
         localStorage.setItem(seqKey, String(serverSeq))
         setOrNumber(generateORNumber(serverSeq))
 
-        const today     = new Date().toDateString()
-        const savedDate = localStorage.getItem(queueDate)
-        const isNewDay  = savedDate !== today
-
-        if (isNewDay) {
-          localStorage.setItem(queueKey,  '1')
-          localStorage.setItem(queueDate, today)
-          setQueueNumber(generateQueueNumber(1))
-        } else {
-          const lastQueue = parseInt(localStorage.getItem(queueKey) || '1', 10)
-          setQueueNumber(generateQueueNumber(lastQueue))
-        }
+        // ✅ SYNC QUEUE FROM SERVER
+        localStorage.setItem(queueKey,  String(serverQueue))
+        localStorage.setItem(queueDate, new Date().toDateString())
+        setQueueNumber(generateQueueNumber(serverQueue))
       }
     } catch {
       // ── Offline fallback ───────────────────────────────────────────────────
@@ -1791,6 +1785,10 @@ const SalesOrder = () => {
           itemPaxAssignments={itemPaxAssignments}
           posFooter={posFooter}
           receiptFooter={posFooter.receipt_footer}
+          businessName={posFooter.business_name}
+          businessEmail={posFooter.contact_email}
+          businessPhone={posFooter.contact_phone}
+          businessAddress={posFooter.address}
         />
       )}
       {printTarget === 'kitchen'  && <KitchenPrint  {...printProps} />}

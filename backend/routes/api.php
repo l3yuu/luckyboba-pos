@@ -264,6 +264,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::post ('/audit-logs',            [AuditLogController::class,    'store']);
 
         Route::apiResource('menu-list',  MenuListController::class)->only(['index', 'store']);
+        Route::get ('/menu-items/export',           [MenuItemController::class, 'export']);
+        Route::get ('/menu-items/import-template', [MenuItemController::class, 'downloadTemplate']);
+        Route::post('/menu-items/import',          [MenuItemController::class, 'import']);
         Route::apiResource('menu-items', MenuItemController::class);
 
         Route::get ('/menu-item-options',       [MenuItemOptionController::class, 'index']);
@@ -423,16 +426,18 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::get('/{id}/analytics',     [BranchController::class, 'analytics']);
         });
 
+    });
+
+    // ── SUPERADMIN ONLY ───────────────────────────────────────────────────────
+    Route::middleware(['role:superadmin'])->group(function () {
+        
+        // Moved from branch_manager block to restrict editing to SuperAdmin only
         Route::post('/raw-materials/{rawMaterial}/adjust', [RawMaterialController::class, 'adjust']);
         Route::apiResource('raw-materials', RawMaterialController::class)->except(['index', 'show']);
 
         Route::get  ('/recipes/by-menu-item/{menuItemId}', [RecipeController::class, 'byMenuItem']);
         Route::patch('/recipes/{recipe}/toggle',           [RecipeController::class, 'toggle']);
         Route::apiResource('recipes', RecipeController::class)->except(['index', 'show']);
-    });
-
-    // ── SUPERADMIN ONLY ───────────────────────────────────────────────────────
-    Route::middleware(['role:superadmin'])->group(function () {
 
         Route::get('/audit-logs',       [AuditLogController::class, 'index']);
         Route::get('/audit-logs/stats', [AuditLogController::class, 'stats']);
