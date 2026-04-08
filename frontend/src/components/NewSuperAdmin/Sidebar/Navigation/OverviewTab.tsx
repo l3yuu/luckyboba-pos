@@ -357,7 +357,6 @@ const OverviewTab: React.FC = () => {
               icon={<DollarSign size={18} strokeWidth={2.5} />}
               label="Revenue Performance"
               value={fmt(totals?.grand_total ?? 0)}
-              sub={`${period.toUpperCase()} TOTAL`}
               color="violet"
             />
             <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 card relative overflow-hidden group shadow-sm">
@@ -373,30 +372,23 @@ const OverviewTab: React.FC = () => {
                   <p className="text-xl font-black text-rose-600 tabular-nums">₱{liveSalesToday.toLocaleString()}</p>
                 </div>
               </div>
-              <div className="mt-1 flex items-center gap-1">
-                <span className="w-1 h-1 rounded-full bg-rose-500" />
-                <p className="text-[0.6rem] font-black text-rose-500">REAL-TIME</p>
-              </div>
             </div>
             <StatCard
               icon={<GitBranch size={18} strokeWidth={2.5} />}
               label="Active Branches"
               value={pulse?.stats.online_branches ?? branchStats.active}
-              sub={`${branchStats.total} total`}
               color="emerald"
             />
             <StatCard
               icon={<UsersIcon size={18} strokeWidth={2.5} />}
               label="Active Staff"
               value={pulse?.stats.active_staff ?? userStats.active}
-              sub="Staff Online"
               color="amber"
             />
             <StatCard
               icon={<ShoppingBag size={18} strokeWidth={2.5} />}
               label="Total Orders"
               value={(totals?.total_orders ?? 0).toLocaleString()}
-              sub={`Count this ${period}`}
               color="violet"
             />
           </>

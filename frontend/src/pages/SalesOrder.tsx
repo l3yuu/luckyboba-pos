@@ -267,15 +267,21 @@ const SalesOrder = () => {
 
   // ── Derived values ──────────────────────────────────────────────────────────
 
-  const isDrink = selectedCategory?.type === 'drink' || selectedCategory?.category_type === 'bundle'
-  const isWings = selectedCategory?.category_type === 'wings'
-  const isOz = selectedCategory?.name === 'HOT DRINKS' || selectedCategory?.name === 'HOT COFFEE'
-  const isCombo = selectedCategory?.category_type === 'combo'
-  const isWaffleCategory = selectedCategory?.category_type === 'waffle'
-  const categoryHasOnlyOneSize = (selectedCategory?.sub_categories?.length ?? 0) <= 1
+  const activeModalCategory = selectedItem 
+    ? categories.find(cat => cat.menu_items.some(mi => mi.id === selectedItem.id)) 
+    : selectedCategory;
+  
+  const targetCategory = activeModalCategory ?? selectedCategory;
 
-  const isFoodCategory = selectedCategory?.category_type === 'food' ||
-    selectedCategory?.category_type === 'wings';
+  const isDrink = targetCategory?.type === 'drink' || targetCategory?.category_type === 'bundle'
+  const isWings = targetCategory?.category_type === 'wings'
+  const isOz = targetCategory?.name === 'HOT DRINKS' || targetCategory?.name === 'HOT COFFEE'
+  const isCombo = targetCategory?.category_type === 'combo'
+  const isWaffleCategory = targetCategory?.category_type === 'waffle'
+  const categoryHasOnlyOneSize = (targetCategory?.sub_categories?.length ?? 0) <= 1
+
+  const isFoodCategory = targetCategory?.category_type === 'food' ||
+    targetCategory?.category_type === 'wings';
 
   const filteredAddOns = addOnsData.filter(a => {
     if (isWaffleCategory) return a.category === 'waffle';
@@ -850,8 +856,9 @@ const SalesOrder = () => {
   // ── Add to order ───────────────────────────────────────────────────────────
 
   const addToOrder = () => {
-    if (!selectedItem || !selectedCategory) return;
-    const isWaffle = selectedCategory?.name?.toLowerCase().includes('waffle');
+    const activeCat = categories.find(cat => cat.menu_items.some(mi => mi.id === selectedItem?.id)) ?? selectedCategory;
+    if (!selectedItem || !activeCat) return;
+    const isWaffle = activeCat?.name?.toLowerCase().includes('waffle');
     let extraCost = 0;
     if (isDrink || isWaffle || isFoodCategory) {
       selectedAddOns.forEach(name => {
