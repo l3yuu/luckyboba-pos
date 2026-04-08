@@ -38,6 +38,7 @@ import ExpensesTab from "../components/NewSuperAdmin/Sidebar/Expenses/ExpensesTa
 import CardUsersTab     from "../components/NewSuperAdmin/Sidebar/System/CardUsersTab";
 import CardApprovalTab from "../components/NewSuperAdmin/Sidebar/System/CardApprovalTab";
 import CardManagementTab from "../components/NewSuperAdmin/Sidebar/System/CardManagementTab";
+import LoyaltyManagementTab from "../components/NewSuperAdmin/Sidebar/LoyaltyManagementTab";
 
 
 const GlobalStyles = () => (
@@ -121,6 +122,7 @@ const SuperAdminDashboard: React.FC = () => {
       case "card_management": return <CardManagementTab />;
       case "card_approvals": return <CardApprovalTab />;
       case "card_members":   return <CardUsersTab    />;
+      case "loyalty":        return <LoyaltyManagementTab />;
     }
   };
 

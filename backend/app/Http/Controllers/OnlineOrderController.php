@@ -185,9 +185,13 @@ class OnlineOrderController extends Controller
 
             $sale->load(['items', 'user', 'branch']);
 
-            $pointsEarned = (int) floor($request->total);
+            // ── Calculate Earned Points (Dynamic) ──────────────────────────────────
+            $pointsRatio = (float) (\App\Models\Setting::where('key', 'points_per_currency')->value('value') ?? 1.0);
+            $cardMult   = (float) (\App\Models\Setting::where('key', 'card_point_multiplier')->value('value') ?? 2.0);
+
+            $pointsEarned = (int) floor($request->total * $pointsRatio);
             if ($request->input('card_id')) {
-                $pointsEarned *= 2;
+                $pointsEarned = (int) ($pointsEarned * $cardMult);
             }
 
             \DB::table('user_points')->updateOrInsert(
@@ -231,7 +235,7 @@ class OnlineOrderController extends Controller
 
     
 
-    private function formatOrder(Sale $sale): array
+    private function formatOrder($sale): array
     {
         $code = str_replace('APP-', '', $sale->invoice_number);
 

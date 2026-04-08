@@ -19,6 +19,7 @@ use App\Http\Controllers\CacheController;
 use App\Http\Controllers\CategoryDrinkController;
 use App\Http\Controllers\OnlineOrderController;
 use App\Http\Controllers\Api\PointsController;
+use App\Http\Controllers\LoyaltyManagementController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -126,6 +127,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('/my-orders',      [OnlineOrderController::class, 'myOrders']);
     Route::get('/points', [PointsController::class, 'index']);
     Route::post('/points/redeem', [PointsController::class, 'redeem']);
+
+    // ── LOYALTY (Mobile & Shared) ──────────────────────────────────────────
+    Route::get('/loyalty/rewards', [LoyaltyManagementController::class, 'getRewards']);
 
     Route::patch('/orders/{siNumber}/cancel', function (Request $request, string $siNumber) {
         $sale = \App\Models\Sale::where('invoice_number', $siNumber)
@@ -504,6 +508,16 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::post('/{id}/reject',               [CardController::class, 'rejectCard']);
             Route::get ('/users',                     [CardController::class, 'getCardUsers']);
             Route::post('/users/{userId}/log-usage',  [CardController::class, 'logUsage']);
+        });
+
+        // ── LOYALTY MANAGEMENT (SuperAdmin) ──────────────────────────────────
+        Route::prefix('loyalty')->group(function () {
+            Route::get   ('/settings',     [LoyaltyManagementController::class, 'getSettings']);
+            Route::post  ('/settings',     [LoyaltyManagementController::class, 'updateSettings']);
+            Route::get   ('/users',        [LoyaltyManagementController::class, 'getUserPoints']);
+            Route::post  ('/rewards',      [LoyaltyManagementController::class, 'storeReward']);
+            Route::put   ('/rewards/{id}', [LoyaltyManagementController::class, 'updateReward']);
+            Route::delete('/rewards/{id}', [LoyaltyManagementController::class, 'deleteReward']);
         });
     });
 

@@ -21,6 +21,7 @@ export type TabId =
   | "expenses"
   | "card_management" | "card_approvals"
   | "card_members"
+  | "loyalty"
   | "promotions" | "audit" | "settings";
 
 export interface SuperAdminSidebarProps {
@@ -219,6 +220,7 @@ const APP_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "card_management", label: "Card Management", icon: <CreditCard size={14} /> },
   { id: "card_approvals", label: "Card Approvals", icon: <CreditCard size={14} /> },
   { id: "card_members",     label: "Card Members",   icon: <Users      size={14} /> },
+  { id: "loyalty",          label: "Loyalty & Points", icon: <Tag        size={14} /> },
 ];
 
 const SYSTEM_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
