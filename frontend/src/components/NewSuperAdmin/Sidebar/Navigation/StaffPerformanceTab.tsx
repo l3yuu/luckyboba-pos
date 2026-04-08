@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { 
   Users, TrendingUp, AlertTriangle, Search, 
   ChevronRight, Clock, ShieldAlert, Award, X, RefreshCw,
@@ -47,17 +48,21 @@ const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: string |
   };
   const c = colors[color];
   return (
-    <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center justify-between card shadow-sm">
+    <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-4 md:px-5 py-5 flex items-center justify-between card shadow-sm overflow-hidden">
       <div className="flex items-center gap-3 flex-1 min-w-0">
         <div className={`w-10 h-10 ${c.bg} border ${c.border} flex items-center justify-center rounded-[0.4rem] shrink-0`}>
           <span className={c.icon}>{icon}</span>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{label}</p>
-          <p className="text-xl font-bold text-[#1a0f2e] tabular-nums whitespace-nowrap">{value}</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 truncate">{label}</p>
+          <p className="text-lg md:text-xl font-bold text-[#1a0f2e] tabular-nums truncate">{value}</p>
         </div>
       </div>
-      {sub && <p className="text-[11px] text-zinc-400 font-medium shrink-0 ml-2 truncate max-w-[100px]">{sub}</p>}
+      {sub && (
+        <div className="flex flex-col justify-center ml-2 shrink-0 max-w-[70px] md:max-w-[90px]">
+          <p className="text-[10px] md:text-[11px] text-zinc-400 font-medium truncate text-right">{sub}</p>
+        </div>
+      )}
     </div>
   );
 };
@@ -310,113 +315,105 @@ const StaffPerformanceTab = () => {
       </div>
 
       {/* ── Scorecard Modal ── */}
-      {selectedStaff && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 fade-in">
-          <div className="absolute inset-0 bg-[#1a0f2e]/60 backdrop-blur-md" onClick={() => setSelectedStaff(null)} />
-          <div className="relative bg-[#fdfdff] w-full max-w-xl rounded-[1.25rem] shadow-2xl overflow-hidden border border-white/20">
+      {selectedStaff && createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 fade-in">
+          <div className="absolute inset-0 bg-black/20 backdrop-blur-sm" onClick={() => setSelectedStaff(null)} />
+          <div className="relative bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-zinc-100">
             {/* Modal Header */}
-            <div className="bg-gradient-to-br from-[#1a0f2e] via-[#3b2063] to-[#4c1d95] p-8 text-white relative">
-              <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
-                <Users size={160} />
-              </div>
-              <div className="relative z-10 flex justify-between items-start">
-                <div className="flex items-center gap-5">
-                  <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-xl ring-4 ring-white/5">
-                    <Users size={32} />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-200 opacity-80">Employee Scorecard</span>
-                      <span className="w-1 h-1 rounded-full bg-emerald-400" />
-                    </div>
-                    <h3 className="text-2xl font-black tracking-tight">{selectedStaff.name}</h3>
-                    <div className="flex items-center gap-2 mt-2">
-                       <span className="text-[9px] font-black uppercase px-2.5 py-1 bg-white/10 border border-white/10 rounded-lg backdrop-blur-sm">{selectedStaff.role}</span>
-                       <span className="text-[9px] font-black uppercase px-2.5 py-1 bg-white/10 border border-white/10 rounded-lg backdrop-blur-sm">{selectedStaff.branch_name || selectedStaff.branch}</span>
-                    </div>
+            <div className="p-6 border-b border-zinc-100 flex items-start justify-between bg-zinc-50/50">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-full bg-white border border-zinc-200 flex items-center justify-center text-[#3b2063] shadow-sm">
+                  <Users size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-black text-[#1a0f2e] tracking-tight">{selectedStaff.name}</h3>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">{selectedStaff.role}</span>
+                    <span className="w-1 h-1 rounded-full bg-zinc-300" />
+                    <span className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">{selectedStaff.branch_name || selectedStaff.branch}</span>
                   </div>
                 </div>
-                <button onClick={() => setSelectedStaff(null)} className="p-2.5 hover:bg-white/10 rounded-full transition-all border border-transparent hover:border-white/10 active:scale-90">
-                  <X size={20} />
-                </button>
               </div>
+              <button onClick={() => setSelectedStaff(null)} className="p-2 text-zinc-400 hover:text-zinc-600 hover:bg-zinc-100 rounded-full transition-all">
+                <X size={18} />
+              </button>
             </div>
 
             {/* Modal Body */}
-            <div className="p-8 space-y-6">
+            <div className="p-6 space-y-5">
               {/* Performance Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="p-4 bg-white border border-zinc-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                  <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5 line-clamp-1">
-                    <DollarSign size={10} className="text-[#3b2063]" /> Total Generated
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-4 bg-zinc-50/50 border border-zinc-100 rounded-xl">
+                  <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                    <DollarSign size={12} className="text-[#3b2063] shrink-0" /> <span className="truncate">Revenue</span>
                   </p>
-                  <p className="text-lg font-black text-[#1a0f2e]">{fmt(selectedStaff.revenue)}</p>
+                  <p className="text-xl font-black text-[#1a0f2e] truncate">{fmt(selectedStaff.revenue)}</p>
                 </div>
-                <div className="p-4 bg-white border border-zinc-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                  <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5 line-clamp-1">
-                    <TrendingUp size={10} className="text-emerald-500" /> Avg. Ticket
+                <div className="p-4 bg-zinc-50/50 border border-zinc-100 rounded-xl">
+                  <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                    <TrendingUp size={12} className="text-emerald-500 shrink-0" /> <span className="truncate">Avg Ticket</span>
                   </p>
-                  <p className="text-lg font-black text-emerald-600">{fmt(selectedStaff.avg_sale)}</p>
+                  <p className="text-xl font-black text-emerald-600 truncate">{fmt(selectedStaff.avg_sale)}</p>
                 </div>
-                <div className="p-4 bg-white border border-zinc-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                  <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5 line-clamp-1">
-                    <Clock size={10} className="text-blue-500" /> Orders
+                <div className="p-4 bg-zinc-50/50 border border-zinc-100 rounded-xl">
+                  <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                    <Clock size={12} className="text-blue-500 shrink-0" /> <span className="truncate">Orders</span>
                   </p>
-                  <p className="text-lg font-black text-[#1a0f2e]">{selectedStaff.transactions}</p>
+                  <p className="text-xl font-black text-[#1a0f2e] truncate">{selectedStaff.transactions}</p>
                 </div>
-                <div className="p-4 bg-white border border-zinc-100 rounded-2xl shadow-sm hover:shadow-md transition-shadow">
-                  <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5 line-clamp-1">
-                    <AlertTriangle size={10} className="text-rose-500" /> Void Rate
+                <div className="p-4 bg-zinc-50/50 border border-zinc-100 rounded-xl">
+                  <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                    <AlertTriangle size={12} className="text-rose-500 shrink-0" /> <span className="truncate">Void Rate</span>
                   </p>
-                  <p className={`text-lg font-black ${selectedStaff.void_rate > 5 ? 'text-rose-600' : 'text-[#1a0f2e]'}`}>
+                  <p className={`text-xl font-black truncate ${selectedStaff.void_rate > 5 ? 'text-rose-600' : 'text-[#1a0f2e]'}`}>
                     {selectedStaff.void_rate}%
                   </p>
                 </div>
               </div>
 
               {/* Enhanced Integrity Meter */}
-              <div className={`p-6 rounded-2xl border ${
+              <div className={`p-5 rounded-xl border ${
                 selectedStaff.void_rate > 5 
-                  ? 'bg-rose-50/50 border-rose-100 text-rose-600' 
-                  : 'bg-[#f5f0ff]/80 border-[#ede8ff] text-[#3b2063]'
+                  ? 'bg-rose-50 border-rose-100 text-rose-700' 
+                  : 'bg-[#f5f0ff]/50 border-[#ede8ff] text-[#3b2063]'
               }`}>
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${selectedStaff.void_rate > 5 ? 'bg-rose-100 text-rose-600' : 'bg-white text-[#3b2063]'} shadow-sm`}>
-                      {selectedStaff.void_rate > 5 ? <ShieldAlert size={16} /> : <Award size={16} />}
+                    <div className={`w-6 h-6 rounded-md flex items-center justify-center ${selectedStaff.void_rate > 5 ? 'bg-rose-200 text-rose-700' : 'bg-white text-[#3b2063] shadow-sm'}`}>
+                      {selectedStaff.void_rate > 5 ? <ShieldAlert size={12} /> : <Award size={12} />}
                     </div>
                     <div>
-                      <h4 className="text-[10px] font-black uppercase tracking-[0.1em]">Integrity Level: {selectedStaff.void_rate > 5 ? 'At Risk' : 'Excellent'}</h4>
-                      <p className="text-[8px] font-bold uppercase opacity-60">Verified Analytics Data</p>
+                      <h4 className="text-[10px] font-black uppercase tracking-widest text-[#1a0f2e]">Integrity: {selectedStaff.void_rate > 5 ? 'At Risk' : 'Excellent'}</h4>
                     </div>
                   </div>
-                  <span className="text-[11px] font-black tabular-nums">{100 - selectedStaff.void_rate}% Score</span>
+                  <span className="text-[10px] font-black tabular-nums">{100 - selectedStaff.void_rate}% Score</span>
                 </div>
                 
                 {/* Progress Bar */}
-                <div className="h-2 w-full bg-white/50 rounded-full overflow-hidden mb-4 border border-zinc-100">
+                <div className="h-1.5 w-full bg-zinc-200/50 rounded-full overflow-hidden mb-3">
                   <div 
                     className={`h-full rounded-full transition-all duration-1000 ${selectedStaff.void_rate > 5 ? 'bg-rose-500' : 'bg-[#3b2063]'}`} 
-                    style={{ width: `${100 - (selectedStaff.void_rate / 15) * 100}%` }} // Adjusted scale for visualization
+                    style={{ width: `${100 - (selectedStaff.void_rate / 15) * 100}%` }}
                   />
                 </div>
 
-                <p className="text-[0.7rem] leading-relaxed font-bold opacity-90">
+                <p className="text-[10px] leading-relaxed font-semibold opacity-80">
                   {selectedStaff.void_rate > 5 
-                    ? `CRITICAL ALERT: Void rate is exceptionally high at ${selectedStaff.void_rate}%. This requires immediate investigation into transaction integrity and potential error patterns.` 
-                    : `Staff exhibits high operational integrity with a void rate of just ${selectedStaff.void_rate}%. Highly recommended for high-volume shifts.`}
+                    ? `Warning: Void rate is exceptionally high at ${selectedStaff.void_rate}%. Immediate investigation is required.` 
+                    : `Staff exhibits high operational integrity with a void rate of just ${selectedStaff.void_rate}%.`}
                 </p>
               </div>
 
               <button 
                 onClick={() => setSelectedStaff(null)}
-                className="w-full py-4 bg-[#1a0f2e] text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-xl hover:bg-[#3b2063] transition-all shadow-xl active:scale-[0.98] shadow-purple-900/10 flex items-center justify-center gap-2"
+                className="w-full py-3.5 bg-white border border-zinc-200 text-zinc-600 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-zinc-50 hover:text-[#1a0f2e] transition-all active:scale-[0.98] shadow-sm"
               >
-                CLOSE SCORECARD
+                Close Scorecard
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
