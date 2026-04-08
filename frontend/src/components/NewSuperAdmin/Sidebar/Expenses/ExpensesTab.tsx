@@ -107,6 +107,7 @@ const ExpenseFormModal: React.FC<{
   const [saving,  setSaving]  = useState(false);
   const [apiErr,  setApiErr]  = useState('');
   const [preview, setPreview] = useState<string | null>(editing?.receipt_path ?? null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -143,13 +144,41 @@ const ExpenseFormModal: React.FC<{
     } finally { setSaving(false); }
   };
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const processFile = (file: File) => {
     if (!file) return;
+    if (!file.type.startsWith('image/')) return;
     setForm(p => ({ ...p, receipt_file: file }));
     const reader = new FileReader();
     reader.onload = ev => setPreview(ev.target?.result as string);
     reader.readAsDataURL(file);
+  };
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+  };
+
+  const onDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const onDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) processFile(file);
+  };
+
+  const removeFile = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setForm(p => ({ ...p, receipt_file: null }));
+    setPreview(null);
   };
 
   const set = (key: keyof FormState) => (ev: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -223,21 +252,41 @@ const ExpenseFormModal: React.FC<{
 
           {/* Receipt upload */}
           <Field label="Receipt / Proof">
-            <label className="flex flex-col items-center justify-center w-full border-2 border-dashed border-zinc-200 rounded-xl cursor-pointer hover:border-[#3b2063] hover:bg-[#faf9ff] transition-all p-4">
+            <label 
+              onDragOver={onDragOver}
+              onDragLeave={onDragLeave}
+              onDrop={onDrop}
+              className={`flex flex-col items-center justify-center w-full border-2 border-dashed rounded-xl cursor-pointer transition-all p-4 min-h-[100px]
+                ${isDragging 
+                  ? 'border-[#3b2063] bg-[#f5f0ff] scale-[1.01]' 
+                  : 'border-zinc-200 hover:border-[#3b2063] hover:bg-[#faf9ff]'
+                }`}
+            >
               {preview ? (
-                <div className="flex items-center gap-3 w-full">
-                  <img src={preview} alt="Receipt" className="w-16 h-16 object-cover rounded-lg border border-zinc-200" />
-                  <div>
-                    <p className="text-xs font-bold text-zinc-700">{form.receipt_file?.name ?? 'Current receipt'}</p>
-                    <p className="text-[10px] text-zinc-400">Click to replace</p>
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-3">
+                    <img src={preview} alt="Receipt" className="w-16 h-16 object-cover rounded-lg border border-zinc-200" />
+                    <div className="max-w-[180px]">
+                      <p className="text-xs font-bold text-zinc-700 truncate">{form.receipt_file?.name ?? 'Current receipt'}</p>
+                      <p className="text-[10px] text-zinc-400">Click or drag to replace</p>
+                    </div>
                   </div>
+                  <button 
+                    onClick={removeFile}
+                    className="p-2 hover:bg-red-50 text-zinc-400 hover:text-red-500 rounded-lg transition-colors"
+                    title="Remove attachment"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
               ) : (
-                <>
-                  <Receipt size={20} className="text-zinc-300 mb-2" />
-                  <p className="text-xs font-bold text-zinc-400">Click to upload receipt</p>
-                  <p className="text-[10px] text-zinc-300 mt-0.5">JPEG, PNG — max 2MB</p>
-                </>
+                <div className="flex flex-col items-center text-center">
+                  <Receipt size={24} className={`mb-2 transition-colors ${isDragging ? 'text-[#3b2063]' : 'text-zinc-300'}`} />
+                  <p className="text-xs font-bold text-zinc-500">
+                    {isDragging ? 'Drop it here!' : 'Click or drag receipt here'}
+                  </p>
+                  <p className="text-[10px] text-zinc-300 mt-1 uppercase tracking-tight font-medium">JPEG, PNG — max 2MB</p>
+                </div>
               )}
               <input type="file" accept="image/jpeg,image/png" onChange={handleFile} className="hidden" />
             </label>

@@ -516,24 +516,26 @@ const OverviewTab: React.FC = () => {
             </div>
           </div>
           {loading && !breakdown.length ? <ChartSkeleton height="h-[220px]" /> : (
-            <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={revenueChartData}>
-                <defs>
-                  <linearGradient id="unifGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b2063" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#3b2063" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e1e9" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 9, fontWeight: 700, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fontWeight: 700, fill: "#a1a1aa" }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
-                <Tooltip
-                  contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 10px 30px rgba(0,0,0,0.1)", fontSize: 11 }}
-                  formatter={(v) => [fmt(Number(v)), "Revenue"]}
-                />
-                <Area type="monotone" dataKey="revenue" stroke="#3b2063" strokeWidth={3} fill="url(#unifGrad)" />
-              </AreaChart>
-            </ResponsiveContainer>
+            <div className="h-[220px] w-full relative">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={revenueChartData}>
+                  <defs>
+                    <linearGradient id="unifGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b2063" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#3b2063" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e1e9" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 9, fontWeight: 700, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fontWeight: 700, fill: "#a1a1aa" }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
+                  <Tooltip
+                    contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 10px 30px rgba(0,0,0,0.1)", fontSize: 11 }}
+                    formatter={(v) => [fmt(Number(v)), "Revenue"]}
+                  />
+                  <Area type="monotone" dataKey="revenue" stroke="#3b2063" strokeWidth={3} fill="url(#unifGrad)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           )}
         </div>
 
@@ -542,14 +544,16 @@ const OverviewTab: React.FC = () => {
           <h3 className="text-base font-black text-[#1a0f2e] mb-4">By Branch</h3>
           {loading && !pieData.length ? <Skeleton className="h-[200px] w-full rounded-full" /> : (
             <>
-              <ResponsiveContainer width="100%" height={160}>
-                <RePieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={4} dataKey="value">
-                    {pieData.map((e, idx) => <Cell key={idx} fill={e.color} />)}
-                  </Pie>
-                  <Tooltip formatter={(v) => [`${v}%`, "Share"]} />
-                </RePieChart>
-              </ResponsiveContainer>
+              <div className="h-[160px] w-full relative">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RePieChart>
+                    <Pie data={pieData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={4} dataKey="value">
+                      {pieData.map((e, idx) => <Cell key={idx} fill={e.color} />)}
+                    </Pie>
+                    <Tooltip formatter={(v) => [`${v}%`, "Share"]} />
+                  </RePieChart>
+                </ResponsiveContainer>
+              </div>
               <div className="mt-4 space-y-1.5 max-h-[80px] overflow-y-auto custom-scroll pr-1">
                 {pieData.map((d, idx) => (
                   <div key={idx} className="flex items-center justify-between text-[11px]">

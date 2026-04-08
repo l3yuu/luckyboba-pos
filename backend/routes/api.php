@@ -303,8 +303,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/item-serials',    [ItemSerialController::class,    'index']);
 
         Route::get ('/recipes',  [RecipeController::class, 'index']);
-        Route::get ('/expenses', [ExpenseController::class,'index']);
-        Route::post('/expenses', [ExpenseController::class,'store']);
+        Route::get('/expenses/export', [ExpenseController::class, 'export']);
+        Route::apiResource('expenses', ExpenseController::class);
 
         Route::prefix('discounts')->group(function () {
             Route::get   ('/',                    [DiscountController::class, 'index']);
@@ -384,7 +384,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::patch('/{id}/status',  [ItemSerialController::class, 'updateStatus']);
         });
 
-        Route::apiResource('expenses', ExpenseController::class)->only(['store']);
+
 
         Route::apiResource('discounts', DiscountController::class)->except(['show', 'update', 'index']);
         Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
