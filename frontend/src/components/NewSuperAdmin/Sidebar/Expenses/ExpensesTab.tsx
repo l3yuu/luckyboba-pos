@@ -176,8 +176,9 @@ const ExpenseFormModal: React.FC<ModalProps> = ({ editing, branches, onClose, on
         
       onSaved(res.data?.data ?? res.data);
       onClose();
-    } catch (err: any) {
-      setApiErr(err.response?.data?.message ?? 'Failed to save expense.');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setApiErr(error.response?.data?.message ?? 'Failed to save expense.');
     } finally { setSaving(false); }
   };
 
@@ -328,8 +329,9 @@ const DeleteModal: React.FC<{ expense: Expense; onClose: () => void; onDeleted: 
       await api.delete(`/expenses/${expense.id}`);
       onDeleted();
       onClose();
-    } catch (err: any) {
-      setError(err.response?.data?.message ?? 'Failed to delete record.');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message ?? 'Failed to delete record.');
     } finally { setSaving(false); }
   };
 

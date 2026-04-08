@@ -12,17 +12,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('expenses', function (Blueprint $table) {
-            $table->string('title')->after('id');
-            $table->unsignedBigInteger('branch_id')->nullable()->after('category');
-            $table->text('notes')->nullable()->after('branch_id');
-            $table->string('receipt_path')->nullable()->after('notes');
-            $table->string('recorded_by')->nullable()->after('receipt_path');
+            // Add missing receipt_path column
+            if (!Schema::hasColumn('expenses', 'receipt_path')) {
+                $table->string('receipt_path')->nullable()->after('notes');
+            }
             
-            // Make ref_num nullable since we use title now
+            // Make ref_num nullable (since title is now used)
             $table->string('ref_num')->nullable()->change();
-            
-            // Re-index branch_id for performance
-            $table->index('branch_id');
         });
     }
 
@@ -32,7 +28,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('expenses', function (Blueprint $table) {
-            $table->dropColumn(['title', 'branch_id', 'notes', 'receipt_path', 'recorded_by']);
+            if (Schema::hasColumn('expenses', 'receipt_path')) {
+                $table->dropColumn('receipt_path');
+            }
             $table->string('ref_num')->nullable(false)->change();
         });
     }
