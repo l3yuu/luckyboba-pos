@@ -263,6 +263,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
         Route::get  ('/cache/all',             [CacheController::class,      'all']);
         Route::get  ('/menu',                  [MenuController::class,        'index']);
+        Route::get  ('/menu/version',          [MenuController::class,        'version']);
         Route::post ('/menu/clear-cache',      [MenuController::class,        'clearCache']);
         Route::get  ('/notifications/summary', [NotificationController::class,'summary']);
         Route::post ('/audit-logs',            [AuditLogController::class,    'store']);

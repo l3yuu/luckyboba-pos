@@ -1541,28 +1541,9 @@ const DeleteModal: React.FC<{ item: MenuItem; onClose: () => void; onDeleted: (i
 // ── Import Modal ──────────────────────────────────────────────────────────────
 const ImportModal: React.FC<{ onClose: () => void; onSaved: () => void }> = ({ onClose, onSaved }) => {
   const [file, setFile] = useState<File | null>(null);
-  const [branches, setBranches] = useState<{ id: number; name: string }[]>([]);
-  const [branchId, setBranchId] = useState("");
-  const [loadingBranches, setLoadingBranches] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-
-  useEffect(() => {
-    const fetchBranches = async () => {
-      setLoadingBranches(true);
-      try {
-        const res = await fetch("/api/branches", { headers: authHeaders() });
-        const data = await res.json();
-        setBranches(Array.isArray(data) ? data : (data.data ?? []));
-      } catch (err) {
-        console.error("Failed to fetch branches", err);
-      } finally {
-        setLoadingBranches(false);
-      }
-    };
-    fetchBranches();
-  }, []);
 
   const handleDownloadTemplate = async () => {
     try {
@@ -1608,12 +1589,11 @@ const ImportModal: React.FC<{ onClose: () => void; onSaved: () => void }> = ({ o
 
   const handleUpload = async () => {
     if (!file) { setError("Please select a file first."); return; }
-    if (!branchId) { setError("Please select a target branch."); return; }
+    
     setUploading(true); setError(""); setSuccess(false);
 
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("branch_id", branchId);
 
     try {
       const res = await fetch("/api/menu-items/import", {
@@ -1683,27 +1663,6 @@ const ImportModal: React.FC<{ onClose: () => void; onSaved: () => void }> = ({ o
               <Btn variant="primary" size="sm" onClick={handleExportCurrent} className="bg-amber-600 hover:bg-amber-700 w-full justify-center text-[10px]">
                 <Download size={11} /> Export
               </Btn>
-            </div>
-          </div>
-
-          {/* Branch Selector */}
-          <div className="flex flex-col gap-2">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 ml-1">Target Branch</label>
-            <div className="relative">
-              <select
-                value={branchId}
-                onChange={e => setBranchId(e.target.value)}
-                disabled={loadingBranches || uploading}
-                className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-2.5 text-xs font-bold text-zinc-700 outline-none focus:ring-2 focus:ring-[#3b2063]/20 appearance-none pr-10"
-              >
-                <option value="">{loadingBranches ? "Loading branches..." : "Select a branch..."}</option>
-                {branches.map(b => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
-                ))}
-              </select>
-              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400">
-                <ChevronDown size={14} />
-              </div>
             </div>
           </div>
 
@@ -2454,7 +2413,7 @@ const MenuItemsTab: React.FC = () => {
         barcode:        i.barcode    ?? null,
         size:           i.size       ?? null,
         image_path:     i.image_path ?? null,
-        is_available:   i.is_available === true || i.is_available === 1 || String(i.is_available) === "1" || false,
+        is_available:   i.is_available === 1 || i.is_available === true || i.is_available === "1" || (i.is_available === undefined ? true : false),
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -2506,8 +2465,10 @@ const MenuItemsTab: React.FC = () => {
         body: JSON.stringify({ is_available: !item.is_available }),
       });
       const data = await res.json();
-      if (res.ok && data.success)
+      if (res.ok && data.success) {
         setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_available: !i.is_available } : i));
+        try { new BroadcastChannel('pos-updates').postMessage('menu-updated'); } catch {}
+      }
     } catch { /* silent */ }
   }, []);
 

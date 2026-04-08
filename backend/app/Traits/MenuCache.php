@@ -17,5 +17,8 @@ trait MenuCache
         
         // Also clear any other related caches if they exist
         Cache::forget('menu_data');
+
+        // Bump menu version to alert connected POS clients
+        Cache::put('menu_version', time());
     }
 }

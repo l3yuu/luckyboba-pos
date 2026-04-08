@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
 use App\Exports\MenuItemTemplateExport;
@@ -51,6 +52,7 @@ class MenuItemController extends Controller
             ->orderBy('menu_items.name')
             ->get();
 
+        Log::info('MenuItemController::index', ['count' => $items->count()]);
         return response()->json(['success' => true, 'data' => $items]);
     }
 
@@ -99,6 +101,7 @@ class MenuItemController extends Controller
             ->first();
 
         $this->clearMenuCache();
+        Log::info('MenuItemController::store', ['id' => $id]);
 
         return response()->json(['success' => true, 'data' => $item], 201);
     }
@@ -154,6 +157,7 @@ class MenuItemController extends Controller
             ->first();
 
         $this->clearMenuCache();
+        Log::info('MenuItemController::update', ['id' => $id]);
 
         return response()->json(['success' => true, 'data' => $item]);
     }
@@ -184,16 +188,14 @@ class MenuItemController extends Controller
     public function import(Request $request)
     {
         $request->validate([
-            'file' => 'required|mimes:xlsx,xls,csv|max:4096',
-            'branch_id' => 'required|exists:branches,id',
+            'file'         => 'required|mimes:xlsx,xls,csv|max:4096',
         ]);
 
         try {
-            Excel::import(new MenuItemImport($request->branch_id), $request->file('file'));
+            Excel::import(new MenuItemImport(), $request->file('file'));
             $this->clearMenuCache();
             return response()->json(['success' => true, 'message' => 'Items imported/updated successfully.']);
         } catch (\Exception $e) {
-            \Log::error('Import Error: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Import failed: ' . $e->getMessage()], 500);
         }
     }

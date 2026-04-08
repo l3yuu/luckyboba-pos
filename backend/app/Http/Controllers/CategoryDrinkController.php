@@ -15,6 +15,9 @@ class CategoryDrinkController extends Controller
 
         $drinks = CategoryDrink::with('menuItem')
             ->where('category_id', $request->category_id)
+            ->whereHas('menuItem', function($q) {
+                $q->where('status', 'active');
+            })
             ->get()
             ->map(fn($d) => [
                 'id'           => $d->id,
