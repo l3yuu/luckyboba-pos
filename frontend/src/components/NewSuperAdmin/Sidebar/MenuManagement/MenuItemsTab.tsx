@@ -2412,7 +2412,7 @@ const MenuItemsTab: React.FC = () => {
         barcode:        i.barcode    ?? null,
         size:           i.size       ?? null,
         image_path:     i.image_path ?? null,
-        is_available:   Boolean(i.is_available ?? true),
+        is_available:   i.is_available === true || i.is_available === 1 || String(i.is_available) === "1" || false,
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
