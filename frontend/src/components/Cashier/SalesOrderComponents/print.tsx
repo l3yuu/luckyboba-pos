@@ -77,7 +77,7 @@ interface ReceiptPrintProps {
 }
 
 export const ReceiptPrint = ({
-  cart, branchName, brand, companyName, storeAddress, vatRegTin, minNumber, serialNumber, ownerName,
+  cart,  brand, companyName, storeAddress, vatRegTin, minNumber, serialNumber, ownerName,
   businessName, businessEmail, businessPhone, businessAddress,
   orNumber, queueNumber, cashierName,
   formattedDate, formattedTime, orderCharge, totalCount,
@@ -124,7 +124,7 @@ export const ReceiptPrint = ({
             </div>
           )}
           {companyName && <p className="text-xs mt-0.5 font-semibold">{companyName}</p>}
-          <p className="text-base mt-1">{branchName}</p>
+          <p className="text-base mt-1"></p>
           {storeAddress && <p className="text-xs mt-0.5">{storeAddress}</p>}
           {vatRegTin && <p className="text-xs mt-0.5">VAT Reg TIN: {vatRegTin}</p>}
           {minNumber && <p className="text-xs mt-0.5">MIN: {minNumber}</p>}

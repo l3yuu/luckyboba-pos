@@ -448,8 +448,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::patch('/recipes/{recipe}/toggle',           [RecipeController::class, 'toggle']);
         Route::apiResource('recipes', RecipeController::class)->except(['index', 'show']);
 
-        Route::get('/audit-logs',       [AuditLogController::class, 'index']);
-        Route::get('/audit-logs/stats', [AuditLogController::class, 'stats']);
+        Route::get('/audit-logs',        [AuditLogController::class, 'index']);
+        Route::get('/audit-logs/export', [AuditLogController::class, 'export']);
+        Route::get('/audit-logs/stats',  [AuditLogController::class, 'stats']);
 
         Route::prefix('reports')->group(function () {
             Route::get('/z-reading/history',   [SalesDashboardController::class,   'zReadingHistory']);
