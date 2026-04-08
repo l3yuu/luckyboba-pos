@@ -13,10 +13,24 @@ class SettingsController extends Controller
     /**
      * Get all system settings
      */
-    public function index()
+    public function index(Request $request)
     {
-        // Returns: { "tax_rate": "12", "service_charge": "5" }
-        return response()->json(Setting::pluck('value', 'key'));
+        $settings = Setting::pluck('value', 'key');
+        
+        $branchId = $request->query('branch_id');
+        if ($branchId) {
+            $branch = \App\Models\Branch::find($branchId);
+            if ($branch) {
+                // Override or add branch-specific payment settings
+                $settings['gcash_qr_url'] = $branch->gcash_qr ? url('storage/' . $branch->gcash_qr) : ($settings['gcash_qr_url'] ?? null);
+                $settings['maya_qr_url']  = $branch->maya_qr ? url('storage/' . $branch->maya_qr) : ($settings['maya_qr_url'] ?? null);
+                $settings['gcash_number'] = $branch->gcash_number ?: ($settings['gcash_number'] ?? '');
+                $settings['maya_number']  = $branch->maya_number ?: ($settings['maya_number'] ?? '');
+                $settings['account_name'] = $branch->owner_name ?: $branch->name;
+            }
+        }
+
+        return response()->json($settings);
     }
 
     /**

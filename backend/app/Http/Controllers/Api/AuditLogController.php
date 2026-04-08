@@ -221,4 +221,59 @@ class AuditLogController extends Controller
             ],
         ]);
     }
+
+    /**
+     * Export all matching audit logs (no pagination) for CSV generation.
+     */
+    public function export(Request $request)
+    {
+        $request->validate([
+            'search'    => 'nullable|string|max:255',
+            'module'    => 'nullable|string',
+            'date_from' => 'nullable|date',
+            'date_to'   => 'nullable|date',
+            'branch_id' => 'nullable|integer|exists:branches,id',
+        ]);
+
+        $query = AuditLog::with('user:id,name')
+            ->orderByDesc('created_at');
+
+        if ($request->search) {
+            $s = $request->search;
+            $query->where(function ($q) use ($s) {
+                $q->where('action',   'like', "%{$s}%")
+                  ->orWhere('module',  'like', "%{$s}%")
+                  ->orWhere('details', 'like', "%{$s}%")
+                  ->orWhereHas('user', fn($u) => $u->where('name', 'like', "%{$s}%"));
+            });
+        }
+
+        if ($request->module && $request->module !== 'all') {
+            $query->where('module', $request->module);
+        }
+
+        if ($request->date_from) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+        if ($request->date_to) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        if ($request->filled('branch_id')) {
+            $branchUserIds = DB::table('users')
+                ->where('branch_id', $request->branch_id)
+                ->whereNotIn('role', ['superadmin', 'system_admin'])
+                ->pluck('id');
+            $query->whereIn('user_id', $branchUserIds);
+        }
+
+        // Cap at 10,000 rows to prevent memory issues
+        $logs = $query->limit(10000)->get();
+
+        return response()->json([
+            'success' => true,
+            'data'    => $logs,
+            'total'   => $logs->count(),
+        ]);
+    }
 }

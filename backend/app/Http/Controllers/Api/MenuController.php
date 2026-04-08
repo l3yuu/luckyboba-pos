@@ -12,7 +12,14 @@ class MenuController extends Controller
     {
         try {
             return Cache::remember('menu_data_v5', 600, function () {
-                return Category::with(['cup', 'subCategories', 'menu_items.options', 'menu_items.sugarLevels'])
+                return Category::where('is_active', true)
+                    ->with([
+                        'cup',
+                        'subCategories' => fn($q) => $q->where('is_active', true),
+                        'menu_items' => fn($q) => $q->where('status', 'active'),
+                        'menu_items.options',
+                        'menu_items.sugarLevels'
+                    ])
                     ->orderBy('name', 'asc')
                     ->get()
                     ->map(function ($cat) {
@@ -67,6 +74,14 @@ class MenuController extends Controller
         Cache::forget('menu_data_v3');
         Cache::forget('menu_data_v4');
         Cache::forget('menu_data_v5');
+        Cache::put('menu_version', time());
         return response()->json(['message' => 'Menu cache cleared successfully']);
+    }
+
+    public function version()
+    {
+        return response()->json([
+            'version' => Cache::get('menu_version', 0)
+        ]);
     }
 }
