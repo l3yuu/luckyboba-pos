@@ -117,7 +117,7 @@ class SaleObserver
         /** @var \App\Models\StockDeduction $d */
         foreach ($deductions as $d) {
             RawMaterial::where('id', $d->raw_material_id)
-                ->increment('current_stock', $d->quantity_deducted);
+                ->increment('current_stock', (float) $d->quantity_deducted);
 
             // Reverse the StockMovement too so Usage Report is accurate
             StockMovement::create([

@@ -4,9 +4,9 @@ import { ROLE_HOME } from '../utils/roleRoutes';
 import logo from '../assets/logo.png';
 
 export const PublicRoute = () => {
-  const { user, isLoading } = useAuth();
+  const { user, isInitialAuthCheck } = useAuth();
 
-  if (isLoading) {
+  if (isInitialAuthCheck) {
     return (
       <>
         <style>{`

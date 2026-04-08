@@ -143,7 +143,7 @@ public function getCategories()
     public function checkByBarcode($barcode)
     {
         try {
-            $item = \App\Models\MenuItem::where('barcode', $barcode)->first();
+            $item = MenuItem::where('barcode', $barcode)->first();
 
             if (!$item) {
                 return response()->json(['message' => 'Item not found'], 404);

@@ -22,9 +22,11 @@ const LOCKOUT_DURATION   = 2 * 60 * 1000;
 interface AuthContextType {
   user:      User | null;
   isLoading: boolean;
+  isInitialAuthCheck: boolean;
   error:     string | null;
   login:     (credentials: LoginCredentials) => Promise<User | { requires_2fa: true } | null>;
   verify2FA: (credentials: LoginCredentials, code: string) => Promise<User | null>;
+  resend2FA: (credentials: LoginCredentials) => Promise<boolean>;
   logout:    () => Promise<void>;
 }
 
@@ -34,6 +36,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState<boolean>(
     () => !!localStorage.getItem('lucky_boba_token')
   );
+  const [isInitialAuthCheck, setIsInitialAuthCheck] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [user,  setUser]  = useState<User | null>(null);
 
@@ -48,7 +51,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const checkAuth = useCallback(async () => {
     const token = localStorage.getItem('lucky_boba_token');
-    if (!token) { setIsLoading(false); return; }
+    if (!token) {
+      setIsInitialAuthCheck(false);
+      setIsLoading(false);
+      return;
+    }
     try {
       const response = await api.get('/user');
       const userData  = response.data;
@@ -61,6 +68,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch {
       clearSession();
     } finally {
+      setIsInitialAuthCheck(false);
       setIsLoading(false);
     }
   }, [clearSession]);
@@ -187,6 +195,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
+  const resend2FA = useCallback(async (credentials: LoginCredentials): Promise<boolean> => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      const response = await api.post('/resend-2fa', credentials);
+      if (response.data.success === false) {
+        throw new Error(response.data.message || 'Failed to resend code.');
+      }
+      return true;
+    } catch (err: unknown) {
+      let message = 'Resend failed.';
+      if (axios.isAxiosError(err)) {
+        message = err.response?.data?.message || message;
+      } else if (err instanceof Error) {
+        message = err.message;
+      }
+      setError(message);
+      throw new Error(message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const logout = useCallback(async (): Promise<void> => {
     try {
       await api.post('/logout');
@@ -198,8 +229,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [clearSession]);
 
   const value = useMemo(
-    () => ({ user, isLoading, error, login, verify2FA, logout }),
-    [user, isLoading, error, login, verify2FA, logout]
+    () => ({ user, isLoading, isInitialAuthCheck, error, login, verify2FA, resend2FA, logout }),
+    [user, isLoading, isInitialAuthCheck, error, login, verify2FA, resend2FA, logout]
   );
 
   return (
