@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useMemo, startTransition, useRef } from "react";
 import {
   Search, Plus, Edit2, Trash2, RefreshCw,
-  AlertCircle, X, Package, ChevronDown, Check,
+  AlertCircle, X, Package, ChevronDown,
   ToggleLeft, ToggleRight, Barcode, Utensils, Coffee, Info, Printer,
   Download, Upload,
 } from "lucide-react";
