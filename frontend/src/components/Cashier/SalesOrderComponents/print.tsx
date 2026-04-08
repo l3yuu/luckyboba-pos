@@ -335,7 +335,11 @@ export const ReceiptPrint = ({
         {/* Totals */}
         <div className="text-xs space-y-1 border-t border-dashed border-black pt-2">
           <div className="flex justify-between"><span>Total Items</span><span>{totalCount}</span></div>
+<<<<<<< HEAD
           <div className="flex justify-between"><span>Sub Total</span><span>{Number(subtotal || 0).toFixed(2)}</span></div>
+=======
+          <div className="flex justify-between"><span>Sub Total</span><span>{Number(subtotal).toFixed(2)}</span></div>
+>>>>>>> origin/feature/chaeyoungnie
           {totalDiscountDisplay > 0 && (
             <>
               {itemDiscountTotal > 0 && (

@@ -1296,64 +1296,70 @@ const handlePrint = () => window.print();
             .flex-between { display: flex; justify-content: space-between; width: 100%; align-items: flex-end; }
             .receipt-divider { border-top: 1px dashed #000; margin: 6px 0; width: 100%; display: block; }
             @media print {
-             * { opacity: 1 !important; color: #000 !important; }
-              .opacity-50 { opacity: 1 !important; }
-              .line-through { text-decoration: line-through !important; color: #000 !important; }
-              @page { 
-                size: 80mm 2000mm;
-                margin: 3mm 2mm !important; 
-              }
-              body * { visibility: hidden; }
-              nav, header, aside, button, .print\\\\:hidden, .TopNavbar, .TopNavbar * { display: none !important; }
-              html, body { 
-                width: 80mm !important; 
-                margin: 0 !important; 
-                padding: 0 !important; 
-                background: white !important; 
-                -webkit-print-color-adjust: exact !important; 
-                print-color-adjust: exact !important; 
-              }
-              .printable-receipt-container, .printable-receipt-container * { visibility: visible !important; }
-              .printable-receipt-container { 
-                position: absolute !important; 
-                left: 0 !important; 
-                top: 0 !important; 
-                width: 80mm !important; 
-                display: block !important; 
-                margin: 0 !important; 
-                padding: 0 !important; 
-              }
-              .receipt-area { 
-                color: #000 !important;
-                width: 76mm !important; 
-                max-width: 76mm !important; 
-                margin: 0 auto !important; 
-                padding: 2mm !important; 
-                box-sizing: border-box !important; 
-                background: white !important; 
-                color: #000 !important; 
-                font-family: Arial, Helvetica, sans-serif !important; 
-                font-size: 12px !important; 
-                font-weight: 500 !important;
-                line-height: 1.5 !important; 
-                box-shadow: none !important; 
-                border: none !important; 
-                border-radius: 0 !important; 
-                overflow: visible !important;
-                -webkit-font-smoothing: none !important;
-              }
-              .receipt-area * {
-                overflow: visible !important;
-                -webkit-font-smoothing: none !important;
-              }
-              .receipt-area > div > div {
-                break-inside: avoid !important;
-              }
-              .flex-between { display: flex !important; justify-content: space-between !important; width: 100% !important; align-items: flex-end !important; }
-              table { width: 100% !important; max-width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; font-size: 11px !important; }
-              th { text-align: left !important; border-bottom: 1px solid #000 !important; padding-bottom: 2px !important; text-transform: uppercase !important; font-weight: 700 !important; font-size: 12px !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
-              td { padding: 2px 0 !important; vertical-align: top !important; font-size: 12px !important; font-weight: 500 !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
-            }
+              * { opacity: 1 !important; color: #000 !important; }
+               .opacity-50 { opacity: 1 !important; }
+               .line-through { text-decoration: line-through !important; color: #000 !important; }
+               @page { 
+                 size: 80mm auto;
+                 margin: 0 !important; 
+               }
+               html, body { 
+                 margin: 0 !important; 
+                 padding: 0 !important; 
+                 width: 80mm !important; 
+                 height: auto !important;
+                 overflow: visible !important;
+                 background: white !important; 
+                 -webkit-print-color-adjust: exact !important; 
+                 print-color-adjust: exact !important; 
+               }
+               body * { visibility: hidden !important; }
+               nav, header, aside, button, .print\\\\:hidden, .TopNavbar, .TopNavbar * { display: none !important; }
+               .printable-receipt-container, .printable-receipt-container * { visibility: visible !important; }
+               .printable-receipt-container { 
+                 position: absolute !important; 
+                 left: 0 !important; 
+                 top: 0 !important; 
+                 display: block !important; 
+                 width: 100% !important;
+                 max-width: 76mm !important;
+                 margin: 0 !important; 
+                 padding: 0 !important; 
+                 height: auto !important;
+                 overflow: visible !important;
+               }
+               .receipt-area { 
+                 position: relative !important;
+                 color: #000 !important;
+                 width: 66mm !important; 
+                 max-width: 66mm !important; 
+                 margin: 0 auto !important; 
+                 padding: 2mm !important; 
+                 box-sizing: border-box !important; 
+                 background: white !important; 
+                 color: #000 !important; 
+                 font-family: Arial, Helvetica, sans-serif !important; 
+                 font-size: 12px !important; 
+                 font-weight: 500 !important;
+                 line-height: 1.5 !important; 
+                 box-shadow: none !important; 
+                 border: none !important; 
+                 border-radius: 0 !important; 
+                 overflow: visible !important;
+                 -webkit-font-smoothing: none !important;
+               }
+               .receipt-area * {
+                 overflow: visible !important;
+                 -webkit-font-smoothing: none !important;
+               }
+               .receipt-area > div > div {
+                 break-inside: avoid !important;
+               }
+               .flex-between { display: flex !important; justify-content: space-between !important; width: 100% !important; align-items: flex-end !important; }
+               table { width: 100% !important; max-width: 100% !important; border-collapse: collapse !important; table-layout: fixed !important; font-size: 11px !important; }
+               th { text-align: left !important; border-bottom: 1px solid #000 !important; padding-bottom: 2px !important; text-transform: uppercase !important; font-weight: 700 !important; font-size: 12px !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
+               td { padding: 2px 0 !important; vertical-align: top !important; font-size: 12px !important; font-weight: 500 !important; word-wrap: break-word !important; overflow-wrap: break-word !important; }
+             }
           `}</style>
 
           {loading && (
