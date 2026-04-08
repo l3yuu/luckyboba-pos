@@ -85,23 +85,25 @@ const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, trend, col
   };
   const c = colors[color];
   return (
-    <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 flex items-center justify-between card shadow-sm">
-      <div className="flex items-center gap-3 flex-1 min-w-0">
+    <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 card shadow-sm overflow-hidden">
+      <div className="flex items-center gap-3">
         <div className={`w-10 h-10 ${c.bg} border ${c.border} flex items-center justify-center rounded-[0.4rem] shrink-0`}>
           <span className={c.icon}>{icon}</span>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{label}</p>
-          <p className="text-xl font-bold text-[#1a0f2e] tabular-nums whitespace-nowrap">{value}</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 truncate">{label}</p>
+          <div className="flex items-center gap-2">
+            <p className="text-xl font-bold text-[#1a0f2e] tabular-nums truncate">{value}</p>
+            {trend !== undefined && (
+              <div className={`flex items-center gap-0.5 text-xs font-bold shrink-0 ${trend >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                {trend >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
+                {Math.abs(trend)}%
+              </div>
+            )}
+          </div>
+          {sub && <p className="text-[10px] text-zinc-400 font-medium truncate mt-0.5">{sub}</p>}
         </div>
       </div>
-      {trend !== undefined && (
-        <div className={`flex items-center gap-1 text-xs font-bold shrink-0 ml-2 ${trend >= 0 ? "text-emerald-600" : "text-red-500"}`}>
-          {trend >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-          {Math.abs(trend)}%
-        </div>
-      )}
-      {sub && <p className="text-[11px] text-zinc-400 font-medium shrink-0 ml-2 truncate max-w-[100px]">{sub}</p>}
     </div>
   );
 };
@@ -348,28 +350,30 @@ const OverviewTab: React.FC = () => {
       </div>
 
       {/* Row 1: Main Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
         {loading && !totals ? (
            [...Array(5)].map((_, i) => <StatCardSkeleton key={i} />)
         ) : (
           <>
             <StatCard
               icon={<DollarSign size={18} strokeWidth={2.5} />}
-              label="Revenue Performance"
+              label="Revenue"
               value={fmt(totals?.grand_total ?? 0)}
+              sub={`${period} total`}
               color="violet"
             />
-            <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-6 py-5 card relative overflow-hidden group shadow-sm">
+            <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 card relative overflow-hidden group shadow-sm">
               <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
               </div>
-              <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-rose-50 border border-rose-200 flex items-center justify-center rounded-[0.4rem] shrink-0">
                   <span className="text-rose-600"><TrendingUp size={18} strokeWidth={2.5} /></span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Live Sales Today</p>
-                  <p className="text-xl font-black text-rose-600 tabular-nums">₱{liveSalesToday.toLocaleString()}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 truncate">Live Sales Today</p>
+                  <p className="text-xl font-black text-rose-600 tabular-nums truncate">₱{liveSalesToday.toLocaleString()}</p>
+                  <p className="text-[10px] text-rose-400 font-bold mt-0.5">● Real-time</p>
                 </div>
               </div>
             </div>
@@ -377,18 +381,21 @@ const OverviewTab: React.FC = () => {
               icon={<GitBranch size={18} strokeWidth={2.5} />}
               label="Active Branches"
               value={pulse?.stats.online_branches ?? branchStats.active}
+              sub={`${branchStats.total} total`}
               color="emerald"
             />
             <StatCard
               icon={<UsersIcon size={18} strokeWidth={2.5} />}
               label="Active Staff"
               value={pulse?.stats.active_staff ?? userStats.active}
+              sub="Staff Online"
               color="amber"
             />
             <StatCard
               icon={<ShoppingBag size={18} strokeWidth={2.5} />}
               label="Total Orders"
               value={(totals?.total_orders ?? 0).toLocaleString()}
+              sub={`Count this ${period}`}
               color="violet"
             />
           </>
