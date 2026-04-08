@@ -12,8 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('cards', function (Blueprint $table) {
-            $table->integer('sort_order')->default(0)->after('is_active');
-            $table->string('available_months')->nullable()->after('sort_order');
+            if (!Schema::hasColumn('cards', 'sort_order')) {
+                $table->integer('sort_order')->default(0)->after('is_active');
+            }
+            if (!Schema::hasColumn('cards', 'available_months')) {
+                $table->string('available_months')->nullable()->after('sort_order');
+            }
         });
     }
 
@@ -23,7 +27,12 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('cards', function (Blueprint $table) {
-            $table->dropColumn(['sort_order', 'available_months']);
+            if (Schema::hasColumn('cards', 'sort_order')) {
+                $table->dropColumn('sort_order');
+            }
+            if (Schema::hasColumn('cards', 'available_months')) {
+                $table->dropColumn('available_months');
+            }
         });
     }
 };

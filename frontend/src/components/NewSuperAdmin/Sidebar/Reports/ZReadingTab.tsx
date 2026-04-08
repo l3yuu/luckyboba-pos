@@ -212,7 +212,8 @@ const ZReadingTab: React.FC = () => {
   const today = new Date().toISOString().split("T")[0];
 
   const [branchId,     setBranchId]     = useState("");
-  const [date,         setDate]         = useState(today);
+  const [dateFrom,     setDateFrom]     = useState(today);
+  const [dateTo,       setDateTo]       = useState(today);
   const [loading,      setLoading]      = useState(false);
   const [closing,      setClosing]      = useState(false);
   const [error,        setError]        = useState("");
@@ -313,12 +314,19 @@ const ZReadingTab: React.FC = () => {
     setError("");
     setReportData(null);
     try {
-      const params = new URLSearchParams({ branch_id: branchId, date });
+      const params = new URLSearchParams({ 
+        branch_id: branchId, 
+        date: dateFrom,
+        date_from: dateFrom,
+        date_to: dateTo,
+        from: dateFrom,
+        to: dateTo
+      });
 
       if (reportType === "summary") {
         const [summaryRes, qtyRes] = await Promise.all([
-          fetch(`/api/reports/sales-summary?from=${date}&to=${date}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
-          fetch(`/api/reports/item-quantities?date=${date}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
+          fetch(`/api/reports/sales-summary?from=${dateFrom}&to=${dateTo}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
+          fetch(`/api/reports/item-quantities?from=${dateFrom}&to=${dateTo}&date=${dateFrom}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
         ]);
         const merged = { ...summaryRes, categories: qtyRes.categories ?? [], all_addons_summary: qtyRes.all_addons_summary ?? [] };
         setReportData({ ...normalizeResponse("summary", merged as Record<string, unknown>), report_type: "summary" });
@@ -347,7 +355,7 @@ const ZReadingTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [branchId, date, reportType, invoiceQuery]);
+  }, [branchId, dateFrom, dateTo, reportType, invoiceQuery]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -379,12 +387,14 @@ const ZReadingTab: React.FC = () => {
     setError("");
     setReportData(null);
     try {
-      const p = new URLSearchParams({ branch_id: branchId, date });
+      const p = new URLSearchParams({ branch_id: branchId, date: dateFrom, date_from: dateFrom, date_to: dateTo, from: dateFrom, to: dateTo });
+      const extraParams = new URLSearchParams({ branch_id: branchId, date: dateTo });
+
       const [zRes, cashRes, qtyRes, voidRes] = await Promise.all([
-        fetch(`/api/reports/z-reading?from=${date}&to=${date}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
-        fetch(`/api/cash-counts/summary?date=${date}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
-        fetch(`/api/reports/item-quantities?${p}`, { headers: authHeaders() }).then(r => r.json()),
-        fetch(`/api/reports/void-logs?${p}`, { headers: authHeaders() }).then(r => r.json()),
+        fetch(`/api/reports/z-reading?${p}`, { headers: authHeaders() }).then(r => r.json()),
+        fetch(`/api/cash-counts/summary?${extraParams}`, { headers: authHeaders() }).then(r => r.json()),
+        fetch(`/api/reports/item-quantities?${extraParams}`, { headers: authHeaders() }).then(r => r.json()),
+        fetch(`/api/reports/void-logs?${extraParams}`, { headers: authHeaders() }).then(r => r.json()),
       ]);
       const zData = (zRes?.data ?? zRes) as Record<string, unknown>;
       const ccData = cashRes as Record<string, unknown>;
@@ -426,7 +436,7 @@ const ZReadingTab: React.FC = () => {
       setData({
         branch_id:    Number(branchId),
         branch_name:  branches.find(b => String(b.id) === branchId)?.name ?? `Branch #${branchId}`,
-        date,
+        date:         dateFrom !== dateTo ? `${dateFrom} - ${dateTo}` : dateFrom,
         gross_sales:  computedGross,
         discount:     totalDisc,
         net_sales:    netSales,
@@ -444,7 +454,7 @@ const ZReadingTab: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [branchId, date, branches]);
+  }, [branchId, dateFrom, dateTo, branches]);
 
   const fetchHistory = useCallback(async () => {
     if (!branchId) return;
@@ -482,7 +492,7 @@ const ZReadingTab: React.FC = () => {
       const res  = await fetch("/api/readings/z/close", {
         method:  "POST",
         headers: authHeaders(),
-        body:    JSON.stringify({ branch_id: branchId, date }),
+        body:    JSON.stringify({ branch_id: branchId, date: dateFrom, date_to: dateTo }),
       });
       const json = await res.json();
       if (json.success) {
@@ -884,7 +894,7 @@ const handlePrint = () => window.print();
     return (
       <div className="my-2">
         <ReceiptDivider />
-        <ReceiptRow label="Report Date"  value={date} />
+        <ReceiptRow label="Report Date"  value={dateFrom !== dateTo ? `${dateFrom} - ${dateTo}` : dateFrom} />
         <ReceiptRow label="Branch"       value={selectedBranchName} />
         <ReceiptRow label="Beg. SI #"    value={reportData?.beg_si || "0000000000"} />
         <ReceiptRow label="End. SI #"    value={reportData?.end_si || "0000000000"} />
@@ -986,8 +996,8 @@ const handlePrint = () => window.print();
         <ReceiptDivider />
         <ReceiptRow label="REPORT DATE" value={now.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "numeric" })} />
         <ReceiptRow label="REPORT TIME" value={timeStr} />
-        <ReceiptRow label="START DATE & TIME" value={`${date} ${timeStr}`} />
-        <ReceiptRow label="END DATE & TIME" value={`${date} ${timeStr}`} />
+        <ReceiptRow label="START DATE & TIME" value={`${dateFrom} ${timeStr}`} />
+        <ReceiptRow label="END DATE & TIME" value={`${dateTo} ${timeStr}`} />
         <ReceiptRow label="TERMINAL #" value="ALL" />
         <ReceiptRow label="BRANCH" value={selectedBranchName} />
         <ReceiptRow label="CASHIER" value={reportData?.prepared_by || "ADMIN USER"} />
@@ -1137,7 +1147,7 @@ const handlePrint = () => window.print();
       {showConfirm && data && (
         <CloseShiftModal
           branchName={selectedBranchName}
-          date={date}
+          date={dateFrom !== dateTo ? `${dateFrom} - ${dateTo}` : dateFrom}
           netSales={data.net_sales}
           onConfirm={handleCloseShift}
           onCancel={() => setShowConfirm(false)}
@@ -1230,8 +1240,13 @@ const handlePrint = () => window.print();
           </div>
         </div>
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Date</p>
-          <input type="date" value={date} onChange={e => setDate(e.target.value)}
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Date From</p>
+          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+            className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Date To</p>
+          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
             className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
         </div>
         <Btn onClick={() => reportType === "z_reading" ? fetchFullZReading() : fetchXReport()} disabled={loading || !branchId}>
@@ -1366,7 +1381,9 @@ const handlePrint = () => window.print();
                       ? "X-READING"
                       : (reportData?.report_type ?? "REPORT").replace(/_/g, " ").toUpperCase()}
                   </p>
-                  <p className="text-[10px] text-zinc-500">{date}</p>
+                  <p className="text-[10px] text-zinc-500">
+                    {dateFrom !== dateTo ? `${dateFrom} - ${dateTo}` : dateFrom}
+                  </p>
                 </div>
                 {renderReceiptContent()}
                 {!HIDE_FOOTER.includes(reportData?.report_type ?? "") && (

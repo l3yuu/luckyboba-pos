@@ -24,6 +24,12 @@ class Branch extends Model
     'min_number',
     'serial_number',
     'owner_name',
+    'gcash_name',
+    'gcash_number',
+    'gcash_qr',
+    'maya_name',
+    'maya_number',
+    'maya_qr',
 ];
 
 protected $casts = [

@@ -319,6 +319,6 @@ class LinkMenuImages extends Command
         $this->newLine();
         $this->info('✨ Done! Images are now linked to database records.');
 
-        return Command::SUCCESS;
+        return self::SUCCESS;
     }
 }

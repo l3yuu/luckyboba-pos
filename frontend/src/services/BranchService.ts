@@ -24,18 +24,23 @@ interface LaravelErrorResponse {
   errors?: Record<string, string[]>;
 }
 
-const getHeaders = (): Record<string, string> => {
+const getHeaders = (isMultipart = false): Record<string, string> => {
   const token =
     localStorage.getItem('auth_token') ??
     localStorage.getItem('lucky_boba_token') ??
     localStorage.getItem('token') ??
     '';
 
-  return {
-    'Content-Type': 'application/json',
+  const headers: Record<string, string> = {
     Accept: 'application/json',
     Authorization: `Bearer ${token}`,
   };
+
+  if (!isMultipart) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  return headers;
 };
 
 const extractError = (json: LaravelErrorResponse, fallback: string): string => {
@@ -44,6 +49,16 @@ const extractError = (json: LaravelErrorResponse, fallback: string): string => {
   }
   return json?.message ?? fallback;
 };
+
+export interface BranchPaymentSettings {
+  gcash_name: string | null;
+  gcash_number: string | null;
+  gcash_qr: string | null;
+  maya_name: string | null;
+  maya_number: string | null;
+  maya_qr: string | null;
+  account_name?: string | null;
+}
 
 export const BranchService = {
   async getAll(): Promise<Branch[]> {
@@ -89,5 +104,23 @@ export const BranchService = {
     });
     const json = (await res.json()) as LaravelErrorResponse;
     if (!res.ok || !json.success) throw new Error(extractError(json, 'Failed to delete branch'));
+  },
+
+  async getPaymentSettings(): Promise<BranchPaymentSettings> {
+    const res  = await fetch(`${API_BASE}/branch/payment-settings`, { headers: getHeaders() });
+    const json = (await res.json()) as LaravelErrorResponse & { data: BranchPaymentSettings };
+    if (!res.ok || !json.success) throw new Error(extractError(json, 'Failed to fetch payment settings'));
+    return json.data;
+  },
+
+  async updatePaymentSettings(formData: FormData): Promise<BranchPaymentSettings> {
+    const res  = await fetch(`${API_BASE}/branch/payment-settings`, {
+      method:  'POST',
+      headers: getHeaders(true),
+      body:    formData,
+    });
+    const json = (await res.json()) as LaravelErrorResponse & { data: BranchPaymentSettings };
+    if (!res.ok || !json.success) throw new Error(extractError(json, 'Failed to update payment settings'));
+    return json.data;
   },
 };

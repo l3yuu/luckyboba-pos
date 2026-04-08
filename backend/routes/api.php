@@ -225,6 +225,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::patch ('branch/app-orders/{id}/status',  [BranchManagerAppController::class, 'updateStatus']);
         Route::get   ('branch/menu-items',              [BranchManagerAppController::class, 'menuItems']);
         Route::post  ('branch/menu-items/{id}/toggle',  [BranchManagerAppController::class, 'toggleMenuItem']);
+        
+        Route::get   ('branch/payment-settings',       [BranchSettingsController::class, 'getPaymentSettings']);
+        Route::post  ('branch/payment-settings',       [BranchSettingsController::class, 'updatePaymentSettings']);
         // ─────────────────────────────────────────────────────────────────────
 
         Route::get('/dashboard/stats', [DashboardController::class, 'index']);
@@ -444,8 +447,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::patch('/recipes/{recipe}/toggle',           [RecipeController::class, 'toggle']);
         Route::apiResource('recipes', RecipeController::class)->except(['index', 'show']);
 
-        Route::get('/audit-logs',       [AuditLogController::class, 'index']);
-        Route::get('/audit-logs/stats', [AuditLogController::class, 'stats']);
+        Route::get('/audit-logs',        [AuditLogController::class, 'index']);
+        Route::get('/audit-logs/export', [AuditLogController::class, 'export']);
+        Route::get('/audit-logs/stats',  [AuditLogController::class, 'stats']);
 
         Route::prefix('reports')->group(function () {
             Route::get('/z-reading/history',   [SalesDashboardController::class,   'zReadingHistory']);

@@ -11,17 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('card_usage_logs', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('user_id');
-            $table->unsignedBigInteger('card_id');
-            $table->string('promo_type');
-            $table->date('used_date');
-            $table->timestamps();
+        if (!Schema::hasTable('card_usage_logs')) {
+            Schema::create('card_usage_logs', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('user_id');
+                $table->unsignedBigInteger('card_id');
+                $table->string('promo_type');
+                $table->date('used_date');
+                $table->timestamps();
 
-            $table->index(['user_id', 'card_id', 'used_date']);
-            $table->index(['user_id', 'promo_type', 'used_date']);
-        });
+                $table->index(['user_id', 'card_id', 'used_date']);
+                $table->index(['user_id', 'promo_type', 'used_date']);
+            });
+        }
     }
 
     /**

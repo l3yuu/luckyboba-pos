@@ -9,7 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('sale_items', function (Blueprint $table) {
-            $table->decimal('unit_price', 10, 2)->default(0)->after('product_name');
+            if (!Schema::hasColumn('sale_items', 'unit_price')) {
+                $table->decimal('unit_price', 10, 2)->default(0)->after('product_name');
+            }
         });
     }
 
