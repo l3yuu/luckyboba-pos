@@ -58,17 +58,7 @@ class AuthController extends Controller
             $is2FAActive = \App\Models\Setting::where('key', 'two_factor')->value('value') === 'true';
             
             if ($is2FAActive) {
-                $otp = rand(100000, 999999);
-                $user->two_factor_code = $otp;
-                $user->two_factor_expires_at = now()->addMinutes(10);
-                $user->save();
-
-                try {
-                    \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\TwoFactorCodeMail($otp));
-                } catch (\Exception $e) {
-                    \Illuminate\Support\Facades\Log::error("Failed to send 2FA email: " . $e->getMessage());
-                    \Illuminate\Support\Facades\Log::warning("2FA CODE FOR {$user->email}: {$otp}");
-                }
+                $this->sendTwoFactorCode($user);
 
                 return response()->json([
                     'success'      => true,
@@ -172,6 +162,46 @@ class AuthController extends Controller
             'pos_number' => null,
             'branch_id'  => null,
         ]);
+    }
+
+    public function resend2FA(Request $request)
+    {
+        $request->validate([
+            'email'    => 'required|email',
+            'password' => 'required',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (! $user || ! Hash::check($request->password, $user->password)) {
+            return response()->json(['success' => false, 'message' => 'Invalid credentials.'], 401);
+        }
+
+        if ($user->role !== 'superadmin') {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        }
+
+        $this->sendTwoFactorCode($user);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'A new 2FA code has been sent to your email.'
+        ]);
+    }
+
+    private function sendTwoFactorCode(User $user)
+    {
+        $otp = rand(100000, 999999);
+        $user->two_factor_code = $otp;
+        $user->two_factor_expires_at = now()->addMinutes(10);
+        $user->save();
+
+        try {
+            \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\TwoFactorCodeMail($otp));
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Failed to send 2FA email: " . $e->getMessage());
+            \Illuminate\Support\Facades\Log::warning("2FA CODE FOR {$user->email}: {$otp}");
+        }
     }
 
     // ── GOOGLE SIGN-IN ────────────────────────────────────────────────────────
