@@ -34,32 +34,32 @@ const GlobalStyles = () => (
 interface TopSellerItem { product_name: string; total_qty: number; }
 
 interface PeriodStats {
-  total_sales:  number;
+  total_sales: number;
   total_orders: number;
   voided_sales: number;
-  cash_in:      number;
-  cash_out:     number;
+  cash_in: number;
+  cash_out: number;
 }
 
 interface PeriodData {
-  data:        { date: string; day: string; value: number }[];
-  stats:       PeriodStats;
+  data: { date: string; day: string; value: number }[];
+  stats: PeriodStats;
   top_sellers: TopSellerItem[];
 }
 
 interface DashboardApiResponse {
   success: boolean;
   data: {
-    daily_sales:   { data: { date: string; day: string; value: number }[]; stats: PeriodStats; top_sellers: TopSellerItem[] };
-    weekly_sales:  { data: { date: string; day: string; value: number }[]; stats: PeriodStats; top_sellers: TopSellerItem[] };
+    daily_sales: { data: { date: string; day: string; value: number }[]; stats: PeriodStats; top_sellers: TopSellerItem[] };
+    weekly_sales: { data: { date: string; day: string; value: number }[]; stats: PeriodStats; top_sellers: TopSellerItem[] };
     monthly_sales: { data: { date: string; day: string; value: number }[]; stats: PeriodStats; top_sellers: TopSellerItem[] };
     statistics: { top_seller_today?: TopSellerItem[] };
   };
 }
 
 interface SalesAnalyticsResponse {
-  daily:   PeriodData;
-  weekly:  PeriodData;
+  daily: PeriodData;
+  weekly: PeriodData;
   monthly: PeriodData;
   top_seller_today: TopSellerItem[];
 }
@@ -75,9 +75,9 @@ const cacheKey = (branchId: number | null) =>
   `lucky_boba_analytics_${CACHE_VERSION}_branch_${branchId ?? 'all'}`;
 
 // ─── Shared UI Components ─────────────────────────────────────────────────────
-type ColorKey   = "violet" | "emerald" | "red" | "amber" | "sky";
+type ColorKey = "violet" | "emerald" | "red" | "amber" | "sky";
 type VariantKey = "primary" | "secondary";
-type SizeKey    = "sm" | "md";
+type SizeKey = "sm" | "md";
 
 interface StatCardProps {
   icon: React.ReactNode;
@@ -89,11 +89,11 @@ interface StatCardProps {
 }
 
 const COLORS: Record<ColorKey, { bg: string; border: string; icon: string }> = {
-  violet:  { bg: "bg-violet-50",  border: "border-violet-200",  icon: "text-violet-600"  },
+  violet: { bg: "bg-violet-50", border: "border-violet-200", icon: "text-violet-600" },
   emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
-  red:     { bg: "bg-red-50",     border: "border-red-200",     icon: "text-red-500"     },
-  amber:   { bg: "bg-amber-50",   border: "border-amber-200",   icon: "text-amber-600"   },
-  sky:     { bg: "bg-sky-50",     border: "border-sky-200",     icon: "text-sky-600"     },
+  red: { bg: "bg-red-50", border: "border-red-200", icon: "text-red-500" },
+  amber: { bg: "bg-amber-50", border: "border-amber-200", icon: "text-amber-600" },
+  sky: { bg: "bg-sky-50", border: "border-sky-200", icon: "text-sky-600" },
 };
 
 const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, trend, color = "violet" }) => {
@@ -139,9 +139,9 @@ interface BtnProps {
   onClick?: () => void; className?: string; disabled?: boolean;
 }
 const Btn: React.FC<BtnProps> = ({ children, variant = "primary", size = "sm", onClick, className = "", disabled = false }) => {
-  const sizes: Record<SizeKey, string>    = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm" };
+  const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#3b2063] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
   };
   return (
@@ -220,7 +220,7 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
   const [analytics, setAnalytics] = useState<SalesAnalyticsResponse | null>(() => {
     try { const c = localStorage.getItem(CACHE_KEY); return c ? JSON.parse(c) : null; } catch { return null; }
   });
-  const [loading,    setLoading]    = useState(!analytics);
+  const [loading, setLoading] = useState(!analytics);
   const [timeFilter, setTimeFilter] = useState<'daily' | 'weekly' | 'monthly'>('daily');
 
   const fetchData = useCallback(async () => {
@@ -230,8 +230,8 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
       const apiData = res.data.data;
 
       const mappedData: SalesAnalyticsResponse = {
-        daily:   { data: apiData.daily_sales.data,   stats: apiData.daily_sales.stats,   top_sellers: apiData.daily_sales.top_sellers   },
-        weekly:  { data: apiData.weekly_sales.data,  stats: apiData.weekly_sales.stats,  top_sellers: apiData.weekly_sales.top_sellers  },
+        daily: { data: apiData.daily_sales.data, stats: apiData.daily_sales.stats, top_sellers: apiData.daily_sales.top_sellers },
+        weekly: { data: apiData.weekly_sales.data, stats: apiData.weekly_sales.stats, top_sellers: apiData.weekly_sales.top_sellers },
         monthly: { data: apiData.monthly_sales.data, stats: apiData.monthly_sales.stats, top_sellers: apiData.monthly_sales.top_sellers },
         top_seller_today: apiData.statistics.top_seller_today || [],
       };
@@ -248,10 +248,10 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   // ── Formatters ─────────────────────────────────────────────────────────────
-  const fmt  = (v?: number | string) => `₱${Number(v ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
+  const fmt = (v?: number | string) => `₱${Number(v ?? 0).toLocaleString('en-PH', { minimumFractionDigits: 2 })}`;
   const fmtK = (v: number) => {
     if (v >= 1_000_000) return `₱${(v / 1_000_000).toFixed(1)}M`;
-    if (v >= 1_000)     return `₱${(v / 1_000).toFixed(0)}k`;
+    if (v >= 1_000) return `₱${(v / 1_000).toFixed(0)}k`;
     return `₱${v}`;
   };
 
@@ -265,16 +265,16 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
 
   // ── Active period data (changes with filter) ───────────────────────────────
   const activePeriod = analytics?.[timeFilter];
-  const sd           = activePeriod?.stats;
+  const sd = activePeriod?.stats;
   const sellersToday = activePeriod?.top_sellers || [];
 
-  const overallCash  = Number(sd?.cash_in ?? 0) + Number(sd?.total_sales ?? 0) - Number(sd?.cash_out ?? 0);
+  const overallCash = Number(sd?.cash_in ?? 0) + Number(sd?.total_sales ?? 0) - Number(sd?.cash_out ?? 0);
 
-  const trendCashIn  = computeTrend(Number(sd?.cash_in      ?? 0), 0);
-  const trendCashOut = computeTrend(Number(sd?.cash_out     ?? 0), 0);
-  const trendSales   = computeTrend(Number(sd?.total_sales  ?? 0), 0);
-  const trendVoided  = computeTrend(Number(sd?.voided_sales ?? 0), 0);
-  const trendOverall = computeTrend(overallCash,                    0);
+  const trendCashIn = computeTrend(Number(sd?.cash_in ?? 0), 0);
+  const trendCashOut = computeTrend(Number(sd?.cash_out ?? 0), 0);
+  const trendSales = computeTrend(Number(sd?.total_sales ?? 0), 0);
+  const trendVoided = computeTrend(Number(sd?.voided_sales ?? 0), 0);
+  const trendOverall = computeTrend(overallCash, 0);
 
   // ── Chart data ─────────────────────────────────────────────────────────────
   type ChartPoint = { date: string; day: string; value: number };
@@ -294,17 +294,17 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
   })();
 
   const totalRevenue = chartData.reduce((a: number, b: { name: string; value: number }) => a + b.value, 0);
-  const avgRevenue   = chartData.length ? totalRevenue / chartData.length : 0;
-  const maxDay       = chartData.reduce(
+  const avgRevenue = chartData.length ? totalRevenue / chartData.length : 0;
+  const maxDay = chartData.reduce(
     (a: { name: string; value: number }, b: { name: string; value: number }) => b.value > a.value ? b : a,
     chartData[0] || { name: '—', value: 0 }
   );
-  const maxVal   = Math.max(...chartData.map(d => d.value), 1);
+  const maxVal = Math.max(...chartData.map(d => d.value), 1);
   const stepSize = timeFilter === 'monthly' ? (maxVal > 50_000 ? 10_000 : 5_000)
-                : timeFilter === 'weekly'  ? (maxVal > 10_000 ? 5_000  : 2_000)
-                : 2_000;
-  const niceMax  = Math.ceil(maxVal / stepSize) * stepSize;
-  const yTicks   = Array.from({ length: Math.min(Math.ceil(niceMax / stepSize) + 1, 7) }, (_: unknown, i: number) => i * stepSize);
+    : timeFilter === 'weekly' ? (maxVal > 10_000 ? 5_000 : 2_000)
+      : 2_000;
+  const niceMax = Math.ceil(maxVal / stepSize) * stepSize;
+  const yTicks = Array.from({ length: Math.min(Math.ceil(niceMax / stepSize) + 1, 7) }, (_: unknown, i: number) => i * stepSize);
 
   // ── Top sellers (all-time not in API yet, hide section if empty) ───────────
   const sellersAllTime: TopSellerItem[] = [];
@@ -317,14 +317,14 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
     Number(sd?.total_sales ?? 0) / Math.max(Number(sd?.total_orders ?? 1), 1)
   );
   const netCashFlow = fmt(Number(sd?.cash_in ?? 0) - Number(sd?.cash_out ?? 0));
-  const voidRate    = `${((Number(sd?.voided_sales ?? 0) / Math.max(Number(sd?.total_sales ?? 1), 1)) * 100).toFixed(1)}%`;
-  const itemsSold   = sellersToday.reduce((a: number, b: TopSellerItem) => a + Number(b.total_qty), 0);
+  const voidRate = `${((Number(sd?.voided_sales ?? 0) / Math.max(Number(sd?.total_sales ?? 1), 1)) * 100).toFixed(1)}%`;
+  const itemsSold = sellersToday.reduce((a: number, b: TopSellerItem) => a + Number(b.total_qty), 0);
 
   // ── Sparkline values (use period totals as single-point sparks) ────────────
-  const sparkCashIn  = [Number(sd?.cash_in      ?? 0)];
-  const sparkCashOut = [Number(sd?.cash_out     ?? 0)];
-  const sparkSales   = [Number(sd?.total_sales  ?? 0)];
-  const sparkVoided  = [Number(sd?.voided_sales ?? 0)];
+  const sparkCashIn = [Number(sd?.cash_in ?? 0)];
+  const sparkCashOut = [Number(sd?.cash_out ?? 0)];
+  const sparkSales = [Number(sd?.total_sales ?? 0)];
+  const sparkVoided = [Number(sd?.voided_sales ?? 0)];
   const sparkOverall = [overallCash];
 
   // ── Loading skeleton ───────────────────────────────────────────────────────
@@ -359,8 +359,8 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
           </div>
           <div className="flex items-center gap-2">
             {([
-              { key: 'daily',   label: 'Daily'   },
-              { key: 'weekly',  label: 'Weekly'  },
+              { key: 'daily', label: 'Daily' },
+              { key: 'weekly', label: 'Weekly' },
               { key: 'monthly', label: 'Monthly' },
             ] as const).map(({ key, label }) => (
               <button key={key} onClick={() => setTimeFilter(key)}
@@ -428,10 +428,10 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
         {/* ── Quick Metrics Row ── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { label: 'Net Cash Flow',  value: netCashFlow, icon: <ArrowUpRight size={13} />, color: '#10b981' },
-            { label: 'Void Rate',      value: voidRate,    icon: <AlertCircle  size={13} />, color: '#f59e0b' },
-            { label: 'Avg Order Value',value: avgOrderVal, icon: <Activity     size={13} />, color: '#8b5cf6' },
-            { label: 'Items Sold',     value: itemsSold,   icon: <ShoppingBag  size={13} />, color: '#3b82f6' },
+            { label: 'Net Cash Flow', value: netCashFlow, icon: <ArrowUpRight size={13} />, color: '#10b981' },
+            { label: 'Void Rate', value: voidRate, icon: <AlertCircle size={13} />, color: '#f59e0b' },
+            { label: 'Avg Order Value', value: avgOrderVal, icon: <Activity size={13} />, color: '#8b5cf6' },
+            { label: 'Items Sold', value: itemsSold, icon: <ShoppingBag size={13} />, color: '#3b82f6' },
           ].map((o, i) => (
             <div key={i} className="bg-white border border-zinc-200 rounded-[0.625rem] px-4 py-3 flex items-center gap-3 card">
               <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
@@ -454,9 +454,9 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
                 <p className="text-xl font-bold text-[#1a0f2e] mt-0.5">Revenue Overview</p>
                 <div className="flex items-center gap-4 mt-1.5">
                   {([
-                    ['Total',   `₱${totalRevenue.toLocaleString()}`],
+                    ['Total', `₱${totalRevenue.toLocaleString()}`],
                     ['Avg/Day', `₱${avgRevenue.toFixed(0)}`],
-                    ['Peak',    maxDay?.name],
+                    ['Peak', maxDay?.name],
                   ] as const).map(([lbl, val], j) => (
                     <div key={j}>
                       <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">{lbl} </span>
@@ -480,8 +480,8 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
                 <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="bmGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#3b2063" stopOpacity={0.15} />
-                      <stop offset="95%" stopColor="#3b2063" stopOpacity={0}    />
+                      <stop offset="5%" stopColor="#3b2063" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#3b2063" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" vertical={false} />
@@ -613,11 +613,11 @@ const BM_Dashboard = ({ branchId }: BM_DashboardProps) => {
           <SectionHeader title="Period Trends" desc="Metric breakdown for selected period" />
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
             {[
-              { label: 'Cash In',     spark: sparkCashIn,  color: '#16a34a' },
-              { label: 'Cash Out',    spark: sparkCashOut, color: '#dc2626' },
-              { label: 'Total Sales', spark: sparkSales,   color: '#7c3aed' },
-              { label: 'Voided',      spark: sparkVoided,  color: '#ca8a04' },
-              { label: 'Overall',     spark: sparkOverall, color: '#0284c7' },
+              { label: 'Cash In', spark: sparkCashIn, color: '#16a34a' },
+              { label: 'Cash Out', spark: sparkCashOut, color: '#dc2626' },
+              { label: 'Total Sales', spark: sparkSales, color: '#7c3aed' },
+              { label: 'Voided', spark: sparkVoided, color: '#ca8a04' },
+              { label: 'Overall', spark: sparkOverall, color: '#0284c7' },
             ].map((s, i) => (
               <div key={i}>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{s.label}</p>
