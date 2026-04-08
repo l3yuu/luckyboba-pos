@@ -75,12 +75,12 @@ const STYLES = `
     border-radius: 0.5rem; border: none; cursor: pointer;
     background: transparent; transition: background 0.1s, color 0.1s;
   }
-  .sa-tab.active { background: #ede8ff; color: #3b2063; font-weight: 600; }
+  .sa-tab.active { background: #3b206310; color: #3b2063; font-weight: 600; }
   .sa-tab.active::before {
     content: ''; position: absolute; left: 0; top: 18%; bottom: 18%;
     width: 2.5px; background: #3b2063; border-radius: 0 2px 2px 0;
   }
-  .ops-topbar-header { background: linear-gradient(135deg, #3b2063 0%, #4c2b7d 100%); }
+  .ops-topbar-header { background: #3b2063; }
 `;
 
 const SupervisorSidebar: React.FC<SupervisorSidebarProps> = ({
@@ -128,23 +128,26 @@ const SupervisorSidebar: React.FC<SupervisorSidebarProps> = ({
       {/* ══════════════════════════════════════════════
           DESKTOP SIDEBAR (md and above)
       ══════════════════════════════════════════════ */}
-      <aside className={`sv-sb-root fixed inset-y-0 left-0 z-[70] w-60 bg-white border-r border-zinc-100 flex-col md:flex md:relative transition-transform duration-300 ease-in-out ${
+      <aside className={`sa-sb-root fixed inset-y-0 left-0 z-[70] w-64 bg-white border-r border-zinc-100 flex-col md:flex md:relative transition-transform duration-300 ease-in-out ${
         isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
       }`}>
         
         {/* User profile section - Unified Header Style */}
-        <div className="shrink-0 px-4 pt-6 pb-4 border-b border-[#2d184d] ops-topbar-header">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-[0.4rem] bg-[#ffffff20] border border-[#ffffff20] flex items-center justify-center shrink-0 shadow-sm">
-              <span className="text-[0.55rem] font-black text-white tracking-wide">{initials}</span>
+        <div className="shrink-0 h-[72px] w-[calc(100%+1px)] px-6 flex items-center border-b border-black/10 ops-topbar-header relative z-[80]">
+          <div className="flex items-center gap-3 relative z-10">
+            <div className="w-9 h-9 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0 shadow-sm backdrop-blur-md">
+              <span className="text-[0.65rem] font-black text-white tracking-widest">{initials}</span>
             </div>
             <div className="min-w-0">
-              <p className="text-[0.82rem] font-bold text-white leading-tight truncate">
+              <p className="text-[0.85rem] font-black text-white leading-tight truncate tracking-tight">
                 {authUser?.name || 'Supervisor'}
               </p>
-              <p className="text-[0.58rem] font-bold uppercase tracking-widest text-[#ddd5ff]">
-                Supervisor Terminal
-              </p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <p className="text-[0.52rem] font-black uppercase tracking-[0.15em] text-[#3b2063]/70">
+                  Console Active
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -165,11 +168,11 @@ const SupervisorSidebar: React.FC<SupervisorSidebarProps> = ({
                       if (window.innerWidth < 768) setSidebarOpen(false);
                     }}
                     className={`sa-tab flex items-center gap-2.5 w-full px-2.5 py-1.5 text-[0.8rem] font-medium text-left relative transition-all ${
-                      currentTab === item.id ? 'active text-[#3b2063]' : 'text-zinc-500 hover:bg-[#f5f3ff] hover:text-[#3b2063]'
+                      currentTab === item.id ? 'active text-[#3b2063]' : 'text-zinc-500 hover:bg-[#3b206305] hover:text-[#3b2063]'
                     }`}
                   >
                     <div className={`shrink-0 w-8 h-8 rounded-[0.45rem] flex items-center justify-center transition-colors ${
-                      currentTab === item.id ? 'bg-[#ddd5ff]' : 'bg-[#f8f9fa]'
+                      currentTab === item.id ? 'bg-[#3b206320]' : 'bg-[#f8f9fa]'
                     }`}>
                       {item.icon}
                     </div>
