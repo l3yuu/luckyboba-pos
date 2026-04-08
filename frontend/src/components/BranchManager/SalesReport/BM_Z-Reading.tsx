@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import React from "react";
 import {
-  RefreshCw, AlertCircle, Printer, ChevronDown, Lock, CheckCircle,
+  RefreshCw, AlertCircle, Printer, Lock, CheckCircle,
   X, Menu,
 } from "lucide-react";
 import { createPortal } from "react-dom";
@@ -34,6 +34,41 @@ interface ZReading {
   is_closed:      boolean;
   closed_at?:     string;
   cashier_breakdown?: CashierRow[];
+  
+  // Added detailed Z-reading fields from Cashier
+  sc_discount?: number;
+  pwd_discount?: number;
+  diplomat_discount?: number;
+  other_discount?: number;
+  total_discounts?: number;
+  net_total?: number;
+  transaction_count?: number;
+  vatable_sales?: number;
+  vat_amount?: number;
+  total_void_amount?: number;
+  total_qty_sold?: number;
+  cash_drop?: number;
+  cash_in?: number;
+  reset_counter?: number;
+  z_counter?: number;
+  present_accumulated?: number;
+  previous_accumulated?: number;
+  sales_for_the_day?: number;
+  vat_exempt_sales?: number;
+  is_vat?: boolean;
+  beg_si?: string;
+  end_si?: string;
+  prepared_by?: string;
+
+  payment_breakdown?: { method: string; amount: number }[];
+  cash_denominations?: { label: string; qty: number; total: number }[];
+  total_cash_count?: number;
+  expected_amount?: number;
+  over_short?: number;
+  categories?: any[];
+  all_addons_summary?: any[];
+  logs?: any[];
+  cash_total?: number;
 }
 interface ZHistory {
   id:         number;
@@ -53,9 +88,25 @@ interface CashierRow {
   discount:     number;
   net:          number;
 }
-interface BranchOption { id: number; name: string; }
 
-// ADD after: interface BranchOption { id: number; name: string; }
+// ── Get current BM's branch_id from localStorage ─────────────────────────────
+const getBMBranchId = (): string => {
+  try {
+    const stored = localStorage.getItem("lucky_boba_user_branch_id");
+    if (stored && stored !== "" && stored !== "null") return stored;
+    const authUser = JSON.parse(localStorage.getItem("auth_user") ?? "{}");
+    if (authUser.branch_id) return String(authUser.branch_id);
+    return "";
+  } catch {
+    return "";
+  }
+};
+
+const getBMBranchName = (): string => {
+  return localStorage.getItem("lucky_boba_user_branch") ?? "";
+};
+
+
 
 interface XReadingReport {
   date?: string;
@@ -191,8 +242,10 @@ const CloseShiftModal: React.FC<{
 const BM_ZReading: React.FC = () => {
   const today = new Date().toISOString().split("T")[0];
 
-  const [branchId,     setBranchId]     = useState("");
-  const [date,         setDate]         = useState(today);
+  const [branchId,     setBranchId]     = useState(getBMBranchId);
+  const [branchName,   setBranchName]   = useState(getBMBranchName);
+  const [dateFrom,     setDateFrom]     = useState(today);
+  const [dateTo,       setDateTo]       = useState(today);
   const [loading,      setLoading]      = useState(false);
   const [closing,      setClosing]      = useState(false);
   const [error,        setError]        = useState("");
@@ -200,7 +253,6 @@ const BM_ZReading: React.FC = () => {
   const [data,         setData]         = useState<ZReading | null>(null);
   const [,      setHistory]      = useState<ZHistory[]>([]);
   const [,  setHistLoading]  = useState(false);
-  const [branches,     setBranches]     = useState<BranchOption[]>([]);
   const [showConfirm,  setShowConfirm]  = useState(false);
   const [activeView,   setActiveView]   = useState<"history" | "receipt">("receipt");
   const [reportType, setReportType] = useState("z_reading");
@@ -212,8 +264,6 @@ const BM_ZReading: React.FC = () => {
   const phCurrency = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" });
   const vatType = (localStorage.getItem("lucky_boba_user_branch_vat") ?? "vat") as "vat" | "non_vat";
   const isVat = vatType === "vat";
-
-  const fmt = (v: number) => `₱${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -294,13 +344,20 @@ const BM_ZReading: React.FC = () => {
     setError("");
     setReportData(null);
     try {
-      const params = new URLSearchParams({ branch_id: branchId, date });
+      const params = new URLSearchParams({ 
+        branch_id: branchId, 
+        date: dateFrom,
+        date_from: dateFrom,
+        date_to: dateTo,
+        from: dateFrom,
+        to: dateTo
+      });
       if (shift !== "all") params.set("shift", shift);
 
       if (reportType === "summary") {
         const [summaryRes, qtyRes] = await Promise.all([
-          fetch(`/api/reports/sales-summary?from=${date}&to=${date}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
-          fetch(`/api/reports/item-quantities?date=${date}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
+          fetch(`/api/reports/sales-summary?from=${dateFrom}&to=${dateTo}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
+          fetch(`/api/reports/item-quantities?from=${dateFrom}&to=${dateTo}&date=${dateFrom}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
         ]);
         const merged = { ...summaryRes, categories: qtyRes.categories ?? [], all_addons_summary: qtyRes.all_addons_summary ?? [] };
         setReportData({ ...normalizeResponse("summary", merged as Record<string, unknown>), report_type: "summary" });
@@ -329,7 +386,7 @@ const BM_ZReading: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [branchId, date, shift, reportType, invoiceQuery]);
+  }, [branchId, dateFrom, dateTo, shift, reportType, invoiceQuery]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -341,18 +398,20 @@ const BM_ZReading: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Fetch branches once
+  // Fetch branch name from /api/user if not already known
   useEffect(() => {
-    fetch("/api/branches", { headers: authHeaders() })
+    if (branchName) return;
+    fetch("/api/user", { headers: authHeaders() })
       .then(r => r.json())
       .then(d => {
-        if (d.success && d.data.length > 0) {
-          setBranches(d.data);
-          setBranchId(String(d.data[0].id));
+        if (d.branch_name) setBranchName(d.branch_name);
+        if (d.branch_id && !branchId) {
+          localStorage.setItem("lucky_boba_user_branch_id", String(d.branch_id));
+          setBranchId(String(d.branch_id));
         }
       })
       .catch(() => {});
-  }, []);
+  }, [branchName, branchId]);
 
   const fetchReading = useCallback(async () => {
     if (!branchId) return;
@@ -360,22 +419,77 @@ const BM_ZReading: React.FC = () => {
     setError("");
     setData(null);   // ← clear stale data from previous branch
     try {
-      const params = new URLSearchParams({ branch_id: branchId, date });
-      const res    = await fetch(`/api/reports/z-reading?${params}`, { headers: authHeaders() });
-      const json   = await res.json();
+      const zParams = new URLSearchParams({ 
+        branch_id: branchId, 
+        date: dateFrom,
+        date_from: dateFrom,
+        date_to: dateTo,
+        from: dateFrom,
+        to: dateTo
+      });
+      const extraParams = new URLSearchParams({
+        branch_id: branchId,
+        date: dateTo
+      });
 
-      if (json.success && json.data) {
-        setData(json.data);
+      const [zRes, cashRes, qtyRes, voidRes] = await Promise.all([
+        fetch(`/api/reports/z-reading?${zParams}`, { headers: authHeaders() }).then(r => r.json()),
+        fetch(`/api/cash-counts/summary?${extraParams}`, { headers: authHeaders() }).then(r => r.json()),
+        fetch(`/api/reports/item-quantities?${extraParams}`, { headers: authHeaders() }).then(r => r.json()),
+        fetch(`/api/reports/void-logs?${extraParams}`, { headers: authHeaders() }).then(r => r.json()),
+      ]);
+
+      if (zRes.success && zRes.data) {
+        // Build cash_denominations
+        const ALL_DENOMS = [1000, 500, 200, 100, 50, 20, 10, 5, 1, 0.25];
+        const ccData = cashRes; 
+        const ccNested = ccData?.cash_count;
+        const storedDenoms = ccNested?.denominations ?? ccData?.denominations ?? [];
+        const storedMap = new Map(storedDenoms.map((d: any) => [parseFloat(String(d.label).replace(/,/g, '')), d.qty]));
+        const cashDenominations = ALL_DENOMS.map(denom => ({
+          label: denom === 0.25 ? '0.25' : String(denom),
+          qty:   Number(storedMap.get(denom) ?? 0),
+          total: denom * Number(storedMap.get(denom) ?? 0),
+        }));
+
+        const totalCashCount = ccNested?.grand_total ?? ccData?.grand_total ?? ccData?.actual_amount ?? 0;
+        const expectedAmount = ccData?.expected_amount ?? 0;
+
+        const rawGross  = Number(zRes.data.gross_sales ?? 0);
+        const netSales  = Number(zRes.data.net_sales   ?? 0);
+        const scDisc    = Number(zRes.data.sc_discount       ?? 0);
+        const pwdDisc   = Number(zRes.data.pwd_discount      ?? 0);
+        const otherDisc = Number(zRes.data.diplomat_discount ?? 0) + Number(zRes.data.other_discount ?? 0);
+        const totalDisc = scDisc + pwdDisc + otherDisc;
+        const computedGross = rawGross > 0 ? rawGross : (netSales + totalDisc);
+
+        setData({
+          ...zRes.data,
+          gross_sales: computedGross,
+          cash_denominations: cashDenominations,
+          total_cash_count: totalCashCount,
+          expected_amount: expectedAmount,
+          over_short: totalCashCount - (Number(zRes.data.cash_total ?? 0) + Number(zRes.data.cash_in ?? 0) - Number(zRes.data.cash_drop ?? 0)),
+          categories: qtyRes?.categories ?? [],
+          all_addons_summary: qtyRes?.all_addons_summary ?? [],
+          logs: voidRes?.logs ?? (Array.isArray(voidRes) ? voidRes : []),
+          is_closed: zRes.data.is_closed ?? false,
+          closed_at: zRes.data.closed_at,
+          cashier_breakdown: zRes.data.cashier_breakdown ?? [],
+          branch_id: Number(branchId),
+          branch_name: branchName || `Branch #${branchId}`,
+          date: dateFrom !== dateTo ? `${dateFrom} - ${dateTo}` : dateFrom,
+        });
       } else {
         // Fallback: build from branch analytics
-        const branchRes  = await fetch(`/api/branches/${branchId}/analytics`, { headers: authHeaders() });
+        const branchRes  = await fetch(`/api/branches/${branchId}/analytics?date_from=${dateFrom}&date_to=${dateTo}`, { headers: authHeaders() });
         const branchData = await branchRes.json();
         if (branchData.success) {
           const d = branchData.data;
           setData({
             branch_id:    Number(branchId),
-            branch_name:  branches.find(b => String(b.id) === branchId)?.name ?? `Branch #${branchId}`,
-            date,
+            branch_name:  branchName || `Branch #${branchId}`,
+            date:         dateFrom !== dateTo ? `${dateFrom} - ${dateTo}` : dateFrom,
             gross_sales:  d.today_total ?? 0,
             discount:     0,
             net_sales:    d.today_total ?? 0,
@@ -397,7 +511,7 @@ const BM_ZReading: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [branchId, date, branches]);
+  }, [branchId, dateFrom, dateTo, branchName]);
 
   const fetchHistory = useCallback(async () => {
     if (!branchId) return;
@@ -438,7 +552,7 @@ const BM_ZReading: React.FC = () => {
       const res  = await fetch("/api/readings/z/close", {
         method:  "POST",
         headers: authHeaders(),
-        body:    JSON.stringify({ branch_id: branchId, date }),
+        body:    JSON.stringify({ branch_id: branchId, date: dateFrom, date_to: dateTo }),
       });
       const json = await res.json();
       if (json.success) {
@@ -461,12 +575,12 @@ const handlePrint = async () => {
     const res = await fetch('/api/readings/z/print-token', {
       method:  'POST',
       headers: authHeaders(),
-      body:    JSON.stringify({ branch_id: branchId, date }),
+      body:    JSON.stringify({ branch_id: branchId, date: dateFrom, date_to: dateTo }),
     });
     const json = await res.json();
     if (!json.token) { setError('Failed to generate print token.'); return; }
 
-    const params = new URLSearchParams({ branch_id: branchId, date, token: json.token });
+    const params = new URLSearchParams({ branch_id: branchId, date: dateFrom, date_to: dateTo, token: json.token });
     
     // Use anchor click instead of window.open — never blocked by popup blocker
     const a = document.createElement('a');
@@ -482,7 +596,7 @@ const handlePrint = async () => {
   }
 };
 
-  const selectedBranchName = branches.find(b => String(b.id) === branchId)?.name ?? "—";
+  const selectedBranchName = branchName || "—";
 
   // ADD before: return (
 
@@ -866,7 +980,7 @@ const handlePrint = async () => {
     return (
       <div className="my-2">
         <ReceiptDivider />
-        <ReceiptRow label="Report Date"  value={date} />
+        <ReceiptRow label="Report Date"  value={dateFrom !== dateTo ? `${dateFrom} - ${dateTo}` : dateFrom} />
         <ReceiptRow label="Branch"       value={selectedBranchName} />
         <ReceiptRow label="Beg. SI #"    value={reportData?.beg_si || "0000000000"} />
         <ReceiptRow label="End. SI #"    value={reportData?.end_si || "0000000000"} />
@@ -914,72 +1028,203 @@ const handlePrint = async () => {
   };
 
   const renderZReadingSummary = () => {
-  if (!data) return null;
-  const gross    = data.gross_sales  ?? 0;
-  const net      = data.net_sales    ?? 0;
-  const discount = data.discount     ?? 0;
-  const cash     = data.cash         ?? 0;
-  const gcash    = data.gcash        ?? 0;
-  const card     = data.card         ?? 0;
-  const returns  = data.returns      ?? 0;
-  const orders   = data.total_orders ?? 0;
+    if (!data) return null;
+    
+    // Adapted from Cashier ZReading.tsx
+    const gross          = data.gross_sales || 0;
+    const scDiscount     = data.sc_discount || 0;
+    const pwdDiscount    = data.pwd_discount || 0;
+    const diplomat       = data.diplomat_discount || 0;
+    const otherDiscount  = data.other_discount || 0;
+    const totalDisc      = data.total_discounts ?? (scDiscount + pwdDiscount + diplomat + otherDiscount);
+    const netSales       = data.net_sales ?? (gross - totalDisc);
 
-  return (
-    <div className="my-2">
-      <ReceiptDivider />
-      <ReceiptRow label="Report Date" value={data.date} />
-      <ReceiptRow label="Branch"      value={data.branch_name} />
-      <ReceiptDivider />
-      <p className="text-[11px] uppercase text-center font-bold mb-0.5">Sales Summary</p>
-      <ReceiptRow label="Gross Sales"     value={fmt(gross)} />
-      <ReceiptRow label="Total Discounts" value={fmt(discount)} />
-      <ReceiptRow label="Returns"         value={fmt(returns)} />
-      <div className="flex justify-between text-[11px] border-t border-black mt-0.5 pt-0.5 font-bold">
-        <span className="uppercase">Net Sales</span>
-        <span>{fmt(net)}</span>
-      </div>
-      <ReceiptDivider />
-      <p className="text-[11px] uppercase text-center font-bold mb-0.5">Payment Breakdown</p>
-      <ReceiptRow label="Cash"  value={fmt(cash)} />
-      <ReceiptRow label="GCash" value={fmt(gcash)} />
-      <ReceiptRow label="Card"  value={fmt(card)} />
-      <ReceiptDivider />
-      <ReceiptRow label="Total Orders" value={orders} />
-      {data.is_closed && data.closed_at && (
-        <>
-          <ReceiptDivider />
-          <ReceiptRow
-            label="Closed At"
-            value={new Date(data.closed_at).toLocaleString("en-PH", {
-              month: "short", day: "numeric",
-              hour: "2-digit", minute: "2-digit",
-            })}
-          />
-        </>
-      )}
-      {(data.cashier_breakdown ?? []).length > 0 && (
-        <>
-          <ReceiptDivider />
-          <p className="text-[11px] uppercase text-center font-bold mb-0.5">Cashier Breakdown</p>
-          <div className="flex text-[10px] border-b border-black pb-0.5 mb-0.5">
-            <span className="w-[35%] uppercase">Cashier</span>
-            <span className="w-[15%] text-center uppercase">Ord</span>
-            <span className="w-[25%] text-right uppercase">Gross</span>
-            <span className="w-[25%] text-right uppercase">Net</span>
-          </div>
-          {data.cashier_breakdown!.map((row, i) => (
-            <div key={i} className="flex text-[10px] leading-snug border-b border-dotted border-zinc-300">
-              <span className="w-[35%] uppercase truncate">{row.cashier_name}</span>
-              <span className="w-[15%] text-center">{row.orders}</span>
-              <span className="w-[25%] text-right">{fmt(row.gross)}</span>
-              <span className="w-[25%] text-right">{fmt(row.net)}</span>
+    const txCount            = data.transaction_count || 0;
+    const vatableSales       = data.vatable_sales || 0;
+    const vatAmount          = data.vat_amount || 0;
+    const voids              = data.total_void_amount || 0;
+    const qtyTotal           = data.total_qty_sold || 0;
+    const cashDrop           = data.cash_drop || 0;
+    const cashIn             = data.cash_in || 0;
+    const resetCounter       = data.reset_counter ?? 0;
+    const zCounter           = data.z_counter ?? 1;
+    const presentAccumulated = data.present_accumulated ?? gross;
+    const previousAccumulated = data.previous_accumulated ?? 0;
+    const salesForDay        = data.sales_for_the_day ?? gross;
+
+    const PAYMENT_METHODS = ['food panda', 'grab', 'gcash', 'visa', 'mastercard', 'cash'];
+    const METHOD_ALIASES: Record<string, string> = {
+      'panda':        'food panda', 'foodpanda':    'food panda', 'food_panda':   'food panda',
+      'grabfood':     'grab',       'grab food':    'grab',
+      'master card':  'mastercard', 'master':       'mastercard',
+      'visa card':    'visa',
+      'e-wallet':     'gcash',      'ewallet':      'gcash',
+    };
+    const paymentMap = new Map<string, number>();
+    (data.payment_breakdown ?? []).forEach(p => {
+      const raw = (p.method ?? '').toLowerCase().trim();
+      const key = METHOD_ALIASES[raw] ?? raw;
+      paymentMap.set(key, (paymentMap.get(key) ?? 0) + Number(p.amount ?? 0));
+    });
+    const creditMethods = ['visa', 'mastercard', 'food panda', 'grab', 'gcash'];
+    const debitMethods: string[] = [];
+    const totalCredit  = creditMethods.reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
+    const totalDebit   = debitMethods.reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
+    const totalCard    = totalCredit + totalDebit;
+    const actualCash = paymentMap.get('cash') || 0;
+    const actualNonCash = gross - actualCash;
+    
+    // Handle specific to ZReading data 
+    const cashDenominations = data.cash_denominations ?? [];
+    const totalCashCount = data.total_cash_count ?? 0;
+    const apiExpected = data.expected_amount ?? 0;
+    const expectedEOD = apiExpected > 0 ? apiExpected : (actualCash + cashIn - cashDrop);
+    const overShort   = data.over_short ?? (totalCashCount - expectedEOD);
+
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    
+    // Check VAT type
+    const isVat = data.is_vat !== undefined ? data.is_vat : vatType === 'vat';
+
+    return (
+      <div className="my-2 text-[10px] sm:text-[11px] leading-snug">
+        <ReceiptDivider />
+        <ReceiptRow label="Report Date" value={new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })} />
+        <ReceiptRow label="Report Time" value={timeStr} />
+        <ReceiptRow label="Start Date & Time" value={`${dateFrom} ${timeStr}`} />
+        <ReceiptRow label="End Date & Time" value={`${dateTo} ${timeStr}`} />
+        <ReceiptRow label="Terminal #" value="ALL" />
+        <ReceiptRow label="Branch" value={data.branch_name} />
+        <ReceiptRow label="Cashier" value={data.prepared_by || "Super Admin"} />
+        <ReceiptRow label="Beg. SI #" value={data.beg_si || '0000000000'} />
+        <ReceiptRow label="End. SI #" value={data.end_si || '0000000000'} />
+        <ReceiptDivider />
+        <ReceiptRow label="Reset Counter No." value={resetCounter} />
+        <ReceiptRow label="Z Counter No." value={zCounter} />
+        <ReceiptRow label="Present Accumulated" value={phCurrency.format(presentAccumulated)} />
+        <ReceiptRow label="Previous Accumulated" value={phCurrency.format(previousAccumulated)} />
+        <ReceiptRow label="Sales for the Day(s)" value={phCurrency.format(salesForDay)} />
+        <ReceiptDivider />
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">BREAKDOWN OF SALES</p>
+        <ReceiptRow label="VATable Sales"    value={phCurrency.format(isVat ? vatableSales : 0)} />
+        <ReceiptRow label="VAT Amount"       value={phCurrency.format(isVat ? vatAmount : 0)} />
+        <ReceiptRow label="VAT Exempt Sales" value={phCurrency.format(data.vat_exempt_sales || 0)} />
+        <ReceiptRow label="Zero-Rated Sales" value={phCurrency.format(0)} />
+        <ReceiptRow label="Service Charge" value={phCurrency.format(0)} />
+        <ReceiptRow label="NET SALES" value={phCurrency.format(netSales)} />
+        <ReceiptRow label="Total Discounts" value={phCurrency.format(totalDisc)} />
+        <ReceiptRow label="GROSS Amount" value={phCurrency.format(gross)} />
+        <ReceiptDivider />
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">DISCOUNT SUMMARY</p>
+        <ReceiptRow label="S.C Disc." value={phCurrency.format(scDiscount)} />
+        <ReceiptRow label="PWD Disc." value={phCurrency.format(pwdDiscount)} />
+        <ReceiptRow label="NAAC Disc." value={phCurrency.format(0)} />
+        <ReceiptRow label="Solo Parent Disc." value={phCurrency.format(0)} />
+        <ReceiptRow label="Other Disc." value={phCurrency.format(diplomat + otherDiscount)} />
+        <ReceiptDivider />
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">SALES ADJUSTMENT</p>
+        <ReceiptRow label={`Canceled (${voids > 0 ? data.logs?.length ?? 0 : 0})`} value={phCurrency.format(voids)} />
+        <ReceiptDivider />
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">PAYMENTS RECEIVED</p>
+        {PAYMENT_METHODS.map((method, i) => <ReceiptRow key={i} label={method.toUpperCase()} value={phCurrency.format(paymentMap.get(method) || 0)} />)}
+        {data.payment_breakdown
+          ?.filter(p => {
+            if (!p.method) return false;
+            const raw = p.method.toLowerCase().trim();
+            const normalized = METHOD_ALIASES[raw] ?? raw;
+            return !PAYMENT_METHODS.includes(normalized);
+          })
+          .map((p, i) => {
+            const raw = (p.method ?? '').toLowerCase().trim();
+            const normalized = METHOD_ALIASES[raw] ?? raw;
+            return <ReceiptRow key={`extra-${i}`} label={normalized.toUpperCase()} value={phCurrency.format(p.amount ?? 0)} />;
+          })}
+        <ReceiptRow label="TOTAL CREDIT" value={phCurrency.format(totalCredit)} />
+        <ReceiptRow label="TOTAL DEBIT" value={phCurrency.format(totalDebit)} />
+        <ReceiptRow label="TOTAL CARD" value={phCurrency.format(totalCard)} />
+        <ReceiptRow label="TOTAL CASH"     value={phCurrency.format(actualCash)} />
+        <ReceiptRow label="TOTAL NON-CASH" value={phCurrency.format(actualNonCash)} />
+        <ReceiptRow label="TOTAL PAYMENTS" value={phCurrency.format(gross)} />
+        <ReceiptDivider />
+        <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
+        <ReceiptRow label="Transaction Count" value={txCount} />
+        <ReceiptRow label="Total Qty Sold" value={qtyTotal} />
+        <ReceiptRow label="Cash In" value={phCurrency.format(cashIn)} />
+        <ReceiptRow label="Cash Drop" value={phCurrency.format(cashDrop)} />
+        
+        {cashDenominations.length > 0 && (
+          <>
+            <ReceiptDivider />
+            <p className="text-[11px] uppercase text-center font-bold mb-0.5">CASH COUNT</p>
+            {cashDenominations.map((d, i) => (
+              <div key={i} className="flex text-[11px] leading-snug">
+                <span className="w-[30%] uppercase">{d.label}</span>
+                <span className="w-[10%] text-center">X</span>
+                <span className="w-[25%] text-center">{d.qty}</span>
+                <span className="w-[35%] text-right">{phCurrency.format(d.total)}</span>
+              </div>
+            ))}
+            <ReceiptRow label="TOTAL CASH COUNT" value={phCurrency.format(totalCashCount)} />
+            <ReceiptRow label="EXPECTED EOD CASH" value={phCurrency.format(expectedEOD)} />
+            {overShort >= 0 ? (
+              <div className="flex justify-between text-[11px] leading-snug font-bold">
+                <span className="uppercase w-[60%]">OVER</span>
+                <span className="text-right w-[40%] text-green-700">{phCurrency.format(overShort)}</span>
+              </div>
+            ) : (
+              <div className="flex justify-between text-[11px] leading-snug font-bold">
+                <span className="uppercase w-[60%]">SHORT</span>
+                <span className="text-right w-[40%] text-red-600">-{phCurrency.format(Math.abs(overShort))}</span>
+              </div>
+            )}
+            <ReceiptRow label="DISCREPANCY" value={phCurrency.format(Math.abs(overShort))} />
+          </>
+        )}
+
+        {/* Categories Item Breakdown */}
+        {data.categories && data.categories.length > 0 && (
+          <>
+            <ReceiptDivider />
+            <p className="text-[11px] uppercase text-center font-bold mb-0.5">ITEM BREAKDOWN</p>
+            <div className="flex text-[11px] font-bold border-b border-black pb-0.5 mb-0.5 uppercase">
+              <span className="w-[50%]">Item</span>
+              <span className="w-[15%] text-center">Size</span>
+              <span className="w-[15%] text-center">Qty</span>
+              <span className="w-[20%] text-right">Total</span>
             </div>
-          ))}
-        </>
-      )}
-    </div>
-  );
-};
+            {data.categories.map((cat, catIdx) => (
+              <React.Fragment key={catIdx}>
+                <p className="text-[15px] font-bold uppercase mt-0.5">{cat.category_name}</p>
+                {cat.products.map((item: any, i: number) => (
+                  <div key={i} className="flex text-[11px] leading-snug border-b border-dotted border-zinc-200 font-bold">
+                    <span className="w-[50%] uppercase leading-tight pl-1">{item.product_name}</span>
+                    <span className="w-[15%] text-center">{item.size ?? '—'}</span>
+                    <span className="w-[15%] text-center">{item.total_qty}</span>
+                    <span className="w-[20%] text-right">{phCurrency.format(item.total_sales)}</span>
+                  </div>
+                ))}
+              </React.Fragment>
+            ))}
+          </>
+        )}
+
+        <ReceiptDivider />
+        {data.is_closed && data.closed_at && (
+          <>
+            <ReceiptRow
+              label="Closed At"
+              value={new Date(data.closed_at).toLocaleString("en-PH", {
+                month: "short", day: "numeric",
+                hour: "2-digit", minute: "2-digit",
+              })}
+            />
+            <ReceiptDivider />
+          </>
+        )}
+      </div>
+    );
+  };
 
   const HIDE_FOOTER    = ["summary","qty_items","search","detailed"];
   const renderReceiptContent = () => {
@@ -1013,7 +1258,7 @@ const handlePrint = async () => {
       {showConfirm && data && (
         <CloseShiftModal
           branchName={selectedBranchName}
-          date={date}
+          date={dateFrom !== dateTo ? `${dateFrom} - ${dateTo}` : dateFrom}
           netSales={data.net_sales}
           onConfirm={handleCloseShift}
           onCancel={() => setShowConfirm(false)}
@@ -1092,22 +1337,21 @@ const handlePrint = async () => {
         </div>
       </div>
 
-      {/* ── Filters ── */}
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 flex flex-wrap gap-3 items-end">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Branch <span className="text-red-400">*</span></p>
-          <div className="relative">
-            <select value={branchId} onChange={e => setBranchId(e.target.value)}
-              className="appearance-none text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer min-w-48">
-              <option value="">Select Branch</option>
-              {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
-            </select>
-            <ChevronDown size={12} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Branch</p>
+          <div className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 cursor-not-allowed">
+            {branchName || "Your Branch"}
           </div>
         </div>
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Date</p>
-          <input type="date" value={date} onChange={e => setDate(e.target.value)}
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Date From</p>
+          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+            className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Date To</p>
+          <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
             className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
         </div>
         <Btn onClick={() => reportType === "z_reading" ? fetchReading() : fetchXReport()} disabled={loading || !branchId}>
@@ -1163,7 +1407,9 @@ const handlePrint = async () => {
                       ? "X-READING"
                       : (reportData?.report_type ?? "REPORT").replace(/_/g, " ").toUpperCase()}
                   </p>
-                  <p className="text-[10px] text-zinc-500">{date}</p>
+                  <p className="text-[10px] text-zinc-500">
+                    {dateFrom !== dateTo ? `${dateFrom} - ${dateTo}` : dateFrom}
+                  </p>
                 </div>
                 {renderReceiptContent()}
                 {!HIDE_FOOTER.includes(reportData?.report_type ?? "") && (

@@ -322,10 +322,6 @@
             {/* ── Header ── */}
             <div className="flex items-center justify-between gap-3 flex-wrap">
             <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center"
-                style={{ background: '#ede9fe', color: '#7c3aed' }}>
-                <ShoppingBag size={16} strokeWidth={2.5} />
-                </div>
                 <div>
                 <h2 style={{ fontSize: '0.9rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.025em', margin: 0 }}>
                     App Orders

@@ -3,6 +3,7 @@ import {
   Store, UserCheck, AlertTriangle,
   XCircle, ArrowUpRight, ArrowDownRight,
   FileText, Package, RefreshCw, TrendingUp,
+  Building2, Handshake,
 } from "lucide-react";
 import {
   AreaChart, Area, BarChart as ReBarChart, Bar,
@@ -300,31 +301,33 @@ const OverviewTab: React.FC = () => {
           {[
             {
               label:     'Company-Owned Branch Revenue',
-              icon:      '🏢',
+              IconComponent: Building2,
               data:      ownership.company,
               bg:        'bg-violet-50 border-violet-200',
               textColor: 'text-violet-700',
-              badge:     'bg-violet-100 text-violet-600',
+              badge:     'bg-violet-100/50 text-violet-600 border-violet-200',
             },
             {
               label:     'Franchisee Branch Revenue',
-              icon:      '🤝',
+              IconComponent: Handshake,
               data:      ownership.franchise,
               bg:        'bg-emerald-50 border-emerald-200',
               textColor: 'text-emerald-700',
-              badge:     'bg-emerald-100 text-emerald-600',
+              badge:     'bg-emerald-100/50 text-emerald-600 border-emerald-200',
             },
-          ].map(({ label, icon, data, bg, textColor }) => (
-            <div key={label} className={`border rounded-[0.625rem] px-6 py-5 flex items-center justify-between ${bg}`}>
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{icon}</span>
+          ].map(({ label, IconComponent, data, bg, textColor, badge }) => (
+            <div key={label} className={`border rounded-[0.625rem] px-6 py-5 flex items-center justify-between ${bg} hover:shadow-md transition-all duration-300`}>
+              <div className="flex items-center gap-4">
+                <div className={`w-12 h-12 shadow-sm rounded-xl flex items-center justify-center shrink-0 border bg-white ${badge}`}>
+                  <IconComponent size={24} strokeWidth={2.5} />
+                </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">{label}</p>
                   <p className={`text-2xl font-black tabular-nums ${textColor}`}>
                     ₱{Number(data.total_revenue).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </p>
-                  <p className="text-[10px] text-zinc-400 mt-0.5">
-                    {data.branch_count} {data.branch_count === 1 ? 'branch' : 'branches'}
+                  <p className="text-[10px] text-zinc-400 mt-1 font-medium">
+                    {data.branch_count} {data.branch_count === 1 ? 'branch' : 'branches'} • {data.total_orders.toLocaleString()} orders
                   </p>
                 </div>
               </div>
