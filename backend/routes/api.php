@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\{ BackupController, CashCountController, CashTransactionController, CategoryController, DashboardController, DiscountController, ExpenseController, InventoryController, StockTransferController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController, MenuItemController, SupplierController, ItemCheckerController };
+use App\Http\Controllers\Api\{ BackupController, CashCountController, CashTransactionController, CategoryController, DashboardController, DiscountController, ExpenseController, InventoryController, StockTransferController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SearchController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController, MenuItemController, SupplierController, ItemCheckerController, PulseController, StaffPerformanceController, InventoryAlertController };
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BranchManagerAppController; // ✅ FIXED: now in Api namespace
@@ -414,7 +414,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::put   ('/{id}',                [UserController::class, 'update']);
             Route::delete('/{id}',                [UserController::class, 'destroy']);
             Route::patch ('/{id}/toggle-status',  [UserController::class, 'toggleStatus']);
-            Route::patch ('/{id}/pin',            [UserController::class, 'updatePin']);
+            Route::patch ('/{id}/pin',            [UserController::class, 'updatePin'])->middleware('throttle:5,1');
         });
 
         Route::prefix('branches')->group(function () {
@@ -431,6 +431,10 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     // ── SUPERADMIN ONLY ───────────────────────────────────────────────────────
     Route::middleware(['role:superadmin'])->group(function () {
+        Route::get('/pulse', [PulseController::class, 'index']);
+        Route::get('/search', [SearchController::class, 'index']);
+        Route::get('/inventory-alerts', [InventoryAlertController::class, 'index']);
+        Route::get('/staff-performance', [StaffPerformanceController::class, 'index']);
         
         // Moved from branch_manager block to restrict editing to SuperAdmin only
         Route::post('/raw-materials/{rawMaterial}/adjust', [RawMaterialController::class, 'adjust']);

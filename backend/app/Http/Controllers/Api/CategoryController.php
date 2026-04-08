@@ -5,12 +5,15 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\SubCategory;
+use App\Traits\MenuCache;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 
 class CategoryController extends Controller
 {
+    use MenuCache;
+
     public function index(Request $request)
     {
         $query = DB::table('categories')
@@ -99,7 +102,7 @@ class CategoryController extends Controller
             }
 
             DB::commit();
-            Cache::forget('menu_data_v3');
+            $this->clearMenuCache();
 
             return response()->json(
                 array_merge($category->fresh()->toArray(), ['menu_items_count' => 0]),
@@ -137,7 +140,7 @@ class CategoryController extends Controller
             $category = Category::findOrFail($id);
             $category->update($validated);
 
-            Cache::forget('menu_data_v3');
+            $this->clearMenuCache();
 
             return response()->json(
                 array_merge($category->fresh()->toArray(), [
@@ -165,7 +168,7 @@ class CategoryController extends Controller
         }
 
         $category->delete();
-        Cache::forget('menu_data_v3');
+        $this->clearMenuCache();
         return response()->json(['success' => true, 'message' => 'Category deleted successfully']);
     }
 }

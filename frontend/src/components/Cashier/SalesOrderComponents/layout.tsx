@@ -16,11 +16,14 @@ interface HeaderProps {
   searchQuery: string;
   onSearchChange: (v: string) => void;
   onHomeClick: () => void;
+  onRefresh?: () => void;
+  isRefreshing?: boolean;
 }
 
 export const Header = ({
   branchName, formattedDate, formattedTime,
   searchQuery, onSearchChange, onHomeClick,
+  onRefresh, isRefreshing = false,
 }: HeaderProps) => (
   <div className="flex gap-3 px-4 py-3 bg-white border-b border-[#e9d5ff] items-center h-20 shrink-0 shadow-sm z-20">
     <button
@@ -45,6 +48,26 @@ export const Header = ({
         className="flex-1 bg-transparent font-bold text-black outline-none uppercase placeholder:text-[#3b2063]/30 text-sm"
       />
     </div>
+
+    {onRefresh && (
+      <button
+        onClick={onRefresh}
+        disabled={isRefreshing}
+        className={`bg-white border-2 border-[#e9d5ff] text-[#3b2063] h-full px-4 rounded-[0.625rem] font-black text-[10px] uppercase tracking-widest hover:border-[#3b2063] transition-all flex items-center gap-2 group ${isRefreshing ? 'opacity-50 cursor-not-allowed' : ''}`}
+      >
+        <svg 
+          xmlns="http://www.w3.org/2000/svg" 
+          fill="none" 
+          viewBox="0 0 24 24" 
+          strokeWidth={2.5} 
+          stroke="currentColor" 
+          className={`w-4 h-4 transition-transform duration-500 ${isRefreshing ? 'animate-spin' : 'group-hover:rotate-180'}`}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.062 12.352a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" />
+        </svg>
+        {isRefreshing ? 'Syncing...' : 'Sync'}
+      </button>
+    )}
 
     <div className="flex gap-2 h-full">
       <div className="bg-[#f5f0ff] border-2 border-[#e9d5ff] rounded-[0.625rem] flex items-center justify-center px-4">

@@ -1589,6 +1589,7 @@ const ImportModal: React.FC<{ onClose: () => void; onSaved: () => void }> = ({ o
 
   const handleUpload = async () => {
     if (!file) { setError("Please select a file first."); return; }
+    
     setUploading(true); setError(""); setSuccess(false);
 
     const formData = new FormData();
