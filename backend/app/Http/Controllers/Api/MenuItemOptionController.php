@@ -6,8 +6,12 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
+use App\Traits\MenuCache;
+
 class MenuItemOptionController extends Controller
 {
+    use MenuCache;
+
     /**
      * GET /api/menu-item-options?menu_item_id=X
      * Returns options for a specific menu item
@@ -72,6 +76,8 @@ class MenuItemOptionController extends Controller
         if (!empty($rows)) {
             DB::table('menu_item_options')->insert($rows);
         }
+
+        $this->clearMenuCache();
 
         return response()->json([
             'success' => true,
