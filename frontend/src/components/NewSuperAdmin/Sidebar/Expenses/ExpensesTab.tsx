@@ -352,23 +352,23 @@ const ExpensesTab: React.FC = () => {
     finally { setExporting(false); }
   };
 
-  const resolveBranch = (exp: Expense) => exp.branch?.name ?? branches.find(b => b.id === exp.branch_id)?.name ?? '—';
+  const resolveBranch = useCallback((exp: Expense) => exp.branch?.name ?? branches.find(b => b.id === exp.branch_id)?.name ?? '—', [branches]);
 
   const filtered = useMemo(() => {
-    let list = expenses.filter(e => e.title.toLowerCase().includes(search.toLowerCase()) || resolveBranch(e).toLowerCase().includes(search.toLowerCase()));
+    const list = expenses.filter(e => e.title.toLowerCase().includes(search.toLowerCase()) || resolveBranch(e).toLowerCase().includes(search.toLowerCase()));
     return [...list].sort((a, b) => {
-      let av: any = a[sortKey as keyof Expense] ?? '';
-      let bv: any = b[sortKey as keyof Expense] ?? '';
+      let av: string | number = a[sortKey as keyof Expense] as string | number ?? '';
+      let bv: string | number = b[sortKey as keyof Expense] as string | number ?? '';
       if (sortKey === 'branch_name') { av = resolveBranch(a); bv = resolveBranch(b); }
       if (typeof av === 'string' && typeof bv === 'string') return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
       return sortDir === 'asc' ? Number(av) - Number(bv) : Number(bv) - Number(av);
     });
-  }, [expenses, search, sortKey, sortDir, branches]);
+  }, [expenses, search, sortKey, sortDir, resolveBranch]);
 
   const totalThisMonth = useMemo(() => {
     const start = new Date(now.getFullYear(), now.getMonth(), 1);
     return expenses.filter(e => new Date(e.date) >= start).reduce((s, e) => s + Number(e.amount), 0);
-  }, [expenses]);
+  }, [expenses, now]);
 
   const totalFiltered = useMemo(() => filtered.reduce((s, e) => s + Number(e.amount), 0), [filtered]);
 
