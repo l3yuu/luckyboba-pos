@@ -765,7 +765,8 @@ const CategoriesTab: React.FC = () => {
       const res  = await fetch("/api/categories", { headers: authHeaders() });
       const data = await res.json();
       const raw  = Array.isArray(data) ? data : (data.data ?? []);
-      setCategories(raw);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setCategories(raw.map((c: any) => ({ ...c, is_active: c.is_active === 1 || c.is_active === true || c.is_active === "1" || (c.is_active === undefined ? true : false) })));
     } catch { setError("Failed to load categories."); }
     finally { setLoading(false); }
   }, []);
@@ -778,7 +779,10 @@ const CategoriesTab: React.FC = () => {
         method: "PUT", headers: authHeaders(),
         body: JSON.stringify({ is_active: !cat.is_active }),
       });
-      if (res.ok) setCategories(p => p.map(c => c.id === cat.id ? { ...c, is_active: !c.is_active } : c));
+      if (res.ok) {
+        setCategories(p => p.map(c => c.id === cat.id ? { ...c, is_active: !c.is_active } : c));
+        try { new BroadcastChannel('pos-updates').postMessage('menu-updated'); } catch {}
+      }
     } catch { /* silent */ }
   };
 

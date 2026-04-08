@@ -2413,7 +2413,7 @@ const MenuItemsTab: React.FC = () => {
         barcode:        i.barcode    ?? null,
         size:           i.size       ?? null,
         image_path:     i.image_path ?? null,
-        is_available:   Boolean(i.is_available ?? true),
+        is_available:   i.is_available === 1 || i.is_available === true || i.is_available === "1" || (i.is_available === undefined ? true : false),
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -2465,8 +2465,10 @@ const MenuItemsTab: React.FC = () => {
         body: JSON.stringify({ is_available: !item.is_available }),
       });
       const data = await res.json();
-      if (res.ok && data.success)
+      if (res.ok && data.success) {
         setItems(prev => prev.map(i => i.id === item.id ? { ...i, is_available: !i.is_available } : i));
+        try { new BroadcastChannel('pos-updates').postMessage('menu-updated'); } catch {}
+      }
     } catch { /* silent */ }
   }, []);
 

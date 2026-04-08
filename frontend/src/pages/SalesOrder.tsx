@@ -465,6 +465,37 @@ const SalesOrder = () => {
   // ── Effects ─────────────────────────────────────────────────────────────────
 
   useEffect(() => {
+    // 1. Local Broadcast polling for same-browser windows
+    const channel = new BroadcastChannel('pos-updates');
+    channel.onmessage = (e) => {
+      if (e.data === 'menu-updated') fetchMenu();
+    };
+
+    // 2. Remote polling interval for cross-device syncing
+    let lastVersion = 0;
+    const pollVersion = async () => {
+      try {
+        const res = await api.get('/menu/version');
+        const currentVersion = res.data?.version;
+        if (currentVersion) {
+          if (lastVersion === 0) {
+            lastVersion = currentVersion;
+          } else if (currentVersion > lastVersion) {
+            lastVersion = currentVersion;
+            fetchMenu();
+          }
+        }
+      } catch { /* silent */ }
+    };
+    const interval = setInterval(pollVersion, 10000); // Check every 10 seconds
+
+    return () => {
+      channel.close();
+      clearInterval(interval);
+    };
+  }, []);
+
+  useEffect(() => {
     const boot = async () => {
       try {
         const { data } = await api.get('/cash-transactions/status')

@@ -270,7 +270,7 @@ const SubCategoriesTab: React.FC = () => {
         category_id: s.category_id,
         category:    s.mainCategory ?? s.category?.name ?? rawCats.find((c: Category) => c.id === s.category_id)?.name ?? "—",
         item_count:  Number(s.itemCount ?? s.item_count ?? 0),
-        is_active:   Boolean(s.is_active ?? true),
+        is_active:   s.is_active === 1 || s.is_active === true || s.is_active === "1" || (s.is_active === undefined ? true : false),
       })));
     } catch { setError("Failed to load sub-categories."); }
     finally { setLoading(false); }
@@ -284,7 +284,10 @@ const SubCategoriesTab: React.FC = () => {
         method: "PUT", headers: authHeaders(),
         body: JSON.stringify({ is_active: !sub.is_active }),
       });
-      if (res.ok) setSubs(p => p.map(s => s.id === sub.id ? { ...s, is_active: !s.is_active } : s));
+      if (res.ok) {
+        setSubs(p => p.map(s => s.id === sub.id ? { ...s, is_active: !s.is_active } : s));
+        try { new BroadcastChannel('pos-updates').postMessage('menu-updated'); } catch {}
+      }
     } catch { /* silent */ }
   };
 
