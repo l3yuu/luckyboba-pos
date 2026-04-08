@@ -5,73 +5,101 @@ namespace App\Imports;
 use App\Models\MenuItem;
 use App\Models\Category;
 use App\Models\SubCategory;
-use Maatwebsite\Excel\Concerns\ToModel;
+use Illuminate\Support\Facades\Log;
+use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 
-class MenuItemImport implements ToModel, WithHeadingRow, SkipsEmptyRows
+class MenuItemImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
 {
-    protected $branchId;
-
-    public function __construct($branchId)
+    public function __construct()
     {
-        $this->branchId = $branchId;
     }
 
     /**
-    * @param array $row
-    *
-    * @return \Illuminate\Database\Eloquent\Model|null
+    * @param Collection $rows
     */
-    public function model(array $row)
+    public function collection(Collection $rows)
+    {
+        foreach ($rows as $row) {
+            // Ensure $row is an array for historical processRow logic
+            $this->processRow($row->toArray());
+        }
+    }
+
+    protected function processRow(array $row)
     {
         $barcode = isset($row['barcode']) ? (string)$row['barcode'] : null;
         $name    = $row['name']    ?? null;
 
-        if (!$name) return null;
+        if (!$name) return;
 
-        // Find Category ID by name
-        $categoryName = $row['category'] ?? null;
-        $categoryId   = null;
-        if ($categoryName) {
-            $category   = Category::where('name', $categoryName)->first();
-            $categoryId = $category ? $category->id : null;
-        }
+        // Find or Create Category ID by name
+        $categoryName = $row['category'] ?? 'General';
+        $category     = Category::firstOrCreate(['name' => $categoryName]);
+        $categoryId   = $category->id;
 
-        // Find SubCategory ID by name
+        // Find or Create SubCategory ID by name
         $subCategoryName = $row['subcategory'] ?? null;
         $subCategoryId   = null;
-        if ($subCategoryName) {
-            $subCategory   = SubCategory::where('name', $subCategoryName)->first();
-            $subCategoryId = $subCategory ? $subCategory->id : null;
+        if ($subCategoryName && $subCategoryName !== '—' && $subCategoryName !== '-') {
+            $subCategory   = SubCategory::firstOrCreate([
+                'name'        => $subCategoryName,
+                'category_id' => $categoryId
+            ]);
+            $subCategoryId = $subCategory->id;
         }
 
-        $data = [
-            'branch_id'       => $this->branchId,
-            'name'            => $name,
-            'category_id'     => $categoryId,
-            'sub_category_id' => $subCategoryId,
-            'price'           => (float)($row['price'] ?? 0),
-            'grab_price'      => (float)($row['grab_price'] ?? 0),
-            'panda_price'     => (float)($row['panda_price'] ?? 0),
-            'cost'            => (float)($row['cost'] ?? 0),
-            'quantity'        => (int)($row['quantity'] ?? 0),
-            'size'            => $row['size']   ?? null,
-            'type'            => $row['type']   ?? 'standard',
-            'status'          => ($row['status'] ?? 'active') === 'active' ? 'active' : 'inactive',
-        ];
-
-        // Logic: UPSERT based on barcode if provided
+        // Logic: UPSERT based on barcode or name/size combination
+        $item = null;
         if (!empty($barcode)) {
             $item = MenuItem::where('barcode', $barcode)->first();
-            if ($item) {
-                $item->update($data);
-                return null; // Return null because we updated manually
-            }
-            $data['barcode'] = $barcode;
         }
 
-        return new MenuItem($data);
+        // Fallback: Match by name, size, and branch if no barcode match
+        if (!$item) {
+            $item = MenuItem::where('name', $name)
+                ->where('size', $row['size'] ?? 'none')
+                ->first();
+        }
+                
+        if ($item) {
+            $item->name            = $name;
+            $item->category_id     = $categoryId;
+            $item->sub_category_id = $subCategoryId;
+            $item->price           = (float)($row['price'] ?? 0);
+            $item->grab_price      = (float)($row['grab_price'] ?? 0);
+            $item->panda_price     = (float)($row['panda_price'] ?? 0);
+            $item->cost            = (float)($row['cost'] ?? 0);
+            $item->quantity        = (int)($row['quantity'] ?? 0);
+            $item->size            = $row['size']   ?? 'none';
+            $item->type            = $row['type']   ?? 'standard';
+            $item->status          = ($row['status'] ?? 'active') === 'active' ? 'active' : 'inactive';
+            
+            // Link the barcode if it was provided in Excel but missing in DB
+            if ($barcode && !$item->barcode) {
+                $item->barcode = $barcode;
+            }
+            
+            $item->save();
+            return;
+        }
+
+        $item = new MenuItem();
+        $item->name            = $name;
+        $item->category_id     = $categoryId;
+        $item->sub_category_id = $subCategoryId;
+        $item->price           = (float)($row['price'] ?? 0);
+        $item->grab_price      = (float)($row['grab_price'] ?? 0);
+        $item->panda_price     = (float)($row['panda_price'] ?? 0);
+        $item->cost            = (float)($row['cost'] ?? 0);
+        $item->quantity        = (int)($row['quantity'] ?? 0);
+        $item->size            = $row['size']   ?? 'none';
+        $item->type            = $row['type']   ?? 'standard';
+        $item->status          = ($row['status'] ?? 'active') === 'active' ? 'active' : 'inactive';
+        $item->barcode         = $barcode;
+        $item->save();
     }
 }

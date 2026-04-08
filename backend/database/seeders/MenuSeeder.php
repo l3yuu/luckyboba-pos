@@ -524,6 +524,7 @@ class MenuSeeder extends Seeder
         foreach ($menuData as $categoryName => $items) {
             $cupId = $categoryCupMap[$categoryName] ?? null;
 
+            // 1. Ensure Category exists (Global)
             $category = Category::updateOrCreate(
                 ['name' => $categoryName],
                 ['cup_id' => $cupId]
@@ -533,34 +534,36 @@ class MenuSeeder extends Seeder
             $cupCode = $cup?->code;
             $sizeMap = $cupSizeMap[$cupCode] ?? null;
 
+            // 2. Seed Items Globally
             foreach ($items as $item) {
-                $size     = $item['size'];
-                $subCatId = null;
+                    $size     = $item['size'];
+                    $subCatId = null;
 
-                if ($sizeMap && isset($sizeMap[$size])) {
-                    $subCatName = $sizeMap[$size];
-                    $subCatId   = $subCatLookup[$category->id][$subCatName] ?? null;
-                } elseif (!in_array($size, ['M', 'L', 'none'])) {
-                    $subCatId = $subCatLookup[$category->id][$size] ?? null;
+                    if ($sizeMap && isset($sizeMap[$size])) {
+                        $subCatName = $sizeMap[$size];
+                        $subCatId   = $subCatLookup[$category->id][$subCatName] ?? null;
+                    } elseif (!in_array($size, ['M', 'L', 'none'])) {
+                        $subCatId = $subCatLookup[$category->id][$size] ?? null;
+                    }
+
+                    MenuItem::updateOrCreate(
+                        [
+                            'barcode'   => $item['barcode']
+                        ],
+                        [
+                            'name'            => $item['name'],
+                            'price'           => $item['price'],
+                            'grab_price'      => $item['grab_price']  ?? 0,
+                            'panda_price'     => $item['panda_price'] ?? 0,
+                            'cup_id'          => $cupId,
+                            'size'            => $size,
+                            'sub_category_id' => $subCatId,
+                            'category_id'     => $category->id,
+                        ]
+                    );
                 }
 
-                // Use global MenuItem model to avoid category_id scope duplicates
-                MenuItem::updateOrCreate(
-                    ['barcode' => $item['barcode']],
-                    [
-                        'name'            => $item['name'],
-                        'price'           => $item['price'],
-                        'grab_price'      => $item['grab_price']  ?? 0,
-                        'panda_price'     => $item['panda_price'] ?? 0,
-                        'cup_id'          => $cupId,
-                        'size'            => $size,
-                        'sub_category_id' => $subCatId,
-                        'category_id'     => $category->id,
-                    ]
-                );
-            }
-
-            $this->command->info("Seeded: {$categoryName} (" . count($items) . " items)");
+            $this->command->info("Seeded: {$categoryName} (" . count($items) . " items seeded)");
         }
     }
 }
