@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "822257671635",
+    "project_id": "luckyboba-app",
+    "storage_bucket": "luckyboba-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:822257671635:android:0777c0f8c09b273dd5e326",
+        "android_client_info": {
+          "package_name": "com.example.luckyboba_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "822257671635-9bq8u2do11r5bqnrk0i0vloriprp5boa.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.luckyboba_app",
+            "certificate_hash": "721add46e0ba2a5c337da0d44aa1f45cbdef0d52"
+          }
+        },
+        {
+          "client_id": "822257671635-af9ao2uvia4crk7rm9tlr3ubujkso5vk.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDthqZboz-V159d9cd0x65Aq862Qej4hvw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "822257671635-af9ao2uvia4crk7rm9tlr3ubujkso5vk.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -486,7 +486,7 @@ const StockTransfer = () => {
   };
 
   const filtered = useMemo(() => {
-    let list = transfers.filter(t => {
+    const list = transfers.filter(t => {
       const matchSearch = t.transfer_number.toLowerCase().includes(search.toLowerCase()) ||
         (t.from_branch?.name ?? t.from_branch_name ?? '').toLowerCase().includes(search.toLowerCase()) ||
         (t.to_branch?.name   ?? t.to_branch_name   ?? '').toLowerCase().includes(search.toLowerCase());
