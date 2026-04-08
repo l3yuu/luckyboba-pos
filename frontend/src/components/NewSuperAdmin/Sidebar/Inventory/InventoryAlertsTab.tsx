@@ -165,7 +165,7 @@ const InventoryAlertsTab: React.FC = () => {
           <Filter size={14} className="text-zinc-400" />
           <select 
             value={severityFilter}
-            onChange={(e) => setSeverityFilter(e.target.value as any)}
+            onChange={(e) => setSeverityFilter(e.target.value as "all" | Severity)}
             className="bg-white border border-zinc-200 text-sm font-semibold text-zinc-600 rounded-lg px-3 py-2 focus:outline-none"
           >
             <option value="all">All Levels</option>
