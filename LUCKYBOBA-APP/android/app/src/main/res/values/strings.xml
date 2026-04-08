@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Lucky Boba</string>
+    <string name="facebook_app_id">1943313203243623</string>
+    <string name="fb_login_protocol_scheme">fb1943313203243623</string>
+    <string name="facebook_client_token">750e0d8e9abdbe645dd155aebd380977</string>
+</resources>

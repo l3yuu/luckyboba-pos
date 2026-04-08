@@ -95,6 +95,7 @@ const PAGE_TITLES: Record<TabId, { label: string; desc: string }> = {
   card_management: { label: "Card Management", desc: "Create and manage promotional cards" },
   card_approvals: { label: "Card Approvals", desc: "Review and approve membership card requests" },
   card_members: { label: "Card Members", desc: "Active subscribers and daily perk usage" },
+  loyalty: { label: "Loyalty", desc: "Manage loyalty programs and rewards" },
 };
 
 // ── Pulse animation ───────────────────────────────────────────────────────────

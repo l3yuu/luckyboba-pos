@@ -19,6 +19,7 @@ use App\Http\Controllers\CacheController;
 use App\Http\Controllers\CategoryDrinkController;
 use App\Http\Controllers\OnlineOrderController;
 use App\Http\Controllers\Api\PointsController;
+use App\Http\Controllers\LoyaltyManagementController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -125,6 +126,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('/my-orders',      [OnlineOrderController::class, 'myOrders']);
     Route::get('/points', [PointsController::class, 'index']);
     Route::post('/points/redeem', [PointsController::class, 'redeem']);
+
+    // ── LOYALTY (Mobile & Shared) ──────────────────────────────────────────
+    Route::get('/loyalty/rewards', [LoyaltyManagementController::class, 'getRewards']);
 
     Route::patch('/orders/{siNumber}/cancel', function (Request $request, string $siNumber) {
         $sale = \App\Models\Sale::where('invoice_number', $siNumber)
@@ -347,17 +351,15 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/branches/performance',       [BranchController::class, 'performance']);
         Route::get('/branches/today-sales',       [BranchController::class, 'todaySales']);
 
-        Route::get   ('/branches/{id}',                  [BranchController::class, 'show']);
-        Route::put   ('/branches/{id}',                  [BranchController::class, 'update']);
-        Route::delete('/branches/{id}',                  [BranchController::class, 'destroy']);
-        Route::get   ('/branches/{id}/daily-sales',      [BranchController::class, 'dailySales']);
-        Route::get   ('/branches/{id}/analytics',        [BranchController::class, 'analytics']);
-        Route::get   ('/branches/{id}/sales-summary',    [BranchController::class, 'salesSummary']);
-        Route::post  ('/branches/{id}/refresh-totals',   [BranchController::class, 'refreshTotals']);
-
         Route::get ('/branches', [BranchController::class, 'index']);
-        Route::post('/branches', [BranchController::class, 'store']);
-        // ─────────────────────────────────────────────────────────────────────
+
+        Route::prefix('stock-transfers')->group(function () {
+            Route::get ('/',                         [StockTransferController::class, 'index']);
+            Route::post('/',                         [StockTransferController::class, 'store']);
+            Route::post('/{stockTransfer}/approve',  [StockTransferController::class, 'approve']);
+            Route::post('/{stockTransfer}/receive',  [StockTransferController::class, 'receive']);
+            Route::post('/{stockTransfer}/cancel',   [StockTransferController::class, 'cancel']);
+        });
 
         Route::get('/users', [UserController::class, 'index']);
     });
@@ -394,14 +396,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::apiResource('vouchers',  VoucherController::class)->only(['index', 'store']);
         Route::apiResource('suppliers', SupplierController::class)->only(['index', 'store', 'update', 'destroy']);
 
-        Route::prefix('stock-transfers')->group(function () {
-            Route::get ('/',                         [StockTransferController::class, 'index']);
-            Route::post('/',                         [StockTransferController::class, 'store']);
-            Route::post('/{stockTransfer}/approve',  [StockTransferController::class, 'approve']);
-            Route::post('/{stockTransfer}/receive',  [StockTransferController::class, 'receive']);
-            Route::post('/{stockTransfer}/cancel',   [StockTransferController::class, 'cancel']);
-        });
-
         Route::prefix('reports')->group(function () {
             Route::get('/mall-accreditation', [SalesDashboardController::class, 'mallReport']);
         });
@@ -424,13 +418,14 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         });
 
         Route::prefix('branches')->group(function () {
-            Route::get('/performance',        [BranchController::class, 'performance']);
-            Route::get('/today-sales',        [BranchController::class, 'todaySales']);
-            Route::get('/ownership-summary',  [BranchController::class, 'ownershipSummary']);
-            Route::get('/',                   [BranchController::class, 'index']);
-            Route::get('/{id}/daily-sales',   [BranchController::class, 'dailySales']);
-            Route::get('/{id}/sales-summary', [BranchController::class, 'salesSummary']);
-            Route::get('/{id}/analytics',     [BranchController::class, 'analytics']);
+            Route::post  ('/',                    [BranchController::class, 'store']);
+            Route::get   ('/{id}',                [BranchController::class, 'show']);
+            Route::put   ('/{id}',                [BranchController::class, 'update']);
+            Route::delete('/{id}',                [BranchController::class, 'destroy']);
+            Route::get   ('/{id}/daily-sales',    [BranchController::class, 'dailySales']);
+            Route::get   ('/{id}/analytics',      [BranchController::class, 'analytics']);
+            Route::get   ('/{id}/sales-summary',  [BranchController::class, 'salesSummary']);
+            Route::post  ('/{id}/refresh-totals', [BranchController::class, 'refreshTotals']);
         });
 
     });
@@ -512,6 +507,16 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::post('/{id}/reject',               [CardController::class, 'rejectCard']);
             Route::get ('/users',                     [CardController::class, 'getCardUsers']);
             Route::post('/users/{userId}/log-usage',  [CardController::class, 'logUsage']);
+        });
+
+        // ── LOYALTY MANAGEMENT (SuperAdmin) ──────────────────────────────────
+        Route::prefix('loyalty')->group(function () {
+            Route::get   ('/settings',     [LoyaltyManagementController::class, 'getSettings']);
+            Route::post  ('/settings',     [LoyaltyManagementController::class, 'updateSettings']);
+            Route::get   ('/users',        [LoyaltyManagementController::class, 'getUserPoints']);
+            Route::post  ('/rewards',      [LoyaltyManagementController::class, 'storeReward']);
+            Route::put   ('/rewards/{id}', [LoyaltyManagementController::class, 'updateReward']);
+            Route::delete('/rewards/{id}', [LoyaltyManagementController::class, 'deleteReward']);
         });
     });
 
