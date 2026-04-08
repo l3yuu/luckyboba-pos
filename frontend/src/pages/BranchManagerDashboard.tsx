@@ -45,6 +45,7 @@ import BM_ImportData         from '../components/BranchManager/Settings/BM_Impor
 import BM_SalesSettings      from '../components/BranchManager/Settings/BM_SalesSettings';
 import BM_Settings           from '../components/BranchManager/Settings/BM_Settings';
 import BM_UploadData         from '../components/BranchManager/Settings/BM_UploadData';
+import BM_PaymentSettings    from '../components/BranchManager/Settings/BM_PaymentSettings';
 
 // ─── Font tokens and Global Styles ────────────────────────────────────────────
 const STYLES = `
@@ -114,6 +115,7 @@ const PAGE_TITLES: Record<string, { label: string; desc: string }> = {
   'import-data':        { label: 'Import Data',          desc: 'Bulk data import' },
   'sales-settings':     { label: 'Sales Settings',       desc: 'Sales configuration' },
   'upload-data':        { label: 'Upload Data',          desc: 'Data upload management' },
+  'payment-settings':   { label: 'Payment Settings',     desc: 'Branch-specific payment options (GCash/Maya)' },
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -210,6 +212,7 @@ const BranchManagerDashboard = () => {
       case 'import-data':    return <BM_ImportData onBack={() => setActiveTab('settings')} />;
       case 'sales-settings': return <BM_SalesSettings isOpen={true} onClose={() => setActiveTab('settings')} />;
       case 'upload-data':    return <BM_UploadData onBack={() => setActiveTab('settings')} />;
+      case 'payment-settings': return <BM_PaymentSettings onBack={() => setActiveTab('settings')} />;
       default:               return <BM_Dashboard branchId={authUser?.branch_id ?? null} />;
     }
   };

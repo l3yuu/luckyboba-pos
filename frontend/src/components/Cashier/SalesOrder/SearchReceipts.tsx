@@ -161,7 +161,7 @@ function mapToCartItem(raw: RawSaleItem): CartItem {
 const StatBox: React.FC<{ label: string; value: number; icon: React.ReactNode; isBrand?: boolean; isDanger?: boolean }> = ({ label, value, isDanger }) => (
   <div className={`bg-white border rounded-lg p-4 text-center shadow-sm ${isDanger ? 'border-red-200' : 'border-zinc-200'}`}>
     <div className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${isDanger ? 'text-red-400' : 'text-zinc-400'}`}>{label}</div>
-    <div className={`text-xl font-bold ${isDanger ? 'text-red-500' : 'text-[#1a0f2e]'}`}>₱{value.toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
+    <div className={`text-xl font-bold ${isDanger ? 'text-red-500' : 'text-[#1a0f2e]'}`}>₱{Number(value || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</div>
   </div>
 );
 
@@ -389,20 +389,59 @@ receiptFooter: payload.settings?.receipt_footer ?? '',
           <>
             <style>{`
               @media print {
-                @page { ${printType === 'sticker' ? 'size: 38.5mm 50.8mm;' : 'size: 80mm auto;'} margin: 0 !important; }
-                html, body { margin: 0 !important; padding: 0 !important; }
-                body * { visibility: hidden; }
-                nav, header, aside, button, .print\\:hidden { display: none !important; }
+                @page { 
+                  ${printType === 'sticker' ? 'size: 38.5mm 50.8mm;' : 'size: 80mm auto;'} 
+                  margin: 0 !important; 
+                }
+                html, body { 
+                  margin: 0 !important; 
+                  padding: 0 !important; 
+                  width: ${printType === 'sticker' ? '38.5mm' : '80mm'} !important;
+                  height: auto !important;
+                  overflow: visible !important;
+                }
+                body * { visibility: hidden !important; }
                 .printable-receipt-container, .printable-receipt-container * { visibility: visible !important; }
                 .printable-receipt-container {
-                  position: static !important;
-                  width: 100% !important;
+                  position: absolute !important;
+                  left: 0 !important;
+                  top: 0 !important;
+                  display: block !important;
+                  width: ${printType === 'sticker' ? '38.5mm' : '100%'} !important;
                   max-width: ${printType === 'sticker' ? '38.5mm' : '76mm'} !important;
-                  margin: 0 !important; padding: 0 !important;
+                  margin: 0 !important;
+                  padding: 0 !important;
                   height: auto !important;
+                  overflow: visible !important;
                 }
-                .receipt-area { width: 66mm !important; margin: 0 auto !important; padding: 2mm 0 !important; box-sizing: border-box !important; color: #000 !important; font-family: Arial, Helvetica, sans-serif !important; font-size: 12px !important; line-height: 1.4 !important; }
-                .sticker-area { width: 38.5mm !important; height: 50.8mm !important; padding: 2mm !important; margin: 0 auto !important; box-sizing: border-box !important; color: #000 !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; align-items: center !important; text-align: center !important; font-family: Arial, Helvetica, sans-serif !important; overflow: hidden !important; page-break-after: always !important; break-after: page !important; }
+                .receipt-area { 
+                  position: relative !important;
+                  width: 66mm !important; 
+                  margin: 0 auto !important; 
+                  padding: 2mm 0 !important; 
+                  box-sizing: border-box !important; 
+                  color: #000 !important; 
+                  font-family: Arial, Helvetica, sans-serif !important; 
+                  font-size: 12px !important; 
+                  line-height: 1.4 !important; 
+                }
+                .sticker-area { 
+                  width: 38.5mm !important; 
+                  height: 50.8mm !important; 
+                  padding: 2mm !important; 
+                  margin: 0 auto !important; 
+                  box-sizing: border-box !important; 
+                  color: #000 !important; 
+                  display: flex !important; 
+                  flex-direction: column !important; 
+                  justify-content: space-between !important; 
+                  align-items: center !important; 
+                  text-align: center !important; 
+                  font-family: Arial, Helvetica, sans-serif !important; 
+                  overflow: hidden !important; 
+                  page-break-after: always !important; 
+                  break-after: page !important; 
+                }
                 .queue-stub { page-break-before: always !important; break-before: page !important; }
               }
             `}</style>

@@ -189,8 +189,11 @@ const UsageReportTab: React.FC = () => {
   const [showGuide,     setShowGuide]     = useState(false);
   const [drawerRow,     setDrawerRow]     = useState<UsageRow | null>(null);
   const [exporting,     setExporting]     = useState(false);
+  const [isToday,       setIsToday]       = useState(false);
 
-  const period = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`;
+  const period = isToday
+    ? now.toISOString().split('T')[0]
+    : `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`;
 
   const fetchReport = useCallback(async () => {
     setLoading(true);
@@ -223,7 +226,7 @@ const UsageReportTab: React.FC = () => {
       const url  = URL.createObjectURL(res.data);
       const link = document.createElement('a');
       link.href     = url;
-      link.download = `usage-report-${period}.csv`;
+      link.download = `usage-report-${period}${isToday ? '-today' : ''}.csv`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (e) { console.error(e); }
@@ -270,7 +273,9 @@ const UsageReportTab: React.FC = () => {
         <div>
           <h2 className="text-sm font-black uppercase tracking-wide text-[#1a0f2e]">Usage Report</h2>
           <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
-            {MONTHS[selectedMonth]} {selectedYear} · raw material consumption
+            {isToday 
+              ? `Today · ${now.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}` 
+              : `${MONTHS[selectedMonth]} ${selectedYear} · raw material consumption`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -306,14 +311,28 @@ const UsageReportTab: React.FC = () => {
 
           {/* Period selector */}
           <div className="flex items-center gap-2">
-            <select value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))}
-              className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
-              {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
-            </select>
-            <select value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))}
-              className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
-              {[now.getFullYear() - 1, now.getFullYear()].map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
+            <button
+              onClick={() => setIsToday(!isToday)}
+              className={`px-3 py-2 h-9 rounded-lg text-xs font-bold transition-all border ${
+                isToday 
+                  ? 'bg-[#3b2063] text-white border-[#3b2063]' 
+                  : 'bg-white text-zinc-500 border-zinc-200 hover:border-[#3b2063]'
+              }`}
+            >
+              Today
+            </button>
+            {!isToday && (
+              <>
+                <select value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))}
+                  className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
+                  {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
+                </select>
+                <select value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))}
+                  className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
+                  {[now.getFullYear() - 1, now.getFullYear()].map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </>
+            )}
           </div>
 
           <select value={branch} onChange={e => setBranch(e.target.value)}
@@ -344,7 +363,7 @@ const UsageReportTab: React.FC = () => {
             {search && <button onClick={() => setSearch('')} className="text-zinc-300 hover:text-red-500"><X size={12} /></button>}
           </div>
 
-          <button onClick={() => setShowGuide(v => !v)}
+          <button onClick={() => setShowGuide((v: boolean) => !v)}
             className="flex items-center gap-1.5 px-3 py-2 h-9 bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-bold text-zinc-500 hover:text-[#3b2063] hover:border-[#e9d5ff] transition-colors ml-auto">
             Column Guide {showGuide ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
           </button>

@@ -9,7 +9,6 @@ import {
   XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, AreaChart, Area
 } from 'recharts';
-
 // ── Types ────────────────────────────────────────────────────────────────────
 interface DashStats {
   total_orders_today: number;
@@ -155,39 +154,33 @@ const SV_DashboardPanel = ({ branchId }: SV_DashboardProps) => {
       ]);
 
       if (statsRes.status === 'fulfilled') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const d = statsRes.value.data as any;
-        setStats((d?.stats ?? d) as DashStats);
+        const d = statsRes.value.data as { stats?: DashStats } | DashStats;
+        const statsData = (d as { stats: DashStats })?.stats ?? d;
+        setStats(statsData as DashStats);
       }
       if (hourlyRes.status === 'fulfilled') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const raw = hourlyRes.value.data as any;
+        const raw = hourlyRes.value.data as HourlyStat[] | { hourly_data: HourlyStat[] };
         const arr = Array.isArray(raw) ? raw : (raw?.hourly_data ?? []);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setHourly(arr.map((r: any) => ({
+        setHourly(arr.map((r: HourlyStat) => ({
           hour: Number(r.hour ?? 0),
           total: Number(r.total ?? 0),
           count: Number(r.count ?? 0)
         })));
       }
       if (stockRes.status === 'fulfilled') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const raw = stockRes.value.data as any;
+        const raw = stockRes.value.data as LowStockItem[] | { data: LowStockItem[] };
         const arr = Array.isArray(raw) ? raw : (raw?.data ?? []);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setLowStock(arr.slice(0, 5).map((r: any) => ({
+        setLowStock(arr.map((r: LowStockItem) => ({
           id: Number(r.id),
-          name: String(r.name || r.item_name || ''),
+          name: String(r.name || ''),
           quantity: Number(r.quantity ?? 0),
-          minimum: Number(r.minimum ?? r.minimum_stock ?? 0)
+          minimum: Number(r.minimum ?? 0)
         })));
       }
       if (voidsRes.status === 'fulfilled') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const raw = voidsRes.value.data as any;
+        const raw = voidsRes.value.data as PendingVoid[] | { logs: PendingVoid[] };
         const arr = Array.isArray(raw) ? raw : (raw?.logs ?? []);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setPendingVoids(arr.slice(0, 5).map((r: any) => ({
+        setPendingVoids(arr.slice(0, 5).map((r: PendingVoid) => ({
           id: Number(r.id || 0),
           invoice: String(r.invoice || ''),
           amount: Number(r.amount || 0),

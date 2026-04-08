@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { 
-  Users, TrendingUp, AlertTriangle, Search, 
+import {
+  Users, TrendingUp, AlertTriangle, Search,
   ChevronRight, Clock, ShieldAlert, Award, X, RefreshCw,
   DollarSign
 } from "lucide-react";
@@ -104,7 +104,7 @@ const StaffPerformanceTab = () => {
   }, [fetchData]);
 
   const filteredData = useMemo(() => {
-    return data.filter(s => 
+    return data.filter(s =>
       s.name.toLowerCase().includes(search.toLowerCase()) ||
       (s.branch_name || s.branch || "").toLowerCase().includes(search.toLowerCase())
     );
@@ -113,8 +113,8 @@ const StaffPerformanceTab = () => {
   const stats = useMemo(() => {
     if (data.length === 0) return null;
     return {
-      topPerformer: [...data].sort((a,b) => b.revenue - a.revenue)[0],
-      mostEfficient: [...data].sort((a,b) => b.trans_per_hour - a.trans_per_hour)[0],
+      topPerformer: [...data].sort((a, b) => b.revenue - a.revenue)[0],
+      mostEfficient: [...data].sort((a, b) => b.trans_per_hour - a.trans_per_hour)[0],
       highRiskCount: data.filter(s => s.void_rate > 5).length,
       totalStaff: data.length,
       systemAvgVoid: data.reduce((acc, s) => acc + s.void_rate, 0) / (data.length || 1)
@@ -127,22 +127,22 @@ const StaffPerformanceTab = () => {
     <div className="p-6 md:p-8 space-y-6 fade-in">
       <div className="flex justify-between items-center">
         <div className="flex gap-4">
-           <Skeleton className="w-12 h-12 rounded-2xl" />
-           <div className="space-y-2"><Skeleton className="w-48 h-6" /><Skeleton className="w-64 h-3" /></div>
+          <Skeleton className="w-12 h-12 rounded-2xl" />
+          <div className="space-y-2"><Skeleton className="w-48 h-6" /><Skeleton className="w-64 h-3" /></div>
         </div>
         <div className="flex gap-2">
-           <Skeleton className="w-24 h-9 rounded-lg" />
-           <Skeleton className="w-24 h-9 rounded-lg" />
-           <Skeleton className="w-24 h-9 rounded-lg" />
+          <Skeleton className="w-24 h-9 rounded-lg" />
+          <Skeleton className="w-24 h-9 rounded-lg" />
+          <Skeleton className="w-24 h-9 rounded-lg" />
         </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         {[...Array(5)].map((_, i) => <StatCardSkeleton key={i} />)}
       </div>
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] p-6 shadow-sm">
-         <div className="space-y-4">
-            {[...Array(6)].map((_, i) => <Skeleton key={i} className="w-full h-12" />)}
-         </div>
+        <div className="space-y-4">
+          {[...Array(6)].map((_, i) => <Skeleton key={i} className="w-full h-12" />)}
+        </div>
       </div>
     </div>
   );
@@ -154,13 +154,13 @@ const StaffPerformanceTab = () => {
         <div>
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-[#3b2063] rounded-2xl flex items-center justify-center text-white shadow-lg shadow-purple-200">
-               <Award size={24} />
+              <Award size={24} />
             </div>
             <div>
               <h2 className="text-xl font-black text-[#1a0f2e] tracking-tight -mb-1">Staff Performance</h2>
               <div className="flex items-center gap-2">
-                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                 <p className="text-[0.7rem] text-zinc-400 font-bold uppercase tracking-widest">Efficiency & Integrity Metrics</p>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <p className="text-[0.7rem] text-zinc-400 font-bold uppercase tracking-widest">Efficiency & Integrity Metrics</p>
               </div>
             </div>
           </div>
@@ -170,7 +170,7 @@ const StaffPerformanceTab = () => {
           <div className="mr-4 hidden lg:block">
             <div className="relative group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063] transition-colors" size={14} />
-              <input 
+              <input
                 type="text"
                 placeholder="Search staff..."
                 value={search}
@@ -185,8 +185,8 @@ const StaffPerformanceTab = () => {
               {p}
             </button>
           ))}
-          <button 
-            onClick={fetchData} 
+          <button
+            onClick={fetchData}
             disabled={loading}
             className="p-2.5 bg-white border border-zinc-200 text-zinc-600 rounded-lg hover:bg-zinc-50 transition-all disabled:opacity-50"
           >
@@ -197,35 +197,35 @@ const StaffPerformanceTab = () => {
 
       {/* ── Top Row Metrics (5 Columns) ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatCard 
+        <StatCard
           icon={<Award size={18} strokeWidth={2.5} />}
           label="Top Performer"
           value={stats?.topPerformer?.name ?? "—"}
           sub={stats?.topPerformer ? fmt(stats.topPerformer.revenue) : ""}
           color="violet"
         />
-        <StatCard 
+        <StatCard
           icon={<Clock size={18} strokeWidth={2.5} />}
           label="Most Efficient"
           value={stats?.mostEfficient?.name ?? "—"}
           sub={stats?.mostEfficient ? `${stats.mostEfficient.trans_per_hour} OPS/HR` : ""}
           color="emerald"
         />
-        <StatCard 
+        <StatCard
           icon={<Users size={18} strokeWidth={2.5} />}
           label="Total Staff"
           value={stats?.totalStaff ?? 0}
           sub="Analyzed"
           color="amber"
         />
-        <StatCard 
+        <StatCard
           icon={<TrendingUp size={18} strokeWidth={2.5} />}
           label="System Avg. Void"
           value={`${(stats?.systemAvgVoid ?? 0).toFixed(1)}%`}
           sub="Global Rate"
           color="violet"
         />
-        <StatCard 
+        <StatCard
           icon={<ShieldAlert size={18} strokeWidth={2.5} />}
           label="High Risk Staff"
           value={stats?.highRiskCount ?? 0}
@@ -245,7 +245,7 @@ const StaffPerformanceTab = () => {
             Ranked by Revenue
           </span>
         </div>
-        
+
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -262,11 +262,10 @@ const StaffPerformanceTab = () => {
                 <tr key={s.id} className="hover:bg-zinc-50/50 transition-all group">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-black shadow-sm ${
-                        idx === 0 ? 'bg-amber-100 text-amber-700' : 
-                        idx === 1 ? 'bg-zinc-100 text-zinc-600' : 
-                        idx === 2 ? 'bg-orange-50 text-orange-700' : 'bg-zinc-50 text-zinc-400'
-                      }`}>
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-black shadow-sm ${idx === 0 ? 'bg-amber-100 text-amber-700' :
+                          idx === 1 ? 'bg-zinc-100 text-zinc-600' :
+                            idx === 2 ? 'bg-orange-50 text-orange-700' : 'bg-zinc-50 text-zinc-400'
+                        }`}>
                         #{idx + 1}
                       </div>
                       <div>
@@ -277,8 +276,8 @@ const StaffPerformanceTab = () => {
                   </td>
                   <td className="px-6 py-4 text-center">
                     <div className="inline-block text-left">
-                       <p className="text-[0.75rem] font-black text-[#1a0f2e]">{fmt(s.revenue)}</p>
-                       <p className="text-[9px] font-bold text-zinc-400 uppercase">{s.transactions} orders</p>
+                      <p className="text-[0.75rem] font-black text-[#1a0f2e]">{fmt(s.revenue)}</p>
+                      <p className="text-[9px] font-bold text-zinc-400 uppercase">{s.transactions} orders</p>
                     </div>
                   </td>
                   <td className="px-6 py-4 text-center">
@@ -288,9 +287,8 @@ const StaffPerformanceTab = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-center">
-                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border ${
-                      s.void_rate > 5 ? 'bg-red-50 border-red-100 text-red-600' : 'bg-emerald-50 border-emerald-100 text-emerald-600'
-                    }`}>
+                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border ${s.void_rate > 5 ? 'bg-red-50 border-red-100 text-red-600' : 'bg-emerald-50 border-emerald-100 text-emerald-600'
+                      }`}>
                       <div className="text-left">
                         <p className="text-[0.75rem] font-black truncate">{s.void_rate}%</p>
                         <p className="text-[8px] font-black uppercase tracking-tighter opacity-70">Void Rate</p>
@@ -299,7 +297,7 @@ const StaffPerformanceTab = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    <button 
+                    <button
                       onClick={() => setSelectedStaff(s)}
                       className="inline-flex items-center gap-2 px-4 py-2 text-[0.7rem] font-black text-[#3b2063] bg-white border border-zinc-200 hover:bg-[#3b2063] hover:text-white rounded-xl transition-all active:scale-95 shadow-sm"
                     >
@@ -372,11 +370,10 @@ const StaffPerformanceTab = () => {
               </div>
 
               {/* Enhanced Integrity Meter */}
-              <div className={`p-5 rounded-xl border ${
-                selectedStaff.void_rate > 5 
-                  ? 'bg-rose-50 border-rose-100 text-rose-700' 
+              <div className={`p-5 rounded-xl border ${selectedStaff.void_rate > 5
+                  ? 'bg-rose-50 border-rose-100 text-rose-700'
                   : 'bg-[#f5f0ff]/50 border-[#ede8ff] text-[#3b2063]'
-              }`}>
+                }`}>
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <div className={`w-6 h-6 rounded-md flex items-center justify-center ${selectedStaff.void_rate > 5 ? 'bg-rose-200 text-rose-700' : 'bg-white text-[#3b2063] shadow-sm'}`}>
@@ -388,23 +385,23 @@ const StaffPerformanceTab = () => {
                   </div>
                   <span className="text-[10px] font-black tabular-nums">{100 - selectedStaff.void_rate}% Score</span>
                 </div>
-                
+
                 {/* Progress Bar */}
                 <div className="h-1.5 w-full bg-zinc-200/50 rounded-full overflow-hidden mb-3">
-                  <div 
-                    className={`h-full rounded-full transition-all duration-1000 ${selectedStaff.void_rate > 5 ? 'bg-rose-500' : 'bg-[#3b2063]'}`} 
+                  <div
+                    className={`h-full rounded-full transition-all duration-1000 ${selectedStaff.void_rate > 5 ? 'bg-rose-500' : 'bg-[#3b2063]'}`}
                     style={{ width: `${100 - (selectedStaff.void_rate / 15) * 100}%` }}
                   />
                 </div>
 
                 <p className="text-[10px] leading-relaxed font-semibold opacity-80">
-                  {selectedStaff.void_rate > 5 
-                    ? `Warning: Void rate is exceptionally high at ${selectedStaff.void_rate}%. Immediate investigation is required.` 
+                  {selectedStaff.void_rate > 5
+                    ? `Warning: Void rate is exceptionally high at ${selectedStaff.void_rate}%. Immediate investigation is required.`
                     : `Staff exhibits high operational integrity with a void rate of just ${selectedStaff.void_rate}%.`}
                 </p>
               </div>
 
-              <button 
+              <button
                 onClick={() => setSelectedStaff(null)}
                 className="w-full py-3.5 bg-white border border-zinc-200 text-zinc-600 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-zinc-50 hover:text-[#1a0f2e] transition-all active:scale-[0.98] shadow-sm"
               >

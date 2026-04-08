@@ -202,6 +202,65 @@ const handlePage = (p: number) => {
   // Derived modules list from stats
   const moduleOptions = stats?.modules ?? [];
 
+  const [exporting, setExporting] = useState(false);
+
+  // CSV export: fetch all matching logs (unpaginated) and trigger download
+  const exportCSV = useCallback(async () => {
+    setExporting(true);
+    try {
+      const params = new URLSearchParams();
+      if (search)              params.set("search",    search);
+      if (module !== "all")    params.set("module",    module);
+      if (branchFilter !== "all") params.set("branch_id", branchFilter);
+
+      const res  = await fetch(`/api/audit-logs/export?${params}`, { headers: authHeaders() });
+      const data = await res.json();
+      if (!data.success) throw new Error("Export failed");
+
+      const rows: AuditLog[] = data.data ?? [];
+      if (rows.length === 0) {
+        setExporting(false);
+        return;
+      }
+
+      // Build CSV content
+      const escape = (val: string) => {
+        if (val.includes(",") || val.includes('"') || val.includes("\n")) {
+          return `"${val.replace(/"/g, '""')}"`;
+        }
+        return val;
+      };
+
+      const headers = ["ID", "User", "Action", "Details", "Module", "IP Address", "Date", "Time"];
+      const csvRows = rows.map(log => [
+        String(log.id),
+        log.user?.name ?? `User #${log.user_id}`,
+        log.action,
+        log.details ?? "",
+        log.module,
+        log.ip_address ?? "",
+        new Date(log.created_at).toLocaleDateString("en-PH", { month: "2-digit", day: "2-digit", year: "numeric" }),
+        new Date(log.created_at).toLocaleTimeString("en-PH", { hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true }),
+      ].map(v => escape(v)).join(","));
+
+      const csv = [headers.join(","), ...csvRows].join("\n");
+      const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+      const url  = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href     = url;
+      link.download = `audit-logs-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch {
+      setError("Failed to export audit logs.");
+    } finally {
+      setExporting(false);
+    }
+  }, [search, module, branchFilter]);
+
   return (
     <div className="p-6 md:p-8 fade-in">
       {/* Header */}
@@ -214,7 +273,12 @@ const handlePage = (p: number) => {
           <Btn variant="secondary" onClick={() => fetchLogs(page, search, module, branchFilter)} disabled={loading}>
             <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
           </Btn>
-          <Btn variant="secondary"><Download size={13} /> Export</Btn>
+          <Btn variant="secondary" onClick={exportCSV} disabled={exporting || loading}>
+            {exporting
+              ? <><div className="w-3 h-3 border-2 border-zinc-300 border-t-zinc-600 rounded-full animate-spin" /> Exporting…</>
+              : <><Download size={13} /> Export</>
+            }
+          </Btn>
         </div>
       </div>
 
