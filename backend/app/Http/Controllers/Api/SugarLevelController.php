@@ -6,8 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\SugarLevel;
 use Illuminate\Http\Request;
 
+use App\Traits\MenuCache;
+
 class SugarLevelController extends Controller
 {
+    use MenuCache;
+
     // ── PUBLIC — POS fetches active levels only ───────────────────────────────
     public function index()
     {
@@ -47,6 +51,8 @@ class SugarLevelController extends Controller
             'is_active'  => $request->boolean('is_active', true),
         ]);
 
+        $this->clearMenuCache();
+
         return response()->json([
             'success' => true,
             'data'    => $level,
@@ -74,6 +80,8 @@ class SugarLevelController extends Controller
 
         $level->update($request->only(['label', 'value', 'sort_order', 'is_active']));
 
+        $this->clearMenuCache();
+
         return response()->json([
             'success' => true,
             'data'    => $level->fresh(),
@@ -94,6 +102,8 @@ class SugarLevelController extends Controller
 
         $level->delete();
 
+        $this->clearMenuCache();
+
         return response()->json([
             'success' => true,
             'message' => 'Sugar level deleted.',
@@ -113,6 +123,8 @@ class SugarLevelController extends Controller
                 'sort_order' => $position + 1,
             ]);
         }
+
+        $this->clearMenuCache();
 
         return response()->json([
             'success' => true,

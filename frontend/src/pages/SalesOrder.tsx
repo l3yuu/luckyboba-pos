@@ -119,13 +119,13 @@ const SalesOrder = () => {
   const [checkingCashIn, setCheckingCashIn] = useState(true)
 
   // Menu / category
-  const [categories] = useState<Category[]>(() => {
+  const [categories, setCategories] = useState<Category[]>(() => {
     const cached = localStorage.getItem('pos_menu_cache')
     return cached ? JSON.parse(cached) : []
   })
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const [categorySize, setCategorySize] = useState<string | null>(null)
-  const [loading] = useState(!localStorage.getItem('pos_menu_cache'))
+  const [isMenuLoading, setIsMenuLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
   // Item selection modal
@@ -447,6 +447,21 @@ const SalesOrder = () => {
     }
   }
 
+  const fetchMenu = async () => {
+    setIsMenuLoading(true)
+    try {
+      const { data } = await api.get('/menu')
+      if (Array.isArray(data)) {
+        setCategories(data)
+        localStorage.setItem('pos_menu_cache', JSON.stringify(data))
+      }
+    } catch {
+      showToast('Failed to sync menu structure', 'error')
+    } finally {
+      setIsMenuLoading(false)
+    }
+  }
+
   // ── Effects ─────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -462,6 +477,7 @@ const SalesOrder = () => {
     }
     boot()
     syncNextSequence()
+    fetchMenu()
 
     if (branchId) {
       api.get(`/branches/${branchId}`).then(({ data }) => {
@@ -1341,7 +1357,7 @@ const SalesOrder = () => {
 
   // ── Loading screen ─────────────────────────────────────────────────────────
 
-  if (checkingCashIn || loading)
+  if (checkingCashIn || isMenuLoading)
     return (
       <div className="h-screen flex items-center justify-center font-black text-[#3b2063] bg-[#f4f2fb]">
         <div className="text-center">
@@ -1636,6 +1652,8 @@ const SalesOrder = () => {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onHomeClick={() => handleNavClick('Home')}
+          onRefresh={fetchMenu}
+          isRefreshing={isMenuLoading}
         />
 
         <OfflineQueueBanner

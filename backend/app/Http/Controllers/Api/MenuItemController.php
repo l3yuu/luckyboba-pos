@@ -10,10 +10,13 @@ use Illuminate\Support\Facades\Storage;
 use App\Exports\MenuItemTemplateExport;
 use App\Exports\MenuItemExport;
 use App\Imports\MenuItemImport;
+use App\Traits\MenuCache;
 use Maatwebsite\Excel\Facades\Excel;
 
 class MenuItemController extends Controller
 {
+    use MenuCache;
+
     private function selectFields(): array
     {
         return [
@@ -95,6 +98,8 @@ class MenuItemController extends Controller
             ->select($this->selectFields())
             ->first();
 
+        $this->clearMenuCache();
+
         return response()->json(['success' => true, 'data' => $item], 201);
     }
 
@@ -148,6 +153,8 @@ class MenuItemController extends Controller
             ->select($this->selectFields())
             ->first();
 
+        $this->clearMenuCache();
+
         return response()->json(['success' => true, 'data' => $item]);
     }
 
@@ -160,6 +167,7 @@ class MenuItemController extends Controller
         }
 
         DB::table('menu_items')->where('id', $id)->delete();
+        $this->clearMenuCache();
         return response()->json(['success' => true, 'message' => 'Item deleted.']);
     }
 
@@ -182,6 +190,7 @@ class MenuItemController extends Controller
 
         try {
             Excel::import(new MenuItemImport($request->branch_id), $request->file('file'));
+            $this->clearMenuCache();
             return response()->json(['success' => true, 'message' => 'Items imported/updated successfully.']);
         } catch (\Exception $e) {
             \Log::error('Import Error: ' . $e->getMessage());
