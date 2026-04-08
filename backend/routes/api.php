@@ -414,7 +414,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::put   ('/{id}',                [UserController::class, 'update']);
             Route::delete('/{id}',                [UserController::class, 'destroy']);
             Route::patch ('/{id}/toggle-status',  [UserController::class, 'toggleStatus']);
-            Route::patch ('/{id}/pin',            [UserController::class, 'updatePin']);
+            Route::patch ('/{id}/pin',            [UserController::class, 'updatePin'])->middleware('throttle:5,1');
         });
 
         Route::prefix('branches')->group(function () {

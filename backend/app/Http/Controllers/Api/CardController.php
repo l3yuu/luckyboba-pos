@@ -146,7 +146,34 @@ class CardController extends Controller
         $request->validate([
             'card_id'    => 'required|integer',
             'promo_type' => 'required|string',
+            'manager_pin' => 'required|string',
         ]);
+
+        // 🛡️ SECURITY: Verify Manager PIN before allowing perk claim
+        // We only allow managers/admins from the SAME branch to authorize.
+        $authUser = auth()->user();
+        $admins = \App\Models\User::whereIn('role', ['superadmin', 'system_admin', 'branch_manager', 'team_leader', 'it_admin'])
+            ->where('status', 'ACTIVE')
+            ->whereNotNull('manager_pin')
+            ->when($authUser->role !== 'superadmin', function($q) use ($authUser) {
+                return $q->where('branch_id', $authUser->branch_id);
+            })
+            ->get();
+
+        $authorizedBy = null;
+        foreach ($admins as $admin) {
+            if (\Hash::check($request->manager_pin, $admin->manager_pin)) {
+                $authorizedBy = $admin->name;
+                break;
+            }
+        }
+
+        if (!$authorizedBy) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid Manager PIN.',
+            ], 401);
+        }
 
         $alreadyClaimed = DB::table('card_usage_logs')
             ->where('user_id', $userId)
