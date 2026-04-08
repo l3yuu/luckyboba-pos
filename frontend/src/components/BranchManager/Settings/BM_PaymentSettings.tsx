@@ -39,7 +39,7 @@ const BM_PaymentSettings: React.FC<BM_PaymentSettingsProps> = ({ onBack }) => {
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
-  const [settings, setSettings] = useState<Partial<BranchPaymentSettings>>({
+  const [settings, setSettings] = useState<Partial<BranchPaymentSettings & { gcash_qr_file?: File; maya_qr_file?: File }>>({
     gcash_name: '',
     gcash_number: '',
     gcash_qr: null,
@@ -57,7 +57,7 @@ const BM_PaymentSettings: React.FC<BM_PaymentSettingsProps> = ({ onBack }) => {
   const mayaFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    fetchSettings();
+    void fetchSettings();
   }, []);
 
   const fetchSettings = async () => {
@@ -105,8 +105,8 @@ const BM_PaymentSettings: React.FC<BM_PaymentSettingsProps> = ({ onBack }) => {
       formData.append('maya_name', settings.maya_name || '');
       formData.append('maya_number', settings.maya_number || '');
 
-      const gcashFile = (settings as any).gcash_qr_file;
-      const mayaFile = (settings as any).maya_qr_file;
+      const gcashFile = settings.gcash_qr_file;
+      const mayaFile = settings.maya_qr_file;
 
       if (gcashFile) formData.append('gcash_qr', gcashFile);
       if (mayaFile) formData.append('maya_qr', mayaFile);
