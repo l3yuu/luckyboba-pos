@@ -286,7 +286,7 @@ const SubCategoriesTab: React.FC = () => {
       });
       if (res.ok) {
         setSubs(p => p.map(s => s.id === sub.id ? { ...s, is_active: !s.is_active } : s));
-        try { new BroadcastChannel('pos-updates').postMessage('menu-updated'); } catch {}
+        try { new BroadcastChannel('pos-updates').postMessage('menu-updated'); } catch { /* ignore */ }
       }
     } catch { /* silent */ }
   };
