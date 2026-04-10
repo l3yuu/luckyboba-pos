@@ -883,7 +883,8 @@ const ZReading = () => {
         <Row label="PWD Disc." value={phCurrency.format(pwdDiscount)} />
         <Row label="NAAC Disc." value={phCurrency.format(0)} />
         <Row label="Solo Parent Disc." value={phCurrency.format(0)} />
-        <Row label="Other Disc." value={phCurrency.format(diplomat)} />
+        <Row label="Diplomat Disc." value={phCurrency.format(diplomat)} />
+        <Row label="Other Disc." value={phCurrency.format(otherDiscount)} />
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">SALES ADJUSTMENT</p>
         <Row label={`Canceled (${voids > 0 ? reportData?.logs?.length ?? 0 : 0})`} value={phCurrency.format(voids)} />

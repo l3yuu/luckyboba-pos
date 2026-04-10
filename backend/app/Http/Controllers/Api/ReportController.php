@@ -717,29 +717,13 @@ class ReportController extends Controller
             }
 
             // ── Discounts ─────────────────────────────────────────────────────
-            $scDiscount = (float) DB::table('sales')
-                ->whereBetween('created_at', [$from, $to])
-                ->where('status', 'completed')
-                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-                ->sum('sc_discount_amount');
+            $salesService = app(\App\Services\SalesDashboardService::class);
+            $discounts = $salesService->getDiscountSummary($from, $to, $branchId);
 
-            $pwdDiscount = (float) DB::table('sales')
-                ->whereBetween('created_at', [$from, $to])
-                ->where('status', 'completed')
-                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-                ->sum('pwd_discount_amount');
-
-            $diplomatDiscount = (float) DB::table('sales')
-                ->whereBetween('created_at', [$from, $to])
-                ->where('status', 'completed')
-                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-                ->sum('diplomat_discount_amount');
-
-            $otherDiscount = (float) DB::table('sales')
-                ->whereBetween('created_at', [$from, $to])
-                ->where('status', 'completed')
-                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-                ->sum('other_discount_amount');
+            $scDiscount       = $discounts['sc_discount']['total'] ?? 0;
+            $pwdDiscount      = $discounts['pwd_discount']['total'] ?? 0;
+            $diplomatDiscount = $discounts['diplomat_discount']['total'] ?? 0;
+            $otherDiscount    = $discounts['other_discount']['total'] ?? 0;
 
             $scPwdDiscount  = $scDiscount + $pwdDiscount;
             $totalDiscounts = $scPwdDiscount + $diplomatDiscount + $otherDiscount;
