@@ -15,8 +15,17 @@ class StockTransferController extends Controller
     // GET /api/stock-transfers
     public function index()
     {
-        $transfers = StockTransfer::with(['fromBranch', 'toBranch', 'items.rawMaterial'])
-            ->latest()
+        $user  = auth()->user();
+        $query = StockTransfer::with(['fromBranch', 'toBranch', 'items.rawMaterial']);
+
+        if ($user->role !== 'superadmin') {
+            $query->where(function ($q) use ($user) {
+                $q->where('from_branch_id', $user->branch_id)
+                  ->orWhere('to_branch_id', $user->branch_id);
+            });
+        }
+
+        $transfers = $query->latest()
             ->get()
             ->map(fn(StockTransfer $t) => $this->format($t));
 

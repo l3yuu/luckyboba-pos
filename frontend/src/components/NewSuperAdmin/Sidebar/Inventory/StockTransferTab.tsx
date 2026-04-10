@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Search, Plus, Eye, X, AlertCircle, RefreshCw,
   ArrowRightLeft, CheckCircle, XCircle, Truck, Clock,
-  ChevronDown, Minus, Building2, Calendar,
+  ChevronDown, ChevronUp, Minus, Building2, Calendar,
+  Package, LayoutGrid, ArrowRight, FileText
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import api from '../../../../services/api';
@@ -12,6 +13,11 @@ import api from '../../../../services/api';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type TransferStatus = 'Pending' | 'Approved' | 'In Transit' | 'Received' | 'Cancelled';
+type ColorKey   = "violet" | "emerald" | "amber" | "blue" | "red" | "zinc";
+type VariantKey = "primary" | "secondary" | "danger" | "ghost";
+type SizeKey    = "sm" | "md" | "lg";
+type SortDir    = "asc" | "desc";
+type SortKey    = "transfer_number" | "transfer_date" | "status" | "from_branch_name" | "to_branch_name";
 
 interface TransferItem {
   id?:             number;
@@ -42,19 +48,80 @@ interface StockTransfer {
 interface Branch     { id: number; name: string; }
 interface RawMaterial { id: number; name: string; unit: string; current_stock?: number; }
 
-// ─── Status config ────────────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
 
-const STATUS_CONFIG: Record<TransferStatus, { bg: string; text: string; border: string; icon: React.ReactNode }> = {
-  Pending:    { bg: '#f4f4f5', text: '#71717a', border: '#e4e4e7', icon: <Clock         size={10} /> },
-  Approved:   { bg: '#eff6ff', text: '#2563eb', border: '#bfdbfe', icon: <CheckCircle   size={10} /> },
-  'In Transit': { bg: '#fff7ed', text: '#ea580c', border: '#fed7aa', icon: <Truck       size={10} /> },
-  Received:   { bg: '#f0fdf4', text: '#16a34a', border: '#bbf7d0', icon: <CheckCircle   size={10} /> },
-  Cancelled:  { bg: '#fef2f2', text: '#dc2626', border: '#fecaca', icon: <XCircle       size={10} /> },
+const STATUS_CONFIG: Record<TransferStatus, { bg: string; text: string; border: string; icon: React.ReactNode; color: ColorKey }> = {
+  Pending:    { bg: 'bg-zinc-50',     text: 'text-zinc-600',     border: 'border-zinc-200',     icon: <Clock size={14} />,   color: "zinc"   },
+  Approved:   { bg: 'bg-blue-50',     text: 'text-blue-600',     border: 'border-blue-200',     icon: <CheckCircle size={14} />, color: "blue"   },
+  'In Transit': { bg: 'bg-amber-50',    text: 'text-amber-600',    border: 'border-amber-200',    icon: <Truck size={14} />,       color: "amber"  },
+  Received:   { bg: 'bg-emerald-50',  text: 'text-emerald-600',  border: 'border-emerald-200',  icon: <Package size={14} />,     color: "emerald" },
+  Cancelled:  { bg: 'bg-red-50',      text: 'text-red-600',      border: 'border-red-200',      icon: <XCircle size={14} />,     color: "red"     },
 };
 
 const TRANSFER_STATUSES: TransferStatus[] = ['Pending', 'Approved', 'In Transit', 'Received', 'Cancelled'];
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Shared UI ────────────────────────────────────────────────────────────────
+
+const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: string | number; sub?: string; color?: ColorKey }> = ({ icon, label, value, sub, color = "violet" }) => {
+  const colors: Record<ColorKey, { bg: string; border: string; icon: string }> = {
+    violet:  { bg: "bg-violet-50",  border: "border-violet-200",  icon: "text-violet-600"  },
+    emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
+    red:     { bg: "bg-red-50",     border: "border-red-200",     icon: "text-red-500"     },
+    amber:   { bg: "bg-amber-50",   border: "border-amber-200",   icon: "text-amber-600"   },
+    blue:    { bg: "bg-blue-50",    border: "border-blue-200",    icon: "text-blue-600"    },
+    zinc:    { bg: "bg-zinc-50",    border: "border-zinc-200",    icon: "text-zinc-600"    },
+  };
+  const c = colors[color];
+  return (
+    <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 flex items-center justify-between shadow-sm transition-all hover:shadow-md">
+      <div className="flex items-center gap-3">
+        <div className={`w-9 h-9 ${c.bg} border ${c.border} flex items-center justify-center rounded-lg`}>
+          <span className={c.icon}>{icon}</span>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">{label}</p>
+          <p className="text-lg font-black text-[#1a0f2e] tabular-nums">{value}</p>
+          {sub && <p className="text-[10px] text-zinc-400 mt-0.5">{sub}</p>}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const Btn: React.FC<{ children: React.ReactNode; variant?: VariantKey; size?: SizeKey; onClick?: () => void; className?: string; disabled?: boolean }> = ({
+  children, variant = "primary", size = "sm", onClick, className = "", disabled = false,
+}) => {
+  const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
+  const variants: Record<VariantKey, string> = {
+    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white shadow-sm",
+    secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50 shadow-sm",
+    danger:    "bg-red-600 hover:bg-red-700 text-white shadow-sm",
+    ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
+  };
+  return (
+    <button onClick={onClick} disabled={disabled}
+      className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 ${sizes[size]} ${variants[variant]} ${className}`}>
+      {children}
+    </button>
+  );
+};
+
+const SortIcon: React.FC<{ col: SortKey; active: SortKey; dir: SortDir }> = ({ col, active, dir }) => {
+  if (col !== active) return <ChevronDown size={11} className="text-zinc-300 ml-0.5" />;
+  return dir === "asc" ? <ChevronUp size={11} className="text-[#3b2063] ml-0.5" /> : <ChevronDown size={11} className="text-[#3b2063] ml-0.5" />;
+};
+
+const StatusBadge: React.FC<{ status: TransferStatus }> = ({ status }) => {
+  const c = STATUS_CONFIG[status] ?? STATUS_CONFIG.Pending;
+  return (
+    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${c.bg} ${c.text} ${c.border}`}>
+      {c.icon}{status}
+    </span>
+  );
+};
+
+const inputCls = (err?: string) =>
+  `w-full text-sm font-medium text-zinc-700 bg-zinc-50 border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all ${err ? 'border-red-300 bg-red-50' : 'border-zinc-200'}`;
 
 const resolveItems = (t: StockTransfer): TransferItem[] =>
   (t.items ?? t.stock_transfer_items ?? []).map(i => ({
@@ -62,31 +129,6 @@ const resolveItems = (t: StockTransfer): TransferItem[] =>
     material_name: i.raw_material?.name ?? i.material_name ?? '',
     unit:          i.raw_material?.unit ?? i.unit ?? '',
   }));
-
-// ─── Shared UI ────────────────────────────────────────────────────────────────
-
-const inputCls = (err?: string) =>
-  `w-full text-sm font-medium text-zinc-700 bg-zinc-50 border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all ${err ? 'border-red-300 bg-red-50' : 'border-zinc-200'}`;
-
-const Field: React.FC<{ label: string; required?: boolean; error?: string; children: React.ReactNode }> = ({ label, required, error, children }) => (
-  <div>
-    <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5 block">
-      {label}{required && <span className="text-red-400 ml-0.5">*</span>}
-    </label>
-    {children}
-    {error && <p className="text-[10px] text-red-500 mt-1 font-medium">{error}</p>}
-  </div>
-);
-
-const StatusBadge: React.FC<{ status: TransferStatus }> = ({ status }) => {
-  const c = STATUS_CONFIG[status];
-  return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border"
-      style={{ background: c.bg, color: c.text, borderColor: c.border }}>
-      {c.icon}{status}
-    </span>
-  );
-};
 
 // ─── Create Transfer Modal ────────────────────────────────────────────────────
 
@@ -97,7 +139,7 @@ const CreateTransferModal: React.FC<{
 }> = ({ onClose, onCreated, branches }) => {
   const [fromBranchId,   setFromBranchId]   = useState<number | ''>('');
   const [toBranchId,     setToBranchId]     = useState<number | ''>('');
-  const [transferDate,   setTransferDate]   = useState('');
+  const [transferDate,   setTransferDate]   = useState(new Date().toISOString().split('T')[0]);
   const [notes,          setNotes]          = useState('');
   const [transferItems,  setTransferItems]  = useState<TransferItem[]>([]);
   const [rawMaterials,   setRawMaterials]   = useState<RawMaterial[]>([]);
@@ -106,12 +148,10 @@ const CreateTransferModal: React.FC<{
   const [apiErr,         setApiErr]         = useState('');
 
   useEffect(() => {
-    api.get('/raw-materials')
-      .then(r => setRawMaterials(Array.isArray(r.data) ? r.data : r.data?.data ?? []))
-      .catch(console.error);
+    api.get('/raw-materials').then(r => setRawMaterials(Array.isArray(r.data) ? r.data : r.data?.data ?? [])).catch(console.error);
   }, []);
 
-  const addRow = () => setTransferItems(p => [...p, { raw_material_id: 0, material_name: '', unit: '', quantity: '' }]);
+  const addRow    = () => setTransferItems(p => [...p, { raw_material_id: 0, material_name: '', unit: '', quantity: '' }]);
   const removeRow = (idx: number) => setTransferItems(p => p.filter((_, i) => i !== idx));
 
   const updateRow = (idx: number, field: keyof TransferItem, value: unknown) => {
@@ -123,18 +163,19 @@ const CreateTransferModal: React.FC<{
       }
       return { ...row, [field]: value };
     }));
+    setErrors(p => { const n = {...p}; delete n[`mat_${idx}`]; delete n[`qty_${idx}`]; delete n.items; return n; });
   };
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!fromBranchId)               e.from    = 'Source branch is required.';
-    if (!toBranchId)                 e.to      = 'Destination branch is required.';
-    if (fromBranchId === toBranchId && fromBranchId) e.to = 'Source and destination must differ.';
-    if (!transferDate)               e.date    = 'Transfer date is required.';
+    if (!fromBranchId)               e.from    = 'Source required.';
+    if (!toBranchId)                 e.to      = 'Destination required.';
+    if (fromBranchId === toBranchId && fromBranchId) e.to = 'Branches must differ.';
+    if (!transferDate)               e.date    = 'Date required.';
     if (transferItems.length === 0)  e.items   = 'Add at least one item.';
     transferItems.forEach((item, i) => {
       if (!item.raw_material_id)                           e[`mat_${i}`] = 'Select material.';
-      if (item.quantity === '' || Number(item.quantity) <= 0) e[`qty_${i}`] = 'Enter qty.';
+      if (item.quantity === '' || Number(item.quantity) <= 0) e[`qty_${i}`] = 'Enter quantity.';
     });
     return e;
   };
@@ -158,126 +199,127 @@ const CreateTransferModal: React.FC<{
     } finally { setSaving(false); }
   };
 
-  const fromBranch = branches.find(b => b.id === Number(fromBranchId));
-  const toBranch   = branches.find(b => b.id === Number(toBranchId));
 
   return createPortal(
-    <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
-      style={{ backdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.45)' }}>
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-zinc-900/40 backdrop-blur-sm transition-all animate-in fade-in duration-200">
       <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative bg-white w-full max-w-2xl border border-zinc-200 rounded-[1.25rem] shadow-2xl flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 shrink-0">
+      <div className="relative bg-white w-full max-w-2xl border border-zinc-200 rounded-[1.25rem] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200">
+        
+        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 bg-zinc-50/50 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center">
-              <ArrowRightLeft size={15} className="text-[#3b2063]" />
+            <div className="w-10 h-10 bg-violet-50 border border-violet-100 rounded-lg flex items-center justify-center">
+              <ArrowRightLeft size={18} className="text-violet-600" />
             </div>
             <div>
-              <p className="text-sm font-bold text-[#1a0f2e]">Create Stock Transfer</p>
-              <p className="text-[10px] text-zinc-400">Transfer materials between branches</p>
+              <p className="text-sm font-black text-[#1a0f2e]">Create Stock Transfer</p>
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Inter-branch material movement</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-400"><X size={16} /></button>
+          <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-lg text-zinc-400 transition-colors"><X size={18} /></button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-4">
-          {apiErr && <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg"><AlertCircle size={13} className="text-red-500 shrink-0" /><p className="text-xs text-red-600 font-medium">{apiErr}</p></div>}
-
-          {/* Branch selector with arrow visual */}
-          <div className="flex items-center gap-2">
-            <div className="flex-1">
-              <Field label="From Branch" required error={errors.from}>
-                <select value={fromBranchId} onChange={e => { setFromBranchId(Number(e.target.value)); setErrors(p => { const n = {...p}; delete n.from; return n; }); }} className={inputCls(errors.from)}>
-                  <option value="">Select source...</option>
-                  {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                </select>
-              </Field>
-            </div>
-            <div className="pt-5 shrink-0">
-              <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-full flex items-center justify-center">
-                <ArrowRightLeft size={14} className="text-[#3b2063]" />
-              </div>
-            </div>
-            <div className="flex-1">
-              <Field label="To Branch" required error={errors.to}>
-                <select value={toBranchId} onChange={e => { setToBranchId(Number(e.target.value)); setErrors(p => { const n = {...p}; delete n.to; return n; }); }} className={inputCls(errors.to)}>
-                  <option value="">Select destination...</option>
-                  {branches.filter(b => b.id !== Number(fromBranchId)).map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                </select>
-              </Field>
-            </div>
-          </div>
-
-          {/* Visual branch preview */}
-          {(fromBranch || toBranch) && (
-            <div className="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl">
-              <div className="flex-1 text-center">
-                <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 mb-0.5">Source</p>
-                <p className="text-xs font-bold text-zinc-700">{fromBranch?.name ?? '—'}</p>
-              </div>
-              <ArrowRightLeft size={16} className="text-[#3b2063] shrink-0" />
-              <div className="flex-1 text-center">
-                <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 mb-0.5">Destination</p>
-                <p className="text-xs font-bold text-zinc-700">{toBranch?.name ?? '—'}</p>
-              </div>
+        <div className="flex-1 overflow-y-auto px-6 py-6 flex flex-col gap-6">
+          {apiErr && (
+            <div className="flex items-center gap-2.5 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <AlertCircle size={15} className="text-red-500 shrink-0" />
+              <p className="text-xs text-red-600 font-bold">{apiErr}</p>
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Transfer Date" required error={errors.date}>
-              <input type="date" value={transferDate} onChange={e => { setTransferDate(e.target.value); setErrors(p => { const n = {...p}; delete n.date; return n; }); }} className={inputCls(errors.date)} />
-            </Field>
-            <Field label="Notes">
-              <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Reason or instructions..." className={inputCls()} />
-            </Field>
+          {/* Branch Selectors */}
+          <div className="grid grid-cols-[1fr_40px_1fr] items-center gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 px-0.5">Source Branch</label>
+              <select value={fromBranchId} onChange={e => setFromBranchId(Number(e.target.value))} className={inputCls(errors.from)}>
+                <option value="">Select branch...</option>
+                {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+              {errors.from && <p className="text-[10px] text-red-500 italic mt-1">{errors.from}</p>}
+            </div>
+            <div className="pt-5 flex justify-center">
+               <ArrowRight size={18} className="text-zinc-300" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 px-0.5">Destination</label>
+              <select value={toBranchId} onChange={e => setToBranchId(Number(e.target.value))} className={inputCls(errors.to)}>
+                <option value="">Select destination...</option>
+                {branches.filter(b => b.id !== Number(fromBranchId)).map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </select>
+              {errors.to && <p className="text-[10px] text-red-500 italic mt-1">{errors.to}</p>}
+            </div>
           </div>
 
-          {/* Items */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Items <span className="text-red-400">*</span></label>
-              <button onClick={addRow} className="flex items-center gap-1 px-2.5 py-1 bg-[#f5f0ff] border border-[#e9d5ff] text-[#3b2063] rounded-lg text-[10px] font-bold hover:bg-[#ede8ff] transition-colors">
-                <Plus size={11} /> Add Row
-              </button>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 px-0.5">Transfer Date</label>
+              <input type="date" value={transferDate} onChange={e => setTransferDate(e.target.value)} className={inputCls(errors.date)} />
+              {errors.date && <p className="text-[10px] text-red-500 italic mt-1">{errors.date}</p>}
             </div>
-            {errors.items && <p className="text-[10px] text-red-500 mb-2 font-medium">{errors.items}</p>}
-            <div className="border border-zinc-200 rounded-xl overflow-hidden">
-              <div className="grid grid-cols-[1fr_120px_32px] bg-zinc-50 border-b border-zinc-200 px-3 py-2">
-                {['Material', 'Quantity', ''].map(h => <p key={h} className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{h}</p>)}
-              </div>
-              {transferItems.length === 0 ? (
-                <p className="text-xs text-zinc-400 text-center py-5">No items — click Add Row</p>
-              ) : transferItems.map((item, idx) => (
-                <div key={idx} className="grid grid-cols-[1fr_120px_32px] items-center px-3 py-2 border-b border-zinc-100 last:border-0">
-                  <div className="pr-2">
-                    <select value={item.raw_material_id || ''} onChange={e => updateRow(idx, 'raw_material_id', e.target.value)}
-                      className={`w-full text-xs font-medium bg-white border rounded-lg px-2 py-1.5 outline-none focus:ring-1 focus:ring-violet-400 ${errors[`mat_${idx}`] ? 'border-red-300' : 'border-zinc-200'}`}>
-                      <option value="">Select material...</option>
-                      {rawMaterials.map(m => (
-                        <option key={m.id} value={m.id}>{m.name} {m.current_stock != null ? `(${m.current_stock} in stock)` : ''}</option>
-                      ))}
-                    </select>
-                    {errors[`mat_${idx}`] && <p className="text-[9px] text-red-500 mt-0.5">{errors[`mat_${idx}`]}</p>}
-                  </div>
-                  <div className="px-1">
-                    <div className="flex items-center gap-1">
-                      <input type="number" min="0" value={item.quantity} onChange={e => updateRow(idx, 'quantity', e.target.value === '' ? '' : Number(e.target.value))}
-                        className={`flex-1 text-xs font-medium bg-white border rounded-lg px-2 py-1.5 outline-none focus:ring-1 focus:ring-violet-400 text-right ${errors[`qty_${idx}`] ? 'border-red-300' : 'border-zinc-200'}`} placeholder="0" />
-                      {item.unit && <span className="text-[9px] font-bold text-zinc-400 bg-zinc-100 px-1.5 py-1 rounded shrink-0">{item.unit}</span>}
-                    </div>
-                    {errors[`qty_${idx}`] && <p className="text-[9px] text-red-500 mt-0.5">{errors[`qty_${idx}`]}</p>}
-                  </div>
-                  <button onClick={() => removeRow(idx)} className="w-7 h-7 flex items-center justify-center text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                    <Minus size={12} />
-                  </button>
-                </div>
-              ))}
+            <div className="space-y-1.5">
+              <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 px-0.5">Notes</label>
+              <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Reason or instructions..." className={inputCls()} />
             </div>
+          </div>
+
+          <div className="space-y-3">
+             <div className="flex items-center justify-between px-0.5">
+               <p className="text-[11px] font-black uppercase tracking-widest text-zinc-500">Materials List</p>
+               <Btn variant="secondary" onClick={addRow} className="py-1.5 h-8">
+                 <Plus size={14} /> Add Material
+               </Btn>
+             </div>
+             {errors.items && <p className="text-xs text-red-500 font-bold italic">{errors.items}</p>}
+             
+             <div className="border border-zinc-200 rounded-xl overflow-hidden shadow-sm">
+                <table className="w-full text-sm">
+                  <thead className="bg-zinc-50 border-b border-zinc-200">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-[9px] font-black uppercase tracking-widest text-zinc-400">Raw Material</th>
+                      <th className="px-4 py-2 text-right text-[9px] font-black uppercase tracking-widest text-zinc-400 w-32">Quantity</th>
+                      <th className="px-4 py-2 w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100">
+                    {transferItems.length === 0 ? (
+                      <tr><td colSpan={3} className="py-10 text-center text-zinc-300 font-bold italic text-xs uppercase tracking-tighter">No materials added yet</td></tr>
+                    ) : transferItems.map((item, idx) => (
+                      <tr key={idx} className="group hover:bg-zinc-50/50">
+                        <td className="px-4 py-3">
+                           <select value={item.raw_material_id || ''} onChange={e => updateRow(idx, 'raw_material_id', e.target.value)}
+                             className={`w-full text-xs font-bold bg-white border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-violet-400 transition-all ${errors[`mat_${idx}`] ? 'border-red-300 bg-red-50' : 'border-zinc-200'}`}>
+                             <option value="">Choose item...</option>
+                             {rawMaterials.map(m => (
+                               <option key={m.id} value={m.id}>{m.name} {m.current_stock != null ? `(${m.current_stock} available)` : ''}</option>
+                             ))}
+                           </select>
+                           {errors[`mat_${idx}`] && <p className="text-[9px] text-red-500 font-bold mt-1 italic">{errors[`mat_${idx}`]}</p>}
+                        </td>
+                        <td className="px-4 py-3">
+                           <div className="flex items-center gap-2">
+                             <input type="number" min="0" value={item.quantity} onChange={e => updateRow(idx, 'quantity', e.target.value === '' ? '' : Number(e.target.value))}
+                               className={`w-full text-xs font-black text-right bg-white border rounded-lg px-3 py-2 outline-none focus:ring-1 focus:ring-violet-400 tabular-nums ${errors[`qty_${idx}`] ? 'border-red-300 bg-red-50' : 'border-zinc-200'}`} placeholder="0" />
+                             {item.unit && <span className="text-[9px] font-black text-violet-600 bg-violet-50 px-2 py-1.5 rounded-lg border border-violet-100 uppercase tracking-widest shrink-0">{item.unit}</span>}
+                           </div>
+                           {errors[`qty_${idx}`] && <p className="text-[9px] text-red-500 font-bold mt-1 italic text-right">{errors[`qty_${idx}`]}</p>}
+                        </td>
+                        <td className="px-4 py-3">
+                           <button onClick={() => removeRow(idx)} className="p-1.5 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all opacity-0 group-hover:opacity-100">
+                             <Minus size={14} />
+                           </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 px-6 py-4 border-t border-zinc-100 shrink-0">
-          <button onClick={onClose} disabled={saving} className="flex-1 py-2.5 bg-white border border-zinc-200 text-zinc-600 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all disabled:opacity-50">Cancel</button>
-          <button onClick={handleSubmit} disabled={saving} className="flex-1 py-2.5 bg-[#3b2063] hover:bg-[#6a12b8] text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">{saving ? 'Creating...' : 'Create Transfer'}</button>
+        <div className="flex items-center gap-3 px-6 py-5 border-t border-zinc-100 bg-zinc-50/50 shrink-0">
+          <Btn variant="secondary" onClick={onClose} disabled={saving} className="flex-1 justify-center py-2.5">Cancel</Btn>
+          <Btn onClick={handleSubmit} disabled={saving} className="flex-1 justify-center py-2.5">
+            {saving ? <><RefreshCw size={14} className="animate-spin" /> Saving...</> : 'Initiate Transfer'}
+          </Btn>
         </div>
       </div>
     </div>,
@@ -306,74 +348,109 @@ const ViewTransferModal: React.FC<{
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
-      style={{ backdropFilter: 'blur(6px)', backgroundColor: 'rgba(0,0,0,0.45)' }}>
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-zinc-900/40 backdrop-blur-sm transition-all animate-in fade-in duration-200">
       <div className="absolute inset-0" onClick={onClose} />
-      <div className="relative bg-white w-full max-w-md border border-zinc-200 rounded-[1.25rem] shadow-2xl flex flex-col max-h-[90vh]">
-        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 shrink-0">
+      <div className="relative bg-white w-full max-w-lg border border-zinc-200 rounded-[1.25rem] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200">
+        
+        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 bg-zinc-50/50 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center">
-              <ArrowRightLeft size={15} className="text-[#3b2063]" />
+            <div className="w-10 h-10 bg-violet-50 border border-violet-100 rounded-lg flex items-center justify-center">
+              <Package size={18} className="text-violet-600" />
             </div>
             <div>
-              <p className="text-sm font-bold text-[#1a0f2e]">{transfer.transfer_number}</p>
-              <StatusBadge status={transfer.status} />
+              <p className="text-sm font-black text-[#1a0f2e]">{transfer.transfer_number}</p>
+              <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Transfer Details</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-400"><X size={16} /></button>
+          <button onClick={onClose} className="p-2 hover:bg-zinc-100 rounded-lg text-zinc-400 transition-colors"><X size={18} /></button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-4">
-          {/* Branch flow */}
-          <div className="flex items-center gap-3 p-4 bg-zinc-50 border border-zinc-200 rounded-xl">
-            <div className="flex-1 text-center">
-              <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 mb-1">From</p>
-              <div className="flex items-center justify-center gap-1.5">
-                <Building2 size={12} className="text-zinc-400 shrink-0" />
-                <p className="text-xs font-bold text-zinc-700">{transfer.from_branch?.name ?? transfer.from_branch_name ?? '—'}</p>
-              </div>
-            </div>
-            <ArrowRightLeft size={18} className="text-[#3b2063] shrink-0" />
-            <div className="flex-1 text-center">
-              <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 mb-1">To</p>
-              <div className="flex items-center justify-center gap-1.5">
-                <Building2 size={12} className="text-zinc-400 shrink-0" />
-                <p className="text-xs font-bold text-zinc-700">{transfer.to_branch?.name ?? transfer.to_branch_name ?? '—'}</p>
-              </div>
-            </div>
+        <div className="flex-1 overflow-y-auto px-6 py-6 flex flex-col gap-6">
+          <div className="flex items-center justify-between px-2">
+             <StatusBadge status={transfer.status} />
+             <div className="flex items-center gap-2 text-[11px] font-bold text-zinc-400 uppercase tracking-widest">
+               <Calendar size={13} className="shrink-0" />
+               {transfer.transfer_date ? new Date(transfer.transfer_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric'}) : '—'}
+             </div>
           </div>
 
-          {transfer.transfer_date && (
-            <div className="flex items-center gap-2 text-xs text-zinc-500">
-              <Calendar size={13} className="text-zinc-400 shrink-0" />
-              Transfer date: <span className="font-bold text-zinc-700">{new Date(transfer.transfer_date).toLocaleDateString()}</span>
+          {/* Timeline Visual */}
+          <div className="relative flex items-center justify-between gap-4 p-5 bg-zinc-50 border border-zinc-200 rounded-2xl overflow-hidden mt-2">
+             <div className="absolute top-0 left-0 bottom-0 w-1.5 bg-[#3b2063]" />
+             <div className="flex-1 flex flex-col items-center">
+                <p className="text-[9px] font-black uppercase tracking-widest text-[#3b2063] mb-1">From Source</p>
+                <div className="flex items-center gap-2 bg-white border border-zinc-200 px-3 py-2 rounded-xl shadow-sm w-full min-h-[44px] justify-center text-center">
+                   <Building2 size={14} className="text-zinc-400 shrink-0" />
+                   <span className="text-xs font-black text-[#1a0f2e]">{transfer.from_branch?.name ?? transfer.from_branch_name ?? '—'}</span>
+                </div>
+             </div>
+             <div className="shrink-0 flex items-center justify-center pt-5">
+                <div className="w-8 h-8 flex items-center justify-center bg-violet-600 rounded-full shadow-lg text-white">
+                   <ArrowRight size={16} />
+                </div>
+             </div>
+             <div className="flex-1 flex flex-col items-center">
+                <p className="text-[9px] font-black uppercase tracking-widest text-[#3b2063] mb-1">To Destination</p>
+                <div className="flex items-center gap-2 bg-white border border-zinc-200 px-3 py-2 rounded-xl shadow-sm w-full min-h-[44px] justify-center text-center">
+                   <Building2 size={14} className="text-zinc-400 shrink-0" />
+                   <span className="text-xs font-black text-[#1a0f2e]">{transfer.to_branch?.name ?? transfer.to_branch_name ?? '—'}</span>
+                </div>
+             </div>
+          </div>
+
+          {transfer.notes && (
+            <div className="p-4 bg-amber-50/50 border border-amber-100 rounded-xl">
+               <div className="flex items-center gap-2 mb-1.5 text-amber-700">
+                  <FileText size={14} />
+                  <p className="text-[10px] font-black uppercase tracking-widest">Administrative Notes</p>
+               </div>
+               <p className="text-xs font-bold text-amber-900 leading-relaxed italic">"{transfer.notes}"</p>
             </div>
           )}
 
-          {transfer.notes && <p className="text-xs text-zinc-500 bg-zinc-50 border border-zinc-100 rounded-xl p-3">{transfer.notes}</p>}
-
-          {/* Items */}
-          <div className="border border-zinc-200 rounded-xl overflow-hidden">
-            <div className="grid grid-cols-[1fr_80px_60px] bg-zinc-50 border-b border-zinc-200 px-4 py-2">
-              {['Material', 'Quantity', 'Unit'].map(h => <p key={h} className="text-[9px] font-bold uppercase tracking-widest text-zinc-400">{h}</p>)}
-            </div>
-            {items.map((item, i) => (
-              <div key={i} className="grid grid-cols-[1fr_80px_60px] px-4 py-2.5 border-b border-zinc-100 last:border-0">
-                <p className="text-xs font-semibold text-zinc-700">{item.material_name}</p>
-                <p className="text-xs font-bold text-[#3b2063] tabular-nums">{item.quantity}</p>
-                <p className="text-xs font-bold text-zinc-400 bg-zinc-100 px-1.5 py-0.5 rounded w-fit">{item.unit}</p>
-              </div>
-            ))}
+          <div className="space-y-3">
+             <p className="text-[10px] font-black uppercase tracking-widest text-zinc-500 px-1">Inventory Payload</p>
+             <div className="border border-zinc-200 rounded-xl overflow-hidden shadow-sm bg-white">
+                <table className="w-full text-sm">
+                  <thead className="bg-zinc-50 border-b border-zinc-200 text-[9px] font-black uppercase tracking-widest text-zinc-400">
+                    <tr>
+                      <th className="px-4 py-2.5 text-left">Internal Name</th>
+                      <th className="px-4 py-2.5 text-right">Qty</th>
+                      <th className="px-4 py-2.5 text-center">Unit</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-50 whitespace-nowrap">
+                    {items.map((item, i) => (
+                      <tr key={i} className="hover:bg-zinc-50/50">
+                        <td className="px-4 py-3 font-bold text-zinc-700 text-xs">{item.material_name}</td>
+                        <td className="px-4 py-3 font-black text-[#3b2063] text-sm text-right tabular-nums">{item.quantity}</td>
+                        <td className="px-4 py-3 text-center">
+                           <span className="text-[9px] font-bold text-zinc-400 bg-zinc-100 px-2 py-0.5 rounded-full uppercase tracking-tighter">{item.unit}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+             </div>
           </div>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-2 px-6 py-4 border-t border-zinc-100 shrink-0">
-          <button onClick={onClose} className="flex-1 py-2.5 bg-white border border-zinc-200 text-zinc-600 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all">Close</button>
-          {transfer.status === 'Pending'    && <button onClick={() => doAction('approve')} disabled={loading} className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">{loading ? '...' : 'Approve'}</button>}
-          {transfer.status === 'Approved'   && <button onClick={() => doAction('receive')} disabled={loading} className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">{loading ? '...' : 'Confirm Received'}</button>}
-          {(transfer.status === 'Pending' || transfer.status === 'Approved') && (
-            <button onClick={() => doAction('cancel')} disabled={loading} className="px-4 py-2.5 bg-red-50 border border-red-200 text-red-600 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-red-100 transition-all disabled:opacity-50">{loading ? '...' : 'Cancel'}</button>
+        <div className="flex items-center gap-3 px-6 py-5 border-t border-zinc-100 bg-zinc-50/50 shrink-0">
+          <Btn variant="secondary" onClick={onClose} className="flex-1 justify-center py-2.5">Close</Btn>
+          {(transfer.status === 'Pending') && (
+            <Btn onClick={() => doAction('approve')} disabled={loading} className="flex-1 justify-center py-2.5">
+               {loading ? 'Processing...' : 'Approve Transfer'}
+            </Btn>
+          )}
+          {(transfer.status === 'Approved' || transfer.status === 'In Transit') && (
+            <Btn onClick={() => doAction('receive')} disabled={loading} className="flex-1 justify-center py-2.5 bg-emerald-600 hover:bg-emerald-700">
+               {loading ? 'Processing...' : 'Confirm Reception'}
+            </Btn>
+          )}
+          {(transfer.status === 'Pending' || transfer.status === 'Approved' || transfer.status === 'In Transit') && (
+            <Btn variant="danger" onClick={() => doAction('cancel')} disabled={loading} className="px-5 justify-center py-2.5">
+               {loading ? '...' : <XCircle size={18} />}
+            </Btn>
           )}
         </div>
       </div>
@@ -382,7 +459,7 @@ const ViewTransferModal: React.FC<{
   );
 };
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 const StockTransferTab: React.FC = () => {
   const [transfers,    setTransfers]    = useState<StockTransfer[]>([]);
@@ -390,6 +467,11 @@ const StockTransferTab: React.FC = () => {
   const [loading,      setLoading]      = useState(true);
   const [search,       setSearch]       = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [branchFromFilter, setBranchFromFilter] = useState('');
+  const [branchToFilter, setBranchToFilter] = useState('');
+  const [sortKey,      setSortKey]      = useState<SortKey>('transfer_date');
+  const [sortDir,      setSortDir]      = useState<SortDir>('desc');
+
   const [addOpen,      setAddOpen]      = useState(false);
   const [viewTarget,   setViewTarget]   = useState<StockTransfer | null>(null);
   const [expanded,     setExpanded]     = useState<number | null>(null);
@@ -406,148 +488,211 @@ const StockTransferTab: React.FC = () => {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  const filtered = transfers.filter(t => {
-    const matchSearch = t.transfer_number.toLowerCase().includes(search.toLowerCase()) ||
-      (t.from_branch?.name ?? t.from_branch_name ?? '').toLowerCase().includes(search.toLowerCase()) ||
-      (t.to_branch?.name   ?? t.to_branch_name   ?? '').toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter ? t.status === statusFilter : true;
-    return matchSearch && matchStatus;
-  });
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir('desc'); }
+  };
 
-  const counts = { Pending: 0, Approved: 0, 'In Transit': 0, Received: 0, Cancelled: 0 };
-  transfers.forEach(t => { if (counts[t.status] !== undefined) counts[t.status]++; });
+  const filtered = useMemo(() => {
+    const list = transfers.filter(t => {
+      const matchSearch = t.transfer_number.toLowerCase().includes(search.toLowerCase()) ||
+        (t.from_branch?.name ?? t.from_branch_name ?? '').toLowerCase().includes(search.toLowerCase()) ||
+        (t.to_branch?.name   ?? t.to_branch_name   ?? '').toLowerCase().includes(search.toLowerCase());
+      const matchStatus = statusFilter ? t.status === statusFilter : true;
+      const matchFrom   = branchFromFilter ? t.from_branch_id === Number(branchFromFilter) : true;
+      const matchTo     = branchToFilter   ? t.to_branch_id   === Number(branchToFilter)   : true;
+      return matchSearch && matchStatus && matchFrom && matchTo;
+    });
+
+    return [...list].sort((a, b) => {
+      let av: string | number = (a[sortKey as keyof StockTransfer] as string | number) ?? '';
+      let bv: string | number = (b[sortKey as keyof StockTransfer] as string | number) ?? '';
+      if (sortKey === 'from_branch_name') { av = a.from_branch?.name ?? a.from_branch_name ?? ''; bv = b.from_branch?.name ?? b.from_branch_name ?? ''; }
+      if (sortKey === 'to_branch_name')   { av = a.to_branch?.name   ?? a.to_branch_name   ?? ''; bv = b.to_branch?.name   ?? b.to_branch_name   ?? ''; }
+      if (typeof av === 'string' && typeof bv === 'string') return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+      return sortDir === 'asc' ? Number(av) - Number(bv) : Number(bv) - Number(av);
+    });
+  }, [transfers, search, statusFilter, branchFromFilter, branchToFilter, sortKey, sortDir]);
+
+  const stats = useMemo(() => {
+    const counts = { Pending: 0, Approved: 0, 'In Transit': 0, Received: 0, Cancelled: 0 };
+    transfers.forEach(t => { if (counts[t.status] !== undefined) counts[t.status]++; });
+    return counts;
+  }, [transfers]);
+
+  const SortTh: React.FC<{ col: SortKey; label: string; className?: string }> = ({ col, label, className = "" }) => (
+    <th className={`px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400 cursor-pointer hover:text-zinc-600 select-none ${className}`}
+      onClick={() => toggleSort(col)}>
+      <span className="inline-flex items-center gap-1">
+        {label} <SortIcon col={col} active={sortKey} dir={sortDir} />
+      </span>
+    </th>
+  );
 
   return (
-    <div className="p-6 md:p-8 bg-[#f4f2fb] min-h-full">
-      <div className="flex items-center justify-between mb-5">
+    <div className="p-6 md:p-8 fade-in flex flex-col gap-6">
+      
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
-          <h2 className="text-sm font-black uppercase tracking-wide text-[#1a0f2e]">Stock Transfers</h2>
-          <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">{loading ? 'Loading...' : `${transfers.length} transfers · inter-branch stock movements`}</p>
+          <h2 className="text-lg font-black text-[#1a0f2e]">Stock Transfers</h2>
+          <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">Inter-branch inventory movement & monitoring</p>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={fetchAll} disabled={loading} className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
-          </button>
-          <button onClick={() => setAddOpen(true)} className="bg-[#3b2063] hover:bg-[#6a12b8] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all">
-            <Plus size={13} /> New Transfer
-          </button>
+          <Btn variant="secondary" onClick={fetchAll} disabled={loading}>
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          </Btn>
+          <Btn onClick={() => setAddOpen(true)}>
+            <Plus size={16} /> New Transfer
+          </Btn>
         </div>
       </div>
 
-      {/* Status stat cards — 5 statuses in a row */}
-      <div className="grid grid-cols-5 gap-3 mb-5">
-        {(Object.entries(counts) as [TransferStatus, number][]).map(([status, count]) => {
-          const c = STATUS_CONFIG[status];
-          return (
-            <div key={status} className="bg-white border rounded-[0.625rem] px-4 py-3.5 shadow-sm cursor-pointer hover:border-[#3b2063] transition-colors" style={{ borderColor: statusFilter === status ? '#3b2063' : c.border }}
-              onClick={() => setStatusFilter(statusFilter === status ? '' : status)}>
-              <div className="flex items-center gap-1.5 mb-1">
-                <span style={{ color: c.text }}>{c.icon}</span>
-                <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 truncate">{status}</p>
-              </div>
-              <p className="text-xl font-black tabular-nums" style={{ color: c.text }}>{loading ? '—' : count}</p>
-            </div>
-          );
-        })}
+      {/* ── Stats ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard icon={<Clock size={16}/>} label="Pending Review" value={stats.Pending} color="zinc" 
+           sub="Awaiting approval" />
+        <StatCard icon={<CheckCircle size={16}/>} label="Approved Orders" value={stats.Approved} color="blue" 
+           sub="Ready for dispatch" />
+        <StatCard icon={<Truck size={16}/>} label="In Transit" value={stats['In Transit']} color="amber" 
+           sub="On the way" />
+        <StatCard icon={<Package size={16}/>} label="Total Received" value={stats.Received} color="emerald" 
+           sub="Successfully moved" />
       </div>
 
-      {/* Table */}
-      <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden shadow-sm">
-        <div className="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-zinc-100">
-          <div className="flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 flex-1 min-w-40">
-            <Search size={13} className="text-zinc-400 shrink-0" />
-            <input value={search} onChange={e => setSearch(e.target.value)} className="flex-1 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400" placeholder="Search transfer # or branch..." />
-            {search && <button onClick={() => setSearch('')} className="text-zinc-300 hover:text-red-500"><X size={13} /></button>}
-          </div>
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
-            <option value="">All Status</option>
-            {TRANSFER_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest ml-auto">{filtered.length} results</span>
+      {/* ── Filters ── */}
+      <div className="bg-white border border-zinc-200 rounded-2xl px-5 py-4 flex flex-wrap gap-4 items-end shadow-sm">
+        <div className="flex-1 min-w-[200px]">
+           <p className="text-[10px] font-extrabold uppercase tracking-widest text-zinc-400 mb-1.5 px-0.5">Quick Search</p>
+           <div className="flex items-center gap-2.5 bg-zinc-50 border border-zinc-200 rounded-xl px-3.5 py-2.5 focus-within:ring-2 focus-within:ring-violet-200 transition-all">
+              <Search size={15} className="text-zinc-400" />
+              <input value={search} onChange={e => setSearch(e.target.value)} className="flex-1 bg-transparent text-sm font-bold text-zinc-700 outline-none placeholder:text-zinc-400" placeholder="Transfer # or branch..." />
+           </div>
         </div>
+        <div>
+           <p className="text-[10px] font-extrabold uppercase tracking-widest text-zinc-400 mb-1.5 px-0.5">From Branch</p>
+           <select value={branchFromFilter} onChange={e => setBranchFromFilter(e.target.value)}
+              className="appearance-none text-sm font-bold text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer min-w-[150px]">
+              <option value="">All Sources</option>
+              {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+           </select>
+        </div>
+        <div>
+           <p className="text-[10px] font-extrabold uppercase tracking-widest text-zinc-400 mb-1.5 px-0.5">To Branch</p>
+           <select value={branchToFilter} onChange={e => setBranchToFilter(e.target.value)}
+              className="appearance-none text-sm font-bold text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer min-w-[150px]">
+              <option value="">All Targets</option>
+              {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+           </select>
+        </div>
+        <div>
+           <p className="text-[10px] font-extrabold uppercase tracking-widest text-zinc-400 mb-1.5 px-0.5">Status</p>
+           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+              className="appearance-none text-sm font-bold text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer min-w-[140px]">
+              <option value="">All Status</option>
+              {TRANSFER_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+           </select>
+        </div>
+        {(search || statusFilter || branchFromFilter || branchToFilter) && (
+           <Btn variant="ghost" onClick={() => { setSearch(''); setStatusFilter(''); setBranchFromFilter(''); setBranchToFilter(''); }} className="text-red-500 hover:bg-red-50 py-3">
+              <XCircle size={15}/>
+           </Btn>
+        )}
+      </div>
 
+      {/* ── Table ── */}
+      <div className="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-sm flex flex-col">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-zinc-100">
-                {['Transfer #', 'From', 'To', 'Date', 'Items', 'Status', 'Actions'].map(h => (
-                  <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
-                ))}
+              <tr className="bg-zinc-50/50 border-b border-zinc-100 uppercase tracking-tighter">
+                <SortTh col="transfer_number" label="Internal #" className="pl-6" />
+                <SortTh col="from_branch_name" label="Origin" />
+                <SortTh col="to_branch_name" label="Target" />
+                <SortTh col="transfer_date" label="Scheduled" />
+                <th className="px-5 py-3 text-left text-[10px] font-black uppercase tracking-widest text-zinc-400">Inventory</th>
+                <SortTh col="status" label="State" />
+                <th className="px-6 py-3 text-right text-[10px] font-black uppercase tracking-widest text-zinc-400">Actions</th>
               </tr>
             </thead>
-            <tbody>
-              {loading && [...Array(5)].map((_, i) => (
-                <tr key={i} className="border-b border-zinc-50">{[...Array(7)].map((_, j) => (<td key={j} className="px-5 py-4"><div className="h-3 bg-zinc-100 rounded animate-pulse" style={{ width: `${55 + (j * 8) % 35}%` }} /></td>))}</tr>
-              ))}
-              {!loading && filtered.length === 0 && (
-                <tr><td colSpan={7} className="py-16 text-center">
-                  <ArrowRightLeft size={32} className="mx-auto text-zinc-200 mb-3" />
-                  <p className="text-xs font-bold text-zinc-300 uppercase tracking-widest">{search || statusFilter ? 'No transfers match your filters' : 'No stock transfers yet'}</p>
+            <tbody className="divide-y divide-zinc-50">
+              {loading ? [...Array(6)].map((_, i) => (
+                <tr key={i}><td colSpan={7} className="px-6 py-5"><div className="h-4 bg-zinc-100 rounded animate-pulse w-full max-w-[200px]" /></td></tr>
+              )) : filtered.length === 0 ? (
+                <tr><td colSpan={7} className="py-24 text-center">
+                  <LayoutGrid size={40} className="mx-auto text-zinc-200 mb-4" />
+                  <p className="text-xs font-black text-zinc-400 uppercase tracking-[0.2em] italic">No active transfers tracked</p>
                 </td></tr>
-              )}
-              {!loading && filtered.map(t => {
+              ) : filtered.map(t => {
                 const items  = resolveItems(t);
                 const isExp  = expanded === t.id;
                 return (
                   <React.Fragment key={t.id}>
-                    <tr className="border-b border-zinc-50 hover:bg-[#faf9ff] transition-colors">
-                      <td className="px-5 py-3.5">
+                    <tr className="hover:bg-zinc-50/80 transition-all group">
+                      <td className="px-5 py-4 pl-6">
+                        <div className="flex items-center gap-3">
+                           <div className="w-8 h-8 flex items-center justify-center bg-violet-50 border border-violet-100 rounded-lg group-hover:bg-white group-hover:shadow-sm transition-all">
+                              <ArrowRightLeft size={14} className="text-violet-600" />
+                           </div>
+                           <span className="font-black text-[#1a0f2e] text-xs">{t.transfer_number}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex flex-col">
+                           <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">Source</p>
+                           <p className="text-xs font-black text-zinc-700">{t.from_branch?.name ?? t.from_branch_name ?? '—'}</p>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex flex-col">
+                           <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">Target</p>
+                           <p className="text-xs font-black text-zinc-700">{t.to_branch?.name ?? t.to_branch_name ?? '—'}</p>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
                         <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center shrink-0">
-                            <ArrowRightLeft size={12} className="text-[#3b2063]" />
-                          </div>
-                          <span className="font-black text-[#1a0f2e] text-xs">{t.transfer_number}</span>
+                           <Calendar size={12} className="text-zinc-300" />
+                           <span className="text-xs font-bold text-zinc-600 tabular-nums">
+                              {t.transfer_date ? new Date(t.transfer_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric'}) : '—'}
+                           </span>
                         </div>
                       </td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-1.5">
-                          <Building2 size={11} className="text-zinc-400 shrink-0" />
-                          <span className="text-xs text-zinc-600">{t.from_branch?.name ?? t.from_branch_name ?? '—'}</span>
-                        </div>
+                      <td className="px-5 py-4">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black text-violet-700 bg-violet-50 border border-violet-100">
+                           {items.length} units
+                        </span>
                       </td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-1.5">
-                          <Building2 size={11} className="text-zinc-400 shrink-0" />
-                          <span className="text-xs text-zinc-600">{t.to_branch?.name ?? t.to_branch_name ?? '—'}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        {t.transfer_date ? (
-                          <div className="flex items-center gap-1.5">
-                            <Calendar size={11} className="text-zinc-400 shrink-0" />
-                            <span className="text-xs text-zinc-500">{new Date(t.transfer_date).toLocaleDateString()}</span>
-                          </div>
-                        ) : <span className="text-zinc-300 text-xs">—</span>}
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <span className="text-xs font-bold text-[#3b2063] bg-[#f5f0ff] px-2 py-0.5 rounded border border-[#e9d5ff]">{items.length} items</span>
-                      </td>
-                      <td className="px-5 py-3.5"><StatusBadge status={t.status} /></td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-1">
-                          <button onClick={() => setExpanded(isExp ? null : t.id)} className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors">
-                            <ChevronDown size={13} className={`transition-transform ${isExp ? 'rotate-180' : ''}`} />
-                          </button>
-                          <button onClick={() => setViewTarget(t)} className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors">
-                            <Eye size={13} />
-                          </button>
-                        </div>
+                      <td className="px-5 py-4"><StatusBadge status={t.status} /></td>
+                      <td className="px-6 py-4 text-right">
+                         <div className="flex items-center justify-end gap-1.5">
+                            <button onClick={() => setExpanded(isExp ? null : t.id)} className="p-2 hover:bg-zinc-100 rounded-lg text-zinc-400 hover:text-zinc-600 transition-all">
+                               <ChevronDown size={14} className={`transition-transform duration-300 ${isExp ? 'rotate-180' : ''}`} />
+                            </button>
+                            <button onClick={() => setViewTarget(t)} className="p-2 bg-violet-50 border border-violet-100 rounded-lg text-violet-600 hover:bg-violet-600 hover:text-white transition-all shadow-sm">
+                               <Eye size={14}/>
+                            </button>
+                         </div>
                       </td>
                     </tr>
-                    {isExp && items.length > 0 && (
-                      <tr className="border-b border-zinc-100 bg-[#faf9ff]">
-                        <td colSpan={7} className="px-5 pb-3 pt-1">
-                          <div className="ml-10 border border-[#e9d5ff] rounded-xl overflow-hidden">
-                            <div className="grid grid-cols-3 bg-[#f5f0ff] px-4 py-2 border-b border-[#e9d5ff]">
-                              {['Material', 'Quantity', 'Unit'].map(h => <p key={h} className="text-[9px] font-bold uppercase tracking-widest text-[#3b2063]">{h}</p>)}
-                            </div>
-                            {items.map((item, i) => (
-                              <div key={i} className="grid grid-cols-3 px-4 py-2.5 border-b border-zinc-100 last:border-0">
-                                <p className="text-xs font-semibold text-zinc-700">{item.material_name}</p>
-                                <p className="text-xs font-bold text-[#3b2063] tabular-nums">{item.quantity}</p>
-                                <span className="text-xs font-bold text-zinc-400 bg-zinc-100 px-1.5 py-0.5 rounded w-fit">{item.unit}</span>
-                              </div>
-                            ))}
+                    {isExp && (
+                      <tr className="bg-zinc-50 border-b border-zinc-100 animate-in slide-in-from-top duration-300">
+                        <td colSpan={7} className="px-8 py-5">
+                          <div className="bg-white border border-zinc-200 rounded-2xl p-5 shadow-sm max-w-2xl">
+                             <div className="flex items-center gap-2 mb-4">
+                                <Package size={14} className="text-violet-500" />
+                                <p className="text-[10px] font-black uppercase tracking-widest text-[#1a0f2e]">Cargo Manifest</p>
+                             </div>
+                             <div className="grid grid-cols-2 gap-4">
+                                {items.map((item, i) => (
+                                   <div key={i} className="flex flex-col gap-1 p-3 bg-zinc-50 border border-zinc-100 rounded-xl">
+                                      <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter truncate">{item.material_name}</p>
+                                      <div className="flex items-center justify-between">
+                                         <span className="text-sm font-black text-[#1a0f2e]">{item.quantity}</span>
+                                         <span className="text-[9px] font-black text-violet-600 bg-violet-50 px-2 py-0.5 rounded-lg border border-violet-100 uppercase">{item.unit}</span>
+                                      </div>
+                                   </div>
+                                ))}
+                             </div>
                           </div>
                         </td>
                       </tr>
@@ -560,7 +705,7 @@ const StockTransferTab: React.FC = () => {
         </div>
       </div>
 
-      {addOpen    && <CreateTransferModal onClose={() => setAddOpen(false)} onCreated={t => setTransfers(p => [t, ...p])} branches={branches} />}
+      {addOpen    && <CreateTransferModal onClose={() => setAddOpen(false)} onCreated={t => { setTransfers(p => [t, ...p]); setAddOpen(false); }} branches={branches} />}
       {viewTarget && <ViewTransferModal transfer={viewTarget} onClose={() => setViewTarget(null)} onStatusChange={updated => { setTransfers(p => p.map(x => x.id === updated.id ? updated : x)); setViewTarget(null); }} />}
     </div>
   );

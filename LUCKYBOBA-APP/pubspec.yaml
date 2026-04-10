@@ -1,0 +1,51 @@
+name: luckyboba_app
+description: "A new Flutter project for Lucky Boba."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  font_awesome_flutter: ^10.7.0
+  google_fonts: ^6.2.1
+  url_launcher: ^6.3.0
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.0
+  video_player: ^2.8.2
+  geolocator: ^13.0.0
+  phosphor_flutter: ^2.1.0
+  http: ^1.2.0
+  shared_preferences: ^2.2.2
+  qr_flutter: ^4.1.0
+  image_picker: ^1.1.2
+  google_sign_in: ^6.2.1
+  firebase_core: ^3.3.0
+  firebase_auth: ^5.1.0
+  flutter_facebook_auth: ^7.1.1
+  cached_network_image: ^3.4.1
+  shimmer: ^3.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/videos/landingvideo.mp4
+    - assets/cards/
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/lucky_logo.jpg"
+  min_sdk_android: 21
