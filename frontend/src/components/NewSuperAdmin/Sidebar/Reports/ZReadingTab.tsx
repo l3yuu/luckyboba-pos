@@ -635,6 +635,75 @@ const handlePrint = () => window.print();
             ))}
           </div>
         )}
+        {(() => {
+          const cupGroups = [
+            { name: 'Standard Cup', sizes: ['SM', 'SL'] },
+            { name: 'Junior Cup', sizes: ['JR'] },
+            { name: 'Upturn Cup', sizes: ['UM', 'UL'] },
+            { name: 'Plastic Cup', sizes: ['PCM', 'PCL'] },
+          ];
+          
+          const groupData = cupGroups.map(group => {
+            const sizeMap = new Map<string, number>();
+            group.sizes.forEach(s => sizeMap.set(s, 0));
+            return { ...group, sizeMap, total: 0 };
+          });
+
+          let hasAnyCups = false;
+          let grandTotalCups = 0;
+
+          reportData.categories.forEach(cat => {
+            cat.products.forEach(product => {
+              if (product.size) {
+                 const group = groupData.find(g => g.sizes.includes(product.size!));
+                 if (group) {
+                   group.sizeMap.set(product.size, (group.sizeMap.get(product.size) ?? 0) + product.total_qty);
+                   group.total += product.total_qty;
+                   grandTotalCups += product.total_qty;
+                   hasAnyCups = true;
+                 }
+              }
+            });
+          });
+
+          if (!hasAnyCups) return null;
+
+          return (
+            <div className="mt-1">
+              <ReceiptDivider />
+              {groupData.map(group => {
+                if (group.total === 0) return null;
+                return (
+                  <div key={group.name} className="mb-1.5">
+                    <div className="flex text-[11px] font-bold border-b border-black pb-0.5 mb-0.5">
+                      <span className="w-[75%] uppercase">{group.name}</span>
+                      <span className="w-[25%] text-right uppercase">Qty</span>
+                    </div>
+                    {group.sizes.map(size => {
+                       const qty = group.sizeMap.get(size) ?? 0;
+                       if (qty === 0) return null;
+                       return (
+                         <div key={size} className="flex text-[11px] leading-snug">
+                           <span className="w-[75%] uppercase pl-2">{size}</span>
+                           <span className="w-[25%] text-right">{qty}</span>
+                         </div>
+                       );
+                    })}
+                    <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-400 mt-0.5 pt-0.5">
+                       <span className="uppercase">TOTAL ({group.name})</span>
+                       <span>{group.total}</span>
+                    </div>
+                  </div>
+                );
+              })}
+              <ReceiptDivider />
+              <div className="flex justify-between text-[11px] font-bold mt-0.5 pt-0.5">
+                <span className="uppercase">TOTAL CUPS</span>
+                <span>Qty: {grandTotalCups}</span>
+              </div>
+            </div>
+          );
+        })()}
         <ReceiptDivider />
         <div className="flex justify-between text-[11px]">
           <span className="uppercase">All Day Total</span>
