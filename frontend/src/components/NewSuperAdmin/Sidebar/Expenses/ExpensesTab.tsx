@@ -364,7 +364,7 @@ const DeleteModal: React.FC<{ expense: Expense; onClose: () => void; onDeleted: 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 const ExpensesTab: React.FC = () => {
-  const now = new Date();
+  const now = useMemo(() => new Date(), []);
   const [expenses,     setExpenses]     = useState<Expense[]>([]);
   const [branches,     setBranches]     = useState<{ id: number; name: string }[]>([]);
   const [loading,      setLoading]      = useState(true);
