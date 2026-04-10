@@ -81,6 +81,7 @@ class SalesController extends Controller
                 'discount_remarks' => $validated['discount_remarks'] ?? null,
                 'vatable_sales' => 0,
                 'vat_amount' => 0,
+                'vat_exempt_sales' => (float) $request->input('vat_exempt_sales', 0),
                 'vat_type' => $request->input('vat_type', 'vat'),
                 'customer_name' => $validated['customer_name'] ?? null,
                 'is_synced' => false,
@@ -287,7 +288,7 @@ class SalesController extends Controller
         return $totalQty;
     }
 
-    private function recalculateSaleFinancials(Sale $sale, Request $request, bool $isVat): void
+    public function recalculateSaleFinancials(Sale $sale, Request $request, bool $isVat): void
     {
         $recalculatedTotal = DB::table('sale_items')
             ->where('sale_id', $sale->id)
@@ -308,15 +309,27 @@ class SalesController extends Controller
 
         $scDiscountAmount = (float) $request->input('sc_discount_amount', 0);
         $pwdDiscountAmount = (float) $request->input('pwd_discount_amount', 0);
+        
+        // AUTO-CALC VAT EXEMPT: In PH, SC/PWD discount is 20% of the VAT-exempt base.
+        // Therefore Base = Discount / 0.20. We use the stored vat_exempt_sales as the 
+        // source of truth from the frontend, but we fallback/verify here.
+        $vatExemptSales = (float) $request->input('vat_exempt_sales', 0);
+        if ($vatExemptSales <= 0 && ($scDiscountAmount > 0 || $pwdDiscountAmount > 0)) {
+            $vatExemptSales = round(($scDiscountAmount + $pwdDiscountAmount) / 0.20, 2);
+        }
 
-        $scPwdTotal = $scDiscountAmount + $pwdDiscountAmount;
-        $vatableGross = $finalTotal - $scPwdTotal;
+        // Calculate vatable portion by removing the exempt net part from the total due
+        // and ensuring we don't double-charge VAT on the tax itself.
+        // The finalTotal is (Vatable + VAT + Exempt). 
+        // We need to resolve: Vatable + (Vatable * 0.12) = finalTotal - Exempt
+        $vatableGross = max(0, $finalTotal - $vatExemptSales);
         $vatableSales = $isVat ? round($vatableGross / 1.12, 2) : 0;
         $vatAmount = $isVat ? round($vatableGross - $vatableSales, 2) : 0;
 
         $sale->update([
             'vatable_sales' => $vatableSales,
             'vat_amount' => $vatAmount,
+            'vat_exempt_sales' => $vatExemptSales,
         ]);
     }
 

@@ -349,9 +349,11 @@ const SalesOrder = () => {
       assignments.forEach(assignment => {
         if (assignment === 'none') return
         const unitPrice = Number(item.price)
-        const unitVatExcl = isVat ? unitPrice / 1.12 : unitPrice
+        // Round each unit's VAT-exempt price and discount to ensure sum-of-parts matches total
+        const unitVatExcl = isVat ? round(unitPrice / 1.12) : unitPrice
         const pct = assignment === 'sc' ? scPct : pwdPct
-        const discAmt = unitVatExcl * (pct / 100)
+        const discAmt = round(unitVatExcl * (pct / 100))
+        
         totalPaxDiscount += discAmt
         totalVatExemptSales += unitVatExcl
       })

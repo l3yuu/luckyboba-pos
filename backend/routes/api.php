@@ -31,13 +31,14 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
-Route::prefix('auth')->group(function () {
-    Route::post('/login', [AuthController::class, 'login']);
-});
+Route::post('/login',         [AuthController::class, 'login']);
+Route::post('/verify-2fa',    [AuthController::class, 'verify2FA']);
+Route::post('/resend-2fa',    [AuthController::class, 'resend2FA']);
+Route::post('/google-login',  [AuthController::class, 'googleLogin']);
 
 Route::middleware(['auth:sanctum'])->group(function () {
-    Route::post('/auth/logout', [AuthController::class, 'logout']);
-    Route::get('/auth/me',      [AuthController::class, 'me']);
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/me',      [AuthController::class, 'me']);
 
     // ── LOYALTY (Mobile & Shared) ──────────────────────────────────────────
     Route::get('/loyalty/rewards', [LoyaltyManagementController::class, 'getRewards']);
@@ -233,6 +234,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/branch/audit-logs', [AuditLogController::class, 'branchIndex']);
 
         Route::prefix('inventory')->group(function () {
+            Route::get ('/',                       [InventoryController::class, 'index']);
             Route::post('/',                       [InventoryController::class, 'store']);
             Route::get ('/check/{barcode}',        [InventoryController::class, 'checkByBarcode']);
             Route::patch('/{id}/quantity',         [InventoryController::class, 'updateQuantity']);
@@ -243,6 +245,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         });
 
         Route::prefix('purchase-orders')->group(function () {
+            Route::get  ('/',             [PurchaseOrderController::class, 'index']);
             Route::post ('/',             [PurchaseOrderController::class, 'store']);
             Route::patch('/{id}/status',  [PurchaseOrderController::class, 'updateStatus']);
         });
@@ -300,6 +303,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::get('/inventory-alerts', [InventoryAlertController::class, 'index']);
         Route::get('/staff-performance', [StaffPerformanceController::class, 'index']);
         
+        Route::get('/notifications/summary', [NotificationController::class, 'summary']);
+        Route::get('/pos-devices', [PosDeviceController::class, 'index']);
+        
         // Moved from branch_manager block to restrict editing to SuperAdmin only
         Route::post('/raw-materials/{rawMaterial}/adjust', [RawMaterialController::class, 'adjust']);
         Route::apiResource('raw-materials', RawMaterialController::class)->except(['index', 'show']);
@@ -316,6 +322,8 @@ Route::middleware(['auth:sanctum'])->group(function () {
             Route::get('/z-reading/history',   [SalesDashboardController::class,   'zReadingHistory']);
             Route::get('/items-all',           [SuperAdminReportController::class, 'itemsReport']);
             Route::get('/items-export',        [SuperAdminReportController::class, 'exportItems']);
+            Route::get('/admin-sales-summary', [SuperAdminReportController::class, 'salesSummary']);
+            Route::get('/branch-comparison',   [SuperAdminReportController::class, 'branchComparison']);
         });
 
         Route::prefix('system')->group(function () {
@@ -378,6 +386,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
         Route::prefix('inventory')->group(function () {
             Route::get ('/dashboard/stats',   [InventoryDashboardController::class, 'getStats']);
             Route::get ('/dashboard/alerts',  [InventoryAlertController::class, 'getAlerts']);
+            Route::get ('/top-products',      [InventoryDashboardController::class, 'getWeeklyTopProducts']);
             
             Route::get ('/items',             [InventoryController::class, 'index']);
             Route::post('/items',             [InventoryController::class, 'store']);
@@ -440,6 +449,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::prefix('cash-counts')->group(function () {
         Route::get   ('/', [CashCountController::class, 'index']);
         Route::post  ('/', [CashCountController::class, 'store']);
+        Route::get   ('/summary', [CashCountController::class, 'summary']);
     });
 
     Route::prefix('cash-transactions')->group(function () {

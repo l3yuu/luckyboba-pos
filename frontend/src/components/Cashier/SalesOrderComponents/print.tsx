@@ -239,8 +239,8 @@ export const ReceiptPrint = ({
               // item.price already reflects the correct Grab/Panda/base price —
               // unitGross is simply the per-unit base price plus any add-on cost.
               const unitGross = Number(item.price) + addOnCostPerUnit;
-              const unitVatExcl = isVat ? unitGross / 1.12 : unitGross;
-              const discountAmt = hasPaxDiscount ? unitVatExcl * (discountPct / 100) : 0;
+              const unitVatExcl = isVat ? Math.round((unitGross / 1.12) * 100) / 100 : unitGross;
+              const discountAmt = hasPaxDiscount ? Math.round((unitVatExcl * (discountPct / 100)) * 100) / 100 : 0;
               const netPrice = hasPaxDiscount ? unitVatExcl - discountAmt : unitGross;
 
               return (

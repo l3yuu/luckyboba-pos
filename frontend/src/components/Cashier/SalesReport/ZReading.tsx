@@ -111,6 +111,7 @@ interface ZReadingReport {
   transaction_count?: number;
   cash_total?: number;
   non_cash_total?: number;
+  total_payments?: number;
   report_type?: string;
   logs?: { id: string; reason: string; amount: number; time: string }[];
   items?: { product_name: string; total_qty: number; total_sales?: number }[];
@@ -194,8 +195,8 @@ interface ZReadingReport {
   expected_amount?: number;
   vat_type?:   string;
   vat_exempt?: number;
-  is_vat?: boolean;           // ← add
-  vat_exempt_sales?: number;  // ← add
+  is_vat?: boolean;
+  vat_exempt_sales?: number;
   other_discount?: number;
 }
 
@@ -763,7 +764,8 @@ const ZReading = () => {
     const totalDebit   = debitMethods.reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
     const totalCard    = totalCredit + totalDebit;
     const actualCash = paymentMap.get('cash') || 0;
-    const actualNonCash = gross - actualCash;
+    const totalPaymentsReceived = reportData?.total_payments ?? Array.from(paymentMap.values()).reduce((a, b) => a + b, 0);
+    const actualNonCash = reportData?.non_cash_total ?? (totalPaymentsReceived - actualCash);
     const cashDenominations = reportData?.cash_denominations ?? reportData?.cash_count?.denominations ?? [];
     const totalCashCount = reportData?.total_cash_count ?? reportData?.cash_count?.grand_total ?? 0;
     const apiExpected = reportData?.expected_amount ?? 0;
@@ -800,6 +802,10 @@ const ZReading = () => {
         <Divider />
         <Row label="Service Charge" value={phCurrency.format(0)} />
         <Row label="NET SALES" value={phCurrency.format(netSales)} />
+        <div className="flex justify-between text-[8px] text-zinc-500 uppercase -mt-1 mb-1">
+          <span>(VATable + VAT-Exempt - Voids - Discounts)</span>
+          <span></span>
+        </div>
         <Row label="Total Discounts" value={phCurrency.format(totalDisc)} />
         <Row label="GROSS Amount" value={phCurrency.format(gross)} />
         <Divider />
@@ -834,7 +840,7 @@ const ZReading = () => {
         <Divider />
         <Row label="TOTAL CASH"     value={phCurrency.format(actualCash)} />
         <Row label="TOTAL NON-CASH" value={phCurrency.format(actualNonCash)} />
-        <Row label="TOTAL PAYMENTS" value={phCurrency.format(gross)} />
+        <Row label="TOTAL PAYMENTS" value={phCurrency.format(totalPaymentsReceived)} />
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
         <Row label="Transaction Count" value={txCount} />

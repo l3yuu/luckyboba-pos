@@ -63,6 +63,7 @@ interface XReadingReport {
   transaction_count?: number;
   cash_total?: number;
   non_cash_total?: number;
+  total_payments?: number;
   report_type?: string;
   logs?: { id: string; reason: string; amount: number; time: string }[];
   items?: { product_name: string; total_qty: number; total_sales?: number }[];
@@ -906,6 +907,10 @@ const handlePrint = () => window.print();
         <ReceiptRow label="Zero-Rated Sales" value={phCurrency.format(0)} />
         <ReceiptDivider />
         <ReceiptRow label="Net Sales"       value={phCurrency.format(netSales)} />
+        <div className="flex justify-between text-[8px] text-zinc-500 uppercase -mt-1 mb-1 font-medium">
+          <span className="text-[9px]">(VATable + VAT-Exempt - Voids - Discounts)</span>
+          <span></span>
+        </div>
         <ReceiptRow label="Total Discounts" value={phCurrency.format(totalDisc)} />
         <ReceiptRow label="Gross Amount"    value={phCurrency.format(gross)} />
         <ReceiptDivider />
@@ -982,7 +987,8 @@ const handlePrint = () => window.print();
     const totalDebit  = 0;
     const totalCard   = totalCredit + totalDebit;
     const actualCash    = paymentMap.get("cash") || 0;
-    const actualNonCash = gross - actualCash;
+    const totalPaymentsReceived = reportData?.total_payments ?? Array.from(paymentMap.values()).reduce((a, b) => a + b, 0);
+    const actualNonCash = reportData?.non_cash_total ?? (totalPaymentsReceived - actualCash);
     const cashDenominations = reportData?.cash_denominations ?? reportData?.cash_count?.denominations ?? [];
     const totalCashCount = reportData?.total_cash_count ?? reportData?.cash_count?.grand_total ?? 0;
     const apiExpected = reportData?.expected_amount ?? 0;
@@ -1018,6 +1024,10 @@ const handlePrint = () => window.print();
         <ReceiptDivider />
         <ReceiptRow label="SERVICE CHARGE" value={phCurrency.format(0)} />
         <ReceiptRow label="NET SALES" value={phCurrency.format(netSales)} />
+        <div className="flex justify-between text-[8px] text-zinc-500 uppercase -mt-1 mb-1 font-medium">
+          <span className="text-[9px]">(VATable + VAT-Exempt - Voids - Discounts)</span>
+          <span></span>
+        </div>
         <ReceiptRow label="TOTAL DISCOUNTS" value={phCurrency.format(totalDisc)} />
         <ReceiptRow label="GROSS AMOUNT" value={phCurrency.format(gross)} />
         <ReceiptDivider />
@@ -1043,7 +1053,7 @@ const handlePrint = () => window.print();
         <ReceiptDivider />
         <ReceiptRow label="TOTAL CASH" value={phCurrency.format(actualCash)} />
         <ReceiptRow label="TOTAL NON-CASH" value={phCurrency.format(actualNonCash)} />
-        <ReceiptRow label="TOTAL PAYMENTS" value={phCurrency.format(gross)} />
+        <ReceiptRow label="TOTAL PAYMENTS" value={phCurrency.format(totalPaymentsReceived)} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
         <ReceiptRow label="TRANSACTION COUNT" value={txCount} />

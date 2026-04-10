@@ -517,7 +517,7 @@ const OverviewTab: React.FC = () => {
           </div>
           {loading && !breakdown.length ? <ChartSkeleton height="h-[220px]" /> : (
             <div className="h-[220px] w-full relative">
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <AreaChart data={revenueChartData}>
                   <defs>
                     <linearGradient id="unifGrad" x1="0" y1="0" x2="0" y2="1">
@@ -545,7 +545,7 @@ const OverviewTab: React.FC = () => {
           {loading && !pieData.length ? <Skeleton className="h-[200px] w-full rounded-full" /> : (
             <>
               <div className="h-[160px] w-full relative">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                   <RePieChart>
                     <Pie data={pieData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={4} dataKey="value">
                       {pieData.map((e, idx) => <Cell key={idx} fill={e.color} />)}
@@ -579,7 +579,7 @@ const OverviewTab: React.FC = () => {
           </div>
           <div className="h-[200px]">
             {loading && !barData.length ? <Skeleton className="w-full h-full" /> : (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                 <ReBarChart data={barData} barSize={20}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" vertical={false} />
                   <XAxis dataKey="name" tick={{ fontSize: 9, fontWeight: 700, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />
