@@ -8,6 +8,25 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
+/**
+ * @property int $id
+ * @property float $total_amount
+ * @property string $payment_method
+ * @property int $user_id
+ * @property int $branch_id
+ * @property string $invoice_number
+ * @property string $status
+ * @property string $cancellation_reason
+ * @property \Illuminate\Support\Carbon|null $cancelled_at
+ * @property int|null $discount_id
+ * @property float $discount_amount
+ * @property float $sc_discount_amount
+ * @property float $pwd_discount_amount
+ * @property string|null $pax_discount_ids
+ * @property float $vatable_sales
+ * @property float $vat_amount
+ * @property string $vat_type
+ */
 class Sale extends Model
 {
     use HasFactory;
@@ -31,6 +50,7 @@ class Sale extends Model
         'discount_remarks',
         'vatable_sales',
         'vat_amount',
+        'vat_exempt_sales',
         'vat_type',
         'customer_name',
         'discount_id',
@@ -57,6 +77,7 @@ class Sale extends Model
         'other_discount_amount'    => 'decimal:2',
         'vatable_sales'            => 'decimal:2',
         'vat_amount'               => 'decimal:2',
+        'vat_exempt_sales'         => 'decimal:2',
         'cash_tendered'            => 'decimal:2',
         'pax_senior'               => 'integer',
         'pax_pwd'                  => 'integer',

@@ -53,69 +53,110 @@ class SearchController extends Controller
         }
 
         // ── 3. Model Search ──────────────────────────────────────────────────
-        
-        // 1. Search Branches
-        if (!$filter || in_array($filter, ['branch', 'branches', 'loc'])) {
-            $branches = Branch::where('name', 'like', "%{$q}%")
-                ->orWhere('location', 'like', "%{$q}%")
-                ->limit(5)->get()->map(fn($b) => [
-                    'id' => $b->id, 'title' => $b->name, 'sub' => $b->location, 'type' => 'branch', 'tab' => 'branches'
-                ]);
-            $results = array_merge($results, $branches->toArray());
-        }
-
-        // 2. Search Users
-        if (!$filter || in_array($filter, ['user', 'users', 'staff'])) {
-            $users = User::where('name', 'like', "%{$q}%")
-                ->orWhere('email', 'like', "%{$q}%")
-                ->limit(5)->get()->map(fn($u) => [
-                    'id' => $u->id, 'title' => $u->name, 'sub' => $u->role . " | " . $u->email, 'type' => 'user', 'tab' => 'users'
-                ]);
-            $results = array_merge($results, $users->toArray());
-        }
-
-        // 3. Search Sales
-        if (!$filter || in_array($filter, ['sale', 'sales', 'inv', 'receipt'])) {
-            $sales = Sale::where('invoice_number', 'like', "%{$q}%")
-                ->orWhere('customer_name', 'like', "%{$q}%")
-                ->latest()->limit(5)->get()->map(fn($s) => [
-                    'id' => $s->id, 'title' => $s->invoice_number, 
-                    'sub' => "₱" . number_format((float)$s->total_amount, 2) . " | " . ($s->customer_name ?? 'Walk-in'), 
-                    'type' => 'sale', 'tab' => 'sales_report'
-                ]);
-            $results = array_merge($results, $sales->toArray());
-        }
-
-        // 4. Search Products
-        if (!$filter || in_array($filter, ['product', 'item', 'menu'])) {
-            $products = MenuItem::where('name', 'like', "%{$q}%")
-                ->limit(5)->get()->map(fn($p) => [
-                    'id' => $p->id, 'title' => $p->name, 'sub' => "₱" . number_format((float)$p->price, 2), 'type' => 'product', 'tab' => 'menu_items'
-                ]);
-            $results = array_merge($results, $products->toArray());
-        }
-
-        // 5. Search Raw Materials
-        if (!$filter || in_array($filter, ['mat', 'raw', 'stock', 'inventory'])) {
-            $materials = RawMaterial::where('name', 'like', "%{$q}%")
-                ->limit(5)->get()->map(fn($m) => [
-                    'id' => $m->id, 'title' => $m->name, 'sub' => "Stock: " . $m->current_stock . " " . $m->unit, 'type' => 'inventory', 'tab' => 'raw_materials'
-                ]);
-            $results = array_merge($results, $materials->toArray());
-        }
-
-        // 6. Search Expenses
-        if (!$filter || in_array($filter, ['exp', 'expense', 'cost'])) {
-            $expenses = Expense::where('description', 'like', "%{$q}%")
-                ->orWhere('ref_num', 'like', "%{$q}%")
-                ->limit(5)->get()->map(fn($e) => [
-                    'id' => $e->id, 'title' => $e->description, 
-                    'sub' => "₱" . number_format((float)$e->amount, 2) . " | " . $e->date, 
-                    'type' => 'expense', 'tab' => 'expenses'
-                ]);
-            $results = array_merge($results, $expenses->toArray());
-        }
+        $results = array_merge(
+            $results,
+            $this->searchBranches($filter, $q),
+            $this->searchUsers($filter, $q),
+            $this->searchSales($filter, $q),
+            $this->searchProducts($filter, $q),
+            $this->searchRawMaterials($filter, $q),
+            $this->searchExpenses($filter, $q)
+        );
 
         return response()->json(['success' => true, 'data' => $results]);
+    }
+
+    private function searchBranches(?string $filter, string $q): array
+    {
+        if ($filter && !in_array($filter, ['branch', 'branches', 'loc'])) {
+            return [];
+        }
+        return Branch::where('name', 'like', "%{$q}%")
+            ->orWhere('location', 'like', "%{$q}%")
+            ->limit(5)->get()->map(fn($b) => [
+                'id' => $b->getAttribute('id'),
+                'title' => $b->getAttribute('name'),
+                'sub' => $b->getAttribute('location'),
+                'type' => 'branch',
+                'tab' => 'branches'
+            ])->toArray();
+    }
+
+    private function searchUsers(?string $filter, string $q): array
+    {
+        if ($filter && !in_array($filter, ['user', 'users', 'staff'])) {
+            return [];
+        }
+        return User::where('name', 'like', "%{$q}%")
+            ->orWhere('email', 'like', "%{$q}%")
+            ->limit(5)->get()->map(fn($u) => [
+                'id' => $u->getAttribute('id'),
+                'title' => $u->getAttribute('name'),
+                'sub' => $u->getAttribute('role') . " | " . $u->getAttribute('email'),
+                'type' => 'user',
+                'tab' => 'users'
+            ])->toArray();
+    }
+
+    private function searchSales(?string $filter, string $q): array
+    {
+        if ($filter && !in_array($filter, ['sale', 'sales', 'inv', 'receipt'])) {
+            return [];
+        }
+        return Sale::where('invoice_number', 'like', "%{$q}%")
+            ->orWhere('customer_name', 'like', "%{$q}%")
+            ->latest()->limit(5)->get()->map(fn($s) => [
+                'id' => $s->getAttribute('id'),
+                'title' => $s->getAttribute('invoice_number'),
+                'sub' => "₱" . number_format((float)$s->getAttribute('total_amount'), 2) . " | " . ($s->getAttribute('customer_name') ?? 'Walk-in'),
+                'type' => 'sale',
+                'tab' => 'sales_report'
+            ])->toArray();
+    }
+
+    private function searchProducts(?string $filter, string $q): array
+    {
+        if ($filter && !in_array($filter, ['product', 'item', 'menu'])) {
+            return [];
+        }
+        return MenuItem::where('name', 'like', "%{$q}%")
+            ->limit(5)->get()->map(fn($p) => [
+                'id' => $p->getAttribute('id'),
+                'title' => $p->getAttribute('name'),
+                'sub' => "₱" . number_format((float)$p->getAttribute('price'), 2),
+                'type' => 'product',
+                'tab' => 'menu_items'
+            ])->toArray();
+    }
+
+    private function searchRawMaterials(?string $filter, string $q): array
+    {
+        if ($filter && !in_array($filter, ['mat', 'raw', 'stock', 'inventory'])) {
+            return [];
+        }
+        return RawMaterial::where('name', 'like', "%{$q}%")
+            ->limit(5)->get()->map(fn($m) => [
+                'id' => $m->getAttribute('id'),
+                'title' => $m->getAttribute('name'),
+                'sub' => "Stock: " . $m->getAttribute('current_stock') . " " . $m->getAttribute('unit'),
+                'type' => 'inventory',
+                'tab' => 'raw_materials'
+            ])->toArray();
+    }
+
+    private function searchExpenses(?string $filter, string $q): array
+    {
+        if ($filter && !in_array($filter, ['exp', 'expense', 'cost'])) {
+            return [];
+        }
+        return Expense::where('title', 'like', "%{$q}%")
+            ->orWhere('ref_num', 'like', "%{$q}%")
+            ->limit(5)->get()->map(fn($e) => [
+                'id' => $e->getAttribute('id'),
+                'title' => $e->getAttribute('title'),
+                'sub' => "₱" . number_format((float)$e->getAttribute('amount'), 2) . " | " . $e->getAttribute('date'),
+                'type' => 'expense',
+                'tab' => 'expenses'
+            ])->toArray();
     }
 }

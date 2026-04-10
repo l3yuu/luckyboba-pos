@@ -63,6 +63,7 @@ interface XReadingReport {
   transaction_count?: number;
   cash_total?: number;
   non_cash_total?: number;
+  total_payments?: number;
   report_type?: string;
   logs?: { id: string; reason: string; amount: number; time: string }[];
   items?: { product_name: string; total_qty: number; total_sales?: number }[];
@@ -635,6 +636,75 @@ const handlePrint = () => window.print();
             ))}
           </div>
         )}
+        {(() => {
+          const cupGroups = [
+            { name: 'Standard Cup', sizes: ['SM', 'SL'] },
+            { name: 'Junior Cup', sizes: ['JR'] },
+            { name: 'Upturn Cup', sizes: ['UM', 'UL'] },
+            { name: 'Plastic Cup', sizes: ['PCM', 'PCL'] },
+          ];
+          
+          const groupData = cupGroups.map(group => {
+            const sizeMap = new Map<string, number>();
+            group.sizes.forEach(s => sizeMap.set(s, 0));
+            return { ...group, sizeMap, total: 0 };
+          });
+
+          let hasAnyCups = false;
+          let grandTotalCups = 0;
+
+          reportData.categories.forEach(cat => {
+            cat.products.forEach(product => {
+              if (product.size) {
+                 const group = groupData.find(g => g.sizes.includes(product.size!));
+                 if (group) {
+                   group.sizeMap.set(product.size, (group.sizeMap.get(product.size) ?? 0) + product.total_qty);
+                   group.total += product.total_qty;
+                   grandTotalCups += product.total_qty;
+                   hasAnyCups = true;
+                 }
+              }
+            });
+          });
+
+          if (!hasAnyCups) return null;
+
+          return (
+            <div className="mt-1">
+              <ReceiptDivider />
+              {groupData.map(group => {
+                if (group.total === 0) return null;
+                return (
+                  <div key={group.name} className="mb-1.5">
+                    <div className="flex text-[11px] font-bold border-b border-black pb-0.5 mb-0.5">
+                      <span className="w-[75%] uppercase">{group.name}</span>
+                      <span className="w-[25%] text-right uppercase">Qty</span>
+                    </div>
+                    {group.sizes.map(size => {
+                       const qty = group.sizeMap.get(size) ?? 0;
+                       if (qty === 0) return null;
+                       return (
+                         <div key={size} className="flex text-[11px] leading-snug">
+                           <span className="w-[75%] uppercase pl-2">{size}</span>
+                           <span className="w-[25%] text-right">{qty}</span>
+                         </div>
+                       );
+                    })}
+                    <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-400 mt-0.5 pt-0.5">
+                       <span className="uppercase">TOTAL ({group.name})</span>
+                       <span>{group.total}</span>
+                    </div>
+                  </div>
+                );
+              })}
+              <ReceiptDivider />
+              <div className="flex justify-between text-[11px] font-bold mt-0.5 pt-0.5">
+                <span className="uppercase">TOTAL CUPS</span>
+                <span>Qty: {grandTotalCups}</span>
+              </div>
+            </div>
+          );
+        })()}
         <ReceiptDivider />
         <div className="flex justify-between text-[11px]">
           <span className="uppercase">All Day Total</span>
@@ -906,6 +976,10 @@ const handlePrint = () => window.print();
         <ReceiptRow label="Zero-Rated Sales" value={phCurrency.format(0)} />
         <ReceiptDivider />
         <ReceiptRow label="Net Sales"       value={phCurrency.format(netSales)} />
+        <div className="flex justify-between text-[8px] text-zinc-500 uppercase -mt-1 mb-1 font-medium">
+          <span className="text-[9px]">(VATable + VAT-Exempt - Voids - Discounts)</span>
+          <span></span>
+        </div>
         <ReceiptRow label="Total Discounts" value={phCurrency.format(totalDisc)} />
         <ReceiptRow label="Gross Amount"    value={phCurrency.format(gross)} />
         <ReceiptDivider />
@@ -982,7 +1056,8 @@ const handlePrint = () => window.print();
     const totalDebit  = 0;
     const totalCard   = totalCredit + totalDebit;
     const actualCash    = paymentMap.get("cash") || 0;
-    const actualNonCash = gross - actualCash;
+    const totalPaymentsReceived = reportData?.total_payments ?? Array.from(paymentMap.values()).reduce((a, b) => a + b, 0);
+    const actualNonCash = reportData?.non_cash_total ?? (totalPaymentsReceived - actualCash);
     const cashDenominations = reportData?.cash_denominations ?? reportData?.cash_count?.denominations ?? [];
     const totalCashCount = reportData?.total_cash_count ?? reportData?.cash_count?.grand_total ?? 0;
     const apiExpected = reportData?.expected_amount ?? 0;
@@ -1018,6 +1093,10 @@ const handlePrint = () => window.print();
         <ReceiptDivider />
         <ReceiptRow label="SERVICE CHARGE" value={phCurrency.format(0)} />
         <ReceiptRow label="NET SALES" value={phCurrency.format(netSales)} />
+        <div className="flex justify-between text-[8px] text-zinc-500 uppercase -mt-1 mb-1 font-medium">
+          <span className="text-[9px]">(VATable + VAT-Exempt - Voids - Discounts)</span>
+          <span></span>
+        </div>
         <ReceiptRow label="TOTAL DISCOUNTS" value={phCurrency.format(totalDisc)} />
         <ReceiptRow label="GROSS AMOUNT" value={phCurrency.format(gross)} />
         <ReceiptDivider />
@@ -1043,7 +1122,7 @@ const handlePrint = () => window.print();
         <ReceiptDivider />
         <ReceiptRow label="TOTAL CASH" value={phCurrency.format(actualCash)} />
         <ReceiptRow label="TOTAL NON-CASH" value={phCurrency.format(actualNonCash)} />
-        <ReceiptRow label="TOTAL PAYMENTS" value={phCurrency.format(gross)} />
+        <ReceiptRow label="TOTAL PAYMENTS" value={phCurrency.format(totalPaymentsReceived)} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
         <ReceiptRow label="TRANSACTION COUNT" value={txCount} />

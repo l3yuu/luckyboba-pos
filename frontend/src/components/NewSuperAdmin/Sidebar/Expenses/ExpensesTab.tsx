@@ -5,7 +5,7 @@ import {
   Search, Plus, Edit2, Trash2, X, AlertCircle, RefreshCw,
   Download, Receipt, Wallet, Building2, Calendar,
   User, ChevronDown, ChevronUp,
-  TrendingDown, Package
+  TrendingDown, Package, FileImage
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import api from '../../../../services/api';
@@ -26,22 +26,23 @@ interface Expense {
   category:     ExpenseCategory;
   branch_id:    number;
   branch?:      { name: string };
-  date:         string;
+  branch_name?: string;
+  expense_date: string;
+  receipt_path?: string;
   notes?:       string;
-  recorded_by?: number;
-  recorder?:    { name: string };
+  recorded_by?: string;
+  ref_num?:     string;
   created_at?:  string;
 }
-
-interface Branch { id: number; name: string; }
 
 interface FormState {
   title:        string;
   amount:       number | '';
   category:     ExpenseCategory;
   branch_id:    number | '';
-  date:         string;
+  expense_date: string;
   notes:        string;
+  receipt_file: File | null;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -50,8 +51,8 @@ const CATEGORIES: ExpenseCategory[] = ['Utilities', 'Rent', 'Salaries', 'Supplie
 
 const blankForm = (): FormState => ({
   title: '', amount: '', category: 'Utilities', branch_id: '',
-  date: new Date().toISOString().split('T')[0],
-  notes: '',
+  expense_date: new Date().toISOString().split('T')[0],
+  notes: '', receipt_file: null,
 });
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
@@ -80,8 +81,8 @@ const StatCard: React.FC<{ icon: React.ReactNode; label: string; value: string |
   );
 };
 
-const Btn: React.FC<{ children: React.ReactNode; variant?: VariantKey; size?: SizeKey; onClick?: () => void; className?: string; disabled?: boolean }> = ({
-  children, variant = "primary", size = "sm", onClick, className = "", disabled = false,
+const Btn: React.FC<{ children: React.ReactNode; variant?: VariantKey; size?: SizeKey; onClick?: () => void; className?: string; type?: "button" | "submit"; disabled?: boolean }> = ({
+  children, variant = "primary", size = "sm", onClick, className = "", type = "button", disabled = false,
 }) => {
   const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
@@ -91,7 +92,7 @@ const Btn: React.FC<{ children: React.ReactNode; variant?: VariantKey; size?: Si
     ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
   };
   return (
-    <button onClick={onClick} disabled={disabled}
+    <button type={type} onClick={onClick} disabled={disabled}
       className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 ${sizes[size]} ${variants[variant]} ${className}`}>
       {children}
     </button>
@@ -116,35 +117,40 @@ const Field: React.FC<{ label: string; required?: boolean; error?: string; child
 const inputCls = (err?: string) =>
   `w-full text-sm font-medium text-zinc-700 bg-zinc-50 border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all ${err ? 'border-red-300 bg-red-50' : 'border-zinc-200'}`;
 
-
 // ─── Expense Form Modal ───────────────────────────────────────────────────────
 
-const ExpenseFormModal: React.FC<{
+interface ModalProps {
+  editing:  Expense | null;
+  branches: { id: number; name: string }[];
   onClose:  () => void;
   onSaved:  (e: Expense) => void;
-  editing?: Expense | null;
-  branches: Branch[];
-}> = ({ onClose, onSaved, editing, branches }) => {
+}
+
+const ExpenseFormModal: React.FC<ModalProps> = ({ editing, branches, onClose, onSaved }) => {
   const [form,    setForm]    = useState<FormState>(
     editing ? {
       title:        editing.title,
       amount:       editing.amount,
       category:     editing.category,
       branch_id:    editing.branch_id,
-      date:         editing.date?.split('T')[0] ?? '',
+      expense_date: editing.expense_date,
       notes:        editing.notes ?? '',
+      receipt_file: null,
     } : blankForm()
   );
   const [errors,  setErrors]  = useState<Record<string, string>>({});
   const [saving,  setSaving]  = useState(false);
   const [apiErr,  setApiErr]  = useState('');
+  
+  const [preview, setPreview] = useState<string | null>(editing?.receipt_path ?? null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const validate = () => {
     const e: Record<string, string> = {};
     if (!form.title.trim())   e.title       = 'Title is required.';
     if (form.amount === '' || Number(form.amount) <= 0) e.amount = 'Valid amount is required.';
     if (!form.branch_id)      e.branch_id   = 'Branch is required.';
-    if (!form.date)           e.date        = 'Date is required.';
+    if (!form.expense_date)   e.expense_date = 'Date is required.';
     return e;
   };
 
@@ -153,27 +159,57 @@ const ExpenseFormModal: React.FC<{
     if (Object.keys(e).length) { setErrors(e); return; }
     setSaving(true); setApiErr('');
     try {
-      const payload = {
-        title:        form.title,
-        amount:       form.amount,
-        category:     form.category,
-        branch_id:    form.branch_id,
-        date:         form.date,
-        notes:        form.notes,
-      };
+      const fd = new FormData();
+      fd.append('title',        form.title);
+      fd.append('amount',       String(form.amount));
+      fd.append('category',     form.category);
+      fd.append('branch_id',    String(form.branch_id));
+      fd.append('expense_date', form.expense_date);
+      fd.append('notes',        form.notes);
+      if (form.receipt_file) fd.append('receipt', form.receipt_file);
+
+      const config = { headers: { 'Content-Type': 'multipart/form-data' } };
+      
       const res = editing
-        ? await api.put(`/expenses/${editing.id}`, payload)
-        : await api.post('/expenses', payload);
+        ? await api.post(`/expenses/${editing.id}?_method=PUT`, fd, config)
+        : await api.post('/expenses', fd, config);
+        
       onSaved(res.data?.data ?? res.data);
       onClose();
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setApiErr(msg ?? 'Something went wrong.');
+      const error = err as { response?: { data?: { message?: string } } };
+      setApiErr(error.response?.data?.message ?? 'Failed to save expense.');
     } finally { setSaving(false); }
   };
 
+  const processFile = (file: File) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) return;
+    setForm(p => ({ ...p, receipt_file: file }));
+    const reader = new FileReader();
+    reader.onload = () => setPreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processFile(file);
+  };
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault(); setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) processFile(file);
+  };
+
+  const removeFile = (e: React.MouseEvent) => {
+    e.preventDefault(); e.stopPropagation();
+    setForm(p => ({ ...p, receipt_file: null }));
+    setPreview(editing?.receipt_path ?? null);
+  };
+
   return createPortal(
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-zinc-900/40 backdrop-blur-sm transition-all animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-zinc-900/40 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="absolute inset-0" onClick={onClose} />
       <div className="relative bg-white w-full max-w-md border border-zinc-200 rounded-[1.25rem] shadow-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200">
         
@@ -198,7 +234,7 @@ const ExpenseFormModal: React.FC<{
             </div>
           )}
 
-          <Field label="Expense Title" required error={errors.title}>
+          <Field label="Title / Description" required error={errors.title}>
             <input value={form.title} onChange={e => { setForm(p => ({ ...p, title: e.target.value })); setErrors(p => { const n = {...p}; delete n.title; return n; }); }} 
               placeholder="e.g. Electricity Bill, Staff Meal" className={inputCls(errors.title)} />
           </Field>
@@ -227,15 +263,43 @@ const ExpenseFormModal: React.FC<{
                 {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
             </Field>
-            <Field label="Date" required error={errors.date}>
-              <input type="date" value={form.date} onChange={e => { setForm(p => ({...p, date: e.target.value})); setErrors(p => { const n = {...p}; delete n.date; return n; }); }} 
-                className={`${inputCls(errors.date)} font-bold`} />
+            <Field label="Date" required error={errors.expense_date}>
+              <input type="date" value={form.expense_date} onChange={e => { setForm(p => ({...p, expense_date: e.target.value})); setErrors(p => { const n = {...p}; delete n.expense_date; return n; }); }} 
+                className={`${inputCls(errors.expense_date)} font-bold`} />
             </Field>
           </div>
 
-          <Field label="Additional Notes">
-            <textarea value={form.notes} onChange={e => setForm(p => ({...p, notes: e.target.value}))} rows={4}
-              className={`${inputCls()} resize-none leading-relaxed`} placeholder="Brief description or context..." />
+          <Field label="Notes">
+            <textarea value={form.notes} onChange={e => setForm(p => ({...p, notes: e.target.value}))} rows={2}
+              className={`${inputCls()} resize-none`} placeholder="Additional details..." />
+          </Field>
+
+          <Field label="Receipt Attachment">
+            <label
+              onDragOver={e => { e.preventDefault(); setIsDragging(true); }}
+              onDragLeave={() => setIsDragging(false)}
+              onDrop={onDrop}
+              className={`relative flex flex-col items-center justify-center gap-2 w-full h-32 border-2 border-dashed rounded-xl transition-all cursor-pointer overflow-hidden
+                ${isDragging ? 'border-violet-400 bg-violet-50 scale-[0.99]' : 'border-zinc-200 bg-zinc-50 hover:bg-zinc-100 hover:border-zinc-300'}`}
+            >
+              {preview ? (
+                <>
+                  <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <button onClick={removeFile} className="bg-white/20 hover:bg-white/40 backdrop-blur-md p-2 rounded-full text-white">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center text-zinc-400">
+                  <FileImage size={24} className="mb-1" />
+                  <p className="text-[10px] font-bold uppercase tracking-widest">Drop receipt or click</p>
+                  <p className="text-[8px] mt-0.5">JPG, PNG up to 2MB</p>
+                </div>
+              )}
+              <input type="file" accept="image/jpeg,image/png" onChange={handleFile} className="hidden" />
+            </label>
           </Field>
         </div>
 
@@ -253,21 +317,22 @@ const ExpenseFormModal: React.FC<{
   );
 };
 
-// ─── Delete Modal ─────────────────────────────────────────────────────────────
+// ─── Delete Confirmation Modal ────────────────────────────────────────────────
 
-const DeleteModal: React.FC<{
-  expense:   Expense;
-  onClose:   () => void;
-  onDeleted: (id: number) => void;
-}> = ({ expense, onClose, onDeleted }) => {
+const DeleteModal: React.FC<{ expense: Expense; onClose: () => void; onDeleted: () => void }> = ({ expense, onClose, onDeleted }) => {
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState('');
 
   const handleDelete = async () => {
-    setSaving(true);
-    try { await api.delete(`/expenses/${expense.id}`); onDeleted(expense.id); onClose(); }
-    catch (e: unknown) { setError((e as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to delete.'); }
-    finally { setSaving(false); }
+    setSaving(true); setError('');
+    try {
+      await api.delete(`/expenses/${expense.id}`);
+      onDeleted();
+      onClose();
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message ?? 'Failed to delete record.');
+    } finally { setSaving(false); }
   };
 
   return createPortal(
@@ -301,7 +366,7 @@ const DeleteModal: React.FC<{
 const ExpensesTab: React.FC = () => {
   const now = useMemo(() => new Date(), []);
   const [expenses,     setExpenses]     = useState<Expense[]>([]);
-  const [branches,     setBranches]     = useState<Branch[]>([]);
+  const [branches,     setBranches]     = useState<{ id: number; name: string }[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [search,       setSearch]       = useState('');
   const [catFilter,    setCatFilter]    = useState('');
@@ -311,6 +376,8 @@ const ExpensesTab: React.FC = () => {
   const [exporting,    setExporting]    = useState(false);
   const [sortKey,      setSortKey]      = useState<SortKey>('date');
   const [sortDir,      setSortDir]      = useState<SortDir>('desc');
+  
+  const [summary,      setSummary]      = useState({ total_expense: 0, total_sales: 0, count: 0 });
 
   const [addOpen,     setAddOpen]     = useState(false);
   const [editTarget,  setEditTarget]  = useState<Expense | null>(null);
@@ -325,22 +392,40 @@ const ExpensesTab: React.FC = () => {
           category:   catFilter    || undefined,
           from:       dateFrom     || undefined,
           to:         dateTo       || undefined,
+          search:     search       || undefined,
         }}),
         api.get('/branches'),
       ]);
-      if (expRes.status === 'fulfilled')    { const d = expRes.value.data; setExpenses(Array.isArray(d) ? d : d.expenses?.data ?? d.expenses ?? []); }
-      if (branchRes.status === 'fulfilled') { const d = branchRes.value.data; setBranches(Array.isArray(d) ? d : d.data ?? []); }
-    } catch (e) { console.error(e); }
-    finally { setLoading(false); }
-  }, [branchFilter, catFilter, dateFrom, dateTo]);
+      
+      if (expRes.status === 'fulfilled') {
+        setExpenses(expRes.value.data.data ?? []);
+        setSummary(expRes.value.data.summary ?? { total_expense: 0, total_sales: 0, count: 0 });
+      }
+      if (branchRes.status === 'fulfilled') {
+        const d = branchRes.value.data;
+        setBranches(Array.isArray(d) ? d : d.data ?? []);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  }, [branchFilter, catFilter, dateFrom, dateTo, search]);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    fetchAll();
+  }, [fetchAll]);
 
   const handleExport = async () => {
     setExporting(true);
     try {
       const res = await api.get('/expenses/export', {
-        params: { branch_id: branchFilter || undefined, category: catFilter || undefined, from: dateFrom || undefined, to: dateTo || undefined },
+        params: { 
+          branch_id: branchFilter || undefined, 
+          category: catFilter || undefined, 
+          from: dateFrom || undefined, 
+          to: dateTo || undefined 
+        },
         responseType: 'blob',
       });
       const url  = URL.createObjectURL(res.data);
@@ -355,22 +440,17 @@ const ExpensesTab: React.FC = () => {
   const resolveBranch = useCallback((exp: Expense) => exp.branch?.name ?? branches.find(b => b.id === exp.branch_id)?.name ?? '—', [branches]);
 
   const filtered = useMemo(() => {
-    const list = expenses.filter(e => e.title.toLowerCase().includes(search.toLowerCase()) || resolveBranch(e).toLowerCase().includes(search.toLowerCase()));
-    return [...list].sort((a, b) => {
+    // Backend now does search/filter, but frontend still handles sorting
+    return [...expenses].sort((a, b) => {
       let av: string | number = a[sortKey as keyof Expense] as string | number ?? '';
       let bv: string | number = b[sortKey as keyof Expense] as string | number ?? '';
       if (sortKey === 'branch_name') { av = resolveBranch(a); bv = resolveBranch(b); }
+      if (sortKey === 'date') { av = a.expense_date; bv = b.expense_date; }
+      
       if (typeof av === 'string' && typeof bv === 'string') return sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
       return sortDir === 'asc' ? Number(av) - Number(bv) : Number(bv) - Number(av);
     });
-  }, [expenses, search, sortKey, sortDir, resolveBranch]);
-
-  const totalThisMonth = useMemo(() => {
-    const start = new Date(now.getFullYear(), now.getMonth(), 1);
-    return expenses.filter(e => new Date(e.date) >= start).reduce((s, e) => s + Number(e.amount), 0);
-  }, [expenses, now]);
-
-  const totalFiltered = useMemo(() => filtered.reduce((s, e) => s + Number(e.amount), 0), [filtered]);
+  }, [expenses, sortKey, sortDir, resolveBranch]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -387,7 +467,7 @@ const ExpensesTab: React.FC = () => {
   );
 
   return (
-    <div className="p-6 md:p-8 fade-in flex flex-col gap-6">
+    <div className="p-6 md:p-8 flex flex-col gap-6 bg-zinc-50 min-h-full">
       
       {/* ── Header ── */}
       <div className="flex items-center justify-between flex-wrap gap-4">
@@ -443,9 +523,6 @@ const ExpensesTab: React.FC = () => {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Btn onClick={fetchAll} disabled={loading} className="px-5">
-            {loading ? <RefreshCw size={12} className="animate-spin" /> : "Apply"}
-          </Btn>
           {(branchFilter || catFilter || dateFrom || dateTo) && (
             <Btn variant="ghost" onClick={() => { setBranchFilter(''); setCatFilter(''); setDateFrom(''); setDateTo(''); }} className="text-red-500 hover:bg-red-50">
               <X size={14} /> Clear
@@ -456,10 +533,10 @@ const ExpensesTab: React.FC = () => {
 
       {/* ── Stats ── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-        <StatCard icon={<Wallet size={18} />} label="Total Current Filter" value={`₱${totalFiltered.toLocaleString(undefined, { minimumFractionDigits: 0 })}`} color="violet" />
-        <StatCard icon={<TrendingDown size={18} />} label="Spend This Month" value={`₱${totalThisMonth.toLocaleString(undefined, { minimumFractionDigits: 0 })}`} color="amber" 
-          sub={`${new Intl.DateTimeFormat('en', { month: 'long' }).format(now)} ${now.getFullYear()}`} />
-        <StatCard icon={<Package size={18} />} label="Records Count" value={loading ? "—" : filtered.length.toLocaleString()} color="emerald" sub="Total expenses in set range" />
+        <StatCard icon={<Wallet size={18} />} label="Total Expense Range" value={`₱${summary.total_expense.toLocaleString(undefined, { minimumFractionDigits: 0 })}`} color="violet" />
+        <StatCard icon={<TrendingDown size={18} />} label="Total Sales Range" value={`₱${summary.total_sales.toLocaleString(undefined, { minimumFractionDigits: 0 })}`} color="amber" 
+          sub="Scope comparison" />
+        <StatCard icon={<Package size={18} />} label="Records Count" value={loading ? "—" : summary.count.toLocaleString()} color="emerald" sub="Total expenses in set range" />
       </div>
 
       {/* ── Table ── */}
@@ -467,10 +544,10 @@ const ExpensesTab: React.FC = () => {
         <div className="flex items-center gap-4 px-6 py-4 border-b border-zinc-100 flex-wrap">
           <div className="flex-1 min-w-[240px] flex items-center gap-2.5 bg-zinc-50 border border-zinc-200 rounded-lg px-3.5 py-2.5 focus-within:ring-2 focus-within:ring-violet-200 transition-all">
             <Search size={15} className="text-zinc-400 shrink-0" />
-            <input value={search} onChange={e => setSearch(e.target.value)} className="flex-1 bg-transparent text-sm font-medium text-zinc-700 outline-none placeholder:text-zinc-400" placeholder="Search title, description or branch..." />
+            <input value={search} onChange={e => setSearch(e.target.value)} className="flex-1 bg-transparent text-sm font-medium text-zinc-700 outline-none placeholder:text-zinc-400" placeholder="Search title or reference #" />
             {search && <button onClick={() => setSearch('')} className="text-zinc-300 hover:text-zinc-500"><X size={14} /></button>}
           </div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 shrink-0">{filtered.length} entries founded</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-zinc-400 shrink-0">{filtered.length} entries shown</p>
         </div>
 
         <div className="overflow-x-auto">
@@ -483,25 +560,27 @@ const ExpensesTab: React.FC = () => {
                 <SortTh col="branch_name" label="Branch" />
                 <SortTh col="amount" label="Amount" />
                 <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">Recorded By</th>
+                <th className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">Proof</th>
                 <th className="px-6 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-zinc-400">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-50">
               {loading ? [...Array(6)].map((_, i) => (
-                <tr key={i}><td colSpan={7} className="px-6 py-4"><div className="h-4 bg-zinc-100 rounded animate-pulse w-full max-w-[200px]" /></td></tr>
+                <tr key={i}><td colSpan={8} className="px-6 py-4"><div className="h-4 bg-zinc-100 rounded animate-pulse w-full max-w-[200px]" /></td></tr>
               )) : filtered.length === 0 ? (
-                <tr><td colSpan={7} className="py-20 text-center text-zinc-400 font-bold uppercase tracking-tighter italic">No records matches your criteria.</td></tr>
+                <tr><td colSpan={8} className="py-20 text-center text-zinc-400 font-bold uppercase tracking-tighter italic">No records matches your criteria.</td></tr>
               ) : filtered.map(exp => (
                 <tr key={exp.id} className="hover:bg-zinc-50 transition-colors group">
                   <td className="px-5 py-4 pl-6">
                     <div className="flex items-center gap-2">
                       <Calendar size={12} className="text-zinc-400 group-hover:text-violet-500 transition-colors" />
-                      <span className="text-xs font-bold text-zinc-600 tabular-nums">{new Date(exp.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric'})}</span>
+                      <span className="text-xs font-bold text-zinc-600 tabular-nums">{new Date(exp.expense_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric'})}</span>
                     </div>
                   </td>
                   <td className="px-5 py-4 overflow-hidden">
                     <p className="font-black text-[#1a0f2e] text-xs truncate max-w-[200px]">{exp.title}</p>
                     {exp.notes && <p className="text-[10px] font-bold text-zinc-400 truncate max-w-[180px] mt-0.5 italic">{exp.notes}</p>}
+                    {exp.ref_num && <p className="text-[9px] font-mono text-zinc-300 mt-0.5">#{exp.ref_num}</p>}
                   </td>
                   <td className="px-5 py-4">
                     <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest bg-zinc-100 text-zinc-600 border border-zinc-200">
@@ -520,8 +599,15 @@ const ExpensesTab: React.FC = () => {
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-2">
                        <User size={12} className="text-zinc-400" />
-                       <span className="text-xs font-bold text-zinc-600">{exp.recorder?.name ?? 'SuperAdmin'}</span>
+                       <span className="text-xs font-bold text-zinc-600">{exp.recorded_by ?? 'N/A'}</span>
                     </div>
+                  </td>
+                  <td className="px-5 py-4">
+                    {exp.receipt_path ? (
+                      <a href={exp.receipt_path} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[#3b2063] hover:underline">
+                        <FileImage size={12} /> View
+                      </a>
+                    ) : <span className="text-[10px] text-zinc-300 font-bold uppercase italic">No Proof</span>}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -536,9 +622,11 @@ const ExpensesTab: React.FC = () => {
         </div>
       </div>
 
-      {addOpen    && <ExpenseFormModal onClose={() => setAddOpen(false)}   onSaved={e => setExpenses(p => [e, ...p])} branches={branches} />}
-      {editTarget && <ExpenseFormModal onClose={() => setEditTarget(null)} onSaved={e => { setExpenses(p => p.map(x => x.id === e.id ? e : x)); setEditTarget(null); }} editing={editTarget} branches={branches} />}
-      {delTarget  && <DeleteModal expense={delTarget} onClose={() => setDelTarget(null)} onDeleted={id => { setExpenses(p => p.filter(x => x.id !== id)); setDelTarget(null); }} />}
+      {/* Modals */}
+      {addOpen && <ExpenseFormModal branches={branches} onClose={() => setAddOpen(false)} onSaved={fetchAll} editing={null} />}
+      {editTarget && <ExpenseFormModal branches={branches} onClose={() => setEditTarget(null)} onSaved={fetchAll} editing={editTarget} />}
+      {delTarget && <DeleteModal expense={delTarget} onClose={() => setDelTarget(null)} onDeleted={fetchAll} />}
+    
     </div>
   );
 };

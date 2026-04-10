@@ -201,8 +201,8 @@ class SalesDashboardController extends Controller
 
             $todayStart = $now->copy()->startOfDay();
             $todayEnd   = $now->copy()->endOfDay();
-            $weekStart  = $now->copy()->startOfWeek(\Carbon\CarbonInterface::MONDAY)->startOfDay();
-            $weekEnd    = $now->copy()->endOfWeek(\Carbon\CarbonInterface::SUNDAY)->endOfDay();
+            $weekStart  = $now->copy()->startOfWeek(1)->startOfDay(); // 1 = Monday
+            $weekEnd    = $now->copy()->endOfWeek(0)->endOfDay();   // 0 = Sunday
             $monthStart = $now->copy()->startOfMonth()->startOfDay();
             $monthEnd   = $now->copy()->endOfMonth()->endOfDay();
 
@@ -227,7 +227,8 @@ class SalesDashboardController extends Controller
                     ->whereBetween('created_at', [$from, $to])
                     ->where('status', 'completed')
                     ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-                    ->sum('total_amount');
+                    ->selectRaw('SUM(total_amount) as total')
+                    ->value('total');
 
                 $orders = (int) DB::table('sales')
                     ->whereBetween('created_at', [$from, $to])
@@ -518,8 +519,14 @@ class SalesDashboardController extends Controller
   <p class="b">SALES SUMMARY</p>
   <div class="r"><span>Gross Sales</span><span>{$fmt($data['gross_sales'])}</span></div>
   <div class="r"><span>  Less: Discounts</span><span>({$fmt($data['total_discounts'])})</span></div>
-  <div class="r"><span>  Less: Voids</span><span>({$fmt($data['total_void_amount'])})</span></div>
-  <div class="r rt"><span>Net Sales</span><span>{$fmt($data['net_sales'])}</span></div>
+  <div class="r rt">
+      <span>NET SALES</span>
+      <span>{$fmt($data['net_sales'])}</span>
+  </div>
+  <div style="display: flex; justify-content: space-between; font-size: 8px; color: #666; font-weight: normal; margin-top: -2px;">
+      <span>(VATable + VAT-Exempt - Voids)</span>
+      <span></span>
+  </div>
   <hr>
   <p class="b">VAT BREAKDOWN</p>
   <div class="r"><span>Vatable Sales</span><span>{$fmt($data['vatable_sales'])}</span></div>
@@ -556,7 +563,7 @@ class SalesDashboardController extends Controller
   <p class="c" style="margin-top:12px;font-size:10px">
     This document serves as your official Z Reading.<br>Printed: {$genAt}
   </p>
-  <script>window.onload = () => window.print();</script>
+  <script>window.onload = () => window.print();</script> 
 </body>
 </html>
 HTML;
