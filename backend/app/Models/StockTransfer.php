@@ -4,6 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
+/**
+ * @property int $id
+ * @property string $transfer_number
+ * @property int $from_branch_id
+ * @property int $to_branch_id
+ * @property string $transfer_date
+ * @property string $status
+ * @property string|null $notes
+ */
 class StockTransfer extends Model
 {
     protected $fillable = [
