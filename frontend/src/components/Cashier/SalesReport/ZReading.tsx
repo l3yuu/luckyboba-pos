@@ -487,6 +487,7 @@ const ZReading = () => {
             return { ...group, sizeMap, total: 0 };
           });
 
+          let otherTotal = 0;
           let hasAnyCups = false;
           let grandTotalCups = 0;
 
@@ -499,7 +500,15 @@ const ZReading = () => {
                    group.total += product.total_qty;
                    grandTotalCups += product.total_qty;
                    hasAnyCups = true;
+                 } else {
+                   otherTotal += product.total_qty;
+                   grandTotalCups += product.total_qty;
+                   hasAnyCups = true;
                  }
+              } else {
+                 otherTotal += product.total_qty;
+                 grandTotalCups += product.total_qty;
+                 hasAnyCups = true;
               }
             });
           });
@@ -534,6 +543,22 @@ const ZReading = () => {
                   </div>
                 );
               })}
+              {otherTotal > 0 && (
+                <div key="other" className="mb-1.5">
+                  <div className="flex text-[11px] font-bold border-b border-black pb-0.5 mb-0.5">
+                    <span className="w-[75%] uppercase">Other / No Size</span>
+                    <span className="w-[25%] text-right uppercase">QTY</span>
+                  </div>
+                  <div className="flex text-[11px] leading-snug">
+                    <span className="w-[75%] uppercase pl-2">BUNDLES / EXTRAS</span>
+                    <span className="w-[25%] text-right">{otherTotal}</span>
+                  </div>
+                  <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-400 mt-0.5 pt-0.5">
+                     <span className="uppercase">TOTAL (Other)</span>
+                     <span>{otherTotal}</span>
+                  </div>
+                </div>
+              )}
               <Divider />
               <div className="flex justify-between text-[11px] font-bold mt-0.5 pt-0.5">
                 <span className="uppercase">TOTAL CUPS</span>

@@ -337,9 +337,10 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
                 return (
                   <div key={si}>
                     {hasSizes && sizeKey !== null && <p className="text-[11px] uppercase pl-2">{sizeKey}:</p>}
+                    {hasSizes && sizeKey === null && products.length > 0 && <p className="text-[11px] uppercase pl-2 mt-1">NO SIZE / BUNDLES:</p>}
                     {products.map((item, i) => (
                       <div key={i} className="flex text-[11px] leading-snug">
-                        <span className={`w-[75%] uppercase leading-tight ${hasSizes && sizeKey !== null ? 'pl-4' : 'pl-2'}`}>{item.product_name}{item.size ? ` (${item.size})` : ''}</span>
+                        <span className={`w-[75%] uppercase leading-tight ${hasSizes ? 'pl-4' : 'pl-2'}`}>{item.product_name}{item.size ? ` (${item.size})` : ''}</span>
                         <span className="w-[25%] text-right">{item.total_qty}</span>
                       </div>
                     ))}
@@ -372,6 +373,7 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
             return { ...group, sizeMap, total: 0 };
           });
 
+          let otherTotal = 0;
           let hasAnyCups = false;
           let grandTotalCups = 0;
 
@@ -384,7 +386,15 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
                    group.total += product.total_qty;
                    grandTotalCups += product.total_qty;
                    hasAnyCups = true;
+                 } else {
+                   otherTotal += product.total_qty;
+                   grandTotalCups += product.total_qty;
+                   hasAnyCups = true;
                  }
+              } else {
+                 otherTotal += product.total_qty;
+                 grandTotalCups += product.total_qty;
+                 hasAnyCups = true;
               }
             });
           });
@@ -419,6 +429,22 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
                   </div>
                 );
               })}
+              {otherTotal > 0 && (
+                <div key="other" className="mb-1.5">
+                  <div className="flex text-[11px] font-bold border-b border-black pb-0.5 mb-0.5">
+                    <span className="w-[75%] uppercase">Other / No Size</span>
+                    <span className="w-[25%] text-right uppercase">QTY</span>
+                  </div>
+                  <div className="flex text-[11px] leading-snug">
+                    <span className="w-[75%] uppercase pl-2">BUNDLES / EXTRAS</span>
+                    <span className="w-[25%] text-right">{otherTotal}</span>
+                  </div>
+                  <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-400 mt-0.5 pt-0.5">
+                     <span className="uppercase">TOTAL (Other)</span>
+                     <span>{otherTotal}</span>
+                  </div>
+                </div>
+              )}
               <Divider />
               <div className="flex justify-between text-[11px] font-bold mt-0.5 pt-0.5">
                 <span className="uppercase">TOTAL CUPS</span>
