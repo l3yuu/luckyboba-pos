@@ -95,6 +95,7 @@ const TeamLeaderDashboard = () => {
             roleLabel="Team Leader"
             branchLabel={branchLabel}
             onMenuClick={() => setSidebarOpen(true)}
+            onNavigate={setActiveTab}
           />
 
           <div className="flex-1 overflow-auto bg-[#f1f5f9]/20">

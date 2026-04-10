@@ -163,7 +163,7 @@ class CashCountController extends Controller
         }
 
         $isEodDone = CashCount::where('user_id', $request->user()->id)
-            ->whereDate('created_at', now()->toDateString())
+            ->whereRaw('DATE(created_at) = ?', [now()->toDateString()])
             ->exists();
 
         return response()->json(['isEodDone' => $isEodDone]);
@@ -183,7 +183,7 @@ class CashCountController extends Controller
             // ✅ Check by branch_id, not user_id — shared cash-in unlocks the whole branch
             $hasCashedIn = CashTransaction::where('branch_id', $branchId)
                 ->where('type', 'cash_in')
-                ->whereDate('created_at', now()->toDateString())
+                ->whereRaw('DATE(created_at) = ?', [now()->toDateString()])
                 ->exists();
 
             return response()->json(['hasCashedIn' => $hasCashedIn]);
@@ -200,7 +200,7 @@ class CashCountController extends Controller
         $branchId = $request->query('branch_id');
         $date     = $request->query('date', now()->toDateString());
 
-        $query = CashCount::whereDate('created_at', $date);
+        $query = CashCount::whereRaw('DATE(created_at) = ?', [$date]);
 
         if ($branchId) {
             $query->where('branch_id', $branchId);
@@ -210,12 +210,12 @@ class CashCountController extends Controller
         $cashCount = $query->latest()->first();
 
         // Also aggregate cash_in and cash_drop for that date/branch
-        $cashIn = CashTransaction::whereDate('created_at', $date)
+        $cashIn = CashTransaction::whereRaw('DATE(created_at) = ?', [$date])
             ->where('type', 'cash_in')
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->sum('amount');
 
-        $cashDrop = CashTransaction::whereDate('created_at', $date)
+        $cashDrop = CashTransaction::whereRaw('DATE(created_at) = ?', [$date])
             ->whereIn('type', ['cash_drop', 'cash_out'])
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->sum('amount');
