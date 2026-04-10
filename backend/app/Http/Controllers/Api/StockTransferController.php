@@ -18,7 +18,7 @@ class StockTransferController extends Controller
         $transfers = StockTransfer::with(['fromBranch', 'toBranch', 'items.rawMaterial'])
             ->latest()
             ->get()
-            ->map(fn($t) => $this->format($t));
+            ->map(fn(StockTransfer $t) => $this->format($t));
 
         return response()->json($transfers);
     }

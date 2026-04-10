@@ -100,25 +100,10 @@ class SalesController extends Controller
 
             // ── Determine order-level charge type ─────────────────────────────
             $paymentMethod = $request->input('payment_method', 'cash');
-
-            $chargeType = match(true) {
-                in_array($paymentMethod, ['grab', 'food_panda']) => $paymentMethod,
-                default => (function() use ($validated) {
-                    foreach ($validated['items'] as $item) {
-                        if (!empty($item['charges']['grab']))  return 'grab';
-                        if (!empty($item['charges']['panda'])) return 'panda';
-                    }
-                    return null;
-                })(),
-            };
+            $chargeType    = $this->resolveChargeType($validated['items'], $paymentMethod);
 
             // ── Resolve effective discount_id ──────────────────────────────────
-            $effectiveDiscountId = $request->input('discount_id');
-            $paxIds              = array_filter(explode(',', $request->input('pax_discount_ids', '')));
-
-            if (!$effectiveDiscountId && count($paxIds) === 1) {
-                $effectiveDiscountId = (int) $paxIds[0];
-            }
+            $effectiveDiscountId = $this->resolveEffectiveDiscountId($request);
 
             // ── Use frontend pre-calculated split amounts ──────────────────────
             $scDiscountAmount       = (float) $request->input('sc_discount_amount',       0);
@@ -238,15 +223,7 @@ class SalesController extends Controller
             $sale->update(['total_amount' => $finalTotal]);
 
             // ── Recompute VAT from final total (BIR-compliant, server-side) ───
-            $scPwdTotal   = $scDiscountAmount + $pwdDiscountAmount;
-            $vatableGross = $finalTotal - $scPwdTotal;               // amount subject to VAT
-            $vatableSales = $isVat ? round($vatableGross / 1.12, 2) : 0;
-            $vatAmount    = $isVat ? round($vatableGross - $vatableSales, 2) : 0;
-
-            $sale->update([
-                'vatable_sales' => $vatableSales,
-                'vat_amount'    => $vatAmount,
-            ]);
+            $this->recalculateVat($sale, $finalTotal, $isVat, $scDiscountAmount, $pwdDiscountAmount);
 
             // ── 4. Create Receipt ──────────────────────────────────────────────
             Receipt::create([
@@ -273,30 +250,7 @@ class SalesController extends Controller
             DB::commit();
 
             // ── 6. Increment discount used_count ──────────────────────────────
-            if ($effectiveDiscountId) {
-                \App\Models\Discount::where('id', $effectiveDiscountId)
-                    ->increment('used_count');
-            }
-
-            if ($request->input('pax_discount_ids')) {
-                $allPaxIds = array_filter(explode(',', $request->input('pax_discount_ids')));
-                foreach ($allPaxIds as $paxId) {
-                    if ((int) $paxId !== (int) $effectiveDiscountId) {
-                        \App\Models\Discount::where('id', (int) $paxId)
-                            ->increment('used_count');
-                    }
-                }
-            }
-
-            $itemDiscountIds = collect($validated['items'])
-                ->pluck('discount_id')
-                ->filter()
-                ->unique();
-
-            foreach ($itemDiscountIds as $discountId) {
-                \App\Models\Discount::where('id', $discountId)
-                    ->increment('used_count');
-            }
+            $this->incrementDiscountUsage($sale, $validated['items']);
 
             $this->dashboardService->clearTodayCache($sale->branch_id);
 
@@ -313,6 +267,79 @@ class SalesController extends Controller
             DB::rollBack();
             Log::error('Sale creation failed: ' . $e->getMessage());
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    // ── Private Helpers ───────────────────────────────────────────────────────
+
+    private function resolveChargeType(array $items, string $paymentMethod): ?string
+    {
+        if (in_array($paymentMethod, ['grab', 'food_panda'])) {
+            return $paymentMethod;
+        }
+
+        foreach ($items as $item) {
+            if (!empty($item['charges']['grab']))  return 'grab';
+            if (!empty($item['charges']['panda'])) return 'panda';
+        }
+
+        return null;
+    }
+
+    private function resolveEffectiveDiscountId(Request $request): ?int
+    {
+        $id = $request->input('discount_id');
+        if ($id) return (int) $id;
+
+        $paxIds = array_filter(explode(',', $request->input('pax_discount_ids', '')));
+        if (count($paxIds) === 1) {
+            return (int) $paxIds[0];
+        }
+
+        return null;
+    }
+
+    private function recalculateVat(Sale $sale, float $finalTotal, bool $isVat, float $scDiscount, float $pwdDiscount): void
+    {
+        $scPwdTotal   = $scDiscount + $pwdDiscount;
+        $vatableGross = $finalTotal - $scPwdTotal; // amount subject to VAT
+        $vatableSales = $isVat ? round($vatableGross / 1.12, 2) : 0;
+        $vatAmount    = $isVat ? round($vatableGross - $vatableSales, 2) : 0;
+
+        $sale->update([
+            'vatable_sales' => $vatableSales,
+            'vat_amount'    => $vatAmount,
+        ]);
+    }
+
+    private function incrementDiscountUsage(Sale $sale, array $items): void
+    {
+        $discountIds = collect();
+
+        // Header level
+        if ($sale->discount_id) {
+            $discountIds->push($sale->discount_id);
+        }
+
+        // Pax discounts
+        if ($sale->pax_discount_ids) {
+            $paxIds = array_filter(explode(',', $sale->pax_discount_ids));
+            foreach ($paxIds as $id) {
+                $discountIds->push((int) $id);
+            }
+        }
+
+        // Item level
+        foreach ($items as $item) {
+            if (!empty($item['discount_id'])) {
+                $discountIds->push((int) $item['discount_id']);
+            }
+        }
+
+        $uniqueIds = $discountIds->filter()->unique();
+
+        if ($uniqueIds->isNotEmpty()) {
+            \App\Models\Discount::whereIn('id', $uniqueIds)->increment('used_count');
         }
     }
 
@@ -339,7 +366,10 @@ class SalesController extends Controller
 
             $sale = Sale::with('items')->findOrFail($id);
             $user = $request->user();
-if ($user->role === 'supervisor' && $sale->branch_id !== $user->branch_id)
+            if ($user->role === 'supervisor' && $sale->branch_id !== $user->branch_id) {
+                return response()->json(['message' => 'Unauthorized — Supervisor can only void sales from their own branch.'], 403);
+            }
+
             if ($sale->status === 'cancelled') {
                 return response()->json(['message' => 'Sale already cancelled'], 400);
             }
