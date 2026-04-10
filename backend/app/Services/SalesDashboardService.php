@@ -675,8 +675,6 @@ $zCounter = (int) ZReading::where('reading_date', '<=', $start->toDateString())
             ->where('sale_items.discount_label', 'NOT LIKE', '%SENIOR%')
             ->where('sale_items.discount_label', 'NOT LIKE', '%PWD%')
             ->where('sale_items.discount_label', 'NOT LIKE', '%DIPLOMAT%')
-            ->where('sale_items.discount_label', 'NOT LIKE', '%FREE%')
-            ->where('sale_items.discount_label', 'NOT LIKE', '%FREE ITEM%')
             ->whereNotNull('sale_items.discount_label')
             ->where('sale_items.discount_label', '!=', '')
             ->sum('sale_items.discount_amount');
