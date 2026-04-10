@@ -238,6 +238,22 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/app-init',        [DashboardController::class, 'init']);
         Route::get('/sales-analytics', [SalesDashboardController::class, 'index']);
 
+        // ── Dashboard & POS Read Endpoints ────────────────────────────────────
+        Route::get('/cash-counts/status',      [CashCountController::class, 'checkEodStatus']);
+        Route::post('/cash-counts',            [CashCountController::class, 'store']);
+        Route::post('/cash-in',                [CashCountController::class, 'storeCashIn']);
+        Route::get('/cash-transactions/status',[CashCountController::class, 'checkInitialCash']);
+        
+        Route::get('/payment-settings',        [SettingsController::class, 'index']);
+        Route::get('/receipts/next-sequence',  [ReceiptController::class, 'getNextSequence']);
+        Route::get('/branches/{id}',           [BranchController::class, 'show']);
+        
+        Route::get('/menu',                    [MenuController::class, 'index']);
+        Route::get('/bundles',                 [BundleController::class, 'index']);
+        Route::get('/sugar-levels',            [SugarLevelController::class, 'index']);
+        Route::get('/add-ons',                 [AddOnController::class, 'index']);
+        Route::get('/notifications/summary',   [NotificationController::class, 'summary']);
+
         Route::prefix('sales')->group(function () {
             Route::get   ('/',           [SalesController::class, 'index']);
             Route::post  ('/',           [SalesController::class, 'store']);
