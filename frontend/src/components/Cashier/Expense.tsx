@@ -13,7 +13,8 @@ interface ExpenseItem {
   id?: number;
   refNum: string;
   date: string;
-  description: string;
+  title: string;
+  notes: string;
   category: string;
   amount: number;
 }
@@ -22,7 +23,8 @@ interface RawExpenseData {
   id: number;
   ref_num: string;
   date: string;
-  description: string | null;
+  title: string | null;
+  notes: string | null;
   category: string;
   amount: string | number;
 }
@@ -50,9 +52,9 @@ const Expense = () => {
   const [isFetching, setIsFetching] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [newExpense, setNewExpense] = useState({
-    refNum: '', description: '',
+    refNum: '', title: '', notes: '',
     date: new Date().toISOString().split('T')[0],
-    category: 'Bills', amount: ''
+    category: 'Utilities', amount: ''
   });
 
   const getCacheKey = useCallback(() =>
@@ -73,9 +75,10 @@ const Expense = () => {
       const response = await api.get('/expenses', {
         params: { from: fromDate, to: toDate, ref: refNumSearch, category: categoryFilter !== 'ALL' ? categoryFilter : undefined }
       });
-      const mapped: ExpenseItem[] = response.data.expenses.map((e: RawExpenseData) => ({
+      const data = response.data.expenses?.data ?? response.data.expenses;
+      const mapped: ExpenseItem[] = data.map((e: RawExpenseData) => ({
         id: e.id, refNum: e.ref_num, date: e.date,
-        description: e.description || '', category: e.category,
+        title: e.title || '', notes: e.notes || '', category: e.category,
         amount: typeof e.amount === 'string' ? parseFloat(e.amount) : e.amount
       }));
       setCache(cacheKey, { expenses: mapped, summary: response.data.summary });
@@ -99,13 +102,16 @@ const Expense = () => {
     setIsSubmitting(true);
     try {
       await api.post('/expenses', {
-        refNum: newExpense.refNum, description: newExpense.description,
-        date: newExpense.date, category: newExpense.category,
+        refNum: newExpense.refNum, 
+        title: newExpense.title,
+        notes: newExpense.notes,
+        date: newExpense.date, 
+        category: newExpense.category,
         amount: parseFloat(newExpense.amount)
       });
       showToast("Expense recorded!", "success");
       setIsAddModalOpen(false);
-      setNewExpense({ refNum: '', description: '', date: new Date().toISOString().split('T')[0], category: 'Bills', amount: '' });
+      setNewExpense({ refNum: '', title: '', notes: '', date: new Date().toISOString().split('T')[0], category: 'Utilities', amount: '' });
       for (const key of Object.keys(sessionStorage)) {
         if (key.startsWith('expense|')) clearCache(key);
       }
@@ -156,10 +162,10 @@ const Expense = () => {
               <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}
                 className="w-full px-4 py-3 rounded-[0.625rem] border border-zinc-200 bg-[#f5f0ff] text-sm font-semibold outline-none focus:border-[#3b2063] transition-colors cursor-pointer">
                 <option value="ALL">All Categories</option>
-                <option value="Bills">Bills</option>
-                <option value="Salary">Salary</option>
+                <option value="Utilities">Utilities</option>
                 <option value="Rent">Rent</option>
-                <option value="Inventory Purchase">Inventory Purchase</option>
+                <option value="Salaries">Salaries</option>
+                <option value="Supplies">Supplies</option>
                 <option value="Miscellaneous">Miscellaneous</option>
               </select>
             </div>
@@ -224,7 +230,8 @@ const Expense = () => {
                         <span className="text-[12px] font-semibold text-zinc-500">{item.date}</span>
                       </td>
                       <td className="px-7 py-3.5">
-                        <span className="text-[13px] font-extrabold text-[#3b2063]">{item.description || '-'}</span>
+                        <p className="text-[13px] font-extrabold text-[#3b2063]">{item.title || '-'}</p>
+                        {item.notes && <p className="text-[10px] text-zinc-400 truncate max-w-xs">{item.notes}</p>}
                       </td>
                       <td className="px-7 py-3.5">
                         <span className="text-[12px] font-semibold text-zinc-500 uppercase">{item.category}</span>
@@ -278,10 +285,16 @@ const Expense = () => {
                   value={newExpense.refNum} onChange={(e) => setNewExpense({ ...newExpense, refNum: e.target.value })} />
               </div>
               <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Description</label>
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Expense Title</label>
+                <input type="text" placeholder="e.g. Utility Bill"
+                  className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] bg-[#f5f0ff] text-sm font-semibold outline-none transition-all text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white"
+                  value={newExpense.title} onChange={(e) => setNewExpense({ ...newExpense, title: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Notes / Details</label>
                 <textarea placeholder="Brief details about the expense..."
                   className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] bg-[#f5f0ff] text-sm font-semibold outline-none transition-all text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] focus:bg-white h-24 resize-none"
-                  value={newExpense.description} onChange={(e) => setNewExpense({ ...newExpense, description: e.target.value })} />
+                  value={newExpense.notes} onChange={(e) => setNewExpense({ ...newExpense, notes: e.target.value })} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
@@ -294,10 +307,10 @@ const Expense = () => {
                   <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Category</label>
                   <select className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] bg-[#f5f0ff] text-sm font-semibold outline-none transition-all text-[#1c1c1e] focus:border-[#3b2063] focus:bg-white cursor-pointer"
                     value={newExpense.category} onChange={(e) => setNewExpense({ ...newExpense, category: e.target.value })}>
-                    <option>Bills</option>
-                    <option>Salary</option>
+                    <option>Utilities</option>
                     <option>Rent</option>
-                    <option>Inventory Purchase</option>
+                    <option>Salaries</option>
+                    <option>Supplies</option>
                     <option>Miscellaneous</option>
                   </select>
                 </div>

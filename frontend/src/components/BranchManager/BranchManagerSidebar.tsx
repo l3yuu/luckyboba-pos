@@ -270,6 +270,7 @@ const inventoryItems = [
 const appItems = [
   { tab: 'app-orders', label: 'App Orders' },
   { tab: 'menu-management', label: 'Menu Availability' },
+  { tab: 'payment-settings', label: 'Payment Settings' },
 ];
 
 const SALES_TABS = salesItems.map(i => i.tab);
@@ -660,6 +661,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
                 <span className="bm-m-icon" style={{ color: currentTab === 'promos-discounts' ? '#3b2063' : '#71717a' }}><Tag size={18} /></span>
                 Promos & Discounts
               </button>
+
 
             </div>
 

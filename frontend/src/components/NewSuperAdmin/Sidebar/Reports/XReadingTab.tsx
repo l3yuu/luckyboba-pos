@@ -122,7 +122,8 @@ const XReadingTab: React.FC = () => {
   const today = new Date().toISOString().split("T")[0];
 
   const [branchId, setBranchId] = useState("");
-  const [date, setDate] = useState(today);
+  const [fromDate, setFromDate] = useState(today);
+  const [toDate, setToDate] = useState(today);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [reportData, setReportData] = useState<XReadingReport | null>(null);
@@ -232,13 +233,13 @@ const XReadingTab: React.FC = () => {
     setError("");
     setReportData(null);
     try {
-      const params = new URLSearchParams({ branch_id: branchId, date });
+      const params = new URLSearchParams({ branch_id: branchId, date: fromDate, from: fromDate, to: toDate });
 
       // ── Special case: summary needs two endpoints merged ──────────────────
       if (reportType === "summary") {
         const [summaryRes, qtyRes] = await Promise.all([
-          fetch(`/api/reports/sales-summary?from=${date}&to=${date}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
-          fetch(`/api/reports/item-quantities?date=${date}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
+          fetch(`/api/reports/sales-summary?from=${fromDate}&to=${toDate}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
+          fetch(`/api/reports/item-quantities?date=${fromDate}&to=${toDate}&branch_id=${branchId}`, { headers: authHeaders() }).then(r => r.json()),
         ]);
         const merged = {
           ...summaryRes,
@@ -246,7 +247,7 @@ const XReadingTab: React.FC = () => {
           all_addons_summary: qtyRes.all_addons_summary ?? [],
         };
         const normalized = normalizeResponse("summary", merged as Record<string, unknown>);
-        setReportData({ ...normalized, report_type: "summary" });
+        setReportData({ ...normalized, report_type: "summary", from_date: fromDate, to_date: toDate });
         return;
       }
 
@@ -260,7 +261,7 @@ const XReadingTab: React.FC = () => {
           const url = URL.createObjectURL(blob);
           const a = document.createElement("a");
           a.href = url;
-          a.download = `lucky_boba_${endpoint}_${date}.csv`;
+          a.download = `lucky_boba_${endpoint}_${fromDate}_to_${toDate}.csv`;
           a.click();
           URL.revokeObjectURL(url);
         } catch {
@@ -289,14 +290,14 @@ const XReadingTab: React.FC = () => {
       const res = await fetch(url, { headers: authHeaders() });
       const json = await res.json() as Record<string, unknown>;
       const normalized = normalizeResponse(reportType, json);
-      setReportData({ ...normalized, report_type: reportType });
+      setReportData({ ...normalized, report_type: reportType, from_date: fromDate, to_date: toDate });
 
     } catch {
       setError("Failed to load report data.");
     } finally {
       setLoading(false);
     }
-  }, [branchId, date, reportType, invoiceQuery]);
+  }, [branchId, fromDate, toDate, reportType, invoiceQuery]);
 
   useEffect(() => {
     if (branchId) fetchReading();
@@ -769,9 +770,9 @@ const XReadingTab: React.FC = () => {
     return (
       <div className="my-2">
         <ReceiptDivider />
-        <ReceiptRow label="REPORT DATE" value={date} />
-        <ReceiptRow label="START DATE & TIME" value={`${date} ${new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`} />
-        <ReceiptRow label="END DATE & TIME" value={`${date} ${new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`} />
+        <ReceiptRow label="REPORT DATE" value={fromDate === toDate ? fromDate : `${fromDate} to ${toDate}`} />
+        <ReceiptRow label="START DATE & TIME" value={`${fromDate} ${new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`} />
+        <ReceiptRow label="END DATE & TIME" value={`${toDate} ${new Date().toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}`} />
         <ReceiptRow label="TERMINAL #" value="POS-01" />
         <ReceiptRow label="BRANCH" value={selectedBranchName} />
         <ReceiptRow label="CASHIER" value={reportData?.prepared_by || "ADMIN USER"} />
@@ -844,14 +845,28 @@ const XReadingTab: React.FC = () => {
     <div className="p-6 md:p-8 fade-in flex flex-col gap-5">
       <style>{`
         @media print {
-          @page { size: 80mm 2000mm; margin: 3mm 2mm !important; }
-          body * { visibility: hidden; }
-          nav, header, aside, button { display: none !important; }
-          html, body { width: 80mm !important; margin: 0 !important; padding: 0 !important; background: white !important; }
+          @page { size: 80mm auto; margin: 0 !important; }
+          html, body { 
+            margin: 0 !important; 
+            padding: 0 !important; 
+            width: 80mm !important; 
+            height: auto !important; 
+            overflow: visible !important; 
+            background: white !important; 
+          }
+          body * { visibility: hidden !important; }
+          nav, header, aside, button, .print-hidden { display: none !important; }
           .printable-receipt-area, .printable-receipt-area * { visibility: visible !important; }
           .printable-receipt-area {
-            position: absolute !important; left: 0 !important; top: 0 !important;
-            width: 80mm !important; display: block !important;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            display: block !important;
+            width: 76mm !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            height: auto !important;
+            overflow: visible !important;
           }
         }
       `}</style>
@@ -912,8 +927,13 @@ const XReadingTab: React.FC = () => {
           </div>
         </div>
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Date</p>
-          <input type="date" value={date} onChange={e => setDate(e.target.value)}
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">From Date</p>
+          <input type="date" value={fromDate} onChange={e => { setFromDate(e.target.value); if (e.target.value > toDate) setToDate(e.target.value); }}
+            className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">To Date</p>
+          <input type="date" value={toDate} min={fromDate} onChange={e => setToDate(e.target.value)}
             className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
         </div>
         {reportType === "search" && (
@@ -957,7 +977,7 @@ const XReadingTab: React.FC = () => {
               <p className="uppercase text-[12px] font-bold tracking-widest">
                 [X] {reportData.report_type === "x_reading" ? "X-READING" : (reportData.report_type ?? "REPORT").replace(/_/g, " ").toUpperCase()}
               </p>
-              <p className="text-[10px] text-zinc-500">{date}</p>
+              <p className="text-[10px] text-zinc-500">{fromDate === toDate ? fromDate : `${fromDate} — ${toDate}`}</p>
             </div>
             {renderReceiptContent()}
             {!HIDE_FOOTER.includes(reportData.report_type ?? "") && (

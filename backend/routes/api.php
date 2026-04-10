@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\{ BackupController, CashCountController, CashTransactionController, CategoryController, DashboardController, DiscountController, ExpenseController, InventoryController, StockTransferController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController, MenuItemController, SupplierController, ItemCheckerController };
+use App\Http\Controllers\Api\{ BackupController, BranchSettingsController, CashCountController, CashTransactionController, CategoryController, DashboardController, DiscountController, ExpenseController, InventoryController, StockTransferController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SearchController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController, MenuItemController, SupplierController, ItemCheckerController, PulseController, StaffPerformanceController, InventoryAlertController };
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BranchManagerAppController; // ✅ FIXED: now in Api namespace
@@ -27,20 +27,20 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/login',  [AuthController::class, 'login'])->middleware('throttle:5,2');
 Route::post('/verify-2fa', [AuthController::class, 'verify2FA'])->middleware('throttle:5,2');
+Route::post('/resend-2fa', [AuthController::class, 'resend2FA'])->middleware('throttle:5,2');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 
-
 // ── DEVICE CHECK — public, no auth, called before login ──────────────────────
-Route::post('/devices/check', [PosDeviceController::class, 'check']);
+Route::post('/devices/check', [PosDeviceController::class, 'check'])->middleware('throttle:10,1');
 // ─────────────────────────────────────────────────────────────────────────────
 
-Route::post('/purchase-card',             [CardPurchaseController::class, 'purchase']);
-Route::get('/check-card-status/{userId}', [CardPurchaseController::class, 'checkStatus']);
+Route::post('/purchase-card',             [CardPurchaseController::class, 'purchase'])->middleware('throttle:30,1');
+Route::get('/check-card-status/{userId}', [CardPurchaseController::class, 'checkStatus'])->middleware('throttle:30,1');
 
 // ✅ PUBLIC MOBILE ROUTES
-Route::get('/cards',            [CardController::class, 'index']);
-Route::get('/payment-settings', [SettingsController::class, 'index']);
-Route::get('/add-ons',          [AddOnController::class, 'index']);
+Route::get('/cards',            [CardController::class, 'index'])->middleware('throttle:60,1');
+Route::get('/payment-settings', [SettingsController::class, 'index'])->middleware('throttle:60,1');
+Route::get('/add-ons',          [AddOnController::class, 'index'])->middleware('throttle:60,1');
 
 // ── PUBLIC MENU ───────────────────────────────────────────────────────────────
 Route::get('/public-menu', function (Illuminate\Http\Request $request) {
@@ -94,10 +94,10 @@ if ($branchId) {
         });
 
     return response()->json($items);
-});
+})->middleware('throttle:30,1');
 // ─────────────────────────────────────────────────────────────────────────────
 
-Route::post('/google-login', [AuthController::class, 'googleLogin']);
+Route::post('/google-login', [AuthController::class, 'googleLogin'])->middleware('throttle:10,1');
 Route::post('/register', function (Request $request) {
     $request->validate([
         'name'     => 'required|string|max:255',
@@ -225,6 +225,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::patch ('branch/app-orders/{id}/status',  [BranchManagerAppController::class, 'updateStatus']);
         Route::get   ('branch/menu-items',              [BranchManagerAppController::class, 'menuItems']);
         Route::post  ('branch/menu-items/{id}/toggle',  [BranchManagerAppController::class, 'toggleMenuItem']);
+        
+        Route::get   ('branch/payment-settings',       [BranchSettingsController::class, 'getPaymentSettings']);
+        Route::post  ('branch/payment-settings',       [BranchSettingsController::class, 'updatePaymentSettings']);
         // ─────────────────────────────────────────────────────────────────────
 
         Route::get('/dashboard/stats', [DashboardController::class, 'index']);
@@ -259,6 +262,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
         Route::get  ('/cache/all',             [CacheController::class,      'all']);
         Route::get  ('/menu',                  [MenuController::class,        'index']);
+        Route::get  ('/menu/version',          [MenuController::class,        'version']);
         Route::post ('/menu/clear-cache',      [MenuController::class,        'clearCache']);
         Route::get  ('/notifications/summary', [NotificationController::class,'summary']);
         Route::post ('/audit-logs',            [AuditLogController::class,    'store']);
@@ -299,8 +303,11 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/item-serials',    [ItemSerialController::class,    'index']);
 
         Route::get ('/recipes',  [RecipeController::class, 'index']);
-        Route::get ('/expenses', [ExpenseController::class,'index']);
-        Route::post('/expenses', [ExpenseController::class,'store']);
+        Route::get ('/expenses',        [ExpenseController::class,'index']);
+        Route::post('/expenses',        [ExpenseController::class,'store']);
+        Route::get ('/expenses/export', [ExpenseController::class,'export']);
+        Route::put ('/expenses/{id}',   [ExpenseController::class,'update']);
+        Route::delete('/expenses/{id}', [ExpenseController::class,'destroy']);
 
         Route::prefix('discounts')->group(function () {
             Route::get   ('/',                    [DiscountController::class, 'index']);
@@ -413,7 +420,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::put   ('/{id}',                [UserController::class, 'update']);
             Route::delete('/{id}',                [UserController::class, 'destroy']);
             Route::patch ('/{id}/toggle-status',  [UserController::class, 'toggleStatus']);
-            Route::patch ('/{id}/pin',            [UserController::class, 'updatePin']);
+            Route::patch ('/{id}/pin',            [UserController::class, 'updatePin'])->middleware('throttle:5,1');
         });
 
         Route::prefix('branches')->group(function () {
@@ -430,6 +437,10 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     // ── SUPERADMIN ONLY ───────────────────────────────────────────────────────
     Route::middleware(['role:superadmin'])->group(function () {
+        Route::get('/pulse', [PulseController::class, 'index']);
+        Route::get('/search', [SearchController::class, 'index']);
+        Route::get('/inventory-alerts', [InventoryAlertController::class, 'index']);
+        Route::get('/staff-performance', [StaffPerformanceController::class, 'index']);
         
         // Moved from branch_manager block to restrict editing to SuperAdmin only
         Route::post('/raw-materials/{rawMaterial}/adjust', [RawMaterialController::class, 'adjust']);
@@ -439,8 +450,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::patch('/recipes/{recipe}/toggle',           [RecipeController::class, 'toggle']);
         Route::apiResource('recipes', RecipeController::class)->except(['index', 'show']);
 
-        Route::get('/audit-logs',       [AuditLogController::class, 'index']);
-        Route::get('/audit-logs/stats', [AuditLogController::class, 'stats']);
+        Route::get('/audit-logs',        [AuditLogController::class, 'index']);
+        Route::get('/audit-logs/export', [AuditLogController::class, 'export']);
+        Route::get('/audit-logs/stats',  [AuditLogController::class, 'stats']);
 
         Route::prefix('reports')->group(function () {
             Route::get('/z-reading/history',   [SalesDashboardController::class,   'zReadingHistory']);

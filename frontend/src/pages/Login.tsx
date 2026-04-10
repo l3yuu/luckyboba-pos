@@ -6,7 +6,7 @@ import { useAuth } from '../hooks/useAuth';
 import type { LoginCredentials, User } from '../types/user';
 import { useToast } from '../hooks/useToast';
 import { ROLE_HOME } from '../utils/roleRoutes';
-import { Eye, EyeOff, LogIn, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, LogIn, Mail } from 'lucide-react';
 
 import logo from '../assets/logo.png';
 
@@ -15,18 +15,28 @@ const getHomeForRole = (role: string): string =>
 
 const Login: React.FC = () => {
   const { showToast } = useToast();
-  const [email, setEmail]               = useState('');
-  const [password, setPassword]         = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [lockoutTimer, setLockoutTimer] = useState<number>(0);
-  const [requires2FA, setRequires2FA]   = useState(false);
-  const [otp, setOtp]                   = useState('');
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [otp, setOtp] = useState('');
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const { login, verify2FA, isLoading, user } = useAuth();
-  const navigate        = useNavigate();
-  const hasRedirected   = useRef(false);
-  const didJustLogin    = useRef(false);
+  const { login, verify2FA, resend2FA, isLoading, user } = useAuth();
+  const navigate = useNavigate();
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const otpRefs = [
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+    useRef<HTMLInputElement>(null),
+  ];
+  const hasRedirected = useRef(false);
+  const didJustLogin = useRef(false);
 
   useEffect(() => {
     if (isLoading) return;
@@ -56,6 +66,13 @@ const Login: React.FC = () => {
     return () => clearInterval(id);
   }, []);
 
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.getModifierState('CapsLock')) showToast('Caps Lock is ON', 'warning');
   };
@@ -65,20 +82,22 @@ const Login: React.FC = () => {
     const credentials: LoginCredentials = { email, password };
     try {
       const result = await login(credentials);
+
       if (result && 'requires_2fa' in result) {
         setRequires2FA(true);
-        setOtp(""); 
+        setOtp("");
         showToast('Verification code sent! Please check your Gmail.', 'warning');
         return;
       }
+
       if (result) {
         const loggedInUser = result as User;
         localStorage.setItem('user_role', loggedInUser.role);
-        localStorage.setItem('lucky_boba_user_name',      loggedInUser.name);
-        localStorage.setItem('lucky_boba_user_role',      loggedInUser.role);
+        localStorage.setItem('lucky_boba_user_name', loggedInUser.name);
+        localStorage.setItem('lucky_boba_user_role', loggedInUser.role);
         localStorage.setItem('lucky_boba_user_branch_id', String(loggedInUser.branch_id ?? ''));
         showToast(`Welcome back, ${loggedInUser.name}!`, 'success');
-        didJustLogin.current  = true;
+        didJustLogin.current = true;
         hasRedirected.current = true;
         navigate(getHomeForRole(loggedInUser.role), { replace: true });
       }
@@ -100,13 +119,51 @@ const Login: React.FC = () => {
         localStorage.setItem('user_role', loggedInUser.role);
         localStorage.setItem('lucky_boba_user_branch_id', String(loggedInUser.branch_id ?? ''));
         showToast(`Welcome back, ${loggedInUser.name}!`, 'success');
-        didJustLogin.current  = true;
+        didJustLogin.current = true;
         hasRedirected.current = true;
         navigate(getHomeForRole(loggedInUser.role), { replace: true });
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Invalid or expired 2FA code.';
+      setOtpError(message);
       showToast(message, 'error');
+    }
+  };
+
+  const handleResendOTP = async () => {
+    if (resendCooldown > 0) return;
+    try {
+      setOtpError(null);
+      await resend2FA({ email, password });
+      showToast('New code sent to your email!', 'success');
+      setResendCooldown(60);
+      setOtp("");
+      otpRefs[0].current?.focus();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to resend code.';
+      showToast(message, 'error');
+    }
+  };
+
+  const handleOtpChange = (value: string, index: number) => {
+    const digit = value.slice(-1); // Only take the last character
+    if (digit && !/^\d$/.test(digit)) return; // Only allow digits
+
+    setOtpError(null);
+    const newOtp = otp.split('');
+    newOtp[index] = digit;
+    const combined = newOtp.join('');
+    setOtp(combined);
+
+    // Auto-focus next box
+    if (digit && index < 5) {
+      otpRefs[index + 1].current?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (e: React.KeyboardEvent, index: number) => {
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      otpRefs[index - 1].current?.focus();
     }
   };
 
@@ -123,6 +180,7 @@ const Login: React.FC = () => {
         .lb-page {
           min-height: 100vh;
           display: flex;
+          position: relative;
         }
 
         .lb-left {
@@ -267,7 +325,6 @@ const Login: React.FC = () => {
           flex-direction: column;
           min-height: 100vh;
           position: relative;
-          overflow: hidden;
         }
 
         .lb-right-top {
@@ -440,54 +497,174 @@ const Login: React.FC = () => {
           letter-spacing: 0.16em; text-transform: uppercase; color: #16a34a;
         }
 
-        /* ── VANILLA CSS 2FA MODAL (CLEAN) ── */
+        /* ── MINIMALIST 2FA MODAL (MODERN) ── */
         .otp-overlay {
           position: fixed;
           top: 0; left: 0; right: 0; bottom: 0;
-          background: rgba(0,0,0,0.73);
-          backdrop-filter: blur(6px);
-          -webkit-backdrop-filter: blur(6px);
-          z-index: 99999;
+          background: rgba(26, 15, 46, 0.65);
+          backdrop-filter: blur(12px) saturate(180%);
+          -webkit-backdrop-filter: blur(12px) saturate(180%);
+          z-index: 9999999;
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 20px;
+          padding: 24px;
         }
         .otp-modal {
-          background: white;
+          background: #ffffff;
           width: 100%;
-          max-width: 380px;
-          border-radius: 16px;
-          padding: 35px;
-          box-shadow: 0 25px 70px -15px rgba(0, 0, 0, 0.4);
+          max-width: 360px;
+          border-radius: 24px;
+          padding: 42px 32px;
+          box-shadow: 
+            0 10px 15px -3px rgba(0, 0, 0, 0.1),
+            0 25px 50px -12px rgba(0, 0, 0, 0.25);
           text-align: center;
-          border: 1px solid #f3e8ff;
+          border: 1px solid rgba(228, 228, 231, 0.5);
+          animation: otp-appear 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes otp-appear {
+          from { opacity: 0; transform: scale(0.95) translateY(10px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .otp-icon-wrap {
+          width: 54px; height: 54px;
+          background: #f5f3ff;
+          border-radius: 16px;
+          display: flex; align-items: center; justify-content: center;
+          margin: 0 auto 24px;
+          color: #7c3aed;
         }
         .otp-title {
-          font-size: 1.4rem; font-weight: 800; color: #1f2937; margin-bottom: 6px;
+          font-size: 1.35rem; font-weight: 800; color: #18181b; margin-bottom: 8px;
+          letter-spacing: -0.02em;
         }
         .otp-sub {
-          font-size: 0.8rem; color: #6b7280; margin-bottom: 25px; line-height: 1.5;
+          font-size: 0.85rem; color: #71717a; margin-bottom: 32px; line-height: 1.6;
         }
-        .otp-input-field {
-          width: 100%;
+        .otp-sub strong { color: #3f3f46; font-weight: 600; }
+
+        .otp-input-container {
+          display: flex;
+          gap: 10px;
+          justify-content: center;
+          margin-bottom: 24px;
+        }
+        .otp-box {
+          width: 42px;
+          height: 54px;
           text-align: center;
-          font-size: 2.2rem;
-          letter-spacing: 0.35em;
-          font-weight: 900;
-          padding: 12px;
-          background: #f9fafb;
-          border: 2px solid #e5e7eb;
+          font-size: 1.5rem;
+          font-weight: 800;
+          background: #fbfbfb;
+          border: 1.5px solid #e4e4e7;
           border-radius: 12px;
-          color: #6d28d9;
+          color: #18181b;
           outline: none;
+          transition: all 0.2s ease;
+        }
+        .otp-box:focus {
+          border-color: #7c3aed;
+          background: #ffffff;
+          box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.08);
+          transform: translateY(-2px);
+        }
+        .otp-box.otp-error {
+          border-color: #ef4444;
+          background: #fef2f2;
+          animation: otp-shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+        @keyframes otp-shake {
+          10%, 90% { transform: translate3d(-1px, -2px, 0); }
+          20%, 80% { transform: translate3d(2px, -2px, 0); }
+          30%, 50%, 70% { transform: translate3d(-4px, -2px, 0); }
+          40%, 60% { transform: translate3d(4px, -2px, 0); }
+        }
+
+        .otp-error-msg {
+          color: #ef4444;
+          font-size: 0.72rem;
+          font-weight: 600;
+          margin-top: -12px;
           margin-bottom: 20px;
+          animation: lb-rise 0.3s ease;
+        }
+
+        .otp-error-alert {
+          background: #fef2f2;
+          border: 1px solid #fee2e2;
+          color: #991b1b;
+          font-size: 0.75rem;
+          font-weight: 600;
+          padding: 10px 14px;
+          border-radius: 12px;
+          margin: 0 0 24px 0;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          animation: lb-rise 0.3s ease;
+        }
+
+        .otp-box::placeholder {
+          color: #e4e4e7;
+        }
+
+        .otp-resend {
+          font-size: 0.75rem;
+          color: #71717a;
+          margin-bottom: 24px;
+        }
+        .otp-resend-btn {
+          background: none;
+          border: none;
+          color: #7c3aed;
+          font-weight: 700;
+          cursor: pointer;
+          padding: 0 4px;
+          text-decoration: underline;
+          text-underline-offset: 2px;
+        }
+        .otp-resend-btn:disabled {
+          color: #a1a1aa;
+          cursor: not-allowed;
+          text-decoration: none;
+        }
+
+        .otp-actions {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .otp-verify-btn {
+          width: 100%;
+          padding: 15px;
+          background: #3b2063;
+          color: white;
+          border-radius: 14px;
+          border: none;
+          font-size: 0.72rem;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.12em;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .otp-verify-btn:hover:not(:disabled) {
+          background: #4c2a7e;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(59, 32, 99, 0.2);
+        }
+        .otp-verify-btn:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
         }
         .otp-cancel {
-          background: none; border: none; color: #9ca3af;
-          font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
-          letter-spacing: 0.1em; cursor: pointer; margin-top: 15px;
+          background: none; border: none; color: #a1a1aa;
+          font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+          letter-spacing: 0.08em; cursor: pointer; padding: 8px;
+          transition: color 0.15s;
         }
+        .otp-cancel:hover { color: #52525b; }
       `}</style>
 
       <div className="lb-page">
@@ -509,7 +686,7 @@ const Login: React.FC = () => {
             <div className="lb-pills">
               <div className="lb-pill">
                 <div className="lb-pill-icon">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
                 </div>
                 <div>
                   <p className="lb-pill-name">Role-based Access</p>
@@ -518,7 +695,7 @@ const Login: React.FC = () => {
               </div>
               <div className="lb-pill">
                 <div className="lb-pill-icon">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" /><path d="M8 21h8M12 17v4" /></svg>
                 </div>
                 <div>
                   <p className="lb-pill-name">Real-time Dashboard</p>
@@ -527,7 +704,7 @@ const Login: React.FC = () => {
               </div>
               <div className="lb-pill">
                 <div className="lb-pill-icon">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
                 </div>
                 <div>
                   <p className="lb-pill-name">Sales &amp; Revenue</p>
@@ -536,7 +713,7 @@ const Login: React.FC = () => {
               </div>
               <div className="lb-pill">
                 <div className="lb-pill-icon">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.9)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /></svg>
                 </div>
                 <div>
                   <p className="lb-pill-name">Inventory Management</p>
@@ -604,35 +781,6 @@ const Login: React.FC = () => {
                   </button>
                 </div>
               </form>
-
-              {/* ── 2FA MODAL (OVERLAY ONLY) ── */}
-              {requires2FA && (
-                <div className="otp-overlay">
-                  <div className="otp-modal">
-                    <div style={{ width: '60px', height: '60px', background: '#f5f3ff', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 15px', color: '#7c3aed' }}>
-                      <ShieldCheck size={28} strokeWidth={2.5} />
-                    </div>
-                    <h2 className="otp-title">Verify Identity</h2>
-                    <p className="otp-sub">A 6-digit code was sent to <br/><strong>{email}</strong></p>
-
-                    <form onSubmit={handleVerify2FA}>
-                      <input
-                        type="text"
-                        value={otp}
-                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                        className="otp-input-field"
-                        placeholder="000000"
-                        autoFocus
-                        required
-                      />
-                      <button type="submit" disabled={isLoading || otp.length !== 6} className="lb-btn" style={{ padding: '14px' }}>
-                        {isLoading ? "Checking..." : "Confirm Verification"}
-                      </button>
-                      <button type="button" onClick={() => setRequires2FA(false)} className="otp-cancel">Cancel</button>
-                    </form>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
@@ -645,6 +793,79 @@ const Login: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* ── 2FA MODAL (TOTALLY OUTSIDE ALL WRAPPERS) ── */}
+      {requires2FA && (
+        <div className="otp-overlay">
+          <div className="otp-modal">
+            <div className="otp-icon-wrap">
+              <Mail size={22} strokeWidth={2.5} />
+            </div>
+
+            <h2 className="otp-title">Security Verification</h2>
+            <p className="otp-sub">
+              Check your inbox. We've sent a 6-digit code to <br />
+              <strong>{email}</strong>
+            </p>
+
+            {otpError && (
+              <div className="otp-error-alert">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                {otpError}
+              </div>
+            )}
+
+            <form onSubmit={handleVerify2FA}>
+              <div className="otp-input-container">
+                {[0, 1, 2, 3, 4, 5].map((idx) => (
+                  <input
+                    key={idx}
+                    ref={otpRefs[idx]}
+                    type="text"
+                    value={otp[idx] || ""}
+                    onChange={(e) => handleOtpChange(e.target.value, idx)}
+                    onKeyDown={(e) => handleOtpKeyDown(e, idx)}
+                    className={`otp-box ${otpError ? 'otp-error' : ''}`}
+                    placeholder="0"
+                    maxLength={1}
+                    required
+                    autoFocus={idx === 0}
+                  />
+                ))}
+              </div>
+
+              <div className="otp-resend">
+                Didn't receive code? 
+                <button 
+                  type="button" 
+                  onClick={handleResendOTP} 
+                  disabled={resendCooldown > 0 || isLoading}
+                  className="otp-resend-btn"
+                >
+                  {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : "Resend Code"}
+                </button>
+              </div>
+
+              <div className="otp-actions">
+                <button
+                  type="submit"
+                  disabled={isLoading || otp.length !== 6}
+                  className="otp-verify-btn"
+                >
+                  {isLoading ? "Verifying..." : "Verify Identity"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRequires2FA(false)}
+                  className="otp-cancel"
+                >
+                  Cancel & Go Back
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 };

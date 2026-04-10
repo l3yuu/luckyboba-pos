@@ -6,9 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\AddOn;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request; 
+use App\Traits\MenuCache;
 
 class AddOnController extends Controller
 {
+    use MenuCache;
+
     public function index(Request $request): JsonResponse
     {
         $addOns = AddOn::when(!$request->boolean('all'), fn($q) => $q->where('is_available', true))
@@ -31,6 +34,7 @@ class AddOnController extends Controller
             'is_available' => 'boolean',
         ]);
         $addOn = AddOn::create($data);
+        $this->clearMenuCache();
         return response()->json($addOn, 201);
     }
 
@@ -45,12 +49,14 @@ class AddOnController extends Controller
             'is_available' => 'boolean',
         ]);
         $addOn->update($data);
+        $this->clearMenuCache();
         return response()->json($addOn);
     }
 
     public function destroy(AddOn $addOn): JsonResponse
     {
         $addOn->delete();
+        $this->clearMenuCache();
         return response()->json(['success' => true]);
     }
 }
