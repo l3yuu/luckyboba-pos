@@ -50,11 +50,12 @@ class BackupController extends Controller
                 mkdir(storage_path('app/backups'), 0755, true);
             }
 
-            // Path verified from your screenshot
-            $mysqldumpPath = "C:\\Program Files\\MariaDB 12.1\\bin\\mysqldump.exe"; 
+            // Make path configurable via .env for production flexibility
+            $mysqldumpPath = env('DB_DUMP_PATH', 'mysqldump'); 
 
             $passwordPart = env('DB_PASSWORD') ? '--password="' . env('DB_PASSWORD') . '"' : '';
 
+            // Use escaped quotes for the path and filename to handle spaces in Windows or Linux
             $command = sprintf(
                 '"%s" --user=%s %s --host=%s %s > "%s"',
                 $mysqldumpPath,
@@ -65,17 +66,25 @@ class BackupController extends Controller
                 $path
             );
 
-            $output = shell_exec($command . ' 2>&1'); 
+            // Execute the command and capture both output and errors
+            $output = [];
+            $returnVar = 0;
+            exec($command . ' 2>&1', $output, $returnVar);
 
-            if (!file_exists($path) || filesize($path) === 0) {
-                throw new \Exception("Database export failed: " . $output);
+            if ($returnVar !== 0 || !file_exists($path) || filesize($path) === 0) {
+                $errorMsg = implode("\n", $output);
+                throw new \Exception("Database export failed (Code: $returnVar): " . $errorMsg);
             }
 
             return response()->download($path);
 
         } catch (\Exception $e) {
             \Log::error("Backup Error: " . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], 500);
+            return response()->json([
+                'error' => 'Backup failed. Please check if mysqldump is installed and the path is correct in .env.',
+                'details' => $e->getMessage()
+            ], 500);
         }
     }
+
 }
