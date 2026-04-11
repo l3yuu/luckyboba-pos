@@ -215,28 +215,35 @@ const OverviewTab: React.FC = () => {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [summaryRes, comparisonRes, usersRes, branchesRes, ownershipRes] = await Promise.all([
-        fetch(`/api/reports/admin-sales-summary?period=${period}`, { headers: authHeaders() }),
-        fetch(`/api/reports/branch-comparison?period=${period}`, { headers: authHeaders() }),
-        fetch(`/api/users/stats`, { headers: authHeaders() }),
-        fetch(`/api/branches`, { headers: authHeaders() }),
-        fetch(`/api/branches/ownership-summary?period=${period}`, { headers: authHeaders() }),
-      ]);
+      // Use individual try/catch for each request to prevent one failure from breaking everything
+      const safeFetch = async (url: string) => {
+        try {
+          const res = await fetch(url, { headers: authHeaders() });
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          return await res.json();
+        } catch (err) {
+          console.warn(`Fetch failed for ${url}:`, err);
+          return null;
+        }
+      };
 
       const [summary, comparison, users, branches, ownershipData] = await Promise.all([
-        summaryRes.json(), comparisonRes.json(), usersRes.json(),
-        branchesRes.json(), ownershipRes.json(),
+        safeFetch(`/api/reports/admin-sales-summary?period=${period}`),
+        safeFetch(`/api/reports/branch-comparison?period=${period}`),
+        safeFetch(`/api/users/stats`),
+        safeFetch(`/api/branches`),
+        safeFetch(`/api/branches/ownership-summary?period=${period}`),
       ]);
 
-      if (summary.totals) setTotals(summary.totals);
-      if (summary.breakdown) setBreakdown(summary.breakdown);
-      if (summary.top_products) setTopProducts(summary.top_products.slice(0, 5));
-      if (comparison.comparison) setBranchPerf(comparison.comparison);
+      if (summary?.totals) setTotals(summary.totals);
+      if (summary?.breakdown) setBreakdown(summary.breakdown);
+      if (summary?.top_products) setTopProducts(summary.top_products.slice(0, 5));
+      if (comparison?.comparison) setBranchPerf(comparison.comparison);
 
-      if (users.success && users.data) {
+      if (users?.success && users?.data) {
         setUserStats({ active: users.data.active, total: users.data.total });
       }
-      if (branches.success && branches.data) {
+      if (branches?.success && branches?.data) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const list = branches.data as any[];
         setBranchStats({
@@ -244,9 +251,9 @@ const OverviewTab: React.FC = () => {
           active: list.filter((b: { status: string }) => b.status === "active").length,
         });
       }
-      if (ownershipData.success) setOwnership(ownershipData);
+      if (ownershipData?.success) setOwnership(ownershipData);
     } catch (e) {
-      console.error("OverviewTab fetch error", e);
+      console.error("OverviewTab top-level fetch error", e);
     } finally {
       setLoading(false);
     }
@@ -517,7 +524,7 @@ const OverviewTab: React.FC = () => {
           </div>
           {loading && !breakdown.length ? <ChartSkeleton height="h-[220px]" /> : (
             <div className="h-[220px] w-full relative">
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={100}>
                 <AreaChart data={revenueChartData}>
                   <defs>
                     <linearGradient id="unifGrad" x1="0" y1="0" x2="0" y2="1">
@@ -545,7 +552,7 @@ const OverviewTab: React.FC = () => {
           {loading && !pieData.length ? <Skeleton className="h-[200px] w-full rounded-full" /> : (
             <>
               <div className="h-[160px] w-full relative">
-                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={100}>
                   <RePieChart>
                     <Pie data={pieData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={4} dataKey="value">
                       {pieData.map((e, idx) => <Cell key={idx} fill={e.color} />)}
@@ -579,7 +586,7 @@ const OverviewTab: React.FC = () => {
           </div>
           <div className="h-[200px]">
             {loading && !barData.length ? <Skeleton className="w-full h-full" /> : (
-              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={100}>
                 <ReBarChart data={barData} barSize={20}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" vertical={false} />
                   <XAxis dataKey="name" tick={{ fontSize: 9, fontWeight: 700, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />

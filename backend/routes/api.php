@@ -246,6 +246,11 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         
         Route::get('/payment-settings',        [SettingsController::class, 'index']);
         Route::get('/receipts/next-sequence',  [ReceiptController::class, 'getNextSequence']);
+        // ── Branch read routes (specfic routes must come before {id}) ──────────────
+        Route::get('/branches/ownership-summary', [BranchController::class, 'ownershipSummary']);
+        Route::get('/branches/performance',       [BranchController::class, 'performance']);
+        Route::get('/branches/today-sales',       [BranchController::class, 'todaySales']);
+        
         Route::get('/branches/{id}',           [BranchController::class, 'show']);
         
         Route::get('/menu',                    [MenuController::class, 'index']);
@@ -362,10 +367,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::post('/z/print-token', [SalesDashboardController::class, 'zReadingPrintToken']);
         });
 
-        // ── Branch read routes (cashiers need these) ──────────────────────────
-        Route::get('/branches/ownership-summary', [BranchController::class, 'ownershipSummary']);
-        Route::get('/branches/performance',       [BranchController::class, 'performance']);
-        Route::get('/branches/today-sales',       [BranchController::class, 'todaySales']);
 
         Route::get ('/branches', [BranchController::class, 'index']);
 
