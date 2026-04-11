@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Users, BarChart2, ShoppingBag,
   Package, Settings as SettingsIcon, LogOut,
-  ChevronDown, Activity, Monitor, Trash2, X, Smartphone, Tag,
+  ChevronDown, Activity, Monitor, Trash2, X, Smartphone, Tag, Award,
 } from 'lucide-react';
 
 // ── Styles (mirrored from SuperAdminSidebar) ──────────────────────────────────
@@ -487,6 +487,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
           {[
             { tab: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={14} /> },
             { tab: 'live-pulse', label: 'Live Pulse', icon: <Activity size={14} /> },
+            { tab: 'staff-performance', label: 'Staff Performance', icon: <Award size={14} /> },
             { tab: 'users', label: 'User Management', icon: <Users size={14} /> },
             { tab: 'device-management', label: 'Device Management', icon: <Monitor size={14} /> },
           ].map(t => (
@@ -619,6 +620,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
               {[
                 { tab: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
                 { tab: 'live-pulse', label: 'Live Pulse', icon: <Activity size={18} /> },
+                { tab: 'staff-performance', label: 'Staff Performance', icon: <Award size={18} /> },
                 { tab: 'users', label: 'User Management', icon: <Users size={18} /> },
                 { tab: 'device-management', label: 'Device Management', icon: <Monitor size={18} /> },
               ].map(t => (
