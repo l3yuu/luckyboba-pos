@@ -38,6 +38,7 @@ import BM_MenuManagement from '../components/BranchManager/SalesReport/BM_MenuMa
 
 import BMVoidLogsPanel from '../components/BranchManager/FloorOps/BMVoidLogs';
 import BM_PromosDiscounts from '../components/BranchManager/Settings/BM_PromosDiscounts';
+import BM_ExpensesTab from '../components/BranchManager/Expenses/BM_ExpensesTab';
 
 import BM_AddCustomers       from '../components/BranchManager/Settings/BM_AddCustomers';
 import BM_AddVouchers        from '../components/BranchManager/Settings/BM_AddVouchers';
@@ -111,6 +112,7 @@ const PAGE_TITLES: Record<string, { label: string; desc: string }> = {
   'audit-logs':         { label: 'Audit Logs',           desc: 'Complete system activity trail' },
   'void-logs':          { label: 'Void Logs',            desc: 'Voided transaction history' },
   'promos-discounts':   { label: 'Promos & Discounts',   desc: 'View and toggle branch discounts' },
+  expenses:             { label: 'Expenses',             desc: 'Track local branch expenditure and receipts' },
   settings:             { label: 'Settings',             desc: 'Branch configuration & preferences' },
   'add-customers':      { label: 'Add Customers',        desc: 'Customer management' },
   'add-vouchers':       { label: 'Add Vouchers',         desc: 'Voucher management' },
@@ -186,6 +188,7 @@ const BranchManagerDashboard = () => {
       case 'items-report':       return <ItemsReport />;
       case 'x-reading':          return <XReading />;
       case 'z-reading':          return <ZReading />;
+      case 'expenses':           return <BM_ExpensesTab branchId={authUser?.branch_id ?? null} />;
 
       // ── Mobile App ──
       case 'app-orders':         return <BM_AppOrders />;

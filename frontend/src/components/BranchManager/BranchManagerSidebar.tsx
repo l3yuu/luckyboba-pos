@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Users, BarChart2, ShoppingBag,
   Package, Settings as SettingsIcon, LogOut,
-  ChevronDown, Activity, Monitor, Trash2, X, Smartphone, Tag, Award,
+  ChevronDown, Activity, Monitor, Trash2, X, Smartphone, Tag, Award, Wallet,
 } from 'lucide-react';
 
 // ── Styles (mirrored from SuperAdminSidebar) ──────────────────────────────────
@@ -248,6 +248,7 @@ const getToken = () =>
 const salesItems = [
   { tab: 'sales-dashboard', label: 'Sales Dashboard' },
   { tab: 'items-report', label: 'Items Report' },
+  { tab: 'expenses', label: 'Branch Expenses' },
   { tab: 'x-reading', label: 'X-Reading' },
   { tab: 'z-reading', label: 'Z-Reading' },
 ];

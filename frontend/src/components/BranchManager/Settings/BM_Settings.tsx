@@ -1,304 +1,417 @@
 "use client"
 
-import { useState, useEffect } from 'react';
-import BM_SalesSettings from './BM_SalesSettings';
-import BM_AddCustomers from './BM_AddCustomers';
-import BM_DiscountSettings from './BM_DiscountSettings';
-import BM_ExportData from './BM_ExportData';
-import BM_UploadData from './BM_UploadData';
-import BM_AddVouchers from './BM_AddVouchers';
-import BM_ImportData from './BM_ImportData';
-import BM_BackupSystem from './BM_BackupSystem';
-import { Button } from '../SharedUI';
-
+import { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { 
-  Settings as SettingsIcon, UserPlus, Percent, FileUp, 
-  Upload, Ticket, FileDown, Database, ShieldCheck, 
-  Clock, Activity, X, AlertTriangle, ChevronRight
-} from 'lucide-react';
-import api from '../../../services/api';
-import { getCache, setCache } from '../../../utils/cache';
+  Database, Mail, Phone, MapPin, 
+  ShieldCheck, AlertCircle, Activity, 
+  ChevronRight, Wallet, Settings as SettingsIcon,
+  UserPlus, Percent, Ticket, FileUp, X, Clock, Star
+} from "lucide-react";
+import api from "../../../services/api";
+import { Button } from "../SharedUI"; // Shared button for some parts
+import BM_SalesSettings from "./BM_SalesSettings";
+import BM_PaymentSettings from "./BM_PaymentSettings";
+import BM_AddCustomers from "./BM_AddCustomers";
+import BM_DiscountSettings from "./BM_DiscountSettings";
+import BM_ExportData from "./BM_ExportData";
+import BM_AddVouchers from "./BM_AddVouchers";
 
-// ─── Design tokens ─────────────────────────────────────────────────────────────
-const STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
-  *, *::before, *::after { font-family: 'DM Sans', sans-serif !important; box-sizing: border-box; }
-  .bm-settings-root, .bm-settings-root * { font-family: 'DM Sans', sans-serif !important; box-sizing: border-box; }
-  .bm-label { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #a1a1aa; }
-  .bm-card { transition: box-shadow 0.15s ease, transform 0.15s ease; }
-  .bm-card:hover { box-shadow: 0 4px 24px rgba(59,32,99,0.08); }
-`;
+// ── Role-Specific UI Components (Mirrored from SuperAdmin) ──────────────
 
-const AUDIT_CACHE_KEY  = 'settings-audit';
-const BACKUP_CACHE_KEY = 'settings-backup-status';
-const AUDIT_TTL        = 2 * 60 * 1000;
+type VariantKey = "primary" | "secondary" | "danger" | "ghost";
+type SizeKey    = "sm" | "md" | "lg";
 
-interface AuditInfo {
-  last_backup: string | null;
-  active_session: string;
-  system_status: 'Online' | 'Offline';
+interface SectionHeaderProps {
+  title:   string;
+  desc?:   string;
+  action?: React.ReactNode;
 }
 
-interface SystemLog {
-  id: number;
-  user: string;
-  action: string;
-  time: string;
+const SectionHeader: React.FC<SectionHeaderProps> = ({ title, desc, action }) => (
+  <div className="flex items-center justify-between mb-5">
+    <div>
+      <h2 className="text-base font-bold text-[#1a0f2e]">{title}</h2>
+      {desc && <p className="text-xs text-zinc-400 mt-0.5">{desc}</p>}
+    </div>
+    {action}
+  </div>
+);
+
+interface BtnProps {
+  children:   React.ReactNode;
+  variant?:   VariantKey;
+  size?:      SizeKey;
+  onClick?:   () => void;
+  className?: string;
+  disabled?:  boolean;
+  type?:      "button" | "submit" | "reset";
 }
 
-interface AuditCache {
-  auditInfo: AuditInfo;
-  recentLogs: SystemLog[];
-}
+const Btn: React.FC<BtnProps> = ({
+  children, variant = "primary", size = "sm",
+  onClick, className = "", disabled = false, type = "button",
+}) => {
+  const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
+  const variants: Record<VariantKey, string> = {
+    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
+    danger:    "bg-red-600 hover:bg-red-700 text-white",
+    ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
+  };
+  return (
+    <button type={type} onClick={onClick} disabled={disabled}
+      className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 ${sizes[size]} ${variants[variant]} ${className}`}>
+      {children}
+    </button>
+  );
+};
+
+const ConfirmModal: React.FC<{
+  title: string;
+  desc: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  isDanger?: boolean;
+}> = ({ title, desc, onConfirm, onCancel, isDanger }) => {
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6"
+      style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", backgroundColor: "rgba(0,0,0,0.45)" }}>
+      <div className="absolute inset-0" onClick={onCancel} />
+      <div className="relative bg-white w-full max-w-sm border border-zinc-200 rounded-[1.25rem] shadow-2xl flex flex-col overflow-hidden animate-fade-in">
+        <div className="px-6 pt-8 pb-6 flex flex-col items-center text-center">
+           <div className={`w-14 h-14 border rounded-full flex items-center justify-center mb-4 ${isDanger ? 'bg-red-50 border-red-100 text-red-500' : 'bg-violet-50 border-violet-100 text-violet-500'}`}>
+             <AlertCircle size={24} />
+           </div>
+           <p className="text-base font-bold text-[#1a0f2e]">{title}</p>
+           <p className="text-xs text-zinc-500 mt-3 leading-relaxed">{desc}</p>
+        </div>
+        <div className="flex items-center gap-2 px-6 pb-6 mt-2">
+          <Btn variant="secondary" className="flex-1 justify-center" onClick={onCancel}>Cancel</Btn>
+          <Btn variant={isDanger ? "danger" : "primary"} className="flex-1 justify-center" onClick={onConfirm}>
+            {isDanger ? "Proceed" : "Confirm"}
+          </Btn>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+};
+
+// ── Main BM_Settings Component ──────────────────────────────────────────
 
 const BM_Settings = () => {
-  // --- UI STATES ---
-  const [isSalesSettingsOpen, setIsSalesSettingsOpen] = useState(false);
   const [activeSubView, setActiveSubView] = useState<string | null>(null);
   const [isLogOpen, setIsLogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const [confirmConfig, setConfirmConfig] = useState<{ title: string; desc: string; isDanger?: boolean; onConfirm: () => void } | null>(null);
 
-  const cachedAudit = getCache<AuditCache>(AUDIT_CACHE_KEY);
-  const [recentLogs, setRecentLogs] = useState<SystemLog[]>(cachedAudit?.recentLogs ?? []);
-  const [auditInfo, setAuditInfo] = useState<AuditInfo>(
-    cachedAudit?.auditInfo ?? {
-      last_backup: getCache<string>(BACKUP_CACHE_KEY) ?? 'Loading...',
-      active_session: 'Checking...',
-      system_status: 'Online',
-    }
-  );
+  const [branchInfo, setBranchInfo] = useState({
+    name: "Loading...",
+    location: "Loading...",
+    email: "N/A",
+    phone: "N/A"
+  });
 
-  const fetchAudit = async () => {
+  const [notifications, setNotifications] = useState(true);
+  const [autoReports,   setAutoReports]   = useState(true);
+  const [auditStats, setAuditStats] = useState({
+    total_events: 0,
+    today_count: 0,
+    voids_today: 0
+  });
+
+  const [recentLogs, setRecentLogs] = useState<any[]>([]);
+
+  // ── Data Fetching ────────────────────────────────────────────────────────
+  
+  const fetchSettings = useCallback(async () => {
     try {
-      const [backupRes, auditRes] = await Promise.all([
-        api.get('/system/backup-status').catch(() => ({ data: { last_backup: 'Unknown' } })),
-        api.get('/system/audit').catch(() => ({ data: { active_session: 'Administrator', system_status: 'Online', logs: [] } })),
+      const [userRes, auditRes] = await Promise.all([
+        api.get('/user'),
+        api.get('/branch/audit-logs')
       ]);
 
-      const freshInfo: AuditInfo = {
-        last_backup: backupRes.data.last_backup,
-        active_session: auditRes.data.active_session || 'Administrator',
-        system_status: auditRes.data.system_status || 'Online',
-      };
-      const freshLogs: SystemLog[] = auditRes.data.logs || [];
+      if (userRes.data) {
+        setBranchInfo({
+          name: userRes.data.branch?.name || "Lucky Boba Branch",
+          location: userRes.data.branch?.location || "Unknown Location",
+          email: userRes.data.email,
+          phone: userRes.data.branch?.contact ?? "N/A"
+        });
+      }
 
-      setCache<AuditCache>(AUDIT_CACHE_KEY, { auditInfo: freshInfo, recentLogs: freshLogs }, AUDIT_TTL);
-      setCache<string>(BACKUP_CACHE_KEY, backupRes.data.last_backup, AUDIT_TTL);
-      setAuditInfo(freshInfo);
-      setRecentLogs(freshLogs);
-    } catch (error) {
-      console.error("Audit fetch failed:", error);
-      setAuditInfo(prev => ({
-        ...prev,
-        last_backup: prev.last_backup === 'Loading...' ? 'Unknown' : prev.last_backup,
-        system_status: 'Offline',
-      }));
+      if (auditRes.data.success) {
+        setAuditStats(auditRes.data.stats);
+        setRecentLogs(auditRes.data.data);
+      }
+    } catch (err) {
+      console.error("Failed to load BM settings context:", err);
+    } finally {
+      setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    if (getCache<AuditCache>(AUDIT_CACHE_KEY)) return;
-    void (async () => { await fetchAudit(); })();
   }, []);
 
   useEffect(() => {
-    if (activeSubView !== null) return;
-    if (getCache<AuditCache>(AUDIT_CACHE_KEY)) return;
-    void (async () => { await fetchAudit(); })();
-  }, [activeSubView]);
+    fetchSettings();
+  }, [fetchSettings]);
 
-  const handleExportLogs = async () => {
-    try {
-      const response = await api.get('/system/audit/export', { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', `lucky_boba_audit_log_${new Date().toISOString().split('T')[0]}.txt`);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Export logs failed:", error);
-      alert("Could not export logs.");
-    }
+  const showSaved = (msg = 'Saved successfully!') => {
+    setSaveMsg(msg);
+    setTimeout(() => setSaveMsg(null), 2500);
   };
 
-  const isCriticalAction = (action: string) => {
-    const criticalKeywords = ['delete', 'reset', 'clear', 'cancel', 'void', 'high discount'];
-    return criticalKeywords.some(keyword => action.toLowerCase().includes(keyword));
+  const handleToggle = (key: 'notifications' | 'auto_reports') => {
+    if (key === 'notifications') setNotifications(!notifications);
+    if (key === 'auto_reports')   setAutoReports(!autoReports);
+    showSaved('Preferences updated!');
   };
 
   const closeSubView = () => setActiveSubView(null);
 
-  const settingActions = [
-    { id: 'sales-settings', label: "Sales Settings", Icon: SettingsIcon, action: () => setIsSalesSettingsOpen(true) },
-    { id: 'add-customers',  label: "Add Customers",  Icon: UserPlus,     action: () => setActiveSubView('add-customers') },
-    { id: 'discount',       label: "Discount Config",Icon: Percent,      action: () => setActiveSubView('discount') },
-    { id: 'export-data',    label: "Export Data",    Icon: FileUp,       action: () => setActiveSubView('export-data') },
-    { id: 'upload-data',    label: "Upload Data",    Icon: Upload,       action: () => setActiveSubView('upload-data') },
-    { id: 'add-vouchers',   label: "Add Vouchers",   Icon: Ticket,       action: () => setActiveSubView('add-vouchers') },
-    { id: 'import-data',    label: "Import Data",    Icon: FileDown,     action: () => setActiveSubView('import-data') },
-    { id: 'backup-system',  label: "Backup System",  Icon: Database,     action: () => setActiveSubView('backup-system') },
-  ];
+  // ── Render Logic ─────────────────────────────────────────────────────────
 
-  const formatBackupDate = (raw: string | null) => {
-    if (!raw || raw === 'Loading...') return raw;
-    return raw === 'Never' ? 'No backup yet' : raw;
-  };
-
-  // If a sub-view is active, render it directly
-  if (activeSubView === 'add-customers') return <BM_AddCustomers onBack={closeSubView} />;
-  if (activeSubView === 'discount')      return <BM_DiscountSettings onBack={closeSubView} />;
-  if (activeSubView === 'export-data')   return <BM_ExportData onBack={closeSubView} />;
-  if (activeSubView === 'upload-data')   return <BM_UploadData onBack={closeSubView} />;
-  if (activeSubView === 'add-vouchers')  return <BM_AddVouchers onBack={closeSubView} />;
-  if (activeSubView === 'import-data')   return <BM_ImportData onBack={closeSubView} />;
-  if (activeSubView === 'backup-system') return <BM_BackupSystem onBack={closeSubView} />;
+  if (activeSubView === 'payment-settings') return <BM_PaymentSettings onBack={closeSubView} />;
+  if (activeSubView === 'sales-settings')   return <BM_SalesSettings isOpen={true} onClose={closeSubView} />;
+  if (activeSubView === 'add-customers')    return <BM_AddCustomers onBack={closeSubView} />;
+  if (activeSubView === 'discount')         return <BM_DiscountSettings onBack={closeSubView} />;
+  if (activeSubView === 'export-data')      return <BM_ExportData onBack={closeSubView} />;
+  if (activeSubView === 'add-vouchers')     return <BM_AddVouchers onBack={closeSubView} />;
 
   return (
-    <>
-      <style>{STYLES}</style>
-      <div className="bm-settings-root flex-1 overflow-y-auto px-5 md:px-8 pb-8 pt-5 flex flex-col gap-6">
+    <div className="p-6 md:p-8 fade-in">
+      <style>{`
+        @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        .fade-in { animation: fadeIn 0.25s ease forwards; }
+      `}</style>
 
-        {/* ── System Audit Card ── */}
-        <div className="bm-card bg-white border border-zinc-200 rounded-[0.875rem] flex flex-col overflow-hidden">
-          <div className="px-6 py-5 border-b border-zinc-100 flex justify-between items-center bg-[#fafafa]">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-violet-50 border border-violet-200 text-[#3b2063]">
-                <ShieldCheck size={15} strokeWidth={2.5} />
-              </div>
-              <div>
-                <h2 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1a0f2e', letterSpacing: '-0.02em', margin: 0 }}>System Audit & Security</h2>
-                <p className="bm-label" style={{ marginTop: 3, color: '#71717a' }}>Real-time diagnostics</p>
-              </div>
+      {/* Save toast */}
+      {saveMsg && (
+        <div className="fixed bottom-6 right-6 z-50 bg-emerald-600 text-white text-xs font-bold px-4 py-2.5 rounded-lg shadow-lg animate-fade-in flex items-center gap-2">
+          ✓ {saveMsg}
+        </div>
+      )}
+
+      <SectionHeader title="Branch Configuration" desc="Manage local settings and diagnostic health" />
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* ── Left Column (2 spans) ─────────────────────────────────────────── */}
+        <div className="lg:col-span-2 flex flex-col gap-4">
+          
+          {/* Branch General Info */}
+          <div className="bg-white border border-zinc-200 rounded-[0.625rem] p-6 shadow-sm">
+            <p className="text-sm font-bold text-[#1a0f2e] mb-4">Branch Information</p>
+            <div className="flex flex-col gap-4">
+              {[
+                { label: "Branch Name", value: branchInfo.name, icon: <Star size={14} /> },
+                { label: "Location",    value: branchInfo.location, icon: <MapPin size={14} /> },
+                { label: "Email",       value: branchInfo.email, icon: <Mail size={14} /> },
+                { label: "Contact",     value: branchInfo.phone, icon: <Phone size={14} /> },
+              ].map((f, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-zinc-50 border border-zinc-200 rounded-[0.4rem] flex items-center justify-center text-zinc-400 shrink-0">
+                    {f.icon}
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">{f.label}</p>
+                    <input
+                      readOnly
+                      value={f.value}
+                      className="w-full text-sm font-medium text-zinc-400 bg-zinc-50 border border-zinc-100 rounded-[0.4rem] px-3 py-1.5 outline-none cursor-default"
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
-            <Button variant="secondary" size="sm" onClick={() => setIsLogOpen(true)}>
-              View Logs
-            </Button>
+            <div className="mt-4 p-3 bg-violet-50/50 border border-violet-100 rounded-lg">
+              <p className="text-[10px] text-violet-600 font-bold uppercase tracking-wider">Note to Manager</p>
+              <p className="text-[10px] text-violet-400 mt-1">To update branch profile details, please contact the SuperAdmin.</p>
+            </div>
           </div>
 
-          <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-6 divide-y md:divide-y-0 md:divide-x divide-zinc-100">
-            {/* Last Backup */}
-            <div className="flex flex-col items-center text-center gap-3 px-4">
-              <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-200">
-                <Clock size={16} strokeWidth={2.5} />
-              </div>
+          {/* Module Quick Actions */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-white border border-zinc-200 rounded-[0.625rem] p-6 flex flex-col justify-between hover:border-violet-200 transition-all group">
               <div>
-                <p className="bm-label">Last Backup</p>
-                <p style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1a0f2e', marginTop: 6 }}>
-                  {formatBackupDate(auditInfo.last_backup)}
-                </p>
+                <div className="w-10 h-10 rounded-xl bg-violet-50 border border-violet-100 flex items-center justify-center text-violet-600 mb-4 group-hover:scale-110 transition-transform">
+                  <Wallet size={20} />
+                </div>
+                <h3 className="text-sm font-bold text-[#1a0f2e]">Payment & QR</h3>
+                <p className="text-xs text-zinc-400 mt-1">Manage local GCash/Maya QR codes and numbers.</p>
               </div>
+              <Btn variant="secondary" className="mt-6 w-full justify-center" onClick={() => setActiveSubView('payment-settings')}>
+                Manage Payments <ChevronRight size={12} />
+              </Btn>
             </div>
-            {/* Active Session */}
-            <div className="flex flex-col items-center text-center gap-3 px-4">
-              <div className="w-10 h-10 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center border border-violet-200">
-                <UserPlus size={16} strokeWidth={2.5} />
-              </div>
+
+            <div className="bg-white border border-zinc-200 rounded-[0.625rem] p-6 flex flex-col justify-between hover:border-violet-200 transition-all group">
               <div>
-                <p className="bm-label">Active Session</p>
-                <p style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1a0f2e', marginTop: 6 }}>
-                  {auditInfo.active_session}
-                </p>
+                <div className="w-10 h-10 rounded-xl bg-violet-50 border border-violet-100 flex items-center justify-center text-violet-600 mb-4 group-hover:scale-110 transition-transform">
+                  <SettingsIcon size={20} />
+                </div>
+                <h3 className="text-sm font-bold text-[#1a0f2e]">Sales Config</h3>
+                <p className="text-xs text-zinc-400 mt-1">System policies and operational toggles.</p>
               </div>
+              <Btn variant="secondary" className="mt-6 w-full justify-center" onClick={() => setActiveSubView('sales-settings')}>
+                Open Config <ChevronRight size={12} />
+              </Btn>
             </div>
-            {/* System Status */}
-            <div className="flex flex-col items-center text-center gap-3 px-4">
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center border ${auditInfo.system_status === 'Online' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-red-50 text-red-600 border-red-200'}`}>
-                <Activity size={16} strokeWidth={2.5} />
+          </div>
+
+          {/* Local Activity Summary */}
+          <div className="bg-white border border-zinc-200 rounded-[0.625rem] p-6">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-sm font-bold text-[#1a0f2e]">Recent Internal Activity</p>
+              <Btn variant="ghost" size="sm" onClick={() => setIsLogOpen(true)}>View All Logs</Btn>
+            </div>
+            <div className="space-y-3">
+              {recentLogs.slice(0, 3).map((log, i) => (
+                <div key={i} className="flex items-center gap-3 p-3 bg-zinc-50 rounded-lg border border-zinc-100">
+                  <Activity size={12} className="text-violet-400" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] font-bold text-[#1a0f2e] truncate">{log.action}</p>
+                    <p className="text-[9px] text-zinc-400 uppercase tracking-widest">{new Date(log.created_at).toLocaleTimeString()}</p>
+                  </div>
+                </div>
+              ))}
+              {recentLogs.length === 0 && (
+                <p className="text-xs text-zinc-400 text-center py-4 italic">No recent activity detected.</p>
+              )}
+            </div>
+          </div>
+
+        </div>
+
+        {/* ── Right Column ─────────────────────────────────────────────────── */}
+        <div className="flex flex-col gap-4">
+          
+          {/* Local Preferences */}
+          <div className="bg-white border border-zinc-200 rounded-[0.625rem] p-6">
+            <p className="text-sm font-bold text-[#1a0f2e] mb-4">Branch Preferences</p>
+            <div className="flex flex-col gap-4">
+              {[
+                { label: "Email Notifications", desc: "Branch summary reports", on: notifications, key: 'notifications' as const },
+                { label: "Auto Reports",        desc: "Local Z-reading nightly", on: autoReports,   key: 'auto_reports'  as const },
+              ].map((p) => (
+                <div key={p.key} className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold text-zinc-700">{p.label}</p>
+                    <p className="text-[10px] text-zinc-400 mt-0.5">{p.desc}</p>
+                  </div>
+                  <button
+                    onClick={() => handleToggle(p.key)}
+                    className={`relative w-10 h-5 rounded-full transition-colors ${p.on ? "bg-violet-500" : "bg-zinc-300"}`}
+                  >
+                    <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${p.on ? "translate-x-5" : "translate-x-0"}`} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Branch Health Card (Mirrored from SuperAdmin) */}
+          <div className="bg-gradient-to-br from-[#3b1774] via-[#1e0f3c] to-[#0d0620] rounded-[0.625rem] p-6 relative overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-white/5 group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/20 rounded-full blur-[40px] -translate-y-10 translate-x-10" />
+            <div className="absolute bottom-0 left-0 w-32 h-32 bg-fuchsia-500/10 rounded-full blur-[40px] translate-y-10 -translate-x-10" />
+            <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)", backgroundSize: "16px 16px" }} />
+            
+            <div className="relative z-10">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center border border-white/5 backdrop-blur-sm group-hover:scale-110 transition-transform">
+                  <ShieldCheck size={14} className="text-violet-200" />
+                </div>
+                <p className="text-xs font-black uppercase tracking-[0.15em] text-white/90">Branch Health</p>
               </div>
-              <div>
-                <p className="bm-label">System Status</p>
-                <div className="flex items-center justify-center gap-2 mt-2">
-                  <div className={`w-2.5 h-2.5 rounded-full ${auditInfo.system_status === 'Online' ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
-                  <p style={{ fontSize: '1.1rem', fontWeight: 700, color: auditInfo.system_status === 'Online' ? '#1a0f2e' : '#dc2626' }}>
-                    {auditInfo.system_status}
-                  </p>
+              
+              <div className="space-y-3">
+                {[
+                  { label: "Status",      val: "Connected", color: "text-emerald-400" },
+                  { label: "Logs (Today)", val: auditStats.today_count },
+                  { label: "Voids",       val: auditStats.voids_today, color: auditStats.voids_today > 0 ? "text-rose-400" : "text-zinc-300" },
+                  { label: "Software",    val: "v2.6.0-stable" },
+                ].map((r, i) => (
+                  <div key={i} className="flex justify-between items-center border-b border-white/5 pb-1 last:border-0">
+                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-tighter">{r.label}</span>
+                    <span className={`text-[10px] font-black ${r.color || "text-zinc-300"}`}>{r.val}</span>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="mt-8 pt-4 border-t border-white/10">
+                <div className="flex items-center justify-between">
+                   <div className="flex flex-col">
+                      <span className="text-[8px] text-zinc-500 font-black uppercase">Local IP Address</span>
+                      <span className="text-[10px] text-violet-200 font-mono font-bold">192.168.1.101</span>
+                   </div>
+                   <Activity size={14} className="text-emerald-500 animate-pulse" />
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* ── Settings Grid ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 animate-in fade-in duration-300">
-          {settingActions.map((item) => (
-            <button key={item.id} onClick={item.action} 
-              className="bm-card bg-white border border-zinc-200 rounded-[0.875rem] p-6 flex flex-col items-center justify-center gap-3 hover:shadow-lg hover:border-violet-300 transition-all group text-center active:scale-[0.98]">
-              <div className="w-12 h-12 rounded-lg flex items-center justify-center transition-all group-hover:scale-110 group-hover:bg-[#3b2063] group-hover:text-white group-hover:border-[#3b2063]" 
-                style={{ background: '#f4f4f5', color: '#3b2063', border: '1px solid #e4e4e7' }}>
-                <item.Icon size={20} strokeWidth={2} />
-              </div>
-              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#1a0f2e', letterSpacing: '-0.01em', marginTop: 4 }}>
-                {item.label}
-              </span>
-              <div className="bm-label flex items-center gap-1 group-hover:text-[#3b2063] transition-colors mt-1" style={{ color: '#a1a1aa' }}>
-                Configure <ChevronRight size={10} strokeWidth={3} />
-              </div>
-            </button>
-          ))}
+          {/* Help Card */}
+          <div className="p-4 bg-zinc-900 rounded-xl border border-zinc-800">
+             <SectionHeader title="Need Assistance?" />
+             <p className="text-[10px] text-zinc-500 mt-[-1rem]">If you encounter technical issues or need higher permissions, contact HQ.</p>
+             <button className="w-full mt-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg text-xs font-bold transition-all border border-zinc-700">
+                Contact HQ Admin
+             </button>
+          </div>
         </div>
 
       </div>
 
-      {/* ── Activity Log Modal ── */}
+      {/* ── Modals ─────────────────────────────────────────────────────────── */}
+      
       {isLogOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-[1.25rem] border border-zinc-200 shadow-2xl w-full max-w-md flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 bm-settings-root">
-            <div className="bg-white px-6 py-5 border-b border-zinc-100 flex justify-between items-center">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-violet-50 border border-violet-200 rounded-lg flex items-center justify-center">
-                  <Activity size={15} className="text-violet-600" />
+        <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-white rounded-[1.5rem] border border-zinc-200 shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden animate-fade-in" onClick={e => e.stopPropagation()}>
+            <div className="px-8 py-6 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-white border border-zinc-200 rounded-2xl flex items-center justify-center shadow-sm">
+                  <Activity size={20} className="text-[#3b2063]" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-[#1a0f2e]">Activity Log</p>
-                  <p className="text-[10px] text-zinc-400">Recent system events</p>
+                  <h3 className="text-lg font-black text-[#1a0f2e]">Activity Log</h3>
+                  <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider">Internal Branch History</p>
                 </div>
               </div>
-              <button onClick={() => setIsLogOpen(false)} className="p-1.5 hover:bg-zinc-100 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600">
-                <X size={16} />
+              <button onClick={() => setIsLogOpen(false)} className="p-2 hover:bg-zinc-100 rounded-xl transition-colors text-zinc-400 hover:text-zinc-900">
+                <X size={20} strokeWidth={3} />
               </button>
             </div>
             
-            <div className="p-4 space-y-2 max-h-[60vh] overflow-y-auto">
-              {recentLogs.length > 0 ? recentLogs.map((log, i) => {
-                const critical = isCriticalAction(log.action);
-                return (
-                  <div key={i} className={`flex justify-between items-start p-3 rounded-lg border ${critical ? 'bg-red-50 border-red-200' : 'bg-zinc-50 border-zinc-200'}`}>
-                    <div className="flex items-start gap-2 flex-1">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 flex-shrink-0 ${critical ? 'bg-red-100 text-red-600' : 'bg-violet-100 text-violet-600'}`}>
-                        {critical ? <AlertTriangle size={13} strokeWidth={2.5}/> : <Activity size={13} strokeWidth={2.5}/>}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-0.5">{log.user}</p>
-                        <p style={{ fontSize: '0.8rem', fontWeight: 600, color: critical ? '#991b1b' : '#1a0f2e', lineHeight: 1.3 }}>{log.action}</p>
-                      </div>
+            <div className="p-6 space-y-3 max-h-[60vh] overflow-y-auto">
+              {recentLogs.map((log, i) => (
+                <div key={i} className="flex items-center gap-4 p-4 rounded-[1rem] bg-zinc-50/50 border border-zinc-100 hover:border-violet-200 transition-all group">
+                  <Activity size={14} className="text-zinc-400 group-hover:text-violet-600" />
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <p className="text-[0.65rem] font-bold uppercase tracking-widest text-[#3b2063]">{log.user?.name}</p>
+                      <span className="text-[10px] font-bold text-zinc-400">{new Date(log.created_at).toLocaleString()}</span>
                     </div>
-                    <span className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 shrink-0 ml-2">{log.time}</span>
+                    <p className="text-sm font-bold text-[#1a0f2e]">{log.action}</p>
                   </div>
-                );
-              }) : (
-                <div className="flex flex-col items-center justify-center py-8">
-                  <Activity size={20} color="#e4e4e7" className="mb-2" />
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">No recent activity</p>
                 </div>
-              )}
+              ))}
             </div>
             
-            <div className="flex items-center justify-between px-6 py-4 border-t border-zinc-100 gap-2">
-              <Button variant="ghost" size="sm" onClick={handleExportLogs}>
-                <FileUp size={12} /> Export
-              </Button>
-              <Button variant="secondary" size="sm" onClick={() => setIsLogOpen(false)}>
-                Close
-              </Button>
+            <div className="px-8 py-5 border-t border-zinc-100 bg-zinc-50/30 flex justify-end">
+              <Btn onClick={() => setIsLogOpen(false)} className="rounded-xl px-8 h-11">Close</Btn>
             </div>
           </div>
         </div>
       )}
-      
-      <BM_SalesSettings isOpen={isSalesSettingsOpen} onClose={() => setIsSalesSettingsOpen(false)} />
-    </>
+
+      {confirmConfig && (
+        <ConfirmModal
+          {...confirmConfig}
+          onCancel={() => setConfirmConfig(null)}
+        />
+      )}
+    </div>
   );
 };
 

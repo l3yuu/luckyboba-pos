@@ -16,12 +16,20 @@ class NotificationController extends Controller
     public function summary(): JsonResponse
     {
         $notifications = [];
+        $user = auth()->user();
+        $isBM = $user->role === 'branch_manager' || $user->role === 'supervisor';
+        $targetBranchId = $isBM ? $user->branch_id : null;
 
         // ── 1. Low stock items (Raw Materials) ──────────────────────────────
         try {
-            $lowStock = DB::table('raw_materials')
-                ->where('current_stock', '<=', DB::raw('reorder_level'))
-                ->select('id', 'name', 'current_stock', 'reorder_level', 'unit')
+            $query = DB::table('raw_materials')
+                ->where('current_stock', '<=', DB::raw('reorder_level'));
+            
+            if ($isBM && $targetBranchId) {
+                $query->where('branch_id', $targetBranchId);
+            }
+
+            $lowStock = $query->select('id', 'name', 'current_stock', 'reorder_level', 'unit')
                 ->orderBy('current_stock')
                 ->limit(10)
                 ->get();
@@ -41,11 +49,16 @@ class NotificationController extends Controller
 
         // ── 2. Recent void / cancelled transactions (last 24 h) ────────────
         try {
-            $voids = DB::table('sales')
+            $query = DB::table('sales')
                 ->leftJoin('branches', 'sales.branch_id', '=', 'branches.id')
                 ->where('sales.status', 'cancelled')
-                ->where('sales.updated_at', '>=', Carbon::now()->subDay())
-                ->select(
+                ->where('sales.updated_at', '>=', Carbon::now()->subDay());
+
+            if ($isBM && $targetBranchId) {
+                $query->where('sales.branch_id', $targetBranchId);
+            }
+
+            $voids = $query->select(
                     'sales.id', 
                     'sales.invoice_number', 
                     'sales.total_amount', 
@@ -73,8 +86,7 @@ class NotificationController extends Controller
         // ── 3. Cash-in not done today ──────────────────────────────────────
         try {
             $today = Carbon::today();
-            // Get branches that HAVENT cashed in today
-            $branchesMissingCashIn = DB::table('branches')
+            $query = DB::table('branches')
                 ->whereNotExists(function ($query) use ($today) {
                     $query->select(DB::raw(1))
                         ->from('cash_transactions')
@@ -82,8 +94,13 @@ class NotificationController extends Controller
                         ->whereDate('cash_transactions.created_at', $today)
                         ->where('cash_transactions.type', 'cash_in');
                 })
-                ->where('branches.status', 'active')
-                ->select('id', 'name')
+                ->where('branches.status', 'active');
+
+            if ($isBM && $targetBranchId) {
+                $query->where('branches.id', $targetBranchId);
+            }
+
+            $branchesMissingCashIn = $query->select('id', 'name')
                 ->get();
 
             foreach ($branchesMissingCashIn as $branch) {
@@ -99,27 +116,29 @@ class NotificationController extends Controller
             }
         } catch (\Throwable $e) {}
 
-        // ── 4. Pending purchase orders ─────────────────────────────────────
-        try {
-            $pendingPos = DB::table('purchase_orders')
-                ->where('status', 'Pending')
-                ->select('id', 'po_number', 'created_at', 'supplier', 'total_amount')
-                ->orderByDesc('created_at')
-                ->limit(5)
-                ->get();
+        // ── 4. Pending purchase orders (SuperAdmin Only) ──────────────────────
+        if (!$isBM) {
+            try {
+                $pendingPos = DB::table('purchase_orders')
+                    ->where('status', 'Pending')
+                    ->select('id', 'po_number', 'created_at', 'supplier', 'total_amount')
+                    ->orderByDesc('created_at')
+                    ->limit(5)
+                    ->get();
 
-            foreach ($pendingPos as $po) {
-                $notifications[] = [
-                    'id'          => 'po_' . $po->id,
-                    'type'        => 'purchase_order',
-                    'title'       => 'Pending PO: #' . ($po->po_number ?? $po->id),
-                    'message'     => 'PO for ₱' . number_format($po->total_amount, 2) . ' from ' . $po->supplier . ' is awaiting approval.',
-                    'severity'    => 'info',
-                    'at'          => $po->created_at,
-                    'branch_name' => 'Main Office',
-                ];
-            }
-        } catch (\Throwable $e) {}
+                foreach ($pendingPos as $po) {
+                    $notifications[] = [
+                        'id'          => 'po_' . $po->id,
+                        'type'        => 'purchase_order',
+                        'title'       => 'Pending PO: #' . ($po->po_number ?? $po->id),
+                        'message'     => 'PO for ₱' . number_format($po->total_amount, 2) . ' from ' . $po->supplier . ' is awaiting approval.',
+                        'severity'    => 'info',
+                        'at'          => $po->created_at,
+                        'branch_name' => 'Main Office',
+                    ];
+                }
+            } catch (\Throwable $e) {}
+        }
 
         // ── Sort: critical first, then warning, then info ──────────────────
         $order = ['critical' => 0, 'warning' => 1, 'info' => 2];
