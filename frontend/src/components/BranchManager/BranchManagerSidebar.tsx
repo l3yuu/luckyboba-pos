@@ -486,6 +486,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
           <p className="px-2 pt-4 pb-1 text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">Home</p>
           {[
             { tab: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={14} /> },
+            { tab: 'live-pulse', label: 'Live Pulse', icon: <Activity size={14} /> },
             { tab: 'users', label: 'User Management', icon: <Users size={14} /> },
             { tab: 'device-management', label: 'Device Management', icon: <Monitor size={14} /> },
           ].map(t => (
@@ -617,6 +618,7 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
               <div className="bm-sec">Home</div>
               {[
                 { tab: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
+                { tab: 'live-pulse', label: 'Live Pulse', icon: <Activity size={18} /> },
                 { tab: 'users', label: 'User Management', icon: <Users size={18} /> },
                 { tab: 'device-management', label: 'Device Management', icon: <Monitor size={18} /> },
               ].map(t => (

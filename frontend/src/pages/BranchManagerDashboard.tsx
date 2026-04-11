@@ -10,6 +10,7 @@ import BM_DeviceManagement from '../components/BranchManager/Home/BM_DeviceManag
 import api from '../services/api';
 import { LogOut } from 'lucide-react';
 import BranchManagerTopNav from '../components/BranchManager/BranchManagerTopNav'; 
+import BM_PulseTab from '../components/BranchManager/Home/BM_PulseTab';
 
 import SalesDashboard        from '../components/BranchManager/SalesReport/BM_SalesDashboard';
 import ItemsReport           from '../components/BranchManager/SalesReport/BM_ItemsReport';
@@ -86,6 +87,7 @@ const GlobalStyles = () => <style>{STYLES}</style>;
 // ─── Page title map ───────────────────────────────────────────────────────────
 const PAGE_TITLES: Record<string, { label: string; desc: string }> = {
   dashboard:            { label: 'Dashboard',            desc: 'Real-time summary for your branch' },
+  'live-pulse':         { label: 'Live Pulse',           desc: 'Real-time sales ticker and staff heartbeat' },
   users:                { label: 'User Management',      desc: 'Staff accounts, roles & permissions' },
   'device-management':  { label: 'Device Management',    desc: 'POS terminals & connected devices' },
   'sales-dashboard':    { label: 'Sales Dashboard',      desc: 'Daily & periodic sales breakdown' },
@@ -174,6 +176,7 @@ const BranchManagerDashboard = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':          return <BM_Dashboard branchId={authUser?.branch_id ?? null} />;
+      case 'live-pulse':         return <BM_PulseTab branchId={authUser?.branch_id ?? null} />;
       case 'users':              return <UserManagement />;
       case 'device-management':  return <BM_DeviceManagement branchId={authUser?.branch_id ?? null} />;
       case 'sales-dashboard':    return <SalesDashboard />;
