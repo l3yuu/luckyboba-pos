@@ -3,10 +3,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Search, Plus, Edit2, Trash2, X, AlertCircle, RefreshCw,
-  Download, Receipt, Wallet, Building2, Calendar,
-  User, ChevronDown, ChevronUp,
+  Receipt, Wallet, Calendar,
+  ChevronDown,
   TrendingDown, Package, FileImage, PieChart as PieChartIcon,
-  Maximize2, ExternalLink
+  ExternalLink
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import {
@@ -21,8 +21,7 @@ type ExpenseCategory = 'Utilities' | 'Rent' | 'Salaries' | 'Supplies' | 'Miscell
 type ColorKey   = "violet" | "emerald" | "red" | "amber" | "sky";
 type VariantKey = "primary" | "secondary" | "danger" | "ghost";
 type SizeKey    = "sm" | "md" | "lg";
-type SortDir    = "asc" | "desc";
-type SortKey    = "date" | "title" | "category" | "amount";
+type SizeKey    = "sm" | "md" | "lg";
 
 interface Expense {
   id:           number;
@@ -184,8 +183,9 @@ const ExpenseFormModal: React.FC<ModalProps> = ({ editing, branchId, onClose, on
         
       onSaved();
       onClose();
-    } catch (err: any) {
-      setApiErr(err.response?.data?.message ?? 'Failed to save expense.');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setApiErr(error.response?.data?.message ?? 'Failed to save expense.');
     } finally { setSaving(false); }
   };
 
@@ -493,7 +493,7 @@ const BM_ExpensesTab: React.FC<{ branchId: number | null }> = ({ branchId }) => 
                 <ResponsiveContainer width="100%" height="100%">
                    <PieChart>
                       <Pie data={categoryData} innerRadius={65} outerRadius={85} paddingAngle={8} dataKey="value" stroke="none">
-                         {categoryData.map((entry: any, index: number) => (
+                         {categoryData.map((entry: {name: string, value: number}, index: number) => (
                            <Cell key={index} fill={CAT_COLORS[entry.name as ExpenseCategory] || '#e2e8f0'} />
                          ))}
                       </Pie>

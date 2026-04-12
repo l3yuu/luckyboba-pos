@@ -109,14 +109,14 @@ const LoyaltyManagementTab: React.FC = () => {
     try {
       const res = await fetch("/api/loyalty/settings", { headers: authHeaders() });
       if (res.ok) setSettings(await res.json());
-    } catch (e) { console.error("Settings fetch failed"); }
+    } catch (_e) { console.error("Settings fetch failed"); }
   }, []);
 
   const fetchRewards = useCallback(async () => {
     try {
       const res = await fetch("/api/loyalty/rewards", { headers: authHeaders() });
       if (res.ok) setRewards(await res.json());
-    } catch (e) { console.error("Rewards fetch failed"); }
+    } catch (_e) { console.error("Rewards fetch failed"); }
   }, []);
 
   const fetchUserPoints = useCallback(async (page = 1, query = "") => {
@@ -127,7 +127,7 @@ const LoyaltyManagementTab: React.FC = () => {
         setUserPoints(data.data);
         setUserMetadata({ total: data.total, current_page: data.current_page, last_page: data.last_page });
       }
-    } catch (e) { console.error("User points fetch failed"); }
+    } catch (_e) { console.error("User points fetch failed"); }
   }, []);
 
   useEffect(() => {
@@ -147,7 +147,7 @@ const LoyaltyManagementTab: React.FC = () => {
       });
       if (res.ok) alert("Settings saved successfully!");
       else alert("Failed to save settings.");
-    } catch (e) { alert("Error saving settings."); }
+    } catch (_e) { alert("Error saving settings."); }
     finally { setSaveLoading(false); }
   };
 
@@ -177,7 +177,7 @@ const LoyaltyManagementTab: React.FC = () => {
         setRewardModalOpen(false);
         setEditingReward(null);
       }
-    } catch (e) { console.error("Reward save error"); }
+    } catch (_e) { console.error("Reward save error"); }
     finally { setSaveLoading(false); }
   };
 
@@ -186,7 +186,7 @@ const LoyaltyManagementTab: React.FC = () => {
     try {
       const res = await fetch(`/api/loyalty/rewards/${id}`, { method: "DELETE", headers: authHeaders() });
       if (res.ok) fetchRewards();
-    } catch (e) { console.error("Delete failed"); }
+    } catch (_e) { console.error("Delete failed"); }
   };
 
   return (

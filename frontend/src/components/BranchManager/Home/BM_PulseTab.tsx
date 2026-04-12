@@ -44,8 +44,9 @@ const getToken = () =>
   localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
-const StatCard = ({ icon, label, value, sub, color = "violet" }: any) => {
-  const colors: any = {
+interface StatCardProps { icon: React.ReactNode; label: string; value: string | number; sub?: string; color?: "violet" | "emerald" | "amber" }
+const StatCard = ({ icon, label, value, sub, color = "violet" }: StatCardProps) => {
+  const colors: Record<string, { bg: string; border: string; icon: string }> = {
     violet: { bg: "bg-[#f5f0ff]", border: "border-[#e9d5ff]", icon: "text-[#3b2063]" },
     emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
     amber: { bg: "bg-amber-50", border: "border-amber-200", icon: "text-amber-600" },
@@ -67,7 +68,7 @@ const StatCard = ({ icon, label, value, sub, color = "violet" }: any) => {
   );
 };
 
-const Skeleton = ({ className }: any) => (
+const Skeleton = ({ className }: { className?: string }) => (
   <div className={`bg-zinc-100 animate-pulse rounded ${className}`} />
 );
 
@@ -92,7 +93,9 @@ const BM_PulseTab: React.FC<BM_PulseTabProps> = ({ branchId }) => {
   }, [branchId]);
 
   useEffect(() => {
-    fetchPulse();
+    (async () => {
+      await fetchPulse();
+    })();
     const pulseInterval = setInterval(fetchPulse, 5000);
     return () => clearInterval(pulseInterval);
   }, [fetchPulse]);

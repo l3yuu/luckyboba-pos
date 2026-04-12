@@ -96,6 +96,12 @@ const ConfirmModal: React.FC<{
   );
 };
 
+interface ActivityLog {
+  action: string;
+  created_at: string;
+  user?: { name: string };
+}
+
 // ── Main BM_Settings Component ──────────────────────────────────────────
 
 const BM_Settings = () => {
@@ -120,7 +126,7 @@ const BM_Settings = () => {
     voids_today: 0
   });
 
-  const [recentLogs, setRecentLogs] = useState<any[]>([]);
+  const [recentLogs, setRecentLogs] = useState<ActivityLog[]>([]);
 
   // ── Data Fetching ────────────────────────────────────────────────────────
 

@@ -41,6 +41,7 @@ const BM_PaymentSettings = ({ onBack }: { onBack: () => void }) => {
 
   useEffect(() => {
     fetchSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchSettings = async () => {
@@ -49,7 +50,7 @@ const BM_PaymentSettings = ({ onBack }: { onBack: () => void }) => {
       if (res.data.success) {
         setData(res.data.data);
       }
-    } catch (error) {
+    } catch (_error) {
       showToast('Internal error fetching payment settings', 'error');
     } finally {
       setLoading(false);
@@ -102,7 +103,7 @@ const BM_PaymentSettings = ({ onBack }: { onBack: () => void }) => {
         setMayaPreview(null);
         showToast('Payment settings updated successfully', 'success');
       }
-    } catch (error) {
+    } catch (_error) {
       showToast('Failed to update payment settings', 'error');
     } finally {
       setSaving(false);

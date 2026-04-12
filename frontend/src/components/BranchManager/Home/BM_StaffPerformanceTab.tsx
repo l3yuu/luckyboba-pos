@@ -24,7 +24,7 @@ interface BM_StaffPerformanceTabProps {
 }
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
-const Skeleton = ({ className }: any) => (
+const Skeleton = ({ className }: { className?: string }) => (
   <div className={`bg-zinc-100 animate-pulse rounded ${className}`} />
 );
 
@@ -41,8 +41,9 @@ const StatCardSkeleton = () => (
   </div>
 );
 
-const StatCard = ({ icon, label, value, sub, color = "violet" }: any) => {
-  const colors: any = {
+interface StatCardProps { icon: React.ReactNode; label: string; value: string | number; sub?: string; color?: "violet" | "emerald" | "red" | "amber" }
+const StatCard = ({ icon, label, value, sub, color = "violet" }: StatCardProps) => {
+  const colors: Record<string, { bg: string; border: string; icon: string }> = {
     violet: { bg: "bg-[#f5f0ff]", border: "border-[#e9d5ff]", icon: "text-[#3b2063]" },
     emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
     red: { bg: "bg-red-50", border: "border-red-200", icon: "text-red-500" },
