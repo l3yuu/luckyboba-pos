@@ -21,7 +21,6 @@ type ExpenseCategory = 'Utilities' | 'Rent' | 'Salaries' | 'Supplies' | 'Miscell
 type ColorKey   = "violet" | "emerald" | "red" | "amber" | "sky";
 type VariantKey = "primary" | "secondary" | "danger" | "ghost";
 type SizeKey    = "sm" | "md" | "lg";
-type SizeKey    = "sm" | "md" | "lg";
 
 interface Expense {
   id:           number;
