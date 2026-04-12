@@ -17,7 +17,7 @@ class SalesDashboardService
         $this->saleRepo = $saleRepo;
     }
 
-    // ─── Analytics (BranchManagerDashboard) ──────────────────────────────────
+    // ─── Analytics (BranchManagerDashboard) ───────────────────────────────────
 
     public function getAnalyticsData(?int $branchId = null): array
     {
@@ -30,6 +30,58 @@ class SalesDashboardService
             'stats'             => $this->getDailyStats($branchId, $today),
             'top_seller_today'  => $this->saleRepo->getTopSellers($today, $today->copy()->endOfDay(), 1, $branchId),
             'generated_at'      => now()->toDateTimeString(),
+        ];
+    }
+
+    /**
+     * Comprehensive data for BM_Dashboard.tsx
+     */
+    public function getDashboardData(?int $branchId = null): array
+    {
+        $today = Carbon::today();
+        
+        // Define periods
+        $dailyStart   = $today->copy()->startOfDay();
+        $dailyEnd     = $today->copy()->endOfDay();
+        
+        $weeklyStart  = Carbon::now()->subDays(6)->startOfDay();
+        $weeklyEnd    = Carbon::now()->endOfDay();
+        
+        $monthlyStart = Carbon::now()->subDays(29)->startOfDay();
+        $monthlyEnd   = Carbon::now()->endOfDay();
+
+        return [
+            'daily_sales'   => $this->assemblePeriodData($dailyStart, $dailyEnd, 'daily', $branchId),
+            'weekly_sales'  => $this->assemblePeriodData($weeklyStart, $weeklyEnd, 'daily', $branchId),
+            'monthly_sales' => $this->assemblePeriodData($monthlyStart, $monthlyEnd, 'monthly', $branchId),
+            'statistics'    => [
+                'top_seller_today' => $this->saleRepo->getTopSellers($dailyStart, $dailyEnd, 5, $branchId)
+            ],
+            'generated_at'  => now()->toDateTimeString(),
+        ];
+    }
+
+    private function assemblePeriodData(Carbon $start, Carbon $end, string $chartType, ?int $branchId): array
+    {
+        return [
+            'data'        => $this->saleRepo->getSalesChartData($start, $end, $chartType, $branchId)->map(fn($row) => [
+                'date'  => $row->date,
+                'day'   => $row->day ?? Carbon::parse($row->date)->format('D'),
+                'value' => (float) $row->value,
+            ]),
+            'stats'       => $this->getPeriodStats($start, $end, $branchId),
+            'top_sellers' => $this->saleRepo->getTopSellers($start, $end, 5, $branchId),
+        ];
+    }
+
+    private function getPeriodStats(Carbon $start, Carbon $end, ?int $branchId): array
+    {
+        return [
+            'total_sales'  => (float) $this->saleRepo->getSalesSumBetween($start, $end, $branchId),
+            'total_orders' => (int)   $this->saleRepo->getSalesCountBetween($start, $end, $branchId),
+            'voided_sales' => (float) $this->saleRepo->getVoidSalesBetween($start, $end, $branchId),
+            'cash_in'      => (float) $this->saleRepo->getCashTransactionsSum($start, $end, ['cash_in'], $branchId),
+            'cash_out'     => (float) $this->saleRepo->getCashTransactionsSum($start, $end, ['cash_out', 'cash_drop'], $branchId),
         ];
     }
         
@@ -111,7 +163,7 @@ class SalesDashboardService
         ];
     }
 
-    // ─── X-Reading ────────────────────────────────────────────────────────────
+    // ─── X-Reading ──────────────────────────────────────────────────────────────
 
     public function getXReading(string $date, ?string $toDate = null, ?int $branchId = null): array
     {
@@ -196,7 +248,7 @@ class SalesDashboardService
         ];
     }
 
-    // ─── Z-Reading ────────────────────────────────────────────────────────────
+    // ─── Z-Reading ─────────────────────────────────────────────────────────────
 
     public function generateZReading(string $fromStr, string $toStr, ?int $branchId = null): array
     {
@@ -318,5 +370,10 @@ class SalesDashboardService
             'tenant_id'         => 'LUCKYBOBA-001',
             'generated_at'      => now()->toDateTimeString(),
         ];
+    }
+
+    public function getZReadingHistory(?int $branchId = null, int $limit = 50): \Illuminate\Support\Collection
+    {
+        return $this->saleRepo->getZReadingsHistory($branchId, $limit);
     }
 }

@@ -151,4 +151,88 @@ class SalesDashboardController extends Controller
 
         return response()->json($report);
     }
+
+    /**
+     * GET /api/reports/dashboard-data
+     */
+    public function dashboardData(Request $request): JsonResponse
+    {
+        try {
+            $user     = auth('sanctum')->user() ?? $request->user();
+            $branchId = $user?->branch_id;
+
+            $data = $this->salesService->getDashboardData($branchId);
+
+            return response()->json([
+                'success' => true,
+                'data'    => $data,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Dashboard Data Error: ' . $e->getMessage());
+            return response()->json([
+                'message' => 'Failed to load dashboard data.',
+                'error'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * GET /api/reports/z-reading/history
+     */
+    public function zReadingHistory(Request $request): JsonResponse
+    {
+        try {
+            $user     = auth('sanctum')->user() ?? $request->user();
+            $branchId = $user?->branch_id;
+
+            $history = $this->salesService->getZReadingHistory($branchId);
+
+            return response()->json([
+                'success' => true,
+                'data'    => $history,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Z-Reading History Error: ' . $e->getMessage());
+            return response()->json(['message' => 'Error loading Z-Reading history'], 500);
+        }
+    }
+
+    /**
+     * POST /api/readings/z/close
+     */
+    public function zReadingClose(Request $request): JsonResponse
+    {
+        try {
+            $user     = auth('sanctum')->user() ?? $request->user();
+            $branchId = $user?->branch_id;
+            $date     = $request->input('date', now()->toDateString());
+
+            ZReading::where('reading_date', $date)
+                ->where('branch_id', $branchId)
+                ->update([
+                    'is_closed' => true,
+                    'closed_at' => now(),
+                ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Z-Reading closed successfully',
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Z-Reading Close Error: ' . $e->getMessage());
+            return response()->json(['message' => 'Error closing Z-Reading'], 500);
+        }
+    }
+
+    /**
+     * POST /api/readings/z/print-token
+     */
+    public function zReadingPrintToken(Request $request): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'token'   => Str::random(32),
+            'expires' => now()->addMinutes(10)->toDateTimeString(),
+        ]);
+    }
 }
