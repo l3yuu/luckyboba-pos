@@ -190,27 +190,40 @@ class SaleRepository implements SaleRepositoryInterface
             ->where('sales.status', 'completed')
             ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId));
 
-        $scItem = round((float) (clone $base)->where('sale_items.discount_label', 'LIKE', '%SENIOR%')->sum('sale_items.discount_amount'), 2);
-        $pwdItem = round((float) (clone $base)->where('sale_items.discount_label', 'LIKE', '%PWD%')->sum('sale_items.discount_amount'), 2);
-        $diplomatItem = (float) (clone $base)->where('sale_items.discount_label', 'LIKE', '%DIPLOMAT%')->sum('sale_items.discount_amount');
+        $itemAggregates = (clone $base)
+            ->select(
+                DB::raw("SUM(CASE WHEN discount_label LIKE '%SENIOR%' THEN discount_amount ELSE 0 END) as sc_item"),
+                DB::raw("SUM(CASE WHEN discount_label LIKE '%PWD%' THEN discount_amount ELSE 0 END) as pwd_item"),
+                DB::raw("SUM(CASE WHEN discount_label LIKE '%DIPLOMAT%' THEN discount_amount ELSE 0 END) as diplomat_item"),
+                DB::raw("SUM(CASE WHEN 
+                    COALESCE(discount_label, '') != '' 
+                    AND discount_label NOT LIKE '%SENIOR%' 
+                    AND discount_label NOT LIKE '%PWD%' 
+                    AND discount_label NOT LIKE '%DIPLOMAT%' 
+                    THEN discount_amount ELSE 0 END) as other_item")
+            )->first();
 
-        $itemLevelOther = (float) (clone $base)
-            ->where('sale_items.discount_label', 'NOT LIKE', '%SENIOR%')
-            ->where('sale_items.discount_label', 'NOT LIKE', '%PWD%')
-            ->where('sale_items.discount_label', 'NOT LIKE', '%DIPLOMAT%')
-            ->whereNotNull('sale_items.discount_label')
-            ->where('sale_items.discount_label', '!=', '')
-            ->sum('sale_items.discount_amount');
+        $scItem       = round((float) ($itemAggregates->sc_item ?? 0), 2);
+        $pwdItem      = round((float) ($itemAggregates->pwd_item ?? 0), 2);
+        $diplomatItem = (float) ($itemAggregates->diplomat_item ?? 0);
+        $itemLevelOther = (float) ($itemAggregates->other_item ?? 0);
 
         $orderBase = DB::table('sales')
             ->whereBetween('created_at', [$startDate, $endDate])
             ->where('status', 'completed')
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId));
 
-        $scOrder = round((float) (clone $orderBase)->sum('sc_discount_amount'), 2);
-        $pwdOrder = round((float) (clone $orderBase)->sum('pwd_discount_amount'), 2);
-        $diplomatOrder = (float) (clone $orderBase)->sum('diplomat_discount_amount');
-        $otherOrder = (float) (clone $orderBase)->sum('other_discount_amount');
+        $orderAggregates = (clone $orderBase)->select(
+            DB::raw('SUM(sc_discount_amount) as sc_order'),
+            DB::raw('SUM(pwd_discount_amount) as pwd_order'),
+            DB::raw('SUM(diplomat_discount_amount) as diplomat_order'),
+            DB::raw('SUM(other_discount_amount) as other_order')
+        )->first();
+
+        $scOrder       = round((float) ($orderAggregates->sc_order ?? 0), 2);
+        $pwdOrder      = round((float) ($orderAggregates->pwd_order ?? 0), 2);
+        $diplomatOrder = (float) ($orderAggregates->diplomat_order ?? 0);
+        $otherOrder    = (float) ($orderAggregates->other_order ?? 0);
 
         return [
             'sc_discount'       => round($scItem + $scOrder, 2),

@@ -24,7 +24,7 @@ class UserResource extends JsonResource
             ->where('status', 'active')
             ->first();
 
-        $branch = clone $this->branch; // Lazy-load branch relationship if not loaded
+        $branch = $this->branch; // Lazy-load branch relationship if not loaded
         
         if (!$branch && $this->branch_id) {
             $branch = \App\Models\Branch::select('id', 'vat_type')->find($this->branch_id);

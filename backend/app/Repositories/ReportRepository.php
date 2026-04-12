@@ -90,28 +90,21 @@ class ReportRepository implements ReportRepositoryInterface
             ->orderBy('Sales_Date', 'desc')
             ->get();
 
-        $totalGross = Sale::whereBetween('created_at', [$from, $to])
-            ->where('status', 'completed')
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->sum('total_amount') ?? 0;
+        $discountCol = \Schema::hasColumn('sales', 'total_discount') ? 'total_discount' : 
+                      (\Schema::hasColumn('sales', 'discount_amount') ? 'discount_amount' : "0");
 
-        $totalDiscounts = 0;
-        if (\Schema::hasColumn('sales', 'total_discount')) {
-            $totalDiscounts = Sale::whereBetween('created_at', [$from, $to])
-                ->where('status', 'completed')
-                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-                ->sum('total_discount');
-        } elseif (\Schema::hasColumn('sales', 'discount_amount')) {
-            $totalDiscounts = Sale::whereBetween('created_at', [$from, $to])
-                ->where('status', 'completed')
-                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-                ->sum('discount_amount');
-        }
-
-        $totalVoids = Sale::whereBetween('created_at', [$from, $to])
-            ->where('status', 'cancelled')
+        $totals = DB::table('sales')
+            ->whereBetween('created_at', [$from, $to])
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->sum('total_amount') ?? 0;
+            ->select(
+                DB::raw("SUM(CASE WHEN status = 'completed' THEN total_amount ELSE 0 END) as gross_sales"),
+                DB::raw("SUM(CASE WHEN status = 'completed' THEN {$discountCol} ELSE 0 END) as total_discounts"),
+                DB::raw("SUM(CASE WHEN status = 'cancelled' THEN total_amount ELSE 0 END) as total_voids")
+            )->first();
+
+        $totalGross     = $totals->gross_sales ?? 0;
+        $totalDiscounts = $totals->total_discounts ?? 0;
+        $totalVoids     = $totals->total_voids ?? 0;
 
         return [
             'summary_data'      => $summary,
@@ -432,17 +425,17 @@ class ReportRepository implements ReportRepositoryInterface
         $scPwdDiscount  = $scDiscount + $pwdDiscount;
         $totalDiscounts = $scPwdDiscount + $diplomatDiscount + $otherDiscount;
 
-        $salesVatTotal = (float) DB::table('sales')
+        $vatData = DB::table('sales')
             ->whereBetween('created_at', [$from, $to])
             ->where('status', 'completed')
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->sum('vat_amount');
+            ->select(
+                DB::raw('SUM(vat_amount) as total_vat'),
+                DB::raw('SUM(vatable_sales) as total_vatable')
+            )->first();
 
-        $salesVatableSales = (float) DB::table('sales')
-            ->whereBetween('created_at', [$from, $to])
-            ->where('status', 'completed')
-            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
-            ->sum('vatable_sales');
+        $salesVatTotal     = (float) ($vatData->total_vat ?? 0);
+        $salesVatableSales = (float) ($vatData->total_vatable ?? 0);
 
         $vatAmount    = $isVat ? round($salesVatTotal,     2) : 0.0;
         $vatableSales = $isVat ? round($salesVatableSales, 2) : 0.0;
