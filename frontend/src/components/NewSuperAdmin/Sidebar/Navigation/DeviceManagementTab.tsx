@@ -524,21 +524,13 @@ const DeviceManagementTab: React.FC = () => {
   return (
     <div className="p-6 md:p-8 fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Device Management</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            {loading ? "Loading..." : `${total} devices · ${active} active · ${assigned} assigned`}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Btn variant="secondary" onClick={fetchData} disabled={loading}>
-            <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
-          </Btn>
-          <Btn onClick={() => setRegisterOpen(true)}>
-            <Plus size={13} /> Register Device
-          </Btn>
-        </div>
+      <div className="flex flex-wrap items-center justify-end gap-3 mb-6">
+        <Btn variant="secondary" onClick={fetchData} disabled={loading}>
+          <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
+        </Btn>
+        <Btn onClick={() => setRegisterOpen(true)}>
+          <Plus size={13} /> Register Device
+        </Btn>
       </div>
 
       {/* Stat cards */}

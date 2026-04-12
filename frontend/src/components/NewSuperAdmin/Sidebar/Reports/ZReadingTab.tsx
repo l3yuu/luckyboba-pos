@@ -1235,11 +1235,7 @@ const handlePrint = () => window.print();
       )}
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between flex-wrap gap-3 print:hidden">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Z Reading</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">End-of-day closing report — finalizes and locks shift totals</p>
-        </div>
+      <div className="flex flex-wrap items-center justify-end gap-3 mb-1 print:hidden">
         <div className="flex items-center gap-2 flex-wrap">
           <div className="relative" ref={menuRef}>
             <button

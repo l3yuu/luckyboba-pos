@@ -326,24 +326,20 @@ const OverviewTab: React.FC = () => {
       `}</style>
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-black text-[#1a0f2e]">Overview</h2>
-            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-rose-50 text-rose-600 rounded-full border border-rose-100">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-600 pulse-indicator" />
-              <span className="text-[0.6rem] font-black uppercase tracking-wider">Live</span>
-            </div>
-          </div>
-          <p className="text-xs text-zinc-400 font-bold uppercase tracking-tighter opacity-70 mt-0.5">Real-time control center for business operations</p>
+      <div className="flex flex-wrap items-center justify-end gap-3 mb-6">
+        <div className="flex items-center gap-1.5 px-2 py-1 bg-rose-50 text-rose-600 rounded-lg border border-rose-100">
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-600 pulse-indicator" />
+          <span className="text-[0.6rem] font-black uppercase tracking-wider">Live</span>
         </div>
-        <div className="flex items-center gap-2 text-right">
-          <div className="mr-2 hidden sm:block">
-            <p className="text-[0.55rem] font-bold uppercase tracking-widest text-zinc-400">Live Pulse Sync</p>
-            <p className="text-[0.7rem] font-black text-[#3b2063] tabular-nums">
-              {lastPulseSync.toLocaleTimeString([], { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-            </p>
-          </div>
+
+        <div className="mr-auto sm:mr-0 text-right hidden sm:block">
+          <p className="text-[0.55rem] font-bold uppercase tracking-widest text-zinc-400 leading-none">Live Pulse Sync</p>
+          <p className="text-[0.7rem] font-black text-[#3b2063] tabular-nums leading-none mt-1">
+            {lastPulseSync.toLocaleTimeString([], { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
           {(["daily", "weekly", "monthly"] as const).map(p => (
             <button key={p} onClick={() => setPeriod(p)} disabled={loading}
               className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all capitalize disabled:opacity-50 ${period === p ? "bg-[#3b2063] text-white" : "bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}>

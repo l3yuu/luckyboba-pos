@@ -218,15 +218,7 @@ const CardUsersTab: React.FC = () => {
         className="p-6 md:p-10 max-w-7xl mx-auto fade-in"
         style={{ fontFamily: "'DM Sans', sans-serif" }}
       >
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-[#1a0f2e] tracking-tight mb-2">
-            Card Members & Usage
-          </h1>
-          <p className="text-sm text-zinc-500">
-            Track active subscribers and log their specific daily perks.
-            Manual claims require manager authorization.
-          </p>
-        </div>
+
 
         <div className="flex flex-col sm:flex-row gap-4 justify-between items-center mb-6">
           <div className="relative w-full sm:w-96">

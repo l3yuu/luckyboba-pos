@@ -2522,13 +2522,7 @@ const MenuItemsTab: React.FC = () => {
   return (
     <div className="p-6 md:p-8 fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Menu List</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            {loading ? "Loading..." : `${items.length} items · ${items.filter(i => i.is_available).length} available`}
-          </p>
-        </div>
+      <div className="flex items-center justify-end mb-5 flex-wrap gap-3">
         <div className="flex items-center gap-2">
           <Btn variant="secondary" onClick={fetchAll} disabled={loading}>
             <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh

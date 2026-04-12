@@ -221,11 +221,7 @@ const CardApprovalsTab: React.FC = () => {
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Card Registrations</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">Review and approve pending loyalty card payments</p>
-        </div>
+      <div className="flex items-center justify-end mb-5 flex-wrap gap-3">
         <Btn variant="secondary" onClick={fetchPending} disabled={loading}>
           <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
         </Btn>

@@ -872,11 +872,7 @@ const XReadingTab: React.FC = () => {
       `}</style>
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">X Reading</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">Mid-shift running totals — does not close the shift</p>
-        </div>
+      <div className="flex flex-wrap items-center justify-end gap-3 mb-1">
         <div className="flex items-center gap-2">
           <div className="relative" ref={menuRef}>
             <button
