@@ -262,7 +262,7 @@ const OverviewTab: React.FC = () => {
   const fetchPulse = useCallback(async () => {
     try {
       const token = getToken();
-      const response = await axios.get('/api/pulse', {
+      const response = await axios.get('/api/reports/pulse', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setPulse(response.data.data);

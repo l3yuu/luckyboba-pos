@@ -80,7 +80,7 @@ const BM_PulseTab: React.FC<BM_PulseTabProps> = ({ branchId }) => {
   const fetchPulse = useCallback(async () => {
     try {
       const token = getToken();
-      const response = await axios.get(`/api/pulse?branch_id=${branchId}`, {
+      const response = await axios.get(`/api/reports/pulse?branch_id=${branchId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setPulse(response.data.data);
