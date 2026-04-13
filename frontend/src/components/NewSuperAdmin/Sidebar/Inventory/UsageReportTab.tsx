@@ -178,12 +178,15 @@ interface ProductSalesData {
   product_name:  string;
   sizes:         Record<string, number>;
   total_sold:    number;
+  usage?:        Array<{ name: string; qty: number; unit: string }>;
 }
 
 const ProductSoldCard: React.FC<{ 
   data:    ProductSalesData[]; 
   loading: boolean;
 }> = ({ data, loading }) => {
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+
   if (loading) {
     return (
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] p-5 shadow-sm h-full">
@@ -206,8 +209,12 @@ const ProductSoldCard: React.FC<{
     return acc;
   }, {} as Record<string, ProductSalesData[]>);
 
+  const toggleExpanded = (key: string) => {
+    setExpanded(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
   return (
-    <div className="bg-white border border-zinc-200 rounded-[0.625rem] flex flex-col shadow-sm h-full overflow-hidden">
+    <div className="bg-white border border-zinc-200 rounded-[0.625rem] flex flex-col shadow-sm h-full overflow-hidden text-zinc-900">
       <div className="px-5 py-4 border-b border-zinc-100 bg-[#faf9ff] flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Coffee size={14} className="text-[#3b2063]" />
@@ -222,7 +229,7 @@ const ProductSoldCard: React.FC<{
         {data.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center opacity-40">
             <Coffee size={32} className="mb-2" />
-            <p className="text-[10px] font-bold uppercase tracking-widest">No sales data</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400">No sales data</p>
           </div>
         ) : (
           Object.entries(grouped).map(([cat, products]) => (
@@ -232,25 +239,61 @@ const ProductSoldCard: React.FC<{
                 <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] px-1 whitespace-nowrap">{cat}</p>
                 <div className="h-[1px] flex-1 bg-zinc-100" />
               </div>
-              <div className="space-y-2">
-                {products.map((p, idx) => (
-                  <div key={idx} className="bg-zinc-50 border border-zinc-100 rounded-lg p-3 hover:border-[#e9d5ff] hover:bg-[#faf9ff] transition-all group">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-[11px] font-bold text-[#1a0f2e] group-hover:text-[#3b2063] transition-colors">{p.product_name}</p>
-                      <p className="text-xs font-black text-[#3b2063] tabular-nums">{p.total_sold}</p>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {Object.entries(p.sizes || {}).map(([size, qty]) => (
-                        Number(qty) > 0 && (
-                          <div key={size} className="flex items-center gap-1 bg-white border border-zinc-100 rounded px-1.5 py-0.5">
-                            <span className="text-[8px] font-bold text-zinc-400 uppercase">{size}</span>
-                            <span className="text-[10px] font-black text-[#1a0f2e] tabular-nums">{qty}</span>
+              <div className="space-y-3">
+                {products.map((p, idx) => {
+                  const itemKey = `${cat}-${p.product_name}`;
+                  const isExpanded = expanded[itemKey];
+
+                  return (
+                    <div key={idx} className="bg-zinc-50 border border-zinc-100 rounded-lg overflow-hidden hover:border-[#e9d5ff] transition-all group">
+                      <div 
+                        className="p-3 cursor-pointer hover:bg-[#faf9ff] transition-colors"
+                        onClick={() => toggleExpanded(itemKey)}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="text-[11px] font-bold text-[#1a0f2e] group-hover:text-[#3b2063] transition-colors">{p.product_name}</p>
+                          <div className="flex items-center gap-3">
+                            <p className="text-xs font-black text-[#3b2063] tabular-nums">{p.total_sold}</p>
+                            {p.usage && p.usage.length > 0 && (
+                              <div className="text-zinc-400">
+                                {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                              </div>
+                            )}
                           </div>
-                        )
-                      ))}
+                        </div>
+                        
+                        {/* Size Breakdown */}
+                        <div className="flex flex-wrap gap-1.5">
+                          {Object.entries(p.sizes || {}).map(([size, qty]) => (
+                            Number(qty) > 0 && (
+                              <div key={size} className="flex items-center gap-1 bg-white border border-zinc-100 rounded px-1.5 py-0.5">
+                                <span className="text-[8px] font-bold text-zinc-400 uppercase">{size}</span>
+                                <span className="text-[10px] font-black text-[#1a0f2e] tabular-nums">{qty}</span>
+                              </div>
+                            )
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Material Usage Breakdown (Accordion) */}
+                      {p.usage && p.usage.length > 0 && isExpanded && (
+                        <div className="px-3 pb-3 pt-2 border-t border-zinc-100/50 bg-white">
+                          <p className="text-[8px] font-bold text-zinc-400 uppercase tracking-wider mb-2">Material Usage Summary</p>
+                          <div className="grid grid-cols-1 gap-1">
+                            {p.usage.map((u, uIdx) => (
+                              <div key={uIdx} className="flex items-center justify-between text-[10px] group/item">
+                                <span className="text-zinc-500 group-hover/item:text-zinc-900 transition-colors truncate pr-2 max-w-[150px]">{u.name}</span>
+                                <span className="font-bold text-zinc-700 whitespace-nowrap">
+                                  {u.qty.toLocaleString(undefined, { maximumFractionDigits: 3 })} <span className="text-[9px] text-zinc-400 font-normal">{u.unit}</span>
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ))
