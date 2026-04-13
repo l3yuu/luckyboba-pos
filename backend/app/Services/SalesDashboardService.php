@@ -376,4 +376,58 @@ class SalesDashboardService
     {
         return $this->saleRepo->getZReadingsHistory($branchId, $limit);
     }
+
+    /**
+     * Option 1: Status Check
+     */
+    public function checkZReadingStatus(string $date, ?int $branchId = null): array
+    {
+        $day = Carbon::parse($date)->toDateString();
+        
+        $zReading = ZReading::where('reading_date', $day)
+            ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+            ->first();
+
+        // Check if there are any completed sales for this date
+        $start = Carbon::parse($day)->startOfDay();
+        $end   = Carbon::parse($day)->endOfDay();
+        $hasSales = $this->saleRepo->getSalesCountBetween($start, $end, $branchId) > 0;
+
+        return [
+            'exists'    => (bool) $zReading,
+            'is_closed' => (bool) ($zReading?->is_closed ?? false),
+            'closed_at' => $zReading?->closed_at,
+            'has_sales' => $hasSales,
+            'date'      => $day,
+        ];
+    }
+
+    /**
+     * Option 3: Gap Analysis
+     */
+    public function getZReadingGaps(?int $branchId = null, int $days = 30): array
+    {
+        $gaps = [];
+        $today = Carbon::today();
+        
+        for ($i = 1; $i <= $days; $i++) {
+            $date = $today->copy()->subDays($i);
+            $dateStr = $date->toDateString();
+            
+            // Check if Z-Reading exists
+            $exists = ZReading::where('reading_date', $dateStr)
+                ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
+                ->exists();
+                
+            if (!$exists) {
+                // Check if there were sales on that day
+                $hasSales = $this->saleRepo->getSalesCountBetween($date->copy()->startOfDay(), $date->copy()->endOfDay(), $branchId) > 0;
+                if ($hasSales) {
+                    $gaps[] = $dateStr;
+                }
+            }
+        }
+        
+        return $gaps;
+    }
 }

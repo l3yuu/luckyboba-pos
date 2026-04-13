@@ -235,4 +235,48 @@ class SalesDashboardController extends Controller
             'expires' => now()->addMinutes(10)->toDateTimeString(),
         ]);
     }
+
+    /**
+     * GET /api/reports/z-reading/status
+     */
+    public function zReadingStatus(Request $request): JsonResponse
+    {
+        try {
+            $user     = auth('sanctum')->user() ?? $request->user();
+            $branchId = $request->input('branch_id') ? (int) $request->input('branch_id') : $user?->branch_id;
+            $date     = $request->input('date', now()->toDateString());
+
+            $status = $this->salesService->checkZReadingStatus($date, $branchId);
+
+            return response()->json([
+                'success' => true,
+                'data'    => $status,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Z-Reading Status Error: ' . $e->getMessage());
+            return response()->json(['message' => 'Error checking Z-Reading status'], 500);
+        }
+    }
+
+    /**
+     * GET /api/reports/z-reading/gaps
+     */
+    public function zReadingGaps(Request $request): JsonResponse
+    {
+        try {
+            $user     = auth('sanctum')->user() ?? $request->user();
+            $branchId = $request->input('branch_id') ? (int) $request->input('branch_id') : $user?->branch_id;
+            $days     = $request->input('days', 30);
+
+            $gaps = $this->salesService->getZReadingGaps($branchId, $days);
+
+            return response()->json([
+                'success' => true,
+                'data'    => $gaps,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Z-Reading Gaps Error: ' . $e->getMessage());
+            return response()->json(['message' => 'Error checking Z-Reading gaps'], 500);
+        }
+    }
 }
