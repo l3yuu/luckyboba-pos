@@ -2,6 +2,7 @@
 import 'dart:ui'; // For BackdropFilter
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -22,7 +23,10 @@ import 'dart:async';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  // Skip Firebase on web — no web config exists; web is used for UI debugging only
+  if (!kIsWeb) {
+    await Firebase.initializeApp();
+  }
 
   final prefs = await SharedPreferences.getInstance();
   final bool onboardingDone  = prefs.getBool('onboarding_done')  ?? false;
@@ -106,7 +110,8 @@ class _LoginPageState extends State<LoginPage>
   bool _googleLoading   = false;
   bool _facebookLoading = false;
 
-  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
+  // Only instantiate GoogleSignIn on mobile — web has no client ID configured
+  final GoogleSignIn? _googleSignIn = kIsWeb ? null : GoogleSignIn(scopes: ['email', 'profile']);
 
   late final AnimationController _entryCtrl;
   late final Animation<double>   _fadeAnim;
@@ -171,10 +176,14 @@ class _LoginPageState extends State<LoginPage>
   }
 
   Future<void> _handleGoogleSignIn() async {
+    if (kIsWeb || _googleSignIn == null) {
+      _snack('Google Sign-In is not available on web', Colors.orange);
+      return;
+    }
     setState(() => _googleLoading = true);
     try {
-      await _googleSignIn.signOut();
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      await _googleSignIn!.signOut();
+      final GoogleSignInAccount? googleUser = await _googleSignIn!.signIn();
       if (googleUser == null) {
         if (mounted) setState(() => _googleLoading = false);
         return;
@@ -200,6 +209,10 @@ class _LoginPageState extends State<LoginPage>
   }
 
   Future<void> _handleFacebookSignIn() async {
+    if (kIsWeb) {
+      _snack('Facebook Sign-In is not available on web', Colors.orange);
+      return;
+    }
     setState(() => _facebookLoading = true);
     try {
       await FacebookAuth.instance.logOut();
@@ -421,6 +434,7 @@ class _LoginPageState extends State<LoginPage>
                             ],
                           ),
                         ),
+                        if (!kIsWeb) ...[
                         const SizedBox(height: 32),
                         Row(children: [
                           Expanded(child: Divider(color: Colors.white24)),
@@ -436,6 +450,7 @@ class _LoginPageState extends State<LoginPage>
                             _socialIconBtn(icon: FontAwesomeIcons.facebookF, color: const Color(0xFF1877F2), onTap: _facebookLoading ? () {} : _handleFacebookSignIn, isLoading: _facebookLoading),
                           ],
                         ),
+                        ],
                         const SizedBox(height: 48),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
