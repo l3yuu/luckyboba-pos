@@ -28,6 +28,8 @@ class DatabaseSeeder extends Seeder
             RawMaterialSeeder::class,
             MenuItemOptionSeeder::class,
             CategoryDrinkSeeder::class,
+            FeaturedDrinkSeeder::class,
+            CardSeeder::class,
         ]);
     }
 }

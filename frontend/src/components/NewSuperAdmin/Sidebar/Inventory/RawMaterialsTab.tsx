@@ -111,7 +111,14 @@ const HistoryDrawer: React.FC<{ item: RawMaterial; onClose: () => void }> = ({ i
 
   useEffect(() => {
     api.get(`/raw-materials/${item.id}/history`)
-      .then(r => setMovements(r.data?.data ?? r.data ?? []))
+      .then(r => {
+        const d = r.data;
+        let arr = [];
+        if (Array.isArray(d)) arr = d;
+        else if (Array.isArray(d?.data)) arr = d.data;
+        else if (Array.isArray(d?.data?.data)) arr = d.data.data;
+        setMovements(arr);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [item.id]);
