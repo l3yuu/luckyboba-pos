@@ -25,6 +25,14 @@ interface RawMaterial {
   is_intermediate: boolean;
   notes?: string;
   created_at?: string;
+  branch_stocks?: Array<{
+    id: number;
+    current_stock: number;
+    branch: {
+      id: number;
+      name: string;
+    };
+  }>;
 }
 
 interface Movement {
@@ -535,6 +543,10 @@ const RawMaterialsTab: React.FC = () => {
   const [delTarget, setDelTarget] = useState<RawMaterial | null>(null);
   const [adjTarget, setAdjTarget] = useState<RawMaterial | null>(null);
   const [histTarget, setHistTarget] = useState<RawMaterial | null>(null);
+  const [stockPopId, setStockPopId] = useState<number | null>(null);
+  const [popSearch, setPopSearch] = useState('');
+  const [branches, setBranches] = useState<Array<{ id: number; name: string }>>([]);
+  const [branchId, setBranchId] = useState<string>('');
 
   const normalize = (m: RawMaterial): RawMaterial => ({
     ...m,
@@ -546,15 +558,27 @@ const RawMaterialsTab: React.FC = () => {
   const fetchMaterials = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get('/raw-materials');
+      const res = await api.get('/raw-materials', {
+        params: { branch_id: branchId || undefined }
+      });
       const data = res.data;
       const raw = Array.isArray(data) ? data : data?.data ?? [];
-      setMaterials(raw.map(normalize)); // ← add .map(normalize) here
+      setMaterials(raw.map(normalize));
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
+  }, [branchId]);
+
+  const fetchBranches = useCallback(async () => {
+    try {
+      const res = await api.get('/branches');
+      setBranches(Array.isArray(res.data) ? res.data : res.data?.data ?? []);
+    } catch (e) { console.error(e); }
   }, []);
 
-  useEffect(() => { fetchMaterials(); }, [fetchMaterials]);
+  useEffect(() => { 
+    fetchMaterials(); 
+    fetchBranches();
+  }, [fetchMaterials, fetchBranches]);
 
   const filtered = materials.filter(m => {
     const matchSearch = m.name.toLowerCase().includes(search.toLowerCase());
@@ -602,6 +626,11 @@ const RawMaterialsTab: React.FC = () => {
               placeholder="Search materials..." />
             {search && <button onClick={() => setSearch('')} className="text-zinc-300 hover:text-red-500 transition-colors"><X size={13} /></button>}
           </div>
+          <select value={branchId} onChange={e => setBranchId(e.target.value)}
+            className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-[#3b2063] outline-none h-9 focus:ring-2 focus:ring-[#e9d5ff]">
+            <option value="">All Branches</option>
+            {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+          </select>
           <select value={catFilter} onChange={e => setCatFilter(e.target.value)}
             className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
             <option value="">All Categories</option>
@@ -677,12 +706,65 @@ const RawMaterialsTab: React.FC = () => {
                     <td className="px-5 py-3.5">
                       <span className="text-xs font-bold text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded">{m.unit}</span>
                     </td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-2">
+                    <td className="px-5 py-3.5 relative">
+                      <div className="flex items-center gap-2 group cursor-pointer" onClick={() => setStockPopId(stockPopId === m.id ? null : m.id)}>
                         <span className="text-sm font-black tabular-nums" style={{ color: barColor }}>{m.current_stock}</span>
                         <div className="w-14 h-1.5 bg-zinc-100 rounded-full overflow-hidden">
                           <div className="h-full rounded-full" style={{ width: `${pct}%`, background: barColor }} />
                         </div>
+                        {!branchId && m.branch_stocks && m.branch_stocks.length > 0 && (
+                          <div className="w-4 h-4 rounded-full bg-zinc-100 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Plus size={10} className="text-zinc-500" />
+                          </div>
+                        )}
+
+                        {/* Stock Popover */}
+                        {stockPopId === m.id && m.branch_stocks && (
+                          <div className="absolute left-1/2 bottom-full mb-2 -translate-x-1/2 z-50 w-64 bg-white border border-zinc-200 rounded-xl shadow-xl p-3 animate-in fade-in zoom-in slide-in-from-bottom-2 duration-200">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-[#3b2063]">Branch Distribution</p>
+                              <button onClick={(e) => { e.stopPropagation(); setStockPopId(null); setPopSearch(''); }} className="text-zinc-300 hover:text-zinc-500"><X size={10} /></button>
+                            </div>
+
+                            {/* Mini Search */}
+                            {m.branch_stocks.length > 5 && (
+                              <div className="mb-2 relative">
+                                <Search className="absolute left-2 top-1/2 -translate-y-1/2 text-zinc-300" size={10} />
+                                <input
+                                  type="text"
+                                  autoFocus
+                                  placeholder="Filter branches..."
+                                  value={popSearch}
+                                  onChange={(e) => setPopSearch(e.target.value)}
+                                  onClick={(e) => e.stopPropagation()}
+                                  className="w-full bg-zinc-50 border border-zinc-100 rounded-lg pl-6 pr-2 py-1 text-[10px] outline-none focus:ring-1 focus:ring-[#e9d5ff]"
+                                />
+                              </div>
+                            )}
+
+                            <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                              {m.branch_stocks
+                                .filter(bs => bs.branch?.name.toLowerCase().includes(popSearch.toLowerCase()))
+                                .map(bs => (
+                                  <div key={bs.id} className="flex items-center justify-between text-[11px] py-0.5 border-b border-transparent hover:border-zinc-50 transition-colors">
+                                    <span className="text-zinc-500 font-medium">{bs.branch?.name ?? 'Unknown'}</span>
+                                    <span className="font-bold text-[#1a0f2e]">{bs.current_stock} {m.unit}</span>
+                                  </div>
+                                ))}
+                              {m.branch_stocks.filter(bs => bs.branch?.name.toLowerCase().includes(popSearch.toLowerCase())).length === 0 && (
+                                <p className="text-[10px] text-center text-zinc-400 py-2">No branches found.</p>
+                              )}
+                            </div>
+
+                            <div className="pt-2 border-t border-zinc-100 mt-2 flex items-center justify-between text-[11px]">
+                              <span className="font-bold text-zinc-900 uppercase tracking-tighter">System Total</span>
+                              <span className="font-black text-[#3b2063] underline decoration-[#e9d5ff] underline-offset-2">
+                                {m.branch_stocks.reduce((acc, s) => acc + Number(s.current_stock), 0)} {m.unit}
+                              </span>
+                            </div>
+                            <div className="absolute w-2 h-2 bg-white border-r border-b border-zinc-200 rotate-45 left-1/2 -translate-x-1/2 -bottom-1" />
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="px-5 py-3.5 text-zinc-500 text-xs font-medium">{m.reorder_level}</td>

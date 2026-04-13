@@ -39,7 +39,10 @@ class RawMaterialController extends Controller
             $query->where('name', 'like', '%' . $request->search . '%');
         }
 
-        $materials = $query->orderBy('category')->orderBy('name')->get();
+        $materials = $query->with('branchStocks.branch')
+            ->orderBy('category')
+            ->orderBy('name')
+            ->get();
 
         return response()->json($materials);
     }
