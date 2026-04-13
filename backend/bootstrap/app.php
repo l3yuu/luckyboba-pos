@@ -24,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->append(\App\Http\Middleware\ContentSecurityPolicy::class);
+        $middleware->append(\App\Http\Middleware\UpdateLastActivity::class);
 
         $middleware->alias([
             'role'   => \App\Http\Middleware\CheckRole::class,

@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\{ BackupController, CashCountController, CashTransactionController, CategoryController, DashboardController, DiscountController, ExpenseController, InventoryController, StockTransferController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController, MenuItemController, SupplierController, ItemCheckerController, BranchSettingsController };
+use App\Http\Controllers\Api\{ BackupController, BranchSettingsController, CashCountController, CashTransactionController, CategoryController, DashboardController, DiscountController, ExpenseController, InventoryController, StockTransferController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SearchController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController, MenuItemController, SupplierController, ItemCheckerController, PulseController, StaffPerformanceController, InventoryAlertController };
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BranchManagerAppController; // ✅ FIXED: now in Api namespace
@@ -31,18 +31,17 @@ Route::post('/verify-2fa', [AuthController::class, 'verify2FA'])->middleware('th
 Route::post('/resend-2fa', [AuthController::class, 'resend2FA'])->middleware('throttle:5,2');
 Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
 
-
 // ── DEVICE CHECK — public, no auth, called before login ──────────────────────
-Route::post('/devices/check', [PosDeviceController::class, 'check']);
+Route::post('/devices/check', [PosDeviceController::class, 'check'])->middleware('throttle:10,1');
 // ─────────────────────────────────────────────────────────────────────────────
 
-Route::post('/purchase-card',             [CardPurchaseController::class, 'purchase']);
-Route::get('/check-card-status/{userId}', [CardPurchaseController::class, 'checkStatus']);
+Route::post('/purchase-card',             [CardPurchaseController::class, 'purchase'])->middleware('throttle:30,1');
+Route::get('/check-card-status/{userId}', [CardPurchaseController::class, 'checkStatus'])->middleware('throttle:30,1');
 
 // ✅ PUBLIC MOBILE ROUTES
-Route::get('/cards',            [CardController::class, 'index']);
-Route::get('/payment-settings', [SettingsController::class, 'index']);
-Route::get('/add-ons',          [AddOnController::class, 'index']);
+Route::get('/cards',            [CardController::class, 'index'])->middleware('throttle:60,1');
+Route::get('/payment-settings', [SettingsController::class, 'index'])->middleware('throttle:60,1');
+Route::get('/add-ons',          [AddOnController::class, 'index'])->middleware('throttle:60,1');
 
 // ── PUBLIC MENU ───────────────────────────────────────────────────────────────
 Route::get('/public-menu', function (Illuminate\Http\Request $request) {
@@ -96,10 +95,10 @@ if ($branchId) {
         });
 
     return response()->json($items);
-});
+})->middleware('throttle:30,1');
 // ─────────────────────────────────────────────────────────────────────────────
 
-Route::post('/google-login', [AuthController::class, 'googleLogin']);
+Route::post('/google-login', [AuthController::class, 'googleLogin'])->middleware('throttle:10,1');
 Route::post('/register', function (Request $request) {
     $request->validate([
         'name'     => 'required|string|max:255',
@@ -267,6 +266,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
         Route::get  ('/cache/all',             [CacheController::class,      'all']);
         Route::get  ('/menu',                  [MenuController::class,        'index']);
+        Route::get  ('/menu/version',          [MenuController::class,        'version']);
         Route::post ('/menu/clear-cache',      [MenuController::class,        'clearCache']);
         Route::get  ('/notifications/summary', [NotificationController::class,'summary']);
         Route::post ('/audit-logs',            [AuditLogController::class,    'store']);
@@ -307,8 +307,11 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/item-serials',    [ItemSerialController::class,    'index']);
 
         Route::get ('/recipes',  [RecipeController::class, 'index']);
-        Route::get ('/expenses', [ExpenseController::class,'index']);
-        Route::post('/expenses', [ExpenseController::class,'store']);
+        Route::get ('/expenses',        [ExpenseController::class,'index']);
+        Route::post('/expenses',        [ExpenseController::class,'store']);
+        Route::get ('/expenses/export', [ExpenseController::class,'export']);
+        Route::put ('/expenses/{id}',   [ExpenseController::class,'update']);
+        Route::delete('/expenses/{id}', [ExpenseController::class,'destroy']);
 
         Route::prefix('discounts')->group(function () {
             Route::get   ('/',                    [DiscountController::class, 'index']);
@@ -348,17 +351,15 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/branches/performance',       [BranchController::class, 'performance']);
         Route::get('/branches/today-sales',       [BranchController::class, 'todaySales']);
 
-        Route::get   ('/branches/{id}',                  [BranchController::class, 'show']);
-        Route::put   ('/branches/{id}',                  [BranchController::class, 'update']);
-        Route::delete('/branches/{id}',                  [BranchController::class, 'destroy']);
-        Route::get   ('/branches/{id}/daily-sales',      [BranchController::class, 'dailySales']);
-        Route::get   ('/branches/{id}/analytics',        [BranchController::class, 'analytics']);
-        Route::get   ('/branches/{id}/sales-summary',    [BranchController::class, 'salesSummary']);
-        Route::post  ('/branches/{id}/refresh-totals',   [BranchController::class, 'refreshTotals']);
-
         Route::get ('/branches', [BranchController::class, 'index']);
-        Route::post('/branches', [BranchController::class, 'store']);
-        // ─────────────────────────────────────────────────────────────────────
+
+        Route::prefix('stock-transfers')->group(function () {
+            Route::get ('/',                         [StockTransferController::class, 'index']);
+            Route::post('/',                         [StockTransferController::class, 'store']);
+            Route::post('/{stockTransfer}/approve',  [StockTransferController::class, 'approve']);
+            Route::post('/{stockTransfer}/receive',  [StockTransferController::class, 'receive']);
+            Route::post('/{stockTransfer}/cancel',   [StockTransferController::class, 'cancel']);
+        });
 
         Route::get('/users', [UserController::class, 'index']);
     });
@@ -395,14 +396,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::apiResource('vouchers',  VoucherController::class)->only(['index', 'store']);
         Route::apiResource('suppliers', SupplierController::class)->only(['index', 'store', 'update', 'destroy']);
 
-        Route::prefix('stock-transfers')->group(function () {
-            Route::get ('/',                         [StockTransferController::class, 'index']);
-            Route::post('/',                         [StockTransferController::class, 'store']);
-            Route::post('/{stockTransfer}/approve',  [StockTransferController::class, 'approve']);
-            Route::post('/{stockTransfer}/receive',  [StockTransferController::class, 'receive']);
-            Route::post('/{stockTransfer}/cancel',   [StockTransferController::class, 'cancel']);
-        });
-
         Route::prefix('reports')->group(function () {
             Route::get('/mall-accreditation', [SalesDashboardController::class, 'mallReport']);
         });
@@ -421,23 +414,28 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::put   ('/{id}',                [UserController::class, 'update']);
             Route::delete('/{id}',                [UserController::class, 'destroy']);
             Route::patch ('/{id}/toggle-status',  [UserController::class, 'toggleStatus']);
-            Route::patch ('/{id}/pin',            [UserController::class, 'updatePin']);
+            Route::patch ('/{id}/pin',            [UserController::class, 'updatePin'])->middleware('throttle:5,1');
         });
 
         Route::prefix('branches')->group(function () {
-            Route::get('/performance',        [BranchController::class, 'performance']);
-            Route::get('/today-sales',        [BranchController::class, 'todaySales']);
-            Route::get('/ownership-summary',  [BranchController::class, 'ownershipSummary']);
-            Route::get('/',                   [BranchController::class, 'index']);
-            Route::get('/{id}/daily-sales',   [BranchController::class, 'dailySales']);
-            Route::get('/{id}/sales-summary', [BranchController::class, 'salesSummary']);
-            Route::get('/{id}/analytics',     [BranchController::class, 'analytics']);
+            Route::post  ('/',                    [BranchController::class, 'store']);
+            Route::get   ('/{id}',                [BranchController::class, 'show']);
+            Route::put   ('/{id}',                [BranchController::class, 'update']);
+            Route::delete('/{id}',                [BranchController::class, 'destroy']);
+            Route::get   ('/{id}/daily-sales',    [BranchController::class, 'dailySales']);
+            Route::get   ('/{id}/analytics',      [BranchController::class, 'analytics']);
+            Route::get   ('/{id}/sales-summary',  [BranchController::class, 'salesSummary']);
+            Route::post  ('/{id}/refresh-totals', [BranchController::class, 'refreshTotals']);
         });
 
     });
 
     // ── SUPERADMIN ONLY ───────────────────────────────────────────────────────
     Route::middleware(['role:superadmin'])->group(function () {
+        Route::get('/pulse', [PulseController::class, 'index']);
+        Route::get('/search', [SearchController::class, 'index']);
+        Route::get('/inventory-alerts', [InventoryAlertController::class, 'index']);
+        Route::get('/staff-performance', [StaffPerformanceController::class, 'index']);
         
         // Moved from branch_manager block to restrict editing to SuperAdmin only
         Route::post('/raw-materials/{rawMaterial}/adjust', [RawMaterialController::class, 'adjust']);
@@ -447,8 +445,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::patch('/recipes/{recipe}/toggle',           [RecipeController::class, 'toggle']);
         Route::apiResource('recipes', RecipeController::class)->except(['index', 'show']);
 
-        Route::get('/audit-logs',       [AuditLogController::class, 'index']);
-        Route::get('/audit-logs/stats', [AuditLogController::class, 'stats']);
+        Route::get('/audit-logs',        [AuditLogController::class, 'index']);
+        Route::get('/audit-logs/export', [AuditLogController::class, 'export']);
+        Route::get('/audit-logs/stats',  [AuditLogController::class, 'stats']);
 
         Route::prefix('reports')->group(function () {
             Route::get('/z-reading/history',   [SalesDashboardController::class,   'zReadingHistory']);
