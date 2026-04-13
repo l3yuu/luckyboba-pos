@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import {
   Search, Plus, Eye, Edit2, Trash2, Store,
   CheckCircle, XCircle, PhilippinePeso, ArrowUpRight, ArrowDownRight,
-  X, AlertCircle, RefreshCw, MapPin, Trash,
+  X, AlertCircle, MapPin, Trash,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 
@@ -35,7 +35,6 @@ interface StatCardProps {
   icon: React.ReactNode; label: string; value: string | number;
   sub?: string; trend?: number; color?: ColorKey;
 }
-interface SectionHeaderProps { title: string; desc?: string; action?: React.ReactNode; }
 interface BtnProps {
   children: React.ReactNode; variant?: VariantKey; size?: SizeKey;
   onClick?: () => void; className?: string; disabled?: boolean;
@@ -114,8 +113,8 @@ const Badge: React.FC<{ status: string }> = ({ status }) => {
 
 const OwnershipBadge: React.FC<{ type: 'company' | 'franchise' }> = ({ type }) => (
   <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${type === 'franchise'
-      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-      : 'bg-violet-50 text-violet-700 border-violet-200'
+    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+    : 'bg-violet-50 text-violet-700 border-violet-200'
     }`}>
     {type === 'franchise' ? 'Franchise' : 'Company'}
   </span>
@@ -123,8 +122,8 @@ const OwnershipBadge: React.FC<{ type: 'company' | 'franchise' }> = ({ type }) =
 
 const VatBadge: React.FC<{ type: 'vat' | 'non_vat' }> = ({ type }) => (
   <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${type === 'non_vat'
-      ? 'bg-zinc-50 text-zinc-600 border-zinc-300'
-      : 'bg-blue-50 text-blue-700 border-blue-200'
+    ? 'bg-zinc-50 text-zinc-600 border-zinc-300'
+    : 'bg-blue-50 text-blue-700 border-blue-200'
     }`}>
     {type === 'non_vat' ? 'Non-VAT' : 'VAT'}
   </span>
@@ -160,11 +159,6 @@ const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, trend, col
   );
 };
 
-const SectionHeader: React.FC<SectionHeaderProps> = ({ action }) => (
-  <div className="flex flex-wrap items-center justify-end gap-3 mb-6">
-    {action}
-  </div>
-);
 
 const Btn: React.FC<BtnProps> = ({
   children, variant = "primary", size = "sm",
@@ -835,15 +829,7 @@ const BranchesTab: React.FC = () => {
 
   return (
     <div className="p-6 md:p-8 fade-in">
-      <SectionHeader
-        action={<div className="flex items-center gap-2">
-          <Btn variant="secondary" onClick={fetchBranches} disabled={loading}>
-            <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
-          </Btn>
-          <Btn onClick={() => setAddOpen(true)} disabled={loading}>
-            <Plus size={13} /> Add Branch
-          </Btn>
-        </div>} title={""} />
+
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
@@ -893,11 +879,14 @@ const BranchesTab: React.FC = () => {
           {(filterStatus !== "all" || filterOwnership !== "all" || search) && (
             <button
               onClick={() => { setSearch(""); setFilterStatus("all"); setFilterOwnership("all"); }}
-              className="text-xs font-bold text-zinc-400 hover:text-red-500 transition-colors flex items-center gap-1"
+              className="text-xs font-bold text-zinc-400 hover:text-red-500 transition-colors flex items-center gap-1 mr-2"
             >
               <X size={11} /> Clear
             </button>
           )}
+          <Btn onClick={() => setAddOpen(true)} disabled={loading}>
+            <Plus size={13} /> Add Branch
+          </Btn>
         </div>
 
         <div className="overflow-x-auto">

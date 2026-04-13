@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import {
   Search, Plus, Eye, Edit2, Trash2, Lock, UserCheck, XCircle,
   Users, ArrowUpRight, ArrowDownRight, X, AlertCircle,
-  RefreshCw, Mail, MapPin, ShieldCheck, Trash, CheckCircle, Laptop,
+  Mail, MapPin, ShieldCheck, Trash, CheckCircle, Laptop,
   MonitorCheck, MonitorOff,
 } from "lucide-react";
 import { createPortal } from "react-dom";
@@ -47,7 +47,6 @@ interface StatCardProps {
   icon: React.ReactNode; label: string; value: string | number;
   sub?: string; trend?: number; color?: ColorKey;
 }
-interface SectionHeaderProps { title: string; desc?: string; action?: React.ReactNode; }
 interface BtnProps {
   children: React.ReactNode; variant?: VariantKey; size?: SizeKey;
   onClick?: () => void; className?: string; disabled?: boolean;
@@ -188,11 +187,6 @@ const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, trend, col
   );
 };
 
-const SectionHeader: React.FC<SectionHeaderProps> = ({ action }) => (
-  <div className="flex flex-wrap items-center justify-end gap-3 mb-6">
-    {action}
-  </div>
-);
 
 const Btn: React.FC<BtnProps> = ({
   children, variant = "primary", size = "sm",
@@ -1130,15 +1124,7 @@ const UsersTab: React.FC = () => {
 
   return (
     <div className="p-6 md:p-8 fade-in">
-      <SectionHeader
-        action={<div className="flex items-center gap-2">
-          <Btn variant="secondary" onClick={fetchUsers} disabled={loading}>
-            <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
-          </Btn>
-          <Btn onClick={() => setAddOpen(true)} disabled={loading}>
-            <Plus size={13} /> Add User
-          </Btn>
-        </div>} title={""} />
+
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <StatCard icon={<Users size={16} />} label="Total Users" value={loading ? "—" : users.length} color="violet" />
@@ -1159,6 +1145,9 @@ const UsersTab: React.FC = () => {
             <option value="">All Roles</option>
             {ALL_ROLES.map(r => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
           </select>
+          <Btn onClick={() => setAddOpen(true)} disabled={loading}>
+            <Plus size={13} /> Add User
+          </Btn>
         </div>
 
         <div className="overflow-x-auto">
@@ -1251,8 +1240,8 @@ const UsersTab: React.FC = () => {
                         <button
                           onClick={() => setDeviceTarget(u)}
                           className={`p-1.5 rounded-[0.4rem] transition-colors ${u.device_number
-                              ? "hover:bg-violet-50 text-violet-500 hover:text-violet-700"
-                              : "hover:bg-amber-50 text-amber-400 hover:text-amber-600"
+                            ? "hover:bg-violet-50 text-violet-500 hover:text-violet-700"
+                            : "hover:bg-amber-50 text-amber-400 hover:text-amber-600"
                             }`}
                           title={u.device_number ? `Device: ${u.device_number} — click to change` : "No device assigned — click to assign"}>
                           <Laptop size={13} />

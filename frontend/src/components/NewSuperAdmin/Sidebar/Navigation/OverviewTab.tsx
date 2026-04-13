@@ -326,13 +326,13 @@ const OverviewTab: React.FC = () => {
       `}</style>
 
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-end gap-3 mb-6">
+      <div className="flex flex-wrap items-center justify-start gap-3 mb-6">
         <div className="flex items-center gap-1.5 px-2 py-1 bg-rose-50 text-rose-600 rounded-lg border border-rose-100">
           <span className="w-1.5 h-1.5 rounded-full bg-rose-600 pulse-indicator" />
           <span className="text-[0.6rem] font-black uppercase tracking-wider">Live</span>
         </div>
 
-        <div className="mr-auto sm:mr-0 text-right hidden sm:block">
+        <div className="text-left hidden sm:block">
           <p className="text-[0.55rem] font-bold uppercase tracking-widest text-zinc-400 leading-none">Live Pulse Sync</p>
           <p className="text-[0.7rem] font-black text-[#3b2063] tabular-nums leading-none mt-1">
             {lastPulseSync.toLocaleTimeString([], { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' })}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { 
-  AlertTriangle, RefreshCw, Search, ChevronRight, 
+import {
+  AlertTriangle, Search, ChevronRight,
   ArrowRightLeft, ShoppingCart, Package, Building2,
   Filter, AlertCircle, TrendingDown,
   MoreVertical, Clock
@@ -98,8 +98,8 @@ const InventoryAlertsTab: React.FC = () => {
     }).map(branch => ({
       ...branch,
       items: branch.items.filter(item => {
-        const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase()) || 
-                              branch.branch_name.toLowerCase().includes(search.toLowerCase());
+        const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase()) ||
+          branch.branch_name.toLowerCase().includes(search.toLowerCase());
         const matchesSeverity = severityFilter === "all" || item.severity === severityFilter;
         return matchesSearch && matchesSeverity;
       })
@@ -121,37 +121,25 @@ const InventoryAlertsTab: React.FC = () => {
 
   return (
     <div className="p-6 md:p-8 fade-in min-h-screen bg-[#f8fafc]">
-      {/* Header */}
-      <div className="flex items-center justify-end mb-6 flex-wrap gap-4">
-        <div className="flex items-center gap-2">
-          <button 
-            onClick={fetchData} 
-            disabled={loading}
-            className="p-2.5 bg-white border border-zinc-200 text-zinc-600 hover:text-[#3b2063] hover:border-[#3b2063] rounded-lg transition-all active:scale-[0.98] disabled:opacity-50"
-          >
-            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-          </button>
-        </div>
-      </div>
 
       {/* Stats Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <StatCard 
-          icon={<AlertTriangle size={16} />} 
-          label="Total Alerts" 
-          value={summary?.total_alerts || 0} 
+        <StatCard
+          icon={<AlertTriangle size={16} />}
+          label="Total Alerts"
+          value={summary?.total_alerts || 0}
           color="amber"
         />
-        <StatCard 
-          icon={<AlertCircle size={16} />} 
-          label="Critical Level" 
-          value={summary?.critical_total || 0} 
+        <StatCard
+          icon={<AlertCircle size={16} />}
+          label="Critical Level"
+          value={summary?.critical_total || 0}
           color="red"
         />
-        <StatCard 
-          icon={<Building2 size={16} />} 
-          label="Branches Affected" 
-          value={summary?.affected_branches || 0} 
+        <StatCard
+          icon={<Building2 size={16} />}
+          label="Branches Affected"
+          value={summary?.affected_branches || 0}
           color="violet"
         />
       </div>
@@ -160,8 +148,8 @@ const InventoryAlertsTab: React.FC = () => {
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] p-4 mb-6 flex flex-wrap items-center gap-4 shadow-sm">
         <div className="flex-1 min-w-[240px] relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" size={14} />
-          <input 
-            type="text" 
+          <input
+            type="text"
             placeholder="Search item or branch..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -171,7 +159,7 @@ const InventoryAlertsTab: React.FC = () => {
         <div className="flex flex-wrap items-center gap-4">
           <div className="flex items-center gap-2">
             <Building2 size={14} className="text-zinc-400" />
-            <select 
+            <select
               value={branchFilter}
               onChange={(e) => setBranchFilter(e.target.value === "all" ? "all" : Number(e.target.value))}
               className="bg-white border border-zinc-200 text-sm font-semibold text-zinc-600 rounded-lg px-3 py-2 focus:outline-none"
@@ -184,16 +172,16 @@ const InventoryAlertsTab: React.FC = () => {
           </div>
           <div className="flex items-center gap-2">
             <Filter size={14} className="text-zinc-400" />
-            <select 
+            <select
               value={severityFilter}
               onChange={(e) => setSeverityFilter(e.target.value as "all" | Severity)}
               className="bg-white border border-zinc-200 text-sm font-semibold text-zinc-600 rounded-lg px-3 py-2 focus:outline-none"
             >
-            <option value="all">All Levels</option>
-            <option value="critical">Critical Only</option>
-            <option value="warning">Warning Only</option>
-          </select>
-        </div>
+              <option value="all">All Levels</option>
+              <option value="critical">Critical Only</option>
+              <option value="warning">Warning Only</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -223,9 +211,8 @@ const InventoryAlertsTab: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                    branch.critical_count > 0 ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-amber-50 text-amber-600 border border-amber-100'
-                  }`}>
+                  <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${branch.critical_count > 0 ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-amber-50 text-amber-600 border border-amber-100'
+                    }`}>
                     {branch.critical_count > 0 ? 'Action Required' : 'Monitoring'}
                   </span>
                 </div>
@@ -248,9 +235,8 @@ const InventoryAlertsTab: React.FC = () => {
                       <tr key={`${item.type}-${item.id}`} className="border-b border-zinc-50 hover:bg-zinc-50/80 transition-colors">
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-2.5">
-                            <div className={`w-7 h-7 rounded-[0.4rem] flex items-center justify-center shrink-0 ${
-                              item.type === 'raw_material' ? 'bg-[#f5f0ff]' : 'bg-blue-50'
-                            }`}>
+                            <div className={`w-7 h-7 rounded-[0.4rem] flex items-center justify-center shrink-0 ${item.type === 'raw_material' ? 'bg-[#f5f0ff]' : 'bg-blue-50'
+                              }`}>
                               {item.type === 'raw_material' ? <TrendingDown size={12} className="text-[#3b2063]" /> : <Package size={12} className="text-blue-600" />}
                             </div>
                             <div>
@@ -266,9 +252,8 @@ const InventoryAlertsTab: React.FC = () => {
                         </td>
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-2">
-                            <span className={`text-xs font-black tabular-nums ${
-                              item.current_stock <= 0 ? 'text-red-600' : 'text-amber-600'
-                            }`}>
+                            <span className={`text-xs font-black tabular-nums ${item.current_stock <= 0 ? 'text-red-600' : 'text-amber-600'
+                              }`}>
                               {item.current_stock}
                             </span>
                             <span className="text-[10px] text-zinc-400 font-medium">{item.unit}</span>
@@ -279,25 +264,23 @@ const InventoryAlertsTab: React.FC = () => {
                         </td>
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-1.5">
-                            <div className={`w-1.5 h-1.5 rounded-full ${
-                              item.severity === 'critical' ? 'bg-red-500 animate-pulse' : 'bg-amber-500'
-                            }`} />
-                            <span className={`text-[10px] font-black uppercase tracking-widest ${
-                              item.severity === 'critical' ? 'text-red-600' : 'text-amber-600'
-                            }`}>
+                            <div className={`w-1.5 h-1.5 rounded-full ${item.severity === 'critical' ? 'bg-red-500 animate-pulse' : 'bg-amber-500'
+                              }`} />
+                            <span className={`text-[10px] font-black uppercase tracking-widest ${item.severity === 'critical' ? 'text-red-600' : 'text-amber-600'
+                              }`}>
                               {item.severity}
                             </span>
                           </div>
                         </td>
                         <td className="px-5 py-3.5 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            <button 
+                            <button
                               title="Restock (Purchase Order)"
                               className="p-1.5 hover:bg-emerald-50 text-zinc-400 hover:text-emerald-600 rounded-lg transition-colors border border-transparent hover:border-emerald-100"
                             >
                               <ShoppingCart size={13} />
                             </button>
-                            <button 
+                            <button
                               title="Transfer Stock"
                               className="p-1.5 hover:bg-[#f5f0ff] text-zinc-400 hover:text-[#3b2063] rounded-lg transition-colors border border-transparent hover:border-[#e9d5ff]"
                             >
@@ -313,7 +296,7 @@ const InventoryAlertsTab: React.FC = () => {
                   </tbody>
                 </table>
               </div>
-              
+
               <div className="px-5 py-3 border-t border-zinc-50 bg-zinc-50/30 flex justify-between items-center text-[10px] text-zinc-400 font-medium">
                 <div className="flex items-center gap-2">
                   <Clock size={10} />

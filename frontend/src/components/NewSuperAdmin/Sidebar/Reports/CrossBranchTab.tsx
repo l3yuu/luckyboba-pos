@@ -1,17 +1,17 @@
 // components/NewSuperAdmin/Tabs/Reports/CrossBranchTab.tsx
 import { useState, useEffect, useCallback } from "react";
 import {
-  TrendingUp, TrendingDown, PhilippinePeso , FileText,
-  Download, ArrowUpRight, ArrowDownRight, RefreshCw, AlertCircle,
+  TrendingUp, TrendingDown, PhilippinePeso, FileText,
+  Download, ArrowUpRight, ArrowDownRight, AlertCircle,
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer,
 } from "recharts";
 
-type ColorKey   = "violet" | "emerald" | "red" | "amber";
+type ColorKey = "violet" | "emerald" | "red" | "amber";
 type VariantKey = "primary" | "secondary" | "danger" | "ghost";
-type SizeKey    = "sm" | "md" | "lg";
+type SizeKey = "sm" | "md" | "lg";
 
 interface StatCardProps {
   icon: React.ReactNode; label: string; value: string | number;
@@ -27,45 +27,45 @@ const getToken = () =>
   localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
 const authHeaders = () => ({
   "Content-Type": "application/json",
-  "Accept":       "application/json",
+  "Accept": "application/json",
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
 
 interface SummaryTotals {
-  grand_total:     number;
-  total_orders:    number;
+  grand_total: number;
+  total_orders: number;
   avg_order_value: number;
   total_customers: number;
 }
 interface BreakdownRow {
-  date:    string;
+  date: string;
   revenue: number;
-  orders:  number;
+  orders: number;
 }
 interface BranchMetric {
-  branch_id:       number;
-  branch_name:     string;
-  total_revenue:   number;
-  total_orders:    number;
+  branch_id: number;
+  branch_name: string;
+  total_revenue: number;
+  total_orders: number;
   avg_order_value: number;
-  revenue_rank:    number;
+  revenue_rank: number;
 }
 interface TopProduct {
-  product_name:   string;
+  product_name: string;
   total_quantity: number;
-  total_revenue:  number;
+  total_revenue: number;
 }
 interface BranchOption {
-  id:   number;
+  id: number;
   name: string;
 }
 
 const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, trend, color = "violet" }) => {
   const colors: Record<ColorKey, { bg: string; border: string; icon: string }> = {
-    violet:  { bg: "bg-violet-50",  border: "border-violet-200",  icon: "text-violet-600"  },
+    violet: { bg: "bg-violet-50", border: "border-violet-200", icon: "text-violet-600" },
     emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
-    red:     { bg: "bg-red-50",     border: "border-red-200",     icon: "text-red-500"     },
-    amber:   { bg: "bg-amber-50",   border: "border-amber-200",   icon: "text-amber-600"   },
+    red: { bg: "bg-red-50", border: "border-red-200", icon: "text-red-500" },
+    amber: { bg: "bg-amber-50", border: "border-amber-200", icon: "text-amber-600" },
   };
   const c = colors[color];
   return (
@@ -94,12 +94,12 @@ const Btn: React.FC<BtnProps> = ({
   children, variant = "primary", size = "sm",
   onClick, className = "", disabled = false, type = "button",
 }) => {
-  const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
+  const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#3b2063] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
-    danger:    "bg-red-600 hover:bg-red-700 text-white",
-    ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
+    danger: "bg-red-600 hover:bg-red-700 text-white",
+    ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
   };
   return (
     <button type={type} onClick={onClick} disabled={disabled}
@@ -114,17 +114,17 @@ const SkeletonBar: React.FC<{ h?: string }> = ({ h = "h-4" }) => (
 );
 
 const CrossBranchTab: React.FC = () => {
-  const [period,        setPeriod]        = useState<"daily" | "weekly" | "monthly">("monthly");
-  const [loading,       setLoading]       = useState(true);
-  const [error,         setError]         = useState("");
-  const [totals,        setTotals]        = useState<SummaryTotals | null>(null);
-  const [breakdown,     setBreakdown]     = useState<BreakdownRow[]>([]);
-  const [branchPerf,    setBranchPerf]    = useState<BranchMetric[]>([]);
-  const [topProducts,   setTopProducts]   = useState<TopProduct[]>([]);
-  const [branches,      setBranches]      = useState<BranchOption[]>([]);
+  const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">("monthly");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [totals, setTotals] = useState<SummaryTotals | null>(null);
+  const [breakdown, setBreakdown] = useState<BreakdownRow[]>([]);
+  const [branchPerf, setBranchPerf] = useState<BranchMetric[]>([]);
+  const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
+  const [branches, setBranches] = useState<BranchOption[]>([]);
   const [exportBranchId, setExportBranchId] = useState<string>("");
 
-  const fmt  = (v: number) => `₱${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+  const fmt = (v: number) => `₱${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
   const fmtK = (v: number) => `₱${((v ?? 0) / 1000).toFixed(0)}k`;
 
   // Fetch branches for export selector
@@ -132,7 +132,7 @@ const CrossBranchTab: React.FC = () => {
     fetch("/api/branches", { headers: authHeaders() })
       .then(r => r.json())
       .then(d => { if (d.success) setBranches(d.data); })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const fetchAll = useCallback(async () => {
@@ -141,12 +141,12 @@ const CrossBranchTab: React.FC = () => {
     try {
       const [summaryRes, comparisonRes] = await Promise.all([
         fetch(`/api/reports/admin-sales-summary?period=${period}`, { headers: authHeaders() }),
-        fetch(`/api/reports/branch-comparison?period=${period}`,   { headers: authHeaders() }),
+        fetch(`/api/reports/branch-comparison?period=${period}`, { headers: authHeaders() }),
       ]);
       const [summary, comparison] = await Promise.all([summaryRes.json(), comparisonRes.json()]);
-      if (summary.totals)        setTotals(summary.totals);
-      if (summary.breakdown)     setBreakdown(summary.breakdown);
-      if (summary.top_products)  setTopProducts(summary.top_products.slice(0, 5));
+      if (summary.totals) setTotals(summary.totals);
+      if (summary.breakdown) setBreakdown(summary.breakdown);
+      if (summary.top_products) setTopProducts(summary.top_products.slice(0, 5));
       if (comparison.comparison) setBranchPerf(comparison.comparison);
     } catch {
       setError("Failed to load report data. Please try again.");
@@ -166,13 +166,13 @@ const CrossBranchTab: React.FC = () => {
       const res = await fetch(`/api/reports/export-sales?${params}`, { headers: authHeaders() });
       if (!res.ok) throw new Error("Export failed");
       const blob = await res.blob();
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement("a");
-      a.href     = url;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
 
-      const cd    = res.headers.get("Content-Disposition");
+      const cd = res.headers.get("Content-Disposition");
       const match = cd?.match(/filename="?([^"]+)"?/);
-      a.download  = match?.[1] ?? `LuckyBoba_CrossBranch_Report.csv`;
+      a.download = match?.[1] ?? `LuckyBoba_CrossBranch_Report.csv`;
 
       a.click();
       URL.revokeObjectURL(url);
@@ -181,19 +181,19 @@ const CrossBranchTab: React.FC = () => {
     }
   };
 
-  const chartData    = breakdown.map(r => ({ month: r.date, revenue: Number(r.revenue) }));
+  const chartData = breakdown.map(r => ({ month: r.date, revenue: Number(r.revenue) }));
   const totalRevenue = branchPerf.reduce((s, b) => s + Number(b.total_revenue), 0);
-  const cogsPct      = 0.34;
-  const opexPct      = 0.15;
-  const grandTotal   = totals?.grand_total ?? 0;
-  const cogs         = grandTotal * cogsPct;
-  const opex         = grandTotal * opexPct;
-  const netProfit    = grandTotal - cogs - opex;
+  const cogsPct = 0.34;
+  const opexPct = 0.15;
+  const grandTotal = totals?.grand_total ?? 0;
+  const cogs = grandTotal * cogsPct;
+  const opex = grandTotal * opexPct;
+  const netProfit = grandTotal - cogs - opex;
 
   return (
     <div className="p-6 md:p-8 fade-in">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-end gap-3 mb-5">
+      <div className="flex flex-wrap items-center justify-start gap-3 mb-5">
         <div className="flex rounded-lg overflow-hidden border border-zinc-200">
           {(["daily", "weekly", "monthly"] as const).map(p => (
             <button key={p} onClick={() => setPeriod(p)} disabled={loading}
@@ -202,9 +202,6 @@ const CrossBranchTab: React.FC = () => {
             </button>
           ))}
         </div>
-        <Btn variant="secondary" onClick={fetchAll} disabled={loading}>
-          <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
-        </Btn>
         <div className="flex items-center gap-1.5">
           <select value={exportBranchId} onChange={e => setExportBranchId(e.target.value)}
             className="appearance-none text-[10px] font-bold uppercase tracking-wider text-zinc-600 bg-white border border-zinc-200 rounded-lg pl-2.5 pr-6 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
@@ -227,10 +224,10 @@ const CrossBranchTab: React.FC = () => {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-        <StatCard icon={<TrendingUp   size={16} />} label="Gross Revenue"    value={loading ? "—" : fmt(grandTotal)}                              color="violet"  />
-        <StatCard icon={<FileText     size={16} />} label="Total Orders"     value={loading ? "—" : (totals?.total_orders ?? 0).toLocaleString()}  color="emerald" />
-        <StatCard icon={<TrendingDown size={16} />} label="Avg Order Value"  value={loading ? "—" : fmt(totals?.avg_order_value ?? 0)}             color="red"     />
-        <StatCard icon={<PhilippinePeso   size={16} />} label="Net Profit (est)" value={loading ? "—" : fmt(netProfit)}                               color="amber"   />
+        <StatCard icon={<TrendingUp size={16} />} label="Gross Revenue" value={loading ? "—" : fmt(grandTotal)} color="violet" />
+        <StatCard icon={<FileText size={16} />} label="Total Orders" value={loading ? "—" : (totals?.total_orders ?? 0).toLocaleString()} color="emerald" />
+        <StatCard icon={<TrendingDown size={16} />} label="Avg Order Value" value={loading ? "—" : fmt(totals?.avg_order_value ?? 0)} color="red" />
+        <StatCard icon={<PhilippinePeso size={16} />} label="Net Profit (est)" value={loading ? "—" : fmt(netProfit)} color="amber" />
       </div>
 
       {/* Chart + P&L */}
@@ -245,8 +242,8 @@ const CrossBranchTab: React.FC = () => {
               <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="rg2" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#3b2063" stopOpacity={0.18} />
-                    <stop offset="95%" stopColor="#3b2063" stopOpacity={0}    />
+                    <stop offset="5%" stopColor="#3b2063" stopOpacity={0.18} />
+                    <stop offset="95%" stopColor="#3b2063" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" />
@@ -268,10 +265,10 @@ const CrossBranchTab: React.FC = () => {
             <div className="flex flex-col gap-4">{[...Array(4)].map((_, i) => <SkeletonBar key={i} h="h-8" />)}</div>
           ) : (
             [
-              { label: "Gross Revenue",       value: fmt(grandTotal), pct: 100,                                               color: "#3b2063" },
-              { label: "Cost of Goods (est)", value: `−${fmt(cogs)}`, pct: Math.round(cogsPct * 100),                        color: "#ef4444" },
-              { label: "Operating Exp (est)", value: `−${fmt(opex)}`, pct: Math.round(opexPct * 100),                        color: "#f59e0b" },
-              { label: "Net Profit (est)",    value: fmt(netProfit),  pct: Math.round((netProfit / (grandTotal || 1)) * 100), color: "#10b981" },
+              { label: "Gross Revenue", value: fmt(grandTotal), pct: 100, color: "#3b2063" },
+              { label: "Cost of Goods (est)", value: `−${fmt(cogs)}`, pct: Math.round(cogsPct * 100), color: "#ef4444" },
+              { label: "Operating Exp (est)", value: `−${fmt(opex)}`, pct: Math.round(opexPct * 100), color: "#f59e0b" },
+              { label: "Net Profit (est)", value: fmt(netProfit), pct: Math.round((netProfit / (grandTotal || 1)) * 100), color: "#10b981" },
             ].map((r, i) => (
               <div key={i} className="mb-3">
                 <div className="flex items-center justify-between mb-1">
@@ -316,7 +313,7 @@ const CrossBranchTab: React.FC = () => {
                 <tr><td colSpan={6} className="px-5 py-10 text-center text-zinc-400 text-xs font-medium">No branch data for this period.</td></tr>
               )}
               {!loading && branchPerf.map((b, i) => {
-                const share     = totalRevenue > 0 ? Math.round((Number(b.total_revenue) / totalRevenue) * 100) : 0;
+                const share = totalRevenue > 0 ? Math.round((Number(b.total_revenue) / totalRevenue) * 100) : 0;
                 const shortName = b.branch_name.replace("Lucky Boba – ", "").replace("Lucky Boba - ", "");
                 return (
                   <tr key={b.branch_id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
@@ -324,8 +321,8 @@ const CrossBranchTab: React.FC = () => {
                       <div className={`w-6 h-6 rounded-md flex items-center justify-center text-[10px] font-black
                         ${i === 0 ? "bg-amber-50 text-amber-600 border border-amber-200" :
                           i === 1 ? "bg-zinc-100 text-zinc-500 border border-zinc-200" :
-                          i === 2 ? "bg-orange-50 text-orange-500 border border-orange-200" :
-                          "bg-zinc-50 text-zinc-400 border border-zinc-100"}`}>
+                            i === 2 ? "bg-orange-50 text-orange-500 border border-orange-200" :
+                              "bg-zinc-50 text-zinc-400 border border-zinc-100"}`}>
                         {b.revenue_rank}
                       </div>
                     </td>
