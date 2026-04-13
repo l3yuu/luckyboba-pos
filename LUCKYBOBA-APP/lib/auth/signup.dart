@@ -2,6 +2,7 @@
 import 'dart:ui'; // For BackdropFilter
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:convert';
@@ -86,10 +87,12 @@ class _SignupPageState extends State<SignupPage>
 
     setState(() => _loading = true);
     try {
-      final UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email, password: password,
-      );
-      await userCredential.user?.updateDisplayName(name);
+      if (!kIsWeb) {
+        final UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: email, password: password,
+        );
+        await userCredential.user?.updateDisplayName(name);
+      }
 
       final response = await http.post(
         Uri.parse('${AppConfig.apiUrl}/register'),
@@ -105,7 +108,9 @@ class _SignupPageState extends State<SignupPage>
         await Future.delayed(const Duration(milliseconds: 800));
         if (mounted) Navigator.pop(context);
       } else {
-        await userCredential.user?.delete();
+        if (!kIsWeb) {
+          await FirebaseAuth.instance.currentUser?.delete();
+        }
         final error = jsonDecode(response.body);
         _snack(error['message'] ?? 'Registration failed', Colors.redAccent);
       }

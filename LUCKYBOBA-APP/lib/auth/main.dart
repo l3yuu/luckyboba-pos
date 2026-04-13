@@ -542,7 +542,7 @@ class _LoginPageState extends State<LoginPage>
                             ],
                           ),
                         ),
-                        if (!kIsWeb) ...[
+                        
                           const SizedBox(height: 32),
                           Row(
                             children: [
@@ -586,7 +586,7 @@ class _LoginPageState extends State<LoginPage>
                               ),
                             ],
                           ),
-                        ],
+                        
                         const SizedBox(height: 48),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,

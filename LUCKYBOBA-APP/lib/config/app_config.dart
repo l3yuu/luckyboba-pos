@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
+
 class AppConfig {
   AppConfig._();
 
@@ -18,6 +20,7 @@ class AppConfig {
   static const String _productionBase = 'https://luckybobastores.com';
   static const String _stagingBase = 'https://staging.luckybobastores.com';
   static const String _devBase = 'http://192.168.254.115:8000';
+  static const String _webDevBase = 'http://localhost:8000';
 
   static String get baseUrl {
     // If API_URL was injected, use its parent (strip /api if present)
@@ -26,6 +29,9 @@ class AppConfig {
     }
     if (isProduction) return _productionBase;
     if (isStaging) return _stagingBase;
+    
+    // For local development
+    if (kIsWeb) return _webDevBase;
     return _devBase;
   }
 

@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\{ BackupController, BranchSettingsController, CashCountController, CashTransactionController, CategoryController, DashboardController, DiscountController, ExpenseController, InventoryController, StockTransferController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SearchController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController, MenuItemController, SupplierController, ItemCheckerController, PulseController, StaffPerformanceController, InventoryAlertController };
+use App\Http\Controllers\Api\{ BackupController, BranchSettingsController, CashCountController, CashTransactionController, CategoryController, DashboardController, DiscountController, ExpenseController, InventoryController, StockTransferController, InventoryDashboardController, InventoryReportController, ItemSerialController, MenuController, MenuListController, PurchaseOrderController, ReceiptController, ReportController, SalesController, SalesDashboardController, SearchController, SettingsController, SubCategoryController, UploadController, VoucherController, BranchController, AddOnController, SuperAdminReportController, CardPurchaseController, MenuItemController, SupplierController, ItemCheckerController, PulseController, StaffPerformanceController, InventoryAlertController, FeaturedDrinkController };
 use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BranchManagerAppController; // ✅ FIXED: now in Api namespace
@@ -42,6 +42,7 @@ Route::get('/check-card-status/{userId}', [CardPurchaseController::class, 'check
 Route::get('/cards',            [CardController::class, 'index'])->middleware('throttle:60,1');
 Route::get('/payment-settings', [SettingsController::class, 'index'])->middleware('throttle:60,1');
 Route::get('/add-ons',          [AddOnController::class, 'index'])->middleware('throttle:60,1');
+Route::get('/featured-drinks',  [FeaturedDrinkController::class, 'publicIndex'])->middleware('throttle:60,1');
 
 // ── PUBLIC MENU ───────────────────────────────────────────────────────────────
 Route::get('/public-menu', function (Illuminate\Http\Request $request) {
@@ -518,11 +519,26 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         });
 
         Route::prefix('admin/cards')->group(function () {
+            Route::get ('/',                          [CardController::class, 'adminIndex']);
+            Route::post('/',                          [CardController::class, 'store']);
+            Route::put ('/{id}',                      [CardController::class, 'update']);
+            Route::delete('/{id}',                    [CardController::class, 'destroy']);
+            Route::patch('/{id}/toggle',              [CardController::class, 'toggle']);
+            
             Route::get ('/pending',                   [CardController::class, 'getPendingApprovals']);
             Route::post('/{id}/approve',              [CardController::class, 'approveCard']);
             Route::post('/{id}/reject',               [CardController::class, 'rejectCard']);
             Route::get ('/users',                     [CardController::class, 'getCardUsers']);
             Route::post('/users/{userId}/log-usage',  [CardController::class, 'logUsage']);
+        });
+
+        // ── FEATURED DRINKS (SuperAdmin) ────────────────────────────────────
+        Route::prefix('featured-drinks')->group(function () {
+            Route::get   ('/',            [FeaturedDrinkController::class, 'index']);
+            Route::post  ('/',            [FeaturedDrinkController::class, 'store']);
+            Route::post  ('/{id}',        [FeaturedDrinkController::class, 'update']);
+            Route::delete('/{id}',        [FeaturedDrinkController::class, 'destroy']);
+            Route::patch ('/{id}/toggle', [FeaturedDrinkController::class, 'toggle']);
         });
 
         // ── LOYALTY MANAGEMENT (SuperAdmin) ──────────────────────────────────

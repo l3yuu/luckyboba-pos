@@ -80,6 +80,9 @@ class _HomePageState extends State<HomePage> {
   double _nearestDist    = 0;
   String _userName       = '';
 
+  List<Map<String, dynamic>> _featuredDrinks = [];
+  bool _loadingFeaturedDrinks = true;
+
   @override
   void initState() {
     super.initState();
@@ -92,8 +95,28 @@ class _HomePageState extends State<HomePage> {
       _fetchLuckyPoints(),
       _loadNearestStore(),
       _loadUserName(),
+      _fetchFeaturedDrinks(),
     ]);
     _checkInitialBranchSelection();
+  }
+
+  Future<void> _fetchFeaturedDrinks() async {
+    try {
+      final response = await http
+          .get(Uri.parse('${AppConfig.apiUrl}/featured-drinks'))
+          .timeout(const Duration(seconds: 8));
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        if (mounted) {
+          setState(() {
+            _featuredDrinks = data.map((e) => e as Map<String, dynamic>).toList();
+          });
+        }
+      }
+    } catch (_) {}
+    finally {
+      if (mounted) setState(() => _loadingFeaturedDrinks = false);
+    }
   }
 
   Future<void> _loadUserName() async {
@@ -244,14 +267,40 @@ class _HomePageState extends State<HomePage> {
                   const SizedBox(height: 14),
 
                   // Hero banner
-                  _TappableCard(
-                    child: _HeroBannerLight(
-                      imagePath: 'assets/images/promo1.png',
-                      title: 'Winter Specials',
-                      subTitle: 'Premium Series',
-                      cta: 'ORDER NOW',
+                  if (_loadingFeaturedDrinks)
+                    const SizedBox(
+                      height: 190,
+                      child: Center(
+                        child: CircularProgressIndicator(color: _kPurple),
+                      ),
+                    )
+                  else if (_featuredDrinks.isEmpty)
+                    _TappableCard(
+                      child: const _HeroBannerLight(
+                        imagePath: 'assets/images/cheese_series.png',
+                        title: 'Cheese Series',
+                        subTitle: 'Premium Collection',
+                        cta: 'ORDER NOW',
+                      ),
+                    )
+                  else
+                    SizedBox(
+                      height: 190,
+                      child: PageView.builder(
+                        itemCount: _featuredDrinks.length,
+                        itemBuilder: (context, index) {
+                          final item = _featuredDrinks[index];
+                          return _TappableCard(
+                            child: _HeroBannerLight(
+                              imagePath: item['image_url'] ?? 'assets/images/cheese_series.png',
+                              title: item['title'] ?? '',
+                              subTitle: item['subtitle'] ?? '',
+                              cta: item['cta_text'] ?? 'ORDER NOW',
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                  ),
 
                   const SizedBox(height: 28),
 
@@ -640,12 +689,19 @@ class _HeroBannerLight extends StatelessWidget {
         child: Stack(
           children: [
             Positioned.fill(
-              child: Image.asset(
-                imagePath,
-                fit: BoxFit.cover,
-                color: Colors.black.withValues(alpha: 0.25),
-                colorBlendMode: BlendMode.darken,
-              ),
+              child: imagePath.startsWith('http')
+                  ? Image.network(
+                      imagePath,
+                      fit: BoxFit.cover,
+                      color: Colors.black.withValues(alpha: 0.25),
+                      colorBlendMode: BlendMode.darken,
+                    )
+                  : Image.asset(
+                      imagePath,
+                      fit: BoxFit.cover,
+                      color: Colors.black.withValues(alpha: 0.25),
+                      colorBlendMode: BlendMode.darken,
+                    ),
             ),
             Positioned.fill(
               child: Container(

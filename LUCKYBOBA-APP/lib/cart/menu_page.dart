@@ -224,73 +224,88 @@ class _MenuPageState extends State<MenuPage> {
             ),
           ),
           padding: EdgeInsets.only(
-              top: topPad + 16, left: 20, right: 20, bottom: 28),
-          child: Column(
+              top: topPad + 14, left: 16, right: 16, bottom: 36),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Top row: back + title + cart
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      width:  40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.arrow_back_ios_new_rounded,
-                          size: 18, color: Colors.white),
-                    ),
+              // Back button
+              GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  width:  38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Lucky Menu',
-                          style: GoogleFonts.outfit(
-                            fontSize:   20,
-                            fontWeight: FontWeight.w800,
-                            color:      Colors.white,
-                          ),
-                        ),
-                        if (widget.selectedStore != null)
-                          Text(
-                            widget.selectedStore!,
-                            style: GoogleFonts.outfit(
-                              fontSize: 12,
-                              color:    Colors.white.withValues(alpha: 0.75),
-                              fontWeight: FontWeight.w500,
+                  child: const Icon(Icons.arrow_back_ios_new_rounded,
+                      size: 16, color: Colors.white),
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              // Title + branch name
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Lucky Menu',
+                      style: GoogleFonts.outfit(
+                        fontSize:   18,
+                        fontWeight: FontWeight.w800,
+                        color:      Colors.white,
+                      ),
+                    ),
+                    if (widget.selectedStore != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Row(
+                          children: [
+                            Icon(Icons.storefront_rounded,
+                                size: 12,
+                                color: Colors.white.withValues(alpha: 0.70)),
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                widget.selectedStore!,
+                                style: GoogleFonts.outfit(
+                                  fontSize:   11,
+                                  color:      Colors.white.withValues(alpha: 0.75),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines:  1,
+                                overflow:  TextOverflow.ellipsis,
+                              ),
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                      ],
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => CartPage(
-                          selectedStore: widget.selectedStore ?? '',
+                          ],
                         ),
                       ),
-                    ),
-                    child: Container(
-                      width:  40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(PhosphorIconsRegular.shoppingCart,
-                          size: 20, color: Colors.white),
+                  ],
+                ),
+              ),
+
+              // Cart button
+              GestureDetector(
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => CartPage(
+                      selectedStore: widget.selectedStore ?? '',
                     ),
                   ),
-                ],
+                ),
+                child: Container(
+                  width:  38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(PhosphorIconsRegular.shoppingCart,
+                      size: 18, color: Colors.white),
+                ),
               ),
             ],
           ),
@@ -298,11 +313,11 @@ class _MenuPageState extends State<MenuPage> {
 
         // Wave clipper at the bottom of header
         Positioned(
-          bottom: -1,
+          bottom: 0,
           left:   0,
           right:  0,
           child: CustomPaint(
-            size: const Size(double.infinity, 28),
+            size: const Size(double.infinity, 32),
             painter: _WavePainter(color: _kBg),
           ),
         ),
@@ -665,19 +680,22 @@ class _WavePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()..color = color;
-    final path  = Path();
-    path.moveTo(0, 0);
-    path.quadraticBezierTo(
-        size.width * 0.25, size.height,
-        size.width * 0.5,  size.height * 0.5);
-    path.quadraticBezierTo(
-        size.width * 0.75, 0,
-        size.width,        size.height * 0.5);
-    path.lineTo(size.width, 0);
-    path.close();
+    final path  = Path()
+      ..moveTo(0, size.height)
+      ..quadraticBezierTo(size.width * 0.25, 0, size.width * 0.5, size.height * 0.5)
+      ..quadraticBezierTo(size.width * 0.75, size.height, size.width, 0)
+      ..lineTo(size.width, size.height)
+      ..close();
     canvas.drawPath(path, paint);
+
+    // Solid bottom cap so content beneath is correct color
+    final capPaint = Paint()..color = color;
+    canvas.drawRect(
+      Rect.fromLTWH(0, size.height - 2, size.width, 2),
+      capPaint,
+    );
   }
 
   @override
-  bool shouldRepaint(_WavePainter old) => old.color != color;
+  bool shouldRepaint(_WavePainter old) => true; // Forced repaint for hot reload
 }
