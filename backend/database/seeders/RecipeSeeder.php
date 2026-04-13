@@ -38,48 +38,31 @@ class RecipeSeeder extends Seeder
         $oreo = 'CRUSHED OREO (454g/pk)';
 
         // ----------------------------------------------------------------
-        // 1. CLASSIC MILK TEA CATEGORY (Based on Spreadsheet)
+        // 1. CLASSIC MILK TEA CATEGORY
         // ----------------------------------------------------------------
         $classicRecipes = [
-            // Plain Classic
             ['CLASSIC MILK TEA', 'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($tea, 0.078), $frac($ndc, 0.047)]],
             ['CLASSIC MILK TEA', 'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($tea, 0.091), $frac($ndc, 0.054)]],
-
-            // Classic Pearl
             ['CLASSIC PEARL', 'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($tea, 0.069), $frac($ndc, 0.041), $frac($boba, 0.03)]],
             ['CLASSIC PEARL', 'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($tea, 0.081), $frac($ndc, 0.049), $frac($boba, 0.04)]],
-
-            // Classic Oreo
             ['CLASSIC OREO', 'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($tea, 0.069), $frac($ndc, 0.041)]],
             ['CLASSIC OREO', 'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($tea, 0.081), $frac($ndc, 0.049)]],
-
-            // Classic Pudding
             ['CLASSIC PUDDING', 'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($tea, 0.069), $frac($ndc, 0.041)]],
             ['CLASSIC PUDDING', 'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($tea, 0.081), $frac($ndc, 0.049)]],
-
-            // Classic Buddy
             ['CLASSIC BUDDY', 'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($tea, 0.069), $frac($ndc, 0.041), $frac($boba, 0.03)]],
             ['CLASSIC BUDDY', 'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($tea, 0.081), $frac($ndc, 0.049), $frac($boba, 0.04)]],
-
-            // Classic Duo
             ['CLASSIC DUO', 'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($tea, 0.069), $frac($ndc, 0.041), $frac($boba, 0.03), $frac($jelly, 0.02)]],
             ['CLASSIC DUO', 'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($tea, 0.081), $frac($ndc, 0.049), $frac($boba, 0.04), $frac($jelly, 0.03)]],
-
-            // Classic Cream Cheese
             ['CLASSIC CREAM CHEESE', 'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($tea, 0.069), $frac($ndc, 0.041), $frac($boba, 0.03), $frac($cheese, 45)]],
             ['CLASSIC CREAM CHEESE', 'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($tea, 0.081), $frac($ndc, 0.049), $frac($boba, 0.04), $frac($cheese, 55)]],
-
-            // Classic Cheesecake
             ['CLASSIC CHEESE CAKE', 'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($tea, 0.069), $frac($ndc, 0.041), $frac($boba, 0.03), $frac($cheese, 45)]],
             ['CLASSIC CHEESE CAKE', 'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($tea, 0.081), $frac($ndc, 0.049), $frac($boba, 0.04), $frac($cheese, 55)]],
-
-            // Classic Rocksalt & Cheese
             ['CLASSIC ROCKSALT & CHEESE', 'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($tea, 0.069), $frac($ndc, 0.041), $frac($boba, 0.03), $frac($cheese, 45)]],
             ['CLASSIC ROCKSALT & CHEESE', 'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($tea, 0.081), $frac($ndc, 0.049), $frac($boba, 0.04), $frac($cheese, 55)]],
         ];
 
         // ----------------------------------------------------------------
-        // 2. CREAM CHEESE SERIES CATEGORY (Based on Spreadsheet)
+        // 2. CREAM CHEESE SERIES CATEGORY
         // ----------------------------------------------------------------
         $creamcheeseRecipes = [
             ['RED VELVET + CREAM CHEESE',   'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($tea, 0.034), $frac($ndc, 0.021), $frac($cheese, 45)]],
@@ -105,7 +88,7 @@ class RecipeSeeder extends Seeder
         ];
 
         // ----------------------------------------------------------------
-        // 3. CHEESECAKE SERIES CATEGORY (Based on Spreadsheet)
+        // 3. CHEESECAKE SERIES CATEGORY
         // ----------------------------------------------------------------
         $cheesecakeRecipes = [
             ['TARO + CHEESECAKE',           'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($tea, 0.034), $frac($ndc, 0.021), $frac($cheese, 45)]],
@@ -132,7 +115,71 @@ class RecipeSeeder extends Seeder
             ['BELGIAN CHOCO M. TEA + CHEESECAKE', 'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($tea, 0.047), $frac($ndc, 0.028), $frac($cheese, 55)]],
         ];
 
-        $allRecipes = array_merge($classicRecipes, $creamcheeseRecipes, $cheesecakeRecipes);
+        // ----------------------------------------------------------------
+        // 4. ROCK SALT & CHEESE SERIES CATEGORY
+        // ----------------------------------------------------------------
+        $rocksaltRecipes = [
+            ['WINTERMELON + ROCK SALT & CHEESE', 'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($tea, 0.059), $frac($ndc, 0.036), $frac($cheese, 45)]],
+            ['WINTERMELON + ROCK SALT & CHEESE', 'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($tea, 0.069), $frac($ndc, 0.041), $frac($cheese, 55)]],
+            ['DARK CHOCOLATE + ROCK SALT & CHEESE', 'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($tea, 0.034), $frac($ndc, 0.026), $frac($cheese, 45)]],
+            ['DARK CHOCOLATE + ROCK SALT & CHEESE', 'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($tea, 0.047), $frac($ndc, 0.038), $frac($cheese, 55)]],
+            ['VANILLA + ROCK SALT & CHEESE',    'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($tea, 0.059), $frac($ndc, 0.036), $frac($cheese, 45)]],
+            ['VANILLA + ROCK SALT & CHEESE',    'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($tea, 0.069), $frac($ndc, 0.041), $frac($cheese, 55)]],
+            ['MANGO + ROCK SALT & CHEESE',      'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($tea, 0.059), $frac($ndc, 0.036), $frac($cheese, 45)]],
+            ['MANGO + ROCK SALT & CHEESE',      'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($tea, 0.069), $frac($ndc, 0.041), $frac($cheese, 55)]],
+            ['AVOCADO + ROCK SALT & CHEESE',    'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($tea, 0.034), $frac($ndc, 0.021), $frac($cheese, 45)]],
+            ['AVOCADO + ROCK SALT & CHEESE',    'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($tea, 0.047), $frac($ndc, 0.028), $frac($cheese, 55)]],
+            ['SALTED CARAMEL + ROCK SALT & CHEESE', 'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($tea, 0.034), $frac($ndc, 0.021), $frac($cheese, 45)]],
+            ['SALTED CARAMEL + ROCK SALT & CHEESE', 'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($tea, 0.047), $frac($ndc, 0.028), $frac($cheese, 55)]],
+        ];
+
+        // ----------------------------------------------------------------
+        // 5. FLAVORED MILK TEA SERIES CATEGORY (Category 12)
+        // ----------------------------------------------------------------
+        $flavoredRecipes = [
+            ['WINTERMELON MILK TEA',        'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($tea, 0.059), $frac($ndc, 0.036)]],
+            ['WINTERMELON MILK TEA',        'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($tea, 0.069), $frac($ndc, 0.041)]],
+            ['RED VELVET MILK TEA',         'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($tea, 0.034), $frac($ndc, 0.021)]],
+            ['RED VELVET MILK TEA',         'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($tea, 0.047), $frac($ndc, 0.028)]],
+            ['AVOCADO MILK TEA',            'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($tea, 0.034), $frac($ndc, 0.021)]],
+            ['AVOCADO MILK TEA',            'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($tea, 0.047), $frac($ndc, 0.028)]],
+            ['MANGO MILK TEA',              'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($tea, 0.059), $frac($ndc, 0.036)]],
+            ['MANGO MILK TEA',              'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($tea, 0.069), $frac($ndc, 0.041)]],
+            ['TARO MILK TEA',               'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($tea, 0.034), $frac($ndc, 0.021)]],
+            ['TARO MILK TEA',               'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($tea, 0.047), $frac($ndc, 0.028)]],
+            ['BELGIAN MILK TEA',            'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($tea, 0.034), $frac($ndc, 0.021)]],
+            ['BELGIAN MILK TEA',            'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($tea, 0.047), $frac($ndc, 0.028)]],
+            ['HERSHEY\'S MILK TEA',         'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($tea, 0.034), $frac($ndc, 0.021)]],
+            ['HERSHEY\'S MILK TEA',         'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($tea, 0.047), $frac($ndc, 0.028)]],
+            ['SALTED CARAMEL MILK TEA',     'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($tea, 0.034), $frac($ndc, 0.021)]],
+            ['SALTED CARAMEL MILK TEA',     'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($tea, 0.047), $frac($ndc, 0.028)]],
+            ['DARK CHOCOLATE MILK TEA',     'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($tea, 0.034), $frac($ndc, 0.034)]],
+            ['DARK CHOCOLATE MILK TEA',     'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($tea, 0.047), $frac($ndc, 0.028)]],
+            ['CHOCO HAZELNUT MILK TEA',     'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($tea, 0.034), $frac($ndc, 0.026)]],
+            ['CHOCO HAZELNUT MILK TEA',     'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($tea, 0.047), $frac($ndc, 0.038)]],
+            ['COOKIES & CREAM MILK TEA',    'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($tea, 0.034), $frac($ndc, 0.021), $frac($oreo, 0.01)]],
+            ['COOKIES & CREAM MILK TEA',    'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($tea, 0.047), $frac($ndc, 0.028), $frac($oreo, 0.02)]],
+            ['TOFFEE CARAMEL MILK TEA',     'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($tea, 0.034), $frac($ndc, 0.021)]],
+            ['TOFFEE CARAMEL MILK TEA',     'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($tea, 0.047), $frac($ndc, 0.028)]],
+            ['VANILLA MILK TEA',            'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($tea, 0.059), $frac($ndc, 0.036)]],
+            ['VANILLA MILK TEA',            'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($tea, 0.069), $frac($ndc, 0.041)]],
+            ['BLUEBERRY MILK TEA',          'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($tea, 0.059), $frac($ndc, 0.036)]],
+            ['BLUEBERRY MILK TEA',          'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($tea, 0.069), $frac($ndc, 0.041)]],
+            ['OKINAWA MILK TEA',            'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($tea, 0.034), $frac($ndc, 0.031)]],
+            ['OKINAWA MILK TEA',            'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($tea, 0.047), $frac($ndc, 0.043)]],
+            ['MOCHA MILK TEA',              'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($tea, 0.034), $frac($ndc, 0.021)]],
+            ['MOCHA MILK TEA',              'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($tea, 0.047), $frac($ndc, 0.028)]],
+            ['JAVA CHIP MILK TEA',          'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($tea, 0.034), $frac($ndc, 0.021)]],
+            ['JAVA CHIP MILK TEA',          'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($tea, 0.047), $frac($ndc, 0.028)]],
+            ['MATCHA MILK TEA',             'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($tea, 0.034), $frac($ndc, 0.021)]],
+            ['MATCHA MILK TEA',             'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($tea, 0.047), $frac($ndc, 0.028)]],
+            ['STRAWBERRY MILK TEA',         'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($tea, 0.059), $frac($ndc, 0.036)]],
+            ['STRAWBERRY MILK TEA',         'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($tea, 0.069), $frac($ndc, 0.041)]],
+            ['CARAMEL MACCHIATO MILK TEA',  'M', [$frac($straw, 1), $frac($mCup, 1), $frac($sealing, 1), $frac($boba, 0.03), $frac($tea, 0.034), $frac($ndc, 0.021)]],
+            ['CARAMEL MACCHIATO MILK TEA',  'L', [$frac($straw, 1), $frac($lCup, 1), $frac($sealing, 1), $frac($boba, 0.04), $frac($tea, 0.047), $frac($ndc, 0.028)]],
+        ];
+
+        $allRecipes = array_merge($classicRecipes, $creamcheeseRecipes, $cheesecakeRecipes, $rocksaltRecipes, $flavoredRecipes);
 
         $seededCount = 0;
         foreach ($allRecipes as [$itemName, $size, $ingredients]) {
