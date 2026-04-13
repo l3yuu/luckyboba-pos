@@ -1,6 +1,7 @@
 // components/NewSuperAdmin/Tabs/SettingsTab.tsx
 import { useState, useEffect } from "react";
 import { Database, Mail, Phone, MapPin, Star } from "lucide-react";
+import { useToast } from "../../../hooks/useToast";
 
 type VariantKey = "primary" | "secondary" | "danger" | "ghost";
 type SizeKey    = "sm" | "md" | "lg";
@@ -91,9 +92,8 @@ const SettingsTab: React.FC = () => {
   const [savingTax,     setSavingTax]     = useState(false);
   const [savingPos,     setSavingPos]     = useState(false);
   const [savingPrefs,   setSavingPrefs]   = useState(false);
-  const [saveMsg,       setSaveMsg]       = useState<string | null>(null);
-  // FIX #12 — surface fetch errors in the UI instead of silently swallowing them
   const [loadError,     setLoadError]     = useState<string | null>(null);
+  const { showToast } = useToast();
 
   // ── General settings state ───────────────────────────────────────────────
   const [generalFields, setGeneralFields] = useState({
@@ -133,15 +133,15 @@ const SettingsTab: React.FC = () => {
       })
       .then((data: Record<string, string>) => {
         setGeneralFields({
-          business_name:  data.business_name  ?? 'Lucky Boba',
-          contact_email:  data.contact_email  ?? 'admin@luckyboba.com',
-          contact_phone:  data.contact_phone  ?? '+63 912 345 6789',
-          address:        data.address        ?? 'Cebu City, Philippines',
+          business_name:  data.business_name  ?? '',
+          contact_email:  data.contact_email  ?? '',
+          contact_phone:  data.contact_phone  ?? '',
+          address:        data.address        ?? '',
         });
         setTaxFields({
-          vat_rate:       data.vat_rate       ?? '12%',
-          receipt_footer: data.receipt_footer ?? 'Thank you for visiting Lucky Boba!',
-          currency:       data.currency       ?? 'PHP – Philippine Peso',
+          vat_rate:       data.vat_rate       ?? '',
+          receipt_footer: data.receipt_footer ?? '',
+          currency:       data.currency       ?? '',
         });
         setPosFooter({
           pos_supplier:    data.pos_supplier    ?? '',
@@ -160,19 +160,12 @@ const SettingsTab: React.FC = () => {
       })
       .catch((err: Error) => {
         console.error('Failed to load settings:', err);
+        showToast('Could not load settings. Check your connection or log in again.', 'error');
         setLoadError('Could not load settings. Check your connection or log in again.');
       });
-  }, []);
+  }, [showToast]);
 
-  const showSaved = (msg = 'Saved successfully!') => {
-    setSaveMsg(msg);
-    setTimeout(() => setSaveMsg(null), 2500);
-  };
-
-  // FIX #10 — use PATCH (partial update) so saving one section doesn't overwrite
-  // fields from other sections that the server isn't receiving in this request.
-  // If the backend only supports POST, it must merge on its side — but using PATCH
-  // here signals the correct intent and avoids accidental full-replace behavior.
+  // FIX #10 — use PATCH (partial update)
   const saveSection = async (
     payload: Record<string, string>,
     setSaving: (v: boolean) => void
@@ -185,17 +178,16 @@ const SettingsTab: React.FC = () => {
         body:    JSON.stringify(payload),
       });
       if (!res.ok) throw new Error(`Server returned ${res.status}`);
-      showSaved();
+      showToast('Settings saved successfully!', 'success');
     } catch (e) {
       console.error('Save failed:', e);
-      setSaveMsg('Save failed — please try again.');
-      setTimeout(() => setSaveMsg(null), 3000);
+      showToast('Save failed — please try again.', 'error');
     } finally {
       setSaving(false);
     }
   };
 
-  // FIX #11 — save toggle preferences immediately when toggled
+  // FIX #11 — save toggle preferences
   const savePreferences = async (prefs: { notifications: boolean; auto_reports: boolean; two_factor: boolean }) => {
     setSavingPrefs(true);
     try {
@@ -209,8 +201,10 @@ const SettingsTab: React.FC = () => {
         }),
       });
       if (!res.ok) throw new Error(`Server returned ${res.status}`);
+      // Success is silent for toggles usually, but we could add a toast if requested.
     } catch (e) {
       console.error('Preference save failed:', e);
+      showToast('Failed to save preferences', 'error');
     } finally {
       setSavingPrefs(false);
     }
@@ -222,9 +216,9 @@ const SettingsTab: React.FC = () => {
       auto_reports: autoReports,
       two_factor:   twoFactor,
     };
-    if (key === 'notifications') { next.notifications = !notifications; setNotifications(v => !v); }
-    if (key === 'auto_reports')  { next.auto_reports   = !autoReports;  setAutoReports(v => !v); }
-    if (key === 'two_factor')    { next.two_factor      = !twoFactor;   setTwoFactor(v => !v); }
+    if (key === 'notifications') { next.notifications = !notifications; setNotifications((v: boolean) => !v); }
+    if (key === 'auto_reports')  { next.auto_reports   = !autoReports;  setAutoReports((v: boolean) => !v); }
+    if (key === 'two_factor')    { next.two_factor      = !twoFactor;   setTwoFactor((v: boolean) => !v); }
     savePreferences(next);
   };
 
@@ -240,13 +234,6 @@ const SettingsTab: React.FC = () => {
 
   return (
     <div className="p-6 md:p-8 fade-in">
-      {/* Save toast */}
-      {saveMsg && (
-        <div className={`fixed bottom-6 right-6 z-50 text-white text-xs font-bold px-4 py-2.5 rounded-lg shadow-lg animate-fade-in ${saveMsg.toLowerCase().includes('fail') ? 'bg-red-600' : 'bg-emerald-600'}`}>
-          {saveMsg.toLowerCase().includes('fail') ? '✕' : '✓'} {saveMsg}
-        </div>
-      )}
-
       {/* FIX #12 — visible error banner when settings fail to load */}
       {loadError && (
         <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-700 font-semibold">
@@ -276,7 +263,7 @@ const SettingsTab: React.FC = () => {
                     <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1">{f.label}</p>
                     <input
                       value={generalFields[f.key]}
-                      onChange={e => setGeneralFields(v => ({ ...v, [f.key]: e.target.value }))}
+                      onChange={e => setGeneralFields((v: typeof generalFields) => ({ ...v, [f.key]: e.target.value }))}
                       className="w-full text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-[0.4rem] px-3 py-1.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all"
                     />
                   </div>
@@ -303,7 +290,7 @@ const SettingsTab: React.FC = () => {
                   <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5">{f.label}</p>
                   <input
                     value={taxFields[f.key]}
-                    onChange={e => setTaxFields(v => ({ ...v, [f.key]: e.target.value }))}
+                    onChange={e => setTaxFields((v: typeof taxFields) => ({ ...v, [f.key]: e.target.value }))}
                     placeholder={f.placeholder}
                     className="w-full text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-[0.4rem] px-3 py-1.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all"
                   />
@@ -327,7 +314,7 @@ const SettingsTab: React.FC = () => {
                   <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mb-1.5">{f.label}</p>
                   <input
                     value={posFooter[f.key]}
-                    onChange={e => setPosFooter(v => ({ ...v, [f.key]: e.target.value }))}
+                    onChange={e => setPosFooter((v: typeof posFooter) => ({ ...v, [f.key]: e.target.value }))}
                     placeholder={f.placeholder}
                     className="w-full text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-[0.4rem] px-3 py-1.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all"
                   />

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class PurchaseOrder extends Model
 {
-    protected $fillable = ['po_number', 'supplier', 'total_amount', 'status', 'date_ordered'];
+    protected $fillable = ['po_number', 'supplier', 'total_amount', 'status', 'date_ordered', 'branch_id'];
     
     protected $casts = [
         'total_amount' => 'float',
@@ -15,7 +15,12 @@ class PurchaseOrder extends Model
     ];
 
     public function items()
-{
-    return $this->hasMany(PurchaseOrderItem::class);
-}
+    {
+        return $this->hasMany(PurchaseOrderItem::class);
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
+    }
 }

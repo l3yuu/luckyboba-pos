@@ -11,15 +11,30 @@ use Illuminate\Support\Facades\Log;
 
 class PurchaseOrderController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         try {
-            $orders = PurchaseOrder::orderBy('date_ordered', 'desc')->get();
+            $user = $request->user();
+            $query = PurchaseOrder::with(['items', 'branch'])->orderBy('date_ordered', 'desc');
+
+            // SCOPING: If user is tied to a branch, only show that branch's orders
+            // Superadmins can see everything.
+            if ($user->role !== 'superadmin' && $user->branch_id) {
+                $query->where('branch_id', $user->branch_id);
+            }
+
+            $orders = $query->get();
             
+            // Build stats based on the scoped query
+            $statsQuery = PurchaseOrder::query();
+            if ($user->role !== 'superadmin' && $user->branch_id) {
+                $statsQuery->where('branch_id', $user->branch_id);
+            }
+
             $stats = [
-                'active_orders' => PurchaseOrder::where('status', 'Pending')->count(),
-                'pending_payment' => (float) PurchaseOrder::where('status', 'Pending')->sum('total_amount'),
-                'monthly_spend' => (float) PurchaseOrder::whereMonth('date_ordered', Carbon::now()->month)
+                'active_orders' => (clone $statsQuery)->where('status', 'Pending')->count(),
+                'pending_payment' => (float) (clone $statsQuery)->where('status', 'Pending')->sum('total_amount'),
+                'monthly_spend' => (float) (clone $statsQuery)->whereMonth('date_ordered', Carbon::now()->month)
                                     ->where('status', 'Received')
                                     ->sum('total_amount'),
             ];
@@ -56,13 +71,17 @@ class PurchaseOrderController extends Controller
             $count = PurchaseOrder::whereYear('created_at', date('Y'))->count() + 1;
             $poNumber = "PO-" . date('Y') . "-" . str_pad($count, 3, '0', STR_PAD_LEFT);
 
+            $user = $request->user();
+            $branchId = ($user->role !== 'superadmin' && $user->branch_id) ? $user->branch_id : $request->input('branch_id');
+
             // 1. Save the main Purchase Order record
             $order = PurchaseOrder::create([
                 'supplier' => $validated['supplier'],
                 'total_amount' => $validated['total_amount'],
                 'date_ordered' => $validated['date_ordered'],
                 'po_number' => $poNumber,
-                'status' => 'Pending'
+                'status' => 'Pending',
+                'branch_id' => $branchId
             ]);
 
             // 2. Save all items linked to this order
