@@ -192,15 +192,15 @@ class SaleRepository implements SaleRepositoryInterface
 
         $itemAggregates = (clone $base)
             ->select(
-                DB::raw("SUM(CASE WHEN discount_label LIKE '%SENIOR%' THEN discount_amount ELSE 0 END) as sc_item"),
-                DB::raw("SUM(CASE WHEN discount_label LIKE '%PWD%' THEN discount_amount ELSE 0 END) as pwd_item"),
-                DB::raw("SUM(CASE WHEN discount_label LIKE '%DIPLOMAT%' THEN discount_amount ELSE 0 END) as diplomat_item"),
+                DB::raw("SUM(CASE WHEN discount_label LIKE '%SENIOR%' THEN sale_items.discount_amount ELSE 0 END) as sc_item"),
+                DB::raw("SUM(CASE WHEN discount_label LIKE '%PWD%' THEN sale_items.discount_amount ELSE 0 END) as pwd_item"),
+                DB::raw("SUM(CASE WHEN discount_label LIKE '%DIPLOMAT%' THEN sale_items.discount_amount ELSE 0 END) as diplomat_item"),
                 DB::raw("SUM(CASE WHEN 
                     COALESCE(discount_label, '') != '' 
                     AND discount_label NOT LIKE '%SENIOR%' 
                     AND discount_label NOT LIKE '%PWD%' 
                     AND discount_label NOT LIKE '%DIPLOMAT%' 
-                    THEN discount_amount ELSE 0 END) as other_item")
+                    THEN sale_items.discount_amount ELSE 0 END) as other_item")
             )->first();
 
         $scItem       = round((float) ($itemAggregates->sc_item ?? 0), 2);
