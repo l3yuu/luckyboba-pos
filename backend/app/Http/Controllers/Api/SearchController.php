@@ -73,7 +73,7 @@ class SearchController extends Controller
         }
         return Branch::where('name', 'like', "%{$q}%")
             ->orWhere('location', 'like', "%{$q}%")
-            ->limit(5)->get()->map(fn($b) => [
+            ->limit(5)->get()->map(fn(Branch $b) => [
                 'id' => $b->getAttribute('id'),
                 'title' => $b->getAttribute('name'),
                 'sub' => $b->getAttribute('location'),
@@ -89,7 +89,7 @@ class SearchController extends Controller
         }
         return User::where('name', 'like', "%{$q}%")
             ->orWhere('email', 'like', "%{$q}%")
-            ->limit(5)->get()->map(fn($u) => [
+            ->limit(5)->get()->map(fn(User $u) => [
                 'id' => $u->getAttribute('id'),
                 'title' => $u->getAttribute('name'),
                 'sub' => $u->getAttribute('role') . " | " . $u->getAttribute('email'),
@@ -105,7 +105,7 @@ class SearchController extends Controller
         }
         return Sale::where('invoice_number', 'like', "%{$q}%")
             ->orWhere('customer_name', 'like', "%{$q}%")
-            ->latest()->limit(5)->get()->map(fn($s) => [
+            ->latest()->limit(5)->get()->map(fn(Sale $s) => [
                 'id' => $s->getAttribute('id'),
                 'title' => $s->getAttribute('invoice_number'),
                 'sub' => "₱" . number_format((float)$s->getAttribute('total_amount'), 2) . " | " . ($s->getAttribute('customer_name') ?? 'Walk-in'),
@@ -120,7 +120,7 @@ class SearchController extends Controller
             return [];
         }
         return MenuItem::where('name', 'like', "%{$q}%")
-            ->limit(5)->get()->map(fn($p) => [
+            ->limit(5)->get()->map(fn(MenuItem $p) => [
                 'id' => $p->getAttribute('id'),
                 'title' => $p->getAttribute('name'),
                 'sub' => "₱" . number_format((float)$p->getAttribute('price'), 2),
@@ -135,7 +135,7 @@ class SearchController extends Controller
             return [];
         }
         return RawMaterial::where('name', 'like', "%{$q}%")
-            ->limit(5)->get()->map(fn($m) => [
+            ->limit(5)->get()->map(fn(RawMaterial $m) => [
                 'id' => $m->getAttribute('id'),
                 'title' => $m->getAttribute('name'),
                 'sub' => "Stock: " . $m->getAttribute('current_stock') . " " . $m->getAttribute('unit'),
@@ -151,7 +151,7 @@ class SearchController extends Controller
         }
         return Expense::where('title', 'like', "%{$q}%")
             ->orWhere('ref_num', 'like', "%{$q}%")
-            ->limit(5)->get()->map(fn($e) => [
+            ->limit(5)->get()->map(fn(Expense $e) => [
                 'id' => $e->getAttribute('id'),
                 'title' => $e->getAttribute('title'),
                 'sub' => "₱" . number_format((float)$e->getAttribute('amount'), 2) . " | " . $e->getAttribute('date'),

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Search, X, RefreshCw, Download, ChevronDown, ChevronUp,
   BarChart3, TrendingUp, TrendingDown, Minus, Clock, Info,
-  Coffee,
+  Coffee, Calendar
 } from 'lucide-react';
 import api from '../../../../services/api';
 
@@ -432,12 +432,15 @@ const UsageReportTab: React.FC = () => {
   const [drawerRow,     setDrawerRow]     = useState<UsageRow | null>(null);
   const [breakdownRow,  setBreakdownRow]  = useState<UsageRow | null>(null);
   const [exporting,     setExporting]     = useState(false);
-  const [isToday,       setIsToday]       = useState(true);
+  const [viewMode,      setViewMode]      = useState<'today' | 'monthly' | 'specific'>('today');
+  const [specificDate,  setSpecificDate]  = useState(now.toISOString().split('T')[0]);
   const [productSales,  setProductSales]  = useState<ProductSalesData[]>([]);
   const [salesLoading,  setSalesLoading]  = useState(false);
 
-  const period = isToday
+  const period = viewMode === 'today'
     ? now.toISOString().split('T')[0]
+    : viewMode === 'specific'
+    ? specificDate
     : `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`;
 
   const fetchReport = useCallback(async () => {
@@ -479,7 +482,7 @@ const UsageReportTab: React.FC = () => {
       const url  = URL.createObjectURL(res.data);
       const link = document.createElement('a');
       link.href     = url;
-      link.download = `usage-report-${period}${isToday ? '-today' : ''}.xlsx`;
+      link.download = `usage-report-${period}${viewMode === 'today' ? '-today' : viewMode === 'specific' ? '-specific' : '-monthly'}.xlsx`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (e) { console.error(e); }
@@ -558,25 +561,46 @@ const UsageReportTab: React.FC = () => {
           <div className="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-zinc-100">
 
           {/* Period selector */}
+          <div className="flex items-center gap-1.5 bg-white border border-zinc-200 rounded-[0.625rem] p-1 shadow-sm">
+            {[
+              { id: 'today',    label: 'Today',    icon: <Clock size={12} /> },
+              { id: 'monthly',  label: 'Monthly',  icon: <BarChart3 size={12} /> },
+              { id: 'specific', label: 'Specific', icon: <Calendar size={12} /> },
+            ].map(m => (
+              <button
+                key={m.id}
+                onClick={() => setViewMode(m.id as any)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
+                  viewMode === m.id
+                    ? 'bg-[#3b2063] text-white shadow-md'
+                    : 'text-zinc-400 hover:text-zinc-600 hover:bg-zinc-50'
+                }`}
+              >
+                {m.icon} {m.label}
+              </button>
+            ))}
+          </div>
+
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsToday(!isToday)}
-              className={`px-3 py-2 h-9 rounded-lg text-xs font-bold transition-all border ${
-                isToday 
-                  ? 'bg-[#3b2063] text-white border-[#3b2063]' 
-                  : 'bg-white text-zinc-500 border-zinc-200 hover:border-[#3b2063]'
-              }`}
-            >
-              Today
-            </button>
-            {!isToday && (
+            {viewMode === 'specific' && (
+              <div className="flex items-center gap-2 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-1.5 h-9 group hover:border-[#3b2063] transition-colors">
+                <Calendar size={13} className="text-zinc-400 group-hover:text-[#3b2063]" />
+                <input 
+                  type="date" 
+                  value={specificDate} 
+                  onChange={e => setSpecificDate(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-zinc-600 outline-none cursor-pointer"
+                />
+              </div>
+            )}
+            {viewMode === 'monthly' && (
               <>
                 <select value={selectedMonth} onChange={e => setSelectedMonth(Number(e.target.value))}
-                  className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
+                  className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9 hover:border-[#3b2063] transition-colors cursor-pointer">
                   {MONTHS.map((m, i) => <option key={i} value={i}>{m}</option>)}
                 </select>
                 <select value={selectedYear} onChange={e => setSelectedYear(Number(e.target.value))}
-                  className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9">
+                  className="bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 text-xs font-semibold text-zinc-600 outline-none h-9 hover:border-[#3b2063] transition-colors cursor-pointer">
                   {[now.getFullYear() - 1, now.getFullYear()].map(y => <option key={y} value={y}>{y}</option>)}
                 </select>
               </>

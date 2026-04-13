@@ -63,6 +63,12 @@ const InventoryAlertsTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [severityFilter, setSeverityFilter] = useState<"all" | Severity>("all");
+  const [branchFilter, setBranchFilter] = useState<number | "all">("all");
+
+  const branches = useMemo(() => {
+    return Array.from(new Map(data.map(b => [b.branch_id, { id: b.branch_id, name: b.branch_name }])).values())
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [data]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -84,7 +90,12 @@ const InventoryAlertsTab: React.FC = () => {
   }, [fetchData]);
 
   const filteredData = useMemo(() => {
-    return data.map(branch => ({
+    return data.filter(branch => {
+      if (branchFilter !== "all" && branch.branch_id !== branchFilter) {
+        return false;
+      }
+      return true;
+    }).map(branch => ({
       ...branch,
       items: branch.items.filter(item => {
         const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase()) || 
@@ -93,7 +104,7 @@ const InventoryAlertsTab: React.FC = () => {
         return matchesSearch && matchesSeverity;
       })
     })).filter(branch => branch.items.length > 0);
-  }, [data, search, severityFilter]);
+  }, [data, search, severityFilter, branchFilter]);
 
   if (loading && data.length === 0) {
     return (
@@ -157,17 +168,32 @@ const InventoryAlertsTab: React.FC = () => {
             className="w-full pl-9 pr-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all"
           />
         </div>
-        <div className="flex items-center gap-2">
-          <Filter size={14} className="text-zinc-400" />
-          <select 
-            value={severityFilter}
-            onChange={(e) => setSeverityFilter(e.target.value as "all" | Severity)}
-            className="bg-white border border-zinc-200 text-sm font-semibold text-zinc-600 rounded-lg px-3 py-2 focus:outline-none"
-          >
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Building2 size={14} className="text-zinc-400" />
+            <select 
+              value={branchFilter}
+              onChange={(e) => setBranchFilter(e.target.value === "all" ? "all" : Number(e.target.value))}
+              className="bg-white border border-zinc-200 text-sm font-semibold text-zinc-600 rounded-lg px-3 py-2 focus:outline-none"
+            >
+              <option value="all">All Branches</option>
+              {branches.map(b => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <Filter size={14} className="text-zinc-400" />
+            <select 
+              value={severityFilter}
+              onChange={(e) => setSeverityFilter(e.target.value as "all" | Severity)}
+              className="bg-white border border-zinc-200 text-sm font-semibold text-zinc-600 rounded-lg px-3 py-2 focus:outline-none"
+            >
             <option value="all">All Levels</option>
             <option value="critical">Critical Only</option>
             <option value="warning">Warning Only</option>
           </select>
+        </div>
         </div>
       </div>
 
