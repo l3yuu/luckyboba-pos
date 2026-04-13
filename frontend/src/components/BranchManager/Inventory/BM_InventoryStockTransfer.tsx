@@ -439,9 +439,10 @@ const BM_InventoryStockTransfer: React.FC<{ branchId?: number | null }> = ({ bra
         setTransfers(prev => prev.map(t => t.id === id ? updated : t));
         if (viewTarget?.id === id) setViewTarget(updated);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Update failed', err);
-      alert(err.response?.data?.message ?? 'Failed to update status');
+      const message = (err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to update status';
+      alert(message);
     } finally {
       setProcessingIds(prev => {
         const next = new Set(prev);
