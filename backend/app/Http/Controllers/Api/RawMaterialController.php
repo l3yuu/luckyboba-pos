@@ -22,6 +22,9 @@ class RawMaterialController extends Controller
 
         if ($request->filled('branch_id')) {
             $query->where('branch_id', $request->branch_id);
+        } else {
+            // Default to global materials if no branch specified
+            $query->whereNull('branch_id');
         }
 
         if ($request->filled('category')) {

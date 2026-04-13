@@ -19,25 +19,33 @@ class DeductStockFromSaleAction
         $sale->loadMissing('items');
 
         foreach ($sale->items as $saleItem) {
-            $recipeSize = $saleItem->cup_size_label ?? ($saleItem->size !== 'none' ? $saleItem->size : null);
+            $primarySize = $saleItem->cup_size_label;
+            $fallbackSize = ($saleItem->size !== 'none') ? $saleItem->size : null;
 
             $recipe = Recipe::where('menu_item_id', $saleItem->menu_item_id)
                 ->where('is_active', true)
-                ->where(function ($q) use ($recipeSize) {
-                    if ($recipeSize) {
-                        $q->where('size', $recipeSize);
-                    } else {
-                        $q->whereNull('size');
-                    }
+                ->where(function ($q) use ($primarySize) {
+                    if ($primarySize) $q->where('size', $primarySize);
+                    else $q->whereNull('size');
                 })
                 ->with('items')
                 ->first();
+
+            // Fallback if primary size (label) missed but standardized size exists
+            if (!$recipe && $fallbackSize && $fallbackSize !== $primarySize) {
+                $recipe = Recipe::where('menu_item_id', $saleItem->menu_item_id)
+                    ->where('is_active', true)
+                    ->where('size', $fallbackSize)
+                    ->with('items')
+                    ->first();
+            }
 
             if (!$recipe) {
                 Log::info("[Inventory Action] No active recipe found — skipped.", [
                     'menu_item_id'    => $saleItem->menu_item_id,
                     'product_name'    => $saleItem->product_name,
-                    'size'            => $saleItem->size,
+                    'primary_size'    => $primarySize,
+                    'fallback_size'   => $fallbackSize,
                     'sale_id'         => $sale->id,
                 ]);
                 continue;

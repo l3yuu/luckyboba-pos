@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import TopNavbar from '../../Cashier/TopNavbar';
 import api from '../../../services/api';
 import { useToast } from '../../../context/ToastContext';
@@ -238,19 +238,7 @@ const ZReading = () => {
   const [showPinOverlay, setShowPinOverlay]         = useState(false);
   const [pendingReportType, setPendingReportType]   = useState<string | null>(null);
 
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) { const user = JSON.parse(storedUser); setCashierName(user.name || "ADMIN USER"); }
-    fetchGaps();
-  }, []);
-
-  useEffect(() => {
-    if (dateMode === 'single') {
-      fetchStatus();
-    }
-  }, [selectedDate, dateMode]);
-
-  const fetchStatus = async () => {
+  const fetchStatus = useCallback(async () => {
     setCheckingStatus(true);
     try {
       const res = await api.get('/reports/z-reading/status', { params: { date: selectedDate } });
@@ -260,16 +248,28 @@ const ZReading = () => {
     } finally {
       setCheckingStatus(false);
     }
-  };
+  }, [selectedDate]);
 
-  const fetchGaps = async () => {
+  const fetchGaps = useCallback(async () => {
     try {
       const res = await api.get('/reports/z-reading/gaps');
       setGaps(res.data.data);
     } catch (err) {
       console.error("Gap check failed", err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) { const user = JSON.parse(storedUser); setCashierName(user.name || "ADMIN USER"); }
+    fetchGaps();
+  }, [fetchGaps]);
+
+  useEffect(() => {
+    if (dateMode === 'single') {
+      fetchStatus();
+    }
+  }, [selectedDate, dateMode, fetchStatus]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

@@ -394,6 +394,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::get ('/overview',               [InventoryController::class, 'overview']);
             Route::get ('/alerts',                 [InventoryController::class, 'alerts']);
             Route::get ('/usage-report',           [InventoryController::class, 'usageReport']);
+            Route::get ('/usage-report/get-product-sales', [InventoryController::class, 'productSalesSummary']);
+            Route::get ('/usage-report/breakdown/{id}', [InventoryController::class, 'usageBreakdown']);
             Route::get ('/usage-report/export',    [InventoryController::class, 'exportUsageReport']);
         });
 
@@ -437,7 +439,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
         Route::prefix('branches')->group(function () {
             Route::post  ('/',                    [BranchController::class, 'store']);
-            Route::get   ('/{id}',                [BranchController::class, 'show']);
             Route::put   ('/{id}',                [BranchController::class, 'update']);
             Route::delete('/{id}',                [BranchController::class, 'destroy']);
             Route::get   ('/{id}/daily-sales',    [BranchController::class, 'dailySales']);
