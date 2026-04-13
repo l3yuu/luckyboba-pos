@@ -26,6 +26,8 @@ interface ZReading {
   gross_sales:    number;
   discount:       number;
   net_sales:      number;
+  net_total?:     number;
+  rounding_adjustment?: number;
   cash:           number;
   gcash:          number;
   card:           number;
@@ -56,6 +58,7 @@ interface CashierRow {
 interface BranchOption { id: number; name: string; }
 
 interface XReadingReport {
+  rounding_adjustment?: number;
   date?: string;
   other_discount?: number;
   gross_sales?: number;
@@ -460,6 +463,8 @@ const ZReadingTab: React.FC = () => {
       const merged = {
         ...zData,
         gross_sales:        computedGross,
+        net_total:          Number(zData.net_total ?? 0),
+        rounding_adjustment: Number(zData.rounding_adjustment ?? 0),
         cash_denominations: cashDenominations,
         total_cash_count:   totalCashCount,
         expected_amount:    expectedAmount,
@@ -1011,7 +1016,7 @@ const handlePrint = () => window.print();
         <ReceiptRow label="VAT Exempt Sales" value={phCurrency.format(vatExempt)} />
         <ReceiptRow label="Zero-Rated Sales" value={phCurrency.format(0)} />
         <ReceiptDivider />
-        <ReceiptRow label="Net Sales"       value={phCurrency.format(netSales)} />
+        <ReceiptRow label="NET SALES (EXCL. VAT)" value={phCurrency.format(netSales)} />
         <div className="flex justify-between text-[8px] text-zinc-500 uppercase -mt-1 mb-1 font-medium">
           <span className="text-[9px]">(VATable + VAT-Exempt - Voids - Discounts)</span>
           <span></span>
@@ -1038,7 +1043,10 @@ const handlePrint = () => window.print();
         <ReceiptDivider />
         <ReceiptRow label="Total Cash"      value={phCurrency.format(cashTotal)} />
         <ReceiptRow label="Total Non-Cash"  value={phCurrency.format(nonCash)} />
-        <ReceiptRow label="Total Payments"  value={phCurrency.format(gross)} />
+        {Math.abs(reportData?.rounding_adjustment || 0) > 0.01 && (
+          <ReceiptRow label="Rounding Adjustment" value={phCurrency.format(reportData?.rounding_adjustment || 0)} />
+        )}
+        <ReceiptRow label="Total Payments"  value={phCurrency.format(gross + (reportData?.rounding_adjustment || 0))} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">Transaction Summary</p>
         <ReceiptRow label="Cash In"          value={phCurrency.format(reportData?.cash_in || 0)} />
@@ -1058,8 +1066,8 @@ const handlePrint = () => window.print();
     const diplomat       = reportData?.diplomat_discount || 0;
     const otherDiscount  = reportData?.other_discount || 0;
     const totalDisc      = reportData?.total_discounts ?? (scDiscount + pwdDiscount + diplomat + otherDiscount);
-    const netSales       = reportData?.net_sales ?? (gross - totalDisc);
-    const netTotal       = reportData?.net_sales ?? reportData?.net_total ?? (gross - totalDisc);
+    const netSales       = reportData?.net_total ?? reportData?.net_sales ?? (gross - totalDisc);
+    const netInclusive   = reportData?.net_sales ?? (gross - totalDisc);
     const txCount        = reportData?.transaction_count || 0;
     const vatableSales   = reportData?.vatable_sales || 0;
     const vatAmount      = reportData?.vat_amount || 0;
@@ -1128,7 +1136,7 @@ const handlePrint = () => window.print();
         <ReceiptRow label="ZERO-RATED SALES" value={phCurrency.format(0)} />
         <ReceiptDivider />
         <ReceiptRow label="SERVICE CHARGE" value={phCurrency.format(0)} />
-        <ReceiptRow label="NET SALES" value={phCurrency.format(netSales)} />
+        <ReceiptRow label="NET SALES (EXCL. VAT)" value={phCurrency.format(netSales)} />
         <div className="flex justify-between text-[8px] text-zinc-500 uppercase -mt-1 mb-1 font-medium">
           <span className="text-[9px]">(VATable + VAT-Exempt - Voids - Discounts)</span>
           <span></span>
@@ -1158,7 +1166,10 @@ const handlePrint = () => window.print();
         <ReceiptDivider />
         <ReceiptRow label="TOTAL CASH" value={phCurrency.format(actualCash)} />
         <ReceiptRow label="TOTAL NON-CASH" value={phCurrency.format(actualNonCash)} />
-        <ReceiptRow label="TOTAL PAYMENTS" value={phCurrency.format(totalPaymentsReceived)} />
+        {Math.abs(reportData?.rounding_adjustment || 0) > 0.01 && (
+          <ReceiptRow label="Rounding Adjustment" value={phCurrency.format(reportData?.rounding_adjustment || 0)} />
+        )}
+        <ReceiptRow label="TOTAL PAYMENTS" value={phCurrency.format(netInclusive + (reportData?.rounding_adjustment || 0))} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
         <ReceiptRow label="TRANSACTION COUNT" value={txCount} />
@@ -1224,7 +1235,7 @@ const handlePrint = () => window.print();
             </div>
             <div className="flex text-[11px] font-bold justify-between">
               <span className="uppercase">NET TOTAL</span>
-              <span>{phCurrency.format(netTotal)}</span>
+              <span>{phCurrency.format(reportData?.net_total || 0)}</span>
             </div>
           </>
         )}

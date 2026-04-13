@@ -59,6 +59,7 @@ interface ZReadingReport {
   total_cash_count?: number; over_short?: number; net_total?: number;
   expected_amount?: number; is_vat?: boolean; total_discounts?: number;
   total_payments?: number;
+  rounding_adjustment?: number;
 }
 
 // ─── Receipt primitives ───────────────────────────────────────────────────────
@@ -230,10 +231,11 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
           previous_accumulated: previousAcc,
           sales_for_the_day:    salesDay,
           cash_denominations:   cashDenominations,
+          net_total:            Number(zData.net_total ?? 0),
+          rounding_adjustment:  Number(zData.rounding_adjustment ?? 0),
           total_cash_count:     ccNested?.grand_total ?? Number(ccData.actual_amount ?? 0),
-          // ── FIX 1 (cont): expected_amount comes only from the cash-count API ──
           expected_amount:      Number(ccData.expected_amount ?? 0),
-          over_short: Number(ccData.actual_amount ?? ccNested?.grand_total ?? 0) - (Number(zData.cash_total ?? 0) + Number(zData.cash_in ?? 0) - Number(zData.cash_drop ?? 0)),
+          over_short:           Number(ccData.actual_amount ?? ccNested?.grand_total ?? 0) - (Number(zData.cash_total ?? 0) + Number(zData.cash_in ?? 0) - Number(zData.cash_drop ?? 0)),
           categories:           ((qtyRes.data as Record<string, unknown>).categories as ZReadingReport['categories']) ?? [],
           all_addons_summary:   ((qtyRes.data as Record<string, unknown>).all_addons_summary as ZReadingReport['all_addons_summary']) ?? [],
           logs:                 ((voidRes.data as Record<string, unknown>).logs as ZReadingReport['logs']) ?? (Array.isArray(voidRes.data) ? voidRes.data as ZReadingReport['logs'] : []),
@@ -679,6 +681,9 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
     const startDate = isRange ? fromDate : selectedDate;
     const endDate   = isRange ? toDate   : selectedDate;
 
+    const netTotalExcl = reportData?.net_total ?? netSales;
+    const netInclusive = netSales;
+
     return (
       <div className="my-2">
         <Divider />
@@ -703,7 +708,7 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
         <Row label="VAT-Exempt Sales"           value={phCurrency.format(vatExempt)} />
         <Row label="Zero-Rated Sales"           value={phCurrency.format(0)} />
         <Divider />
-        <Row label="NET SALES"       value={phCurrency.format(netSales)} />
+        <Row label="NET SALES (EXCL. VAT)"      value={phCurrency.format(netTotalExcl)} />
         <div className="flex justify-between text-[8px] text-zinc-500 uppercase -mt-1 mb-1 font-medium">
           <span>(VATable + VAT-Exempt - Voids - Discounts)</span>
           <span></span>
@@ -735,7 +740,10 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
         <Divider />
         <Row label="TOTAL CASH"     value={phCurrency.format(actualCash)} />
         <Row label="TOTAL NON-CASH" value={phCurrency.format(actualNonCash)} />
-        <Row label="TOTAL PAYMENTS" value={phCurrency.format(totalPaymentsReceived)} />
+        {Math.abs(reportData?.rounding_adjustment || 0) > 0.01 && (
+          <Row label="Rounding Adjustment" value={phCurrency.format(reportData?.rounding_adjustment || 0)} />
+        )}
+        <Row label="TOTAL PAYMENTS" value={phCurrency.format(netInclusive + (reportData?.rounding_adjustment || 0))} />
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
         <Row label="Transaction Count" value={txCount} />

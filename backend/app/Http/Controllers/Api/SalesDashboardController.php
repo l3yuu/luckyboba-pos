@@ -128,6 +128,8 @@ class SalesDashboardController extends Controller
                     'total_orders'      => $report['transaction_count'],
                     'is_closed'         => (bool) ($zRecord?->is_closed ?? false),
                     'closed_at'         => $zRecord?->closed_at,
+                    'net_total'         => $report['net_total'] ?? 0,
+                    'rounding_adjustment' => $report['rounding_adjustment'] ?? 0,
                     'cashier_breakdown' => [],
                 ]),
             ]);
