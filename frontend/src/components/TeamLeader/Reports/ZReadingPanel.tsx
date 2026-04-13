@@ -58,6 +58,7 @@ interface ZReadingReport {
   cash_denominations?: { label: string; qty: number; total: number }[];
   total_cash_count?: number; over_short?: number; net_total?: number;
   expected_amount?: number; is_vat?: boolean; total_discounts?: number;
+  total_payments?: number;
 }
 
 // ─── Receipt primitives ───────────────────────────────────────────────────────
@@ -337,9 +338,10 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
                 return (
                   <div key={si}>
                     {hasSizes && sizeKey !== null && <p className="text-[11px] uppercase pl-2">{sizeKey}:</p>}
+                    {hasSizes && sizeKey === null && products.length > 0 && <p className="text-[11px] uppercase pl-2 mt-1">NO SIZE / BUNDLES:</p>}
                     {products.map((item, i) => (
                       <div key={i} className="flex text-[11px] leading-snug">
-                        <span className={`w-[75%] uppercase leading-tight ${hasSizes && sizeKey !== null ? 'pl-4' : 'pl-2'}`}>{item.product_name}{item.size ? ` (${item.size})` : ''}</span>
+                        <span className={`w-[75%] uppercase leading-tight ${hasSizes ? 'pl-4' : 'pl-2'}`}>{item.product_name}{item.size ? ` (${item.size})` : ''}</span>
                         <span className="w-[25%] text-right">{item.total_qty}</span>
                       </div>
                     ))}
@@ -358,6 +360,100 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
             <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-400 mt-0.5 pt-0.5"><span className="uppercase">T. PER: ADD ONS</span><span>QTY: {reportData.all_addons_summary.reduce((a, b) => a + b.qty, 0)}</span></div>
           </div>
         )}
+        {(() => {
+          const cupGroups = [
+            { name: 'Standard Cup', sizes: ['SM', 'SL'] },
+            { name: 'Junior Cup', sizes: ['JR'] },
+            { name: 'Upturn Cup', sizes: ['UM', 'UL'] },
+            { name: 'Plastic Cup', sizes: ['PCM', 'PCL'] },
+          ];
+          
+          const groupData = cupGroups.map(group => {
+            const sizeMap = new Map<string, number>();
+            group.sizes.forEach(s => sizeMap.set(s, 0));
+            return { ...group, sizeMap, total: 0 };
+          });
+
+          let otherTotal = 0;
+          let hasAnyCups = false;
+          let grandTotalCups = 0;
+
+          reportData.categories.forEach(cat => {
+            cat.products.forEach(product => {
+              if (product.size) {
+                 const group = groupData.find(g => g.sizes.includes(product.size!));
+                 if (group) {
+                   group.sizeMap.set(product.size, (group.sizeMap.get(product.size) ?? 0) + product.total_qty);
+                   group.total += product.total_qty;
+                   grandTotalCups += product.total_qty;
+                   hasAnyCups = true;
+                 } else {
+                   otherTotal += product.total_qty;
+                   grandTotalCups += product.total_qty;
+                   hasAnyCups = true;
+                 }
+              } else {
+                 otherTotal += product.total_qty;
+                 grandTotalCups += product.total_qty;
+                 hasAnyCups = true;
+              }
+            });
+          });
+
+          if (!hasAnyCups) return null;
+
+          return (
+            <div className="mt-1">
+              <Divider />
+              {groupData.map(group => {
+                if (group.total === 0) return null;
+                return (
+                  <div key={group.name} className="mb-1.5">
+                    <div className="flex text-[11px] font-bold border-b border-black pb-0.5 mb-0.5">
+                      <span className="w-[75%] uppercase">{group.name}</span>
+                      <span className="w-[25%] text-right uppercase">QTY</span>
+                    </div>
+                    {group.sizes.map(size => {
+                       const qty = group.sizeMap.get(size) ?? 0;
+                       if (qty === 0) return null;
+                       return (
+                         <div key={size} className="flex text-[11px] leading-snug">
+                           <span className="w-[75%] uppercase pl-2">{size}</span>
+                           <span className="w-[25%] text-right">{qty}</span>
+                         </div>
+                       );
+                    })}
+                    <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-400 mt-0.5 pt-0.5">
+                       <span className="uppercase">TOTAL ({group.name})</span>
+                       <span>{group.total}</span>
+                    </div>
+                  </div>
+                );
+              })}
+              {otherTotal > 0 && (
+                <div key="other" className="mb-1.5">
+                  <div className="flex text-[11px] font-bold border-b border-black pb-0.5 mb-0.5">
+                    <span className="w-[75%] uppercase">Other / No Size</span>
+                    <span className="w-[25%] text-right uppercase">QTY</span>
+                  </div>
+                  <div className="flex text-[11px] leading-snug">
+                    <span className="w-[75%] uppercase pl-2">BUNDLES / EXTRAS</span>
+                    <span className="w-[25%] text-right">{otherTotal}</span>
+                  </div>
+                  <div className="flex justify-between text-[11px] border-t border-dashed border-zinc-400 mt-0.5 pt-0.5">
+                     <span className="uppercase">TOTAL (Other)</span>
+                     <span>{otherTotal}</span>
+                  </div>
+                </div>
+              )}
+              <Divider />
+              <div className="flex justify-between text-[11px] font-bold mt-0.5 pt-0.5">
+                <span className="uppercase">TOTAL CUPS</span>
+                <span>QTY: {grandTotalCups}</span>
+              </div>
+            </div>
+          );
+        })()}
         <Divider />
         <div className="flex justify-between text-[11px]"><span className="uppercase">ALL DAY MEAL</span><span>QTY: {totalItems}</span></div>
       </div>
@@ -561,7 +657,8 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
     const totalCredit   = ['visa', 'mastercard', 'food panda', 'grab', 'gcash'].reduce((a, m) => a + (pMap.get(m) ?? 0), 0);
     const totalDebit    = 0;
     const actualCash    = pMap.get('cash') ?? 0;
-    const actualNonCash = Math.max(0, gross - actualCash);
+    const totalPaymentsReceived = reportData?.total_payments ?? Array.from(pMap.values()).reduce((a, b) => a + b, 0);
+    const actualNonCash = reportData?.non_cash_total ?? (totalPaymentsReceived - actualCash);
 
     const cashDenoms     = reportData?.cash_denominations ?? reportData?.cash_count?.denominations ?? [];
     const totalCashCount = reportData?.total_cash_count   ?? reportData?.cash_count?.grand_total   ?? 0;
@@ -607,6 +704,10 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
         <Row label="Zero-Rated Sales"           value={phCurrency.format(0)} />
         <Divider />
         <Row label="NET SALES"       value={phCurrency.format(netSales)} />
+        <div className="flex justify-between text-[8px] text-zinc-500 uppercase -mt-1 mb-1 font-medium">
+          <span>(VATable + VAT-Exempt - Voids - Discounts)</span>
+          <span></span>
+        </div>
         <Row label="Total Discounts" value={phCurrency.format(totalDisc)} />
         <Row label="GROSS Amount"    value={phCurrency.format(gross)} />
         <Divider />
@@ -634,7 +735,7 @@ const ZReadingPanel: React.FC<{ branchId: number | null }> = ({ branchId }) => {
         <Divider />
         <Row label="TOTAL CASH"     value={phCurrency.format(actualCash)} />
         <Row label="TOTAL NON-CASH" value={phCurrency.format(actualNonCash)} />
-        <Row label="TOTAL PAYMENTS" value={phCurrency.format(gross)} />
+        <Row label="TOTAL PAYMENTS" value={phCurrency.format(totalPaymentsReceived)} />
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
         <Row label="Transaction Count" value={txCount} />

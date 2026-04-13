@@ -533,11 +533,7 @@ const StockTransferTab: React.FC = () => {
     <div className="p-6 md:p-8 fade-in flex flex-col gap-6">
       
       {/* ── Header ── */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h2 className="text-lg font-black text-[#1a0f2e]">Stock Transfers</h2>
-          <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">Inter-branch inventory movement & monitoring</p>
-        </div>
+      <div className="flex items-center justify-end mb-5 flex-wrap gap-4">
         <div className="flex items-center gap-2">
           <Btn variant="secondary" onClick={fetchAll} disabled={loading}>
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />

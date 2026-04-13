@@ -215,28 +215,35 @@ const OverviewTab: React.FC = () => {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [summaryRes, comparisonRes, usersRes, branchesRes, ownershipRes] = await Promise.all([
-        fetch(`/api/reports/admin-sales-summary?period=${period}`, { headers: authHeaders() }),
-        fetch(`/api/reports/branch-comparison?period=${period}`, { headers: authHeaders() }),
-        fetch(`/api/users/stats`, { headers: authHeaders() }),
-        fetch(`/api/branches`, { headers: authHeaders() }),
-        fetch(`/api/branches/ownership-summary?period=${period}`, { headers: authHeaders() }),
-      ]);
+      // Use individual try/catch for each request to prevent one failure from breaking everything
+      const safeFetch = async (url: string) => {
+        try {
+          const res = await fetch(url, { headers: authHeaders() });
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          return await res.json();
+        } catch (err) {
+          console.warn(`Fetch failed for ${url}:`, err);
+          return null;
+        }
+      };
 
       const [summary, comparison, users, branches, ownershipData] = await Promise.all([
-        summaryRes.json(), comparisonRes.json(), usersRes.json(),
-        branchesRes.json(), ownershipRes.json(),
+        safeFetch(`/api/reports/admin-sales-summary?period=${period}`),
+        safeFetch(`/api/reports/branch-comparison?period=${period}`),
+        safeFetch(`/api/users/stats`),
+        safeFetch(`/api/branches`),
+        safeFetch(`/api/branches/ownership-summary?period=${period}`),
       ]);
 
-      if (summary.totals) setTotals(summary.totals);
-      if (summary.breakdown) setBreakdown(summary.breakdown);
-      if (summary.top_products) setTopProducts(summary.top_products.slice(0, 5));
-      if (comparison.comparison) setBranchPerf(comparison.comparison);
+      if (summary?.totals) setTotals(summary.totals);
+      if (summary?.breakdown) setBreakdown(summary.breakdown);
+      if (summary?.top_products) setTopProducts(summary.top_products.slice(0, 5));
+      if (comparison?.comparison) setBranchPerf(comparison.comparison);
 
-      if (users.success && users.data) {
+      if (users?.success && users?.data) {
         setUserStats({ active: users.data.active, total: users.data.total });
       }
-      if (branches.success && branches.data) {
+      if (branches?.success && branches?.data) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const list = branches.data as any[];
         setBranchStats({
@@ -244,9 +251,9 @@ const OverviewTab: React.FC = () => {
           active: list.filter((b: { status: string }) => b.status === "active").length,
         });
       }
-      if (ownershipData.success) setOwnership(ownershipData);
+      if (ownershipData?.success) setOwnership(ownershipData);
     } catch (e) {
-      console.error("OverviewTab fetch error", e);
+      console.error("OverviewTab top-level fetch error", e);
     } finally {
       setLoading(false);
     }
@@ -255,7 +262,7 @@ const OverviewTab: React.FC = () => {
   const fetchPulse = useCallback(async () => {
     try {
       const token = getToken();
-      const response = await axios.get('/api/pulse', {
+      const response = await axios.get('/api/reports/pulse', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setPulse(response.data.data);
@@ -319,24 +326,20 @@ const OverviewTab: React.FC = () => {
       `}</style>
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-black text-[#1a0f2e]">Overview</h2>
-            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-rose-50 text-rose-600 rounded-full border border-rose-100">
-              <span className="w-1.5 h-1.5 rounded-full bg-rose-600 pulse-indicator" />
-              <span className="text-[0.6rem] font-black uppercase tracking-wider">Live</span>
-            </div>
-          </div>
-          <p className="text-xs text-zinc-400 font-bold uppercase tracking-tighter opacity-70 mt-0.5">Real-time control center for business operations</p>
+      <div className="flex flex-wrap items-center justify-end gap-3 mb-6">
+        <div className="flex items-center gap-1.5 px-2 py-1 bg-rose-50 text-rose-600 rounded-lg border border-rose-100">
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-600 pulse-indicator" />
+          <span className="text-[0.6rem] font-black uppercase tracking-wider">Live</span>
         </div>
-        <div className="flex items-center gap-2 text-right">
-          <div className="mr-2 hidden sm:block">
-            <p className="text-[0.55rem] font-bold uppercase tracking-widest text-zinc-400">Live Pulse Sync</p>
-            <p className="text-[0.7rem] font-black text-[#3b2063] tabular-nums">
-              {lastPulseSync.toLocaleTimeString([], { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-            </p>
-          </div>
+
+        <div className="mr-auto sm:mr-0 text-right hidden sm:block">
+          <p className="text-[0.55rem] font-bold uppercase tracking-widest text-zinc-400 leading-none">Live Pulse Sync</p>
+          <p className="text-[0.7rem] font-black text-[#3b2063] tabular-nums leading-none mt-1">
+            {lastPulseSync.toLocaleTimeString([], { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
           {(["daily", "weekly", "monthly"] as const).map(p => (
             <button key={p} onClick={() => setPeriod(p)} disabled={loading}
               className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all capitalize disabled:opacity-50 ${period === p ? "bg-[#3b2063] text-white" : "bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}>
@@ -516,24 +519,26 @@ const OverviewTab: React.FC = () => {
             </div>
           </div>
           {loading && !breakdown.length ? <ChartSkeleton height="h-[220px]" /> : (
-            <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={revenueChartData}>
-                <defs>
-                  <linearGradient id="unifGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b2063" stopOpacity={0.15} />
-                    <stop offset="95%" stopColor="#3b2063" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e1e9" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 9, fontWeight: 700, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fontWeight: 700, fill: "#a1a1aa" }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
-                <Tooltip
-                  contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 10px 30px rgba(0,0,0,0.1)", fontSize: 11 }}
-                  formatter={(v) => [fmt(Number(v)), "Revenue"]}
-                />
-                <Area type="monotone" dataKey="revenue" stroke="#3b2063" strokeWidth={3} fill="url(#unifGrad)" />
-              </AreaChart>
-            </ResponsiveContainer>
+            <div className="h-[220px] w-full relative">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={100}>
+                <AreaChart data={revenueChartData}>
+                  <defs>
+                    <linearGradient id="unifGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b2063" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#3b2063" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e1e9" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: 9, fontWeight: 700, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fontWeight: 700, fill: "#a1a1aa" }} axisLine={false} tickLine={false} tickFormatter={fmtK} />
+                  <Tooltip
+                    contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 10px 30px rgba(0,0,0,0.1)", fontSize: 11 }}
+                    formatter={(v) => [fmt(Number(v)), "Revenue"]}
+                  />
+                  <Area type="monotone" dataKey="revenue" stroke="#3b2063" strokeWidth={3} fill="url(#unifGrad)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           )}
         </div>
 
@@ -542,14 +547,16 @@ const OverviewTab: React.FC = () => {
           <h3 className="text-base font-black text-[#1a0f2e] mb-4">By Branch</h3>
           {loading && !pieData.length ? <Skeleton className="h-[200px] w-full rounded-full" /> : (
             <>
-              <ResponsiveContainer width="100%" height={160}>
-                <RePieChart>
-                  <Pie data={pieData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={4} dataKey="value">
-                    {pieData.map((e, idx) => <Cell key={idx} fill={e.color} />)}
-                  </Pie>
-                  <Tooltip formatter={(v) => [`${v}%`, "Share"]} />
-                </RePieChart>
-              </ResponsiveContainer>
+              <div className="h-[160px] w-full relative">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={100}>
+                  <RePieChart>
+                    <Pie data={pieData} cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={4} dataKey="value">
+                      {pieData.map((e, idx) => <Cell key={idx} fill={e.color} />)}
+                    </Pie>
+                    <Tooltip formatter={(v) => [`${v}%`, "Share"]} />
+                  </RePieChart>
+                </ResponsiveContainer>
+              </div>
               <div className="mt-4 space-y-1.5 max-h-[80px] overflow-y-auto custom-scroll pr-1">
                 {pieData.map((d, idx) => (
                   <div key={idx} className="flex items-center justify-between text-[11px]">
@@ -575,7 +582,7 @@ const OverviewTab: React.FC = () => {
           </div>
           <div className="h-[200px]">
             {loading && !barData.length ? <Skeleton className="w-full h-full" /> : (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={100}>
                 <ReBarChart data={barData} barSize={20}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" vertical={false} />
                   <XAxis dataKey="name" tick={{ fontSize: 9, fontWeight: 700, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />

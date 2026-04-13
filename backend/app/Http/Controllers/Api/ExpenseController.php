@@ -4,18 +4,24 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Expense;
-use App\Models\Sale; // Assuming you have a Sales model
+use App\Models\Sale;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class ExpenseController extends Controller
 {
+    /**
+     * Display a listing of the resource.
+     */
     public function index(Request $request)
     {
         $from = $request->date_from ?? $request->from ?? now()->startOfMonth()->toDateString();
         $to   = $request->date_to   ?? $request->to   ?? now()->toDateString();
         $user = $request->user();
 
-        $query = Expense::with(['branch', 'recorder']);
+        $query = Expense::with(['branch:id,name', 'recorder:id,name']);
 
         // Role-based filtering
         if ($user->role !== 'superadmin') {
@@ -27,21 +33,25 @@ class ExpenseController extends Controller
         // Date Range Filtering
         $query->whereBetween('date', [$from, $to]);
 
-        // Search by Ref #
-        if ($request->ref) {
-            $query->where('ref_num', 'like', '%' . $request->ref . '%');
-        }
-
         // Category Filter
         if ($request->category && $request->category !== 'ALL') {
             $query->where('category', $request->category);
         }
 
+        // Search by Title or Ref #
+        if ($request->search) {
+            $query->where(function($q) use ($request) {
+                $q->where('title', 'like', '%' . $request->search . '%')
+                  ->orWhere('ref_num', 'like', '%' . $request->search . '%');
+            });
+        }
+
         $expenses = $query->orderBy('date', 'desc')->get();
 
+        // Calculate Totals for Stats
         $totalExpense = (float) $expenses->sum('amount');
 
-        // Total Sales calculation (scoped same as expenses)
+        // Total Sales calculation (scoped same as expenses for comparison)
         $salesQuery = Sale::whereBetween('created_at', [$from . ' 00:00:00', $to . ' 23:59:59'])
             ->where('status', 'completed');
 
@@ -50,66 +60,76 @@ class ExpenseController extends Controller
         } elseif ($request->branch_id) {
             $salesQuery->where('branch_id', $request->branch_id);
         }
-
         $totalSales = (float) $salesQuery->sum('total_amount');
 
         return response()->json([
-            'expenses' => $expenses,
-            'summary'  => [
-                'totalExpense' => $totalExpense,
-                'totalSales'   => $totalSales,
-                'netTotal'     => $totalSales - $totalExpense,
+            'success' => true,
+            'data'    => $expenses->map(function(Expense $e) { return $this->transform($e); }),
+            'summary' => [
+                'total_expense' => $totalExpense,
+                'total_sales'   => $totalSales,
+                'count'         => $expenses->count()
             ]
         ]);
     }
 
+    /**
+     * Store a newly created resource in storage.
+     */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'refNum'      => 'required|unique:expenses,ref_num',
-            'title'       => 'required|string',
-            'description' => 'nullable|string', // Support old key if sent
-            'notes'       => 'nullable|string',
-            'date'        => 'required|date',
-            'category'    => 'required|string',
-            'amount'      => 'required|numeric',
-            'branch_id'   => 'nullable|integer' // SuperAdmin can specify branch
+            'title'        => 'required|string|max:255',
+            'amount'       => 'required|numeric|min:0',
+            'category'     => 'required|string',
+            'branch_id'    => 'required|integer|exists:branches,id',
+            'expense_date' => 'required|date',
+            'notes'        => 'nullable|string',
+            'receipt'      => 'nullable|image|max:2048',
+            'refNum'       => 'nullable|string|unique:expenses,ref_num'
         ]);
 
-        $user = $request->user();
-        
-        // Use provided title or fallback to description (from old cashier UI)
-        $title = $validated['title'] ?? $validated['description'] ?? 'Untitled Expense';
+        $receiptPath = null;
+        if ($request->hasFile('receipt')) {
+            $path = $request->file('receipt')->store('receipts', 'public');
+            $receiptPath = asset('storage/' . $path);
+        }
 
         $expense = Expense::create([
-            'branch_id'   => $user->role === 'superadmin' ? ($validated['branch_id'] ?? $user->branch_id) : $user->branch_id,
-            'recorded_by' => $user->id,
-            'ref_num'     => $validated['refNum'],
-            'title'       => $title,
-            'notes'       => $validated['notes'] ?? null,
-            'date'        => $validated['date'],
-            'category'    => $validated['category'],
-            'amount'      => $validated['amount'],
+            'title'        => $validated['title'],
+            'amount'       => $validated['amount'],
+            'category'     => $validated['category'],
+            'branch_id'    => $validated['branch_id'],
+            'date'         => $validated['expense_date'],
+            'notes'        => $validated['notes'] ?? null,
+            'receipt_path' => $receiptPath,
+            'recorded_by'  => $request->user()->id,
+            'ref_num'      => $validated['refNum'] ?? 'EXP-' . strtoupper(uniqid()),
         ]);
 
         return response()->json([
+            'success' => true,
             'message' => 'Expense recorded successfully',
-            'data'    => $expense->load(['branch', 'recorder'])
+            'data'    => $this->transform($expense->load(['branch', 'recorder']))
         ], 201);
     }
 
+    /**
+     * Update the specified resource in storage.
+     */
     public function update(Request $request, $id)
     {
         $expense = Expense::findOrFail($id);
-        
+
         $validated = $request->validate([
-            'refNum'    => 'sometimes|required|unique:expenses,ref_num,' . $id,
-            'title'     => 'sometimes|required|string',
-            'notes'     => 'nullable|string',
-            'date'      => 'sometimes|required|date',
-            'category'  => 'sometimes|required|string',
-            'amount'    => 'sometimes|required|numeric',
-            'branch_id' => 'nullable|integer'
+            'title'        => 'required|string|max:255',
+            'amount'       => 'required|numeric|min:0',
+            'category'     => 'required|string',
+            'branch_id'    => 'required|integer|exists:branches,id',
+            'expense_date' => 'required|date',
+            'notes'        => 'nullable|string',
+            'receipt'      => 'nullable|image|max:2048',
+            'refNum'       => 'nullable|string|unique:expenses,ref_num,' . $id
         ]);
 
         $user = $request->user();
@@ -117,22 +137,37 @@ class ExpenseController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $expense->update([
+        $data = [
+            'title'     => $validated['title'],
+            'amount'    => $validated['amount'],
+            'category'  => $validated['category'],
+            'branch_id' => $validated['branch_id'],
+            'date'      => $validated['expense_date'],
+            'notes'     => $validated['notes'] ?? null,
             'ref_num'   => $validated['refNum'] ?? $expense->ref_num,
-            'title'     => $validated['title'] ?? $expense->title,
-            'notes'     => $validated['notes'] ?? $expense->notes,
-            'date'      => $validated['date'] ?? $expense->date,
-            'category'  => $validated['category'] ?? $expense->category,
-            'amount'    => $validated['amount'] ?? $expense->amount,
-            'branch_id' => $user->role === 'superadmin' ? ($validated['branch_id'] ?? $expense->branch_id) : $expense->branch_id,
-        ]);
+        ];
+
+        if ($request->hasFile('receipt')) {
+            if ($expense->receipt_path) {
+                $oldPath = str_replace(asset('storage/'), '', $expense->receipt_path);
+                Storage::disk('public')->delete($oldPath);
+            }
+            $path = $request->file('receipt')->store('receipts', 'public');
+            $data['receipt_path'] = asset('storage/' . $path);
+        }
+
+        $expense->update($data);
 
         return response()->json([
+            'success' => true,
             'message' => 'Expense updated successfully',
-            'data'    => $expense->load(['branch', 'recorder'])
+            'data'    => $this->transform($expense->load(['branch', 'recorder']))
         ]);
     }
 
+    /**
+     * Remove the specified resource from storage.
+     */
     public function destroy(Request $request, $id)
     {
         $expense = Expense::findOrFail($id);
@@ -142,11 +177,22 @@ class ExpenseController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
+        if ($expense->receipt_path) {
+            $oldPath = str_replace(asset('storage/'), '', $expense->receipt_path);
+            Storage::disk('public')->delete($oldPath);
+        }
+        
         $expense->delete();
 
-        return response()->json(['message' => 'Expense deleted successfully']);
+        return response()->json([
+            'success' => true,
+            'message' => 'Expense deleted successfully'
+        ]);
     }
 
+    /**
+     * Export expenses to CSV.
+     */
     public function export(Request $request)
     {
         $from = $request->from ?? now()->startOfMonth()->toDateString();
@@ -184,7 +230,7 @@ class ExpenseController extends Controller
 
             foreach ($expenses as $exp) {
                 fputcsv($file, [
-                    $exp->date->format('Y-m-d'),
+                    Carbon::parse($exp->date)->format('Y-m-d'),
                     $exp->ref_num,
                     $exp->title,
                     $exp->category,
@@ -199,5 +245,26 @@ class ExpenseController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    /**
+     * Transform model to standardized frontend format.
+     */
+    private function transform(Expense $e)
+    {
+        return [
+            'id'           => $e->id,
+            'title'        => $e->title,
+            'amount'       => (float) $e->amount,
+            'category'     => $e->category,
+            'branch_id'    => $e->branch_id,
+            'branch_name'  => $e->branch->name ?? '—',
+            'expense_date' => Carbon::parse($e->date)->format('Y-m-d'),
+            'receipt_path' => $e->receipt_path,
+            'notes'        => $e->notes,
+            'ref_num'      => $e->ref_num,
+            'recorded_by'  => $e->recorder->name ?? 'Admin',
+            'created_at'   => $e->created_at->toISOString(),
+        ];
     }
 }

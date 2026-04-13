@@ -238,6 +238,27 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/app-init',        [DashboardController::class, 'init']);
         Route::get('/sales-analytics', [SalesDashboardController::class, 'index']);
 
+        // ── Dashboard & POS Read Endpoints ────────────────────────────────────
+        Route::get('/cash-counts/status',      [CashCountController::class, 'checkEodStatus']);
+        Route::post('/cash-counts',            [CashCountController::class, 'store']);
+        Route::post('/cash-in',                [CashCountController::class, 'storeCashIn']);
+        Route::get('/cash-transactions/status',[CashCountController::class, 'checkInitialCash']);
+        
+        Route::get('/payment-settings',        [SettingsController::class, 'index']);
+        Route::get('/receipts/next-sequence',  [ReceiptController::class, 'getNextSequence']);
+        // ── Branch read routes (specfic routes must come before {id}) ──────────────
+        Route::get('/branches/ownership-summary', [BranchController::class, 'ownershipSummary']);
+        Route::get('/branches/performance',       [BranchController::class, 'performance']);
+        Route::get('/branches/today-sales',       [BranchController::class, 'todaySales']);
+        
+        Route::get('/branches/{id}',           [BranchController::class, 'show']);
+        
+        Route::get('/menu',                    [MenuController::class, 'index']);
+        Route::get('/bundles',                 [BundleController::class, 'index']);
+        Route::get('/sugar-levels',            [SugarLevelController::class, 'index']);
+        Route::get('/add-ons',                 [AddOnController::class, 'index']);
+        Route::get('/notifications/summary',   [NotificationController::class, 'summary']);
+
         Route::prefix('sales')->group(function () {
             Route::get   ('/',           [SalesController::class, 'index']);
             Route::post  ('/',           [SalesController::class, 'store']);
@@ -328,6 +349,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::get('/x-reading',         [SalesDashboardController::class,  'xReading']);
             Route::get('/z-reading/history', [SalesDashboardController::class,  'zReadingHistory']);
             Route::get('/z-reading',         [SalesDashboardController::class,  'zReading']);
+            Route::get('/pulse',             [PulseController::class,           'index']);
+            Route::get('/staff-performance', [StaffPerformanceController::class, 'index']);
             Route::get('/items-report',      [ItemsReportController::class,     'getItemsSoldReport']);
             Route::get('/hourly-sales',      [ReportController::class,          'getHourlySales']);
             Route::get('/void-logs',         [ReportController::class,          'getVoidLogs']);
@@ -346,10 +369,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::post('/z/print-token', [SalesDashboardController::class, 'zReadingPrintToken']);
         });
 
-        // ── Branch read routes (cashiers need these) ──────────────────────────
-        Route::get('/branches/ownership-summary', [BranchController::class, 'ownershipSummary']);
-        Route::get('/branches/performance',       [BranchController::class, 'performance']);
-        Route::get('/branches/today-sales',       [BranchController::class, 'todaySales']);
 
         Route::get ('/branches', [BranchController::class, 'index']);
 
@@ -432,10 +451,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     // ── SUPERADMIN ONLY ───────────────────────────────────────────────────────
     Route::middleware(['role:superadmin'])->group(function () {
-        Route::get('/pulse', [PulseController::class, 'index']);
         Route::get('/search', [SearchController::class, 'index']);
         Route::get('/inventory-alerts', [InventoryAlertController::class, 'index']);
-        Route::get('/staff-performance', [StaffPerformanceController::class, 'index']);
         
         // Moved from branch_manager block to restrict editing to SuperAdmin only
         Route::post('/raw-materials/{rawMaterial}/adjust', [RawMaterialController::class, 'adjust']);
@@ -450,7 +467,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get('/audit-logs/stats',  [AuditLogController::class, 'stats']);
 
         Route::prefix('reports')->group(function () {
-            Route::get('/z-reading/history',   [SalesDashboardController::class,   'zReadingHistory']);
             Route::get('/items-all',           [SuperAdminReportController::class, 'itemsReport']);
             Route::get('/items-export',        [SuperAdminReportController::class, 'exportItems']);
         });

@@ -279,19 +279,13 @@ const SalesReportTab: React.FC = () => {
     <div className="p-6 md:p-8 fade-in flex flex-col gap-5">
 
       {/* ── Header ── */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Sales Report</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">Detailed sales breakdown across all branches</p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Btn variant="secondary" onClick={fetchAll} disabled={loading}>
-            <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
-          </Btn>
-          <Btn variant="secondary" onClick={handleExport} disabled={loading}>
-            <Download size={13} /> Export CSV
-          </Btn>
-        </div>
+      <div className="flex flex-wrap items-center justify-end gap-3 mb-1">
+        <Btn variant="secondary" onClick={fetchAll} disabled={loading}>
+          <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
+        </Btn>
+        <Btn variant="secondary" onClick={handleExport} disabled={loading}>
+          <Download size={13} /> Export CSV
+        </Btn>
       </div>
 
       {/* ── Filters ── */}

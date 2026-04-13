@@ -279,11 +279,7 @@ const ItemSerialsTab: React.FC = () => {
 
   return (
     <div className="p-6 md:p-8 bg-[#f4f2fb] min-h-full">
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-sm font-black uppercase tracking-wide text-[#1a0f2e]">Item Serials</h2>
-          <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">{loading ? 'Loading...' : `${items.length} serialized items tracked`}</p>
-        </div>
+      <div className="flex items-center justify-end mb-5 flex-wrap gap-3">
         <div className="flex items-center gap-2">
           <button onClick={fetchAll} disabled={loading} className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh

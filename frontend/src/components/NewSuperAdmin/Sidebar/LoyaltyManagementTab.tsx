@@ -109,14 +109,14 @@ const LoyaltyManagementTab: React.FC = () => {
     try {
       const res = await fetch("/api/loyalty/settings", { headers: authHeaders() });
       if (res.ok) setSettings(await res.json());
-    } catch (e) { console.error("Settings fetch failed"); }
+    } catch (_e) { console.error("Settings fetch failed"); }
   }, []);
 
   const fetchRewards = useCallback(async () => {
     try {
       const res = await fetch("/api/loyalty/rewards", { headers: authHeaders() });
       if (res.ok) setRewards(await res.json());
-    } catch (e) { console.error("Rewards fetch failed"); }
+    } catch (_e) { console.error("Rewards fetch failed"); }
   }, []);
 
   const fetchUserPoints = useCallback(async (page = 1, query = "") => {
@@ -127,7 +127,7 @@ const LoyaltyManagementTab: React.FC = () => {
         setUserPoints(data.data);
         setUserMetadata({ total: data.total, current_page: data.current_page, last_page: data.last_page });
       }
-    } catch (e) { console.error("User points fetch failed"); }
+    } catch (_e) { console.error("User points fetch failed"); }
   }, []);
 
   useEffect(() => {
@@ -147,7 +147,7 @@ const LoyaltyManagementTab: React.FC = () => {
       });
       if (res.ok) alert("Settings saved successfully!");
       else alert("Failed to save settings.");
-    } catch (e) { alert("Error saving settings."); }
+    } catch (_e) { alert("Error saving settings."); }
     finally { setSaveLoading(false); }
   };
 
@@ -177,7 +177,7 @@ const LoyaltyManagementTab: React.FC = () => {
         setRewardModalOpen(false);
         setEditingReward(null);
       }
-    } catch (e) { console.error("Reward save error"); }
+    } catch (_e) { console.error("Reward save error"); }
     finally { setSaveLoading(false); }
   };
 
@@ -186,17 +186,13 @@ const LoyaltyManagementTab: React.FC = () => {
     try {
       const res = await fetch(`/api/loyalty/rewards/${id}`, { method: "DELETE", headers: authHeaders() });
       if (res.ok) fetchRewards();
-    } catch (e) { console.error("Delete failed"); }
+    } catch (_e) { console.error("Delete failed"); }
   };
 
   return (
     <div className="p-6 md:p-8 animate-in fade-in duration-500">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h2 className="text-xl font-bold text-[#1a0f2e]">Loyalty & Point Management</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">Configure reward rules and manage customer points system</p>
-        </div>
+      <div className="flex flex-col md:flex-row md:items-center justify-end gap-4 mb-8">
         <div className="flex bg-zinc-100 p-1 rounded-xl w-fit">
           <button onClick={() => setActiveSubTab("settings")} className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${activeSubTab === "settings" ? "bg-white text-[#3b2063] shadow-sm" : "text-zinc-500 hover:text-zinc-700"}`}>Settings</button>
           <button onClick={() => setActiveSubTab("rewards")}  className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${activeSubTab === "rewards"  ? "bg-white text-[#3b2063] shadow-sm" : "text-zinc-500 hover:text-zinc-700"}`}>Rewards</button>

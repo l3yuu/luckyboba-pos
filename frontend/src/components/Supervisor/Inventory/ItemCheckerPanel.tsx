@@ -153,7 +153,7 @@ const ItemCheckerPanel = ({ branchId }: { branchId: number | null }) => {
       </div>
 
       {/* ── SECURITY ADVISORY ── */}
-      <div className="sv-glass p-6 mb-12 border-none bg-slate-900 text-white shadow-2xl shadow-[#3b2063]/20 relative overflow-hidden">
+      <div className="p-6 mb-12 bg-[#3b2063] rounded-[2rem] text-white shadow-2xl shadow-[#3b2063]/20 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full -mr-32 -mt-32 blur-3xl" />
         <div className="flex items-start gap-5 relative z-10">
           <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center text-[#ddd5ff]">

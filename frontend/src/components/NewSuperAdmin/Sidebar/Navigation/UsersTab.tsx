@@ -8,39 +8,39 @@ import {
 } from "lucide-react";
 import { createPortal } from "react-dom";
 
-type ColorKey   = "violet" | "emerald" | "red" | "amber";
+type ColorKey = "violet" | "emerald" | "red" | "amber";
 type VariantKey = "primary" | "secondary" | "danger" | "ghost";
-type SizeKey    = "sm" | "md" | "lg";
+type SizeKey = "sm" | "md" | "lg";
 
 interface User {
-  id:        number;
-  name:      string;
-  email:     string;
-  role:      string;
-  branch:    string;
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  branch: string;
   branch_id: number | null;
-  status:    string;
+  status: string;
   lastLogin?: string;
-  has_pin:   boolean;
-  device_id?:     number | null;
+  has_pin: boolean;
+  device_id?: number | null;
   device_number?: string | null;
 }
 
 interface Branch {
-  id:   number;
+  id: number;
   name: string;
 }
 
 interface PosDevice {
-  id:              number;
-  device_name:     string;
-  pos_number:      string;
-  branch_id:       number;
-  status:          string;
-  user_id:         number | null;
-  user?:           { id: number; name: string } | null;
+  id: number;
+  device_name: string;
+  pos_number: string;
+  branch_id: number;
+  status: string;
+  user_id: number | null;
+  user?: { id: number; name: string } | null;
   assigned_users?: { id: number; name: string }[];  // ← ADD
-  branch?:         { id: number; name: string } | null;
+  branch?: { id: number; name: string } | null;
 }
 
 interface StatCardProps {
@@ -55,13 +55,13 @@ interface BtnProps {
 }
 
 interface RawUser {
-  id:         number;
-  name:       string;
-  email:      string;
-  role:       string;
-  branch?:    string;
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  branch?: string;
   branch_id?: number | null;
-  status:     string;
+  status: string;
 }
 
 // ── API helpers ───────────────────────────────────────────────────────────────
@@ -69,32 +69,32 @@ const getToken = () =>
   localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
 const authHeaders = (): Record<string, string> => ({
   "Content-Type": "application/json",
-  "Accept":       "application/json",
+  "Accept": "application/json",
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mapUser = (u: any): User => ({
-  id:            u.id,
-  name:          u.name,
-  email:         u.email,
-  role:          u.role,
-  branch:        u.branch    ?? "—",
-  branch_id:     u.branch_id ?? null,
-  status:        u.status,
-  lastLogin:     u.last_login_at ?? undefined,
-  has_pin:       u.has_pin ?? false,
-  device_id:     u.device_id ?? null,
+  id: u.id,
+  name: u.name,
+  email: u.email,
+  role: u.role,
+  branch: u.branch ?? "—",
+  branch_id: u.branch_id ?? null,
+  status: u.status,
+  lastLogin: u.last_login_at ?? undefined,
+  has_pin: u.has_pin ?? false,
+  device_id: u.device_id ?? null,
   device_number: u.device_number ?? u.pos_number ?? null,
 });
 
 const ROLE_LABELS: Record<string, string> = {
-  superadmin:     "Super Admin",
-  system_admin:   "System Admin",
+  superadmin: "Super Admin",
+  system_admin: "System Admin",
   branch_manager: "Branch Manager",
-  cashier:        "Cashier",
-  customer:       "Customer",
-  team_leader:    "Team Leader",
-  supervisor:     "Supervisor"
+  cashier: "Cashier",
+  customer: "Customer",
+  team_leader: "Team Leader",
+  supervisor: "Supervisor"
 };
 const ALL_ROLES = ["superadmin", "system_admin", "branch_manager", "team_leader", "cashier", "customer", "supervisor"];
 
@@ -133,14 +133,14 @@ const Toast: React.FC<ToastProps> = ({ message, type = "success", onDone }) => {
 
   const styles: Record<ToastType, { bar: string; iconBg: string; icon: string }> = {
     success: { bar: "bg-emerald-500", iconBg: "bg-emerald-500", icon: "text-white" },
-    error:   { bar: "bg-red-500",     iconBg: "bg-red-500",     icon: "text-white" },
-    warning: { bar: "bg-amber-500",   iconBg: "bg-amber-500",   icon: "text-white" },
+    error: { bar: "bg-red-500", iconBg: "bg-red-500", icon: "text-white" },
+    warning: { bar: "bg-amber-500", iconBg: "bg-amber-500", icon: "text-white" },
   };
   const s = styles[type];
 
   const icons: Record<ToastType, React.ReactNode> = {
     success: <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>,
-    error:   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>,
+    error: <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>,
     warning: <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>,
   };
 
@@ -160,10 +160,10 @@ const Toast: React.FC<ToastProps> = ({ message, type = "success", onDone }) => {
 
 const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, trend, color = "violet" }) => {
   const colors: Record<ColorKey, { bg: string; border: string; icon: string }> = {
-    violet:  { bg: "bg-violet-50",  border: "border-violet-200",  icon: "text-violet-600"  },
+    violet: { bg: "bg-violet-50", border: "border-violet-200", icon: "text-violet-600" },
     emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
-    red:     { bg: "bg-red-50",     border: "border-red-200",     icon: "text-red-500"     },
-    amber:   { bg: "bg-amber-50",   border: "border-amber-200",   icon: "text-amber-600"   },
+    red: { bg: "bg-red-50", border: "border-red-200", icon: "text-red-500" },
+    amber: { bg: "bg-amber-50", border: "border-amber-200", icon: "text-amber-600" },
   };
   const c = colors[color];
   return (
@@ -188,12 +188,8 @@ const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, trend, col
   );
 };
 
-const SectionHeader: React.FC<SectionHeaderProps> = ({ title, desc, action }) => (
-  <div className="flex items-center justify-between mb-5">
-    <div>
-      <h2 className="text-base font-bold text-[#1a0f2e]">{title}</h2>
-      {desc && <p className="text-xs text-zinc-400 mt-0.5">{desc}</p>}
-    </div>
+const SectionHeader: React.FC<SectionHeaderProps> = ({ action }) => (
+  <div className="flex flex-wrap items-center justify-end gap-3 mb-6">
     {action}
   </div>
 );
@@ -202,12 +198,12 @@ const Btn: React.FC<BtnProps> = ({
   children, variant = "primary", size = "sm",
   onClick, className = "", disabled = false, type = "button",
 }) => {
-  const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
+  const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#3b2063] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
-    danger:    "bg-red-600 hover:bg-red-700 text-white",
-    ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
+    danger: "bg-red-600 hover:bg-red-700 text-white",
+    ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
   };
   return (
     <button type={type} onClick={onClick} disabled={disabled}
@@ -222,29 +218,29 @@ const ModalShell: React.FC<{
   onClose: () => void; icon: React.ReactNode; title: string; sub: string;
   children: React.ReactNode; footer: React.ReactNode; maxWidth?: string;
 }> = ({ onClose, icon, title, sub, children, footer, maxWidth = "max-w-md" }) =>
-  createPortal(
-    <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
-      style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", backgroundColor: "rgba(0,0,0,0.45)" }}>
-      <div className="absolute inset-0" onClick={onClose} />
-      <div className={`relative bg-white w-full ${maxWidth} border border-zinc-200 rounded-[1.25rem] shadow-2xl`}>
-        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-violet-50 border border-violet-200 rounded-lg flex items-center justify-center">{icon}</div>
-            <div>
-              <p className="text-sm font-bold text-[#1a0f2e]">{title}</p>
-              <p className="text-[10px] text-zinc-400">{sub}</p>
+    createPortal(
+      <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
+        style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", backgroundColor: "rgba(0,0,0,0.45)" }}>
+        <div className="absolute inset-0" onClick={onClose} />
+        <div className={`relative bg-white w-full ${maxWidth} border border-zinc-200 rounded-[1.25rem] shadow-2xl`}>
+          <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-violet-50 border border-violet-200 rounded-lg flex items-center justify-center">{icon}</div>
+              <div>
+                <p className="text-sm font-bold text-[#1a0f2e]">{title}</p>
+                <p className="text-[10px] text-zinc-400">{sub}</p>
+              </div>
             </div>
+            <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600">
+              <X size={16} />
+            </button>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600">
-            <X size={16} />
-          </button>
+          <div className="px-6 py-5 flex flex-col gap-4 max-h-[65vh] overflow-y-auto">{children}</div>
+          <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-100">{footer}</div>
         </div>
-        <div className="px-6 py-5 flex flex-col gap-4 max-h-[65vh] overflow-y-auto">{children}</div>
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-100">{footer}</div>
-      </div>
-    </div>,
-    document.body
-  );
+      </div>,
+      document.body
+    );
 
 // ── Field helpers ─────────────────────────────────────────────────────────────
 // FIX: added optional `hint` prop for helper text shown below the label
@@ -267,12 +263,12 @@ const inputCls = (err?: string) =>
 // ── View Modal ────────────────────────────────────────────────────────────────
 const ViewUserModal: React.FC<{ onClose: () => void; user: User }> = ({ onClose, user }) => {
   const rows: [string, React.ReactNode][] = [
-    ["User ID",    `#${user.id}`],
-    ["Name",       <div className="flex items-center gap-2"><Avatar name={user.name} />{user.name}</div>],
-    ["Username",   <span className="flex items-center gap-1"><Mail size={11} />{user.email}</span>],
-    ["Role",       <RolePill role={user.role} />],
-    ["Branch",     <span className="flex items-center gap-1"><MapPin size={11} />{user.branch}</span>],
-    ["Status",     <Badge status={user.status} />],
+    ["User ID", `#${user.id}`],
+    ["Name", <div className="flex items-center gap-2"><Avatar name={user.name} />{user.name}</div>],
+    ["Username", <span className="flex items-center gap-1"><Mail size={11} />{user.email}</span>],
+    ["Role", <RolePill role={user.role} />],
+    ["Branch", <span className="flex items-center gap-1"><MapPin size={11} />{user.branch}</span>],
+    ["Status", <Badge status={user.status} />],
     ["Last Login", user.lastLogin ?? "—"],
     ...(user.role === "cashier" ? [
       ["Device" as string, user.device_number
@@ -298,8 +294,8 @@ const ViewUserModal: React.FC<{ onClose: () => void; user: User }> = ({ onClose,
 
 // ── Add User Modal ────────────────────────────────────────────────────────────
 const AddUserModal: React.FC<{
-  onClose:  () => void;
-  onSaved:  (u: User) => void;
+  onClose: () => void;
+  onSaved: (u: User) => void;
   branches: Branch[];
 }> = ({ onClose, onSaved, branches }) => {
   const [form, setForm] = useState({
@@ -307,24 +303,24 @@ const AddUserModal: React.FC<{
     branch_id: "", status: "ACTIVE",
     manager_pin: "", manager_pin_confirmation: "",
   });
-  const [errors,   setErrors]   = useState<Record<string, string>>({});
-  const [loading,  setLoading]  = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
 
-  const PIN_ROLES  = ["branch_manager", "team_leader"];
-  const showPin    = PIN_ROLES.includes(form.role);
+  const PIN_ROLES = ["branch_manager", "team_leader"];
+  const showPin = PIN_ROLES.includes(form.role);
   const showBranch = ["cashier", "branch_manager", "team_leader", "supervisor"].includes(form.role);
 
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.name.trim())     e.name     = "Name is required.";
+    if (!form.name.trim()) e.name = "Name is required.";
     if (!form.username.trim()) e.username = "Username is required.";
     if (!form.password.trim()) e.password = "Password is required.";
     if (form.password && form.password.length < 6) e.password = "Password must be at least 6 characters.";
     if (showBranch && !form.branch_id) e.branch_id = "Branch is required for this role.";
     if (showPin) {
-      if (!form.manager_pin.trim())         e.manager_pin = "PIN is required for this role.";
+      if (!form.manager_pin.trim()) e.manager_pin = "PIN is required for this role.";
       else if (form.manager_pin.length < 4) e.manager_pin = "PIN must be at least 4 digits.";
       else if (form.manager_pin !== form.manager_pin_confirmation)
         e.manager_pin_confirmation = "PINs do not match.";
@@ -339,18 +335,18 @@ const AddUserModal: React.FC<{
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const payload: Record<string, any> = {
-        name:      form.name,
-        email:     form.username,  // backend still uses email field
-        password:  form.password,
-        role:      form.role,
-        status:    form.status,
+        name: form.name,
+        email: form.username,  // backend still uses email field
+        password: form.password,
+        role: form.role,
+        status: form.status,
         branch_id: form.branch_id ? Number(form.branch_id) : null,
       };
       if (showPin) {
-        payload.manager_pin              = form.manager_pin;
+        payload.manager_pin = form.manager_pin;
         payload.manager_pin_confirmation = form.manager_pin_confirmation;
       }
-      const res  = await fetch("/api/users", {
+      const res = await fetch("/api/users", {
         method: "POST", headers: authHeaders(),
         body: JSON.stringify(payload),
       });
@@ -469,37 +465,37 @@ const AddUserModal: React.FC<{
 
 // ── Edit User Modal ───────────────────────────────────────────────────────────
 const EditUserModal: React.FC<{
-  onClose:    () => void;
-  onUpdated:  (u: User) => void;
-  user:       User;
-  branches:   Branch[];
+  onClose: () => void;
+  onUpdated: (u: User) => void;
+  user: User;
+  branches: Branch[];
 }> = ({ onClose, onUpdated, user, branches }) => {
   const [form, setForm] = useState({
-    name:      user.name,
-    username:  user.email,  // display as username, send as email
-    password:  "",
-    role:      user.role,
+    name: user.name,
+    username: user.email,  // display as username, send as email
+    password: "",
+    role: user.role,
     branch_id: String(user.branch_id ?? ""),
-    status:    user.status,
+    status: user.status,
     manager_pin: "", manager_pin_confirmation: "",
   });
-  const [errors,   setErrors]   = useState<Record<string, string>>({});
-  const [loading,  setLoading]  = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
 
-  const PIN_ROLES  = ["branch_manager", "team_leader"];
-  const showPin    = PIN_ROLES.includes(form.role) && !user.has_pin;
+  const PIN_ROLES = ["branch_manager", "team_leader"];
+  const showPin = PIN_ROLES.includes(form.role) && !user.has_pin;
   const showBranch = ["cashier", "branch_manager", "team_leader", "supervisor"].includes(form.role);
 
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.name.trim())     e.name     = "Name is required.";
+    if (!form.name.trim()) e.name = "Name is required.";
     if (!form.username.trim()) e.username = "Username is required.";
     if (form.password && form.password.length < 6) e.password = "Password must be at least 6 characters.";
     if (showBranch && !form.branch_id) e.branch_id = "Branch is required for this role.";
     if (showPin) {
-      if (!form.manager_pin.trim())         e.manager_pin = "PIN is required for this role.";
+      if (!form.manager_pin.trim()) e.manager_pin = "PIN is required for this role.";
       else if (form.manager_pin.length < 4) e.manager_pin = "PIN must be at least 4 digits.";
       else if (form.manager_pin !== form.manager_pin_confirmation)
         e.manager_pin_confirmation = "PINs do not match.";
@@ -514,18 +510,18 @@ const EditUserModal: React.FC<{
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const payload: Record<string, any> = {
-        name:      form.name,
-        email:     form.username,  // backend still uses email field
-        role:      form.role,
-        status:    form.status,
+        name: form.name,
+        email: form.username,  // backend still uses email field
+        role: form.role,
+        status: form.status,
         branch_id: form.branch_id ? Number(form.branch_id) : null,
       };
       if (form.password) payload.password = form.password;
       if (showPin) {
-        payload.manager_pin              = form.manager_pin;
+        payload.manager_pin = form.manager_pin;
         payload.manager_pin_confirmation = form.manager_pin_confirmation;
       }
-      const res  = await fetch(`/api/users/${user.id}`, {
+      const res = await fetch(`/api/users/${user.id}`, {
         method: "PUT", headers: authHeaders(), body: JSON.stringify(payload),
       });
       const data = await res.json();
@@ -635,18 +631,18 @@ const EditUserModal: React.FC<{
 
 // ── Toggle Status Modal ───────────────────────────────────────────────────────
 const ToggleStatusModal: React.FC<{
-  onClose:   () => void;
+  onClose: () => void;
   onToggled: (u: User) => void;
-  user:      User;
+  user: User;
 }> = ({ onClose, onToggled, user }) => {
-  const [loading,  setLoading]  = useState(false);
+  const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
   const isActive = user.status === "ACTIVE";
 
   const handleToggle = async () => {
     setLoading(true); setApiError("");
     try {
-      const res  = await fetch(`/api/users/${user.id}/toggle-status`, { method: "PATCH", headers: authHeaders() });
+      const res = await fetch(`/api/users/${user.id}/toggle-status`, { method: "PATCH", headers: authHeaders() });
       const data = await res.json();
       if (!res.ok || !data.success) { setApiError(data.message ?? "Failed to update status."); return; }
       onToggled(mapUser(data.data));
@@ -706,17 +702,17 @@ const ToggleStatusModal: React.FC<{
 
 // ── Delete Modal ──────────────────────────────────────────────────────────────
 const DeleteUserModal: React.FC<{
-  onClose:   () => void;
+  onClose: () => void;
   onDeleted: (id: number) => void;
-  user:      User;
+  user: User;
 }> = ({ onClose, onDeleted, user }) => {
-  const [loading,  setLoading]  = useState(false);
+  const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
 
   const handleDelete = async () => {
     setLoading(true); setApiError("");
     try {
-      const res  = await fetch(`/api/users/${user.id}`, { method: "DELETE", headers: authHeaders() });
+      const res = await fetch(`/api/users/${user.id}`, { method: "DELETE", headers: authHeaders() });
       const data = await res.json();
       if (!res.ok || !data.success) { setApiError(data.message ?? "Failed to delete user."); return; }
       onDeleted(user.id);
@@ -771,18 +767,18 @@ const DeleteUserModal: React.FC<{
 
 // ── Reset PIN Modal ───────────────────────────────────────────────────────────
 const ResetPinModal: React.FC<{ onClose: () => void; user: User }> = ({ onClose, user }) => {
-  const [pin,        setPin]        = useState("");
+  const [pin, setPin] = useState("");
   const [pinConfirm, setPinConfirm] = useState("");
-  const [saving,     setSaving]     = useState(false);
-  const [apiError,   setApiError]   = useState("");
-  const [success,    setSuccess]    = useState(false);
-  const [errors,     setErrors]     = useState<{ pin?: string; pinConfirm?: string }>({});
+  const [saving, setSaving] = useState(false);
+  const [apiError, setApiError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const [errors, setErrors] = useState<{ pin?: string; pinConfirm?: string }>({});
 
   const validate = () => {
     const e: { pin?: string; pinConfirm?: string } = {};
-    if (!pin.trim())                  e.pin        = "PIN is required.";
-    else if (!/^\d{4,8}$/.test(pin)) e.pin        = "PIN must be 4–8 digits.";
-    if (pin !== pinConfirm)           e.pinConfirm = "PINs do not match.";
+    if (!pin.trim()) e.pin = "PIN is required.";
+    else if (!/^\d{4,8}$/.test(pin)) e.pin = "PIN must be 4–8 digits.";
+    if (pin !== pinConfirm) e.pinConfirm = "PINs do not match.";
     return e;
   };
 
@@ -791,7 +787,7 @@ const ResetPinModal: React.FC<{ onClose: () => void; user: User }> = ({ onClose,
     if (Object.keys(e).length) { setErrors(e); return; }
     setSaving(true); setApiError("");
     try {
-      const res  = await fetch(`/api/users/${user.id}/pin`, {
+      const res = await fetch(`/api/users/${user.id}/pin`, {
         method: "PATCH", headers: authHeaders(),
         body: JSON.stringify({ pin, pin_confirmation: pinConfirm }),
       });
@@ -858,16 +854,16 @@ const ResetPinModal: React.FC<{ onClose: () => void; user: User }> = ({ onClose,
 
 // ── Assign Device Modal ───────────────────────────────────────────────────────
 const AssignDeviceModal: React.FC<{
-  onClose:     () => void;
+  onClose: () => void;
   onAssigned?: (userId: number, deviceId: number | null, deviceNumber: string | null) => void;
-  user:        User;
+  user: User;
 }> = ({ onClose, onAssigned, user }) => {
-  const [devices,    setDevices]    = useState<PosDevice[]>([]);
+  const [devices, setDevices] = useState<PosDevice[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
-  const [loading,    setLoading]    = useState(true);
-  const [saving,     setSaving]     = useState(false);
-  const [apiError,   setApiError]   = useState("");
-  const [success,    setSuccess]    = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [apiError, setApiError] = useState("");
+  const [success, setSuccess] = useState(false);
 
   const currentDevice = devices.find(d =>
     d.assigned_users
@@ -883,7 +879,7 @@ const AssignDeviceModal: React.FC<{
         const url = branchId
           ? `/api/pos-devices?branch_id=${branchId}`
           : '/api/pos-devices';
-        const res  = await fetch(url, { headers: authHeaders() });
+        const res = await fetch(url, { headers: authHeaders() });
         const data = await res.json();
         const list: PosDevice[] = data?.devices ?? data?.data ?? data ?? [];
         const activeList = list.filter(d => d.status === "ACTIVE");
@@ -904,7 +900,7 @@ const AssignDeviceModal: React.FC<{
     if (!selectedId) return;
     setSaving(true); setApiError("");
     try {
-      const res  = await fetch(`/api/pos-devices/${selectedId}/assign`, {
+      const res = await fetch(`/api/pos-devices/${selectedId}/assign`, {
         method: "PATCH", headers: authHeaders(),
         body: JSON.stringify({ user_id: user.id }),
       });
@@ -976,11 +972,11 @@ const AssignDeviceModal: React.FC<{
             </div>
             {currentDevice
               ? <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <MonitorCheck size={9} />{currentDevice.pos_number}
-                </span>
+                <MonitorCheck size={9} />{currentDevice.pos_number}
+              </span>
               : <span className="text-[10px] font-bold bg-zinc-100 text-zinc-400 border border-zinc-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <MonitorOff size={9} />No device
-                </span>}
+                <MonitorOff size={9} />No device
+              </span>}
           </div>
 
           {currentDevice ? (
@@ -1018,7 +1014,7 @@ const AssignDeviceModal: React.FC<{
                     {(() => {
                       const assignedUsers = d.assigned_users ?? (d.user_id ? [{ id: d.user_id }] : []);
                       const isCurrentUser = assignedUsers.some(u => u.id === user.id);
-                      const otherCount    = assignedUsers.filter(u => u.id !== user.id).length;
+                      const otherCount = assignedUsers.filter(u => u.id !== user.id).length;
                       if (isCurrentUser) return " ✓ current";
                       if (otherCount > 0) return ` · ${otherCount} cashier${otherCount > 1 ? "s" : ""} assigned`;
                       return "";
@@ -1052,19 +1048,19 @@ const DevicePill: React.FC<{ deviceNumber?: string | null }> = ({ deviceNumber }
 
 // ── Main Tab ──────────────────────────────────────────────────────────────────
 const UsersTab: React.FC = () => {
-  const [users,       setUsers]       = useState<User[]>([]);
-  const [branches,    setBranches]    = useState<Branch[]>([]);
-  const [loading,     setLoading]     = useState(true);
-  const [fetchError,  setFetchError]  = useState("");
-  const [search,      setSearch]      = useState("");
-  const [roleFilter,  setRoleFilter]  = useState("");
+  const [users, setUsers] = useState<User[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState("");
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState("");
 
-  const [addOpen,      setAddOpen]      = useState(false);
-  const [viewTarget,   setViewTarget]   = useState<User | null>(null);
-  const [editTarget,   setEditTarget]   = useState<User | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [viewTarget, setViewTarget] = useState<User | null>(null);
+  const [editTarget, setEditTarget] = useState<User | null>(null);
   const [toggleTarget, setToggleTarget] = useState<User | null>(null);
-  const [delTarget,    setDelTarget]    = useState<User | null>(null);
-  const [pinTarget,    setPinTarget]    = useState<User | null>(null);
+  const [delTarget, setDelTarget] = useState<User | null>(null);
+  const [pinTarget, setPinTarget] = useState<User | null>(null);
   const [deviceTarget, setDeviceTarget] = useState<User | null>(null);
 
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
@@ -1074,13 +1070,13 @@ const UsersTab: React.FC = () => {
     setLoading(true); setFetchError("");
     try {
       const [usersRes, branchesRes, devicesRes] = await Promise.all([
-        fetch("/api/users",       { headers: authHeaders() }),
-        fetch("/api/branches",    { headers: authHeaders() }),
+        fetch("/api/users", { headers: authHeaders() }),
+        fetch("/api/branches", { headers: authHeaders() }),
         fetch("/api/pos-devices", { headers: authHeaders() }),
       ]);
-      const usersData    = await usersRes.json();
+      const usersData = await usersRes.json();
       const branchesData = await branchesRes.json();
-      const devicesData  = await devicesRes.json();
+      const devicesData = await devicesRes.json();
 
       if (!usersRes.ok || !usersData.success) {
         setFetchError(usersData.message ?? "Failed to load users.");
@@ -1100,7 +1096,7 @@ const UsersTab: React.FC = () => {
         const user = mapUser(u);
         const device = deviceByUserId.get(user.id);
         if (device) {
-          user.device_id     = device.id;
+          user.device_id = device.id;
           user.device_number = device.pos_number;
         }
         return user;
@@ -1125,8 +1121,8 @@ const UsersTab: React.FC = () => {
 
   const filtered = users.filter(u => {
     const matchSearch = u.name.toLowerCase().includes(search.toLowerCase()) ||
-                        u.email.toLowerCase().includes(search.toLowerCase());
-    const matchRole   = roleFilter ? u.role === roleFilter : true;
+      u.email.toLowerCase().includes(search.toLowerCase());
+    const matchRole = roleFilter ? u.role === roleFilter : true;
     return matchSearch && matchRole;
   });
 
@@ -1135,24 +1131,19 @@ const UsersTab: React.FC = () => {
   return (
     <div className="p-6 md:p-8 fade-in">
       <SectionHeader
-        title="User Management"
-        desc={loading ? "Loading..." : `${users.length} users · ${users.filter(u => u.status === "ACTIVE").length} active`}
-        action={
-          <div className="flex items-center gap-2">
-            <Btn variant="secondary" onClick={fetchUsers} disabled={loading}>
-              <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
-            </Btn>
-            <Btn onClick={() => setAddOpen(true)} disabled={loading}>
-              <Plus size={13} /> Add User
-            </Btn>
-          </div>
-        }
-      />
+        action={<div className="flex items-center gap-2">
+          <Btn variant="secondary" onClick={fetchUsers} disabled={loading}>
+            <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
+          </Btn>
+          <Btn onClick={() => setAddOpen(true)} disabled={loading}>
+            <Plus size={13} /> Add User
+          </Btn>
+        </div>} title={""} />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <StatCard icon={<Users     size={16} />} label="Total Users" value={loading ? "—" : users.length}                                    color="violet"  />
-        <StatCard icon={<UserCheck size={16} />} label="Active"      value={loading ? "—" : users.filter(u => u.status === "ACTIVE").length} color="emerald" />
-        <StatCard icon={<XCircle   size={16} />} label="Inactive"    value={loading ? "—" : users.filter(u => u.status !== "ACTIVE").length} color="red"     />
+        <StatCard icon={<Users size={16} />} label="Total Users" value={loading ? "—" : users.length} color="violet" />
+        <StatCard icon={<UserCheck size={16} />} label="Active" value={loading ? "—" : users.filter(u => u.status === "ACTIVE").length} color="emerald" />
+        <StatCard icon={<XCircle size={16} />} label="Inactive" value={loading ? "—" : users.filter(u => u.status !== "ACTIVE").length} color="red" />
       </div>
 
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
@@ -1259,11 +1250,10 @@ const UsersTab: React.FC = () => {
                       {u.role === "cashier" && (
                         <button
                           onClick={() => setDeviceTarget(u)}
-                          className={`p-1.5 rounded-[0.4rem] transition-colors ${
-                            u.device_number
+                          className={`p-1.5 rounded-[0.4rem] transition-colors ${u.device_number
                               ? "hover:bg-violet-50 text-violet-500 hover:text-violet-700"
                               : "hover:bg-amber-50 text-amber-400 hover:text-amber-600"
-                          }`}
+                            }`}
                           title={u.device_number ? `Device: ${u.device_number} — click to change` : "No device assigned — click to assign"}>
                           <Laptop size={13} />
                         </button>
@@ -1278,13 +1268,13 @@ const UsersTab: React.FC = () => {
       </div>
 
       {/* Modals */}
-      {addOpen      && <AddUserModal      onClose={() => setAddOpen(false)}      onSaved={u  => { setUsers(p => [u, ...p]); showToast(`${u.name} has been created.`); }} branches={branches} />}
-      {viewTarget   && <ViewUserModal     onClose={() => setViewTarget(null)}    user={viewTarget} />}
-      {editTarget   && <EditUserModal     onClose={() => setEditTarget(null)}    onUpdated={u => { setUsers(p => p.map(x => x.id === u.id ? u : x)); setEditTarget(null); showToast(`${u.name} has been updated.`); }} user={editTarget} branches={branches} />}
-      {toggleTarget && <ToggleStatusModal onClose={() => setToggleTarget(null)}  onToggled={u => { setUsers(p => p.map(x => x.id === u.id ? u : x)); setToggleTarget(null); showToast(`${u.name} ${u.status === "ACTIVE" ? "activated" : "deactivated"}.`, u.status === "ACTIVE" ? "success" : "warning"); }} user={toggleTarget} />}
-      {delTarget    && <DeleteUserModal   onClose={() => setDelTarget(null)}     onDeleted={id => { setUsers(p => p.filter(x => x.id !== id)); setDelTarget(null); showToast("User deleted successfully.", "error"); }} user={delTarget} />}
-      {pinTarget    && <ResetPinModal     onClose={() => setPinTarget(null)}     user={pinTarget} />}
-      {deviceTarget && <AssignDeviceModal onClose={() => setDeviceTarget(null)}  onAssigned={handleDeviceAssigned} user={deviceTarget} />}
+      {addOpen && <AddUserModal onClose={() => setAddOpen(false)} onSaved={u => { setUsers(p => [u, ...p]); showToast(`${u.name} has been created.`); }} branches={branches} />}
+      {viewTarget && <ViewUserModal onClose={() => setViewTarget(null)} user={viewTarget} />}
+      {editTarget && <EditUserModal onClose={() => setEditTarget(null)} onUpdated={u => { setUsers(p => p.map(x => x.id === u.id ? u : x)); setEditTarget(null); showToast(`${u.name} has been updated.`); }} user={editTarget} branches={branches} />}
+      {toggleTarget && <ToggleStatusModal onClose={() => setToggleTarget(null)} onToggled={u => { setUsers(p => p.map(x => x.id === u.id ? u : x)); setToggleTarget(null); showToast(`${u.name} ${u.status === "ACTIVE" ? "activated" : "deactivated"}.`, u.status === "ACTIVE" ? "success" : "warning"); }} user={toggleTarget} />}
+      {delTarget && <DeleteUserModal onClose={() => setDelTarget(null)} onDeleted={id => { setUsers(p => p.filter(x => x.id !== id)); setDelTarget(null); showToast("User deleted successfully.", "error"); }} user={delTarget} />}
+      {pinTarget && <ResetPinModal onClose={() => setPinTarget(null)} user={pinTarget} />}
+      {deviceTarget && <AssignDeviceModal onClose={() => setDeviceTarget(null)} onAssigned={handleDeviceAssigned} user={deviceTarget} />}
 
       {toast && <Toast message={toast.message} type={toast.type} onDone={() => setToast(null)} />}
     </div>

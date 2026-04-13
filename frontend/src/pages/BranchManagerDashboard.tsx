@@ -10,6 +10,8 @@ import BM_DeviceManagement from '../components/BranchManager/Home/BM_DeviceManag
 import api from '../services/api';
 import { LogOut } from 'lucide-react';
 import BranchManagerTopNav from '../components/BranchManager/BranchManagerTopNav'; 
+import BM_PulseTab from '../components/BranchManager/Home/BM_PulseTab';
+import BM_StaffPerformanceTab from '../components/BranchManager/Home/BM_StaffPerformanceTab';
 
 import SalesDashboard        from '../components/BranchManager/SalesReport/BM_SalesDashboard';
 import ItemsReport           from '../components/BranchManager/SalesReport/BM_ItemsReport';
@@ -36,6 +38,7 @@ import BM_MenuManagement from '../components/BranchManager/SalesReport/BM_MenuMa
 
 import BMVoidLogsPanel from '../components/BranchManager/FloorOps/BMVoidLogs';
 import BM_PromosDiscounts from '../components/BranchManager/Settings/BM_PromosDiscounts';
+import BM_ExpensesTab from '../components/BranchManager/Expenses/BM_ExpensesTab';
 
 import BM_AddCustomers       from '../components/BranchManager/Settings/BM_AddCustomers';
 import BM_AddVouchers        from '../components/BranchManager/Settings/BM_AddVouchers';
@@ -86,6 +89,8 @@ const GlobalStyles = () => <style>{STYLES}</style>;
 // ─── Page title map ───────────────────────────────────────────────────────────
 const PAGE_TITLES: Record<string, { label: string; desc: string }> = {
   dashboard:            { label: 'Dashboard',            desc: 'Real-time summary for your branch' },
+  'live-pulse':         { label: 'Live Pulse',           desc: 'Real-time sales ticker and staff heartbeat' },
+  'staff-performance':  { label: 'Staff Performance',    desc: 'Local team leaderboards & efficiency metrics' },
   users:                { label: 'User Management',      desc: 'Staff accounts, roles & permissions' },
   'device-management':  { label: 'Device Management',    desc: 'POS terminals & connected devices' },
   'sales-dashboard':    { label: 'Sales Dashboard',      desc: 'Daily & periodic sales breakdown' },
@@ -107,6 +112,7 @@ const PAGE_TITLES: Record<string, { label: string; desc: string }> = {
   'audit-logs':         { label: 'Audit Logs',           desc: 'Complete system activity trail' },
   'void-logs':          { label: 'Void Logs',            desc: 'Voided transaction history' },
   'promos-discounts':   { label: 'Promos & Discounts',   desc: 'View and toggle branch discounts' },
+  expenses:             { label: 'Expenses',             desc: 'Track local branch expenditure and receipts' },
   settings:             { label: 'Settings',             desc: 'Branch configuration & preferences' },
   'add-customers':      { label: 'Add Customers',        desc: 'Customer management' },
   'add-vouchers':       { label: 'Add Vouchers',         desc: 'Voucher management' },
@@ -174,12 +180,15 @@ const BranchManagerDashboard = () => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':          return <BM_Dashboard branchId={authUser?.branch_id ?? null} />;
+      case 'live-pulse':         return <BM_PulseTab branchId={authUser?.branch_id ?? null} />;
+      case 'staff-performance':  return <BM_StaffPerformanceTab branchId={authUser?.branch_id ?? null} />;
       case 'users':              return <UserManagement />;
       case 'device-management':  return <BM_DeviceManagement branchId={authUser?.branch_id ?? null} />;
       case 'sales-dashboard':    return <SalesDashboard />;
       case 'items-report':       return <ItemsReport />;
       case 'x-reading':          return <XReading />;
       case 'z-reading':          return <ZReading />;
+      case 'expenses':           return <BM_ExpensesTab branchId={authUser?.branch_id ?? null} />;
 
       // ── Mobile App ──
       case 'app-orders':         return <BM_AppOrders />;

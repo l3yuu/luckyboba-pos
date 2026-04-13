@@ -326,9 +326,9 @@ const DiscountModal: React.FC<{
       {/* backdrop click */}
       <div className="absolute inset-0" onClick={onClose} />
 
-      <div className="relative bg-white w-full max-w-md border border-zinc-200 rounded-[1.25rem] shadow-2xl max-h-[92vh] overflow-y-auto">
+      <div className="relative bg-white w-full max-w-md border border-zinc-200 rounded-[1.25rem] shadow-2xl flex flex-col max-h-[92vh] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100">
+        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 bg-violet-50 border border-violet-200 rounded-lg flex items-center justify-center">
               {isEdit ? <Edit2 size={15} className="text-violet-600" /> : <Plus size={15} className="text-violet-600" />}
@@ -349,7 +349,7 @@ const DiscountModal: React.FC<{
         </div>
 
         {/* Body */}
-        <div className="px-6 py-5 flex flex-col gap-4">
+        <div className="px-6 py-5 flex flex-col gap-4 overflow-y-auto flex-1">
           {/* Name */}
           <Field label="Discount Name" error={errors.name}>
             <input value={form.name} onChange={e => set("name", e.target.value)}
@@ -430,7 +430,7 @@ const DiscountModal: React.FC<{
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-100">
+        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-100 shrink-0">
           <Btn variant="secondary" onClick={onClose} disabled={saving}>Cancel</Btn>
           <Btn onClick={handleSubmit} disabled={saving}>
             {saving
@@ -666,11 +666,7 @@ const PromotionsTab: React.FC = () => {
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Promotions & Discounts</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">Manage system-wide discounts across all branches</p>
-        </div>
+      <div className="flex items-center justify-end mb-5 flex-wrap gap-3">
         <div className="flex items-center gap-2">
           <Btn variant="secondary" onClick={fetchAll} disabled={loading}>
             <RefreshCw size={12} className={loading ? "animate-spin" : ""} />

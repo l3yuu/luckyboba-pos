@@ -211,13 +211,7 @@ const resolveUnit = (unit: unknown): string => {
     <div className="p-6 md:p-8 bg-[#f4f2fb] min-h-full">
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-sm font-black uppercase tracking-wide text-[#1a0f2e]">Inventory Overview</h2>
-          <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">
-            {loading ? 'Loading...' : `${allBranches.find(b => String(b.id) === branch)?.name || 'All Branches'} · Live stock health`}
-          </p>
-        </div>
+      <div className="flex items-center justify-end mb-5 flex-wrap gap-3">
         <div className="flex items-center gap-2">
           <select
             value={branch}

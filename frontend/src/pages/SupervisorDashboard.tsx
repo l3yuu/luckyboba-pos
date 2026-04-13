@@ -96,6 +96,7 @@ const SupervisorDashboard = () => {
             roleLabel="Supervisor"
             branchLabel={branchLabel}
             onMenuClick={() => setSidebarOpen(true)}
+            onNavigate={setActiveTab}
           />
 
           <div className="flex-1 overflow-auto bg-[#fdfcff]">
