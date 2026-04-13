@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Search, Plus, Edit2, Trash2, X, AlertCircle, RefreshCw,
+  Search, Plus, Edit2, Trash2, X, AlertCircle,
   Hash, Building2, Calendar, FileText,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
@@ -13,34 +13,34 @@ import api from '../../../../services/api';
 type SerialStatus = 'Active' | 'In Repair' | 'Retired';
 
 interface ItemSerial {
-  id:             number;
-  serial_number:  string;
-  item_name:      string;
-  branch_id:      number | null;
-  branch?:        { name: string };
-  branch_name?:   string;
-  status:         SerialStatus;
+  id: number;
+  serial_number: string;
+  item_name: string;
+  branch_id: number | null;
+  branch?: { name: string };
+  branch_name?: string;
+  status: SerialStatus;
   purchase_date?: string;
-  notes?:         string;
+  notes?: string;
 }
 
 interface Branch { id: number; name: string; }
 
 interface FormState {
-  serial_number:  string;
-  item_name:      string;
-  branch_id:      number | '';
-  status:         SerialStatus;
-  purchase_date:  string;
-  notes:          string;
+  serial_number: string;
+  item_name: string;
+  branch_id: number | '';
+  status: SerialStatus;
+  purchase_date: string;
+  notes: string;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<SerialStatus, { bg: string; text: string; border: string }> = {
-  Active:    { bg: '#f0fdf4', text: '#16a34a', border: '#bbf7d0' },
+  Active: { bg: '#f0fdf4', text: '#16a34a', border: '#bbf7d0' },
   'In Repair': { bg: '#fffbeb', text: '#d97706', border: '#fde68a' },
-  Retired:   { bg: '#f4f4f5', text: '#71717a', border: '#e4e4e7' },
+  Retired: { bg: '#f4f4f5', text: '#71717a', border: '#e4e4e7' },
 };
 
 const STATUSES: SerialStatus[] = ['Active', 'In Repair', 'Retired'];
@@ -78,30 +78,30 @@ const StatusBadge: React.FC<{ status: SerialStatus }> = ({ status }) => {
 // ─── Form Modal ───────────────────────────────────────────────────────────────
 
 const SerialFormModal: React.FC<{
-  onClose:  () => void;
-  onSaved:  (s: ItemSerial) => void;
+  onClose: () => void;
+  onSaved: (s: ItemSerial) => void;
   editing?: ItemSerial | null;
   branches: Branch[];
 }> = ({ onClose, onSaved, editing, branches }) => {
-  const [form,   setForm]   = useState<FormState>(
+  const [form, setForm] = useState<FormState>(
     editing ? {
       serial_number: editing.serial_number,
-      item_name:     editing.item_name,
-      branch_id:     editing.branch_id ?? '',
-      status:        editing.status,
+      item_name: editing.item_name,
+      branch_id: editing.branch_id ?? '',
+      status: editing.status,
       purchase_date: editing.purchase_date?.split('T')[0] ?? '',
-      notes:         editing.notes ?? '',
+      notes: editing.notes ?? '',
     } : blankForm()
   );
-  const [errors,  setErrors]  = useState<Record<string, string>>({});
-  const [saving,  setSaving]  = useState(false);
-  const [apiErr,  setApiErr]  = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const [apiErr, setApiErr] = useState('');
 
   const validate = () => {
     const e: Record<string, string> = {};
     if (!form.serial_number.trim()) e.serial_number = 'Serial number is required.';
-    if (!form.item_name.trim())     e.item_name     = 'Item name is required.';
-    if (!form.branch_id)            e.branch_id     = 'Branch is required.';
+    if (!form.item_name.trim()) e.item_name = 'Item name is required.';
+    if (!form.branch_id) e.branch_id = 'Branch is required.';
     return e;
   };
 
@@ -200,7 +200,7 @@ const SerialFormModal: React.FC<{
 
 const DeleteModal: React.FC<{ item: ItemSerial; onClose: () => void; onDeleted: (id: number) => void }> = ({ item, onClose, onDeleted }) => {
   const [saving, setSaving] = useState(false);
-  const [error,  setError]  = useState('');
+  const [error, setError] = useState('');
 
   const handleDelete = async () => {
     setSaving(true);
@@ -237,15 +237,15 @@ const DeleteModal: React.FC<{ item: ItemSerial; onClose: () => void; onDeleted: 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 const ItemSerialsTab: React.FC = () => {
-  const [items,        setItems]        = useState<ItemSerial[]>([]);
-  const [branches,     setBranches]     = useState<Branch[]>([]);
-  const [loading,      setLoading]      = useState(true);
-  const [search,       setSearch]       = useState('');
+  const [items, setItems] = useState<ItemSerial[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [branchFilter, setBranchFilter] = useState('');
-  const [addOpen,      setAddOpen]      = useState(false);
-  const [editTarget,   setEditTarget]   = useState<ItemSerial | null>(null);
-  const [delTarget,    setDelTarget]    = useState<ItemSerial | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<ItemSerial | null>(null);
+  const [delTarget, setDelTarget] = useState<ItemSerial | null>(null);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -281,9 +281,6 @@ const ItemSerialsTab: React.FC = () => {
     <div className="p-6 md:p-8 bg-[#f4f2fb] min-h-full">
       <div className="flex items-center justify-end mb-5 flex-wrap gap-3">
         <div className="flex items-center gap-2">
-          <button onClick={fetchAll} disabled={loading} className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
-          </button>
           <button onClick={() => setAddOpen(true)} className="bg-[#3b2063] hover:bg-[#6a12b8] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all">
             <Plus size={13} /> Register Item
           </button>
@@ -388,9 +385,9 @@ const ItemSerialsTab: React.FC = () => {
         </div>
       </div>
 
-      {addOpen    && <SerialFormModal onClose={() => setAddOpen(false)}   onSaved={s => setItems(p => [s, ...p])} branches={branches} />}
+      {addOpen && <SerialFormModal onClose={() => setAddOpen(false)} onSaved={s => setItems(p => [s, ...p])} branches={branches} />}
       {editTarget && <SerialFormModal onClose={() => setEditTarget(null)} onSaved={s => { setItems(p => p.map(x => x.id === s.id ? s : x)); setEditTarget(null); }} editing={editTarget} branches={branches} />}
-      {delTarget  && <DeleteModal item={delTarget} onClose={() => setDelTarget(null)} onDeleted={id => { setItems(p => p.filter(x => x.id !== id)); setDelTarget(null); }} />}
+      {delTarget && <DeleteModal item={delTarget} onClose={() => setDelTarget(null)} onDeleted={id => { setItems(p => p.filter(x => x.id !== id)); setDelTarget(null); }} />}
     </div>
   );
 };

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Search, Plus, Edit2, Trash2, X, AlertCircle, RefreshCw,
+  Search, Plus, Edit2, Trash2, X, AlertCircle,
   ChevronDown, CheckCircle, BookOpen, FlaskConical, Minus,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
@@ -11,24 +11,24 @@ import api from '../../../../services/api';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface RecipeItem {
-  id:              number;
+  id: number;
   raw_material_id: number;
-  raw_material?:   { name: string; unit: string };
-  material_name?:  string;
-  unit?:           string;
-  quantity:        number | '';
-  notes?:          string;
+  raw_material?: { name: string; unit: string };
+  material_name?: string;
+  unit?: string;
+  quantity: number | '';
+  notes?: string;
 }
 
 interface Recipe {
-  id:          number;
+  id: number;
   menu_item_id: number;
-  menu_item?:  { name: string; category?: { name: string } };
+  menu_item?: { name: string; category?: { name: string } };
   menu_item_name?: string;
-  size?:       'M' | 'L' | null;
-  is_active:   boolean;
-  notes?:      string;
-  items?:      RecipeItem[];
+  size?: 'M' | 'L' | null;
+  is_active: boolean;
+  notes?: string;
+  items?: RecipeItem[];
   recipe_items?: RecipeItem[];
 }
 
@@ -42,8 +42,8 @@ const sizeLabel = (s?: string | null) => {
   const mapping: Record<string, string> = {
     'JR': 'Junior (JR)',
     'SM': 'Small (SM)',
-    'M':  'Medium (M)',
-    'L':  'Large (L)',
+    'M': 'Medium (M)',
+    'L': 'Large (L)',
     'SL': 'Solo (SL)',
   };
   return mapping[s] || s;
@@ -53,7 +53,7 @@ const resolveItems = (r: Recipe): RecipeItem[] =>
   (r.items ?? r.recipe_items ?? []).map(i => ({
     ...i,
     material_name: i.raw_material?.name ?? i.material_name ?? '',
-    unit:          i.raw_material?.unit ?? i.unit ?? '',
+    unit: i.raw_material?.unit ?? i.unit ?? '',
   }));
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
@@ -74,20 +74,20 @@ const Field: React.FC<{ label: string; required?: boolean; error?: string; child
 // ─── Recipe Form Modal ────────────────────────────────────────────────────────
 
 const RecipeFormModal: React.FC<{
-  onClose:  () => void;
-  onSaved:  (r: Recipe) => void;
+  onClose: () => void;
+  onSaved: (r: Recipe) => void;
   editing?: Recipe | null;
 }> = ({ onClose, onSaved, editing }) => {
-  const [menuItemId,  setMenuItemId]  = useState<number | ''>(editing?.menu_item_id ?? '');
-  const [size,        setSize]        = useState<string>(editing?.size ?? '');
-  const [isActive,    setIsActive]    = useState(editing?.is_active ?? true);
-  const [notes,       setNotes]       = useState(editing?.notes ?? '');
+  const [menuItemId, setMenuItemId] = useState<number | ''>(editing?.menu_item_id ?? '');
+  const [size, setSize] = useState<string>(editing?.size ?? '');
+  const [isActive, setIsActive] = useState(editing?.is_active ?? true);
+  const [notes, setNotes] = useState(editing?.notes ?? '');
   const [recipeItems, setRecipeItems] = useState<RecipeItem[]>(resolveItems(editing ?? {} as Recipe));
-  const [menuItems,   setMenuItems]   = useState<MenuItem[]>([]);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>([]);
-  const [saving,      setSaving]      = useState(false);
-  const [errors,      setErrors]      = useState<Record<string, string>>({});
-  const [apiErr,      setApiErr]      = useState('');
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [apiErr, setApiErr] = useState('');
 
   useEffect(() => {
     Promise.all([api.get('/menu-items'), api.get('/raw-materials')]).then(([mi, rm]) => {
@@ -132,14 +132,14 @@ const RecipeFormModal: React.FC<{
     try {
       const payload = {
         menu_item_id: menuItemId,
-        size:         size || null,
-        is_active:    isActive,
+        size: size || null,
+        is_active: isActive,
         notes,
         items: recipeItems.map(i => ({
           raw_material_id: i.raw_material_id,
-          quantity:        Number(i.quantity),
-          unit:            i.unit,
-          notes:           i.notes ?? '',
+          quantity: Number(i.quantity),
+          unit: i.unit,
+          notes: i.notes ?? '',
         })),
       };
       const res = editing
@@ -184,7 +184,7 @@ const RecipeFormModal: React.FC<{
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Menu Item" required error={errors.menu_item}>
-              <select value={menuItemId} onChange={e => { setMenuItemId(Number(e.target.value)); setErrors(p => { const n = {...p}; delete n.menu_item; return n; }); }}
+              <select value={menuItemId} onChange={e => { setMenuItemId(Number(e.target.value)); setErrors(p => { const n = { ...p }; delete n.menu_item; return n; }); }}
                 className={inputCls(errors.menu_item)}>
                 <option value="">Select menu item...</option>
                 {menuItems.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
@@ -294,12 +294,12 @@ const RecipeFormModal: React.FC<{
 // ─── Delete Modal ─────────────────────────────────────────────────────────────
 
 const DeleteModal: React.FC<{
-  recipe:    Recipe;
-  onClose:   () => void;
+  recipe: Recipe;
+  onClose: () => void;
   onDeleted: (id: number) => void;
 }> = ({ recipe, onClose, onDeleted }) => {
   const [saving, setSaving] = useState(false);
-  const [error,  setError]  = useState('');
+  const [error, setError] = useState('');
   const name = recipe.menu_item?.name ?? recipe.menu_item_name ?? `Recipe #${recipe.id}`;
 
   const handleDelete = async () => {
@@ -353,15 +353,15 @@ const DeleteModal: React.FC<{
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 const RecipesTab: React.FC = () => {
-  const [recipes,      setRecipes]      = useState<Recipe[]>([]);
-  const [loading,      setLoading]      = useState(true);
-  const [search,       setSearch]       = useState('');
+  const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [expanded,     setExpanded]     = useState<number | null>(null);
+  const [expanded, setExpanded] = useState<number | null>(null);
 
-  const [addOpen,     setAddOpen]     = useState(false);
-  const [editTarget,  setEditTarget]  = useState<Recipe | null>(null);
-  const [delTarget,   setDelTarget]   = useState<Recipe | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Recipe | null>(null);
+  const [delTarget, setDelTarget] = useState<Recipe | null>(null);
 
   const fetchRecipes = useCallback(async () => {
     setLoading(true);
@@ -386,38 +386,25 @@ const RecipesTab: React.FC = () => {
   const filtered = recipes.filter(r => {
     const name = r.menu_item?.name ?? r.menu_item_name ?? '';
     const matchSearch = name.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === 'active'   ? r.is_active
-                      : statusFilter === 'inactive' ? !r.is_active
-                      : true;
+    const matchStatus = statusFilter === 'active' ? r.is_active
+      : statusFilter === 'inactive' ? !r.is_active
+        : true;
     return matchSearch && matchStatus;
   });
 
-  const totalRecipes   = recipes.length;
-  const activeRecipes  = recipes.filter(r => r.is_active).length;
+  const totalRecipes = recipes.length;
+  const activeRecipes = recipes.filter(r => r.is_active).length;
   const missingRecipes = recipes.filter(r => !r.items?.length && !r.recipe_items?.length).length;
 
   return (
     <div className="p-6 md:p-8 bg-[#f4f2fb] min-h-full">
 
-      {/* Header */}
-      <div className="flex items-center justify-end mb-5 flex-wrap gap-3">
-        <div className="flex items-center gap-2">
-          <button onClick={fetchRecipes} disabled={loading}
-            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
-          </button>
-          <button onClick={() => setAddOpen(true)}
-            className="bg-[#3b2063] hover:bg-[#6a12b8] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all">
-            <Plus size={13} /> Add Recipe
-          </button>
-        </div>
-      </div>
 
       {/* Stat Cards */}
       <div className="grid grid-cols-3 gap-4 mb-5">
         {[
-          { label: 'Total Recipes',  value: totalRecipes,   color: '#3b2063', bg: '#f5f0ff', border: '#e9d5ff' },
-          { label: 'Active',         value: activeRecipes,  color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
+          { label: 'Total Recipes', value: totalRecipes, color: '#3b2063', bg: '#f5f0ff', border: '#e9d5ff' },
+          { label: 'Active', value: activeRecipes, color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
           { label: 'No Ingredients', value: missingRecipes, color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
         ].map(s => (
           <div key={s.label} className="bg-white border rounded-[0.625rem] px-5 py-4 shadow-sm" style={{ borderColor: s.border }}>
@@ -445,9 +432,10 @@ const RecipesTab: React.FC = () => {
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
-          <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest ml-auto">
-            {filtered.length} results
-          </span>
+          <button onClick={() => setAddOpen(true)}
+            className="bg-[#3b2063] hover:bg-[#6a12b8] shrink-0 text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all ml-auto md:ml-0">
+            <Plus size={13} /> Add Recipe
+          </button>
         </div>
 
         <div className="overflow-x-auto">
@@ -480,7 +468,7 @@ const RecipesTab: React.FC = () => {
               )}
 
               {!loading && filtered.map(r => {
-                const name  = r.menu_item?.name ?? r.menu_item_name ?? `Recipe #${r.id}`;
+                const name = r.menu_item?.name ?? r.menu_item_name ?? `Recipe #${r.id}`;
                 const items = resolveItems(r);
                 const isExpanded = expanded === r.id;
                 const hasItems = items.length > 0;

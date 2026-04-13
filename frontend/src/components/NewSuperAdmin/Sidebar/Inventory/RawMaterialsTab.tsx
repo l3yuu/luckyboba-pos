@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Search, Plus, Edit2, Trash2, X, AlertCircle, RefreshCw,
+  Search, Plus, Edit2, Trash2, X, AlertCircle,
   ChevronDown, History, TrendingUp, TrendingDown, Minus,
   Package, CheckCircle, FlaskConical,
 } from 'lucide-react';
@@ -11,51 +11,51 @@ import api from '../../../../services/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Unit     = 'PC' | 'PK' | 'BAG' | 'BTL' | 'BX' | 'ML' | 'G' | 'KG' | 'L';
+type Unit = 'PC' | 'PK' | 'BAG' | 'BTL' | 'BX' | 'ML' | 'G' | 'KG' | 'L';
 type Category = 'Packaging' | 'Ingredients' | 'Intermediate' | 'Equipment';
-type AdjType  = 'add' | 'subtract' | 'set';
+type AdjType = 'add' | 'subtract' | 'set';
 
 interface RawMaterial {
-  id:             number;
-  name:           string;
-  unit:           Unit;
-  category:       Category;
-  current_stock:  number;
-  reorder_level:  number;
+  id: number;
+  name: string;
+  unit: Unit;
+  category: Category;
+  current_stock: number;
+  reorder_level: number;
   is_intermediate: boolean;
-  notes?:         string;
-  created_at?:    string;
+  notes?: string;
+  created_at?: string;
 }
 
 interface Movement {
-  id:           number;
-  type:         AdjType;
-  quantity:     number;
-  reason:       string;
+  id: number;
+  type: AdjType;
+  quantity: number;
+  reason: string;
   performed_by: string;
-  created_at:   string;
+  created_at: string;
 }
 
 interface FormState {
-  name:            string;
-  unit:            Unit;
-  category:        Category;
-  current_stock:   number | '';
-  reorder_level:   number | '';
+  name: string;
+  unit: Unit;
+  category: Category;
+  current_stock: number | '';
+  reorder_level: number | '';
   is_intermediate: boolean;
-  notes:           string;
+  notes: string;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const UNITS: Unit[]         = ['PC', 'PK', 'BAG', 'BTL', 'BX', 'ML', 'G', 'KG', 'L'];
+const UNITS: Unit[] = ['PC', 'PK', 'BAG', 'BTL', 'BX', 'ML', 'G', 'KG', 'L'];
 const CATEGORIES: Category[] = ['Packaging', 'Ingredients', 'Intermediate', 'Equipment'];
 
 const CATEGORY_COLORS: Record<Category, { bg: string; text: string; border: string }> = {
-  Packaging:    { bg: '#f0fdf4', text: '#16a34a', border: '#bbf7d0' },
-  Ingredients:  { bg: '#f5f0ff', text: '#3b2063', border: '#e9d5ff' },
+  Packaging: { bg: '#f0fdf4', text: '#16a34a', border: '#bbf7d0' },
+  Ingredients: { bg: '#f5f0ff', text: '#3b2063', border: '#e9d5ff' },
   Intermediate: { bg: '#fffbeb', text: '#d97706', border: '#fde68a' },
-  Equipment:    { bg: '#eff6ff', text: '#2563eb', border: '#bfdbfe' },
+  Equipment: { bg: '#eff6ff', text: '#2563eb', border: '#bfdbfe' },
 };
 
 const blankForm = (): FormState => ({
@@ -66,18 +66,18 @@ const blankForm = (): FormState => ({
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const stockStatus = (item: RawMaterial) => {
-  if (item.current_stock === 0)                                  return { label: 'Out of Stock', bg: '#fef2f2', text: '#dc2626', border: '#fecaca' };
-  if (item.current_stock <= item.reorder_level * 0.5)           return { label: 'Critical',     bg: '#fef2f2', text: '#dc2626', border: '#fecaca' };
-  if (item.current_stock <= item.reorder_level)                  return { label: 'Low Stock',    bg: '#fffbeb', text: '#d97706', border: '#fde68a' };
-  return                                                                { label: 'In Stock',     bg: '#f0fdf4', text: '#16a34a', border: '#bbf7d0' };
+  if (item.current_stock === 0) return { label: 'Out of Stock', bg: '#fef2f2', text: '#dc2626', border: '#fecaca' };
+  if (item.current_stock <= item.reorder_level * 0.5) return { label: 'Critical', bg: '#fef2f2', text: '#dc2626', border: '#fecaca' };
+  if (item.current_stock <= item.reorder_level) return { label: 'Low Stock', bg: '#fffbeb', text: '#d97706', border: '#fde68a' };
+  return { label: 'In Stock', bg: '#f0fdf4', text: '#16a34a', border: '#bbf7d0' };
 };
 
 const timeAgo = (d: string) => {
   const m = Math.floor((Date.now() - new Date(d).getTime()) / 60000);
-  if (m < 1)   return 'Just now';
-  if (m < 60)  return `${m}m ago`;
+  if (m < 1) return 'Just now';
+  if (m < 60) return `${m}m ago`;
   const h = Math.floor(m / 60);
-  if (h < 24)  return `${h}h ago`;
+  if (h < 24) return `${h}h ago`;
   return new Date(d).toLocaleDateString();
 };
 
@@ -107,7 +107,7 @@ const Badge: React.FC<{ bg: string; text: string; border: string; children: Reac
 
 const HistoryDrawer: React.FC<{ item: RawMaterial; onClose: () => void }> = ({ item, onClose }) => {
   const [movements, setMovements] = useState<Movement[]>([]);
-  const [loading,   setLoading]   = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     api.get(`/raw-materials/${item.id}/history`)
@@ -117,9 +117,9 @@ const HistoryDrawer: React.FC<{ item: RawMaterial; onClose: () => void }> = ({ i
   }, [item.id]);
 
   const typeIcon = (t: AdjType) => {
-    if (t === 'add')      return <TrendingUp  size={12} color="#16a34a" />;
+    if (t === 'add') return <TrendingUp size={12} color="#16a34a" />;
     if (t === 'subtract') return <TrendingDown size={12} color="#dc2626" />;
-    return                       <Minus        size={12} color="#3b2063" />;
+    return <Minus size={12} color="#3b2063" />;
   };
 
   const typeColor = (t: AdjType) => t === 'add' ? '#16a34a' : t === 'subtract' ? '#dc2626' : '#3b2063';
@@ -184,20 +184,20 @@ const HistoryDrawer: React.FC<{ item: RawMaterial; onClose: () => void }> = ({ i
 // ─── Adjust Modal ─────────────────────────────────────────────────────────────
 
 const AdjustModal: React.FC<{
-  item:    RawMaterial;
+  item: RawMaterial;
   onClose: () => void;
-  onDone:  (updated: RawMaterial) => void;
+  onDone: (updated: RawMaterial) => void;
 }> = ({ item, onClose, onDone }) => {
   const [adjType, setAdjType] = useState<AdjType>('add');
-  const [qty,     setQty]     = useState<number | ''>('');
-  const [reason,  setReason]  = useState('');
-  const [saving,  setSaving]  = useState(false);
-  const [error,   setError]   = useState('');
+  const [qty, setQty] = useState<number | ''>('');
+  const [reason, setReason] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
   const preview = () => {
     if (qty === '') return item.current_stock;
-    if (adjType === 'add')      return item.current_stock + Number(qty);
+    if (adjType === 'add') return item.current_stock + Number(qty);
     if (adjType === 'subtract') return Math.max(0, item.current_stock - Number(qty));
     return Number(qty);
   };
@@ -219,9 +219,9 @@ const AdjustModal: React.FC<{
   };
 
   const typeConfig = {
-    add:      { label: 'Add Stock',      color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', icon: <TrendingUp  size={14} /> },
+    add: { label: 'Add Stock', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', icon: <TrendingUp size={14} /> },
     subtract: { label: 'Subtract Stock', color: '#dc2626', bg: '#fef2f2', border: '#fecaca', icon: <TrendingDown size={14} /> },
-    set:      { label: 'Set Stock',      color: '#3b2063', bg: '#f5f0ff', border: '#e9d5ff', icon: <Minus        size={14} /> },
+    set: { label: 'Set Stock', color: '#3b2063', bg: '#f5f0ff', border: '#e9d5ff', icon: <Minus size={14} /> },
   };
 
   return createPortal(
@@ -324,26 +324,28 @@ const AdjustModal: React.FC<{
 // ─── Add / Edit Modal ─────────────────────────────────────────────────────────
 
 const MaterialFormModal: React.FC<{
-  onClose:  () => void;
-  onSaved:  (m: RawMaterial) => void;
+  onClose: () => void;
+  onSaved: (m: RawMaterial) => void;
   editing?: RawMaterial | null;
 }> = ({ onClose, onSaved, editing }) => {
-  const [form,    setForm]    = useState<FormState>(
+  const [form, setForm] = useState<FormState>(
     editing
-      ? { name: editing.name, unit: editing.unit, category: editing.category,
-          current_stock: editing.current_stock, reorder_level: editing.reorder_level,
-          is_intermediate: editing.is_intermediate, notes: editing.notes ?? '' }
+      ? {
+        name: editing.name, unit: editing.unit, category: editing.category,
+        current_stock: editing.current_stock, reorder_level: editing.reorder_level,
+        is_intermediate: editing.is_intermediate, notes: editing.notes ?? ''
+      }
       : blankForm()
   );
-  const [errors,  setErrors]  = useState<Record<string, string>>({});
-  const [saving,  setSaving]  = useState(false);
-  const [apiErr,  setApiErr]  = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const [apiErr, setApiErr] = useState('');
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.name.trim())           e.name          = 'Name is required.';
-    if (form.current_stock === '')   e.current_stock = 'Stock is required.';
-    if (form.reorder_level === '')   e.reorder_level = 'Reorder level is required.';
+    if (!form.name.trim()) e.name = 'Name is required.';
+    if (form.current_stock === '') e.current_stock = 'Stock is required.';
+    if (form.reorder_level === '') e.reorder_level = 'Reorder level is required.';
     return e;
   };
 
@@ -428,7 +430,7 @@ const MaterialFormModal: React.FC<{
 
           <label className="flex items-center gap-3 p-3 bg-zinc-50 border border-zinc-200 rounded-xl cursor-pointer hover:bg-[#faf9ff] transition-colors">
             <div className={`w-10 h-6 rounded-full transition-colors flex items-center ${form.is_intermediate ? 'bg-[#3b2063]' : 'bg-zinc-300'}`}
-              onClick={() => setForm(p => ({ ...p, is_intermediate: !p.is_intermediate }))}>  
+              onClick={() => setForm(p => ({ ...p, is_intermediate: !p.is_intermediate }))}>
               <div className={`w-4 h-4 bg-white rounded-full mx-1 transition-transform ${form.is_intermediate ? 'translate-x-4' : ''}`} />
             </div>
             <div>
@@ -457,12 +459,12 @@ const MaterialFormModal: React.FC<{
 // ─── Delete Confirm ───────────────────────────────────────────────────────────
 
 const DeleteModal: React.FC<{
-  item:      RawMaterial;
-  onClose:   () => void;
+  item: RawMaterial;
+  onClose: () => void;
   onDeleted: (id: number) => void;
 }> = ({ item, onClose, onDeleted }) => {
   const [saving, setSaving] = useState(false);
-  const [error,  setError]  = useState('');
+  const [error, setError] = useState('');
 
   const handleDelete = async () => {
     setSaving(true);
@@ -515,77 +517,64 @@ const DeleteModal: React.FC<{
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 const RawMaterialsTab: React.FC = () => {
-  const [materials,   setMaterials]   = useState<RawMaterial[]>([]);
-  const [loading,     setLoading]     = useState(true);
-  const [search,      setSearch]      = useState('');
-  const [catFilter,   setCatFilter]   = useState('');
+  const [materials, setMaterials] = useState<RawMaterial[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [catFilter, setCatFilter] = useState('');
   const [stockFilter, setStockFilter] = useState('');
 
-  const [addOpen,     setAddOpen]     = useState(false);
-  const [editTarget,  setEditTarget]  = useState<RawMaterial | null>(null);
-  const [delTarget,   setDelTarget]   = useState<RawMaterial | null>(null);
-  const [adjTarget,   setAdjTarget]   = useState<RawMaterial | null>(null);
-  const [histTarget,  setHistTarget]  = useState<RawMaterial | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<RawMaterial | null>(null);
+  const [delTarget, setDelTarget] = useState<RawMaterial | null>(null);
+  const [adjTarget, setAdjTarget] = useState<RawMaterial | null>(null);
+  const [histTarget, setHistTarget] = useState<RawMaterial | null>(null);
 
-    const normalize = (m: RawMaterial): RawMaterial => ({
+  const normalize = (m: RawMaterial): RawMaterial => ({
     ...m,
     category: (m.category
-        ? (m.category.charAt(0).toUpperCase() + m.category.slice(1).toLowerCase()) as Category
-        : 'Ingredients') as Category,
-    });  
-    
-    const fetchMaterials = useCallback(async () => {
+      ? (m.category.charAt(0).toUpperCase() + m.category.slice(1).toLowerCase()) as Category
+      : 'Ingredients') as Category,
+  });
+
+  const fetchMaterials = useCallback(async () => {
     setLoading(true);
     try {
-        const res = await api.get('/raw-materials');
-        const data = res.data;
-        const raw = Array.isArray(data) ? data : data?.data ?? [];
-        setMaterials(raw.map(normalize)); // ← add .map(normalize) here
+      const res = await api.get('/raw-materials');
+      const data = res.data;
+      const raw = Array.isArray(data) ? data : data?.data ?? [];
+      setMaterials(raw.map(normalize)); // ← add .map(normalize) here
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
-    }, []);
+  }, []);
 
   useEffect(() => { fetchMaterials(); }, [fetchMaterials]);
 
   const filtered = materials.filter(m => {
     const matchSearch = m.name.toLowerCase().includes(search.toLowerCase());
-    const matchCat    = catFilter   ? m.category === catFilter : true;
-    const matchStock  = stockFilter === 'low'  ? m.current_stock <= m.reorder_level
-                      : stockFilter === 'out'  ? m.current_stock === 0
-                      : stockFilter === 'ok'   ? m.current_stock > m.reorder_level
-                      : true;
+    const matchCat = catFilter ? m.category === catFilter : true;
+    const matchStock = stockFilter === 'low' ? m.current_stock <= m.reorder_level
+      : stockFilter === 'out' ? m.current_stock === 0
+        : stockFilter === 'ok' ? m.current_stock > m.reorder_level
+          : true;
     return matchSearch && matchCat && matchStock;
   });
 
-  const totalItems   = materials.length;
-  const lowStockCnt  = materials.filter(m => m.current_stock > 0 && m.current_stock <= m.reorder_level).length;
+  const totalItems = materials.length;
+  const lowStockCnt = materials.filter(m => m.current_stock > 0 && m.current_stock <= m.reorder_level).length;
   const outOfStockCnt = materials.filter(m => m.current_stock === 0).length;
   const intermediateCnt = materials.filter(m => m.is_intermediate).length;
 
   return (
     <div className="p-6 md:p-8 bg-[#f4f2fb] min-h-full">
 
-      {/* Header */}
-      <div className="flex items-center justify-end mb-5 flex-wrap gap-3">
-        <div className="flex items-center gap-2">
-          <button onClick={fetchMaterials} disabled={loading}
-            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
-          </button>
-          <button onClick={() => setAddOpen(true)}
-            className="bg-[#3b2063] hover:bg-[#2d1851] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all">
-            <Plus size={13} /> Add Material
-          </button>
-        </div>
-      </div>
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-5">
         {[
-          { label: 'Total Items',    value: totalItems,      color: '#3b2063', bg: '#f5f0ff', border: '#e9d5ff' },
-          { label: 'Low Stock',      value: lowStockCnt,     color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
-          { label: 'Out of Stock',   value: outOfStockCnt,   color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
-          { label: 'Intermediate',   value: intermediateCnt, color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
+          { label: 'Total Items', value: totalItems, color: '#3b2063', bg: '#f5f0ff', border: '#e9d5ff' },
+          { label: 'Low Stock', value: lowStockCnt, color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
+          { label: 'Out of Stock', value: outOfStockCnt, color: '#dc2626', bg: '#fef2f2', border: '#fecaca' },
+          { label: 'Intermediate', value: intermediateCnt, color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
         ].map(s => (
           <div key={s.label} className="bg-white border rounded-[0.625rem] px-5 py-4 shadow-sm" style={{ borderColor: s.border }}>
             <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">{s.label}</p>
@@ -618,9 +607,10 @@ const RawMaterialsTab: React.FC = () => {
             <option value="low">Low Stock</option>
             <option value="out">Out of Stock</option>
           </select>
-          <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest ml-auto">
-            {filtered.length} results
-          </span>
+          <button onClick={() => setAddOpen(true)}
+            className="bg-[#3b2063] hover:bg-[#2d1851] shrink-0 text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all ml-auto md:ml-0">
+            <Plus size={13} /> Add Material
+          </button>
         </div>
 
         {/* Table */}
@@ -656,7 +646,7 @@ const RawMaterialsTab: React.FC = () => {
               {!loading && filtered.map(m => {
                 const status = stockStatus(m);
                 const cat = CATEGORY_COLORS[m.category as Category] ?? { bg: '#f4f4f5', text: '#71717a', border: '#e4e4e7' };
-                const pct    = m.reorder_level > 0 ? Math.min((m.current_stock / (m.reorder_level * 2)) * 100, 100) : 100;
+                const pct = m.reorder_level > 0 ? Math.min((m.current_stock / (m.reorder_level * 2)) * 100, 100) : 100;
                 const barColor = m.current_stock === 0 ? '#dc2626' : m.current_stock <= m.reorder_level * 0.5 ? '#dc2626' : m.current_stock <= m.reorder_level ? '#d97706' : '#16a34a';
 
                 return (
