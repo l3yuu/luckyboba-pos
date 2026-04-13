@@ -114,7 +114,7 @@ class ProcessCheckoutAction
                     'product_name'       => $item['name'],
                     'quantity'           => $item['quantity'],
                     'price'              => $basePrice,
-                    'final_price'        => $totalPrice, // Equivalent to old logic
+                    'final_price'        => $totalPrice,
                     'size'               => $item['size'] ?? null,
                     'cup_size_label'     => $item['cup_size_label'] ?? null,
                     'sugar_level'        => $item['sugar_level'] ?? null,
@@ -130,7 +130,6 @@ class ProcessCheckoutAction
                     'discount_amount'    => $itemDiscountAmount,
                 ]);
 
-                // Manage product-level quantity deduction
                 if (!empty($item['menu_item_id'])) {
                     MenuItem::where('id', $item['menu_item_id'])->decrement('quantity', $item['quantity']);
                 }
@@ -139,23 +138,25 @@ class ProcessCheckoutAction
             // 4. Recalculate Totals
             $recalculatedTotal = DB::table('sale_items')->where('sale_id', $sale->id)->sum('final_price');
             $itemDiscountTotal = DB::table('sale_items')->where('sale_id', $sale->id)->sum('discount_amount');
-            
-            // Collect all order-level and manual discounts
-            $orderDiscount       = (float) ($data['discount_amount'] ?? 0);
+
+            // The POS may send discount_amount as a DUPLICATE of sc+pwd+diplomat+other.
+            // Use the categorized fields as the authoritative source;
+            // only count the generic discount for any portion NOT already covered.
+            $rawGenericDiscount  = (float) ($data['discount_amount'] ?? 0);
             $scDiscountAmount    = (float) ($data['sc_discount_amount'] ?? 0);
             $pwdDiscountAmount   = (float) ($data['pwd_discount_amount'] ?? 0);
             $diplomatDiscAmount  = (float) ($data['diplomat_discount_amount'] ?? 0);
             $otherDiscountAmount = (float) ($data['other_discount_amount'] ?? 0);
-            
+
             $totalManualOrderDiscounts = $scDiscountAmount + $pwdDiscountAmount + $diplomatDiscAmount + $otherDiscountAmount;
-            
-            // finalTotal should be the Sum of Item Prices minus all discounts
-            $finalTotal = max(0, $recalculatedTotal - $itemDiscountTotal - $orderDiscount - $totalManualOrderDiscounts);
+            $uncategorizedDiscount     = max(0, $rawGenericDiscount - $totalManualOrderDiscounts);
+
+            $finalTotal = max(0, $recalculatedTotal - $itemDiscountTotal - $uncategorizedDiscount - $totalManualOrderDiscounts);
 
             $sale->update(['total_amount' => $finalTotal]);
 
-            // 5. VAT Compliance (Corrected to handle item-level exempt status)
-            $this->recalculateVat($sale, $isVat);
+            // 5. VAT Compliance
+            $this->recalculateVat($sale->fresh(), $isVat);
 
             // 6. Generate Receipt
             Receipt::create([
@@ -176,7 +177,7 @@ class ProcessCheckoutAction
                 'vat_type'      => $branch?->vat_type ?? 'vat',
             ]);
 
-            // 7. Deduct Raw Materials (Replaces explicit Observer call)
+            // 7. Deduct Raw Materials
             $this->deductStockAction->execute($sale);
 
             DB::commit();
@@ -223,47 +224,80 @@ class ProcessCheckoutAction
     }
 
     /**
-     * Refactored to correctly calculate VAT components by distinguishing between
-     * VATable and VAT-exempt portions based on line items.
+     * Correctly calculates VAT components for BIR compliance.
+     *
+     * ── GOLDEN RULE ──────────────────────────────────────────────────────────
+     *
+     *   vatable_sales + vat_amount + vat_exempt_sales ≡ total_amount
+     *
+     * total_amount is anchored as the customer-paid amount (post all discounts).
+     * We split it into a VATable portion and a VAT-exempt portion.
+     *
+     * ── HOW SC/PWD DISCOUNTS WORK (BIR rules) ──────────────────────────────
+     * Senior Citizen (SC) and PWD discounts:
+     *   - Discount = 20% of the VAT-exclusive menu price
+     *   - The discounted sale is entirely VAT-EXEMPT
+     *   - Customer pays: (menu_price / 1.12) × 0.80
+     *
+     * From the stored discount amount we can derive what the customer paid:
+     *   pre_vat_full_price = discount / 0.20
+     *   customer_pays      = pre_vat_full_price × 0.80 = discount × 4
+     *
+     * The remaining portion of total_amount (non SC/PWD) is VAT-inclusive.
      */
     private function recalculateVat(Sale $sale, bool $isVat): void
     {
-        $sale->load('items');
-        
-        $vatableGross = 0;
-        $vatExemptSales = 0;
+        $totalAmount = (float) $sale->total_amount;
 
-        foreach ($sale->items as $item) {
-            $isItemExempt = $item->discount_label && (
-                stripos($item->discount_label, 'SENIOR') !== false ||
-                stripos($item->discount_label, 'PWD') !== false ||
-                stripos($item->discount_label, 'DIPLOMAT') !== false
-            );
+        if (!$isVat || $totalAmount <= 0) {
+            $sale->update([
+                'vatable_sales'    => 0,
+                'vat_amount'       => 0,
+                'vat_exempt_sales' => 0,
+            ]);
+            return;
+        }
 
-            if ($isItemExempt) {
-                // For SC/PWD/Diplomat, the portion is VAT exempt.
-                // We derive the exempt base by removing the 12% VAT already included in menu price.
-                $vatExemptSales += round($item->final_price / 1.12, 2);
-            } else {
-                $vatableGross += $item->final_price;
+        // ── Determine the SC/PWD discount total ─────────────────────────────
+        $scDiscount  = (float) ($sale->sc_discount_amount  ?? 0);
+        $pwdDiscount = (float) ($sale->pwd_discount_amount ?? 0);
+        $totalScPwd  = $scDiscount + $pwdDiscount;
+
+        // Fallback: check item-level labels if order-level amounts are zero
+        if ($totalScPwd <= 0) {
+            $sale->load('items');
+            foreach ($sale->items as $item) {
+                $label = strtoupper($item->discount_label ?? '');
+                if (str_contains($label, 'SENIOR') || str_contains($label, 'PWD')) {
+                    $totalScPwd += (float) $item->discount_amount;
+                }
             }
         }
 
-        // Subtract order-level discounts from vatableGross to get true taxable base
-        // Note: SC/PWD/Diplomat order-level discounts are already factored into vat_exempt_sales logic usually,
-        // but for general promos (Other/General Discount), they must reduce the vatable base.
-        $orderDiscounts = (float)($sale->discount_amount ?? 0) + (float)($sale->other_discount_amount ?? 0);
-        
-        // Ensure vatableGross doesn't go below zero
-        $vatableGross = max(0, $vatableGross - $orderDiscounts);
+        // ── Compute VAT-exempt portion (SC/PWD customer-paid amount) ────────
+        $vatExemptSales = 0.0;
+        if ($totalScPwd > 0) {
+            // discount = 20% of pre-VAT → customer pays 80% of pre-VAT
+            $vatExemptSales = round($totalScPwd / 0.20 * 0.80, 2);
+            // Safety: cannot exceed what was actually collected
+            $vatExemptSales = min($vatExemptSales, $totalAmount);
+        }
 
-        $vatableSales = $isVat ? round($vatableGross / 1.12, 2) : 0;
-        $vatAmount    = $isVat ? round($vatableGross - $vatableSales, 2) : 0;
+        // ── The rest is VATable (inclusive of 12% VAT) ──────────────────────
+        $vatableGross  = round($totalAmount - $vatExemptSales, 2);
+        $vatableSales  = round($vatableGross / 1.12, 2);
+        $vatAmount     = round($vatableGross - $vatableSales, 2);
+
+        // ── Enforce golden rule: components must sum exactly to total_amount
+        $residual = round($totalAmount - ($vatableSales + $vatAmount + $vatExemptSales), 2);
+        if (abs($residual) > 0 && abs($residual) <= 0.05) {
+            $vatableSales = round($vatableSales + $residual, 2);
+        }
 
         $sale->update([
             'vatable_sales'    => $vatableSales,
             'vat_amount'       => $vatAmount,
-            'vat_exempt_sales' => round($vatExemptSales, 2),
+            'vat_exempt_sales' => $vatExemptSales,
         ]);
     }
 

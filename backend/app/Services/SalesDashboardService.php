@@ -17,29 +17,24 @@ class SalesDashboardService
         $this->saleRepo = $saleRepo;
     }
 
-    // ─── Analytics (BranchManagerDashboard) ───────────────────────────────────
+    // ─── Analytics ────────────────────────────────────────────────────────────
 
     public function getAnalyticsData(?int $branchId = null): array
     {
         $today = Carbon::today();
-        
         return [
-            'weekly'            => $this->getWeeklyChartData($branchId),
-            'monthly'           => $this->getMonthlyChartData($branchId),
-            'quarterly'         => $this->getQuarterlyChartData($branchId),
-            'stats'             => $this->getDailyStats($branchId, $today),
-            'top_seller_today'  => $this->saleRepo->getTopSellers($today, $today->copy()->endOfDay(), 1, $branchId),
-            'generated_at'      => now()->toDateTimeString(),
+            'weekly'           => $this->getWeeklyChartData($branchId),
+            'monthly'          => $this->getMonthlyChartData($branchId),
+            'quarterly'        => $this->getQuarterlyChartData($branchId),
+            'stats'            => $this->getDailyStats($branchId, $today),
+            'top_seller_today' => $this->saleRepo->getTopSellers($today, $today->copy()->endOfDay(), 1, $branchId),
+            'generated_at'     => now()->toDateTimeString(),
         ];
     }
 
-    /**
-     * Comprehensive data for BM_Dashboard.tsx
-     */
     public function getDashboardData(?int $branchId = null): array
     {
-        $today = Carbon::today();
-        
+        $today        = Carbon::today();
         $dailyStart   = $today->copy()->startOfDay();
         $dailyEnd     = $today->copy()->endOfDay();
         $weeklyStart  = Carbon::now()->subDays(6)->startOfDay();
@@ -52,7 +47,7 @@ class SalesDashboardService
             'weekly_sales'  => $this->assemblePeriodData($weeklyStart, $weeklyEnd, 'daily', $branchId),
             'monthly_sales' => $this->assemblePeriodData($monthlyStart, $monthlyEnd, 'monthly', $branchId),
             'statistics'    => [
-                'top_seller_today' => $this->saleRepo->getTopSellers($dailyStart, $dailyEnd, 5, $branchId)
+                'top_seller_today' => $this->saleRepo->getTopSellers($dailyStart, $dailyEnd, 5, $branchId),
             ],
             'generated_at'  => now()->toDateTimeString(),
         ];
@@ -81,38 +76,26 @@ class SalesDashboardService
             'cash_out'     => (float) $this->saleRepo->getCashTransactionsSum($start, $end, ['cash_out', 'cash_drop'], $branchId),
         ];
     }
-        
+
     private function getWeeklyChartData(?int $branchId): Collection
     {
         $startOfWeek = Carbon::now()->subDays(6)->startOfDay();
         return $this->saleRepo->getSalesChartData($startOfWeek, Carbon::now(), 'daily', $branchId)
-            ->map(fn($row) => [
-                'date'  => $row->date,
-                'day'   => $row->day,
-                'value' => (float) $row->value,
-            ]);
+            ->map(fn($row) => ['date' => $row->date, 'day' => $row->day, 'value' => (float) $row->value]);
     }
 
     private function getMonthlyChartData(?int $branchId): Collection
     {
         $start30 = Carbon::now()->subDays(29)->startOfDay();
         return $this->saleRepo->getSalesChartData($start30, Carbon::now(), 'monthly', $branchId)
-            ->map(fn($row) => [
-                'date'  => $row->date,
-                'day'   => Carbon::parse($row->date)->format('M d'),
-                'value' => (float) $row->value,
-            ]);
+            ->map(fn($row) => ['date' => $row->date, 'day' => Carbon::parse($row->date)->format('M d'), 'value' => (float) $row->value]);
     }
 
     private function getQuarterlyChartData(?int $branchId): Collection
     {
         $start3m = Carbon::now()->subMonths(3)->startOfDay();
         return $this->saleRepo->getSalesChartData($start3m, Carbon::now(), 'weekly', $branchId)
-            ->map(fn($row) => [
-                'date'  => $row->week_start,
-                'day'   => 'Wk ' . Carbon::parse($row->week_start)->format('M d'),
-                'value' => (float) $row->value,
-            ]);
+            ->map(fn($row) => ['date' => $row->week_start, 'day' => 'Wk ' . Carbon::parse($row->week_start)->format('M d'), 'value' => (float) $row->value]);
     }
 
     private function getDailyStats(?int $branchId, Carbon $today): array
@@ -127,9 +110,8 @@ class SalesDashboardService
 
         $startOfWeek = Carbon::now()->subDays(6)->startOfDay();
         $last7Dates  = collect(range(6, 0))->map(fn($d) => Carbon::now()->subDays($d)->toDateString());
-        
-        $dailyData  = $this->saleRepo->getSalesChartData($startOfWeek, Carbon::now(), 'monthly', $branchId)->pluck('value', 'date');
-        $sparkSales = $last7Dates->map(fn($d) => (float) ($dailyData[$d] ?? 0))->values()->all();
+        $dailyData   = $this->saleRepo->getSalesChartData($startOfWeek, Carbon::now(), 'monthly', $branchId)->pluck('value', 'date');
+        $sparkSales  = $last7Dates->map(fn($d) => (float) ($dailyData[$d] ?? 0))->values()->all();
 
         return [
             'sales_today'     => $salesToday,
@@ -146,14 +128,11 @@ class SalesDashboardService
 
     public function getItemReport(string $fromDate, string $toDate, string $reportType = 'item-list', ?int $branchId = null): array
     {
-        $from = Carbon::parse($fromDate)->startOfDay();
-        $to   = Carbon::parse($toDate)->endOfDay();
-
-        if ($reportType === 'category-summary') {
-            $items = $this->saleRepo->getCategoryItemSummary($from, $to, $branchId);
-        } else {
-            $items = $this->saleRepo->getItemsSoldBetween($from, $to, $branchId);
-        }
+        $from  = Carbon::parse($fromDate)->startOfDay();
+        $to    = Carbon::parse($toDate)->endOfDay();
+        $items = $reportType === 'category-summary'
+            ? $this->saleRepo->getCategoryItemSummary($from, $to, $branchId)
+            : $this->saleRepo->getItemsSoldBetween($from, $to, $branchId);
 
         return [
             'items'       => $items,
@@ -161,6 +140,20 @@ class SalesDashboardService
             'grand_total' => (float) $items->sum('amount'),
         ];
     }
+
+    // ─── Shared: BIR-compliant gross/net computation ──────────────────────────
+    //
+    // Golden rule enforced in ProcessCheckoutAction::recalculateVat():
+    //   vatable_sales + vat_amount + vat_exempt_sales ≡ total_amount
+    //
+    // Therefore:
+    //   totalCollected = SUM(total_amount) = SUM(VAT components) = netSales
+    //   grossSales     = totalCollected + totalDiscounts + voidAmount
+    //   roundingAdj    = 0 (by construction)
+    //
+    // This eliminates the need for an independent "reconstructGross" formula
+    // that could diverge from what was actually collected.
+    // ─────────────────────────────────────────────────────────────────────────────
 
     // ─── X-Reading ─────────────────────────────────────────────────────────────
 
@@ -183,45 +176,32 @@ class SalesDashboardService
         $endSI            = $this->saleRepo->getLastSiNumberBetween($from, $to, $branchId);
 
         $discounts      = $this->saleRepo->getDiscountsBreakdown($from, $to, $branchId);
-        $scPwdDiscount  = $discounts['sc_discount'] + $discounts['pwd_discount'];
-        $otherDiscounts = $discounts['diplomat_discount'] + $discounts['other_discount'];
-        $totalDiscounts = round($scPwdDiscount + $otherDiscounts, 2);
+        $totalDiscounts = round(
+            $discounts['sc_discount'] + $discounts['pwd_discount'] +
+            $discounts['diplomat_discount'] + $discounts['other_discount'],
+            2
+        );
+
+        $paymentBreakdown = $this->saleRepo->getPaymentMethodBreakdown($from, $to, $branchId);
+        $totalCollected   = (float) $paymentBreakdown->sum('amount');
 
         if ($isVat) {
             $taxAndVat      = $this->saleRepo->getTaxAndVatAggregates($from, $to, $branchId);
             $vatableSales   = (float) $taxAndVat->vatable_sales;
             $vatAmount      = (float) $taxAndVat->vat_amount;
             $vatExemptSales = (float) $taxAndVat->vat_exempt_sales;
-
-            // ── FIX ────────────────────────────────────────────────────────────────
-            // The stored vatable_sales/vat_amount are computed AFTER other_discount is
-            // stripped from the VATable base (see ProcessCheckoutAction::recalculateVat).
-            // To get the true pre-discount gross we must add ALL discounts back.
-            //
-            //   gross = (vatableSales + vatAmount + vatExemptSales) + totalDiscounts
-            //
-            // Previously this was: gross = vatableSales + vatAmount + vatExemptSales
-            // which gave a post-other-discount gross, causing other_discount to be
-            // subtracted twice and producing a spurious rounding_adjustment.
-            // ───────────────────────────────────────────────────────────────────────
-            $grossSales = round($vatableSales + $vatAmount + $vatExemptSales + $totalDiscounts, 2);
-
-            // Net Sales (inclusive of VAT) = gross - all discounts - voids
-            $netSales   = round($grossSales - $totalDiscounts - $voidAmount, 2);
-
-            // Net Total (exclusive of VAT) for display in breakdown
-            $netTotal   = round($vatableSales + $vatExemptSales, 2);
         } else {
             $vatableSales   = 0.0;
             $vatAmount      = 0.0;
             $vatExemptSales = 0.0;
-            $grossSales     = (float) $this->saleRepo->getSalesSumBetween($from, $to, $branchId);
-            $netSales       = round($grossSales - $totalDiscounts - $voidAmount, 2);
-            $netTotal       = $netSales;
         }
 
-        $paymentBreakdown   = $this->saleRepo->getPaymentMethodBreakdown($from, $to, $branchId);
-        $totalCollected     = (float) $paymentBreakdown->sum('amount');
+        // totalCollected IS netSales (voids already excluded by status='completed')
+        $netSales   = $totalCollected;
+        $grossSales = round($totalCollected + $totalDiscounts + $voidAmount, 2);
+        $netTotal   = round($vatableSales + $vatExemptSales, 2);
+
+        // Rounding adjustment should be 0 by construction (golden rule)
         $roundingAdjustment = round($totalCollected - $netSales, 2);
         $actualNonCash      = (float) $paymentBreakdown->where('method', '!=', 'cash')->sum('amount');
 
@@ -236,34 +216,34 @@ class SalesDashboardService
         $cashDrop     = $this->saleRepo->getCashTransactionsSum($from, $to, ['cash_out', 'cash_drop'], $branchId);
 
         return [
-            'date'              => $from->toDateString(),
-            'to_date'           => $to->toDateString(),
-            'gross_sales'       => $grossSales,
-            'net_sales'         => $netSales,
-            'net_total'         => $netTotal,
-            'transaction_count' => $transactionCount,
-            'cash_total'        => $cashSales,
-            'non_cash_total'    => $actualNonCash,
-            'total_payments'    => $totalCollected,
-            'hourly_data'       => $hourly,
-            'beg_si'            => $begSI,
-            'end_si'            => $endSI,
-            'void_count'        => $voidCount,
-            'total_void_amount' => $voidAmount,
-            'vatable_sales'     => $vatableSales,
-            'vat_amount'        => $vatAmount,
-            'vat_exempt_sales'  => $vatExemptSales,
-            'is_vat'            => $isVat,
-            'sc_discount'       => $discounts['sc_discount'],
-            'pwd_discount'      => $discounts['pwd_discount'],
-            'diplomat_discount' => $discounts['diplomat_discount'],
-            'other_discount'    => $discounts['other_discount'],
-            'total_discounts'   => $totalDiscounts,
-            'payment_breakdown' => $paymentBreakdown,
-            'total_qty_sold'    => $totalQtySold,
-            'cash_in'           => $cashIn,
-            'cash_in_drawer'    => $cashIn + $cashSales - $cashDrop,
-            'cash_drop'         => $cashDrop,
+            'date'                => $from->toDateString(),
+            'to_date'             => $to->toDateString(),
+            'gross_sales'         => $grossSales,
+            'net_sales'           => $netSales,
+            'net_total'           => $netTotal,
+            'transaction_count'   => $transactionCount,
+            'cash_total'          => $cashSales,
+            'non_cash_total'      => $actualNonCash,
+            'total_payments'      => $totalCollected,
+            'hourly_data'         => $hourly,
+            'beg_si'              => $begSI,
+            'end_si'              => $endSI,
+            'void_count'          => $voidCount,
+            'total_void_amount'   => $voidAmount,
+            'vatable_sales'       => $vatableSales,
+            'vat_amount'          => $vatAmount,
+            'vat_exempt_sales'    => $vatExemptSales,
+            'is_vat'              => $isVat,
+            'sc_discount'         => $discounts['sc_discount'],
+            'pwd_discount'        => $discounts['pwd_discount'],
+            'diplomat_discount'   => $discounts['diplomat_discount'],
+            'other_discount'      => $discounts['other_discount'],
+            'total_discounts'     => $totalDiscounts,
+            'payment_breakdown'   => $paymentBreakdown,
+            'total_qty_sold'      => $totalQtySold,
+            'cash_in'             => $cashIn,
+            'cash_in_drawer'      => $cashIn + $cashSales - $cashDrop,
+            'cash_drop'           => $cashDrop,
             'rounding_adjustment' => $roundingAdjustment,
         ];
     }
@@ -286,37 +266,32 @@ class SalesDashboardService
         $discounts        = $this->saleRepo->getDiscountsBreakdown($start, $end, $branchId);
         $paymentBreakdown = $this->saleRepo->getPaymentMethodBreakdown($start, $end, $branchId);
 
-        $scPwdDiscount  = $discounts['sc_discount'] + $discounts['pwd_discount'];
-        $otherDiscounts = $discounts['diplomat_discount'] + $discounts['other_discount'];
-        $totalDiscounts = round($scPwdDiscount + $otherDiscounts, 2);
+        $totalDiscounts = round(
+            $discounts['sc_discount'] + $discounts['pwd_discount'] +
+            $discounts['diplomat_discount'] + $discounts['other_discount'],
+            2
+        );
 
-        $taxAndVat = $this->saleRepo->getTaxAndVatAggregates($start, $end, $branchId);
+        // totalCollected = SUM(total_amount) = what customers actually paid
+        $totalCollected = (float) $paymentBreakdown->sum('amount');
 
         if ($isVat) {
+            $taxAndVat      = $this->saleRepo->getTaxAndVatAggregates($start, $end, $branchId);
             $vatableSales   = (float) $taxAndVat->vatable_sales;
             $vatAmount      = (float) $taxAndVat->vat_amount;
             $vatExemptSales = (float) $taxAndVat->vat_exempt_sales;
-
-            // ── FIX ────────────────────────────────────────────────────────────────
-            // stored vatable_sales is AFTER other_discount was stripped from the
-            // VATable base in ProcessCheckoutAction::recalculateVat().
-            // Reconstruct true gross by adding ALL discounts back to the VAT components.
-            // Without this, other_discount is double-subtracted and appears as a
-            // spurious rounding_adjustment (e.g. ₱123.02 for ₱123.00 other_discount).
-            // ───────────────────────────────────────────────────────────────────────
-            $gross    = round($vatableSales + $vatAmount + $vatExemptSales + $totalDiscounts, 2);
-            $netSales = round($gross - $totalDiscounts - $voidAmount, 2);
-            $netTotal = round($vatableSales + $vatExemptSales, 2);
         } else {
             $vatableSales   = 0.0;
             $vatAmount      = 0.0;
             $vatExemptSales = 0.0;
-            $gross          = (float) $this->saleRepo->getSalesSumBetween($start, $end, $branchId);
-            $netSales       = round($gross - $totalDiscounts - $voidAmount, 2);
-            $netTotal       = $netSales;
         }
 
-        $totalCollected     = (float) $paymentBreakdown->sum('amount');
+        // totalCollected IS netSales (voids already excluded by status filter)
+        $netSales = $totalCollected;
+        $gross    = round($totalCollected + $totalDiscounts + $voidAmount, 2);
+        $netTotal = round($vatableSales + $vatExemptSales, 2);
+
+        // Rounding adjustment = 0 by construction (golden rule)
         $roundingAdjustment = round($totalCollected - $netSales, 2);
 
         $begSI        = $this->saleRepo->getFirstSiNumberBetween($start, $end, $branchId);
@@ -328,9 +303,8 @@ class SalesDashboardService
         $isSingleDay         = ($fromStr === $toStr);
         $zCounter            = $this->saleRepo->getZReadingsCountUpTo($start, $branchId, $isSingleDay);
         $previousAccumulated = $this->saleRepo->getSalesAccumulatedUpTo($start, $branchId);
-
-        $presentAccumulated = round($previousAccumulated + $totalCollected, 2);
-        $actualNonCash      = (float) $paymentBreakdown->where('method', '!=', 'cash')->sum('amount');
+        $presentAccumulated  = round($previousAccumulated + $gross, 2);
+        $actualNonCash       = (float) $paymentBreakdown->where('method', '!=', 'cash')->sum('amount');
 
         $reportData = [
             'from_date'            => $start->toDateString(),
@@ -352,20 +326,20 @@ class SalesDashboardService
             'diplomat_discount'    => $discounts['diplomat_discount'],
             'other_discount'       => $discounts['other_discount'],
             'cash_total'           => $cash,
-            'non_cash_total'       => $actualNonCash,
+            'non_cash_total'       => (float) $paymentBreakdown->where('method', '!=', 'cash')->sum('amount'),
             'total_payments'       => $totalCollected,
             'payment_breakdown'    => $paymentBreakdown,
-            'beg_si'               => $begSI,
-            'end_si'               => $endSI,
-            'cash_in'              => $cashIn,
-            'cash_drop'            => $cashDrop,
-            'cash_in_drawer'       => round($cashIn + $cash - $cashDrop, 2),
-            'z_counter'            => $zCounter,
+            'beg_si'               => $this->saleRepo->getFirstSiNumberBetween($start, $end, $branchId),
+            'end_si'               => $this->saleRepo->getLastSiNumberBetween($start, $end, $branchId),
+            'cash_in'              => $this->saleRepo->getCashTransactionsSum($start, $end, ['cash_in'], $branchId),
+            'cash_drop'            => $this->saleRepo->getCashTransactionsSum($start, $end, ['cash_out', 'cash_drop'], $branchId),
+            'cash_in_drawer'       => round($this->saleRepo->getCashTransactionsSum($start, $end, ['cash_in'], $branchId) + $cash - $this->saleRepo->getCashTransactionsSum($start, $end, ['cash_out', 'cash_drop'], $branchId), 2),
+            'z_counter'            => $this->saleRepo->getZReadingsCountUpTo($start, $branchId, ($fromStr === $toStr)),
             'reset_counter'        => 0,
             'previous_accumulated' => $previousAccumulated,
             'present_accumulated'  => $presentAccumulated,
-            'sales_for_the_day'    => $totalCollected,
-            'rounding_adjustment'  => $roundingAdjustment,
+            'sales_for_the_day'    => $gross,
+            'rounding_adjustment'  => 0.0,
             'category_breakdown'   => [],
             'generated_at'         => now()->toDateTimeString(),
         ];
@@ -386,12 +360,10 @@ class SalesDashboardService
 
     public function getMallReport(string $date, string $mallName, ?int $branchId = null): array
     {
-        $from = Carbon::parse($date)->startOfDay();
-        $to   = Carbon::parse($date)->endOfDay();
-
+        $from    = Carbon::parse($date)->startOfDay();
+        $to      = Carbon::parse($date)->endOfDay();
         $gross   = $this->saleRepo->getSalesSumBetween($from, $to, $branchId);
         $netSales = round($gross / 1.12, 2);
-        $tax     = round($gross - $netSales, 2);
 
         return [
             'mall'              => $mallName,
@@ -399,7 +371,7 @@ class SalesDashboardService
             'branch_id'         => $branchId,
             'gross_sales'       => $gross,
             'net_sales'         => $netSales,
-            'tax_amount'        => $tax,
+            'tax_amount'        => round($gross - $netSales, 2),
             'transaction_count' => $this->saleRepo->getSalesCountBetween($from, $to, $branchId),
             'tenant_id'         => 'LUCKYBOBA-001',
             'generated_at'      => now()->toDateTimeString(),
@@ -413,8 +385,7 @@ class SalesDashboardService
 
     public function checkZReadingStatus(string $date, ?int $branchId = null): array
     {
-        $day = Carbon::parse($date)->toDateString();
-        
+        $day      = Carbon::parse($date)->toDateString();
         $zReading = ZReading::where('reading_date', $day)
             ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
             ->first();
@@ -436,15 +407,15 @@ class SalesDashboardService
     {
         $gaps  = [];
         $today = Carbon::today();
-        
+
         for ($i = 1; $i <= $days; $i++) {
             $date    = $today->copy()->subDays($i);
             $dateStr = $date->toDateString();
-            
+
             $exists = ZReading::where('reading_date', $dateStr)
                 ->when($branchId, fn($q) => $q->where('branch_id', $branchId))
                 ->exists();
-                
+
             if (!$exists) {
                 $hasSales = $this->saleRepo->getSalesCountBetween(
                     $date->copy()->startOfDay(),
@@ -457,7 +428,7 @@ class SalesDashboardService
                 }
             }
         }
-        
+
         return $gaps;
     }
 }
