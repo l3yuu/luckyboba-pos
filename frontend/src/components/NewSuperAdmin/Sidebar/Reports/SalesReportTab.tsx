@@ -278,15 +278,7 @@ const SalesReportTab: React.FC = () => {
   return (
     <div className="p-6 md:p-8 fade-in flex flex-col gap-5">
 
-      {/* ── Header ── */}
-      <div className="flex flex-wrap items-center justify-end gap-3 mb-1">
-        <Btn variant="secondary" onClick={fetchAll} disabled={loading}>
-          <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
-        </Btn>
-        <Btn variant="secondary" onClick={handleExport} disabled={loading}>
-          <Download size={13} /> Export CSV
-        </Btn>
-      </div>
+
 
       {/* ── Filters ── */}
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 flex flex-wrap gap-3 items-end">
@@ -347,10 +339,14 @@ const SalesReportTab: React.FC = () => {
           </div>
         </div>
 
-        {/* Apply */}
-        <Btn onClick={fetchAll} disabled={loading}>
-          {loading ? <><RefreshCw size={12} className="animate-spin" /> Loading...</> : "Apply Filters"}
-        </Btn>
+        <div className="flex gap-2">
+          <Btn onClick={fetchAll} disabled={loading}>
+            {loading ? <><RefreshCw size={12} className="animate-spin" /> Loading...</> : "Apply Filters"}
+          </Btn>
+          <Btn variant="secondary" onClick={handleExport} disabled={loading}>
+            <Download size={13} /> Export CSV
+          </Btn>
+        </div>
 
         {/* Clear */}
         {(branchId || mode === "range") && (

@@ -22,6 +22,8 @@ class Card extends Model
         'sort_order' => 'integer',
     ];
 
+    protected $appends = ['image_url'];
+
     // Returns a full URL for the image regardless of how it was stored
     public function getImageUrlAttribute(): string
     {
@@ -34,6 +36,14 @@ class Card extends Model
         // Already a full URL (stored by CardController@store)
         if (str_starts_with($image, 'http')) {
             return $image;
+        }
+
+        if (str_starts_with($image, 'assets/')) {
+            return '';
+        }
+
+        if (!Storage::disk('public')->exists($image)) {
+            return '';
         }
 
         // Relative storage path — prepend storage URL

@@ -6,7 +6,7 @@ import {
   TrendingUp, FileText, ClipboardList, Receipt, Repeat2,
   Truck, ScanLine, Hash, ShoppingCart, ArrowLeftRight,
   DollarSign, BookOpen, FlaskConical, Wallet, X, ChevronDown, Monitor,
-  CreditCard, AlertTriangle,
+  CreditCard, AlertTriangle, Sparkles
 } from "lucide-react";
 
 // ── Tab IDs ───────────────────────────────────────────────────────────────────
@@ -22,7 +22,7 @@ export type TabId =
   | "card_management" | "card_approvals"
   | "card_members"
   | "loyalty"
-  | "promotions" | "audit" | "settings";
+  | "promotions" | "audit" | "settings" | "featured_drinks";
 
 export interface SuperAdminSidebarProps {
   open:          boolean;
@@ -223,6 +223,7 @@ const APP_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [
   { id: "card_approvals", label: "Card Approvals", icon: <CreditCard size={14} /> },
   { id: "card_members",     label: "Card Members",   icon: <Users      size={14} /> },
   { id: "loyalty",          label: "Loyalty & Points", icon: <Tag        size={14} /> },
+  { id: "featured_drinks",  label: "Featured Drinks",  icon: <Sparkles    size={14} /> },
 ];
 
 const SYSTEM_ITEMS: { id: TabId; label: string; icon: React.ReactNode }[] = [

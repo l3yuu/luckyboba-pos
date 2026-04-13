@@ -306,133 +306,6 @@ function MovementDrawer({ row, onClose }: { row: ReportRow; onClose: () => void 
   );
 }
 
-function RecipeEditModal({ menuItem, size, existingRecipe, rawMaterials, onClose, onSaved }: { menuItem: MenuItem; size: string | null; existingRecipe: Recipe | null; rawMaterials: RawMaterial[]; onClose: () => void; onSaved: () => void; }) {
-  const overlayRef = useRef<HTMLDivElement>(null);
-  const blankRow = () => ({ raw_material_id: '', quantity: '', unit: 'G', notes: '', _key: Math.random() });
-  const [rows, setRows] = useState<ReturnType<typeof blankRow>[]>(() => {
-    if (existingRecipe && existingRecipe.items.length > 0) {
-      return existingRecipe.items.map((ri) => ({ raw_material_id: String(ri.raw_material_id), quantity: String(ri.quantity), unit: ri.unit, notes: ri.notes ?? '', _key: ri.id }));
-    }
-    return [blankRow()];
-  });
-  const [isActive, setIsActive] = useState(existingRecipe?.is_active ?? true);
-  const [recipeNotes, setRecipeNotes] = useState(existingRecipe?.notes ?? '');
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
-
-  useEffect(() => { const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); }; window.addEventListener('keydown', handler); return () => window.removeEventListener('keydown', handler); }, [onClose]);
-
-  const addRow = () => setRows(r => [...r, blankRow()]);
-  const removeRow = (key: number) => setRows(r => r.filter(row => row._key !== key));
-  const updateRow = (key: number, field: string, value: string) => {
-    setRows(r => r.map(row => {
-      if (row._key !== key) return row;
-      if (field === 'raw_material_id') { const mat = rawMaterials.find(m => m.id === parseInt(value)); return { ...row, [field]: value, unit: mat?.unit ?? row.unit }; }
-      return { ...row, [field]: value };
-    }));
-  };
-
-  const handleSave = async () => {
-    const validRows = rows.filter(r => r.raw_material_id && r.quantity);
-    if (validRows.length === 0) { setError('Add at least one ingredient.'); return; }
-    setSubmitting(true); setError('');
-    try {
-      const payload = { menu_item_id: menuItem.id, size: size === 'none' ? null : size, is_active: isActive, notes: recipeNotes || null, items: validRows.map(r => ({ raw_material_id: parseInt(r.raw_material_id), quantity: parseFloat(r.quantity), unit: r.unit, notes: r.notes || null })) };
-      if (existingRecipe) { await api.patch(`/recipes/${existingRecipe.id}`, payload); } else { await api.post('/recipes', payload); }
-      onSaved(); onClose();
-    } catch (err) { const msg = axios.isAxiosError(err) ? (err.response?.data?.message ?? 'Failed to save recipe.') : 'Failed to save recipe.'; setError(msg); }
-    finally { setSubmitting(false); }
-  };
-
-  const handleDelete = async () => {
-    if (!existingRecipe) return;
-    if (!confirm('Delete this recipe? This cannot be undone.')) return;
-    setSubmitting(true);
-    try { await api.delete(`/recipes/${existingRecipe.id}`); onSaved(); onClose(); }
-    catch { setError('Failed to delete recipe.'); }
-    finally { setSubmitting(false); }
-  };
-
-  const sizeLabel = size === 'none' || !size ? 'Fixed Size' : `Size ${size}`;
-
-  return (
-    <div ref={overlayRef} onClick={(e) => { if (e.target === overlayRef.current) onClose(); }} className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-[0.625rem] border border-[#e9d5ff] shadow-2xl w-full max-w-2xl flex flex-col overflow-hidden" style={{ ...dashboardFont, maxHeight: '90vh' }}>
-        <div className="flex items-center justify-between px-7 py-5 border-b border-[#e9d5ff] shrink-0">
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-zinc-400">Recipe Editor · {sizeLabel}</p>
-            <h2 className="text-sm font-extrabold text-[#1c1c1e] mt-0.5 truncate max-w-md">{menuItem.name}</h2>
-          </div>
-          <button onClick={onClose} className="text-zinc-300 hover:text-zinc-600 transition-colors p-1 text-lg leading-none shrink-0">×</button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-7 py-6 flex flex-col gap-5">
-          {error && <p className="text-[11px] text-red-500 font-semibold bg-red-50 border border-red-200 px-4 py-2">{error}</p>}
-          <div className="flex items-center justify-between bg-[#f5f0ff] border border-[#e9d5ff] px-4 py-3 rounded-[0.625rem]">
-            <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Recipe Status</span>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={isActive} onChange={e => setIsActive(e.target.checked)} className="w-4 h-4 accent-[#3b2063]" />
-              <span className={`text-[11px] font-bold uppercase tracking-widest ${isActive ? 'text-emerald-600' : 'text-zinc-400'}`}>{isActive ? 'Active' : 'Inactive'}</span>
-            </label>
-          </div>
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Ingredients <span className="text-red-400">*</span></label>
-              <button onClick={addRow} className="h-7 px-3 bg-[#3b2063] text-white text-[10px] font-bold uppercase tracking-widest hover:bg-[#6a12b8] transition-colors rounded-[0.625rem] flex items-center gap-1">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3 h-3"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-                Add Row
-              </button>
-            </div>
-            <div className="border border-[#e9d5ff] overflow-hidden rounded-[0.625rem]">
-              <div className="grid grid-cols-[2fr_1fr_1fr_auto] bg-[#f5f0ff] border-b border-[#e9d5ff]">
-                <div className="px-3 py-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Raw Material</div>
-                <div className="px-3 py-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Qty / Serving</div>
-                <div className="px-3 py-2 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Unit</div>
-                <div className="px-3 py-2 w-10" />
-              </div>
-              {rows.map((row, idx) => (
-                <div key={row._key} className={`grid grid-cols-[2fr_1fr_1fr_auto] items-center ${idx < rows.length - 1 ? 'border-b border-zinc-100' : ''}`}>
-                  <div className="px-2 py-1.5">
-                    <select value={row.raw_material_id} onChange={e => updateRow(row._key, 'raw_material_id', e.target.value)} className="w-full px-2 py-2 rounded-[0.625rem] border border-[#e9d5ff] bg-white text-[#1c1c1e] font-semibold text-xs outline-none focus:border-[#3b2063] cursor-pointer">
-                      <option value="">— Select ingredient —</option>
-                      {rawMaterials.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
-                    </select>
-                  </div>
-                  <div className="px-2 py-1.5">
-                    <input type="number" min="0" step="0.0001" value={row.quantity} onChange={e => updateRow(row._key, 'quantity', e.target.value)} placeholder="0" className="w-full px-2 py-2 rounded-[0.625rem] border border-[#e9d5ff] text-xs font-semibold outline-none focus:border-[#3b2063] bg-white text-[#1c1c1e]" />
-                  </div>
-                  <div className="px-2 py-1.5">
-                    <input type="text" value={row.unit} onChange={e => updateRow(row._key, 'unit', e.target.value)} className="w-full px-2 py-2 rounded-[0.625rem] border border-[#e9d5ff] text-xs font-bold outline-none focus:border-[#3b2063] bg-white text-zinc-700 uppercase" />
-                  </div>
-                  <div className="px-2 py-1.5 flex justify-center">
-                    <button onClick={() => removeRow(row._key)} disabled={rows.length === 1} className="w-7 h-7 flex items-center justify-center text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-colors rounded-[0.625rem] disabled:opacity-20">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3.5 h-3.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest block">Recipe Notes</label>
-            <textarea value={recipeNotes} onChange={e => setRecipeNotes(e.target.value)} className="w-full px-4 py-3 rounded-[0.625rem] border border-[#e9d5ff] text-sm font-semibold outline-none transition-all bg-white text-[#1c1c1e] placeholder:text-zinc-400 focus:border-[#3b2063] h-16 resize-none" placeholder="Optional notes about this recipe..." />
-          </div>
-        </div>
-
-        <div className="flex gap-3 px-7 py-5 border-t border-[#e9d5ff] shrink-0">
-          {existingRecipe && (
-            <button onClick={handleDelete} disabled={submitting} className="h-11 px-5 bg-white border border-red-300 text-red-500 font-bold text-xs uppercase tracking-widest hover:bg-red-50 hover:border-red-400 transition-all rounded-[0.625rem] disabled:opacity-50">Delete</button>
-          )}
-          <button onClick={onClose} disabled={submitting} className="flex-1 h-11 bg-white border border-zinc-300 text-zinc-600 font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all disabled:opacity-50 rounded-[0.625rem]">Cancel</button>
-          <button onClick={handleSave} disabled={submitting} className="flex-1 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] transition-all disabled:opacity-60 flex items-center justify-center gap-2 rounded-[0.625rem]">
-            {submitting ? <><span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />Saving...</> : existingRecipe ? 'Update Recipe' : 'Save Recipe'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 const InventoryDashboard = () => {
@@ -477,7 +350,7 @@ const InventoryDashboard = () => {
   const [recipeSearch, setRecipeSearch] = useState('');
   const [recipeFilterStatus, setRecipeFilterStatus] = useState<'all' | 'with' | 'without'>('all');
   const [recipeEntriesLimit, setRecipeEntriesLimit] = useState(25);
-  const [editTarget, setEditTarget] = useState<{ menuItem: MenuItem; size: string | null; recipe: Recipe | null } | null>(null);
+
 
   const periodLabel = useMemo(() => new Date().toLocaleDateString('en-PH', { month: 'long', year: 'numeric' }), []);
 
@@ -601,7 +474,7 @@ const InventoryDashboard = () => {
       {deleteTarget && <DeleteModal item={deleteTarget} onClose={() => setDeleteTarget(null)} onConfirm={handleDeleteConfirm} />}
       {drawerRow && <MovementDrawer row={drawerRow} onClose={() => setDrawerRow(null)} />}
       {isHistoryOpen && <InventoryHistoryModal onClose={() => setIsHistoryOpen(false)} />}
-      {editTarget && <RecipeEditModal menuItem={editTarget.menuItem} size={editTarget.size} existingRecipe={editTarget.recipe} rawMaterials={materials} onClose={() => setEditTarget(null)} onSaved={() => { addToast('Recipe saved successfully.'); fetchRecipes(); }} />}
+
 
       <div className="flex-1 bg-[#f4f2fb] h-full flex flex-col overflow-hidden font-sans" style={dashboardFont}>
         <TopNavbar />
@@ -1016,7 +889,6 @@ const InventoryDashboard = () => {
                           <th className="px-5 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center w-20">Size</th>
                           <th className="px-5 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center w-28">Status</th>
                           <th className="px-5 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Ingredients</th>
-                          <th className="px-7 py-4 text-[10px] font-bold text-zinc-500 uppercase tracking-widest text-center w-28">Action</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-zinc-100">
@@ -1050,14 +922,10 @@ const InventoryDashboard = () => {
                                 <span className="text-[11px] text-zinc-300 font-semibold">No ingredients set</span>
                               )}
                             </td>
-                            <td className="px-7 py-3.5 text-center">
-                              <button onClick={() => setEditTarget({ menuItem: row.menuItem, size: row.size, recipe: row.recipe })} className={`h-9 px-4 text-[11px] font-bold uppercase tracking-widest rounded-[0.625rem] transition-colors ${row.hasRecipe ? 'bg-white border border-[#e9d5ff] text-[#3b2063] hover:border-[#3b2063] hover:bg-[#f5f0ff]' : 'bg-[#3b2063] text-white hover:bg-[#6a12b8]'}`}>
-                                {row.hasRecipe ? 'Edit' : 'Add'}
-                              </button>
-                            </td>
+
                           </tr>
                         )) : (
-                          <tr><td colSpan={5} className="px-8 py-20 text-center"><p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">{recipeSearch ? `No results for "${recipeSearch}"` : 'No menu items found'}</p></td></tr>
+                          <tr><td colSpan={4} className="px-8 py-20 text-center"><p className="text-[11px] font-bold text-zinc-300 uppercase tracking-widest">{recipeSearch ? `No results for "${recipeSearch}"` : 'No menu items found'}</p></td></tr>
                         )}
                       </tbody>
                     </table>

@@ -23,6 +23,7 @@ class RawMaterialSeeder extends Seeder
             ['DELIGHT (1pk)',                         'PC',  'Packaging',     false,  10],
             ['SEALING MACHINE COUNT',                 'PC',  'Equipment',     false,   0],
             ['LUCKY CARD',                            'PC',  'Packaging',     false,  20],
+            ['STRAW',                                 'PC',  'Packaging',     false, 100],
 
             // ── Ingredients ──────────────────────────────────────────────────
             ['PEARL, BLACK BOBA (900g/pk)',           'PK',  'Ingredients',   false,   5],

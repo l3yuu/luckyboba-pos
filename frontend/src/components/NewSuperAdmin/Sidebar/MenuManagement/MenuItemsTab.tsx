@@ -9,66 +9,66 @@ import {
 import { createPortal } from "react-dom";
 
 type VariantKey = "primary" | "secondary" | "danger" | "ghost";
-type SizeKey    = "sm" | "md" | "lg";
+type SizeKey = "sm" | "md" | "lg";
 
 const getToken = () =>
   localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
 const authHeaders = (): Record<string, string> => ({
   "Content-Type": "application/json",
-  "Accept":       "application/json",
+  "Accept": "application/json",
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
 
 interface BundleItemRaw {
   custom_name?: string;
-  name?:        string;
-  quantity?:    number;
-  size?:        string;
+  name?: string;
+  quantity?: number;
+  size?: string;
 }
 
 interface ItemOptions {
   pearl: boolean;
-  ice:   boolean;
+  ice: boolean;
 }
 
 interface MenuItem {
-  id:             number;
-  name:           string;
-  category_id:    number | null;
-  category:       string;
-  category_type:  string;
+  id: number;
+  name: string;
+  category_id: number | null;
+  category: string;
+  category_type: string;
   subcategory_id: number | null;
-  subcategory:    string;
-  price:          number;
-  grab_price:     number;
-  panda_price:    number;
-  barcode:        string | null;
-  size:           string | null;
-  image_path:     string | null;
-  is_available:   boolean;
+  subcategory: string;
+  price: number;
+  grab_price: number;
+  panda_price: number;
+  barcode: string | null;
+  size: string | null;
+  image_path: string | null;
+  is_available: boolean;
 }
 interface Category {
-  id:            number;
-  name:          string;
+  id: number;
+  name: string;
   category_type: string; // ✅ added
 }
 interface SubCategory { id: number; name: string; category_id: number; }
 
 interface CategoryDrink {
-  id:           number;
-  category_id:  number;
+  id: number;
+  category_id: number;
   menu_item_id: number;
-  name:         string;
-  size:         string;
-  price:        number;
+  name: string;
+  size: string;
+  price: number;
 }
 
 interface SugarLevel {
-  id:         number;
-  label:      string;
-  value:      string;
+  id: number;
+  label: string;
+  value: string;
   sort_order: number;
-  is_active:  boolean;
+  is_active: boolean;
 }
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
@@ -78,12 +78,12 @@ interface BtnProps {
   onClick?: () => void; className?: string; disabled?: boolean; type?: "button" | "submit" | "reset";
 }
 const Btn: React.FC<BtnProps> = ({ children, variant = "primary", size = "sm", onClick, className = "", disabled = false, type = "button" }) => {
-  const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
+  const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#3b2063] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
-    danger:    "bg-red-600 hover:bg-red-700 text-white",
-    ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
+    danger: "bg-red-600 hover:bg-red-700 text-white",
+    ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
   };
   return (
     <button type={type} onClick={onClick} disabled={disabled}
@@ -116,7 +116,7 @@ const OptionsBadge: React.FC<{ opts: ItemOptions }> = ({ opts }) => {
 };
 
 const OptionsToggle: React.FC<{
-  value:    ItemOptions;
+  value: ItemOptions;
   onChange: (v: ItemOptions) => void;
 }> = ({ value, onChange }) => (
   <div className="flex flex-col gap-2 p-3 bg-zinc-50 border border-zinc-200 rounded-lg">
@@ -127,34 +127,32 @@ const OptionsToggle: React.FC<{
       <button
         type="button"
         onClick={() => onChange({ ...value, pearl: !value.pearl })}
-        className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-bold transition-all ${
-          value.pearl
-            ? "bg-rose-50 border-rose-300 text-rose-700"
-            : "bg-white border-zinc-200 text-zinc-400"
-        }`}
+        className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-bold transition-all ${value.pearl
+          ? "bg-rose-50 border-rose-300 text-rose-700"
+          : "bg-white border-zinc-200 text-zinc-400"
+          }`}
       >
         🧋
         <span>Pearl</span>
         {value.pearl
           ? <ToggleRight size={18} className="text-rose-500" />
-          : <ToggleLeft  size={18} className="text-zinc-300" />}
+          : <ToggleLeft size={18} className="text-zinc-300" />}
       </button>
 
       {/* Ice toggle */}
       <button
         type="button"
         onClick={() => onChange({ ...value, ice: !value.ice })}
-        className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-bold transition-all ${
-          value.ice
-            ? "bg-sky-50 border-sky-300 text-sky-700"
-            : "bg-white border-zinc-200 text-zinc-400"
-        }`}
+        className={`flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-bold transition-all ${value.ice
+          ? "bg-sky-50 border-sky-300 text-sky-700"
+          : "bg-white border-zinc-200 text-zinc-400"
+          }`}
       >
         🧊
         <span>Ice</span>
         {value.ice
           ? <ToggleRight size={18} className="text-sky-500" />
-          : <ToggleLeft  size={18} className="text-zinc-300" />}
+          : <ToggleLeft size={18} className="text-zinc-300" />}
       </button>
     </div>
     <p className="text-[9px] text-zinc-400">These options will appear as add-on choices at the cashier.</p>
@@ -178,40 +176,40 @@ const ModalShell: React.FC<{
   onClose: () => void; icon: React.ReactNode; title: string; sub: string;
   children: React.ReactNode; footer: React.ReactNode; maxWidth?: string;
 }> = ({ onClose, icon, title, sub, children, footer, maxWidth = "max-w-lg" }) =>
-  createPortal(
-    <div className="fixed inset-0 z-9999 flex items-center justify-center p-4"
-      style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", backgroundColor: "rgba(0,0,0,0.45)" }}>
-      <div className="absolute inset-0" onClick={onClose} />
-      <div className={`relative bg-white w-full ${maxWidth} border border-zinc-200 rounded-[1.25rem] shadow-2xl flex flex-col max-h-[90vh]`}>
-        <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-violet-50 border border-violet-200 rounded-lg flex items-center justify-center">{icon}</div>
-            <div>
-              <p className="text-sm font-bold text-[#1a0f2e]">{title}</p>
-              <p className="text-[10px] text-zinc-400">{sub}</p>
+    createPortal(
+      <div className="fixed inset-0 z-9999 flex items-center justify-center p-4"
+        style={{ backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)", backgroundColor: "rgba(0,0,0,0.45)" }}>
+        <div className="absolute inset-0" onClick={onClose} />
+        <div className={`relative bg-white w-full ${maxWidth} border border-zinc-200 rounded-[1.25rem] shadow-2xl flex flex-col max-h-[90vh]`}>
+          <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-violet-50 border border-violet-200 rounded-lg flex items-center justify-center">{icon}</div>
+              <div>
+                <p className="text-sm font-bold text-[#1a0f2e]">{title}</p>
+                <p className="text-[10px] text-zinc-400">{sub}</p>
+              </div>
             </div>
+            <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600"><X size={16} /></button>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg transition-colors text-zinc-400 hover:text-zinc-600"><X size={16} /></button>
+          <div className="px-6 py-5 flex flex-col gap-4 overflow-y-auto flex-1">{children}</div>
+          <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-100 shrink-0">{footer}</div>
         </div>
-        <div className="px-6 py-5 flex flex-col gap-4 overflow-y-auto flex-1">{children}</div>
-        <div className="flex items-center justify-end gap-2 px-6 py-4 border-t border-zinc-100 shrink-0">{footer}</div>
-      </div>
-    </div>,
-    document.body
-  );
+      </div>,
+      document.body
+    );
 
 // ── Combo Builder Section ─────────────────────────────────────────────────────
 
 interface ComboBuilderProps {
-  allItems:      MenuItem[];
-  foodItemId:    string;
-  drinkItemId:   string;
-  onFoodChange:  (id: string) => void;
+  allItems: MenuItem[];
+  foodItemId: string;
+  drinkItemId: string;
+  onFoodChange: (id: string) => void;
   onDrinkChange: (id: string) => void;
-  errors:        Record<string, string>;
+  errors: Record<string, string>;
 }
 
-const FOOD_TYPES  = ["food", "wings", "waffle"];
+const FOOD_TYPES = ["food", "wings", "waffle"];
 const DRINK_TYPES = ["drink"];
 
 const ComboBuilder: React.FC<ComboBuilderProps> = ({
@@ -303,10 +301,10 @@ const ComboBuilder: React.FC<ComboBuilderProps> = ({
 // ── Bundle Builder Section ────────────────────────────────────────────────────
 
 interface BundleBuilderProps {
-  allItems:       MenuItem[];
-  bundleItemIds:  string[];
-  onItemsChange:  (ids: string[]) => void;
-  errors:         Record<string, string>;
+  allItems: MenuItem[];
+  bundleItemIds: string[];
+  onItemsChange: (ids: string[]) => void;
+  errors: Record<string, string>;
 }
 
 const BundleBuilder: React.FC<BundleBuilderProps> = ({
@@ -334,9 +332,9 @@ const BundleBuilder: React.FC<BundleBuilderProps> = ({
     });
   }, [allItems]);
 
-  const addSlot    = () => onItemsChange([...bundleItemIds, ""]);
+  const addSlot = () => onItemsChange([...bundleItemIds, ""]);
   const removeSlot = (idx: number) => onItemsChange(bundleItemIds.filter((_, i) => i !== idx));
-  const setSlot    = (idx: number, val: string) => {
+  const setSlot = (idx: number, val: string) => {
     const next = [...bundleItemIds]; next[idx] = val; onItemsChange(next);
   };
 
@@ -408,10 +406,10 @@ const BundleBuilder: React.FC<BundleBuilderProps> = ({
 // ── Category Drinks Manager ───────────────────────────────────────────────────
 
 interface CategoryDrinksManagerProps {
-  categoryId:   number;
+  categoryId: number;
   categoryName: string;
-  allItems:     MenuItem[];
-  onClose:      () => void;
+  allItems: MenuItem[];
+  onClose: () => void;
 }
 
 const CategoryDrinksManager: React.FC<CategoryDrinksManagerProps> = ({
@@ -441,10 +439,10 @@ const CategoryDrinksManager: React.FC<CategoryDrinksManagerProps> = ({
   }, [drinkPool]);
 
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [loading,     setLoading]     = useState(true);
-  const [saving,      setSaving]      = useState(false);
-  const [saved,       setSaved]       = useState(false);
-  const [error,       setError]       = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     setLoading(true);
@@ -471,7 +469,7 @@ const CategoryDrinksManager: React.FC<CategoryDrinksManagerProps> = ({
     setSaving(true); setError("");
     try {
       const res = await fetch("/api/category-drinks", {
-        method:  "POST",
+        method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({
           category_id: categoryId,
@@ -542,18 +540,16 @@ const CategoryDrinksManager: React.FC<CategoryDrinksManagerProps> = ({
                   key={d.id}
                   type="button"
                   onClick={() => toggle(d.id)}
-                  className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-left transition-all ${
-                    isSelected
-                      ? 'bg-rose-100 border-rose-400 text-rose-800'
-                      : 'bg-white border-zinc-200 text-zinc-500 hover:border-rose-300'
-                  }`}
+                  className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg border text-left transition-all ${isSelected
+                    ? 'bg-rose-100 border-rose-400 text-rose-800'
+                    : 'bg-white border-zinc-200 text-zinc-500 hover:border-rose-300'
+                    }`}
                 >
-                  <div className={`w-3 h-3 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-                    isSelected ? 'bg-rose-500 border-rose-500' : 'border-zinc-300'
-                  }`}>
+                  <div className={`w-3 h-3 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'bg-rose-500 border-rose-500' : 'border-zinc-300'
+                    }`}>
                     {isSelected && (
                       <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                        <path d="M1.5 4L3 5.5L6.5 2" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M1.5 4L3 5.5L6.5 2" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     )}
                   </div>
@@ -577,8 +573,8 @@ const CategoryDrinksManager: React.FC<CategoryDrinksManagerProps> = ({
 
 const SugarLevelToggle: React.FC<{
   allLevels: SugarLevel[];
-  selected:  number[];
-  onChange:  (ids: number[]) => void;
+  selected: number[];
+  onChange: (ids: number[]) => void;
 }> = ({ allLevels, selected, onChange }) => {
   const toggle = (id: number) => {
     onChange(selected.includes(id)
@@ -600,17 +596,16 @@ const SugarLevelToggle: React.FC<{
               key={lvl.id}
               type="button"
               onClick={() => toggle(lvl.id)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all ${
-                isOn
-                  ? "bg-violet-50 border-violet-300 text-violet-700"
-                  : "bg-white border-zinc-200 text-zinc-400"
-              }`}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all ${isOn
+                ? "bg-violet-50 border-violet-300 text-violet-700"
+                : "bg-white border-zinc-200 text-zinc-400"
+                }`}
             >
               <span>%</span>
               <span>{lvl.label}</span>
               {isOn
                 ? <ToggleRight size={16} className="text-violet-500" />
-                : <ToggleLeft  size={16} className="text-zinc-300" />}
+                : <ToggleLeft size={16} className="text-zinc-300" />}
             </button>
           );
         })}
@@ -623,9 +618,9 @@ const SugarLevelToggle: React.FC<{
 // ── Food Add-Ons Toggle ───────────────────────────────────────────────────────
 
 const FoodAddOnsToggle: React.FC<{
-  allAddOns:  AddOnItem[];
-  selected:   number[];
-  onChange:   (ids: number[]) => void;
+  allAddOns: AddOnItem[];
+  selected: number[];
+  onChange: (ids: number[]) => void;
 }> = ({ allAddOns, selected, onChange }) => {
   const foodAddOns = allAddOns.filter(a => a.category === "food" && a.is_available);
 
@@ -649,11 +644,10 @@ const FoodAddOnsToggle: React.FC<{
               key={addon.id}
               type="button"
               onClick={() => toggle(addon.id)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all ${
-                isOn
-                  ? "bg-amber-100 border-amber-300 text-amber-700"
-                  : "bg-white border-zinc-200 text-zinc-400"
-              }`}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-bold transition-all ${isOn
+                ? "bg-amber-100 border-amber-300 text-amber-700"
+                : "bg-white border-zinc-200 text-zinc-400"
+                }`}
             >
               <span>🍴</span>
               <span>{addon.name}</span>
@@ -662,7 +656,7 @@ const FoodAddOnsToggle: React.FC<{
               </span>
               {isOn
                 ? <ToggleRight size={16} className="text-amber-500" />
-                : <ToggleLeft  size={16} className="text-zinc-300" />}
+                : <ToggleLeft size={16} className="text-zinc-300" />}
             </button>
           );
         })}
@@ -680,28 +674,28 @@ interface SearchableSelectOption {
 }
 
 interface SearchableSelectProps {
-  options:      SearchableSelectOption[];
-  value:        string;
-  onChange:     (val: string) => void;
+  options: SearchableSelectOption[];
+  value: string;
+  onChange: (val: string) => void;
   placeholder?: string;
-  error?:       boolean;
+  error?: boolean;
   accentColor?: string; // e.g. "purple" | "indigo" | "rose"
 }
 
 const ACCENT: Record<string, { border: string; ring: string; icon: string; highlight: string }> = {
-  purple: { border: "border-purple-200", ring:  "focus-within:ring-purple-400", icon:  "text-purple-300", highlight: "bg-purple-50 text-purple-700" },
-  indigo: { border: "border-indigo-200", ring:  "focus-within:ring-indigo-400", icon:  "text-indigo-300", highlight: "bg-indigo-50 text-indigo-700" },
-  rose:   { border: "border-rose-200",   ring:  "focus-within:ring-rose-400",   icon:  "text-rose-300",   highlight: "bg-rose-50 text-rose-700"     },
+  purple: { border: "border-purple-200", ring: "focus-within:ring-purple-400", icon: "text-purple-300", highlight: "bg-purple-50 text-purple-700" },
+  indigo: { border: "border-indigo-200", ring: "focus-within:ring-indigo-400", icon: "text-indigo-300", highlight: "bg-indigo-50 text-indigo-700" },
+  rose: { border: "border-rose-200", ring: "focus-within:ring-rose-400", icon: "text-rose-300", highlight: "bg-rose-50 text-rose-700" },
 };
 
 const SearchableSelect: React.FC<SearchableSelectProps> = ({
   options, value, onChange, placeholder = "Search or select...", error = false, accentColor = "purple",
 }) => {
-  const [query,  setQuery]  = useState("");
-  const [open,   setOpen]   = useState(false);
-  const ref                 = useRef<HTMLDivElement>(null);
-  const inputRef            = useRef<HTMLInputElement>(null);
-  const ac                  = ACCENT[accentColor] ?? ACCENT.purple;
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const ac = ACCENT[accentColor] ?? ACCENT.purple;
 
   const selected = options.find(o => o.value === value);
 
@@ -792,15 +786,14 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
                   key={opt.value}
                   type="button"
                   onClick={() => handleSelect(opt.value)}
-                  className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors flex items-center gap-2 ${
-                    opt.value === value
-                      ? `${ac.highlight} font-bold`
-                      : "text-zinc-600 hover:bg-zinc-50"
-                  }`}
+                  className={`w-full text-left px-3 py-2 text-xs font-medium transition-colors flex items-center gap-2 ${opt.value === value
+                    ? `${ac.highlight} font-bold`
+                    : "text-zinc-600 hover:bg-zinc-50"
+                    }`}
                 >
                   {opt.value === value && (
                     <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="shrink-0">
-                      <path d="M2 5L4 7L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M2 5L4 7L8 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   )}
                   <span className={opt.value === value ? "" : "pl-3.5"}>{opt.label}</span>
@@ -817,42 +810,42 @@ const SearchableSelect: React.FC<SearchableSelectProps> = ({
 // ── Add / Edit Modal ──────────────────────────────────────────────────────────
 
 interface MenuItemFormProps {
-  item?:         MenuItem;
-  allItems:      MenuItem[];   // ✅ for combo picker
-  categories:    Category[];
+  item?: MenuItem;
+  allItems: MenuItem[];   // ✅ for combo picker
+  categories: Category[];
   subcategories: SubCategory[];
-  sugarLevels:   SugarLevel[]; 
-  allAddOns:     AddOnItem[];   // ← add this
-  onClose:       () => void;
-  onSaved:       (item: MenuItem) => void;
+  sugarLevels: SugarLevel[];
+  allAddOns: AddOnItem[];   // ← add this
+  onClose: () => void;
+  onSaved: (item: MenuItem) => void;
 }
 
 const MenuItemForm: React.FC<MenuItemFormProps> = ({ item, allItems, categories, subcategories, sugarLevels, allAddOns, onClose, onSaved }) => {
   const isEdit = !!item;
 
   const [form, setForm] = useState({
-    name:           item?.name           ?? "",
-    category_id:    item?.category_id    ? String(item.category_id)    : "",
+    name: item?.name ?? "",
+    category_id: item?.category_id ? String(item.category_id) : "",
     subcategory_id: item?.subcategory_id ? String(item.subcategory_id) : "",
-    price:          item?.price          ? String(item.price)          : "",
-    grab_price:     item?.grab_price     ? String(item.grab_price)     : "0",  // ✅ add
-    panda_price:    item?.panda_price    ? String(item.panda_price)    : "0",  // ✅ add
-    barcode:        item?.barcode        ?? "",
-    is_available:   item?.is_available   ?? true,
+    price: item?.price ? String(item.price) : "",
+    grab_price: item?.grab_price ? String(item.grab_price) : "0",  // ✅ add
+    panda_price: item?.panda_price ? String(item.panda_price) : "0",  // ✅ add
+    barcode: item?.barcode ?? "",
+    is_available: item?.is_available ?? true,
   });
 
-const mmFoodOptions = useMemo(() =>
-  allItems
-    .filter(i => ["food", "wings", "waffle"].includes(i.category_type))
-    .map(i => ({ value: String(i.id), label: `${i.name} — ${i.category} (₱${Number(i.price).toFixed(2)})` })),
-  [allItems]
-);
+  const mmFoodOptions = useMemo(() =>
+    allItems
+      .filter(i => ["food", "wings", "waffle"].includes(i.category_type))
+      .map(i => ({ value: String(i.id), label: `${i.name} — ${i.category} (₱${Number(i.price).toFixed(2)})` })),
+    [allItems]
+  );
 
   // ✅ Combo-specific state
-  const [foodItemId,        setFoodItemId]        = useState("");
-  const [drinkItemId,       setDrinkItemId]       = useState("");
-  const [bundleItemIds,     setBundleItemIds]     = useState<string[]>(["", ""]);
-  const [mixMatchFoodId,    setMixMatchFoodId]    = useState("");
+  const [foodItemId, setFoodItemId] = useState("");
+  const [drinkItemId, setDrinkItemId] = useState("");
+  const [bundleItemIds, setBundleItemIds] = useState<string[]>(["", ""]);
+  const [mixMatchFoodId, setMixMatchFoodId] = useState("");
 
   const [options, setOptions] = useState<ItemOptions>({ pearl: false, ice: false });
   // Mix & Match bundle items for edit mode display
@@ -861,7 +854,7 @@ const mmFoodOptions = useMemo(() =>
   const [selectedSugarLevelIds, setSelectedSugarLevelIds] = useState<number[]>([]);
   const [selectedFoodAddOnIds, setSelectedFoodAddOnIds] = useState<number[]>([]);
 
-// Pre-load Mix & Match bundle components when editing
+  // Pre-load Mix & Match bundle components when editing
 
 
   // Pre-load existing options when editing a drink
@@ -875,10 +868,10 @@ const mmFoodOptions = useMemo(() =>
         const rows: { option_type: string }[] = data.data ?? [];
         setOptions({
           pearl: rows.some(r => r.option_type === "pearl"),
-          ice:   rows.some(r => r.option_type === "ice"),
+          ice: rows.some(r => r.option_type === "ice"),
         });
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [isEdit, item]);
 
   useEffect(() => {
@@ -891,7 +884,7 @@ const mmFoodOptions = useMemo(() =>
         const rows: { addon_id: number }[] = data.data ?? [];
         setSelectedFoodAddOnIds(rows.map(r => r.addon_id));
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [isEdit, item]);
 
   useEffect(() => {
@@ -904,20 +897,20 @@ const mmFoodOptions = useMemo(() =>
         const rows: { sugar_level_id: number }[] = data.data ?? [];
         setSelectedSugarLevelIds(rows.map(r => r.sugar_level_id));
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [isEdit, item]);
 
-  const [errors,   setErrors]   = useState<Record<string, string>>({});
-  const [loading,  setLoading]  = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState("");
 
   // ✅ Determine if selected category is combo type
-  const selectedCategory    = categories.find(c => String(c.id) === form.category_id);
-  const isComboCategory        = selectedCategory?.category_type === "combo";
-  const isBundleCategory       = selectedCategory?.category_type === "bundle";
-  const isMixAndMatchCategory  = Boolean(selectedCategory?.category_type === "mix_and_match");
+  const selectedCategory = categories.find(c => String(c.id) === form.category_id);
+  const isComboCategory = selectedCategory?.category_type === "combo";
+  const isBundleCategory = selectedCategory?.category_type === "bundle";
+  const isMixAndMatchCategory = Boolean(selectedCategory?.category_type === "mix_and_match");
 
-useEffect(() => {
+  useEffect(() => {
     if (!isEdit || !item || !isMixAndMatchCategory) return;
     if (!item.category_id || !item.barcode) { setMmBundleItems([]); return; }
     setMmBundleLoading(true);
@@ -941,12 +934,12 @@ useEffect(() => {
       })
       .catch(() => setMmBundleItems([]))
       .finally(() => setMmBundleLoading(false));
-    }, [isEdit, item, isMixAndMatchCategory]);
+  }, [isEdit, item, isMixAndMatchCategory]);
 
   // Derived display values
-const mmDrinkCount = mmBundleItems !== null
-  ? mmBundleItems.filter(i => i.size !== 'none').length
-  : null;
+  const mmDrinkCount = mmBundleItems !== null
+    ? mmBundleItems.filter(i => i.size !== 'none').length
+    : null;
 
   // Filter subs based on selected category
   const filteredSubs = subcategories.filter(
@@ -963,15 +956,15 @@ const mmDrinkCount = mmBundleItems !== null
     setErrors(ev => { const n = { ...ev }; delete n.category_id; delete n.food_item_id; delete n.drink_item_id; return n; });
   };
 
-const validate = () => {
+  const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.name.trim())        e.name        = "Name is required.";
-    if (!form.category_id)        e.category_id = "Category is required.";
-    if (!form.barcode.trim())     e.barcode     = "Barcode is required.";
+    if (!form.name.trim()) e.name = "Name is required.";
+    if (!form.category_id) e.category_id = "Category is required.";
+    if (!form.barcode.trim()) e.barcode = "Barcode is required.";
     if (!form.price || isNaN(Number(form.price)) || Number(form.price) < 0)
       e.price = "Valid price is required.";
     if (isComboCategory && !isEdit) {
-      if (!foodItemId)  e.food_item_id  = "Select a food item for this combo.";
+      if (!foodItemId) e.food_item_id = "Select a food item for this combo.";
       if (!drinkItemId) e.drink_item_id = "Select a drink item for this combo.";
     }
     if (isMixAndMatchCategory && !isEdit) {
@@ -988,19 +981,19 @@ const validate = () => {
     try {
       // Step 1: Create/update the menu item
       const payload = {
-        name:           form.name,
-        category_id:    form.category_id    ? Number(form.category_id)    : null,
+        name: form.name,
+        category_id: form.category_id ? Number(form.category_id) : null,
         subcategory_id: form.subcategory_id ? Number(form.subcategory_id) : null,
-        price:          Number(form.price),
-        grab_price:     Number(form.grab_price)  || 0,
-        panda_price:    Number(form.panda_price) || 0,
-        barcode:        form.barcode || null,
-        is_available:   form.is_available,
+        price: Number(form.price),
+        grab_price: Number(form.grab_price) || 0,
+        panda_price: Number(form.panda_price) || 0,
+        barcode: form.barcode || null,
+        is_available: form.is_available,
       };
-      const url    = isEdit ? `/api/menu-items/${item!.id}` : "/api/menu-items";
+      const url = isEdit ? `/api/menu-items/${item!.id}` : "/api/menu-items";
       const method = isEdit ? "PUT" : "POST";
-      const res    = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(payload) });
-      const data   = await res.json();
+      const res = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(payload) });
+      const data = await res.json();
 
       if (!res.ok || !data.success) {
         if (data.errors) {
@@ -1020,21 +1013,21 @@ const validate = () => {
       if (isDrinkItem) {
         const optList: string[] = [];
         if (options.pearl) optList.push("pearl");
-        if (options.ice)   optList.push("ice");
+        if (options.ice) optList.push("ice");
         await fetch(`/api/menu-item-options/${savedItem.id}`, {
           method: "PUT", headers: authHeaders(),
           body: JSON.stringify({ options: optList }),
-        }).catch(() => {});
+        }).catch(() => { });
 
         await fetch(`/api/menu-item-sugar-levels/${savedItem.id}`, {
           method: "PUT", headers: authHeaders(),
           body: JSON.stringify({ sugar_level_ids: selectedSugarLevelIds }),
-        }).catch(() => {});
+        }).catch(() => { });
       }
 
       // Step 2: If combo (add only), create bundle
       if (isComboCategory && !isEdit) {
-        const foodItem  = allItems.find(i => String(i.id) === foodItemId);
+        const foodItem = allItems.find(i => String(i.id) === foodItemId);
         const drinkItem = allItems.find(i => String(i.id) === drinkItemId);
         const bundleRes = await fetch("/api/bundles", {
           method: "POST", headers: authHeaders(),
@@ -1043,8 +1036,8 @@ const validate = () => {
             bundle_type: "combo", price: Number(form.price),
             barcode: form.barcode || `COMBO-${savedItem.id}`,
             items: [
-              { custom_name: foodItem?.name  ?? "Food",  quantity: 1, size: "none", display_name: "Food" },
-              { custom_name: drinkItem?.name ?? "Drink", quantity: 1, size: "M",    display_name: "Drink" },
+              { custom_name: foodItem?.name ?? "Food", quantity: 1, size: "none", display_name: "Food" },
+              { custom_name: drinkItem?.name ?? "Drink", quantity: 1, size: "M", display_name: "Drink" },
             ],
           }),
         });
@@ -1078,7 +1071,7 @@ const validate = () => {
                   })),
                 ],
               }),
-            }).catch(() => {});
+            }).catch(() => { });
           }
         }
       }
@@ -1136,7 +1129,7 @@ const validate = () => {
         await fetch(`/api/menu-item-addons/${savedItem.id}`, {
           method: "PUT", headers: authHeaders(),
           body: JSON.stringify({ addon_ids: selectedFoodAddOnIds }),
-        }).catch(() => {});
+        }).catch(() => { });
       }
 
       onSaved(savedItem);
@@ -1336,128 +1329,128 @@ const validate = () => {
         </div>
       )}
 
-{/* Mix & Match — food picker + auto-inherit info */}
-{isMixAndMatchCategory && !isEdit && (
-  <div className="flex flex-col gap-3 p-4 bg-rose-50 border border-rose-200 rounded-xl">
-    <div className="flex items-center gap-2 mb-1">
-      <div className="w-6 h-6 bg-rose-100 border border-rose-300 rounded-md flex items-center justify-center">
-        <Utensils size={11} className="text-rose-600" />
-      </div>
-      <p className="text-xs font-bold text-rose-700 uppercase tracking-wider">Mix & Match</p>
-      <span className="text-[10px] text-rose-400 font-medium">— food + shared drink pool</span>
-    </div>
+      {/* Mix & Match — food picker + auto-inherit info */}
+      {isMixAndMatchCategory && !isEdit && (
+        <div className="flex flex-col gap-3 p-4 bg-rose-50 border border-rose-200 rounded-xl">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="w-6 h-6 bg-rose-100 border border-rose-300 rounded-md flex items-center justify-center">
+              <Utensils size={11} className="text-rose-600" />
+            </div>
+            <p className="text-xs font-bold text-rose-700 uppercase tracking-wider">Mix & Match</p>
+            <span className="text-[10px] text-rose-400 font-medium">— food + shared drink pool</span>
+          </div>
 
-    {/* Food picker */}
-<div>
-  <label className="text-[10px] font-bold uppercase tracking-wider text-rose-600 mb-1.5 flex items-center gap-1.5">
-    <Utensils size={10} /> Food Item <span className="text-red-400">*</span>
-  </label>
-  <SearchableSelect
-    options={mmFoodOptions}
-    value={mixMatchFoodId}
-    onChange={val => { setMixMatchFoodId(val); setErrors(ev => { const n = { ...ev }; delete n.food_item_id; return n; }); }}
-    placeholder="Search food item..."
-    error={!!errors.food_item_id}
-    accentColor="rose"
-  />
-  {errors.food_item_id && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.food_item_id}</p>}
-</div>
+          {/* Food picker */}
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-rose-600 mb-1.5 flex items-center gap-1.5">
+              <Utensils size={10} /> Food Item <span className="text-red-400">*</span>
+            </label>
+            <SearchableSelect
+              options={mmFoodOptions}
+              value={mixMatchFoodId}
+              onChange={val => { setMixMatchFoodId(val); setErrors(ev => { const n = { ...ev }; delete n.food_item_id; return n; }); }}
+              placeholder="Search food item..."
+              error={!!errors.food_item_id}
+              accentColor="rose"
+            />
+            {errors.food_item_id && <p className="text-[10px] text-red-500 mt-1 font-medium">{errors.food_item_id}</p>}
+          </div>
 
-{/* Drinks auto-inherit notice */}
-<div className="flex items-start gap-2 p-2.5 bg-white border border-rose-200 rounded-lg">
-  <Coffee size={12} className="text-rose-400 mt-0.5 shrink-0" />
-  <div className="flex-1">
-    <p className="text-[10px] text-rose-600 leading-relaxed mb-1.5">
-      Drinks are <span className="font-bold">automatically inherited</span> from this category's shared drink pool.
-    </p>
-    <button
-      type="button"
-      onClick={() => {
-        const cat = categories.find(c => String(c.id) === form.category_id);
-        if (cat) window.dispatchEvent(new CustomEvent('open-drink-pool', { detail: cat }));
-      }}
-      className="text-[10px] font-bold text-rose-600 hover:text-rose-800 bg-rose-100 hover:bg-rose-200 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1"
-    >
-      <Coffee size={10} /> Manage Drink Pool
-    </button>
-  </div>
-</div>
-  </div>
-)}
-
-{isMixAndMatchCategory && isEdit && (
-  <div className="flex flex-col gap-3 p-4 bg-rose-50 border border-rose-200 rounded-xl">
-    <div className="flex items-center gap-2">
-      <div className="w-6 h-6 bg-rose-100 border border-rose-300 rounded-md flex items-center justify-center">
-        <Coffee size={11} className="text-rose-600" />
-      </div>
-      <p className="text-xs font-bold text-rose-700 uppercase tracking-wider">Mix & Match</p>
-      <span className="text-[9px] font-bold text-rose-400 bg-rose-100 border border-rose-200 px-1.5 py-0.5 rounded-full">
-        {mmDrinkCount !== null ? `${mmDrinkCount} drinks` : '...'}
-      </span>
-    </div>
-
-    {/* Food picker in edit mode */}
-    <div>
-      <label className="text-[10px] font-bold uppercase tracking-wider text-rose-600 mb-1.5 flex items-center gap-1.5">
-        <Utensils size={10} /> Food Item
-      </label>
-      <div className="relative">
-        <select
-          value={mixMatchFoodId}
-          onChange={e => setMixMatchFoodId(e.target.value)}
-          className="w-full text-sm font-medium text-zinc-700 bg-white border border-rose-200 rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-rose-400 transition-all appearance-none pr-8"
-        >
-          <option value="">
-            {mmBundleItems?.[0]?.name ?? "Keep current food item"}
-          </option>
-          {allItems.filter(i => ["food", "wings", "waffle"].includes(i.category_type)).map(i => (
-            <option key={i.id} value={i.id}>
-              {i.name} — {i.category} (₱{Number(i.price).toFixed(2)})
-            </option>
-          ))}
-        </select>
-        <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-      </div>
-      <p className="text-[9px] text-rose-400 mt-1">Leave blank to keep the current food item.</p>
-    </div>
-
-    {mmBundleLoading && (
-      <div className="grid grid-cols-2 gap-1.5">
-        {[...Array(4)].map((_, i) => <div key={i} className="h-8 bg-rose-100 rounded-lg animate-pulse" />)}
-      </div>
-    )}
-
-{!mmBundleLoading && mmBundleItems !== null && mmBundleItems.filter(i => i.size !== 'none').length > 0 && (
-      <div className="flex flex-col gap-1.5">
-        <div className="flex items-center gap-2">
-          <div className="flex-1 h-px bg-rose-200" />
-          <span className="text-[9px] font-bold text-rose-400">
-            {mmBundleItems.filter(i => i.size !== 'none').length} drinks in pool
-          </span>
-          <div className="flex-1 h-px bg-rose-200" />
+          {/* Drinks auto-inherit notice */}
+          <div className="flex items-start gap-2 p-2.5 bg-white border border-rose-200 rounded-lg">
+            <Coffee size={12} className="text-rose-400 mt-0.5 shrink-0" />
+            <div className="flex-1">
+              <p className="text-[10px] text-rose-600 leading-relaxed mb-1.5">
+                Drinks are <span className="font-bold">automatically inherited</span> from this category's shared drink pool.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  const cat = categories.find(c => String(c.id) === form.category_id);
+                  if (cat) window.dispatchEvent(new CustomEvent('open-drink-pool', { detail: cat }));
+                }}
+                className="text-[10px] font-bold text-rose-600 hover:text-rose-800 bg-rose-100 hover:bg-rose-200 px-2.5 py-1 rounded-md transition-colors flex items-center gap-1"
+              >
+                <Coffee size={10} /> Manage Drink Pool
+              </button>
+            </div>
+          </div>
         </div>
-        <div className="grid grid-cols-2 gap-1.5">
-          {mmBundleItems.filter(i => i.size !== 'none').map((drink, idx) => (
-            <div key={idx} className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg border bg-white border-rose-200">
-              <div className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0" />
-              <div className="flex flex-col min-w-0 flex-1">
-                <span className="text-[10px] font-semibold text-zinc-700 truncate">{drink.name}</span>
-                {drink.size !== "none" && drink.size !== "—" && (
-                  <span className="text-[9px] font-bold text-rose-400 uppercase">{drink.size}</span>
-                )}
+      )}
+
+      {isMixAndMatchCategory && isEdit && (
+        <div className="flex flex-col gap-3 p-4 bg-rose-50 border border-rose-200 rounded-xl">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 bg-rose-100 border border-rose-300 rounded-md flex items-center justify-center">
+              <Coffee size={11} className="text-rose-600" />
+            </div>
+            <p className="text-xs font-bold text-rose-700 uppercase tracking-wider">Mix & Match</p>
+            <span className="text-[9px] font-bold text-rose-400 bg-rose-100 border border-rose-200 px-1.5 py-0.5 rounded-full">
+              {mmDrinkCount !== null ? `${mmDrinkCount} drinks` : '...'}
+            </span>
+          </div>
+
+          {/* Food picker in edit mode */}
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-rose-600 mb-1.5 flex items-center gap-1.5">
+              <Utensils size={10} /> Food Item
+            </label>
+            <div className="relative">
+              <select
+                value={mixMatchFoodId}
+                onChange={e => setMixMatchFoodId(e.target.value)}
+                className="w-full text-sm font-medium text-zinc-700 bg-white border border-rose-200 rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-rose-400 transition-all appearance-none pr-8"
+              >
+                <option value="">
+                  {mmBundleItems?.[0]?.name ?? "Keep current food item"}
+                </option>
+                {allItems.filter(i => ["food", "wings", "waffle"].includes(i.category_type)).map(i => (
+                  <option key={i.id} value={i.id}>
+                    {i.name} — {i.category} (₱{Number(i.price).toFixed(2)})
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+            </div>
+            <p className="text-[9px] text-rose-400 mt-1">Leave blank to keep the current food item.</p>
+          </div>
+
+          {mmBundleLoading && (
+            <div className="grid grid-cols-2 gap-1.5">
+              {[...Array(4)].map((_, i) => <div key={i} className="h-8 bg-rose-100 rounded-lg animate-pulse" />)}
+            </div>
+          )}
+
+          {!mmBundleLoading && mmBundleItems !== null && mmBundleItems.filter(i => i.size !== 'none').length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-2">
+                <div className="flex-1 h-px bg-rose-200" />
+                <span className="text-[9px] font-bold text-rose-400">
+                  {mmBundleItems.filter(i => i.size !== 'none').length} drinks in pool
+                </span>
+                <div className="flex-1 h-px bg-rose-200" />
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {mmBundleItems.filter(i => i.size !== 'none').map((drink, idx) => (
+                  <div key={idx} className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg border bg-white border-rose-200">
+                    <div className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0" />
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span className="text-[10px] font-semibold text-zinc-700 truncate">{drink.name}</span>
+                      {drink.size !== "none" && drink.size !== "—" && (
+                        <span className="text-[9px] font-bold text-rose-400 uppercase">{drink.size}</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
-      </div>
-    )}
+          )}
 
-    <p className="text-[10px] text-rose-500 font-medium leading-tight">
-      To update the drink pool for all items in this category, use the <span className="font-bold">Manage Drinks</span> button on the menu list.
-    </p>
-  </div>
-)}
+          <p className="text-[10px] text-rose-500 font-medium leading-tight">
+            To update the drink pool for all items in this category, use the <span className="font-bold">Manage Drinks</span> button on the menu list.
+          </p>
+        </div>
+      )}
       {/* Drink Options + Sugar Levels — only for drink category */}
       {["drink"].includes(selectedCategory?.category_type ?? "") && (
         <>
@@ -1488,7 +1481,7 @@ const validate = () => {
           className="transition-colors">
           {form.is_available
             ? <ToggleRight size={28} className="text-[#3b2063]" />
-            : <ToggleLeft  size={28} className="text-zinc-300"  />}
+            : <ToggleLeft size={28} className="text-zinc-300" />}
         </button>
       </div>
     </ModalShell>
@@ -1498,11 +1491,11 @@ const validate = () => {
 // ── Delete Modal ──────────────────────────────────────────────────────────────
 const DeleteModal: React.FC<{ item: MenuItem; onClose: () => void; onDeleted: (id: number) => void }> = ({ item, onClose, onDeleted }) => {
   const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState("");
+  const [error, setError] = useState("");
   const handleDelete = async () => {
     setLoading(true);
     try {
-      const res  = await fetch(`/api/menu-items/${item.id}`, { method: "DELETE", headers: authHeaders() });
+      const res = await fetch(`/api/menu-items/${item.id}`, { method: "DELETE", headers: authHeaders() });
       const data = await res.json();
       if (!res.ok || !data.success) { setError(data.message ?? "Failed to delete."); return; }
       onDeleted(item.id); onClose();
@@ -1526,7 +1519,7 @@ const DeleteModal: React.FC<{ item: MenuItem; onClose: () => void; onDeleted: (i
         </div>
         <div className="flex gap-2 px-6 pb-6">
           <Btn variant="secondary" className="flex-1 justify-center" onClick={onClose} disabled={loading}>Cancel</Btn>
-          <Btn variant="danger"    className="flex-1 justify-center" onClick={handleDelete} disabled={loading}>
+          <Btn variant="danger" className="flex-1 justify-center" onClick={handleDelete} disabled={loading}>
             {loading
               ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Deleting...</span>
               : <><Trash2 size={13} /> Delete</>}
@@ -1551,7 +1544,7 @@ const ImportModal: React.FC<{ onClose: () => void; onSaved: () => void }> = ({ o
         headers: { Authorization: `Bearer ${getToken()}` },
       });
       if (!res.ok) throw new Error("Failed to download template");
-      
+
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -1572,11 +1565,11 @@ const ImportModal: React.FC<{ onClose: () => void; onSaved: () => void }> = ({ o
         headers: { Authorization: `Bearer ${getToken()}` },
       });
       if (!res.ok) throw new Error("Failed to export items");
-      
+
       const blob = await res.blob();
-      const url  = window.URL.createObjectURL(blob);
-      const a    = document.createElement("a");
-      a.href     = url;
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
       a.download = "current_menu_items.xlsx";
       document.body.appendChild(a);
       a.click();
@@ -1589,7 +1582,7 @@ const ImportModal: React.FC<{ onClose: () => void; onSaved: () => void }> = ({ o
 
   const handleUpload = async () => {
     if (!file) { setError("Please select a file first."); return; }
-    
+
     setUploading(true); setError(""); setSuccess(false);
 
     const formData = new FormData();
@@ -1666,9 +1659,8 @@ const ImportModal: React.FC<{ onClose: () => void; onSaved: () => void }> = ({ o
             </div>
           </div>
 
-          <div className={`relative group border-2 border-dashed rounded-xl transition-all ${
-            file ? "border-emerald-200 bg-emerald-50/30" : "border-zinc-200 hover:border-violet-300 bg-zinc-50/50"
-          }`}>
+          <div className={`relative group border-2 border-dashed rounded-xl transition-all ${file ? "border-emerald-200 bg-emerald-50/30" : "border-zinc-200 hover:border-violet-300 bg-zinc-50/50"
+            }`}>
             <input
               type="file"
               accept=".xlsx,.xls,.csv"
@@ -1676,9 +1668,8 @@ const ImportModal: React.FC<{ onClose: () => void; onSaved: () => void }> = ({ o
               className="absolute inset-0 opacity-0 cursor-pointer z-10"
             />
             <div className="p-8 flex flex-col items-center text-center gap-3">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${
-                file ? "bg-emerald-100 text-emerald-600" : "bg-white text-zinc-300 group-hover:text-violet-400"
-              }`}>
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-colors ${file ? "bg-emerald-100 text-emerald-600" : "bg-white text-zinc-300 group-hover:text-violet-400"
+                }`}>
                 <Upload size={24} />
               </div>
               {file ? (
@@ -1705,7 +1696,7 @@ const ImportModal: React.FC<{ onClose: () => void; onSaved: () => void }> = ({ o
           {success && (
             <div className="flex items-center gap-2.5 p-3 bg-emerald-50 border border-emerald-200 rounded-lg animate-bounce">
               <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center shrink-0">
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2.5 5L4.5 7L8 3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2.5 5L4.5 7L8 3" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </div>
               <p className="text-[11px] text-emerald-700 font-bold">Imported successfully! Refreshing list...</p>
             </div>
@@ -1731,13 +1722,13 @@ const ImportModal: React.FC<{ onClose: () => void; onSaved: () => void }> = ({ o
 // ── Add-On Builder Modal ──────────────────────────────────────────────────────
 
 interface AddOnItem {
-  id:           number;
-  name:         string;
-  price:        number;
-  grab_price:   number;
-  panda_price:  number;
-  barcode:      string | null;  // ← add
-  category:     string;
+  id: number;
+  name: string;
+  price: number;
+  grab_price: number;
+  panda_price: number;
+  barcode: string | null;  // ← add
+  category: string;
   is_available: boolean;
 }
 
@@ -1747,19 +1738,19 @@ interface AddOnBuilderModalProps {
 
 // ── Delete Add-On Confirmation Modal ─────────────────────────────────────────
 interface DeleteAddOnModalProps {
-  addon:     AddOnItem;
-  onClose:   () => void;
+  addon: AddOnItem;
+  onClose: () => void;
   onDeleted: (id: number) => void;
 }
 
 const DeleteAddOnModal: React.FC<DeleteAddOnModalProps> = ({ addon, onClose, onDeleted }) => {
   const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState("");
+  const [error, setError] = useState("");
 
   const handleDelete = async () => {
     setLoading(true);
     try {
-      const res  = await fetch(`/api/add-ons/${addon.id}`, { method: "DELETE", headers: authHeaders() });
+      const res = await fetch(`/api/add-ons/${addon.id}`, { method: "DELETE", headers: authHeaders() });
       const data = await res.json();
       if (!res.ok) { setError(data.message ?? "Failed to delete."); return; }
       onDeleted(addon.id);
@@ -1800,7 +1791,7 @@ const DeleteAddOnModal: React.FC<DeleteAddOnModalProps> = ({ addon, onClose, onD
         </div>
         <div className="flex gap-2 px-6 pb-6">
           <Btn variant="secondary" className="flex-1 justify-center" onClick={onClose} disabled={loading}>Cancel</Btn>
-          <Btn variant="danger"    className="flex-1 justify-center" onClick={handleDelete} disabled={loading}>
+          <Btn variant="danger" className="flex-1 justify-center" onClick={handleDelete} disabled={loading}>
             {loading
               ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Deleting...</span>
               : <><Trash2 size={13} /> Delete Add-On</>}
@@ -1813,17 +1804,17 @@ const DeleteAddOnModal: React.FC<DeleteAddOnModalProps> = ({ addon, onClose, onD
 };
 
 const AddOnBuilderModal: React.FC<AddOnBuilderModalProps> = ({ onClose }) => {
-  const [addOns,   setAddOns]   = useState<AddOnItem[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [saving,   setSaving]   = useState(false);
+  const [addOns, setAddOns] = useState<AddOnItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [deleting] = useState<number | null>(null);
-  const [error,    setError]    = useState("");
+  const [error, setError] = useState("");
   const [filterTab, setFilterTab] = useState<"all" | "drink" | "food" | "waffle" | "other">("all");
 
   // Form state for new / editing
   const blank = () => ({ name: "", price: "", grab_price: "0", panda_price: "0", category: "drink", barcode: "", is_available: true });
-  const [form,       setForm]       = useState(blank());
-  const [editingId,  setEditingId]  = useState<number | null>(null);
+  const [form, setForm] = useState(blank());
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [deleteTarget, setDeleteTarget] = useState<AddOnItem | null>(null);
 
@@ -1831,7 +1822,7 @@ const AddOnBuilderModal: React.FC<AddOnBuilderModalProps> = ({ onClose }) => {
   const fetchAddOns = async () => {
     setLoading(true); setError("");
     try {
-      const res  = await fetch("/api/add-ons?all=1", { headers: authHeaders() });
+      const res = await fetch("/api/add-ons?all=1", { headers: authHeaders() });
       const data = await res.json();
       setAddOns(Array.isArray(data) ? data : (data.data ?? []));
     } catch { setError("Failed to load add-ons."); }
@@ -1842,9 +1833,9 @@ const AddOnBuilderModal: React.FC<AddOnBuilderModalProps> = ({ onClose }) => {
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!form.name.trim())                                       e.name  = "Name is required.";
+    if (!form.name.trim()) e.name = "Name is required.";
     if (!form.price || isNaN(Number(form.price)) || Number(form.price) < 0) e.price = "Valid price required.";
-    if (!form.category.trim())                                   e.category = "Category is required.";
+    if (!form.category.trim()) e.category = "Category is required.";
     return e;
   };
 
@@ -1854,18 +1845,18 @@ const AddOnBuilderModal: React.FC<AddOnBuilderModalProps> = ({ onClose }) => {
     setSaving(true); setError("");
     try {
       const payload = {
-        name:        form.name.trim(),
-        price:       Number(form.price),
-        grab_price:  Number(form.grab_price)  || 0,
+        name: form.name.trim(),
+        price: Number(form.price),
+        grab_price: Number(form.grab_price) || 0,
         panda_price: Number(form.panda_price) || 0,
-        barcode:      form.barcode.trim() || null,
-        category:    form.category.trim(),
+        barcode: form.barcode.trim() || null,
+        category: form.category.trim(),
         is_available: form.is_available,
       };
-      const url    = editingId ? `/api/add-ons/${editingId}` : "/api/add-ons";
+      const url = editingId ? `/api/add-ons/${editingId}` : "/api/add-ons";
       const method = editingId ? "PUT" : "POST";
-      const res    = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(payload) });
-      const data   = await res.json();
+      const res = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(payload) });
+      const data = await res.json();
       if (!res.ok) { setError(data.message ?? "Failed to save."); return; }
       await fetchAddOns();
       setForm(blank());
@@ -1878,12 +1869,12 @@ const AddOnBuilderModal: React.FC<AddOnBuilderModalProps> = ({ onClose }) => {
   const handleEdit = (addon: AddOnItem) => {
     setEditingId(addon.id);
     setForm({
-      name:         addon.name,
-      price:        String(addon.price),
-      grab_price:   String(addon.grab_price),
-      panda_price:  String(addon.panda_price),
-      barcode:      addon.barcode ?? "",   // ← add
-      category:     addon.category,
+      name: addon.name,
+      price: String(addon.price),
+      grab_price: String(addon.grab_price),
+      panda_price: String(addon.panda_price),
+      barcode: addon.barcode ?? "",   // ← add
+      category: addon.category,
       is_available: addon.is_available,
     });
     setFormErrors({});
@@ -1986,7 +1977,7 @@ const AddOnBuilderModal: React.FC<AddOnBuilderModalProps> = ({ onClose }) => {
           <button type="button" onClick={() => setForm(p => ({ ...p, is_available: !p.is_available }))}>
             {form.is_available
               ? <ToggleRight size={26} className="text-[#3b2063]" />
-              : <ToggleLeft  size={26} className="text-zinc-300"  />}
+              : <ToggleLeft size={26} className="text-zinc-300" />}
           </button>
         </div>
 
@@ -2004,7 +1995,7 @@ const AddOnBuilderModal: React.FC<AddOnBuilderModalProps> = ({ onClose }) => {
 
       {/* ── List ── */}
       <div className="flex flex-col gap-1.5">
-<div className="flex items-center justify-between mb-1">
+        <div className="flex items-center justify-between mb-1">
           <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400">
             All Add-Ons ({addOns.length})
           </p>
@@ -2020,11 +2011,10 @@ const AddOnBuilderModal: React.FC<AddOnBuilderModalProps> = ({ onClose }) => {
               key={tab}
               type="button"
               onClick={() => setFilterTab(tab)}
-              className={`flex-1 px-2 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${
-                filterTab === tab
-                  ? "bg-white text-zinc-700 shadow-sm"
-                  : "text-zinc-400 hover:text-zinc-600"
-              }`}
+              className={`flex-1 px-2 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${filterTab === tab
+                ? "bg-white text-zinc-700 shadow-sm"
+                : "text-zinc-400 hover:text-zinc-600"
+                }`}
             >
               {tab === "all" ? `All (${addOns.length})` : `${tab} (${addOns.filter(a => a.category === tab).length})`}
             </button>
@@ -2041,63 +2031,62 @@ const AddOnBuilderModal: React.FC<AddOnBuilderModalProps> = ({ onClose }) => {
           addOns
             .filter(a => filterTab === "all" || a.category === filterTab)
             .map(addon => (
-            <div
-              key={addon.id}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all ${
-                editingId === addon.id
+              <div
+                key={addon.id}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all ${editingId === addon.id
                   ? "bg-violet-50 border-violet-300"
                   : "bg-white border-zinc-200 hover:border-zinc-300"
-              }`}
-            >
-              {/* Availability dot */}
-              <div className={`w-2 h-2 rounded-full shrink-0 ${addon.is_available ? "bg-emerald-400" : "bg-zinc-300"}`} />
+                  }`}
+              >
+                {/* Availability dot */}
+                <div className={`w-2 h-2 rounded-full shrink-0 ${addon.is_available ? "bg-emerald-400" : "bg-zinc-300"}`} />
 
-              {/* Name + category */}
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-zinc-700 truncate">{addon.name}</p>
-                <p className="text-[10px] text-zinc-400 capitalize">{addon.category}</p>
-              </div>
+                {/* Name + category */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-zinc-700 truncate">{addon.name}</p>
+                  <p className="text-[10px] text-zinc-400 capitalize">{addon.category}</p>
+                </div>
 
-              {/* Prices */}
-              <div className="flex items-center gap-2 shrink-0 text-[10px] font-bold">
-                <span className="text-zinc-600">₱{Number(addon.price).toFixed(2)}</span>
-                {Number(addon.grab_price) > 0 && (
-                  <span className="text-green-600 bg-green-50 border border-green-200 px-1.5 py-0.5 rounded-full">
-                    G ₱{Number(addon.grab_price).toFixed(2)}
-                  </span>
-                )}
-                {Number(addon.panda_price) > 0 && (
-                  <span className="text-pink-600 bg-pink-50 border border-pink-200 px-1.5 py-0.5 rounded-full">
-                    P ₱{Number(addon.panda_price).toFixed(2)}
-                  </span>
-                )}
-              </div>
+                {/* Prices */}
+                <div className="flex items-center gap-2 shrink-0 text-[10px] font-bold">
+                  <span className="text-zinc-600">₱{Number(addon.price).toFixed(2)}</span>
+                  {Number(addon.grab_price) > 0 && (
+                    <span className="text-green-600 bg-green-50 border border-green-200 px-1.5 py-0.5 rounded-full">
+                      G ₱{Number(addon.grab_price).toFixed(2)}
+                    </span>
+                  )}
+                  {Number(addon.panda_price) > 0 && (
+                    <span className="text-pink-600 bg-pink-50 border border-pink-200 px-1.5 py-0.5 rounded-full">
+                      P ₱{Number(addon.panda_price).toFixed(2)}
+                    </span>
+                  )}
+                </div>
 
-              {/* Actions */}
-              <div className="flex items-center gap-1 shrink-0">
-                <button
-                  onClick={() => handleEdit(addon)}
-                  className="p-1.5 hover:bg-violet-100 rounded-md text-zinc-400 hover:text-violet-600 transition-colors"
-                  title="Edit"
-                >
-                  <Edit2 size={12} />
-                </button>
-                <button
-                  onClick={() => setDeleteTarget(addon)}
-                  disabled={false}
-                  className="p-1.5 hover:bg-red-50 rounded-md text-zinc-400 hover:text-red-500 transition-colors disabled:opacity-40"
-                  title="Delete"
-                >
-                  {deleting === addon.id
-                    ? <div className="w-3 h-3 border-2 border-zinc-300 border-t-red-400 rounded-full animate-spin" />
-                    : <Trash2 size={12} />}
-                </button>
+                {/* Actions */}
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => handleEdit(addon)}
+                    className="p-1.5 hover:bg-violet-100 rounded-md text-zinc-400 hover:text-violet-600 transition-colors"
+                    title="Edit"
+                  >
+                    <Edit2 size={12} />
+                  </button>
+                  <button
+                    onClick={() => setDeleteTarget(addon)}
+                    disabled={false}
+                    className="p-1.5 hover:bg-red-50 rounded-md text-zinc-400 hover:text-red-500 transition-colors disabled:opacity-40"
+                    title="Delete"
+                  >
+                    {deleting === addon.id
+                      ? <div className="w-3 h-3 border-2 border-zinc-300 border-t-red-400 rounded-full animate-spin" />
+                      : <Trash2 size={12} />}
+                  </button>
+                </div>
               </div>
-            </div>
-          ))
+            ))
         )}
       </div>
-    {deleteTarget && (
+      {deleteTarget && (
         <DeleteAddOnModal
           addon={deleteTarget}
           onClose={() => setDeleteTarget(null)}
@@ -2116,8 +2105,8 @@ const AddOnBuilderModal: React.FC<AddOnBuilderModalProps> = ({ onClose }) => {
 
 interface PrintMenuModalProps {
   categories: Category[];
-  items:       MenuItem[];
-  onClose:     () => void;
+  items: MenuItem[];
+  onClose: () => void;
 }
 
 const PrintMenuModal: React.FC<PrintMenuModalProps> = ({ categories, items, onClose }) => {
@@ -2130,7 +2119,7 @@ const PrintMenuModal: React.FC<PrintMenuModalProps> = ({ categories, items, onCl
     setSelected(prev => { const n = new Set(prev); if (n.has(id)) { n.delete(id); } else { n.add(id); } return n; });
 
   const allChecked = selected.size === catsWithItems.length;
-  const toggleAll  = () => setSelected(allChecked ? new Set() : new Set(catsWithItems.map(c => c.id)));
+  const toggleAll = () => setSelected(allChecked ? new Set() : new Set(catsWithItems.map(c => c.id)));
 
   const buildReceiptHtml = (cat: Category, catItems: MenuItem[]): string => {
     const printedAt = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
@@ -2278,11 +2267,10 @@ const PrintMenuModal: React.FC<PrintMenuModalProps> = ({ categories, items, onCl
         <button
           type="button"
           onClick={toggleAll}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${
-            allChecked
-              ? 'bg-violet-600 border-violet-600 text-white'
-              : 'bg-white border-violet-300 text-violet-600 hover:bg-violet-50'
-          }`}
+          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${allChecked
+            ? 'bg-violet-600 border-violet-600 text-white'
+            : 'bg-white border-violet-300 text-violet-600 hover:bg-violet-50'
+            }`}
         >
           {allChecked ? 'Deselect All' : 'Select All'}
         </button>
@@ -2291,23 +2279,21 @@ const PrintMenuModal: React.FC<PrintMenuModalProps> = ({ categories, items, onCl
       {/* Category list */}
       <div className="flex flex-col gap-1.5 max-h-72 overflow-y-auto pr-1">
         {catsWithItems.map(cat => {
-          const count   = items.filter(i => i.category_id === cat.id).length;
+          const count = items.filter(i => i.category_id === cat.id).length;
           const checked = selected.has(cat.id);
           return (
             <button
               key={cat.id}
               type="button"
               onClick={() => toggleCat(cat.id)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-all ${
-                checked
-                  ? 'bg-violet-50 border-violet-400'
-                  : 'bg-white border-zinc-200 hover:border-violet-300'
-              }`}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-all ${checked
+                ? 'bg-violet-50 border-violet-400'
+                : 'bg-white border-zinc-200 hover:border-violet-300'
+                }`}
             >
               {/* Checkbox */}
-              <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-                checked ? 'bg-violet-600 border-violet-600' : 'border-zinc-300'
-              }`}>
+              <div className={`w-4 h-4 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${checked ? 'bg-violet-600 border-violet-600' : 'border-zinc-300'
+                }`}>
                 {checked && (
                   <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
                     <path d="M1.5 4.5L3.5 6.5L7.5 2.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -2320,9 +2306,8 @@ const PrintMenuModal: React.FC<PrintMenuModalProps> = ({ categories, items, onCl
                 <p className="text-[10px] text-zinc-400 capitalize">{cat.category_type.replace(/_/g, ' ')}</p>
               </div>
               {/* Item count */}
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                checked ? 'bg-violet-100 text-violet-700 border-violet-200' : 'bg-zinc-100 text-zinc-500 border-zinc-200'
-              }`}>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${checked ? 'bg-violet-100 text-violet-700 border-violet-200' : 'bg-zinc-100 text-zinc-500 border-zinc-200'
+                }`}>
                 {count} item{count !== 1 ? 's' : ''}
               </span>
             </button>
@@ -2339,23 +2324,23 @@ const PrintMenuModal: React.FC<PrintMenuModalProps> = ({ categories, items, onCl
 
 // ── Main Component ────────────────────────────────────────────────────────────
 const MenuItemsTab: React.FC = () => {
-  const [items,         setItems]         = useState<MenuItem[]>([]);
-  const [categories,    setCategories]    = useState<Category[]>([]);
+  const [items, setItems] = useState<MenuItem[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [subcategories, setSubcategories] = useState<SubCategory[]>([]);
-  const [loading,       setLoading]       = useState(true);
-  const [error,         setError]         = useState("");
-  const [search,        setSearch]        = useState("");
-  const [filterCat,     setFilterCat]     = useState("");
-  const [filterAvail,   setFilterAvail]   = useState("");
-  const [filterType,    setFilterType]    = useState("");
-  const [addOpen,       setAddOpen]       = useState(false);
-  const [editTarget,    setEditTarget]    = useState<MenuItem | null>(null);
-  const [delTarget,     setDelTarget]     = useState<MenuItem | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [search, setSearch] = useState("");
+  const [filterCat, setFilterCat] = useState("");
+  const [filterAvail, setFilterAvail] = useState("");
+  const [filterType, setFilterType] = useState("");
+  const [addOpen, setAddOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<MenuItem | null>(null);
+  const [delTarget, setDelTarget] = useState<MenuItem | null>(null);
   const [bundleInfo, setBundleInfo] = useState<Record<number, { name: string; quantity: number; size: string }[]>>({});
   const [itemOptions, setItemOptions] = useState<Record<number, ItemOptions>>({});
   const [drinkPoolTarget, setDrinkPoolTarget] = useState<Category | null>(null);
   const [importOpen, setImportOpen] = useState(false);
-  const [ sugarLevels, setSugarLevels] = useState<SugarLevel[]>([]);
+  const [sugarLevels, setSugarLevels] = useState<SugarLevel[]>([]);
   const [addOnBuilderOpen, setAddOnBuilderOpen] = useState(false);
   const [allAddOns, setAllAddOns] = useState<AddOnItem[]>([]);
   const [printMenuOpen, setPrintMenuOpen] = useState(false);
@@ -2369,8 +2354,8 @@ const MenuItemsTab: React.FC = () => {
 
     try {
       const params = drinkIds.map(id => `ids[]=${id}`).join("&");
-      const res    = await fetch(`/api/menu-item-options/bulk?${params}`, { headers: authHeaders() });
-      const data   = await res.json();
+      const res = await fetch(`/api/menu-item-options/bulk?${params}`, { headers: authHeaders() });
+      const data = await res.json();
       const rows: { menu_item_id: number; option_type: string }[] = data.data ?? [];
 
       const map: Record<number, ItemOptions> = {};
@@ -2378,7 +2363,7 @@ const MenuItemsTab: React.FC = () => {
       rows.forEach(r => {
         if (!map[r.menu_item_id]) map[r.menu_item_id] = { pearl: false, ice: false };
         if (r.option_type === "pearl") map[r.menu_item_id].pearl = true;
-        if (r.option_type === "ice")   map[r.menu_item_id].ice   = true;
+        if (r.option_type === "ice") map[r.menu_item_id].ice = true;
       });
       setItemOptions(map);
     } catch { /* silent */ }
@@ -2388,11 +2373,11 @@ const MenuItemsTab: React.FC = () => {
     setLoading(true); setError("");
     try {
       const [itemsRes, catsRes, subsRes, sugarRes, addOnsRes] = await Promise.all([
-        fetch("/api/menu-items",     { headers: authHeaders() }),
-        fetch("/api/categories",     { headers: authHeaders() }),
+        fetch("/api/menu-items", { headers: authHeaders() }),
+        fetch("/api/categories", { headers: authHeaders() }),
         fetch("/api/sub-categories", { headers: authHeaders() }),
-        fetch("/api/sugar-levels",   { headers: authHeaders() }),
-        fetch("/api/add-ons?all=1",  { headers: authHeaders() }),
+        fetch("/api/sugar-levels", { headers: authHeaders() }),
+        fetch("/api/add-ons?all=1", { headers: authHeaders() }),
       ]);
       const [itemsData, catsData, subsData, sugarData, addOnsData] = await Promise.all([
         itemsRes.json(), catsRes.json(), subsRes.json(), sugarRes.json(), addOnsRes.json(),
@@ -2400,26 +2385,26 @@ const MenuItemsTab: React.FC = () => {
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const mapItem = (i: any): MenuItem => ({
-        id:             i.id,
-        name:           i.name,
-        category_id:    i.category_id    ?? null,
-        category:       i.category?.name ?? i.category  ?? "—",
-        category_type:  i.category_type  ?? "food",
+        id: i.id,
+        name: i.name,
+        category_id: i.category_id ?? null,
+        category: i.category?.name ?? i.category ?? "—",
+        category_type: i.category_type ?? "food",
         subcategory_id: i.subcategory_id ?? null,
-        subcategory:    i.subcategory?.name ?? i.subcategory ?? "—",
-        price:          Number(i.price      ?? 0),
-        grab_price:     Number(i.grab_price  ?? 0),
-        panda_price:    Number(i.panda_price ?? 0),
-        barcode:        i.barcode    ?? null,
-        size:           i.size       ?? null,
-        image_path:     i.image_path ?? null,
-        is_available:   i.is_available === 1 || i.is_available === true || i.is_available === "1" || (i.is_available === undefined ? true : false),
+        subcategory: i.subcategory?.name ?? i.subcategory ?? "—",
+        price: Number(i.price ?? 0),
+        grab_price: Number(i.grab_price ?? 0),
+        panda_price: Number(i.panda_price ?? 0),
+        barcode: i.barcode ?? null,
+        size: i.size ?? null,
+        image_path: i.image_path ?? null,
+        is_available: i.is_available === 1 || i.is_available === true || i.is_available === "1" || (i.is_available === undefined ? true : false),
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const mapCat = (c: any): Category => ({
-        id:            c.id,
-        name:          c.name,
+        id: c.id,
+        name: c.name,
         category_type: c.category_type ?? c.type ?? "food",
       });
 
@@ -2431,8 +2416,8 @@ const MenuItemsTab: React.FC = () => {
 
       const rawSubs = Array.isArray(subsData) ? subsData : (subsData.data ?? []);
       setSubcategories(rawSubs.map((s: SubCategory) => ({
-        id:          s.id,
-        name:        s.name,
+        id: s.id,
+        name: s.name,
         category_id: s.category_id,
       })));
 
@@ -2450,17 +2435,17 @@ const MenuItemsTab: React.FC = () => {
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   useEffect(() => {
-  const handler = (e: Event) => {
-    const cat = (e as CustomEvent<Category>).detail;
-    setDrinkPoolTarget(cat);
-  };
-  window.addEventListener('open-drink-pool', handler);
-  return () => window.removeEventListener('open-drink-pool', handler);
-}, []);
+    const handler = (e: Event) => {
+      const cat = (e as CustomEvent<Category>).detail;
+      setDrinkPoolTarget(cat);
+    };
+    window.addEventListener('open-drink-pool', handler);
+    return () => window.removeEventListener('open-drink-pool', handler);
+  }, []);
 
   const toggleAvailable = useCallback(async (item: MenuItem) => {
     try {
-      const res  = await fetch(`/api/menu-items/${item.id}`, {
+      const res = await fetch(`/api/menu-items/${item.id}`, {
         method: "PUT", headers: authHeaders(),
         body: JSON.stringify({ is_available: !item.is_available }),
       });
@@ -2475,7 +2460,7 @@ const MenuItemsTab: React.FC = () => {
   const fetchBundleItems = useCallback(async (itemId: number, categoryType: string, barcode: string | null) => {
     if (bundleInfo[itemId] !== undefined || !["combo", "bundle"].includes(categoryType) || !barcode) return;
     try {
-      const res  = await fetch(`/api/bundles?barcode=${encodeURIComponent(barcode)}`, { headers: authHeaders() });
+      const res = await fetch(`/api/bundles?barcode=${encodeURIComponent(barcode)}`, { headers: authHeaders() });
       const data = await res.json();
       const bundles = Array.isArray(data) ? data : (data.data ?? []);
       if (bundles.length > 0) {
@@ -2483,9 +2468,9 @@ const MenuItemsTab: React.FC = () => {
         setBundleInfo(prev => ({
           ...prev,
           [itemId]: rawItems.map((i: BundleItemRaw) => ({
-            name:     i.custom_name ?? i.name ?? "—",
-            quantity: i.quantity    ?? 1,
-            size:     i.size        ?? "—",
+            name: i.custom_name ?? i.name ?? "—",
+            quantity: i.quantity ?? 1,
+            size: i.size ?? "—",
           })),
         }));
       } else {
@@ -2496,10 +2481,10 @@ const MenuItemsTab: React.FC = () => {
 
   const filtered = useMemo(() => items.filter(i => {
     const matchSearch = i.name.toLowerCase().includes(search.toLowerCase()) ||
-                        (i.barcode ?? "").toLowerCase().includes(search.toLowerCase());
-    const matchCat   = !filterCat   || String(i.category_id) === filterCat;
+      (i.barcode ?? "").toLowerCase().includes(search.toLowerCase());
+    const matchCat = !filterCat || String(i.category_id) === filterCat;
     const matchAvail = !filterAvail || String(i.is_available) === filterAvail;
-    const matchType  = !filterType  || i.category_type === filterType;
+    const matchType = !filterType || i.category_type === filterType;
     return matchSearch && matchCat && matchAvail && matchType;
   }), [items, search, filterCat, filterAvail, filterType]);
 
@@ -2509,52 +2494,27 @@ const MenuItemsTab: React.FC = () => {
   );
 
   const catTypeBadge = useMemo<Record<string, string>>(() => ({
-    food:          "bg-amber-50 text-amber-700 border-amber-200",
-    drink:         "bg-blue-50 text-blue-700 border-blue-200",
-    promo:         "bg-emerald-50 text-emerald-700 border-emerald-200",
-    wings:         "bg-orange-50 text-orange-700 border-orange-200",
-    waffle:        "bg-yellow-50 text-yellow-700 border-yellow-200",
-    combo:         "bg-purple-50 text-purple-700 border-purple-200",
-    bundle:        "bg-indigo-50 text-indigo-700 border-indigo-200",
+    food: "bg-amber-50 text-amber-700 border-amber-200",
+    drink: "bg-blue-50 text-blue-700 border-blue-200",
+    promo: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    wings: "bg-orange-50 text-orange-700 border-orange-200",
+    waffle: "bg-yellow-50 text-yellow-700 border-yellow-200",
+    combo: "bg-purple-50 text-purple-700 border-purple-200",
+    bundle: "bg-indigo-50 text-indigo-700 border-indigo-200",
     mix_and_match: "bg-rose-50 text-rose-700 border-rose-200",
   }), []);
 
   return (
     <div className="p-6 md:p-8 fade-in">
-      {/* Header */}
-      <div className="flex items-center justify-end mb-5 flex-wrap gap-3">
-        <div className="flex items-center gap-2">
-          <Btn variant="secondary" onClick={fetchAll} disabled={loading}>
-            <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
-          </Btn>
-          {/* Show "Manage Drinks" when filtered to a mix_and_match category */}
-          {filterType === "mix_and_match" && filterCat && categories.find(c => String(c.id) === filterCat) && (
-            <Btn variant="secondary" onClick={() => setDrinkPoolTarget(categories.find(c => String(c.id) === filterCat)!)}>
-              <Coffee size={13} /> Manage Drinks
-            </Btn>
-          )}
-          <Btn variant="secondary" onClick={() => setPrintMenuOpen(true)} disabled={loading}>
-            <Printer size={13} /> Print Menu
-          </Btn>
-          <Btn variant="secondary" onClick={() => setImportOpen(true)} disabled={loading}>
-            <Upload size={13} /> Import
-          </Btn>
-          <Btn onClick={() => startTransition(() => setAddOpen(true))} disabled={loading}>
-            <Plus size={13} /> Add Item
-          </Btn>
-          <Btn variant="secondary" onClick={() => setAddOnBuilderOpen(true)} disabled={loading}>
-            <Plus size={13} /> Add-Ons
-          </Btn>
-        </div>
-      </div>
+
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         {[
-          { label: "Total Items",  value: items.length,                              color: "bg-violet-50 border-violet-200 text-violet-600"   },
-          { label: "Available",    value: items.filter(i => i.is_available).length,  color: "bg-emerald-50 border-emerald-200 text-emerald-600" },
-          { label: "Unavailable",  value: items.filter(i => !i.is_available).length, color: "bg-red-50 border-red-200 text-red-500"            },
-          { label: "Categories",   value: categories.length,                         color: "bg-amber-50 border-amber-200 text-amber-600"      },
+          { label: "Total Items", value: items.length, color: "bg-violet-50 border-violet-200 text-violet-600" },
+          { label: "Available", value: items.filter(i => i.is_available).length, color: "bg-emerald-50 border-emerald-200 text-emerald-600" },
+          { label: "Unavailable", value: items.filter(i => !i.is_available).length, color: "bg-red-50 border-red-200 text-red-500" },
+          { label: "Categories", value: categories.length, color: "bg-amber-50 border-amber-200 text-amber-600" },
         ].map((s, i) => (
           <div key={i} className={`border rounded-[0.625rem] px-4 py-3 ${s.color.split(" ").slice(0, 2).join(" ")}`}>
             <p className={`text-xl font-black tabular-nums ${s.color.split(" ")[2]}`}>{loading ? "—" : s.value}</p>
@@ -2591,20 +2551,20 @@ const MenuItemsTab: React.FC = () => {
             <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           </div>
           <div className="relative">
-          <select value={filterType} onChange={e => setFilterType(e.target.value)}
-            className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
-            <option value="">All Types</option>
-            <option value="food">Food</option>
-            <option value="drink">Drink</option>
-            <option value="wings">Wings</option>
-            <option value="waffle">Waffle</option>
-            <option value="combo">Combo</option>
-            <option value="bundle">Bundle</option>
-            <option value="mix_and_match">Mix & Match</option>
-            <option value="promo">Promo</option>
-          </select>
-          <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
-        </div>
+            <select value={filterType} onChange={e => setFilterType(e.target.value)}
+              className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
+              <option value="">All Types</option>
+              <option value="food">Food</option>
+              <option value="drink">Drink</option>
+              <option value="wings">Wings</option>
+              <option value="waffle">Waffle</option>
+              <option value="combo">Combo</option>
+              <option value="bundle">Bundle</option>
+              <option value="mix_and_match">Mix & Match</option>
+              <option value="promo">Promo</option>
+            </select>
+            <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+          </div>
           <div className="relative">
             <select value={filterAvail} onChange={e => setFilterAvail(e.target.value)}
               className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
@@ -2616,10 +2576,31 @@ const MenuItemsTab: React.FC = () => {
           </div>
           {(filterCat || filterAvail || filterType) && (   // ✅ add filterType
             <button onClick={() => { setFilterCat(""); setFilterAvail(""); setFilterType(""); }}
-              className="text-xs font-bold text-zinc-400 hover:text-red-500 flex items-center gap-1 transition-colors">
+              className="text-xs font-bold text-zinc-400 hover:text-red-500 flex items-center gap-1 transition-colors pl-1">
               <X size={11} /> Clear
             </button>
           )}
+          
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2 ml-auto shrink-0 flex-wrap">
+            {filterType === "mix_and_match" && filterCat && categories.find(c => String(c.id) === filterCat) && (
+              <Btn variant="secondary" onClick={() => setDrinkPoolTarget(categories.find(c => String(c.id) === filterCat)!)}>
+                <Coffee size={13} /> Manage Drinks
+              </Btn>
+            )}
+            <Btn variant="secondary" onClick={() => setPrintMenuOpen(true)} disabled={loading}>
+              <Printer size={13} /> Print Menu
+            </Btn>
+            <Btn variant="secondary" onClick={() => setImportOpen(true)} disabled={loading}>
+              <Upload size={13} /> Import
+            </Btn>
+            <Btn variant="secondary" onClick={() => setAddOnBuilderOpen(true)} disabled={loading}>
+              <Plus size={13} /> Add-Ons
+            </Btn>
+            <Btn onClick={() => startTransition(() => setAddOpen(true))} disabled={loading}>
+              <Plus size={13} /> Add Item
+            </Btn>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -2672,123 +2653,123 @@ const MenuItemsTab: React.FC = () => {
                       </span>
                     ) : <span className="text-zinc-300 text-xs">—</span>}
                   </td>
-                    <td className="px-5 py-3.5 font-bold text-[#3b2063] text-xs">{fmt(item.price)}</td>
-                    <td className="px-5 py-3.5 text-zinc-400 text-xs font-mono">{item.barcode ?? "—"}</td>
+                  <td className="px-5 py-3.5 font-bold text-[#3b2063] text-xs">{fmt(item.price)}</td>
+                  <td className="px-5 py-3.5 text-zinc-400 text-xs font-mono">{item.barcode ?? "—"}</td>
 
-                    {/* ✅ Options column */}
-                    <td className="px-5 py-3.5">
-                      {["drink"].includes(item.category_type)
-                        ? <OptionsBadge opts={itemOptions[item.id] ?? { pearl: false, ice: false }} />
-                        : <span className="text-zinc-300 text-xs">—</span>
-                      }
-                    </td>
+                  {/* ✅ Options column */}
+                  <td className="px-5 py-3.5">
+                    {["drink"].includes(item.category_type)
+                      ? <OptionsBadge opts={itemOptions[item.id] ?? { pearl: false, ice: false }} />
+                      : <span className="text-zinc-300 text-xs">—</span>
+                    }
+                  </td>
 
-                    {/* Sugar Levels column */}
-                    <td className="px-5 py-3.5">
-                      {["drink"].includes(item.category_type) ? (
-                        sugarLevels.length === 0
-                          ? <span className="text-zinc-300 text-xs">—</span>
-                          : (
-                            <div className="flex flex-wrap gap-1 max-w-40">
-                              {sugarLevels.slice(0, 3).map(lvl => (
-                                <span
-                                  key={lvl.id}
-                                  className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-violet-50 text-violet-700 border border-violet-200"
-                                >
-                                  {lvl.value}
-                                </span>
-                              ))}
-                              {sugarLevels.length > 3 && (
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-zinc-100 text-zinc-500 border border-zinc-200">
-                                  +{sugarLevels.length - 3}
-                                </span>
-                              )}
-                            </div>
-                          )
-                      ) : (
-                        <span className="text-zinc-300 text-xs">—</span>
-                      )}
-                    </td>
+                  {/* Sugar Levels column */}
+                  <td className="px-5 py-3.5">
+                    {["drink"].includes(item.category_type) ? (
+                      sugarLevels.length === 0
+                        ? <span className="text-zinc-300 text-xs">—</span>
+                        : (
+                          <div className="flex flex-wrap gap-1 max-w-40">
+                            {sugarLevels.slice(0, 3).map(lvl => (
+                              <span
+                                key={lvl.id}
+                                className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-violet-50 text-violet-700 border border-violet-200"
+                              >
+                                {lvl.value}
+                              </span>
+                            ))}
+                            {sugarLevels.length > 3 && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-zinc-100 text-zinc-500 border border-zinc-200">
+                                +{sugarLevels.length - 3}
+                              </span>
+                            )}
+                          </div>
+                        )
+                    ) : (
+                      <span className="text-zinc-300 text-xs">—</span>
+                    )}
+                  </td>
 
-                    <td className="px-5 py-3.5">
-                      <button onClick={() => toggleAvailable(item)} className="transition-colors"
+                  <td className="px-5 py-3.5">
+                    <button onClick={() => toggleAvailable(item)} className="transition-colors"
                       title={item.is_available ? "Click to hide" : "Click to show"}>
                       {item.is_available
                         ? <ToggleRight size={22} className="text-[#3b2063]" />
-                        : <ToggleLeft  size={22} className="text-zinc-300"  />}
+                        : <ToggleLeft size={22} className="text-zinc-300" />}
                     </button>
                   </td>
-<td className="px-5 py-3.5">
-  <div className="flex items-center gap-1">
+                  <td className="px-5 py-3.5">
+                    <div className="flex items-center gap-1">
 
-    {/* ✅ Info popover for combo/bundle items */}
-    {["combo", "bundle"].includes(item.category_type) && (
-      <div className="relative group">
-        <button
-          className="p-1.5 hover:bg-purple-50 rounded-[0.4rem] text-zinc-300 hover:text-purple-500 transition-colors"
-          title="View components"
-          onMouseEnter={() => fetchBundleItems(item.id, item.category_type, item.barcode)}
-        >
-          <Info size={13} />
-        </button>
+                      {/* ✅ Info popover for combo/bundle items */}
+                      {["combo", "bundle"].includes(item.category_type) && (
+                        <div className="relative group">
+                          <button
+                            className="p-1.5 hover:bg-purple-50 rounded-[0.4rem] text-zinc-300 hover:text-purple-500 transition-colors"
+                            title="View components"
+                            onMouseEnter={() => fetchBundleItems(item.id, item.category_type, item.barcode)}
+                          >
+                            <Info size={13} />
+                          </button>
 
-        {/* Popover */}
-        <div className="absolute bottom-full right-0 mb-2 w-52 bg-white border border-zinc-200 rounded-xl shadow-xl z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 pointer-events-none">
-          <div className="px-3 py-2.5 border-b border-zinc-100">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Components</p>
-            <p className="text-[9px] text-zinc-400 mt-0.5">{item.name}</p>
-          </div>
-          <div className="px-3 py-2 flex flex-col gap-1.5">
-            {!bundleInfo[item.id] && (
-              <p className="text-[10px] text-zinc-400 italic">Loading...</p>
-            )}
-            {bundleInfo[item.id]?.length === 0 && (
-              <p className="text-[10px] text-zinc-400 italic">No components found.</p>
-            )}
-            {bundleInfo[item.id]?.map((comp, idx) => (
-              <div key={idx} className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5">
-                  <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${item.category_type === "combo" ? (idx === 0 ? "bg-amber-400" : "bg-blue-400") : "bg-violet-400"}`} />
-                  <span className="text-[10px] font-semibold text-zinc-700 truncate max-w-27.5">{comp.name}</span>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  {comp.size !== "none" && comp.size !== "—" && (
-                    <span className="text-[9px] font-bold text-zinc-400 bg-zinc-100 px-1.5 py-0.5 rounded">{comp.size}</span>
-                  )}
-                  <span className="text-[9px] font-bold text-zinc-400">×{comp.quantity}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-          {/* Arrow */}
-          <div className="absolute -bottom-1.5 right-3 w-3 h-3 bg-white border-r border-b border-zinc-200 rotate-45" />
-        </div>
-      </div>
-    )}
-    {/* Manage Drinks button for mix_and_match items */}
-    {item.category_type === "mix_and_match" && (() => {
-      const cat = categories.find(c => c.id === item.category_id);
-      return cat ? (
-        <button
-          onClick={() => setDrinkPoolTarget(cat)}
-          className="p-1.5 hover:bg-rose-50 rounded-[0.4rem] text-zinc-300 hover:text-rose-500 transition-colors"
-          title="Manage drink pool"
-        >
-          <Coffee size={13} />
-        </button>
-      ) : null;
-    })()}
+                          {/* Popover */}
+                          <div className="absolute bottom-full right-0 mb-2 w-52 bg-white border border-zinc-200 rounded-xl shadow-xl z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150 pointer-events-none">
+                            <div className="px-3 py-2.5 border-b border-zinc-100">
+                              <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Components</p>
+                              <p className="text-[9px] text-zinc-400 mt-0.5">{item.name}</p>
+                            </div>
+                            <div className="px-3 py-2 flex flex-col gap-1.5">
+                              {!bundleInfo[item.id] && (
+                                <p className="text-[10px] text-zinc-400 italic">Loading...</p>
+                              )}
+                              {bundleInfo[item.id]?.length === 0 && (
+                                <p className="text-[10px] text-zinc-400 italic">No components found.</p>
+                              )}
+                              {bundleInfo[item.id]?.map((comp, idx) => (
+                                <div key={idx} className="flex items-center justify-between gap-2">
+                                  <div className="flex items-center gap-1.5">
+                                    <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${item.category_type === "combo" ? (idx === 0 ? "bg-amber-400" : "bg-blue-400") : "bg-violet-400"}`} />
+                                    <span className="text-[10px] font-semibold text-zinc-700 truncate max-w-27.5">{comp.name}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    {comp.size !== "none" && comp.size !== "—" && (
+                                      <span className="text-[9px] font-bold text-zinc-400 bg-zinc-100 px-1.5 py-0.5 rounded">{comp.size}</span>
+                                    )}
+                                    <span className="text-[9px] font-bold text-zinc-400">×{comp.quantity}</span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            {/* Arrow */}
+                            <div className="absolute -bottom-1.5 right-3 w-3 h-3 bg-white border-r border-b border-zinc-200 rotate-45" />
+                          </div>
+                        </div>
+                      )}
+                      {/* Manage Drinks button for mix_and_match items */}
+                      {item.category_type === "mix_and_match" && (() => {
+                        const cat = categories.find(c => c.id === item.category_id);
+                        return cat ? (
+                          <button
+                            onClick={() => setDrinkPoolTarget(cat)}
+                            className="p-1.5 hover:bg-rose-50 rounded-[0.4rem] text-zinc-300 hover:text-rose-500 transition-colors"
+                            title="Manage drink pool"
+                          >
+                            <Coffee size={13} />
+                          </button>
+                        ) : null;
+                      })()}
 
-    <button onClick={() => startTransition(() => setEditTarget(item))}
-      className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors" title="Edit">
-      <Edit2 size={13} />
-    </button>
-    <button onClick={() => startTransition(() => setDelTarget(item))}
-      className="p-1.5 hover:bg-red-50 rounded-[0.4rem] text-zinc-400 hover:text-red-500 transition-colors" title="Delete">
-      <Trash2 size={13} />
-    </button>
-  </div>
-</td>
+                      <button onClick={() => startTransition(() => setEditTarget(item))}
+                        className="p-1.5 hover:bg-violet-50 rounded-[0.4rem] text-zinc-400 hover:text-violet-600 transition-colors" title="Edit">
+                        <Edit2 size={13} />
+                      </button>
+                      <button onClick={() => startTransition(() => setDelTarget(item))}
+                        className="p-1.5 hover:bg-red-50 rounded-[0.4rem] text-zinc-400 hover:text-red-500 transition-colors" title="Delete">
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -2821,7 +2802,7 @@ const MenuItemsTab: React.FC = () => {
           categories={categories}
           subcategories={subcategories}
           sugarLevels={sugarLevels}   // ← add
-          allAddOns={allAddOns} 
+          allAddOns={allAddOns}
           onClose={() => startTransition(() => setEditTarget(null))}
           onSaved={updated => { setItems(p => p.map(i => i.id === updated.id ? updated : i)); setEditTarget(null); }}
         />

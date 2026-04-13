@@ -1,7 +1,7 @@
 // components/NewSuperAdmin/Tabs/MenuManagement/CategoriesTab.tsx
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
-  Plus, Edit2, Trash2, RefreshCw, AlertCircle,
+  Plus, Edit2, Trash2, AlertCircle,
   X, Tag, ToggleLeft, ToggleRight, Check, ChevronDown,
   Coffee, Search, Sparkles,
 } from "lucide-react";
@@ -324,8 +324,8 @@ const DrinkPoolSetupModal: React.FC<DrinkPoolSetupModalProps> = ({ category, onC
                           type="button"
                           onClick={() => toggle(d.id)}
                           className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-all ${isSelected
-                              ? "bg-rose-50 border-rose-400 text-rose-800 shadow-sm"
-                              : "bg-white border-zinc-200 text-zinc-500 hover:border-rose-300 hover:bg-rose-50/50"
+                            ? "bg-rose-50 border-rose-400 text-rose-800 shadow-sm"
+                            : "bg-white border-zinc-200 text-zinc-500 hover:border-rose-300 hover:bg-rose-50/50"
                             }`}
                         >
                           {/* Checkbox */}
@@ -515,10 +515,10 @@ const CategoryModal: React.FC<{
 
           {(posBehavior === "bundle" || posBehavior === "combo" || posBehavior === "mix_and_match") && (
             <div className={`p-3 rounded-lg border text-xs font-medium ${posBehavior === "bundle"
-                ? "bg-indigo-50 border-indigo-200 text-indigo-700"
-                : posBehavior === "combo"
-                  ? "bg-purple-50 border-purple-200 text-purple-700"
-                  : "bg-rose-50 border-rose-200 text-rose-700"
+              ? "bg-indigo-50 border-indigo-200 text-indigo-700"
+              : posBehavior === "combo"
+                ? "bg-purple-50 border-purple-200 text-purple-700"
+                : "bg-rose-50 border-rose-200 text-rose-700"
               }`}>
               {posBehavior === "bundle" ? (
                 <>
@@ -696,8 +696,8 @@ const CategoryDrinksManager: React.FC<{
                 return (
                   <button key={d.id} type="button" onClick={() => toggle(d.id)}
                     className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-all ${isSelected
-                        ? "bg-rose-50 border-rose-400 text-rose-800"
-                        : "bg-white border-zinc-200 text-zinc-500 hover:border-rose-300"
+                      ? "bg-rose-50 border-rose-400 text-rose-800"
+                      : "bg-white border-zinc-200 text-zinc-500 hover:border-rose-300"
                       }`}>
                     <div className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? "bg-rose-500 border-rose-500" : "border-zinc-300"
                       }`}>
@@ -749,6 +749,9 @@ const CategoriesTab: React.FC = () => {
   const [delLoading, setDelLoading] = useState(false);
   const [inlineEdit, setInlineEdit] = useState<number | null>(null);
   const [inlineVal, setInlineVal] = useState("");
+  const [filterType, setFilterType] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [search, setSearch] = useState("");
   // ── New: post-create drink pool setup
   const [drinkSetupTarget, setDrinkSetupTarget] = useState<Category | null>(null);
   const [drinkPoolTarget, setDrinkPoolTarget] = useState<Category | null>(null);
@@ -814,27 +817,33 @@ const CategoriesTab: React.FC = () => {
       setCategories(p => p.map(c => c.id === cat.id ? cat : c));
     }
   };
-
-
   const totalItems = categories.reduce((sum, c) => sum + (c.menu_items_count ?? 0), 0);
+
+  const filtered = useMemo(() => {
+    return categories.filter(c => {
+      const matchType = filterType === "all" || c.type === filterType;
+      const matchStatus = filterStatus === "all" || 
+        (filterStatus === "active" ? c.is_active : !c.is_active);
+      const matchSearch = search === "" || c.name.toLowerCase().includes(search.toLowerCase());
+      return matchType && matchStatus && matchSearch;
+    });
+  }, [categories, filterType, filterStatus, search]);
 
   return (
     <div className="p-6 md:p-8 fade-in">
-      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Categories</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">
-            {loading ? "Loading..." : `${categories.length} categories · ${categories.filter(c => c.is_active).length} active · ${totalItems} total items`}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Btn variant="secondary" onClick={fetchAll} disabled={loading}>
-            <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
-          </Btn>
-          <Btn onClick={() => setAddOpen(true)} disabled={loading}>
-            <Plus size={13} /> Add Category
-          </Btn>
-        </div>
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+        {[
+          { label: "Total Categories", value: categories.length, color: "bg-violet-50 border-violet-200 text-violet-600" },
+          { label: "Active", value: categories.filter(c => c.is_active).length, color: "bg-emerald-50 border-emerald-200 text-emerald-600" },
+          { label: "Inactive", value: categories.filter(c => !c.is_active).length, color: "bg-red-50 border-red-200 text-red-500" },
+          { label: "Linked Items", value: totalItems, color: "bg-amber-50 border-amber-200 text-amber-600" },
+        ].map((s, i) => (
+          <div key={i} className={`border rounded-[0.625rem] px-4 py-3 ${s.color.split(" ").slice(0, 2).join(" ")}`}>
+            <p className={`text-xl font-black tabular-nums ${s.color.split(" ")[2]}`}>{loading ? "—" : s.value}</p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mt-0.5">{s.label}</p>
+          </div>
+        ))}
       </div>
 
       {error && (
@@ -846,6 +855,61 @@ const CategoriesTab: React.FC = () => {
       )}
 
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
+        {/* Actions Bar */}
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-100 flex-wrap">
+          {/* Left: Search */}
+          <div className="relative flex-1 min-w-[200px] max-w-sm">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+            <input
+              type="text"
+              placeholder="Search categories..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 bg-zinc-50 border border-zinc-200 rounded-lg text-sm font-medium text-zinc-700 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all"
+            />
+          </div>
+
+          {/* Right: Filters & Actions */}
+          <div className="flex items-center gap-2 ml-auto shrink-0 flex-wrap">
+            <div className="relative">
+              <select value={filterType} onChange={e => setFilterType(e.target.value)}
+                className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
+                <option value="all">All Types</option>
+                <option value="food">Food</option>
+                <option value="drink">Drink</option>
+                <option value="promo">Promo</option>
+              </select>
+              <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+            </div>
+
+            <div className="relative">
+              <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
+                className="appearance-none text-xs font-bold text-zinc-600 bg-white border border-zinc-200 rounded-lg pl-3 pr-8 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+              <ChevronDown size={11} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
+            </div>
+
+            {(filterType !== "all" || filterStatus !== "all" || search !== "") && (
+              <button onClick={() => { setFilterType("all"); setFilterStatus("all"); setSearch(""); }}
+                className="text-xs font-bold text-zinc-400 hover:text-red-500 flex items-center gap-1 transition-colors pl-1">
+                <X size={11} /> Clear
+              </button>
+            )}
+
+            <div className="w-px h-6 bg-zinc-200 mx-1 hidden sm:block"></div>
+
+            <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 hidden lg:inline-block mr-1">
+              {filtered.length} categories
+            </span>
+            <Btn onClick={() => setAddOpen(true)} disabled={loading}>
+              <Plus size={13} /> Add Category
+            </Btn>
+          </div>
+        </div>
+        
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -863,10 +927,10 @@ const CategoriesTab: React.FC = () => {
                   ))}
                 </tr>
               ))}
-              {!loading && categories.length === 0 && (
+              {!loading && filtered.length === 0 && (
                 <tr><td colSpan={7} className="px-5 py-12 text-center text-zinc-400 text-xs">No categories found.</td></tr>
               )}
-              {!loading && categories.map(cat => (
+              {!loading && filtered.map(cat => (
                 <tr key={cat.id} className="border-b border-zinc-50 hover:bg-zinc-50 transition-colors">
                   <td className="px-5 py-3.5">
                     {inlineEdit === cat.id ? (

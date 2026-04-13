@@ -105,6 +105,11 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
   String? _error;
   Timer?  _pollTimer;
 
+  // ── Payment availability ─────────────────────────────────────────────────
+  bool _gcashAvailable = false;
+  bool _mayaAvailable  = false;
+  bool _loadingPaymentSettings = true;
+
   late AnimationController _pulseCtrl;
   late Animation<double>   _pulseAnim;
 
@@ -118,6 +123,7 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     _pulseAnim = Tween<double>(begin: 0.6, end: 1.0).animate(_pulseCtrl);
 
     _fetchStatus();
+    _fetchPaymentSettings();
     _pollTimer = Timer.periodic(
       const Duration(seconds: 8),
           (_) => _fetchStatus(),
@@ -129,6 +135,42 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     _pollTimer?.cancel();
     _pulseCtrl.dispose();
     super.dispose();
+  }
+
+  // ── API: fetch payment settings (availability check) ──────────────────────
+  Future<void> _fetchPaymentSettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final int? branchId = prefs.getInt('selected_branch_id');
+
+      String url = '${AppConfig.apiUrl}/payment-settings';
+      if (branchId != null) {
+        url += '?branch_id=$branchId';
+      }
+
+      final res = await http
+          .get(Uri.parse(url))
+          .timeout(const Duration(seconds: 10));
+
+      if (res.statusCode == 200) {
+        final data = json.decode(res.body);
+        if (mounted) {
+          setState(() {
+            // A method is "available" if it has at least an account number set
+            final gcashNum = (data['gcash_number'] ?? '').toString().trim();
+            final mayaNum  = (data['maya_number']  ?? '').toString().trim();
+            _gcashAvailable = gcashNum.isNotEmpty && gcashNum != 'null';
+            _mayaAvailable  = mayaNum.isNotEmpty  && mayaNum  != 'null';
+            _loadingPaymentSettings = false;
+          });
+        }
+      } else {
+        if (mounted) setState(() => _loadingPaymentSettings = false);
+      }
+    } catch (e) {
+      debugPrint('Failed to fetch payment settings: $e');
+      if (mounted) setState(() => _loadingPaymentSettings = false);
+    }
   }
 
   // ── API: fetch status ─────────────────────────────────────────────────────
@@ -343,17 +385,19 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
             ),
             const SizedBox(height: 20),
             _paymentMethodTile(
-              label:    'GCash',
-              subtitle: '09923247869 · Test',
-              color:    _gcashColor,
-              icon:     Icons.account_balance_wallet_rounded,
+              label:      'GCash',
+              subtitle:   _gcashAvailable ? 'Pay via GCash wallet' : 'Not yet set up by this branch',
+              color:      _gcashColor,
+              icon:       Icons.account_balance_wallet_rounded,
+              available:  _gcashAvailable,
             ),
             const SizedBox(height: 12),
             _paymentMethodTile(
-              label:    'Maya',
-              subtitle: '093234928171 · Test',
-              color:    _mayaColor,
-              icon:     Icons.credit_card_rounded,
+              label:      'Maya',
+              subtitle:   _mayaAvailable ? 'Pay via Maya wallet' : 'Not yet set up by this branch',
+              color:      _mayaColor,
+              icon:       Icons.credit_card_rounded,
+              available:  _mayaAvailable,
             ),
             const SizedBox(height: 8),
           ],
@@ -368,59 +412,133 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
     required String   subtitle,
     required Color    color,
     required IconData icon,
+    bool available = true,
   }) {
+    final effectiveColor = available ? color : _textMid.withValues(alpha: 0.45);
+
     return GestureDetector(
-      onTap: () {
-        Navigator.pop(context);
-        _navigateToPayment(label);
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color:        color.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(16),
-          border:       Border.all(color: color.withValues(alpha: 0.30)),
+      onTap: available
+          ? () {
+              Navigator.pop(context);
+              _navigateToPayment(label);
+            }
+          : null,
+      child: Opacity(
+        opacity: available ? 1.0 : 0.55,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color:        effectiveColor.withValues(alpha: 0.06),
+            borderRadius: BorderRadius.circular(16),
+            border:       Border.all(color: effectiveColor.withValues(alpha: 0.30)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width:  48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: effectiveColor.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, size: 24, color: effectiveColor),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(label,
+                            style: GoogleFonts.poppins(
+                              fontSize:   15,
+                              fontWeight: FontWeight.w700,
+                              color:      available ? _textDark : _textMid,
+                            )),
+                        if (!available) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: _red.withValues(alpha: 0.10),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text('Unavailable',
+                                style: GoogleFonts.poppins(
+                                  fontSize:   9,
+                                  fontWeight: FontWeight.w700,
+                                  color:      _red,
+                                )),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(subtitle,
+                        style: GoogleFonts.poppins(
+                            fontSize: 11, color: _textMid)),
+                  ],
+                ),
+              ),
+              if (available)
+                Container(
+                  width:  32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color:  color.withValues(alpha: 0.10),
+                    shape:  BoxShape.circle,
+                  ),
+                  child: Icon(Icons.chevron_right_rounded,
+                      size: 20, color: color),
+                )
+              else
+                Icon(Icons.block_rounded, size: 20,
+                    color: _textMid.withValues(alpha: 0.35)),
+            ],
+          ),
         ),
-        child: Row(
-          children: [
-            Container(
-              width:  48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                shape: BoxShape.circle,
+      ),
+    );
+  }
+
+  // ── Compact pay-now button (used in the pay-now card) ─────────────────────
+  Widget _payNowButton({
+    required String   label,
+    required Color    color,
+    required IconData icon,
+    required bool     available,
+    required VoidCallback onTap,
+  }) {
+    final effectiveColor = available ? color : _textMid;
+
+    return GestureDetector(
+      onTap: available ? onTap : null,
+      child: Opacity(
+        opacity: available ? 1.0 : 0.45,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+          decoration: BoxDecoration(
+            color:        effectiveColor.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: effectiveColor.withValues(alpha: 0.35)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 18, color: effectiveColor),
+              const SizedBox(width: 6),
+              Text(
+                available ? label : 'N/A',
+                style: GoogleFonts.poppins(
+                  fontSize:   13,
+                  fontWeight: FontWeight.w700,
+                  color:      effectiveColor,
+                ),
               ),
-              child: Icon(icon, size: 24, color: color),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label,
-                      style: GoogleFonts.poppins(
-                        fontSize:   15,
-                        fontWeight: FontWeight.w700,
-                        color:      _textDark,
-                      )),
-                  const SizedBox(height: 2),
-                  Text(subtitle,
-                      style: GoogleFonts.poppins(
-                          fontSize: 11, color: _textMid)),
-                ],
-              ),
-            ),
-            Container(
-              width:  32,
-              height: 32,
-              decoration: BoxDecoration(
-                color:  color.withValues(alpha: 0.10),
-                shape:  BoxShape.circle,
-              ),
-              child: Icon(Icons.chevron_right_rounded,
-                  size: 20, color: color),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -755,69 +873,36 @@ class _OrderTrackingPageState extends State<OrderTrackingPage>
             ],
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => _navigateToPayment('GCash'),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 12, horizontal: 10),
-                    decoration: BoxDecoration(
-                      color:        _gcashColor.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: _gcashColor.withValues(alpha: 0.35)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.account_balance_wallet_rounded,
-                            size: 18, color: _gcashColor),
-                        const SizedBox(width: 6),
-                        Text('GCash',
-                            style: GoogleFonts.poppins(
-                              fontSize:   13,
-                              fontWeight: FontWeight.w700,
-                              color:      _gcashColor,
-                            )),
-                      ],
+          _loadingPaymentSettings
+              ? const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Center(
+                    child: SizedBox(
+                      width: 20, height: 20,
+                      child: CircularProgressIndicator(
+                          color: _purple, strokeWidth: 2),
                     ),
                   ),
+                )
+              : Row(
+                  children: [
+                    Expanded(child: _payNowButton(
+                      label: 'GCash',
+                      color: _gcashColor,
+                      icon:  Icons.account_balance_wallet_rounded,
+                      available: _gcashAvailable,
+                      onTap: () => _navigateToPayment('GCash'),
+                    )),
+                    const SizedBox(width: 10),
+                    Expanded(child: _payNowButton(
+                      label: 'Maya',
+                      color: _mayaColor,
+                      icon:  Icons.credit_card_rounded,
+                      available: _mayaAvailable,
+                      onTap: () => _navigateToPayment('Maya'),
+                    )),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => _navigateToPayment('Maya'),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        vertical: 12, horizontal: 10),
-                    decoration: BoxDecoration(
-                      color:        _mayaColor.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: _mayaColor.withValues(alpha: 0.35)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.credit_card_rounded,
-                            size: 18, color: _mayaColor),
-                        const SizedBox(width: 6),
-                        Text('Maya',
-                            style: GoogleFonts.poppins(
-                              fontSize:   13,
-                              fontWeight: FontWeight.w700,
-                              color:      _mayaColor,
-                            )),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
           const SizedBox(height: 10),
           SizedBox(
             width: double.infinity,

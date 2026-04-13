@@ -1259,6 +1259,7 @@ const SalesOrder = () => {
     }
 
     setSubmitting(false)
+    setIsCustomerNameModalOpen(false)
   }
 
   // ── Print handlers ─────────────────────────────────────────────────────────
@@ -1609,14 +1610,9 @@ const SalesOrder = () => {
           <CustomerNameModal
             customerName={customerName}
             onChange={setCustomerName}
-            onSkip={() => {
-              setIsCustomerNameModalOpen(false)
-              handleSubmitOrder('')
-            }}
-            onConfirm={() => {
-              setIsCustomerNameModalOpen(false)
-              handleSubmitOrder(customerName)
-            }}
+            submitting={submitting}
+            onSkip={() => handleSubmitOrder('')}
+            onConfirm={() => handleSubmitOrder(customerName)}
           />
         )}
 

@@ -226,9 +226,12 @@ class SaleRepository implements SaleRepositoryInterface
         $otherOrder    = (float) ($orderAggregates->other_order ?? 0);
 
         return [
-            'sc_discount'       => round($scItem + $scOrder, 2),
-            'pwd_discount'      => round($pwdItem + $pwdOrder, 2),
-            'diplomat_discount' => round($diplomatItem + $diplomatOrder, 2),
+            // Use max() to prevent double-counting when both item-level and
+            // order-level track the same discount (POS may send both).
+            'sc_discount'       => round(max($scItem, $scOrder), 2),
+            'pwd_discount'      => round(max($pwdItem, $pwdOrder), 2),
+            'diplomat_discount' => round(max($diplomatItem, $diplomatOrder), 2),
+            // 'Other' can be additive: item-level promos + order-level misc are different
             'other_discount'    => round($itemLevelOther + $otherOrder, 2),
         ];
     }

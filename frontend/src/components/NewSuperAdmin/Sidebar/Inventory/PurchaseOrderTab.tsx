@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Search, Plus, Eye, X, AlertCircle, RefreshCw,
+  Search, Plus, Eye, X, AlertCircle,
   ShoppingCart, CheckCircle, XCircle, Truck, Clock,
   ChevronDown, Minus, Building2, Calendar,
 } from 'lucide-react';
@@ -14,44 +14,44 @@ import api from '../../../../services/api';
 type POStatus = 'Draft' | 'Approved' | 'Received' | 'Cancelled';
 
 interface POItem {
-  id?:             number;
+  id?: number;
   raw_material_id: number;
-  raw_material?:   { name: string; unit: string };
-  material_name?:  string;
-  unit?:           string;
-  quantity:        number | '';
-  unit_cost:       number | '';
+  raw_material?: { name: string; unit: string };
+  material_name?: string;
+  unit?: string;
+  quantity: number | '';
+  unit_cost: number | '';
 }
 
 interface PurchaseOrder {
-  id:            number;
-  po_number:     string;
-  supplier_id:   number;
-  supplier?:     { name: string };
+  id: number;
+  po_number: string;
+  supplier_id: number;
+  supplier?: { name: string };
   supplier_name?: string;
-  branch_id:     number;
-  branch?:       { name: string };
-  branch_name?:  string;
+  branch_id: number;
+  branch?: { name: string };
+  branch_name?: string;
   expected_date?: string;
-  status:        POStatus;
-  notes?:        string;
-  items?:        POItem[];
+  status: POStatus;
+  notes?: string;
+  items?: POItem[];
   purchase_order_items?: POItem[];
-  total_cost?:   number;
-  created_at?:   string;
+  total_cost?: number;
+  created_at?: string;
 }
 
-interface Supplier   { id: number; name: string; }
-interface Branch     { id: number; name: string; }
+interface Supplier { id: number; name: string; }
+interface Branch { id: number; name: string; }
 interface RawMaterial { id: number; name: string; unit: string; }
 
 // ─── Status config ────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<POStatus, { bg: string; text: string; border: string; icon: React.ReactNode }> = {
-  Draft:     { bg: '#f4f4f5', text: '#71717a', border: '#e4e4e7', icon: <Clock      size={10} /> },
-  Approved:  { bg: '#eff6ff', text: '#2563eb', border: '#bfdbfe', icon: <CheckCircle size={10} /> },
-  Received:  { bg: '#f0fdf4', text: '#16a34a', border: '#bbf7d0', icon: <Truck      size={10} /> },
-  Cancelled: { bg: '#fef2f2', text: '#dc2626', border: '#fecaca', icon: <XCircle    size={10} /> },
+  Draft: { bg: '#f4f4f5', text: '#71717a', border: '#e4e4e7', icon: <Clock size={10} /> },
+  Approved: { bg: '#eff6ff', text: '#2563eb', border: '#bfdbfe', icon: <CheckCircle size={10} /> },
+  Received: { bg: '#f0fdf4', text: '#16a34a', border: '#bbf7d0', icon: <Truck size={10} /> },
+  Cancelled: { bg: '#fef2f2', text: '#dc2626', border: '#fecaca', icon: <XCircle size={10} /> },
 };
 
 const PO_STATUSES: POStatus[] = ['Draft', 'Approved', 'Received', 'Cancelled'];
@@ -62,7 +62,7 @@ const resolveItems = (po: PurchaseOrder): POItem[] =>
   (po.items ?? po.purchase_order_items ?? []).map(i => ({
     ...i,
     material_name: i.raw_material?.name ?? i.material_name ?? '',
-    unit:          i.raw_material?.unit ?? i.unit ?? '',
+    unit: i.raw_material?.unit ?? i.unit ?? '',
   }));
 
 const calcTotal = (items: POItem[]) =>
@@ -96,20 +96,20 @@ const StatusBadge: React.FC<{ status: POStatus }> = ({ status }) => {
 // ─── Create PO Modal ──────────────────────────────────────────────────────────
 
 const CreatePOModal: React.FC<{
-  onClose:   () => void;
+  onClose: () => void;
   onCreated: (po: PurchaseOrder) => void;
   suppliers: Supplier[];
-  branches:  Branch[];
+  branches: Branch[];
 }> = ({ onClose, onCreated, suppliers, branches }) => {
-  const [supplierId,   setSupplierId]   = useState<number | ''>('');
-  const [branchId,     setBranchId]     = useState<number | ''>('');
+  const [supplierId, setSupplierId] = useState<number | ''>('');
+  const [branchId, setBranchId] = useState<number | ''>('');
   const [expectedDate, setExpectedDate] = useState('');
-  const [notes,        setNotes]        = useState('');
-  const [poItems,      setPoItems]      = useState<POItem[]>([]);
+  const [notes, setNotes] = useState('');
+  const [poItems, setPoItems] = useState<POItem[]>([]);
   const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>([]);
-  const [errors,       setErrors]       = useState<Record<string, string>>({});
-  const [saving,       setSaving]       = useState(false);
-  const [apiErr,       setApiErr]       = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const [apiErr, setApiErr] = useState('');
 
   useEffect(() => {
     api.get('/raw-materials')
@@ -134,10 +134,10 @@ const CreatePOModal: React.FC<{
   const validate = () => {
     const e: Record<string, string> = {};
     if (!supplierId) e.supplier = 'Supplier is required.';
-    if (!branchId)   e.branch   = 'Branch is required.';
+    if (!branchId) e.branch = 'Branch is required.';
     if (poItems.length === 0) e.items = 'Add at least one item.';
     poItems.forEach((item, i) => {
-      if (!item.raw_material_id)                      e[`mat_${i}`] = 'Select material.';
+      if (!item.raw_material_id) e[`mat_${i}`] = 'Select material.';
       if (item.quantity === '' || Number(item.quantity) <= 0) e[`qty_${i}`] = 'Enter qty.';
     });
     return e;
@@ -149,8 +149,8 @@ const CreatePOModal: React.FC<{
     setSaving(true); setApiErr('');
     try {
       const res = await api.post('/purchase-orders', {
-        supplier_id:   supplierId,
-        branch_id:     branchId,
+        supplier_id: supplierId,
+        branch_id: branchId,
         expected_date: expectedDate || null,
         notes,
         items: poItems.map(i => ({ raw_material_id: i.raw_material_id, quantity: Number(i.quantity), unit_cost: Number(i.unit_cost) || 0 })),
@@ -187,13 +187,13 @@ const CreatePOModal: React.FC<{
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Supplier" required error={errors.supplier}>
-              <select value={supplierId} onChange={e => { setSupplierId(Number(e.target.value)); setErrors(p => { const n = {...p}; delete n.supplier; return n; }); }} className={inputCls(errors.supplier)}>
+              <select value={supplierId} onChange={e => { setSupplierId(Number(e.target.value)); setErrors(p => { const n = { ...p }; delete n.supplier; return n; }); }} className={inputCls(errors.supplier)}>
                 <option value="">Select supplier...</option>
                 {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </Field>
             <Field label="Branch" required error={errors.branch}>
-              <select value={branchId} onChange={e => { setBranchId(Number(e.target.value)); setErrors(p => { const n = {...p}; delete n.branch; return n; }); }} className={inputCls(errors.branch)}>
+              <select value={branchId} onChange={e => { setBranchId(Number(e.target.value)); setErrors(p => { const n = { ...p }; delete n.branch; return n; }); }} className={inputCls(errors.branch)}>
                 <option value="">Select branch...</option>
                 {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
@@ -312,9 +312,9 @@ const ViewPOModal: React.FC<{ po: PurchaseOrder; onClose: () => void; onStatusCh
           <div className="grid grid-cols-2 gap-3">
             {[
               { label: 'Supplier', value: po.supplier?.name ?? po.supplier_name ?? '—', icon: <Building2 size={12} /> },
-              { label: 'Branch',   value: po.branch?.name   ?? po.branch_name   ?? '—', icon: <Building2 size={12} /> },
+              { label: 'Branch', value: po.branch?.name ?? po.branch_name ?? '—', icon: <Building2 size={12} /> },
               { label: 'Expected', value: po.expected_date ? new Date(po.expected_date).toLocaleDateString() : '—', icon: <Calendar size={12} /> },
-              { label: 'Total',    value: `₱${total.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, icon: <ShoppingCart size={12} /> },
+              { label: 'Total', value: `₱${total.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, icon: <ShoppingCart size={12} /> },
             ].map(d => (
               <div key={d.label} className="p-3 bg-zinc-50 border border-zinc-100 rounded-xl">
                 <p className="text-[9px] font-bold uppercase tracking-widest text-zinc-400 mb-0.5">{d.label}</p>
@@ -343,7 +343,7 @@ const ViewPOModal: React.FC<{ po: PurchaseOrder; onClose: () => void; onStatusCh
         {/* Action buttons based on status */}
         <div className="flex items-center gap-2 px-6 py-4 border-t border-zinc-100 shrink-0">
           <button onClick={onClose} className="flex-1 py-2.5 bg-white border border-zinc-200 text-zinc-600 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all">Close</button>
-          {po.status === 'Draft'    && <button onClick={() => doAction('approve')} disabled={loading} className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">{loading ? '...' : 'Approve'}</button>}
+          {po.status === 'Draft' && <button onClick={() => doAction('approve')} disabled={loading} className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">{loading ? '...' : 'Approve'}</button>}
           {po.status === 'Approved' && <button onClick={() => doAction('receive')} disabled={loading} className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">{loading ? '...' : 'Mark Received'}</button>}
           {(po.status === 'Draft' || po.status === 'Approved') && <button onClick={() => doAction('cancel')} disabled={loading} className="px-4 py-2.5 bg-red-50 border border-red-200 text-red-600 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-red-100 transition-all disabled:opacity-50">{loading ? '...' : 'Cancel'}</button>}
         </div>
@@ -356,15 +356,15 @@ const ViewPOModal: React.FC<{ po: PurchaseOrder; onClose: () => void; onStatusCh
 // ─── Main ─────────────────────────────────────────────────────────────────────
 
 const PurchaseOrderTab: React.FC = () => {
-  const [orders,       setOrders]       = useState<PurchaseOrder[]>([]);
-  const [suppliers,    setSuppliers]    = useState<Supplier[]>([]);
-  const [branches,     setBranches]     = useState<Branch[]>([]);
-  const [loading,      setLoading]      = useState(true);
-  const [search,       setSearch]       = useState('');
+  const [orders, setOrders] = useState<PurchaseOrder[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [addOpen,      setAddOpen]      = useState(false);
-  const [viewTarget,   setViewTarget]   = useState<PurchaseOrder | null>(null);
-  const [expanded,     setExpanded]     = useState<number | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [viewTarget, setViewTarget] = useState<PurchaseOrder | null>(null);
+  const [expanded, setExpanded] = useState<number | null>(null);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -375,7 +375,7 @@ const PurchaseOrderTab: React.FC = () => {
         api.get('/branches'),
       ]);
       if (ordersRes.status === 'fulfilled') { const d = ordersRes.value.data; setOrders(Array.isArray(d) ? d : d?.data ?? []); }
-      if (suppRes.status === 'fulfilled')   { const d = suppRes.value.data;   setSuppliers(Array.isArray(d) ? d : d?.data ?? []); }
+      if (suppRes.status === 'fulfilled') { const d = suppRes.value.data; setSuppliers(Array.isArray(d) ? d : d?.data ?? []); }
       if (branchRes.status === 'fulfilled') { const d = branchRes.value.data; setBranches(Array.isArray(d) ? d : d?.data ?? []); }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
@@ -397,9 +397,6 @@ const PurchaseOrderTab: React.FC = () => {
     <div className="p-6 md:p-8 bg-[#f4f2fb] min-h-full">
       <div className="flex items-center justify-end mb-5 flex-wrap gap-3">
         <div className="flex items-center gap-2">
-          <button onClick={fetchAll} disabled={loading} className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
-          </button>
           <button onClick={() => setAddOpen(true)} className="bg-[#3b2063] hover:bg-[#2d1851] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all">
             <Plus size={13} /> New PO
           </button>
@@ -458,9 +455,9 @@ const PurchaseOrderTab: React.FC = () => {
                 </td></tr>
               )}
               {!loading && filtered.map(po => {
-                const items  = resolveItems(po);
-                const total  = po.total_cost ?? calcTotal(items);
-                const isExp  = expanded === po.id;
+                const items = resolveItems(po);
+                const total = po.total_cost ?? calcTotal(items);
+                const isExp = expanded === po.id;
                 return (
                   <React.Fragment key={po.id}>
                     <tr className="border-b border-zinc-50 hover:bg-[#faf9ff] transition-colors">
@@ -515,7 +512,7 @@ const PurchaseOrderTab: React.FC = () => {
         </div>
       </div>
 
-      {addOpen    && <CreatePOModal onClose={() => setAddOpen(false)} onCreated={po => setOrders(p => [po, ...p])} suppliers={suppliers} branches={branches} />}
+      {addOpen && <CreatePOModal onClose={() => setAddOpen(false)} onCreated={po => setOrders(p => [po, ...p])} suppliers={suppliers} branches={branches} />}
       {viewTarget && <ViewPOModal po={viewTarget} onClose={() => setViewTarget(null)} onStatusChange={updated => { setOrders(p => p.map(x => x.id === updated.id ? updated : x)); setViewTarget(null); }} />}
     </div>
   );

@@ -26,6 +26,8 @@ class SettingsController extends Controller
                 $settings['maya_qr_url']  = $branch->maya_qr ? url('storage/' . $branch->maya_qr) : ($settings['maya_qr_url'] ?? null);
                 $settings['gcash_number'] = $branch->gcash_number ?: ($settings['gcash_number'] ?? '');
                 $settings['maya_number']  = $branch->maya_number ?: ($settings['maya_number'] ?? '');
+                $settings['gcash_name']   = $branch->gcash_name ?: ($settings['gcash_name'] ?? '');
+                $settings['maya_name']    = $branch->maya_name ?: ($settings['maya_name'] ?? '');
                 $settings['account_name'] = $branch->owner_name ?: $branch->name;
             }
         }

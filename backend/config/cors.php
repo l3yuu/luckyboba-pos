@@ -13,13 +13,16 @@ return [
     'allowed_methods' => ['*'],
 
     'allowed_origins' => [
-        'http://localhost:5173',          // Keep for local development
+        'http://localhost:5173',          // Keep for local development (Vite)
         'https://luckybobastores.com',    // Main Production Domain
         'https://staging.luckybobastores.com', // Staging Domain
         'https://www.luckybobastores.com', // WWW Version
     ],
 
-    'allowed_origins_patterns' => [],
+    'allowed_origins_patterns' => [
+        '~^http://localhost(:\d+)?$~',
+        '~^http://127\.0\.0\.1(:\d+)?$~',
+    ],
 
     'allowed_headers' => ['*'],
 

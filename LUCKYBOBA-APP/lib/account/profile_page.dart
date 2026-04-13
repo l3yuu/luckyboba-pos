@@ -593,6 +593,27 @@ class _ProfilePageState extends State<ProfilePage> {
               top: topPad + 16, left: 20, right: 20, bottom: 44),
           child: Column(
             children: [
+              // ── Back button row ────────────────────────────────────────
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width:  40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.arrow_back_ios_new_rounded,
+                          size: 18, color: Colors.white),
+                    ),
+                  ),
+                  const Spacer(),
+                ],
+              ),
+              const SizedBox(height: 12),
+
               // ── Avatar ────────────────────────────────────────────────
               Stack(
                 alignment: Alignment.bottomRight,
@@ -711,7 +732,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
         // ── Wave at the bottom of the header ──────────────────────────
         Positioned(
-          bottom: -1,
+          bottom: 0,
           left:   0,
           right:  0,
           child: CustomPaint(
@@ -837,21 +858,24 @@ class _WavePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()..color = color;
-    final path  = Path();
-    path.moveTo(0, 0);
-    path.quadraticBezierTo(
-        size.width * 0.25, size.height,
-        size.width * 0.5,  size.height * 0.5);
-    path.quadraticBezierTo(
-        size.width * 0.75, 0,
-        size.width,        size.height * 0.5);
-    path.lineTo(size.width, 0);
-    path.close();
+    final path  = Path()
+      ..moveTo(0, size.height)
+      ..quadraticBezierTo(size.width * 0.25, 0, size.width * 0.5, size.height * 0.5)
+      ..quadraticBezierTo(size.width * 0.75, size.height, size.width, 0)
+      ..lineTo(size.width, size.height)
+      ..close();
     canvas.drawPath(path, paint);
+
+    // Solid bottom cap so content beneath is correct color
+    final capPaint = Paint()..color = color;
+    canvas.drawRect(
+      Rect.fromLTWH(0, size.height - 2, size.width, 2),
+      capPaint,
+    );
   }
 
   @override
-  bool shouldRepaint(_WavePainter old) => old.color != color;
+  bool shouldRepaint(_WavePainter old) => true; // Forced repaint for hot reload
 }
 
 // ── Menu tile data ────────────────────────────────────────────────────────────

@@ -6,6 +6,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:math' as math;
+import '../cart/menu_page.dart';
 
 // ── Shared palette ────────────────────────────────────────────────────────────
 const Color _kPurple   = Color(0xFF7C3AED);
@@ -343,7 +344,7 @@ class _StoresPageState extends State<StoresPage> {
             left:   0,
             right:  0,
             child: SizedBox(
-              height: 210,
+              height: 240,
               child: PageView.builder(
                 controller:    _pageController,
                 onPageChanged: _onPageChanged,
@@ -500,32 +501,74 @@ class _StoresPageState extends State<StoresPage> {
 
                     const SizedBox(width: 12),
 
-                    // Right: Get Directions button
-                    GestureDetector(
-                      onTap: () => _launchMapsUrl(store['url']),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: _kOrange,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color:      _kOrange.withValues(alpha: 0.35),
-                              blurRadius: 10,
-                              offset:     const Offset(0, 4),
+                    // Right: action buttons
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // View Menu button
+                        GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => MenuPage(
+                                selectedStore: store['name'],
+                                branchId: store['branch_id'] as int?,
+                              ),
                             ),
-                          ],
-                        ),
-                        child: Text(
-                          'Get Directions',
-                          style: GoogleFonts.outfit(
-                            fontSize:   12,
-                            fontWeight: FontWeight.w700,
-                            color:      Colors.white,
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: _kPurple,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color:      _kPurple.withValues(alpha: 0.35),
+                                  blurRadius: 10,
+                                  offset:     const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Text(
+                              'View Menu',
+                              style: GoogleFonts.outfit(
+                                fontSize:   11,
+                                fontWeight: FontWeight.w700,
+                                color:      Colors.white,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                        const SizedBox(height: 6),
+                        // Get Directions button
+                        GestureDetector(
+                          onTap: () => _launchMapsUrl(store['url']),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: _kOrange,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color:      _kOrange.withValues(alpha: 0.35),
+                                  blurRadius: 10,
+                                  offset:     const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Text(
+                              'Get Directions',
+                              style: GoogleFonts.outfit(
+                                fontSize:   11,
+                                fontWeight: FontWeight.w700,
+                                color:      Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
