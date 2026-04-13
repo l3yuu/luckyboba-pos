@@ -40,4 +40,8 @@ interface InventoryRepositoryInterface
      * Get transaction history for inventory items.
      */
     public function getTransactionHistory(): Collection;
+
+    public function getProductSalesSummary(string $period, array $filters = []): Collection;
+
+    public function getMaterialSoldSummary(string $period, array $filters = []): Collection;
 }

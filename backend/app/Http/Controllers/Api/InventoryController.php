@@ -7,6 +7,7 @@ use App\Http\Requests\Inventory\StockUpdateRequest;
 use App\Models\MenuItem;
 use App\Models\StockTransaction;
 use App\Repositories\InventoryRepositoryInterface;
+use App\Exports\UsageReportExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -201,30 +202,42 @@ class InventoryController extends Controller
         }
     }
 
+    public function productSalesSummary(Request $request)
+    {
+        try {
+            $period = $request->query('period', now()->format('Y-m'));
+            $data = $this->inventoryRepository->getProductSalesSummary($period, $request->query());
+            
+            return response()->json($data);
+        } catch (\Exception $e) {
+            Log::error('Product sales summary error: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to load product sales summary.'], 500);
+        }
+    }
+
     public function exportUsageReport(Request $request)
     {
         try {
             $period = $request->query('period', now()->format('Y-m'));
-            // Fetch via repo to avoid full internal HTTP request cycle overhead
-            $data = $this->inventoryRepository->getUsageReport($period, $request->query());
-
-            $csv  = "Item,Unit,Category,BEG,DEL,COOKED,OUT,SPOIL,END,USAGE,VARIANCE\n";
-            foreach ($data as $row) {
-                $csv .= implode(',', [
-                    "\"{$row['name']}\"", $row['unit'], $row['category'],
-                    $row['beg'], $row['del'], $row['cooked'],
-                    $row['out'], $row['spoil'], $row['end'],
-                    $row['usage'], $row['variance'],
-                ]) . "\n";
+            $branchName = 'ALL BRANCHES';
+            
+            if ($request->has('branch_id')) {
+                $branch = \App\Models\Branch::find($request->branch_id);
+                if ($branch) {
+                    $branchName = $branch->name;
+                }
             }
 
-            return response($csv, 200, [
-                'Content-Type'        => 'text/csv',
-                'Content-Disposition' => "attachment; filename=\"usage-report-{$period}.csv\"",
-            ]);
+            $filters = $request->query();
+            $filters['branch_name'] = $branchName;
+
+            return \Maatwebsite\Excel\Facades\Excel::download(
+                new \App\Exports\UsageReportExport($this->inventoryRepository, $period, $filters),
+                "usage-report-{$period}.xlsx"
+            );
         } catch (\Exception $e) {
             Log::error('Export usage report error: ' . $e->getMessage());
-            return response()->json(['message' => 'Export failed.'], 500);
+            return response()->json(['message' => 'Export failed: ' . $e->getMessage()], 500);
         }
     }
 }

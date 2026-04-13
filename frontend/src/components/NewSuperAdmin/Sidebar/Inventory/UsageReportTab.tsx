@@ -171,7 +171,98 @@ const MovementDrawer: React.FC<{
   );
 };
 
-// ─── Usage Breakdown Drawer ───────────────────────────────────────────────────
+// ─── Product Sold Card ────────────────────────────────────────────────────────
+
+interface ProductSalesData {
+  category_name: string;
+  product_name:  string;
+  sizes:         Record<string, number>;
+  total_sold:    number;
+}
+
+const ProductSoldCard: React.FC<{ 
+  data:    ProductSalesData[]; 
+  loading: boolean;
+}> = ({ data, loading }) => {
+  if (loading) {
+    return (
+      <div className="bg-white border border-zinc-200 rounded-[0.625rem] p-5 shadow-sm h-full">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-4 italic">Calculating sales...</p>
+        <div className="space-y-4">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="space-y-2">
+              <div className="h-3 bg-zinc-100 rounded w-1/2 animate-pulse" />
+              <div className="h-10 bg-zinc-50 rounded animate-pulse" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const grouped = data.reduce((acc, item) => {
+    if (!acc[item.category_name]) acc[item.category_name] = [];
+    acc[item.category_name].push(item);
+    return acc;
+  }, {} as Record<string, ProductSalesData[]>);
+
+  return (
+    <div className="bg-white border border-zinc-200 rounded-[0.625rem] flex flex-col shadow-sm h-full overflow-hidden">
+      <div className="px-5 py-4 border-b border-zinc-100 bg-[#faf9ff] flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Coffee size={14} className="text-[#3b2063]" />
+          <p className="text-[11px] font-extrabold uppercase tracking-widest text-[#1a0f2e]">Product Sold Summary</p>
+        </div>
+        <span className="text-[10px] font-bold text-zinc-400 bg-white border border-zinc-100 px-2 py-0.5 rounded-full">
+          {data.length} Items
+        </span>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+        {data.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center opacity-40">
+            <Coffee size={32} className="mb-2" />
+            <p className="text-[10px] font-bold uppercase tracking-widest">No sales data</p>
+          </div>
+        ) : (
+          Object.entries(grouped).map(([cat, products]) => (
+            <div key={cat} className="mb-6 last:mb-0">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="h-[1px] flex-1 bg-zinc-100" />
+                <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] px-1 whitespace-nowrap">{cat}</p>
+                <div className="h-[1px] flex-1 bg-zinc-100" />
+              </div>
+              <div className="space-y-2">
+                {products.map((p, idx) => (
+                  <div key={idx} className="bg-zinc-50 border border-zinc-100 rounded-lg p-3 hover:border-[#e9d5ff] hover:bg-[#faf9ff] transition-all group">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[11px] font-bold text-[#1a0f2e] group-hover:text-[#3b2063] transition-colors">{p.product_name}</p>
+                      <p className="text-xs font-black text-[#3b2063] tabular-nums">{p.total_sold}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {Object.entries(p.sizes || {}).map(([size, qty]) => (
+                        Number(qty) > 0 && (
+                          <div key={size} className="flex items-center gap-1 bg-white border border-zinc-100 rounded px-1.5 py-0.5">
+                            <span className="text-[8px] font-bold text-zinc-400 uppercase">{size}</span>
+                            <span className="text-[10px] font-black text-[#1a0f2e] tabular-nums">{qty}</span>
+                          </div>
+                        )
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+      
+      <div className="px-5 py-3 border-t border-zinc-100 bg-[#fdfdfd] text-center">
+        <p className="text-[9px] text-zinc-400 font-medium">Synced with Inventory Period</p>
+      </div>
+    </div>
+  );
+};
 
 const UsageBreakdownDrawer: React.FC<{
   row:     UsageRow;
@@ -292,6 +383,8 @@ const UsageReportTab: React.FC = () => {
   const [breakdownRow,  setBreakdownRow]  = useState<UsageRow | null>(null);
   const [exporting,     setExporting]     = useState(false);
   const [isToday,       setIsToday]       = useState(false);
+  const [productSales,  setProductSales]  = useState<ProductSalesData[]>([]);
+  const [salesLoading,  setSalesLoading]  = useState(false);
 
   const period = isToday
     ? now.toISOString().split('T')[0]
@@ -299,10 +392,12 @@ const UsageReportTab: React.FC = () => {
 
   const fetchReport = useCallback(async () => {
     setLoading(true);
+    setSalesLoading(true);
     try {
-      const [reportRes, branchRes] = await Promise.allSettled([
+      const [reportRes, branchRes, salesRes] = await Promise.allSettled([
         api.get('/inventory/usage-report', { params: { period, branch_id: branch || undefined } }),
         api.get('/branches'),
+        api.get('/inventory/usage-report/get-product-sales', { params: { period, branch_id: branch || undefined } }),
       ]);
       if (reportRes.status === 'fulfilled') {
         const d = reportRes.value.data;
@@ -312,8 +407,14 @@ const UsageReportTab: React.FC = () => {
         const b = branchRes.value.data;
         setBranches(Array.isArray(b) ? b : b?.data ?? []);
       }
+      if (salesRes.status === 'fulfilled') {
+        setProductSales(salesRes.value.data ?? []);
+      }
     } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+    finally { 
+      setLoading(false); 
+      setSalesLoading(false);
+    }
   }, [period, branch]);
 
   useEffect(() => { fetchReport(); }, [fetchReport]);
@@ -328,7 +429,7 @@ const UsageReportTab: React.FC = () => {
       const url  = URL.createObjectURL(res.data);
       const link = document.createElement('a');
       link.href     = url;
-      link.download = `usage-report-${period}${isToday ? '-today' : ''}.csv`;
+      link.download = `usage-report-${period}${isToday ? '-today' : ''}.xlsx`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (e) { console.error(e); }
@@ -399,9 +500,12 @@ const UsageReportTab: React.FC = () => {
         ))}
       </div>
 
-      {/* Filters */}
-      <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden shadow-sm">
-        <div className="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-zinc-100">
+      {/* Filters & Content Layout */}
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
+        
+        {/* Left Side: Filters + Table */}
+        <div className="flex-1 w-full bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden shadow-sm">
+          <div className="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-zinc-100">
 
           {/* Period selector */}
           <div className="flex items-center gap-2">
@@ -555,6 +659,12 @@ const UsageReportTab: React.FC = () => {
               </tfoot>
             )}
           </table>
+        </div>
+        </div>
+
+        {/* Right Side: Product Sold Card */}
+        <div className="w-full lg:w-80 h-[calc(100vh-320px)] sticky top-8">
+          <ProductSoldCard data={productSales} loading={salesLoading} />
         </div>
       </div>
 
