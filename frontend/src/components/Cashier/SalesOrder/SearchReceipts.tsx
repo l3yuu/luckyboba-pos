@@ -360,10 +360,9 @@ return {
   businessAddress:  payload.settings?.address,
   paxSenior: 0,
   paxPwd: 0,
-  seniorId: sale.tin ?? sale.senior_id ?? '',
-pwdId: sale.pwd_id ?? '',
+  seniorIds: (sale.tin ?? sale.senior_id) ? [sale.tin ?? sale.senior_id ?? ''] : [],
+pwdIds: sale.pwd_id ? [sale.pwd_id] : [],
 posFooter: payload.settings ?? {},
-receiptFooter: payload.settings?.receipt_footer ?? '',
 };
 };
 
@@ -445,7 +444,7 @@ receiptFooter: payload.settings?.receipt_footer ?? '',
                 .queue-stub { page-break-before: always !important; break-before: page !important; }
               }
             `}</style>
-            {printType === 'receipt' && <ReceiptPrint {...props} posFooter={props.posFooter} receiptFooter={props.receiptFooter} showDoubleQueueStub={false} isReprint={true} />}
+            {printType === 'receipt' && <ReceiptPrint {...props} posFooter={props.posFooter} showDoubleQueueStub={false} isReprint={true} />}
             {printType === 'kitchen' && <KitchenPrint {...props} />}
             {printType === 'sticker' && <StickerPrint {...props} customerName={props.customerName} />}
           </>
