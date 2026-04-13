@@ -44,6 +44,42 @@ class RawMaterialController extends Controller
             ->orderBy('name')
             ->get();
 
+        // ✅ Multi-day Trend Calculation (Last 7 Days)
+        $sevenDaysAgo = now()->subDays(7)->startOfDay();
+        $movementsSet = StockMovement::whereIn('raw_material_id', $materials->pluck('id'))
+            ->where('created_at', '>=', $sevenDaysAgo)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->groupBy('raw_material_id');
+
+        $materials->each(function ($m) use ($movementsSet) {
+            $history = [];
+            $current = (float)$m->current_stock;
+            $movements = $movementsSet->get($m->id, collect());
+
+            // We want stock at end of each day: [6_days_ago, 5_ago, ..., today]
+            for ($i = 0; $i <= 7; $i++) {
+                $history[] = round($current, 2);
+                $cutoff = now()->subDays($i)->startOfDay();
+
+                // Movements that happened BETWEEN [cutoff] and [now]
+                // We basically "undo" these movements to find the previous state
+                foreach ($movements as $idx => $mov) {
+                    if ($mov->created_at >= $cutoff) {
+                        if ($mov->type === 'add') $current -= $mov->quantity;
+                        elseif ($mov->type === 'subtract' || $mov->type === 'waste') $current += $mov->quantity;
+                        elseif ($mov->type === 'set') {
+                            // If it's a 'set', we can't easily go further back without previous 'set' or movements
+                            // For simplicity, we assume older state was 0 if we hit a 'set' at the start of our window
+                            // But usually, we just stop undoing.
+                        }
+                        $movements->forget($idx); // Remove handled movement
+                    }
+                }
+            }
+            $m->stock_history = array_reverse($history);
+        });
+
         return response()->json($materials);
     }
 
@@ -139,7 +175,7 @@ class RawMaterialController extends Controller
     public function adjust(Request $request, RawMaterial $rawMaterial)
     {
         $validated = $request->validate([
-            'type'     => 'required|in:add,subtract,set',
+            'type'     => 'required|in:add,subtract,set,waste',
             'quantity' => 'required|numeric|min:0',
             'reason'   => 'nullable|string',
         ]);
@@ -151,6 +187,7 @@ class RawMaterialController extends Controller
                         $rawMaterial->increment('current_stock', $validated['quantity']);
                         break;
                     case 'subtract':
+                    case 'waste':
                         $rawMaterial->decrement('current_stock', $validated['quantity']);
                         break;
                     case 'set':

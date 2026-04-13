@@ -13,7 +13,7 @@ import api from '../../../../services/api';
 
 type Unit = 'PC' | 'PK' | 'BAG' | 'BTL' | 'BX' | 'ML' | 'G' | 'KG' | 'L';
 type Category = 'Packaging' | 'Ingredients' | 'Intermediate' | 'Equipment';
-type AdjType = 'add' | 'subtract' | 'set';
+type AdjType = 'add' | 'subtract' | 'set' | 'waste';
 
 interface RawMaterial {
   id: number;
@@ -25,14 +25,9 @@ interface RawMaterial {
   is_intermediate: boolean;
   notes?: string;
   created_at?: string;
-  branch_stocks?: Array<{
-    id: number;
-    current_stock: number;
-    branch: {
-      id: number;
-      name: string;
-    };
-  }>;
+  branch_id?: number | null;
+  branch_stocks?: any[];
+  stock_history?: number[];
 }
 
 interface Movement {
@@ -89,7 +84,43 @@ const timeAgo = (d: string) => {
   return new Date(d).toLocaleDateString();
 };
 
-// ─── Shared UI ────────────────────────────────────────────────────────────────
+const WASTE_REASONS = [
+  'Expired', 'Spilled / Accident', 'Damaged Item', 'Quality Issue', 'Theft / Missing', 'Other'
+];
+
+const TrendSparkline: React.FC<{ data: number[] }> = ({ data }) => {
+  if (!data || data.length < 2) return null;
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+  const range = max - min || 1;
+  const padding = 2;
+  const width = 60;
+  const height = 24;
+
+  const points = data.map((val, i) => ({
+    x: (i / (data.length - 1)) * width,
+    y: height - ((val - min) / range) * (height - padding * 2) - padding
+  }));
+
+  const first = data[0];
+  const last = data[data.length - 1];
+  const isUp = last > first;
+  const isDown = last < first;
+  const color = isUp ? '#16a34a' : isDown ? '#dc2626' : '#94a3b8';
+
+  const d = points.reduce((acc, p, i) =>
+    i === 0 ? `M ${p.x},${p.y}` : `${acc} L ${p.x},${p.y}`, ''
+  );
+
+  return (
+    <div className="flex flex-col gap-1">
+      <svg width={width} height={height} className="overflow-visible">
+        <path d={d} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx={points[points.length - 1].x} cy={points[points.length - 1].y} r="2" fill={color} />
+      </svg>
+    </div>
+  );
+};
 
 const inputCls = (err?: string) =>
   `w-full text-sm font-medium text-zinc-700 bg-zinc-50 border rounded-lg px-3 py-2.5 outline-none focus:ring-2 focus:ring-violet-400 focus:bg-white transition-all ${err ? 'border-red-300 bg-red-50' : 'border-zinc-200'}`;
@@ -131,12 +162,6 @@ const HistoryDrawer: React.FC<{ item: RawMaterial; onClose: () => void }> = ({ i
       .finally(() => setLoading(false));
   }, [item.id]);
 
-  const typeIcon = (t: AdjType) => {
-    if (t === 'add') return <TrendingUp size={12} color="#16a34a" />;
-    if (t === 'subtract') return <TrendingDown size={12} color="#dc2626" />;
-    return <Minus size={12} color="#3b2063" />;
-  };
-
   const typeColor = (t: AdjType) => t === 'add' ? '#16a34a' : t === 'subtract' ? '#dc2626' : '#3b2063';
 
   return createPortal(
@@ -174,8 +199,11 @@ const HistoryDrawer: React.FC<{ item: RawMaterial; onClose: () => void }> = ({ i
           ) : movements.map(m => (
             <div key={m.id} className="flex items-start gap-3 px-5 py-3.5 border-b border-zinc-50 hover:bg-[#faf9ff] transition-colors">
               <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-                style={{ background: m.type === 'add' ? '#f0fdf4' : m.type === 'subtract' ? '#fef2f2' : '#f5f0ff' }}>
-                {typeIcon(m.type)}
+                style={{ background: m.type === 'add' ? '#f0fdf4' : m.type === 'subtract' ? '#fef2f2' : m.type === 'waste' ? '#fff7ed' : '#f5f0ff' }}>
+                {m.type === 'add' ? <TrendingUp size={12} className="text-[#16a34a]" /> :
+                  m.type === 'subtract' ? <TrendingDown size={12} className="text-[#dc2626]" /> :
+                    m.type === 'waste' ? <Trash2 size={12} className="text-[#ea580c]" /> :
+                      <Minus size={12} className="text-[#3b2063]" />}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between">
@@ -212,8 +240,8 @@ const AdjustModal: React.FC<{
 
   const preview = () => {
     if (qty === '') return item.current_stock;
-    if (adjType === 'add') return item.current_stock + Number(qty);
-    if (adjType === 'subtract') return Math.max(0, item.current_stock - Number(qty));
+    if (adjType === 'add') return Number(item.current_stock) + Number(qty);
+    if (adjType === 'subtract' || adjType === 'waste') return Math.max(0, Number(item.current_stock) - Number(qty));
     return Number(qty);
   };
 
@@ -235,8 +263,9 @@ const AdjustModal: React.FC<{
 
   const typeConfig = {
     add: { label: 'Add Stock', color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', icon: <TrendingUp size={14} /> },
-    subtract: { label: 'Subtract Stock', color: '#dc2626', bg: '#fef2f2', border: '#fecaca', icon: <TrendingDown size={14} /> },
-    set: { label: 'Set Stock', color: '#3b2063', bg: '#f5f0ff', border: '#e9d5ff', icon: <Minus size={14} /> },
+    subtract: { label: 'Subtract', color: '#dc2626', bg: '#fef2f2', border: '#fecaca', icon: <TrendingDown size={14} /> },
+    waste: { label: 'Waste', color: '#ea580c', bg: '#fff7ed', border: '#fed7aa', icon: <Trash2 size={14} /> },
+    set: { label: 'Set To', color: '#3b2063', bg: '#f5f0ff', border: '#e9d5ff', icon: <Minus size={14} /> },
   };
 
   return createPortal(
@@ -268,15 +297,15 @@ const AdjustModal: React.FC<{
           ) : (
             <>
               {/* Type selector */}
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-4 gap-2">
                 {(Object.entries(typeConfig) as [AdjType, typeof typeConfig.add][]).map(([key, cfg]) => (
-                  <button key={key} onClick={() => setAdjType(key)}
-                    className="flex flex-col items-center gap-1 py-2.5 px-2 rounded-lg border text-xs font-bold transition-all"
+                  <button key={key} onClick={() => { setAdjType(key); if (key === 'waste' && !WASTE_REASONS.includes(reason)) setReason(WASTE_REASONS[0]); }}
+                    className="flex flex-col items-center gap-1 py-2.5 px-2 rounded-lg border text-[10px] font-bold transition-all"
                     style={adjType === key
                       ? { background: cfg.bg, color: cfg.color, borderColor: cfg.border }
                       : { background: 'white', color: '#71717a', borderColor: '#e4e4e7' }}>
                     <span style={{ color: adjType === key ? cfg.color : '#a1a1aa' }}>{cfg.icon}</span>
-                    {cfg.label.split(' ')[0]}
+                    {cfg.label}
                   </button>
                 ))}
               </div>
@@ -297,15 +326,26 @@ const AdjustModal: React.FC<{
               </div>
 
               <Field label="Quantity" required>
-                <input type="number" min="0" value={qty}
-                  onChange={e => setQty(e.target.value === '' ? '' : Number(e.target.value))}
-                  className={inputCls()} placeholder="Enter quantity..." />
+                <div className="relative">
+                  <input type="number" min="0" value={qty}
+                    onChange={e => setQty(e.target.value === '' ? '' : Number(e.target.value))}
+                    className={`${inputCls()} pr-10`} placeholder="0" />
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-zinc-400 uppercase">{item.unit}</span>
+                </div>
               </Field>
 
-              <Field label="Reason" required>
-                <textarea value={reason} onChange={e => setReason(e.target.value)} rows={2}
-                  className={`${inputCls()} resize-none`} placeholder="e.g. Received from supplier, damaged goods..." />
-              </Field>
+              {adjType === 'waste' ? (
+                <Field label="Waste Category" required>
+                  <select value={reason} onChange={e => setReason(e.target.value)} className={inputCls()}>
+                    {WASTE_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
+                  </select>
+                </Field>
+              ) : (
+                <Field label="Reason / Notes" required>
+                  <input value={reason} onChange={e => setReason(e.target.value)}
+                    className={inputCls()} placeholder="e.g. Received from supplier" />
+                </Field>
+              )}
 
               {error && (
                 <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg">
@@ -575,8 +615,8 @@ const RawMaterialsTab: React.FC = () => {
     } catch (e) { console.error(e); }
   }, []);
 
-  useEffect(() => { 
-    fetchMaterials(); 
+  useEffect(() => {
+    fetchMaterials();
     fetchBranches();
   }, [fetchMaterials, fetchBranches]);
 
@@ -654,7 +694,7 @@ const RawMaterialsTab: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100">
-                {['Item', 'Category', 'Unit', 'Current Stock', 'Reorder Level', 'Status', 'Actions'].map(h => (
+                {['Item', 'Category', 'Unit', '7D Trend', 'Current Stock', 'Reorder Level', 'Status', 'Actions'].map(h => (
                   <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
                 ))}
               </tr>
@@ -705,6 +745,9 @@ const RawMaterialsTab: React.FC = () => {
                     </td>
                     <td className="px-5 py-3.5">
                       <span className="text-xs font-bold text-zinc-500 bg-zinc-100 px-2 py-0.5 rounded">{m.unit}</span>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      {m.stock_history && <TrendSparkline data={m.stock_history} />}
                     </td>
                     <td className="px-5 py-3.5 relative">
                       <div className="flex items-center gap-2 group cursor-pointer" onClick={() => setStockPopId(stockPopId === m.id ? null : m.id)}>
