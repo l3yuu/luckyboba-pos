@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Search, Plus, Edit2, Trash2, X, AlertCircle, RefreshCw,
+  Search, Plus, Edit2, Trash2, X, AlertCircle,
   Building2, Phone, Mail, MapPin, Package, CheckCircle,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
@@ -11,29 +11,29 @@ import api from '../../../../services/api';
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Supplier {
-  id:              number;
-  name:            string;
+  id: number;
+  name: string;
   contact_person?: string;
-  phone?:          string;
-  email?:          string;
-  address?:        string;
-  payment_terms?:  string;
-  is_active:       boolean;
-  materials?:      { id: number; name: string; unit: string }[];
+  phone?: string;
+  email?: string;
+  address?: string;
+  payment_terms?: string;
+  is_active: boolean;
+  materials?: { id: number; name: string; unit: string }[];
   materials_count?: number;
 }
 
 interface RawMaterial { id: number; name: string; unit: string; }
 
 interface FormState {
-  name:           string;
+  name: string;
   contact_person: string;
-  phone:          string;
-  email:          string;
-  address:        string;
-  payment_terms:  string;
-  is_active:      boolean;
-  material_ids:   number[];
+  phone: string;
+  email: string;
+  address: string;
+  payment_terms: string;
+  is_active: boolean;
+  material_ids: number[];
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -61,27 +61,27 @@ const Field: React.FC<{ label: string; required?: boolean; error?: string; child
 // ─── Supplier Form Modal ──────────────────────────────────────────────────────
 
 const SupplierFormModal: React.FC<{
-  onClose:  () => void;
-  onSaved:  (s: Supplier) => void;
+  onClose: () => void;
+  onSaved: (s: Supplier) => void;
   editing?: Supplier | null;
 }> = ({ onClose, onSaved, editing }) => {
-  const [form,         setForm]         = useState<FormState>(
+  const [form, setForm] = useState<FormState>(
     editing ? {
-      name:           editing.name,
+      name: editing.name,
       contact_person: editing.contact_person ?? '',
-      phone:          editing.phone ?? '',
-      email:          editing.email ?? '',
-      address:        editing.address ?? '',
-      payment_terms:  editing.payment_terms ?? '',
-      is_active:      editing.is_active,
-      material_ids:   editing.materials?.map(m => m.id) ?? [],
+      phone: editing.phone ?? '',
+      email: editing.email ?? '',
+      address: editing.address ?? '',
+      payment_terms: editing.payment_terms ?? '',
+      is_active: editing.is_active,
+      material_ids: editing.materials?.map(m => m.id) ?? [],
     } : blankForm()
   );
   const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>([]);
-  const [matSearch,    setMatSearch]    = useState('');
-  const [errors,       setErrors]       = useState<Record<string, string>>({});
-  const [saving,       setSaving]       = useState(false);
-  const [apiErr,       setApiErr]       = useState('');
+  const [matSearch, setMatSearch] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const [apiErr, setApiErr] = useState('');
 
   useEffect(() => {
     api.get('/raw-materials')
@@ -282,9 +282,9 @@ const ViewSupplierModal: React.FC<{ supplier: Supplier; onClose: () => void }> =
         </div>
         <div className="px-6 py-5 flex flex-col gap-3">
           {[
-            { icon: <Mail size={13} />,    label: 'Email',         value: supplier.email         },
-            { icon: <Phone size={13} />,   label: 'Phone',         value: supplier.phone         },
-            { icon: <MapPin size={13} />,  label: 'Address',       value: supplier.address       },
+            { icon: <Mail size={13} />, label: 'Email', value: supplier.email },
+            { icon: <Phone size={13} />, label: 'Phone', value: supplier.phone },
+            { icon: <MapPin size={13} />, label: 'Address', value: supplier.address },
             { icon: <Package size={13} />, label: 'Payment Terms', value: supplier.payment_terms },
           ].filter(r => r.value).map(row => (
             <div key={row.label} className="flex items-start gap-3">
@@ -325,12 +325,12 @@ const ViewSupplierModal: React.FC<{ supplier: Supplier; onClose: () => void }> =
 // ─── Delete Modal ─────────────────────────────────────────────────────────────
 
 const DeleteModal: React.FC<{
-  supplier:  Supplier;
-  onClose:   () => void;
+  supplier: Supplier;
+  onClose: () => void;
   onDeleted: (id: number) => void;
 }> = ({ supplier, onClose, onDeleted }) => {
   const [saving, setSaving] = useState(false);
-  const [error,  setError]  = useState('');
+  const [error, setError] = useState('');
 
   const handleDelete = async () => {
     setSaving(true);
@@ -383,15 +383,15 @@ const DeleteModal: React.FC<{
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 const SupplierTab: React.FC = () => {
-  const [suppliers,    setSuppliers]    = useState<Supplier[]>([]);
-  const [loading,      setLoading]      = useState(true);
-  const [search,       setSearch]       = useState('');
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
 
-  const [addOpen,      setAddOpen]      = useState(false);
-  const [viewTarget,   setViewTarget]   = useState<Supplier | null>(null);
-  const [editTarget,   setEditTarget]   = useState<Supplier | null>(null);
-  const [delTarget,    setDelTarget]    = useState<Supplier | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [viewTarget, setViewTarget] = useState<Supplier | null>(null);
+  const [editTarget, setEditTarget] = useState<Supplier | null>(null);
+  const [delTarget, setDelTarget] = useState<Supplier | null>(null);
 
   const fetchSuppliers = useCallback(async () => {
     setLoading(true);
@@ -408,9 +408,9 @@ const SupplierTab: React.FC = () => {
   const filtered = suppliers.filter(s => {
     const matchSearch = s.name.toLowerCase().includes(search.toLowerCase()) ||
       (s.contact_person ?? '').toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === 'active'   ? s.is_active
-                      : statusFilter === 'inactive' ? !s.is_active
-                      : true;
+    const matchStatus = statusFilter === 'active' ? s.is_active
+      : statusFilter === 'inactive' ? !s.is_active
+        : true;
     return matchSearch && matchStatus;
   });
 
@@ -419,26 +419,13 @@ const SupplierTab: React.FC = () => {
   return (
     <div className="p-6 md:p-8 bg-[#f4f2fb] min-h-full">
 
-      {/* Header */}
-      <div className="flex items-center justify-end mb-5 flex-wrap gap-3">
-        <div className="flex items-center gap-2">
-          <button onClick={fetchSuppliers} disabled={loading}
-            className="bg-white border border-[#e9d5ff] text-zinc-400 hover:text-[#3b2063] hover:border-[#3b2063] px-3 py-2 h-9 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold">
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} /> Refresh
-          </button>
-          <button onClick={() => setAddOpen(true)}
-            className="bg-[#3b2063] hover:bg-[#6a12b8] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all">
-            <Plus size={13} /> Add Supplier
-          </button>
-        </div>
-      </div>
 
       {/* Stat Cards */}
       <div className="grid grid-cols-3 gap-4 mb-5">
         {[
-          { label: 'Total Suppliers', value: suppliers.length,                    color: '#3b2063', bg: '#f5f0ff', border: '#e9d5ff' },
-          { label: 'Active',          value: activeCount,                          color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
-          { label: 'Inactive',        value: suppliers.length - activeCount,       color: '#71717a', bg: '#f4f4f5', border: '#e4e4e7' },
+          { label: 'Total Suppliers', value: suppliers.length, color: '#3b2063', bg: '#f5f0ff', border: '#e9d5ff' },
+          { label: 'Active', value: activeCount, color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0' },
+          { label: 'Inactive', value: suppliers.length - activeCount, color: '#71717a', bg: '#f4f4f5', border: '#e4e4e7' },
         ].map(s => (
           <div key={s.label} className="bg-white border rounded-[0.625rem] px-5 py-4 shadow-sm" style={{ borderColor: s.border }}>
             <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">{s.label}</p>
@@ -463,7 +450,11 @@ const SupplierTab: React.FC = () => {
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
-          <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest ml-auto">{filtered.length} results</span>
+          <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">{filtered.length} results</span>
+          <button onClick={() => setAddOpen(true)}
+            className="bg-[#3b2063] hover:bg-[#6a12b8] text-white px-4 py-2 h-9 rounded-lg font-bold text-xs uppercase tracking-widest flex items-center gap-1.5 transition-all ml-auto shrink-0">
+            <Plus size={13} /> Add Supplier
+          </button>
         </div>
 
         <div className="overflow-x-auto">
@@ -548,10 +539,10 @@ const SupplierTab: React.FC = () => {
         </div>
       </div>
 
-      {addOpen    && <SupplierFormModal onClose={() => setAddOpen(false)}     onSaved={s => setSuppliers(p => [s, ...p])} />}
-      {editTarget && <SupplierFormModal onClose={() => setEditTarget(null)}   onSaved={s => { setSuppliers(p => p.map(x => x.id === s.id ? s : x)); setEditTarget(null); }} editing={editTarget} />}
-      {viewTarget && <ViewSupplierModal supplier={viewTarget}                 onClose={() => setViewTarget(null)} />}
-      {delTarget  && <DeleteModal supplier={delTarget}                        onClose={() => setDelTarget(null)} onDeleted={id => { setSuppliers(p => p.filter(x => x.id !== id)); setDelTarget(null); }} />}
+      {addOpen && <SupplierFormModal onClose={() => setAddOpen(false)} onSaved={s => setSuppliers(p => [s, ...p])} />}
+      {editTarget && <SupplierFormModal onClose={() => setEditTarget(null)} onSaved={s => { setSuppliers(p => p.map(x => x.id === s.id ? s : x)); setEditTarget(null); }} editing={editTarget} />}
+      {viewTarget && <ViewSupplierModal supplier={viewTarget} onClose={() => setViewTarget(null)} />}
+      {delTarget && <DeleteModal supplier={delTarget} onClose={() => setDelTarget(null)} onDeleted={id => { setSuppliers(p => p.filter(x => x.id !== id)); setDelTarget(null); }} />}
     </div>
   );
 };
