@@ -186,6 +186,39 @@ class InventoryRepository implements InventoryRepositoryInterface
         });
     }
 
+    public function getUsageBreakdown(int $rawMaterialId, string $period, array $filters = []): Collection
+    {
+        $branchId = $this->getScopedBranchId($filters['branch_id'] ?? null);
+
+        $parts = explode('-', $period);
+        if (count($parts) === 3) {
+            $startDate = $period;
+            $endDate   = $period;
+        } else {
+            $year      = $parts[0] ?? now()->format('Y');
+            $month     = $parts[1] ?? now()->format('m');
+            $startDate = "{$year}-{$month}-01";
+            $endDate   = date('Y-m-t', strtotime($startDate));
+        }
+
+        return DB::table('stock_deductions')
+            ->join('sale_items', 'stock_deductions.sale_item_id', '=', 'sale_items.id')
+            ->leftJoin('recipe_items', 'stock_deductions.recipe_item_id', '=', 'recipe_items.id')
+            ->select(
+                'sale_items.product_name',
+                'sale_items.cup_size_label',
+                'recipe_items.quantity as recipe_quantity',
+                DB::raw('COUNT(sale_items.id) as total_sold'),
+                DB::raw('SUM(stock_deductions.quantity_deducted) as total_deducted')
+            )
+            ->where('stock_deductions.raw_material_id', $rawMaterialId)
+            ->whereBetween('stock_deductions.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->when($branchId, fn($q) => $q->where('sale_items.branch_id', $branchId))
+            ->groupBy('sale_items.product_name', 'sale_items.cup_size_label', 'recipe_items.quantity')
+            ->orderBy('total_deducted', 'desc')
+            ->get();
+    }
+
     public function updateStock(int $menuItemId, int $quantityChange): array
     {
         $item = MenuItem::findOrFail($menuItemId);

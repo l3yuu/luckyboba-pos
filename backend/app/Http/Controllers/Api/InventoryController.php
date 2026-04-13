@@ -188,6 +188,19 @@ class InventoryController extends Controller
         }
     }
 
+    public function usageBreakdown(Request $request, int $id)
+    {
+        try {
+            $period = $request->query('period', now()->format('Y-m'));
+            $data = $this->inventoryRepository->getUsageBreakdown($id, $period, $request->query());
+            
+            return response()->json($data);
+        } catch (\Exception $e) {
+            Log::error('Usage breakdown error: ' . $e->getMessage());
+            return response()->json(['message' => 'Failed to load breakdown.'], 500);
+        }
+    }
+
     public function exportUsageReport(Request $request)
     {
         try {

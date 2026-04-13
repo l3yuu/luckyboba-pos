@@ -394,6 +394,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::get ('/overview',               [InventoryController::class, 'overview']);
             Route::get ('/alerts',                 [InventoryController::class, 'alerts']);
             Route::get ('/usage-report',           [InventoryController::class, 'usageReport']);
+            Route::get ('/usage-report/breakdown/{id}', [InventoryController::class, 'usageBreakdown']);
             Route::get ('/usage-report/export',    [InventoryController::class, 'exportUsageReport']);
         });
 
