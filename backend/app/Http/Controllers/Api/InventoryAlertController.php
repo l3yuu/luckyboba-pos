@@ -57,7 +57,8 @@ class InventoryAlertController extends Controller
      */
     private function getRawMaterialAlerts(): Collection
     {
-        return RawMaterial::whereRaw('current_stock <= reorder_level')
+        return RawMaterial::whereNotNull('branch_id')
+            ->whereRaw('current_stock <= reorder_level')
             ->get()
             ->map(function ($item) {
                 return [
@@ -82,6 +83,7 @@ class InventoryAlertController extends Controller
     {
         return MenuItem::join('categories', 'menu_items.category_id', '=', 'categories.id')
             ->select('menu_items.*', 'categories.name as category_name')
+            ->whereNotNull('menu_items.branch_id')
             ->where('categories.type', '!=', 'standard')
             ->where('menu_items.quantity', '<=', 10)
             ->get()

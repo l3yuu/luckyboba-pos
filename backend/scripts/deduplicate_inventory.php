@@ -47,7 +47,9 @@ DB::transaction(function () use ($mapping) {
         updateReferences($oldId, $newId);
 
         // 2. Identify and Merge Branch Clones
+        /** @var \Illuminate\Database\Eloquent\Collection|RawMaterial[] $oldClones */
         $oldClones = RawMaterial::where('parent_id', $oldId)->get();
+        /** @var RawMaterial $oldClone */
         foreach ($oldClones as $oldClone) {
             $branchId = $oldClone->branch_id;
             

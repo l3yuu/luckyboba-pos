@@ -308,7 +308,9 @@ class InventoryRepository implements InventoryRepositoryInterface
             $endDate   = date('Y-m-t', strtotime($startDate));
         }
 
-        return DB::table('sale_items')
+        // 1. Get sales counts
+        $sales = DB::table('sale_items')
+            ->join('sales', 'sale_items.sale_id', '=', 'sales.id')
             ->join('menu_items', 'sale_items.menu_item_id', '=', 'menu_items.id')
             ->join('categories', 'menu_items.category_id', '=', 'categories.id')
             ->select(
@@ -318,11 +320,42 @@ class InventoryRepository implements InventoryRepositoryInterface
                 DB::raw('SUM(sale_items.quantity) as total_sold')
             )
             ->whereBetween('sale_items.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
-            ->when($branchId, fn($q) => $q->where('sale_items.branch_id', $branchId))
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
             ->groupBy('categories.name', 'sale_items.product_name', 'sale_items.cup_size_label')
             ->orderBy('categories.name')
             ->orderBy('sale_items.product_name')
             ->get();
+
+        // 2. Get material usage per product and size
+        $usage = DB::table('stock_deductions')
+            ->join('sales', 'stock_deductions.sale_id', '=', 'sales.id')
+            ->join('sale_items', 'stock_deductions.sale_item_id', '=', 'sale_items.id')
+            ->join('raw_materials', 'stock_deductions.raw_material_id', '=', 'raw_materials.id')
+            ->select(
+                'sale_items.product_name',
+                'sale_items.cup_size_label',
+                'raw_materials.name as material_name',
+                'raw_materials.unit',
+                DB::raw('SUM(stock_deductions.quantity_deducted) as total_usage')
+            )
+            ->whereBetween('stock_deductions.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
+            ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
+            ->groupBy('sale_items.product_name', 'sale_items.cup_size_label', 'raw_materials.name', 'raw_materials.unit')
+            ->get()
+            ->groupBy(function($u) {
+                return $u->product_name . '|' . ($u->cup_size_label ?? '');
+            });
+
+        // 3. Merge usage into sales
+        return $sales->map(function($item) use ($usage) {
+            $key = $item->product_name . '|' . ($item->cup_size_label ?? '');
+            $item->usage = $usage->get($key, collect())->map(fn($u) => [
+                'name' => $u->material_name,
+                'qty'  => (float) $u->total_usage,
+                'unit' => $u->unit
+            ])->values();
+            return $item;
+        });
     }
 
     public function getMaterialSoldSummary(string $period, array $filters = []): Collection
