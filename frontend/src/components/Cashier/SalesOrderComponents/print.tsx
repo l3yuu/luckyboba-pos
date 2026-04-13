@@ -7,21 +7,6 @@ import logo from '../../../assets/logo.png';
 import { type CartItem, type BundleComponentCustomization } from '../../../types/index';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Types
-// ─────────────────────────────────────────────────────────────────────────────
-export interface PosFooterData {
-  pos_supplier?: string;
-  pos_address?: string;
-  pos_tin?: string;
-  pos_accred_no?: string;
-  pos_date_issued?: string;
-  pos_valid_until?: string;
-  pos_ptu?: string;
-  pos_ptu_date?: string;
-  business_name?: string;
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
 // ReceiptPrint
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -35,10 +20,6 @@ interface ReceiptPrintProps {
   vatRegTin?: string;
   minNumber?: string;
   serialNumber?: string;
-  businessName?: string;
-  businessEmail?: string;
-  businessPhone?: string;
-  businessAddress?: string;
   orNumber: string;
   queueNumber: string;
   cashierName: string;
@@ -72,13 +53,20 @@ interface ReceiptPrintProps {
   seniorIds?: string[];
   pwdIds?: string[];
   itemPaxAssignments?: Record<string, ('none' | 'sc' | 'pwd')[]>;
-  posFooter?: PosFooterData;
-  receiptFooter?: string;
+  posFooter?: {
+    pos_supplier?:    string;
+    pos_address?:     string;
+    pos_tin?:         string;
+    pos_accred_no?:   string;
+    pos_date_issued?: string;
+    pos_valid_until?: string;
+    pos_ptu?:         string;
+    pos_ptu_date?:    string;
+  };
 }
 
 export const ReceiptPrint = ({
-  cart, brand, companyName, storeAddress, vatRegTin, minNumber, serialNumber, ownerName,
-  businessName, businessEmail, businessPhone, businessAddress,
+  cart, branchName, brand, companyName, storeAddress, vatRegTin, minNumber, serialNumber, ownerName,
   orNumber, queueNumber, cashierName,
   formattedDate, formattedTime, orderCharge, totalCount,
   subtotal, amtDue, vatableSales, vatAmount, vatExemptSales = 0, change, cashTendered,
@@ -87,7 +75,7 @@ export const ReceiptPrint = ({
   orderType,
   customerName,
   totalDiscountDisplay, itemDiscountTotal, promoDiscount, addOnsData = [], showDoubleQueueStub = true,
-  isReprint = false,
+  isReprint: _isReprint = false,
   vatType = 'vat',
   paxSenior = 0,
   paxPwd = 0,
@@ -96,7 +84,6 @@ export const ReceiptPrint = ({
   pwdIds = [],
   itemPaxAssignments = {},
   posFooter = {},
-  receiptFooter = '',
 }: ReceiptPrintProps) => {
 
   // FIX #6 + #7 — removed dead coveredUnitMap / itemCoverageMap computation that
@@ -112,10 +99,7 @@ export const ReceiptPrint = ({
         {/* Store header */}
         <div className="text-center mb-4 border-b border-black pb-3">
           <img src={logo} alt="Lucky Boba Logo" className="w-48 h-auto mx-auto mb-2 grayscale" style={{ filter: 'grayscale(100%) contrast(1.2)' }} />
-          <h1 className="uppercase leading-tight font-bold text-xl">{businessName || posFooter.business_name || brand || 'LUCKY BOBA'}</h1>
-          {isReprint && (
-            <div className="absolute top-2 right-2 border-2 border-black px-2 py-1 font-bold text-xs rotate-12 opacity-50">REPRINT</div>
-          )}
+          <h1 className="uppercase leading-tight font-bold text-xl">{brand || 'LUCKY BOBA MILKTEA'}</h1>
           {ownerName && (
             <div className="text-center text-[10px] leading-tight">
               <span>Owned and Operated By:</span>
@@ -124,7 +108,7 @@ export const ReceiptPrint = ({
             </div>
           )}
           {companyName && <p className="text-xs mt-0.5 font-semibold">{companyName}</p>}
-          <p className="text-base mt-1"></p>
+          <p className="text-base mt-1">{branchName}</p>
           {storeAddress && <p className="text-xs mt-0.5">{storeAddress}</p>}
           {vatRegTin && <p className="text-xs mt-0.5">VAT Reg TIN: {vatRegTin}</p>}
           {minNumber && <p className="text-xs mt-0.5">MIN: {minNumber}</p>}
@@ -227,8 +211,8 @@ export const ReceiptPrint = ({
                 return item.charges?.grab && Number(a.grab_price ?? 0) > 0
                   ? Number(a.grab_price)
                   : item.charges?.panda && Number(a.panda_price ?? 0) > 0
-                    ? Number(a.panda_price)
-                    : Number(a.price);
+                  ? Number(a.panda_price)
+                  : Number(a.price);
               };
 
               const addOnCostPerUnit = (item.addOns ?? []).reduce(
@@ -239,8 +223,8 @@ export const ReceiptPrint = ({
               // item.price already reflects the correct Grab/Panda/base price —
               // unitGross is simply the per-unit base price plus any add-on cost.
               const unitGross = Number(item.price) + addOnCostPerUnit;
-              const unitVatExcl = isVat ? Math.round((unitGross / 1.12) * 100) / 100 : unitGross;
-              const discountAmt = hasPaxDiscount ? Math.round((unitVatExcl * (discountPct / 100)) * 100) / 100 : 0;
+              const unitVatExcl = isVat ? unitGross / 1.12 : unitGross;
+              const discountAmt = hasPaxDiscount ? unitVatExcl * (discountPct / 100) : 0;
               const netPrice = hasPaxDiscount ? unitVatExcl - discountAmt : unitGross;
 
               return (
@@ -335,13 +319,13 @@ export const ReceiptPrint = ({
         {/* Totals */}
         <div className="text-xs space-y-1 border-t border-dashed border-black pt-2">
           <div className="flex justify-between"><span>Total Items</span><span>{totalCount}</span></div>
-          <div className="flex justify-between"><span>Sub Total</span><span>{Number(subtotal).toFixed(2)}</span></div>
+          <div className="flex justify-between"><span>Sub Total</span><span>{subtotal.toFixed(2)}</span></div>
           {totalDiscountDisplay > 0 && (
             <>
               {itemDiscountTotal > 0 && (
                 <div className="flex justify-between">
                   <span>Item Discount(s)</span>
-                  <span>- {Number(itemDiscountTotal || 0).toFixed(2)}</span>
+                  <span>- {itemDiscountTotal.toFixed(2)}</span>
                 </div>
               )}
               {selectedDiscount && promoDiscount > 0 && (
@@ -351,19 +335,19 @@ export const ReceiptPrint = ({
                     {(selectedDiscount as { name: string; amount?: number; type?: string }).type?.includes('Percent')
                       ? ` (${(selectedDiscount as { name: string; amount?: number; type?: string }).amount}%)`
                       : (selectedDiscount as { name: string; amount?: number; type?: string }).amount
-                        ? ` (-₱${(selectedDiscount as { name: string; amount?: number; type?: string }).amount})`
-                        : ''}
+                      ? ` (-₱${(selectedDiscount as { name: string; amount?: number; type?: string }).amount})`
+                      : ''}
                   </span>
-                  <span>- {Number(promoDiscount || 0).toFixed(2)}</span>
+                  <span>- {promoDiscount.toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between font-bold border-t border-dashed border-black pt-1 mt-1">
                 <span>Total Discount</span>
-                <span>- {Number(totalDiscountDisplay || 0).toFixed(2)}</span>
+                <span>- {totalDiscountDisplay.toFixed(2)}</span>
               </div>
             </>
           )}
-          <div className="flex justify-between text-base font-bold mt-1"><span>TOTAL DUE</span><span>{Number(amtDue || 0).toFixed(2)}</span></div>
+          <div className="flex justify-between text-base font-bold mt-1"><span>TOTAL DUE</span><span>{amtDue.toFixed(2)}</span></div>
         </div>
 
         {/* Payment */}
@@ -371,8 +355,8 @@ export const ReceiptPrint = ({
           <div className="flex justify-between"><span>Payment Method</span><span className="uppercase font-bold">{paymentMethod}</span></div>
           {paymentMethod === 'cash' && (
             <>
-              <div className="flex justify-between"><span>Cash (Tendered)</span><span>{cashTendered !== '' ? Number(cashTendered || 0).toFixed(2) : Number(amtDue || 0).toFixed(2)}</span></div>
-              <div className="flex justify-between"><span>Change</span><span>{Number(change || 0).toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>Cash (Tendered)</span><span>{typeof cashTendered === 'number' ? cashTendered.toFixed(2) : amtDue.toFixed(2)}</span></div>
+              <div className="flex justify-between"><span>Change</span><span>{change.toFixed(2)}</span></div>
             </>
           )}
           {referenceNumber && (
@@ -419,43 +403,22 @@ export const ReceiptPrint = ({
           ))}
         </div>
 
+        {/* Franchise info */}
         <div className="mt-6 mb-4 text-center text-xs">
-          {(businessEmail || businessPhone || businessAddress) && (
-            <>
-              FOR FRANCHISE<br />
-              EMAIL OR CONTACT US ON<br />
-              {businessEmail || 'luckyboba.franchise@gmail.com'}<br />
-              {businessPhone || '09171699894'}<br />
-              {businessAddress && <div className="mt-1 normal-case">{businessAddress}</div>}
-            </>
-          )}
-          {!businessName && !businessEmail && !businessPhone && !businessAddress && (
-            <>
-              FOR FRANCHISE<br />
-              EMAIL OR CONTACT US ON<br />
-              luckyboba.franchise@gmail.com<br />
-              09171699894
-            </>
-          )}
+          FOR FRANCHISE<br />EMAIL OR CONTACT US ON<br />luckyboba.franchise@gmail.com<br />09171699894
         </div>
-
-        {receiptFooter && (
-          <div className="text-center text-xs whitespace-pre-wrap font-bold mb-4 uppercase px-4 leading-relaxed">
-            {receiptFooter}
-          </div>
-        )}
 
         {/* ── POS Supplier Footer ── */}
         {(posFooter.pos_supplier || posFooter.pos_tin) && (
           <div className="mt-2 mb-4 text-left text-[10px] border-t border-dashed border-black pt-3 space-y-0.5 leading-snug">
-            {posFooter.pos_supplier && <div className="font-bold uppercase">POS SUPPLIER: {posFooter.pos_supplier}</div>}
-            {posFooter.pos_address && <div>{posFooter.pos_address}</div>}
-            {posFooter.pos_tin && <div>TIN: {posFooter.pos_tin}</div>}
-            {posFooter.pos_accred_no && <div>Accred No: {posFooter.pos_accred_no}</div>}
+            {posFooter.pos_supplier    && <div className="font-bold uppercase">POS SUPPLIER: {posFooter.pos_supplier}</div>}
+            {posFooter.pos_address     && <div>{posFooter.pos_address}</div>}
+            {posFooter.pos_tin         && <div>TIN: {posFooter.pos_tin}</div>}
+            {posFooter.pos_accred_no   && <div>Accred No: {posFooter.pos_accred_no}</div>}
             {posFooter.pos_date_issued && <div>Date Issued: {posFooter.pos_date_issued}</div>}
             {posFooter.pos_valid_until && <div>Valid Until: {posFooter.pos_valid_until}</div>}
-            {posFooter.pos_ptu && <div>PTU No: {posFooter.pos_ptu}</div>}
-            {posFooter.pos_ptu_date && <div>PTU Date Issued: {posFooter.pos_ptu_date}</div>}
+            {posFooter.pos_ptu         && <div>PTU No: {posFooter.pos_ptu}</div>}
+            {posFooter.pos_ptu_date    && <div>PTU Date Issued: {posFooter.pos_ptu_date}</div>}
           </div>
         )}
 
@@ -486,40 +449,24 @@ export const ReceiptPrint = ({
 interface KitchenPrintProps {
   cart: CartItem[];
   branchName: string;
-  brand?: string;
-  businessName?: string;
-  businessEmail?: string;
-  businessPhone?: string;
-  businessAddress?: string;
   orNumber: string;
   queueNumber: string;
-  cashierName: string;
   formattedDate: string;
   formattedTime: string;
   customerName: string;
   orderType: 'dine-in' | 'take-out' | 'delivery';
-  isReprint?: boolean;
-  posFooter?: PosFooterData;
 }
 
 export const KitchenPrint = ({
-  cart, branchName, brand, businessName, businessEmail, businessPhone, businessAddress,
-  orNumber, queueNumber, cashierName,
-  formattedDate, formattedTime, orderType,
+  cart, branchName, orNumber, queueNumber, formattedDate, formattedTime, orderType,
   customerName,
-  isReprint = false,
-  posFooter = {},
 }: KitchenPrintProps) => (
   <div className="printable-receipt-container hidden print:block">
     <div className="receipt-area bg-white text-black">
       <div className="text-center mb-4 border-b-4 border-black pb-3">
-        <h1 className="uppercase leading-tight font-black text-2xl mb-1">{businessName || posFooter.business_name || brand || 'LUCKY BOBA'}</h1>
-        {isReprint && (
-          <div className="text-sm font-bold border-2 border-black inline-block px-2 mt-1">REPRINT</div>
-        )}
+        <h1 className="uppercase leading-tight font-black text-3xl mb-1">ORDER TICKET</h1>
         <h2 className="font-bold text-lg uppercase tracking-widest">{branchName}</h2>
-        <div className="mt-2 text-sm uppercase font-bold">
-          <div>ORDER TICKET</div>
+        <div className="mt-2 text-sm uppercase">
           <div>Customer: {customerName || 'N/A'}</div>
           <div>Mode: {orderType === 'dine-in' ? 'DINE IN' : 'TAKE OUT'}</div>
         </div>
@@ -541,13 +488,16 @@ export const KitchenPrint = ({
                   {item.name} {item.cupSizeLabel ? `(${item.cupSizeLabel})` : ''}
                 </div>
 
-                {item.size === 'none' ? (
+                {item.size === 'none' && item.sugarLevel != null ? (
                   <>
-                    <div className="pl-2 text-[10px]">• Classic Pearl</div>
-                    {item.sugarLevel != null && (
-                      <div className="pl-4 text-[10px]">• Sugar {item.sugarLevel}</div>
+                    <div className="text-sm font-bold mt-1">• Classic Pearl</div>
+                    <div className="text-sm pl-3">Sugar: {item.sugarLevel}</div>
+                    {item.options && item.options.length > 0 && (
+                      <div className="text-sm pl-3">Options: {item.options.join(', ')}</div>
                     )}
-                    {item.options?.map(o => <div key={o} className="pl-4 text-[10px]">• {o}</div>)}
+                    {item.addOns && item.addOns.length > 0 && item.addOns.map((a, ai) => (
+                      <div key={ai} className="text-sm pl-3 font-bold">+ {a}</div>
+                    ))}
                   </>
                 ) : (
                   <>
@@ -578,13 +528,6 @@ export const KitchenPrint = ({
       </div>
 
       <div className="text-center text-sm mt-4 uppercase tracking-widest">--- END OF TICKET ---</div>
-
-      <div className="mt-4 pt-2 border-t border-black text-center text-[8px] uppercase">
-        {cashierName && <div>Cashier: {cashierName}</div>}
-        {businessEmail && <div>{businessEmail}</div>}
-        {businessPhone && <div>{businessPhone}</div>}
-        {businessAddress && <div className="normal-case">{businessAddress}</div>}
-      </div>
     </div>
   </div>
 );
@@ -596,15 +539,12 @@ export const KitchenPrint = ({
 interface StickerPrintProps {
   cart: CartItem[];
   branchName: string;
-  brand?: string;
-  businessName?: string;
   orNumber: string;
   queueNumber: string;
   customerName: string;
   formattedDate: string;
   formattedTime: string;
   orderType: 'dine-in' | 'take-out' | 'delivery';
-  posFooter?: PosFooterData;
 }
 
 interface StickerClasses {
@@ -618,44 +558,40 @@ interface StickerClasses {
 }
 
 const getStickerClasses = (extraCount: number, nameLength = 0): StickerClasses => {
-  const isCrowded = extraCount >= 2;
-  const isVeryCrowded = extraCount >= 4;
-  const isUltraCrowded = extraCount >= 6;
-  const isLongName = nameLength > 12;
-  const isVeryLongName = nameLength > 18;
+  const isCrowded       = extraCount >= 2;
+  const isVeryCrowded   = extraCount >= 4;
+  const isUltraCrowded  = extraCount >= 6;
+  const isLongName      = nameLength > 12;
+  const isVeryLongName  = nameLength > 18;
   const isUltraLongName = nameLength > 25;
   return {
-    paddingClass: isUltraCrowded ? 'p-0' : isVeryCrowded ? 'p-0.5' : 'p-1',
-    titleSize: isUltraCrowded ? 'text-[8px]' : isVeryCrowded ? 'text-[9px]' : isCrowded ? 'text-[10px]' : 'text-[11px]',
-    nameSize: isUltraCrowded || isUltraLongName
-      ? 'text-[7px]'
-      : isVeryCrowded || isVeryLongName
-        ? 'text-[8px]'
-        : isCrowded || isLongName
-          ? 'text-[9px]'
-          : 'text-[11px]',
-    addOnSize: isUltraCrowded ? 'text-[5.5px]' : isVeryCrowded ? 'text-[6px]' : isCrowded ? 'text-[7px]' : 'text-[8px]',
-    gapClass: isUltraCrowded ? 'space-y-0 leading-none' : isVeryCrowded ? 'space-y-0 leading-tight' : 'space-y-0.5 leading-tight',
-    marginClass: isUltraCrowded || isVeryCrowded ? 'mb-0' : 'mb-0.5',
+    paddingClass:  isUltraCrowded ? 'p-0' : isVeryCrowded ? 'p-0.5' : 'p-1',
+    titleSize:     isUltraCrowded ? 'text-[8px]' : isVeryCrowded ? 'text-[9px]' : isCrowded ? 'text-[10px]' : 'text-[11px]',
+    nameSize:      isUltraCrowded || isUltraLongName
+                     ? 'text-[7px]'
+                     : isVeryCrowded || isVeryLongName
+                     ? 'text-[8px]'
+                     : isCrowded || isLongName
+                     ? 'text-[9px]'
+                     : 'text-[11px]',
+    addOnSize:     isUltraCrowded ? 'text-[5.5px]' : isVeryCrowded ? 'text-[6px]' : isCrowded ? 'text-[7px]' : 'text-[8px]',
+    gapClass:      isUltraCrowded ? 'space-y-0 leading-none' : isVeryCrowded ? 'space-y-0 leading-tight' : 'space-y-0.5 leading-tight',
+    marginClass:   isUltraCrowded || isVeryCrowded ? 'mb-0' : 'mb-0.5',
     isVeryCrowded: isVeryCrowded || isUltraCrowded,
   };
 };
 
 const StickerHeader = ({
   branchName, orNumber, queueNumber, customerName, drinkIndex, totalDrinks, cls, orderType,
-  businessName, brand, posFooter = {},
 }: {
   branchName: string; orNumber: string; queueNumber: string;
   customerName: string; drinkIndex: number; totalDrinks: number;
   cls: StickerClasses;
   orderType: 'dine-in' | 'take-out' | 'delivery';
-  businessName?: string;
-  brand?: string;
-  posFooter?: PosFooterData;
 }) => (
   <div className="w-full text-center flex flex-col items-center">
     <div className={`font-black uppercase leading-none ${cls.isVeryCrowded ? 'text-[9px]' : 'text-[11px]'}`}>
-      {businessName || posFooter.business_name || brand || 'LUCKY BOBA'}
+      LUCKY BOBA
     </div>
     <div className={`font-bold uppercase leading-none tracking-widest ${cls.isVeryCrowded ? 'text-[4.5px] mt-0' : 'text-[6px] mt-0.5'}`}>
       {branchName.toUpperCase()}
@@ -687,9 +623,7 @@ const StickerFooter = ({ cls, formattedDate, formattedTime }: { cls: StickerClas
 );
 
 export const StickerPrint = ({
-  cart, branchName, brand, businessName,
-  orNumber, queueNumber, customerName, formattedDate, formattedTime, orderType,
-  posFooter = {},
+  cart, branchName, orNumber, queueNumber, customerName, formattedDate, formattedTime, orderType
 }: StickerPrintProps) => {
   const stickers: React.ReactNode[] = [];
   let drinkIndex = 1;
@@ -698,13 +632,13 @@ export const StickerPrint = ({
     if (item.isBundle) {
       return acc + (item.bundleComponents?.reduce((s, c) => s + c.quantity, 0) ?? 0) * item.qty;
     }
-    const isSticker = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
-    const isMixMatch = item.remarks?.startsWith('[Drink:') ?? false;
+    const isSticker   = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
+    const isMixMatch  = item.remarks?.startsWith('[Drink:') ?? false;
     const waffleCount = (item.addOns?.filter(a => a.toLowerCase().includes('waffle combo')).length ?? 0) * item.qty;
     return acc + (isSticker ? item.qty : 0) + (!isSticker && isMixMatch ? item.qty : 0) + (!isSticker ? waffleCount : 0);
   }, 0);
 
-  const sharedProps = { branchName, orNumber, queueNumber, customerName, totalDrinks, formattedDate, formattedTime, orderType, businessName, brand, posFooter };
+  const sharedProps = { branchName, orNumber, queueNumber, customerName, totalDrinks, formattedDate, formattedTime, orderType };
 
   cart.forEach((item, cartIndex) => {
 
@@ -743,7 +677,7 @@ export const StickerPrint = ({
     }
 
     // ── Waffle combo add-on stickers ──────────────────────────────────────────
-    const isSticker = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
+    const isSticker         = item.sugarLevel !== undefined || item.size === 'M' || item.size === 'L';
     const waffleComboAddOns = item.addOns?.filter(a => a.toLowerCase().includes('waffle combo')) ?? [];
 
     if (!isSticker && waffleComboAddOns.length > 0) {
@@ -775,13 +709,13 @@ export const StickerPrint = ({
     if (!isSticker && isMixMatch) {
       for (let i = 0; i < item.qty; i++) {
         const remarksContent = item.remarks?.replace(/^\[|\]$/g, '') ?? '';
-        const parts = remarksContent.split(' | ');
-        const drinkName = parts.find(p => p.startsWith('Drink:'))?.replace('Drink: ', '') ?? '';
-        const sugarPart = parts.find(p => p.startsWith('Sugar:'))?.replace('Sugar: ', '') ?? '';
-        const options = parts.filter(p => !p.startsWith('Drink:') && !p.startsWith('Sugar:') && !p.startsWith('+'));
-        const addOns = parts.filter(p => p.startsWith('+')).map(p => p.replace('+', '').trim());
+        const parts      = remarksContent.split(' | ');
+        const drinkName  = parts.find(p => p.startsWith('Drink:'))?.replace('Drink: ', '') ?? '';
+        const sugarPart  = parts.find(p => p.startsWith('Sugar:'))?.replace('Sugar: ', '') ?? '';
+        const options    = parts.filter(p => !p.startsWith('Drink:') && !p.startsWith('Sugar:') && !p.startsWith('+'));
+        const addOns     = parts.filter(p => p.startsWith('+')).map(p => p.replace('+', '').trim());
         const extraCount = options.length + addOns.length;
-        const cls = getStickerClasses(extraCount);
+        const cls        = getStickerClasses(extraCount);
 
         stickers.push(
           <div
@@ -850,7 +784,7 @@ export const StickerPrint = ({
     // ── Standard drink stickers ───────────────────────────────────────────────
     for (let i = 0; i < item.qty; i++) {
       const extraCount = (item.options?.length ?? 0) + (item.addOns?.length ?? 0);
-      const cls = getStickerClasses(extraCount, item.name.length);
+      const cls        = getStickerClasses(extraCount, item.name.length);
 
       stickers.push(
         <div
