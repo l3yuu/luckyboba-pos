@@ -22,7 +22,7 @@ class _SignupPageState extends State<SignupPage>
 
   final _nameCtrl     = TextEditingController();
   final _emailCtrl    = TextEditingController();
-  final _passwordCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController(); 
   final _confirmCtrl  = TextEditingController();
   bool  _obscure      = true;
   bool  _obscureConf  = true;

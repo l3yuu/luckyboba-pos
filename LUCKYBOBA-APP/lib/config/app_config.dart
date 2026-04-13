@@ -19,7 +19,7 @@ class AppConfig {
 
   static const String _productionBase = 'https://luckybobastores.com';
   static const String _stagingBase = 'https://staging.luckybobastores.com';
-  static const String _devBase = 'http://192.168.254.115:8000';
+  static const String _devBase = 'http://192.168.254.128:8000';
   static const String _webDevBase = 'http://localhost:8000';
 
   static String get baseUrl {
