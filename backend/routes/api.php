@@ -152,14 +152,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('/sales/{id}', [SalesController::class, 'show']);
 
     Route::get('/user', function (Request $request) {
-        $user   = $request->user();
-        $branch = $user->branch_id
-            ? \App\Models\Branch::select('id', 'vat_type')->find($user->branch_id)
-            : null;
-
-        return array_merge($user->toArray(), [
-            'branch_vat_type' => $branch?->vat_type ?? 'vat',
-        ]);
+        $user = $request->user();
+        $user->load('branch'); // Load full branch relation
+        return $user;
     });
 
     // ── USER PROFILE UPDATES (Mobile App) ────────────────────────────────────
@@ -220,6 +215,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     // ── CASHIER + BRANCH MANAGER + SUPERADMIN ────────────────────────────────
     Route::middleware(['role:superadmin,branch_manager,supervisor,cashier,team_leader'])->group(function () {
+        Route::apiResource('suppliers', SupplierController::class)->only(['index', 'store', 'update', 'destroy']);
 
 
         Route::get   ('/online-orders',            [OnlineOrderController::class, 'index']);
@@ -348,6 +344,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::prefix('reports')->group(function () {
             Route::get('/inventory',         [InventoryReportController::class, 'index']);
             Route::get('/x-reading',         [SalesDashboardController::class,  'xReading']);
+            Route::get('/z-reading/status',  [SalesDashboardController::class,  'zReadingStatus']);
+            Route::get('/z-reading/gaps',    [SalesDashboardController::class,  'zReadingGaps']);
             Route::get('/z-reading/history', [SalesDashboardController::class,  'zReadingHistory']);
             Route::get('/z-reading',         [SalesDashboardController::class,  'zReading']);
             Route::get('/pulse',             [PulseController::class,           'index']);
@@ -374,11 +372,12 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get ('/branches', [BranchController::class, 'index']);
 
         Route::prefix('stock-transfers')->group(function () {
-            Route::get ('/',                         [StockTransferController::class, 'index']);
-            Route::post('/',                         [StockTransferController::class, 'store']);
-            Route::post('/{stockTransfer}/approve',  [StockTransferController::class, 'approve']);
-            Route::post('/{stockTransfer}/receive',  [StockTransferController::class, 'receive']);
-            Route::post('/{stockTransfer}/cancel',   [StockTransferController::class, 'cancel']);
+            Route::get ('/',                            [StockTransferController::class, 'index']);
+            Route::post('/',                            [StockTransferController::class, 'store']);
+            Route::post('/{stockTransfer}/approve',     [StockTransferController::class, 'approve']);
+            Route::post('/{stockTransfer}/in-transit',  [StockTransferController::class, 'inTransit']);
+            Route::post('/{stockTransfer}/receive',     [StockTransferController::class, 'receive']);
+            Route::post('/{stockTransfer}/cancel',      [StockTransferController::class, 'cancel']);
         });
 
         Route::get('/users', [UserController::class, 'index']);
@@ -396,6 +395,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
             Route::get ('/overview',               [InventoryController::class, 'overview']);
             Route::get ('/alerts',                 [InventoryController::class, 'alerts']);
             Route::get ('/usage-report',           [InventoryController::class, 'usageReport']);
+            Route::get ('/usage-report/get-product-sales', [InventoryController::class, 'productSalesSummary']);
+            Route::get ('/usage-report/breakdown/{id}', [InventoryController::class, 'usageBreakdown']);
             Route::get ('/usage-report/export',    [InventoryController::class, 'exportUsageReport']);
         });
 
@@ -414,7 +415,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::apiResource('discounts', DiscountController::class)->except(['show', 'update', 'index']);
         Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
         Route::apiResource('vouchers',  VoucherController::class)->only(['index', 'store']);
-        Route::apiResource('suppliers', SupplierController::class)->only(['index', 'store', 'update', 'destroy']);
+
 
         Route::prefix('reports')->group(function () {
             Route::get('/mall-accreditation', [SalesDashboardController::class, 'mallReport']);
@@ -439,7 +440,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
         Route::prefix('branches')->group(function () {
             Route::post  ('/',                    [BranchController::class, 'store']);
-            Route::get   ('/{id}',                [BranchController::class, 'show']);
             Route::put   ('/{id}',                [BranchController::class, 'update']);
             Route::delete('/{id}',                [BranchController::class, 'destroy']);
             Route::get   ('/{id}/daily-sales',    [BranchController::class, 'dailySales']);

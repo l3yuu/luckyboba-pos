@@ -22,6 +22,11 @@ interface InventoryRepositoryInterface
     public function getUsageReport(string $period, array $filters = []): Collection;
 
     /**
+     * Get detailed breakdown of stock deductions by menu item/recipe for a material.
+     */
+    public function getUsageBreakdown(int $rawMaterialId, string $period, array $filters = []): Collection;
+
+    /**
      * Update stock quantity for a menu item.
      */
     public function updateStock(int $menuItemId, int $quantityChange): array;
@@ -35,4 +40,8 @@ interface InventoryRepositoryInterface
      * Get transaction history for inventory items.
      */
     public function getTransactionHistory(): Collection;
+
+    public function getProductSalesSummary(string $period, array $filters = []): Collection;
+
+    public function getMaterialSoldSummary(string $period, array $filters = []): Collection;
 }

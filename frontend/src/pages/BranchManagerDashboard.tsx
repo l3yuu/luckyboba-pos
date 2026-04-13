@@ -158,7 +158,7 @@ const BranchManagerDashboard = () => {
       .catch(err => console.error('Failed to load user', err));
   }, []);
 
-  const branchLabel = authUser?.name ?? null;
+  const branchLabel = authUser?.branch?.name ?? 'Branch Manager';
 
   // ── Derive page meta from the map ─────────────────────────────────────────
   const page = PAGE_TITLES[activeTab] ?? {
@@ -203,7 +203,7 @@ const BranchManagerDashboard = () => {
       case 'item-checker':       return <BM_InventoryItemChecker />;
       case 'item-serials':       return <BM_InventoryItemSerials />;
       case 'purchase-order':     return <BM_InventoryPurchaseOrder />;
-      case 'stock-transfer':     return <BM_InventoryStockTransfer />;
+      case 'stock-transfer':     return <BM_InventoryStockTransfer branchId={authUser?.branch_id ?? null} />;
       case 'inventory-report':   return <BM_InventoryReports />;
       case 'audit-logs':         return <BranchManagerAuditLogsTab />;
       case 'void-logs':          return <BMVoidLogsPanel branchId={authUser?.branch_id ?? null} />;

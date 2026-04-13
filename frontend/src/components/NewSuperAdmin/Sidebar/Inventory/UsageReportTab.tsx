@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Search, X, RefreshCw, Download, ChevronDown, ChevronUp,
-  BarChart3, TrendingUp, TrendingDown, Minus, Clock,
+  BarChart3, TrendingUp, TrendingDown, Minus, Clock, Info,
+  Coffee,
 } from 'lucide-react';
 import api from '../../../../services/api';
 
@@ -31,6 +32,14 @@ interface Movement {
   reason:       string;
   performed_by: string;
   created_at:   string;
+}
+
+interface UsageBreakdown {
+  product_name:     string;
+  cup_size_label:   string;
+  recipe_quantity:  number;
+  total_sold:       number;
+  total_deducted:   number;
 }
 
 interface Branch { id: number; name: string; }
@@ -162,6 +171,189 @@ const MovementDrawer: React.FC<{
   );
 };
 
+// ─── Product Sold Card ────────────────────────────────────────────────────────
+
+interface ProductSalesData {
+  category_name: string;
+  product_name:  string;
+  sizes:         Record<string, number>;
+  total_sold:    number;
+}
+
+const ProductSoldCard: React.FC<{ 
+  data:    ProductSalesData[]; 
+  loading: boolean;
+}> = ({ data, loading }) => {
+  if (loading) {
+    return (
+      <div className="bg-white border border-zinc-200 rounded-[0.625rem] p-5 shadow-sm h-full">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-4 italic">Calculating sales...</p>
+        <div className="space-y-4">
+          {[...Array(5)].map((_, i) => (
+            <div key={i} className="space-y-2">
+              <div className="h-3 bg-zinc-100 rounded w-1/2 animate-pulse" />
+              <div className="h-10 bg-zinc-50 rounded animate-pulse" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  const grouped = data.reduce((acc, item) => {
+    if (!acc[item.category_name]) acc[item.category_name] = [];
+    acc[item.category_name].push(item);
+    return acc;
+  }, {} as Record<string, ProductSalesData[]>);
+
+  return (
+    <div className="bg-white border border-zinc-200 rounded-[0.625rem] flex flex-col shadow-sm h-full overflow-hidden">
+      <div className="px-5 py-4 border-b border-zinc-100 bg-[#faf9ff] flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Coffee size={14} className="text-[#3b2063]" />
+          <p className="text-[11px] font-extrabold uppercase tracking-widest text-[#1a0f2e]">Product Sold Summary</p>
+        </div>
+        <span className="text-[10px] font-bold text-zinc-400 bg-white border border-zinc-100 px-2 py-0.5 rounded-full">
+          {data.length} Items
+        </span>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+        {data.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center opacity-40">
+            <Coffee size={32} className="mb-2" />
+            <p className="text-[10px] font-bold uppercase tracking-widest">No sales data</p>
+          </div>
+        ) : (
+          Object.entries(grouped).map(([cat, products]) => (
+            <div key={cat} className="mb-6 last:mb-0">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="h-[1px] flex-1 bg-zinc-100" />
+                <p className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em] px-1 whitespace-nowrap">{cat}</p>
+                <div className="h-[1px] flex-1 bg-zinc-100" />
+              </div>
+              <div className="space-y-2">
+                {products.map((p, idx) => (
+                  <div key={idx} className="bg-zinc-50 border border-zinc-100 rounded-lg p-3 hover:border-[#e9d5ff] hover:bg-[#faf9ff] transition-all group">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-[11px] font-bold text-[#1a0f2e] group-hover:text-[#3b2063] transition-colors">{p.product_name}</p>
+                      <p className="text-xs font-black text-[#3b2063] tabular-nums">{p.total_sold}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {Object.entries(p.sizes || {}).map(([size, qty]) => (
+                        Number(qty) > 0 && (
+                          <div key={size} className="flex items-center gap-1 bg-white border border-zinc-100 rounded px-1.5 py-0.5">
+                            <span className="text-[8px] font-bold text-zinc-400 uppercase">{size}</span>
+                            <span className="text-[10px] font-black text-[#1a0f2e] tabular-nums">{qty}</span>
+                          </div>
+                        )
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+      
+      <div className="px-5 py-3 border-t border-zinc-100 bg-[#fdfdfd] text-center">
+        <p className="text-[9px] text-zinc-400 font-medium">Synced with Inventory Period</p>
+      </div>
+    </div>
+  );
+};
+
+const UsageBreakdownDrawer: React.FC<{
+  row:     UsageRow;
+  period:  string;
+  branch:  string;
+  onClose: () => void;
+}> = ({ row, period, branch, onClose }) => {
+  const [items,   setItems]   = useState<UsageBreakdown[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.get(`/inventory/usage-report/breakdown/${row.id}`, { 
+      params: { period, branch_id: branch || undefined } 
+    })
+      .then(r => setItems(r.data ?? []))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [row.id, period, branch]);
+
+  return (
+    <div className="fixed inset-0 z-9999 flex justify-end"
+      style={{ backdropFilter: 'blur(4px)', backgroundColor: 'rgba(0,0,0,0.35)' }}>
+      <div className="absolute inset-0" onClick={onClose} />
+      <div className="relative bg-white w-full max-w-md h-full flex flex-col shadow-2xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-100 bg-[#faf9ff]">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-[#3b2063] rounded-lg flex items-center justify-center">
+              <Coffee size={14} className="text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-[#1a0f2e] leading-tight">{row.name}</p>
+              <p className="text-[10px] text-zinc-400 uppercase tracking-widest">Recipe Usage Breakdown</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 hover:bg-zinc-100 rounded-lg text-zinc-400">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="p-5 flex-1 overflow-y-auto">
+          {loading ? (
+            <div className="space-y-3">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-16 bg-zinc-100 rounded-lg animate-pulse" />
+              ))}
+            </div>
+          ) : items.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-48 gap-2 text-center">
+              <BarChart3 size={32} className="text-zinc-200" />
+              <p className="text-xs font-bold text-zinc-300 uppercase tracking-widest">No recipe deductions found</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="grid grid-cols-12 px-2 text-[9px] font-bold text-zinc-400 uppercase tracking-widest mb-1">
+                <div className="col-span-6">Product</div>
+                <div className="col-span-2 text-center">Sold</div>
+                <div className="col-span-4 text-right">Deducted</div>
+              </div>
+              {items.map((it, idx) => (
+                <div key={idx} className="bg-zinc-50 border border-zinc-100 rounded-lg p-3 hover:bg-[#faf9ff] transition-colors">
+                  <div className="grid grid-cols-12 items-center">
+                    <div className="col-span-6">
+                      <p className="text-[11px] font-bold text-[#1a0f2e]">{it.product_name}</p>
+                      <p className="text-[10px] text-zinc-400">{it.cup_size_label} · {it.recipe_quantity ?? 0} {row.unit}/cup</p>
+                    </div>
+                    <div className="col-span-2 text-center">
+                      <p className="text-xs font-black text-[#3b2063]">{it.total_sold}</p>
+                      <p className="text-[8px] text-zinc-400 uppercase">Cups</p>
+                    </div>
+                    <div className="col-span-4 text-right">
+                      <p className="text-xs font-black text-[#1a0f2e] tabular-nums">{it.total_deducted}</p>
+                      <p className="text-[8px] text-zinc-400 uppercase">{row.unit} total</p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="p-5 border-t border-zinc-100 bg-[#3b2063] text-white">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-widest opacity-70">Total Consumption</span>
+            <span className="text-lg font-black">{row.out} {row.unit}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 const COLUMN_GUIDE: Record<string, string> = {
@@ -188,8 +380,11 @@ const UsageReportTab: React.FC = () => {
   const [selectedYear,  setSelectedYear]  = useState(now.getFullYear());
   const [showGuide,     setShowGuide]     = useState(false);
   const [drawerRow,     setDrawerRow]     = useState<UsageRow | null>(null);
+  const [breakdownRow,  setBreakdownRow]  = useState<UsageRow | null>(null);
   const [exporting,     setExporting]     = useState(false);
   const [isToday,       setIsToday]       = useState(false);
+  const [productSales,  setProductSales]  = useState<ProductSalesData[]>([]);
+  const [salesLoading,  setSalesLoading]  = useState(false);
 
   const period = isToday
     ? now.toISOString().split('T')[0]
@@ -197,10 +392,12 @@ const UsageReportTab: React.FC = () => {
 
   const fetchReport = useCallback(async () => {
     setLoading(true);
+    setSalesLoading(true);
     try {
-      const [reportRes, branchRes] = await Promise.allSettled([
+      const [reportRes, branchRes, salesRes] = await Promise.allSettled([
         api.get('/inventory/usage-report', { params: { period, branch_id: branch || undefined } }),
         api.get('/branches'),
+        api.get('/inventory/usage-report/get-product-sales', { params: { period, branch_id: branch || undefined } }),
       ]);
       if (reportRes.status === 'fulfilled') {
         const d = reportRes.value.data;
@@ -210,8 +407,14 @@ const UsageReportTab: React.FC = () => {
         const b = branchRes.value.data;
         setBranches(Array.isArray(b) ? b : b?.data ?? []);
       }
+      if (salesRes.status === 'fulfilled') {
+        setProductSales(salesRes.value.data ?? []);
+      }
     } catch (e) { console.error(e); }
-    finally { setLoading(false); }
+    finally { 
+      setLoading(false); 
+      setSalesLoading(false);
+    }
   }, [period, branch]);
 
   useEffect(() => { fetchReport(); }, [fetchReport]);
@@ -226,7 +429,7 @@ const UsageReportTab: React.FC = () => {
       const url  = URL.createObjectURL(res.data);
       const link = document.createElement('a');
       link.href     = url;
-      link.download = `usage-report-${period}${isToday ? '-today' : ''}.csv`;
+      link.download = `usage-report-${period}${isToday ? '-today' : ''}.xlsx`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (e) { console.error(e); }
@@ -297,9 +500,12 @@ const UsageReportTab: React.FC = () => {
         ))}
       </div>
 
-      {/* Filters */}
-      <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden shadow-sm">
-        <div className="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-zinc-100">
+      {/* Filters & Content Layout */}
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
+        
+        {/* Left Side: Filters + Table */}
+        <div className="flex-1 w-full bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden shadow-sm">
+          <div className="flex flex-wrap items-center gap-3 px-5 py-4 border-b border-zinc-100">
 
           {/* Period selector */}
           <div className="flex items-center gap-2">
@@ -405,7 +611,23 @@ const UsageReportTab: React.FC = () => {
                     <td className="px-4 py-3.5 text-right text-xs font-medium text-zinc-500 tabular-nums">{r.beg}</td>
                     <td className="px-4 py-3.5 text-right text-xs font-medium tabular-nums" style={{ color: r.del > 0 ? '#16a34a' : '#a1a1aa' }}>{r.del}</td>
                     <td className="px-4 py-3.5 text-right text-xs font-medium tabular-nums" style={{ color: r.cooked > 0 ? '#2563eb' : '#a1a1aa' }}>{r.cooked}</td>
-                    <td className="px-4 py-3.5 text-right text-xs font-medium tabular-nums" style={{ color: r.out > 0 ? '#3b2063' : '#a1a1aa' }}>{r.out}</td>
+                    <td className="px-4 py-3.5 text-right text-xs font-medium tabular-nums transition-all group"
+                      onClick={(e) => {
+                        if (r.out > 0) {
+                          e.stopPropagation();
+                          setBreakdownRow(r);
+                        }
+                      }}
+                    >
+                      <div className="flex items-center justify-end gap-1.5">
+                        <span style={{ color: r.out > 0 ? '#3b2063' : '#a1a1aa' }}>{r.out}</span>
+                        {r.out > 0 && (
+                          <div className="p-1 rounded bg-[#f5f0ff] text-[#3b2063] opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Info size={10} />
+                          </div>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-4 py-3.5 text-right text-xs font-medium tabular-nums" style={{ color: r.spoil > 0 ? '#dc2626' : '#a1a1aa' }}>{r.spoil}</td>
                     <td className="px-4 py-3.5 text-right text-xs font-bold text-[#1a0f2e] tabular-nums">{r.end}</td>
                     <td className="px-4 py-3.5 text-right text-xs font-bold tabular-nums" style={{ color: '#3b2063' }}>{r.usage}</td>
@@ -438,6 +660,12 @@ const UsageReportTab: React.FC = () => {
             )}
           </table>
         </div>
+        </div>
+
+        {/* Right Side: Product Sold Card */}
+        <div className="w-full lg:w-80 h-[calc(100vh-320px)] sticky top-8">
+          <ProductSoldCard data={productSales} loading={salesLoading} />
+        </div>
       </div>
 
       {drawerRow && (
@@ -445,6 +673,15 @@ const UsageReportTab: React.FC = () => {
           row={drawerRow}
           period={period}
           onClose={() => setDrawerRow(null)}
+        />
+      )}
+
+      {breakdownRow && (
+        <UsageBreakdownDrawer
+          row={breakdownRow}
+          period={period}
+          branch={branch}
+          onClose={() => setBreakdownRow(null)}
         />
       )}
     </div>

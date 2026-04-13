@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import TopNavbar from '../../Cashier/TopNavbar';
 import api from '../../../services/api';
 import { useToast } from '../../../context/ToastContext';
@@ -229,15 +229,46 @@ const ZReading = () => {
   const [cashierName, setCashierName] = useState("ADMIN USER");
   const [invoiceQuery, setInvoiceQuery] = useState("");
   const [showBreakdown, setShowBreakdown] = useState(true);
+  const [zStatus, setZStatus] = useState<{ exists: boolean; is_closed: boolean; has_sales: boolean } | null>(null);
+  const [gaps, setGaps] = useState<string[]>([]);
+  const [checkingStatus, setCheckingStatus] = useState(false);
 
   // ── PIN overlay state ──────────────────────────────────────────────────────
   const [showPinOverlay, setShowPinOverlay]         = useState(false);
   const [pendingReportType, setPendingReportType]   = useState<string | null>(null);
 
+  const fetchStatus = useCallback(async () => {
+    setCheckingStatus(true);
+    try {
+      const res = await api.get('/reports/z-reading/status', { params: { date: selectedDate } });
+      setZStatus(res.data.data);
+    } catch (err) {
+      console.error("Status check failed", err);
+    } finally {
+      setCheckingStatus(false);
+    }
+  }, [selectedDate]);
+
+  const fetchGaps = useCallback(async () => {
+    try {
+      const res = await api.get('/reports/z-reading/gaps');
+      setGaps(res.data.data);
+    } catch (err) {
+      console.error("Gap check failed", err);
+    }
+  }, []);
+
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) { const user = JSON.parse(storedUser); setCashierName(user.name || "ADMIN USER"); }
-  }, []);
+    fetchGaps();
+  }, [fetchGaps]);
+
+  useEffect(() => {
+    if (dateMode === 'single') {
+      fetchStatus();
+    }
+  }, [selectedDate, dateMode, fetchStatus]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -1060,6 +1091,35 @@ const ZReading = () => {
           }
         `}</style>
 
+        {/* ── GAP WARNING BANNER ── */}
+        {gaps.length > 0 && (
+          <div className="bg-amber-50 border border-amber-200 p-4 mb-6 flex items-center justify-between shadow-sm rounded-[0.625rem] print:hidden">
+            <div className="flex items-center gap-3">
+              <div className="bg-amber-100 p-2 rounded-full text-amber-600">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                </svg>
+              </div>
+              <div>
+                <h4 className="text-amber-900 font-black text-sm uppercase tracking-tight">Missing Z-Readings detected</h4>
+                <p className="text-amber-700 text-xs font-bold leading-tight mt-0.5">There are {gaps.length} days with sales that haven't been finalized.</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+               {gaps.slice(0, 3).map(gapDate => (
+                 <button 
+                  key={gapDate} 
+                  onClick={() => { setSelectedDate(gapDate); setDateMode('single'); }}
+                  className="bg-white border border-amber-300 text-amber-700 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest hover:bg-amber-100 transition-colors"
+                 >
+                   {gapDate}
+                 </button>
+               ))}
+               {gaps.length > 3 && <span className="text-amber-500 font-bold self-center text-xs">+{gaps.length - 3} more</span>}
+            </div>
+          </div>
+        )}
+
         {/* ── CONTROLS ── */}
         <div className="bg-white p-3 border border-zinc-200 mb-6 flex flex-col xl:flex-row items-center gap-3 relative z-50 print:hidden shadow-sm rounded-[0.625rem]">
           <div className="relative" ref={menuRef}>
@@ -1106,7 +1166,29 @@ const ZReading = () => {
                 </div>
               </div>
             ) : (
-              <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="flex-1 px-4 h-11 border border-zinc-300 bg-[#f5f0ff] font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#3b2063]" />
+              <div className="flex-1 relative flex items-center">
+                <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="w-full px-4 h-11 border border-zinc-300 bg-[#f5f0ff] font-bold text-sm rounded-[0.625rem] focus:outline-none focus:border-[#3b2063]" />
+                <div className="absolute right-3">
+                  {checkingStatus ? (
+                    <div className="w-4 h-4 border-2 border-[#3b2063] border-t-transparent rounded-full animate-spin" />
+                  ) : zStatus?.is_closed ? (
+                    <span className="flex items-center gap-1 bg-emerald-100 text-emerald-700 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest border border-emerald-200">
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4.001-5.509Z" clipRule="evenodd" />
+                      </svg>
+                      Closed
+                    </span>
+                  ) : zStatus?.has_sales ? (
+                    <span className="flex items-center gap-1 bg-amber-100 text-amber-700 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest border border-amber-200">
+                      Pending
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 bg-zinc-100 text-zinc-400 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-widest border border-zinc-200">
+                      Empty
+                    </span>
+                  )}
+                </div>
+              </div>
             )}
             {reportData?.report_type === 'search' && (
               <div className="flex gap-2 flex-1">
@@ -1130,9 +1212,11 @@ const ZReading = () => {
           </div>
 
           <div className="flex gap-2">
-            <button onClick={handleGenerate} disabled={loading}
-              className="px-6 h-11 bg-[#3b2063] text-white font-bold text-xs uppercase tracking-widest hover:bg-[#6a12b8] active:bg-[#5a0fa0] transition-colors disabled:opacity-50 rounded-[0.625rem] border border-[#3b2063]">
-              {loading ? 'Processing...' : 'Generate'}
+            <button 
+              onClick={handleGenerate} 
+              disabled={loading || zStatus?.is_closed}
+              className={`px-6 h-11 text-white font-bold text-xs uppercase tracking-widest transition-colors rounded-[0.625rem] border ${zStatus?.is_closed ? 'bg-zinc-400 border-zinc-400 cursor-not-allowed opacity-60' : 'bg-[#3b2063] border-[#3b2063] hover:bg-[#6a12b8] active:bg-[#5a0fa0] disabled:opacity-50'}`}>
+              {loading ? 'Processing...' : zStatus?.is_closed ? 'Day Closed' : 'Generate'}
             </button>
             <button onClick={handlePrint}
               className="px-6 h-11 bg-white text-[#3b2063] font-bold text-xs uppercase tracking-widest border border-[#3b2063] hover:bg-[#f5f0ff] active:bg-[#e9d5ff] transition-colors rounded-[0.625rem]">
