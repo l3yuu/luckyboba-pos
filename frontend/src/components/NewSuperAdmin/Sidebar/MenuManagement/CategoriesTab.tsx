@@ -8,77 +8,77 @@ import {
 import { createPortal } from "react-dom";
 
 type VariantKey = "primary" | "secondary" | "danger" | "ghost";
-type SizeKey    = "sm" | "md" | "lg";
+type SizeKey = "sm" | "md" | "lg";
 
 const getToken = () =>
   localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
 const authHeaders = (): Record<string, string> => ({
   "Content-Type": "application/json",
-  "Accept":       "application/json",
+  "Accept": "application/json",
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
 
 type CategoryType = "food" | "drink" | "promo";
 
 const BASE_TYPE_OPTIONS: { value: CategoryType; label: string; desc: string }[] = [
-  { value: "food",  label: "Food",  desc: "Meals, snacks, waffles, wings, combos" },
+  { value: "food", label: "Food", desc: "Meals, snacks, waffles, wings, combos" },
   { value: "drink", label: "Drink", desc: "Beverages with size selection" },
   { value: "promo", label: "Promo", desc: "Promos, freebies, loyalty cards" },
 ];
 
 const POS_BEHAVIOR_BY_TYPE: Record<CategoryType, { value: string; label: string; desc: string }[]> = {
   food: [
-    { value: "food",          label: "Food",          desc: "Standard food — straight to cart, no size" },
-    { value: "wings",         label: "Wings",         desc: "Chicken wings — cashier picks piece count (3pc, 4pc, etc.)" },
-    { value: "waffle",        label: "Waffle",        desc: "Waffle items — shows waffle-specific add-ons" },
-    { value: "combo",         label: "Combo",         desc: "Food + drink — cashier picks food, then customizes the included drink" },
-    { value: "mix_and_match", label: "Mix & Match",   desc: "Food + drink — cashier selects food, customer picks from a fixed drink pool" },
+    { value: "food", label: "Food", desc: "Standard food — straight to cart, no size" },
+    { value: "wings", label: "Wings", desc: "Chicken wings — cashier picks piece count (3pc, 4pc, etc.)" },
+    { value: "waffle", label: "Waffle", desc: "Waffle items — shows waffle-specific add-ons" },
+    { value: "combo", label: "Combo", desc: "Food + drink — cashier picks food, then customizes the included drink" },
+    { value: "mix_and_match", label: "Mix & Match", desc: "Food + drink — cashier selects food, customer picks from a fixed drink pool" },
   ],
   drink: [
-    { value: "drink",  label: "Drink",  desc: "Regular drink — cashier picks size (SM/SL, UM/UL, etc.)" },
+    { value: "drink", label: "Drink", desc: "Regular drink — cashier picks size (SM/SL, UM/UL, etc.)" },
     { value: "bundle", label: "Bundle", desc: "Drinks-only bundle — cashier customizes each drink step by step" },
   ],
   promo: [
-    { value: "promo",  label: "Promo",  desc: "Promos, freebies, loyalty cards — no size or sugar" },
+    { value: "promo", label: "Promo", desc: "Promos, freebies, loyalty cards — no size or sugar" },
   ],
 };
 
 const TYPE_BADGE: Record<string, string> = {
-  food:          "bg-amber-50 text-amber-700 border border-amber-200",
-  drink:         "bg-blue-50 text-blue-700 border border-blue-200",
-  promo:         "bg-emerald-50 text-emerald-700 border border-emerald-200",
-  wings:         "bg-orange-50 text-orange-700 border border-orange-200",
-  waffle:        "bg-yellow-50 text-yellow-700 border border-yellow-200",
-  combo:         "bg-purple-50 text-purple-700 border border-purple-200",
-  bundle:        "bg-indigo-50 text-indigo-700 border border-indigo-200",
+  food: "bg-amber-50 text-amber-700 border border-amber-200",
+  drink: "bg-blue-50 text-blue-700 border border-blue-200",
+  promo: "bg-emerald-50 text-emerald-700 border border-emerald-200",
+  wings: "bg-orange-50 text-orange-700 border border-orange-200",
+  waffle: "bg-yellow-50 text-yellow-700 border border-yellow-200",
+  combo: "bg-purple-50 text-purple-700 border border-purple-200",
+  bundle: "bg-indigo-50 text-indigo-700 border border-indigo-200",
   mix_and_match: "bg-rose-50 text-rose-700 border border-rose-200",
 };
 
 interface Category {
-  id:               number;
-  name:             string;
-  type:             CategoryType;
-  category_type:    string;
-  is_active:        boolean;
+  id: number;
+  name: string;
+  type: CategoryType;
+  category_type: string;
+  is_active: boolean;
   menu_items_count: number;
 }
 
 interface MenuItem {
-  id:            number;
-  name:          string;
+  id: number;
+  name: string;
   category_type: string;
-  category:      string;
-  price:         number;
-  size:          string | null;
+  category: string;
+  price: number;
+  size: string | null;
 }
 
 interface CategoryDrink {
-  id:           number;
-  category_id:  number;
+  id: number;
+  category_id: number;
   menu_item_id: number;
-  name:         string;
-  size:         string;
-  price:        number;
+  name: string;
+  size: string;
+  price: number;
 }
 
 // ── Shared UI ────────────────────────────────────────────────────────────────
@@ -88,12 +88,12 @@ interface BtnProps {
   onClick?: () => void; className?: string; disabled?: boolean; type?: "button" | "submit" | "reset";
 }
 const Btn: React.FC<BtnProps> = ({ children, variant = "primary", size = "sm", onClick, className = "", disabled = false, type = "button" }) => {
-  const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
+  const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#3b2063] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
-    danger:    "bg-red-600 hover:bg-red-700 text-white",
-    ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
+    danger: "bg-red-600 hover:bg-red-700 text-white",
+    ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
   };
   return (
     <button type={type} onClick={onClick} disabled={disabled}
@@ -114,19 +114,19 @@ const inputCls = (err?: string) =>
 // First-time setup experience for a freshly created mix_and_match category.
 
 interface DrinkPoolSetupModalProps {
-  category:  Category;
-  onClose:   () => void;
-  onSkip:    () => void;
+  category: Category;
+  onClose: () => void;
+  onSkip: () => void;
 }
 
 const DrinkPoolSetupModal: React.FC<DrinkPoolSetupModalProps> = ({ category, onClose, onSkip }) => {
-  const [allDrinks,   setAllDrinks]   = useState<(MenuItem & { _sizeLabel: string })[]>([]);
+  const [allDrinks, setAllDrinks] = useState<(MenuItem & { _sizeLabel: string })[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [search,      setSearch]      = useState("");
-  const [loading,     setLoading]     = useState(true);
-  const [saving,      setSaving]      = useState(false);
-  const [saved,       setSaved]       = useState(false);
-  const [error,       setError]       = useState("");
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
 
   // Fetch all drink-type menu items
   useEffect(() => {
@@ -190,7 +190,7 @@ const DrinkPoolSetupModal: React.FC<DrinkPoolSetupModalProps> = ({ category, onC
     setSaving(true); setError("");
     try {
       const res = await fetch("/api/category-drinks", {
-        method:  "POST",
+        method: "POST",
         headers: authHeaders(),
         body: JSON.stringify({
           category_id: category.id,
@@ -323,19 +323,17 @@ const DrinkPoolSetupModal: React.FC<DrinkPoolSetupModalProps> = ({ category, onC
                           key={d.id}
                           type="button"
                           onClick={() => toggle(d.id)}
-                          className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-all ${
-                            isSelected
+                          className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-all ${isSelected
                               ? "bg-rose-50 border-rose-400 text-rose-800 shadow-sm"
                               : "bg-white border-zinc-200 text-zinc-500 hover:border-rose-300 hover:bg-rose-50/50"
-                          }`}
+                            }`}
                         >
                           {/* Checkbox */}
-                          <div className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-                            isSelected ? "bg-rose-500 border-rose-500" : "border-zinc-300"
-                          }`}>
+                          <div className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? "bg-rose-500 border-rose-500" : "border-zinc-300"
+                            }`}>
                             {isSelected && (
                               <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                                <path d="M1.5 4L3 5.5L6.5 2" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M1.5 4L3 5.5L6.5 2" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                               </svg>
                             )}
                           </div>
@@ -345,9 +343,8 @@ const DrinkPoolSetupModal: React.FC<DrinkPoolSetupModalProps> = ({ category, onC
                             <span className="text-[11px] font-semibold truncate leading-tight">{d.name}</span>
                             <div className="flex items-center gap-1 mt-0.5">
                               {d._sizeLabel && (
-                                <span className={`text-[9px] font-bold uppercase px-1.5 py-px rounded-full ${
-                                  isSelected ? "bg-rose-200 text-rose-700" : "bg-zinc-100 text-zinc-400"
-                                }`}>
+                                <span className={`text-[9px] font-bold uppercase px-1.5 py-px rounded-full ${isSelected ? "bg-rose-200 text-rose-700" : "bg-zinc-100 text-zinc-400"
+                                  }`}>
                                   {d._sizeLabel}
                                 </span>
                               )}
@@ -405,20 +402,20 @@ const CategoryModal: React.FC<{
 }> = ({ category, onClose, onSaved }) => {
   const isEdit = !!category;
 
-  const [name,        setName]        = useState(category?.name ?? "");
-  const [baseType,    setBaseType]    = useState<CategoryType>(category?.type ?? "food");
+  const [name, setName] = useState(category?.name ?? "");
+  const [baseType, setBaseType] = useState<CategoryType>(category?.type ?? "food");
   const [posBehavior, setPosBehavior] = useState<string>(category?.category_type ?? "food");
-  const [isActive,    setIsActive]    = useState(category?.is_active ?? true);
-  const [errors,      setErrors]      = useState<Record<string, string>>({});
-  const [loading,     setLoading]     = useState(false);
-  const [apiError,    setApiError]    = useState("");
+  const [isActive, setIsActive] = useState(category?.is_active ?? true);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [loading, setLoading] = useState(false);
+  const [apiError, setApiError] = useState("");
 
   const handleBaseTypeChange = (t: CategoryType) => {
     setBaseType(t);
     setPosBehavior(POS_BEHAVIOR_BY_TYPE[t][0].value);
   };
 
-  const behaviorOptions  = POS_BEHAVIOR_BY_TYPE[baseType];
+  const behaviorOptions = POS_BEHAVIOR_BY_TYPE[baseType];
   const selectedBehavior = behaviorOptions.find(o => o.value === posBehavior);
 
   const handleSubmit = async () => {
@@ -429,14 +426,14 @@ const CategoryModal: React.FC<{
     try {
       const payload = {
         name,
-        type:          baseType,
+        type: baseType,
         category_type: posBehavior,
-        is_active:     isActive,
+        is_active: isActive,
       };
-      const url    = isEdit ? `/api/categories/${category!.id}` : "/api/categories";
+      const url = isEdit ? `/api/categories/${category!.id}` : "/api/categories";
       const method = isEdit ? "PUT" : "POST";
-      const res    = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(payload) });
-      const data   = await res.json();
+      const res = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(payload) });
+      const data = await res.json();
       if (!res.ok) { setApiError(data.message ?? "Something went wrong."); return; }
       onSaved(data.data ?? data);
       onClose();
@@ -517,13 +514,12 @@ const CategoryModal: React.FC<{
           </div>
 
           {(posBehavior === "bundle" || posBehavior === "combo" || posBehavior === "mix_and_match") && (
-            <div className={`p-3 rounded-lg border text-xs font-medium ${
-              posBehavior === "bundle"
+            <div className={`p-3 rounded-lg border text-xs font-medium ${posBehavior === "bundle"
                 ? "bg-indigo-50 border-indigo-200 text-indigo-700"
                 : posBehavior === "combo"
-                ? "bg-purple-50 border-purple-200 text-purple-700"
-                : "bg-rose-50 border-rose-200 text-rose-700"
-            }`}>
+                  ? "bg-purple-50 border-purple-200 text-purple-700"
+                  : "bg-rose-50 border-rose-200 text-rose-700"
+              }`}>
               {posBehavior === "bundle" ? (
                 <>
                   <p className="font-bold mb-1">Bundle — Drinks Only</p>
@@ -576,21 +572,21 @@ const CategoryModal: React.FC<{
 // ── CategoryDrinksManager (inline edit from table) ────────────────────────────
 
 const CategoryDrinksManager: React.FC<{
-  category:  Category;
-  onClose:   () => void;
+  category: Category;
+  onClose: () => void;
 }> = ({ category, onClose }) => {
-  const [allDrinks,   setAllDrinks]   = useState<(MenuItem & { _sizeLabel: string })[]>([]);
+  const [allDrinks, setAllDrinks] = useState<(MenuItem & { _sizeLabel: string })[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [search,      setSearch]      = useState("");
-  const [loading,     setLoading]     = useState(true);
-  const [saving,      setSaving]      = useState(false);
-  const [saved,       setSaved]       = useState(false);
-  const [error,       setError]       = useState("");
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      fetch("/api/menu-items",    { headers: authHeaders() }).then(r => r.json()),
+      fetch("/api/menu-items", { headers: authHeaders() }).then(r => r.json()),
       fetch(`/api/category-drinks?category_id=${category.id}`, { headers: authHeaders() }).then(r => r.json()),
     ]).then(([itemsData, drinksData]) => {
       const items: MenuItem[] = (Array.isArray(itemsData) ? itemsData : (itemsData.data ?? []));
@@ -614,8 +610,8 @@ const CategoryDrinksManager: React.FC<{
       const existing: CategoryDrink[] = drinksData.data ?? [];
       setSelectedIds(new Set(existing.map(d => d.menu_item_id)));
     })
-    .catch(() => setError("Failed to load data."))
-    .finally(() => setLoading(false));
+      .catch(() => setError("Failed to load data."))
+      .finally(() => setLoading(false));
   }, [category.id]);
 
   const filtered = useMemo(() =>
@@ -699,17 +695,15 @@ const CategoryDrinksManager: React.FC<{
                 const isSelected = selectedIds.has(d.id);
                 return (
                   <button key={d.id} type="button" onClick={() => toggle(d.id)}
-                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-all ${
-                      isSelected
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-all ${isSelected
                         ? "bg-rose-50 border-rose-400 text-rose-800"
                         : "bg-white border-zinc-200 text-zinc-500 hover:border-rose-300"
-                    }`}>
-                    <div className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${
-                      isSelected ? "bg-rose-500 border-rose-500" : "border-zinc-300"
-                    }`}>
+                      }`}>
+                    <div className={`w-3.5 h-3.5 rounded border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? "bg-rose-500 border-rose-500" : "border-zinc-300"
+                      }`}>
                       {isSelected && (
                         <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                          <path d="M1.5 4L3 5.5L6.5 2" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                          <path d="M1.5 4L3 5.5L6.5 2" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
                       )}
                     </div>
@@ -746,25 +740,25 @@ const CategoryDrinksManager: React.FC<{
 // ── Main Component ────────────────────────────────────────────────────────────
 
 const CategoriesTab: React.FC = () => {
-  const [categories,       setCategories]       = useState<Category[]>([]);
-  const [loading,          setLoading]          = useState(true);
-  const [error,            setError]            = useState("");
-  const [addOpen,          setAddOpen]          = useState(false);
-  const [editTarget,       setEditTarget]       = useState<Category | null>(null);
-  const [delTarget,        setDelTarget]        = useState<Category | null>(null);
-  const [delLoading,       setDelLoading]       = useState(false);
-  const [inlineEdit,       setInlineEdit]       = useState<number | null>(null);
-  const [inlineVal,        setInlineVal]        = useState("");
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [addOpen, setAddOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Category | null>(null);
+  const [delTarget, setDelTarget] = useState<Category | null>(null);
+  const [delLoading, setDelLoading] = useState(false);
+  const [inlineEdit, setInlineEdit] = useState<number | null>(null);
+  const [inlineVal, setInlineVal] = useState("");
   // ── New: post-create drink pool setup
   const [drinkSetupTarget, setDrinkSetupTarget] = useState<Category | null>(null);
-  const [drinkPoolTarget,  setDrinkPoolTarget]  = useState<Category | null>(null);
+  const [drinkPoolTarget, setDrinkPoolTarget] = useState<Category | null>(null);
 
   const fetchAll = useCallback(async () => {
     setLoading(true); setError("");
     try {
-      const res  = await fetch("/api/categories", { headers: authHeaders() });
+      const res = await fetch("/api/categories", { headers: authHeaders() });
       const data = await res.json();
-      const raw  = Array.isArray(data) ? data : (data.data ?? []);
+      const raw = Array.isArray(data) ? data : (data.data ?? []);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setCategories(raw.map((c: any) => ({ ...c, is_active: c.is_active === 1 || c.is_active === true || c.is_active === "1" || (c.is_active === undefined ? true : false) })));
     } catch { setError("Failed to load categories."); }
@@ -775,7 +769,7 @@ const CategoriesTab: React.FC = () => {
 
   const toggleActive = async (cat: Category) => {
     try {
-      const res  = await fetch(`/api/categories/${cat.id}`, {
+      const res = await fetch(`/api/categories/${cat.id}`, {
         method: "PUT", headers: authHeaders(),
         body: JSON.stringify({ is_active: !cat.is_active }),
       });
@@ -789,7 +783,7 @@ const CategoriesTab: React.FC = () => {
   const handleDelete = async (cat: Category) => {
     setDelLoading(true);
     try {
-      const res  = await fetch(`/api/categories/${cat.id}`, { method: "DELETE", headers: authHeaders() });
+      const res = await fetch(`/api/categories/${cat.id}`, { method: "DELETE", headers: authHeaders() });
       const data = await res.json();
       if (res.ok) { setCategories(p => p.filter(c => c.id !== cat.id)); setDelTarget(null); }
       else setError(data.message ?? "Failed to delete.");
@@ -821,11 +815,18 @@ const CategoriesTab: React.FC = () => {
     }
   };
 
+
   const totalItems = categories.reduce((sum, c) => sum + (c.menu_items_count ?? 0), 0);
 
   return (
     <div className="p-6 md:p-8 fade-in">
-      <div className="flex items-center justify-end mb-5 flex-wrap gap-3">
+      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+        <div>
+          <h2 className="text-base font-bold text-[#1a0f2e]">Categories</h2>
+          <p className="text-xs text-zinc-400 mt-0.5">
+            {loading ? "Loading..." : `${categories.length} categories · ${categories.filter(c => c.is_active).length} active · ${totalItems} total items`}
+          </p>
+        </div>
         <div className="flex items-center gap-2">
           <Btn variant="secondary" onClick={fetchAll} disabled={loading}>
             <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
@@ -964,7 +965,7 @@ const CategoriesTab: React.FC = () => {
             </div>
             <div className="flex gap-2 px-6 pb-6">
               <Btn variant="secondary" className="flex-1 justify-center" onClick={() => setDelTarget(null)} disabled={delLoading}>Cancel</Btn>
-              <Btn variant="danger"    className="flex-1 justify-center" onClick={() => handleDelete(delTarget)} disabled={delLoading}>
+              <Btn variant="danger" className="flex-1 justify-center" onClick={() => handleDelete(delTarget)} disabled={delLoading}>
                 {delLoading
                   ? <span className="flex items-center gap-1.5"><div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />Deleting...</span>
                   : <><Trash2 size={13} /> Delete</>}
