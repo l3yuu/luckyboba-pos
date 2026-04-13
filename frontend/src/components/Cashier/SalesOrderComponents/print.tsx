@@ -72,8 +72,21 @@ interface ReceiptPrintProps {
   seniorIds?: string[];
   pwdIds?: string[];
   itemPaxAssignments?: Record<string, ('none' | 'sc' | 'pwd')[]>;
+<<<<<<< HEAD
   posFooter?: PosFooterData;
   receiptFooter?: string;
+=======
+  posFooter?: {
+    pos_supplier?:    string;
+    pos_address?:     string;
+    pos_tin?:         string;
+    pos_accred_no?:   string;
+    pos_date_issued?: string;
+    pos_valid_until?: string;
+    pos_ptu?:         string;
+    pos_ptu_date?:    string;
+  };
+>>>>>>> origin/chaeyoungnie
 }
 
 export const ReceiptPrint = ({
@@ -96,7 +109,10 @@ export const ReceiptPrint = ({
   pwdIds = [],
   itemPaxAssignments = {},
   posFooter = {},
+<<<<<<< HEAD
   receiptFooter = '',
+=======
+>>>>>>> origin/chaeyoungnie
 }: ReceiptPrintProps) => {
 
   // FIX #6 + #7 — removed dead coveredUnitMap / itemCoverageMap computation that
@@ -227,8 +243,13 @@ export const ReceiptPrint = ({
                 return item.charges?.grab && Number(a.grab_price ?? 0) > 0
                   ? Number(a.grab_price)
                   : item.charges?.panda && Number(a.panda_price ?? 0) > 0
+<<<<<<< HEAD
                     ? Number(a.panda_price)
                     : Number(a.price);
+=======
+                  ? Number(a.panda_price)
+                  : Number(a.price);
+>>>>>>> origin/chaeyoungnie
               };
 
               const addOnCostPerUnit = (item.addOns ?? []).reduce(
@@ -439,6 +460,7 @@ export const ReceiptPrint = ({
           )}
         </div>
 
+<<<<<<< HEAD
         {receiptFooter && (
           <div className="text-center text-xs whitespace-pre-wrap font-bold mb-4 uppercase px-4 leading-relaxed">
             {receiptFooter}
@@ -456,6 +478,19 @@ export const ReceiptPrint = ({
             {posFooter.pos_valid_until && <div>Valid Until: {posFooter.pos_valid_until}</div>}
             {posFooter.pos_ptu && <div>PTU No: {posFooter.pos_ptu}</div>}
             {posFooter.pos_ptu_date && <div>PTU Date Issued: {posFooter.pos_ptu_date}</div>}
+=======
+        {/* ── POS Supplier Footer ── */}
+        {(posFooter.pos_supplier || posFooter.pos_tin) && (
+          <div className="mt-2 mb-4 text-left text-[10px] border-t border-dashed border-black pt-3 space-y-0.5 leading-snug">
+            {posFooter.pos_supplier    && <div className="font-bold uppercase">POS SUPPLIER: {posFooter.pos_supplier}</div>}
+            {posFooter.pos_address     && <div>{posFooter.pos_address}</div>}
+            {posFooter.pos_tin         && <div>TIN: {posFooter.pos_tin}</div>}
+            {posFooter.pos_accred_no   && <div>Accred No: {posFooter.pos_accred_no}</div>}
+            {posFooter.pos_date_issued && <div>Date Issued: {posFooter.pos_date_issued}</div>}
+            {posFooter.pos_valid_until && <div>Valid Until: {posFooter.pos_valid_until}</div>}
+            {posFooter.pos_ptu         && <div>PTU No: {posFooter.pos_ptu}</div>}
+            {posFooter.pos_ptu_date    && <div>PTU Date Issued: {posFooter.pos_ptu_date}</div>}
+>>>>>>> origin/chaeyoungnie
           </div>
         )}
 

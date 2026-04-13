@@ -341,6 +341,7 @@ const SalesOrder = () => {
     const scPct = scDiscount ? Number(scDiscount.amount) : 20
     const pwdPct = pwdDiscount ? Number(pwdDiscount.amount) : 20
 
+<<<<<<< HEAD
     let totalPaxDiscount = 0
     let totalVatExemptSales = 0
 
@@ -355,6 +356,29 @@ const SalesOrder = () => {
         totalPaxDiscount += discAmt
         totalVatExemptSales += unitVatExcl
       })
+=======
+  // ── PAX discount from explicit per-unit assignments ───────────────────────
+  const scDiscount = discounts.find(d => d.name.toUpperCase().includes('SENIOR'))
+  const pwdDiscount = discounts.find(
+    d => d.name.toUpperCase().includes('PWD') || d.name.toUpperCase().includes('DIPLOMAT')
+  )
+  const scPct = scDiscount ? Number(scDiscount.amount) : 20
+  const pwdPct = pwdDiscount ? Number(pwdDiscount.amount) : 20
+
+  let totalPaxDiscount = 0
+  let totalVatExemptSales = 0
+
+  cart.forEach((item, cartIndex) => {
+    const assignments = itemPaxAssignments[String(cartIndex)] ?? []
+    assignments.forEach(assignment => {
+      if (assignment === 'none') return
+      const unitPrice = Number(item.price)
+      const unitVatExcl = isVat ? unitPrice / 1.12 : unitPrice
+      const pct = assignment === 'sc' ? scPct : pwdPct
+      const discAmt = unitVatExcl * (pct / 100)
+      totalPaxDiscount += discAmt
+      totalVatExemptSales += unitVatExcl
+>>>>>>> origin/chaeyoungnie
     })
 
     const totalPaxDiscountRounded = round(totalPaxDiscount)
@@ -368,11 +392,21 @@ const SalesOrder = () => {
       .flat()
       .filter(a => a === 'pwd').length
 
+<<<<<<< HEAD
     const promoDiscount = selectedDiscount
       ? selectedDiscount.type.includes('Percent')
         ? eligibleForPromo * (Number(selectedDiscount.amount) / 100)
         : Number(selectedDiscount.amount)
       : 0
+=======
+  // ── Derived pax counts for backend ───────────────────────────────────────
+  const paxSenior = Object.values(itemPaxAssignments)
+    .flat()
+    .filter(a => a === 'sc').length
+  const paxPwd = Object.values(itemPaxAssignments)
+    .flat()
+    .filter(a => a === 'pwd').length
+>>>>>>> origin/chaeyoungnie
 
     const orderLevelDiscount = totalPaxDiscountRounded + promoDiscount
 
@@ -384,6 +418,7 @@ const SalesOrder = () => {
     const vatableSales = isVat ? round(vatableBase / 1.12) : 0
     const vatAmount    = isVat ? round(vatableBase - vatableSales) : 0
 
+<<<<<<< HEAD
     const amtDue = isVat
       ? Math.max(0, round(vatableBase + vatExemptSales))
       : Math.max(0, round(grossSubtotal - itemDiscountTotal - orderLevelDiscount))
@@ -425,6 +460,21 @@ const SalesOrder = () => {
     vatType, 
     cashTendered
   ])
+=======
+  const vatableBase = isVat
+    ? Math.max(0, round(grossSubtotal - totalVatExemptSales * 1.12 - itemDiscountTotal - promoDiscount))
+    : 0
+  const vatableSales = isVat ? round(vatableBase / 1.12) : 0
+  const vatAmount    = isVat ? round(vatableBase - vatableSales) : 0
+
+  const amtDue = isVat
+    ? Math.max(0, round(vatableBase + vatExemptSales))
+    : Math.max(0, round(grossSubtotal - itemDiscountTotal - orderLevelDiscount))
+
+  const totalDiscountDisplay = itemDiscountTotal + totalPaxDiscount + promoDiscount
+  const change = typeof cashTendered === 'number' ? Math.max(0, cashTendered - amtDue) : 0
+  const subtotal = grossSubtotal - itemDiscountTotal
+>>>>>>> origin/chaeyoungnie
 
   // ── Sync selectedDiscounts for backend/receipt ────────────────────────────
   useEffect(() => {
@@ -470,17 +520,36 @@ const SalesOrder = () => {
   const syncNextSequence = async () => {
     try {
       const { data } = await api.get('/receipts/next-sequence')
+<<<<<<< HEAD
       const serverSeq   = parseInt(data.next_sequence, 10)
       const serverQueue = parseInt(data.next_queue, 10) || 1
 
+=======
+      const serverSeq = parseInt(data.next_sequence, 10)
+>>>>>>> origin/chaeyoungnie
       if (!isNaN(serverSeq)) {
         localStorage.setItem(seqKey, String(serverSeq))
         setOrNumber(generateORNumber(serverSeq))
 
+<<<<<<< HEAD
         // ✅ SYNC QUEUE FROM SERVER
         localStorage.setItem(queueKey,  String(serverQueue))
         localStorage.setItem(queueDate, new Date().toDateString())
         setQueueNumber(generateQueueNumber(serverQueue))
+=======
+        const today     = new Date().toDateString()
+        const savedDate = localStorage.getItem(queueDate)
+        const isNewDay  = savedDate !== today
+
+        if (isNewDay) {
+          localStorage.setItem(queueKey,  '1')
+          localStorage.setItem(queueDate, today)
+          setQueueNumber(generateQueueNumber(1))
+        } else {
+          const lastQueue = parseInt(localStorage.getItem(queueKey) || '1', 10)
+          setQueueNumber(generateQueueNumber(lastQueue))
+        }
+>>>>>>> origin/chaeyoungnie
       }
     } catch {
       // ── Offline fallback ───────────────────────────────────────────────────
@@ -503,6 +572,7 @@ const SalesOrder = () => {
     }
   }
 
+<<<<<<< HEAD
   const fetchMenu = async () => {
     setIsMenuLoading(true)
     try {
@@ -518,6 +588,8 @@ const SalesOrder = () => {
     }
   }
 
+=======
+>>>>>>> origin/chaeyoungnie
   // ── Effects ─────────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -1931,11 +2003,14 @@ const SalesOrder = () => {
           promoDiscount={promoDiscount}
           itemPaxAssignments={itemPaxAssignments}
           posFooter={posFooter}
+<<<<<<< HEAD
           receiptFooter={posFooter.receipt_footer}
           businessName={posFooter.business_name}
           businessEmail={posFooter.contact_email}
           businessPhone={posFooter.contact_phone}
           businessAddress={posFooter.address}
+=======
+>>>>>>> origin/chaeyoungnie
         />
       )}
       {printTarget === 'kitchen'  && <KitchenPrint  {...printProps} />}

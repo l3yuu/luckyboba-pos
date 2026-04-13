@@ -1,7 +1,11 @@
 // components/NewSuperAdmin/Tabs/SettingsTab.tsx
 import { useState, useEffect } from "react";
+<<<<<<< HEAD
 import { createPortal } from "react-dom";
 import { Database, Mail, Phone, MapPin, Star, AlertCircle } from "lucide-react";
+=======
+import { Database, Mail, Phone, MapPin, Star } from "lucide-react";
+>>>>>>> origin/chaeyoungnie
 
 type VariantKey = "primary" | "secondary" | "danger" | "ghost";
 type SizeKey    = "sm" | "md" | "lg";
@@ -51,6 +55,7 @@ const Btn: React.FC<BtnProps> = ({
   );
 };
 
+<<<<<<< HEAD
 const ConfirmModal: React.FC<{
   title: string;
   desc: string;
@@ -101,6 +106,8 @@ const ConfirmModal: React.FC<{
   );
 };
 
+=======
+>>>>>>> origin/chaeyoungnie
 type PosFooterKey =
   | 'pos_supplier' | 'pos_address' | 'pos_tin'
   | 'pos_accred_no' | 'pos_date_issued' | 'pos_valid_until'
@@ -142,12 +149,16 @@ const SettingsTab: React.FC = () => {
   const [savingTax,     setSavingTax]     = useState(false);
   const [savingPos,     setSavingPos]     = useState(false);
   const [savingPrefs,   setSavingPrefs]   = useState(false);
+<<<<<<< HEAD
   const [clearingLogs,  setClearingLogs]  = useState(false);
   const [resettingSys,  setResettingSys]  = useState(false);
   const [runningBackup, setRunningBackup] = useState(false);
   const [saveMsg,       setSaveMsg]       = useState<string | null>(null);
   const [confirmConfig, setConfirmConfig] = useState<{ title: string; desc: string; isDanger?: boolean; requireInput?: string; onConfirm: () => void } | null>(null);
   const [sysInfo, setSysInfo] = useState<{ version: string; db_status: string; uptime: string; last_backup: string } | null>(null);
+=======
+  const [saveMsg,       setSaveMsg]       = useState<string | null>(null);
+>>>>>>> origin/chaeyoungnie
   // FIX #12 — surface fetch errors in the UI instead of silently swallowing them
   const [loadError,     setLoadError]     = useState<string | null>(null);
 
@@ -218,11 +229,14 @@ const SettingsTab: React.FC = () => {
         console.error('Failed to load settings:', err);
         setLoadError('Could not load settings. Check your connection or log in again.');
       });
+<<<<<<< HEAD
 
     fetch(`${API_BASE}/system/info`, { headers: getHeaders() })
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setSysInfo(data); })
       .catch(err => console.error("Could not load system info:", err));
+=======
+>>>>>>> origin/chaeyoungnie
   }, []);
 
   const showSaved = (msg = 'Saved successfully!') => {
@@ -241,7 +255,11 @@ const SettingsTab: React.FC = () => {
     setSaving(true);
     try {
       const res = await fetch(`${API_BASE}/settings`, {
+<<<<<<< HEAD
         method:  'POST',
+=======
+        method:  'PATCH',
+>>>>>>> origin/chaeyoungnie
         headers: getHeaders(),
         body:    JSON.stringify(payload),
       });
@@ -261,7 +279,11 @@ const SettingsTab: React.FC = () => {
     setSavingPrefs(true);
     try {
       const res = await fetch(`${API_BASE}/settings`, {
+<<<<<<< HEAD
         method:  'POST',
+=======
+        method:  'PATCH',
+>>>>>>> origin/chaeyoungnie
         headers: getHeaders(),
         body:    JSON.stringify({
           notifications: String(prefs.notifications),
@@ -270,11 +292,16 @@ const SettingsTab: React.FC = () => {
         }),
       });
       if (!res.ok) throw new Error(`Server returned ${res.status}`);
+<<<<<<< HEAD
       showSaved('Preferences updated!');
     } catch (e) {
       console.error('Preference save failed:', e);
       setSaveMsg('Failed to update preferences.');
       setTimeout(() => setSaveMsg(null), 3000);
+=======
+    } catch (e) {
+      console.error('Preference save failed:', e);
+>>>>>>> origin/chaeyoungnie
     } finally {
       setSavingPrefs(false);
     }
@@ -291,6 +318,7 @@ const SettingsTab: React.FC = () => {
     if (key === 'two_factor')    { next.two_factor      = !twoFactor;   setTwoFactor(v => !v); }
     savePreferences(next);
   };
+<<<<<<< HEAD
 
   const clearAuditLogs = async () => {
     setClearingLogs(true);
@@ -372,14 +400,22 @@ const SettingsTab: React.FC = () => {
       setRunningBackup(false);
     }
   };
+=======
+>>>>>>> origin/chaeyoungnie
 
   const Toggle: React.FC<ToggleProps> = ({ on, toggle }) => (
     <button
       onClick={toggle}
       disabled={savingPrefs}
+<<<<<<< HEAD
       className={`relative w-10 h-5 rounded-full transition-colors disabled:opacity-60 ${on ? "bg-violet-500" : "bg-zinc-300"}`}
     >
       <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${on ? "translate-x-5" : "translate-x-0"}`} />
+=======
+      className={`relative w-10 h-5 rounded-full transition-colors disabled:opacity-60 ${on ? "toggle-on" : "toggle-off"}`}
+    >
+      <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${on ? "translate-x-5" : "translate-x-0.5"}`} />
+>>>>>>> origin/chaeyoungnie
     </button>
   );
 
@@ -429,11 +465,15 @@ const SettingsTab: React.FC = () => {
               ))}
             </div>
             <div className="flex justify-end mt-4">
+<<<<<<< HEAD
               <Btn onClick={() => setConfirmConfig({
                 title: "Save General Settings",
                 desc: "Are you sure you want to apply these global changes across the system?",
                 onConfirm: () => { setConfirmConfig(null); saveSection(generalFields, setSavingGeneral); }
               })} disabled={savingGeneral}>
+=======
+              <Btn onClick={() => saveSection(generalFields, setSavingGeneral)} disabled={savingGeneral}>
+>>>>>>> origin/chaeyoungnie
                 {savingGeneral ? 'Saving...' : 'Save Changes'}
               </Btn>
             </div>
@@ -460,11 +500,15 @@ const SettingsTab: React.FC = () => {
               ))}
             </div>
             <div className="flex justify-end mt-4">
+<<<<<<< HEAD
               <Btn onClick={() => setConfirmConfig({
                 title: "Save Tax & Receipt Settings",
                 desc: "Are you sure you want to update the system tax and receipt configuration?",
                 onConfirm: () => { setConfirmConfig(null); saveSection(taxFields, setSavingTax); }
               })} disabled={savingTax}>
+=======
+              <Btn onClick={() => saveSection(taxFields, setSavingTax)} disabled={savingTax}>
+>>>>>>> origin/chaeyoungnie
                 {savingTax ? 'Saving...' : 'Save Changes'}
               </Btn>
             </div>
@@ -504,11 +548,15 @@ const SettingsTab: React.FC = () => {
               </div>
             )}
             <div className="flex justify-end mt-4">
+<<<<<<< HEAD
               <Btn onClick={() => setConfirmConfig({
                 title: "Save POS Supplier Info",
                 desc: "Are you sure you want to update the POS footer details printed on receipts?",
                 onConfirm: () => { setConfirmConfig(null); saveSection(posFooter, setSavingPos); }
               })} disabled={savingPos}>
+=======
+              <Btn onClick={() => saveSection(posFooter, setSavingPos)} disabled={savingPos}>
+>>>>>>> origin/chaeyoungnie
                 {savingPos ? 'Saving...' : 'Save POS Info'}
               </Btn>
             </div>
@@ -569,6 +617,7 @@ const SettingsTab: React.FC = () => {
             </div>
           </div>
 
+<<<<<<< HEAD
           <div className="bg-gradient-to-br from-[#3b1774] via-[#1e0f3c] to-[#0d0620] rounded-[0.625rem] p-5 relative overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-white/5">
             <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/20 rounded-full blur-[40px] -translate-y-10 translate-x-10" />
             <div className="absolute bottom-0 left-0 w-32 h-32 bg-fuchsia-500/10 rounded-full blur-[40px] translate-y-10 -translate-x-10" />
@@ -580,6 +629,14 @@ const SettingsTab: React.FC = () => {
                   <Database size={12} className="text-violet-200" />
                 </div>
                 <p className="text-xs font-black uppercase tracking-[0.15em] text-white/90">System Info</p>
+=======
+          <div className="bg-[#1e0f3c] rounded-[0.625rem] p-5 relative overflow-hidden">
+            <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: "radial-gradient(circle, white 1px, transparent 1px)", backgroundSize: "20px 20px" }} />
+            <div className="relative">
+              <div className="flex items-center gap-2 mb-3">
+                <Database size={14} className="text-violet-300" />
+                <p className="text-xs font-bold uppercase tracking-widest text-zinc-300">System Info</p>
+>>>>>>> origin/chaeyoungnie
               </div>
               {[
                 { label: "Version",     val: sysInfo?.version     || "Loading..." },
