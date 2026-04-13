@@ -342,6 +342,8 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::prefix('reports')->group(function () {
             Route::get('/inventory',         [InventoryReportController::class, 'index']);
             Route::get('/x-reading',         [SalesDashboardController::class,  'xReading']);
+            Route::get('/z-reading/status',  [SalesDashboardController::class,  'zReadingStatus']);
+            Route::get('/z-reading/gaps',    [SalesDashboardController::class,  'zReadingGaps']);
             Route::get('/z-reading/history', [SalesDashboardController::class,  'zReadingHistory']);
             Route::get('/z-reading',         [SalesDashboardController::class,  'zReading']);
             Route::get('/pulse',             [PulseController::class,           'index']);
