@@ -821,7 +821,6 @@ const CategoriesTab: React.FC = () => {
     }
   };
 
-  const totalItems = categories.reduce((sum, c) => sum + (c.menu_items_count ?? 0), 0);
 
   return (
     <div className="p-6 md:p-8 fade-in">
