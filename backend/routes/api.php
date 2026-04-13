@@ -437,7 +437,6 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
         Route::prefix('branches')->group(function () {
             Route::post  ('/',                    [BranchController::class, 'store']);
-            Route::get   ('/{id}',                [BranchController::class, 'show']);
             Route::put   ('/{id}',                [BranchController::class, 'update']);
             Route::delete('/{id}',                [BranchController::class, 'destroy']);
             Route::get   ('/{id}/daily-sales',    [BranchController::class, 'dailySales']);
