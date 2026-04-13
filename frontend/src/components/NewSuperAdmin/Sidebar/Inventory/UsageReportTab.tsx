@@ -425,7 +425,7 @@ const UsageReportTab: React.FC = () => {
   const [drawerRow,     setDrawerRow]     = useState<UsageRow | null>(null);
   const [breakdownRow,  setBreakdownRow]  = useState<UsageRow | null>(null);
   const [exporting,     setExporting]     = useState(false);
-  const [isToday,       setIsToday]       = useState(false);
+  const [isToday,       setIsToday]       = useState(true);
   const [productSales,  setProductSales]  = useState<ProductSalesData[]>([]);
   const [salesLoading,  setSalesLoading]  = useState(false);
 
