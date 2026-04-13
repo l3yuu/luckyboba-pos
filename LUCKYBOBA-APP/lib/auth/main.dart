@@ -204,7 +204,7 @@ class _LoginPageState extends State<LoginPage>
             }),
           )
           .timeout(const Duration(seconds: 30));
-      if (mounted) return;
+      if (!mounted) return;
       setState(() => _googleLoading = false);
       if (response.statusCode == 200) {
         await _saveUserAndNavigate(jsonDecode(response.body), googleUser.email);
