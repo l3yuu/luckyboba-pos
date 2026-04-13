@@ -326,26 +326,30 @@ class InventoryRepository implements InventoryRepositoryInterface
             ->orderBy('sale_items.product_name')
             ->get();
 
-        // 2. Get material usage per product (total deductions for all sizes)
+        // 2. Get material usage per product and size
         $usage = DB::table('stock_deductions')
             ->join('sales', 'stock_deductions.sale_id', '=', 'sales.id')
             ->join('sale_items', 'stock_deductions.sale_item_id', '=', 'sale_items.id')
             ->join('raw_materials', 'stock_deductions.raw_material_id', '=', 'raw_materials.id')
             ->select(
                 'sale_items.product_name',
+                'sale_items.cup_size_label',
                 'raw_materials.name as material_name',
                 'raw_materials.unit',
                 DB::raw('SUM(stock_deductions.quantity_deducted) as total_usage')
             )
             ->whereBetween('stock_deductions.created_at', [$startDate . ' 00:00:00', $endDate . ' 23:59:59'])
             ->when($branchId, fn($q) => $q->where('sales.branch_id', $branchId))
-            ->groupBy('sale_items.product_name', 'raw_materials.name', 'raw_materials.unit')
+            ->groupBy('sale_items.product_name', 'sale_items.cup_size_label', 'raw_materials.name', 'raw_materials.unit')
             ->get()
-            ->groupBy('product_name');
+            ->groupBy(function($u) {
+                return $u->product_name . '|' . ($u->cup_size_label ?? '');
+            });
 
         // 3. Merge usage into sales
         return $sales->map(function($item) use ($usage) {
-            $item->usage = $usage->get($item->product_name, collect())->map(fn($u) => [
+            $key = $item->product_name . '|' . ($item->cup_size_label ?? '');
+            $item->usage = $usage->get($key, collect())->map(fn($u) => [
                 'name' => $u->material_name,
                 'qty'  => (float) $u->total_usage,
                 'unit' => $u->unit
