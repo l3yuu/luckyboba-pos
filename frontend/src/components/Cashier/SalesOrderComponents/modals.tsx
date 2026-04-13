@@ -1356,9 +1356,10 @@ interface CustomerNameModalProps {
   onChange: (v: string) => void;
   onSkip: () => void;
   onConfirm: () => void;
+  submitting?: boolean;
 }
 
-export const CustomerNameModal = ({ customerName, onChange, onConfirm }: CustomerNameModalProps) => (
+export const CustomerNameModal = ({ customerName, onChange, onConfirm, onSkip, submitting }: CustomerNameModalProps) => (
   <div className="fixed inset-0 z-140 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
     <div className="bg-white w-full max-w-sm rounded-[0.625rem] shadow-2xl overflow-hidden">
       <div className="bg-[#3b2063] px-6 pt-6 pb-5 text-white text-center">
@@ -1371,13 +1372,20 @@ export const CustomerNameModal = ({ customerName, onChange, onConfirm }: Custome
       </div>
       <div className="p-6 bg-white space-y-4">
         <input type="text" value={customerName} onChange={e => onChange(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') onConfirm(); }}
-          placeholder="e.g. Juan" autoFocus
-          className="w-full bg-[#f5f0ff] border border-[#e9d5ff] text-sm font-bold p-4 resize-none h-16 outline-none focus:border-[#3b2063] focus:bg-white transition-colors uppercase placeholder:normal-case placeholder:text-[#3b2063]/30" />
-        <button onClick={onConfirm} disabled={customerName.trim() === ''}
-          className={`w-full py-3 rounded-[0.625rem] font-black text-xs uppercase tracking-widest transition-colors shadow-md ${customerName.trim() !== '' ? 'bg-[#3b2063] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-zinc-400 cursor-not-allowed'}`}>
-          Confirm
-        </button>
+          onKeyDown={e => { if (e.key === 'Enter' && !submitting && customerName.trim() !== '') onConfirm(); }}
+          placeholder="e.g. Juan" autoFocus disabled={submitting}
+          className="w-full bg-[#f5f0ff] border border-[#e9d5ff] text-sm font-bold p-4 resize-none h-16 outline-none focus:border-[#3b2063] focus:bg-white transition-colors uppercase placeholder:normal-case placeholder:text-[#3b2063]/30 disabled:opacity-50" />
+        
+        <div className="flex gap-3">
+          <button onClick={onSkip} disabled={submitting}
+            className="flex-1 py-3 rounded-[0.625rem] border-2 border-zinc-200 text-zinc-500 font-black text-xs uppercase tracking-widest hover:bg-zinc-50 transition-colors disabled:opacity-40">
+            Skip
+          </button>
+          <button onClick={onConfirm} disabled={customerName.trim() === '' || submitting}
+            className={`flex-2 py-3 rounded-[0.625rem] font-black text-xs uppercase tracking-widest transition-colors shadow-md ${customerName.trim() !== '' && !submitting ? 'bg-[#3b2063] text-white hover:bg-[#6a12b8]' : 'bg-[#f5f0ff] text-zinc-400 cursor-not-allowed'}`}>
+            {submitting ? 'Processing...' : 'Confirm'}
+          </button>
+        </div>
       </div>
     </div>
   </div>

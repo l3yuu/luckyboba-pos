@@ -87,9 +87,11 @@ interface XReadingReport {
   cash_drop?: number;
   cash_in_drawer?: number;
   cash_in?: number;
-  is_vat?: boolean;           // ← add
-  vat_exempt_sales?: number;  // ← add
+  is_vat?: boolean;
+  vat_exempt_sales?: number;
   pre_discount_gross?: number;
+  rounding_adjustment?: number;
+  net_total?: number;
 }
 
 const Row = ({ label, value, indent = false }: { label: string; value: string | number; indent?: boolean }) => (
@@ -702,7 +704,8 @@ const XReading = () => {
 
   const renderXReading = () => {
     const gross = reportData?.gross_sales || 0;
-    const netSales = reportData?.net_sales || 0;
+    const netSales = reportData?.net_total ?? reportData?.net_sales ?? 0; // Exclusive
+    const netInclusive = reportData?.net_sales || 0; // Inclusive
     const cashTotal = reportData?.cash_total || 0;
     const nonCash = reportData?.non_cash_total || 0;
     const txCount = reportData?.transaction_count || 0;
@@ -743,7 +746,7 @@ const XReading = () => {
         <Row label="ZERO-RATED SALES" value={phCurrency.format(0)} />
         <Divider />
         <Row label="SERVICE CHARGE" value={phCurrency.format(0)} />
-        <Row label="NET SALES" value={phCurrency.format(netSales)} />
+        <Row label="NET SALES (EXCL. VAT)" value={phCurrency.format(netSales)} />
         <Row label="TOTAL DISCOUNTS" value={phCurrency.format(totalDisc)} />
         <Row label="GROSS AMOUNT" value={phCurrency.format(gross)} />
         <Divider />
@@ -767,7 +770,10 @@ const XReading = () => {
         <Divider />
         <Row label="TOTAL CASH" value={phCurrency.format(cashTotal)} />
         <Row label="TOTAL NON-CASH" value={phCurrency.format(nonCash)} />
-        <Row label="TOTAL PAYMENTS" value={phCurrency.format(gross)} />
+        {Math.abs(reportData?.rounding_adjustment || 0) > 0.01 && (
+          <Row label="Rounding Adjustment" value={phCurrency.format(reportData?.rounding_adjustment || 0)} />
+        )}
+        <Row label="TOTAL PAYMENTS" value={phCurrency.format(netInclusive + (reportData?.rounding_adjustment || 0))} />
         <Row label="CANCELED" value={phCurrency.format(voids)} />
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>

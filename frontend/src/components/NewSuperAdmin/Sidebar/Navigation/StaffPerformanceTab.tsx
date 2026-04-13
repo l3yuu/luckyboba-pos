@@ -87,7 +87,7 @@ const StaffPerformanceTab = () => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/staff-performance?period=${period}`, { headers: authHeaders() });
+      const res = await fetch(`/api/reports/staff-performance?period=${period}`, { headers: authHeaders() });
       const data = await res.json();
       if (data.success) {
         setData(data.data);

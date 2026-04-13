@@ -7,40 +7,40 @@ import {
   CreditCard, Banknote, Smartphone, Menu,
 } from "lucide-react";
 
-type ColorKey   = "violet" | "emerald" | "red" | "amber";
+type ColorKey = "violet" | "emerald" | "red" | "amber";
 type VariantKey = "primary" | "secondary" | "danger" | "ghost";
-type SizeKey    = "sm" | "md" | "lg";
+type SizeKey = "sm" | "md" | "lg";
 
 const getToken = () =>
   localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
 const authHeaders = () => ({
   "Content-Type": "application/json",
-  "Accept":       "application/json",
+  "Accept": "application/json",
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface XReading {
-  branch_id:      number;
-  branch_name:    string;
-  date:           string;
-  gross_sales:    number;
-  discount:       number;
-  net_sales:      number;
-  cash:           number;
-  gcash:          number;
-  card:           number;
-  returns:        number;
-  total_orders:   number;
+  branch_id: number;
+  branch_name: string;
+  date: string;
+  gross_sales: number;
+  discount: number;
+  net_sales: number;
+  cash: number;
+  gcash: number;
+  card: number;
+  returns: number;
+  total_orders: number;
   cashier_breakdown?: CashierRow[];
 }
 interface CashierRow {
-  cashier_id:   number;
+  cashier_id: number;
   cashier_name: string;
-  orders:       number;
-  gross:        number;
-  discount:     number;
-  net:          number;
+  orders: number;
+  gross: number;
+  discount: number;
+  net: number;
 }
 interface BranchOption { id: number; name: string; }
 
@@ -107,10 +107,10 @@ interface BtnProps {
 
 const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, color = "violet" }) => {
   const colors: Record<ColorKey, { bg: string; border: string; icon: string }> = {
-    violet:  { bg: "bg-violet-50",  border: "border-violet-200",  icon: "text-violet-600"  },
+    violet: { bg: "bg-violet-50", border: "border-violet-200", icon: "text-violet-600" },
     emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
-    red:     { bg: "bg-red-50",     border: "border-red-200",     icon: "text-red-500"     },
-    amber:   { bg: "bg-amber-50",   border: "border-amber-200",   icon: "text-amber-600"   },
+    red: { bg: "bg-red-50", border: "border-red-200", icon: "text-red-500" },
+    amber: { bg: "bg-amber-50", border: "border-amber-200", icon: "text-amber-600" },
   };
   const c = colors[color];
   return (
@@ -131,12 +131,12 @@ const Btn: React.FC<BtnProps> = ({
   children, variant = "primary", size = "sm",
   onClick, className = "", disabled = false,
 }) => {
-  const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
+  const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#3b2063] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
-    danger:    "bg-red-600 hover:bg-red-700 text-white",
-    ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
+    danger: "bg-red-600 hover:bg-red-700 text-white",
+    ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
   };
   return (
     <button onClick={onClick} disabled={disabled}
@@ -163,17 +163,17 @@ const ReceiptDivider = () => <div className="border-t border-dashed border-black
 const XReadingTab: React.FC = () => {
   const today = new Date().toISOString().split("T")[0];
 
-  const [branchId,     setBranchId]     = useState("");
-  const [date,         setDate]         = useState(today);
-  const [shift,        setShift]        = useState("all");
-  const [loading,      setLoading]      = useState(false);
-  const [error,        setError]        = useState("");
-  const [data,         setData]         = useState<XReading | null>(null);
-  const [reportData,   setReportData]   = useState<XReadingReport | null>(null);
-  const [branches,     setBranches]     = useState<BranchOption[]>([]);
-  const [isMenuOpen,   setIsMenuOpen]   = useState(false);
+  const [branchId, setBranchId] = useState("");
+  const [date, setDate] = useState(today);
+  const [shift, setShift] = useState("all");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [data, setData] = useState<XReading | null>(null);
+  const [reportData, setReportData] = useState<XReadingReport | null>(null);
+  const [branches, setBranches] = useState<BranchOption[]>([]);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [invoiceQuery, setInvoiceQuery] = useState("");
-  const [reportType,   setReportType]   = useState("x_reading");
+  const [reportType, setReportType] = useState("x_reading");
   const menuRef = useRef<HTMLDivElement>(null);
 
   const phCurrency = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" });
@@ -190,7 +190,7 @@ const XReadingTab: React.FC = () => {
           setBranchId(String(d.data[0].id));
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -209,7 +209,7 @@ const XReadingTab: React.FC = () => {
       case "cash_count": {
         const nested = raw.cash_count as { denominations: unknown[]; grand_total: number } | undefined;
         const flatDenoms = raw.denominations as { label: string; qty: number; total: number }[] | undefined;
-        const flatTotal  = raw.grand_total as number | undefined;
+        const flatTotal = raw.grand_total as number | undefined;
         if (nested?.denominations) return raw as unknown as XReadingReport;
         if (flatDenoms) return { ...raw, cash_count: { denominations: flatDenoms, grand_total: flatTotal ?? 0 } } as unknown as XReadingReport;
         return raw as unknown as XReadingReport;
@@ -221,35 +221,35 @@ const XReadingTab: React.FC = () => {
       case "search": {
         const arr = (Array.isArray(raw) ? raw : []) as Record<string, unknown>[];
         const txData = arr.map(r => ({
-          Invoice:   String(r.si_number    ?? r.Invoice   ?? ""),
-          Amount:    Number(r.total_amount ?? r.Amount    ?? 0),
-          Status:    String(r.status       ?? r.Status    ?? ""),
-          Date_Time: String(r.created_at   ?? r.Date_Time ?? ""),
+          Invoice: String(r.si_number ?? r.Invoice ?? ""),
+          Amount: Number(r.total_amount ?? r.Amount ?? 0),
+          Status: String(r.status ?? r.Status ?? ""),
+          Date_Time: String(r.created_at ?? r.Date_Time ?? ""),
         }));
         return { ...raw, transactions: txData } as unknown as XReadingReport;
       }
       case "hourly_sales": {
         const arr = (Array.isArray(raw) ? raw : ((raw.hourly_data ?? []) as unknown[])) as Record<string, unknown>[];
         const hourlyData = arr.map(r => ({
-          hour:  Number(r.hour  ?? r.Hour  ?? 0),
+          hour: Number(r.hour ?? r.Hour ?? 0),
           total: Number(r.total ?? r.Total ?? r.amount ?? 0),
-          count: Number(r.count ?? r.Count ?? r.qty    ?? 0),
+          count: Number(r.count ?? r.Count ?? r.qty ?? 0),
         }));
         return { ...raw, hourly_data: hourlyData } as unknown as XReadingReport;
       }
       case "detailed": {
         const arr = (raw.transactions ?? raw.search_results ?? raw.results ?? (Array.isArray(raw) ? raw : null)) as Record<string, unknown>[] | null;
         const txData = (arr ?? []).map(r => ({
-          Invoice:     String(r.Invoice     ?? r.invoice_number ?? ""),
-          Amount:      Number(r.Amount      ?? r.total_amount   ?? 0),
-          Status:      String(r.Status      ?? r.status         ?? ""),
-          Date_Time:   String(r.Date_Time   ?? r.created_at     ?? ""),
-          Method:      String(r.Method      ?? r.payment_method ?? ""),
-          Cashier:     String(r.Cashier     ?? r.cashier_name   ?? ""),
-          Vatable:     Number(r.Vatable     ?? 0),
-          Tax:         Number(r.Tax         ?? 0),
+          Invoice: String(r.Invoice ?? r.invoice_number ?? ""),
+          Amount: Number(r.Amount ?? r.total_amount ?? 0),
+          Status: String(r.Status ?? r.status ?? ""),
+          Date_Time: String(r.Date_Time ?? r.created_at ?? ""),
+          Method: String(r.Method ?? r.payment_method ?? ""),
+          Cashier: String(r.Cashier ?? r.cashier_name ?? ""),
+          Vatable: Number(r.Vatable ?? 0),
+          Tax: Number(r.Tax ?? 0),
           Items_Count: Number(r.Items_Count ?? 0),
-          Disc:        Number(r.Disc_Pax    ?? 0),
+          Disc: Number(r.Disc_Pax ?? 0),
         }));
         return { ...raw, transactions: txData } as unknown as XReadingReport;
       }
@@ -270,16 +270,16 @@ const XReadingTab: React.FC = () => {
       let url = "";
       switch (reportType) {
         case "hourly_sales": url = `/api/reports/hourly-sales?${params}`; break;
-        case "summary":      url = `/api/reports/sales-summary?from=${date}&to=${date}&branch_id=${branchId}`; break;
-        case "void_logs":    url = `/api/reports/void-logs?${params}`; break;
-        case "detailed":     url = `/api/reports/sales-detailed?${params}`; break;
-        case "qty_items":    url = `/api/reports/item-quantities?${params}`; break;
-        case "cash_count":   url = `/api/cash-counts/summary?${params}`; break;
+        case "summary": url = `/api/reports/sales-summary?from=${date}&to=${date}&branch_id=${branchId}`; break;
+        case "void_logs": url = `/api/reports/void-logs?${params}`; break;
+        case "detailed": url = `/api/reports/sales-detailed?${params}`; break;
+        case "qty_items": url = `/api/reports/item-quantities?${params}`; break;
+        case "cash_count": url = `/api/cash-counts/summary?${params}`; break;
         case "search":
           params.set("query", invoiceQuery);
           url = `/api/receipts/search?${params}`;
           break;
-        default:             url = `/api/reports/x-reading?${params}`; break;
+        default: url = `/api/reports/x-reading?${params}`; break;
       }
 
       // ── Special case: summary needs two endpoints merged ──────────────────
@@ -290,7 +290,7 @@ const XReadingTab: React.FC = () => {
         ]);
         const merged = {
           ...summaryRes,
-          categories:         qtyRes.categories         ?? [],
+          categories: qtyRes.categories ?? [],
           all_addons_summary: qtyRes.all_addons_summary ?? [],
         };
         const normalized = normalizeResponse("summary", merged as Record<string, unknown>);
@@ -300,7 +300,7 @@ const XReadingTab: React.FC = () => {
         return;
       }
 
-      const res  = await fetch(url, { headers: authHeaders() });
+      const res = await fetch(url, { headers: authHeaders() });
       const json = await res.json() as Record<string, unknown>;
 
       // ── Set receipt reportData ─────────────────────────────────────────────
@@ -312,19 +312,19 @@ const XReadingTab: React.FC = () => {
         if ((json.success as boolean) && json.data) {
           setData(json.data as XReading);
         } else {
-          const branchRes  = await fetch(`/api/branches/${branchId}/analytics`, { headers: authHeaders() });
+          const branchRes = await fetch(`/api/branches/${branchId}/analytics`, { headers: authHeaders() });
           const branchData = await branchRes.json() as Record<string, unknown>;
           if (branchData.success) {
             const d = branchData.data as Record<string, unknown>;
             const selectedBranch = branches.find(b => String(b.id) === branchId);
             setData({
-              branch_id:    Number(branchId),
-              branch_name:  selectedBranch?.name ?? `Branch #${branchId}`,
+              branch_id: Number(branchId),
+              branch_name: selectedBranch?.name ?? `Branch #${branchId}`,
               date,
-              gross_sales:  Number(d.today_total        ?? 0),
-              discount:     0,
-              net_sales:    Number(d.today_total        ?? 0),
-              cash:         0, gcash: 0, card: 0, returns: 0,
+              gross_sales: Number(d.today_total ?? 0),
+              discount: 0,
+              net_sales: Number(d.today_total ?? 0),
+              cash: 0, gcash: 0, card: 0, returns: 0,
               total_orders: Number(d.total_transactions ?? 0),
               cashier_breakdown: [],
             });
@@ -352,19 +352,19 @@ const XReadingTab: React.FC = () => {
   const selectedBranchName = branches.find(b => String(b.id) === branchId)?.name ?? "—";
 
   const menuCards = [
-    { label: "REPORT",      title: "HOURLY SALES",   type: "hourly_sales", color: "border-[#7c14d4]"   },
-    { label: "OVERVIEW",    title: "SALES SUMMARY",  type: "summary",      color: "border-amber-400"   },
-    { label: "AUDIT",       title: "VOID LOGS",      type: "void_logs",    color: "border-[#7c14d4]"   },
-    { label: "TRANSACTION", title: "SEARCH RECEIPT", type: "search",       color: "border-[#7c14d4]"   },
-    { label: "ANALYSIS",    title: "SALES DETAILED", type: "detailed",     color: "border-[#7c14d4]"   },
-    { label: "INVENTORY",   title: "QTY ITEMS",      type: "qty_items",    color: "border-[#7c14d4]"   },
-    { label: "X-READING",   title: "X-READING",      type: "x_reading",    color: "border-emerald-500" },
-    { label: "CASH COUNT",  title: "CASH COUNT",     type: "cash_count",   color: "border-[#7c14d4]"   },
+    { label: "REPORT", title: "HOURLY SALES", type: "hourly_sales", color: "border-[#7c14d4]" },
+    { label: "OVERVIEW", title: "SALES SUMMARY", type: "summary", color: "border-amber-400" },
+    { label: "AUDIT", title: "VOID LOGS", type: "void_logs", color: "border-[#7c14d4]" },
+    { label: "TRANSACTION", title: "SEARCH RECEIPT", type: "search", color: "border-[#7c14d4]" },
+    { label: "ANALYSIS", title: "SALES DETAILED", type: "detailed", color: "border-[#7c14d4]" },
+    { label: "INVENTORY", title: "QTY ITEMS", type: "qty_items", color: "border-[#7c14d4]" },
+    { label: "X-READING", title: "X-READING", type: "x_reading", color: "border-emerald-500" },
+    { label: "CASH COUNT", title: "CASH COUNT", type: "cash_count", color: "border-[#7c14d4]" },
   ];
 
   // ── Receipt render functions (ported from cashier) ────────────────────────
   const renderHourlySales = () => {
-    const HOUR_LABELS = ["12am","1am","2am","3am","4am","5am","6am","7am","8am","9am","10am","11am","12pm","1pm","2pm","3pm","4pm","5pm","6pm","7pm","8pm","9pm","10pm","11pm"];
+    const HOUR_LABELS = ["12am", "1am", "2am", "3am", "4am", "5am", "6am", "7am", "8am", "9am", "10am", "11am", "12pm", "1pm", "2pm", "3pm", "4pm", "5pm", "6pm", "7pm", "8pm", "9pm", "10pm", "11pm"];
     const salesMap = new Map<number, { total: number; count: number }>();
     reportData?.hourly_data?.forEach(item => salesMap.set(Number(item.hour), { total: Number(item.total), count: Number(item.count) }));
     const totalSales = reportData?.hourly_data?.reduce((a, c) => a + Number(c.total), 0) ?? 0;
@@ -389,7 +389,7 @@ const XReadingTab: React.FC = () => {
         })}
         <ReceiptDivider />
         <ReceiptRow label="Total Items Sold" value={totalItems} />
-        <ReceiptRow label="Total Revenue"    value={phCurrency.format(totalSales)} />
+        <ReceiptRow label="Total Revenue" value={phCurrency.format(totalSales)} />
       </div>
     );
   };
@@ -405,15 +405,15 @@ const XReadingTab: React.FC = () => {
       </div>
       {reportData?.logs?.length
         ? reportData.logs.map((log, i) => (
-            <div key={i} className="flex text-[11px] leading-snug border-b border-dotted border-zinc-300">
-              <span className="w-[25%]">{log.time}</span>
-              <span className="w-[50%] uppercase">{log.reason}</span>
-              <span className="w-[25%] text-right">{phCurrency.format(log.amount)}</span>
-            </div>
-          ))
+          <div key={i} className="flex text-[11px] leading-snug border-b border-dotted border-zinc-300">
+            <span className="w-[25%]">{log.time}</span>
+            <span className="w-[50%] uppercase">{log.reason}</span>
+            <span className="w-[25%] text-right">{phCurrency.format(log.amount)}</span>
+          </div>
+        ))
         : <p className="text-[11px]">No voids recorded.</p>}
       <ReceiptDivider />
-      <ReceiptRow label="Total Voids"  value={reportData?.logs?.length ?? 0} />
+      <ReceiptRow label="Total Voids" value={reportData?.logs?.length ?? 0} />
       <ReceiptRow label="Total Amount" value={phCurrency.format(reportData?.logs?.reduce((a, l) => a + l.amount, 0) ?? 0)} />
     </div>
   );
@@ -421,7 +421,7 @@ const XReadingTab: React.FC = () => {
   const renderQtyItems = () => {
     if (!reportData?.categories)
       return <p className="text-[11px] mt-4 text-center">No category data.</p>;
-    const SIZE_ORDER = ["SM","UM","PCM","JR","SL","UL","PCL"];
+    const SIZE_ORDER = ["SM", "UM", "PCM", "JR", "SL", "UL", "PCL"];
     const totalItems = reportData.categories.reduce((acc, cat) => acc + cat.products.reduce((p, pr) => p + pr.total_qty, 0), 0);
     return (
       <div className="my-2">
@@ -486,7 +486,7 @@ const XReadingTab: React.FC = () => {
 
   const renderCashCount = () => {
     const denominations = reportData?.cash_count?.denominations;
-    const grandTotal    = reportData?.cash_count?.grand_total ?? 0;
+    const grandTotal = reportData?.cash_count?.grand_total ?? 0;
     return (
       <div className="my-2">
         <ReceiptDivider />
@@ -535,35 +535,35 @@ const XReadingTab: React.FC = () => {
           {rows.length === 0
             ? <p className="text-[11px] text-center py-2">No transactions found.</p>
             : rows.map((tx, i) => {
-                const isCancelled = tx.Status?.toLowerCase() === "cancelled";
-                const timeOnly = tx.Date_Time ? new Date(tx.Date_Time).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) : "";
-                const siDisplay = String(tx.Invoice).replace(/^OR-0+/, "#").replace(/^OR-/, "#");
-                return (
-                  <div key={i} className={`border-b border-dotted border-zinc-300 py-0.5 ${isCancelled ? "opacity-50" : ""}`}>
-                    <div className="flex text-[8px] leading-snug items-start">
-                      <span className="w-[30%] uppercase">{siDisplay}<br /><span className="text-zinc-500 text-[7px]">{timeOnly}</span></span>
-                      <span className="w-[10%] text-center text-zinc-600">
-                        {"Items_Count" in tx && tx.Items_Count != null
-                          ? String(tx.Items_Count)
-                          : <span className="text-zinc-400">—</span>}
-                      </span>
-                      <span className="w-[20%] text-center text-zinc-600 truncate" style={{ fontSize: "7px" }}>
-                        {"Cashier" in tx && tx.Cashier != null
-                          ? String(tx.Cashier)
-                          : <span className="text-zinc-400">—</span>}
-                      </span>
-                      <span className="w-[20%] text-right text-zinc-600">{"Vatable" in tx && tx.Vatable ? phCurrency.format(Number(tx.Vatable)) : "—"}</span>
-                      <span className={`w-[20%] text-right font-medium ${isCancelled ? "line-through text-zinc-400" : ""}`}>{phCurrency.format(tx.Amount)}</span>
-                    </div>
+              const isCancelled = tx.Status?.toLowerCase() === "cancelled";
+              const timeOnly = tx.Date_Time ? new Date(tx.Date_Time).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) : "";
+              const siDisplay = String(tx.Invoice).replace(/^OR-0+/, "#").replace(/^OR-/, "#");
+              return (
+                <div key={i} className={`border-b border-dotted border-zinc-300 py-0.5 ${isCancelled ? "opacity-50" : ""}`}>
+                  <div className="flex text-[8px] leading-snug items-start">
+                    <span className="w-[30%] uppercase">{siDisplay}<br /><span className="text-zinc-500 text-[7px]">{timeOnly}</span></span>
+                    <span className="w-[10%] text-center text-zinc-600">
+                      {"Items_Count" in tx && tx.Items_Count != null
+                        ? String(tx.Items_Count)
+                        : <span className="text-zinc-400">—</span>}
+                    </span>
+                    <span className="w-[20%] text-center text-zinc-600 truncate" style={{ fontSize: "7px" }}>
+                      {"Cashier" in tx && tx.Cashier != null
+                        ? String(tx.Cashier)
+                        : <span className="text-zinc-400">—</span>}
+                    </span>
+                    <span className="w-[20%] text-right text-zinc-600">{"Vatable" in tx && tx.Vatable ? phCurrency.format(Number(tx.Vatable)) : "—"}</span>
+                    <span className={`w-[20%] text-right font-medium ${isCancelled ? "line-through text-zinc-400" : ""}`}>{phCurrency.format(tx.Amount)}</span>
                   </div>
-                );
-              })}
+                </div>
+              );
+            })}
           <ReceiptDivider />
           <div className="flex text-[9px] justify-between mb-0.5 text-zinc-500"><span className="uppercase">Cancelled</span><span>{phCurrency.format(cancelledTotal)}</span></div>
           <div className="flex text-[10px] font-bold justify-between"><span className="uppercase">Total Sales</span><span>{phCurrency.format(completedTotal)}</span></div>
           <ReceiptDivider />
           <ReceiptRow label="Total Transactions" value={rows.length} />
-          <ReceiptRow label="Total Amount"       value={phCurrency.format(total)} />
+          <ReceiptRow label="Total Amount" value={phCurrency.format(total)} />
         </div>
       );
     }
@@ -580,7 +580,7 @@ const XReadingTab: React.FC = () => {
               </div>
               {rows.map((tx, i) => {
                 const isCancelled = (tx as { Status?: string }).Status?.toLowerCase() === "cancelled";
-                const dateTime    = (tx as { Date_Time?: string }).Date_Time ?? "";
+                const dateTime = (tx as { Date_Time?: string }).Date_Time ?? "";
                 return (
                   <div key={i} className="border-b border-dotted border-zinc-300 py-0.5">
                     <div className="flex text-[11px] leading-snug">
@@ -598,25 +598,25 @@ const XReadingTab: React.FC = () => {
           )}
         <div className="mt-3">
           <ReceiptRow label="Total Transactions" value={rows.length} />
-          <ReceiptRow label="Total Amount"       value={phCurrency.format(total)} />
+          <ReceiptRow label="Total Amount" value={phCurrency.format(total)} />
         </div>
       </div>
     );
   };
 
   const renderSummary = () => {
-    const SIZE_ORDER = ["SM","UM","PCM","JR","SL","UL","PCL"];
-    const gross            = reportData?.gross_sales        || 0;
+    const SIZE_ORDER = ["SM", "UM", "PCM", "JR", "SL", "UL", "PCL"];
+    const gross = reportData?.gross_sales || 0;
     const preDiscountGross = reportData?.pre_discount_gross || gross;
-    const vatAmt           = reportData?.vat_amount         || 0;
-    const vatableSales     = reportData?.vatable_sales      || 0;
-    const scDiscount       = reportData?.sc_discount        || 0;
-    const pwdDiscount      = reportData?.pwd_discount       || 0;
-    const diplomat         = reportData?.diplomat_discount  || 0;
-    const otherDisc        = reportData?.other_discount     || 0;
-    const voids            = reportData?.total_void_amount  || 0;
-    const netAmount        = preDiscountGross - scDiscount - pwdDiscount - diplomat - otherDisc - vatAmt;
-    const reportIsVat      = reportData?.is_vat !== undefined ? reportData.is_vat : isVat;
+    const vatAmt = reportData?.vat_amount || 0;
+    const vatableSales = reportData?.vatable_sales || 0;
+    const scDiscount = reportData?.sc_discount || 0;
+    const pwdDiscount = reportData?.pwd_discount || 0;
+    const diplomat = reportData?.diplomat_discount || 0;
+    const otherDisc = reportData?.other_discount || 0;
+    const voids = reportData?.total_void_amount || 0;
+    const netAmount = preDiscountGross - scDiscount - pwdDiscount - diplomat - otherDisc - vatAmt;
+    const reportIsVat = reportData?.is_vat !== undefined ? reportData.is_vat : isVat;
 
     return (
       <div className="my-2">
@@ -680,10 +680,10 @@ const XReadingTab: React.FC = () => {
         <ReceiptDivider />
         {[
           { label: "Less PWD Discount:", value: pwdDiscount > 0 ? `-${phCurrency.format(pwdDiscount)}` : phCurrency.format(0) },
-          { label: "Less SC Discount:",  value: scDiscount  > 0 ? `-${phCurrency.format(scDiscount)}`  : phCurrency.format(0) },
-          { label: "Less Diplomat:",     value: diplomat    > 0 ? `-${phCurrency.format(diplomat)}`    : phCurrency.format(0) },
-          { label: "Less Other Disc:",   value: otherDisc   > 0 ? `-${phCurrency.format(otherDisc)}`  : phCurrency.format(0) },
-          { label: "Less 12% VAT:",      value: reportIsVat && vatAmt > 0 ? `-${phCurrency.format(vatAmt)}` : phCurrency.format(0) },
+          { label: "Less SC Discount:", value: scDiscount > 0 ? `-${phCurrency.format(scDiscount)}` : phCurrency.format(0) },
+          { label: "Less Diplomat:", value: diplomat > 0 ? `-${phCurrency.format(diplomat)}` : phCurrency.format(0) },
+          { label: "Less Other Disc:", value: otherDisc > 0 ? `-${phCurrency.format(otherDisc)}` : phCurrency.format(0) },
+          { label: "Less 12% VAT:", value: reportIsVat && vatAmt > 0 ? `-${phCurrency.format(vatAmt)}` : phCurrency.format(0) },
         ].map((r, i) => (
           <div key={i} className="flex text-[11px] leading-snug">
             <span className="flex-1 text-right uppercase pr-1">{r.label}</span>
@@ -696,8 +696,8 @@ const XReadingTab: React.FC = () => {
         </div>
         <ReceiptDivider />
         {[
-          { label: "Vatable Sales:",    value: phCurrency.format(reportIsVat ? vatableSales : 0) },
-          { label: "VAT Amount:",       value: phCurrency.format(reportIsVat ? vatAmt : 0) },
+          { label: "Vatable Sales:", value: phCurrency.format(reportIsVat ? vatableSales : 0) },
+          { label: "VAT Amount:", value: phCurrency.format(reportIsVat ? vatAmt : 0) },
           { label: "VAT Exempt Sales:", value: phCurrency.format(reportData?.vat_exempt_sales || 0) },
           { label: "Zero Rated Sales:", value: phCurrency.format(0) },
         ].map((r, i) => (
@@ -708,29 +708,29 @@ const XReadingTab: React.FC = () => {
         ))}
         <ReceiptDivider />
         <ReceiptRow label="SC and PWD Amount:" value={phCurrency.format(scDiscount + pwdDiscount)} />
-        <ReceiptRow label="Total Voids:"       value={phCurrency.format(voids)} />
+        <ReceiptRow label="Total Voids:" value={phCurrency.format(voids)} />
       </div>
     );
   };
 
   const renderXReading = () => {
-    const gross        = reportData?.gross_sales        || 0;
-    const netSales     = reportData?.net_sales          || 0;
-    const cashTotal    = reportData?.cash_total         || 0;
-    const nonCash      = reportData?.non_cash_total     || 0;
-    const txCount      = reportData?.transaction_count  || 0;
-    const scDiscount   = reportData?.sc_discount        || 0;
-    const pwdDiscount  = reportData?.pwd_discount       || 0;
-    const diplomat     = reportData?.diplomat_discount  || 0;
-    const otherDisc    = reportData?.other_discount     || 0;
-    const totalDisc    = scDiscount + pwdDiscount + diplomat + otherDisc;
-    const reportIsVat  = reportData?.is_vat !== undefined ? reportData.is_vat : isVat;
-    const vatableSales = reportData?.vatable_sales    || 0;
-    const vatAmount    = reportData?.vat_amount       || 0;
-    const vatExempt    = reportData?.vat_exempt_sales || 0;
-    const voids        = reportData?.total_void_amount || 0;
+    const gross = reportData?.gross_sales || 0;
+    const netSales = reportData?.net_sales || 0;
+    const cashTotal = reportData?.cash_total || 0;
+    const nonCash = reportData?.non_cash_total || 0;
+    const txCount = reportData?.transaction_count || 0;
+    const scDiscount = reportData?.sc_discount || 0;
+    const pwdDiscount = reportData?.pwd_discount || 0;
+    const diplomat = reportData?.diplomat_discount || 0;
+    const otherDisc = reportData?.other_discount || 0;
+    const totalDisc = scDiscount + pwdDiscount + diplomat + otherDisc;
+    const reportIsVat = reportData?.is_vat !== undefined ? reportData.is_vat : isVat;
+    const vatableSales = reportData?.vatable_sales || 0;
+    const vatAmount = reportData?.vat_amount || 0;
+    const vatExempt = reportData?.vat_exempt_sales || 0;
+    const voids = reportData?.total_void_amount || 0;
 
-    const PAYMENT_METHODS = ["food panda","grab","gcash","visa","mastercard","cash"];
+    const PAYMENT_METHODS = ["food panda", "grab", "gcash", "visa", "mastercard", "cash"];
     const METHOD_ALIASES: Record<string, string> = { panda: "food panda", foodpanda: "food panda", food_panda: "food panda", grabfood: "grab", "grab food": "grab", "master card": "mastercard", master: "mastercard", "visa card": "visa", "e-wallet": "gcash" };
     const paymentMap = new Map<string, number>();
     reportData?.payment_breakdown?.forEach(p => {
@@ -738,33 +738,33 @@ const XReadingTab: React.FC = () => {
       const key = METHOD_ALIASES[raw] ?? raw;
       paymentMap.set(key, (paymentMap.get(key) ?? 0) + Number(p.amount));
     });
-    const totalCredit = ["visa","mastercard"].reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
-    const totalDebit  = ["gcash"].reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
-    const totalCard   = totalCredit + totalDebit;
+    const totalCredit = ["visa", "mastercard"].reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
+    const totalDebit = ["gcash"].reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
+    const totalCard = totalCredit + totalDebit;
 
     return (
       <div className="my-2">
         <ReceiptDivider />
-        <ReceiptRow label="Report Date"       value={date} />
-        <ReceiptRow label="Branch"            value={selectedBranchName} />
-        <ReceiptRow label="Shift"             value={shift === "all" ? "All Shifts" : shift.toUpperCase() + " Shift"} />
-        <ReceiptRow label="Beg. SI #"         value={reportData?.beg_si || "0000000000"} />
-        <ReceiptRow label="End. SI #"         value={reportData?.end_si || "0000000000"} />
+        <ReceiptRow label="Report Date" value={date} />
+        <ReceiptRow label="Branch" value={selectedBranchName} />
+        <ReceiptRow label="Shift" value={shift === "all" ? "All Shifts" : shift.toUpperCase() + " Shift"} />
+        <ReceiptRow label="Beg. SI #" value={reportData?.beg_si || "0000000000"} />
+        <ReceiptRow label="End. SI #" value={reportData?.end_si || "0000000000"} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">Breakdown of Sales</p>
-        <ReceiptRow label="Vatable Sales"    value={phCurrency.format(reportIsVat ? vatableSales : 0)} />
-        <ReceiptRow label="VAT Amount"       value={phCurrency.format(reportIsVat ? vatAmount : 0)} />
+        <ReceiptRow label="Vatable Sales" value={phCurrency.format(reportIsVat ? vatableSales : 0)} />
+        <ReceiptRow label="VAT Amount" value={phCurrency.format(reportIsVat ? vatAmount : 0)} />
         <ReceiptRow label="VAT Exempt Sales" value={phCurrency.format(vatExempt)} />
         <ReceiptRow label="Zero-Rated Sales" value={phCurrency.format(0)} />
         <ReceiptDivider />
-        <ReceiptRow label="Net Sales"        value={phCurrency.format(netSales)} />
-        <ReceiptRow label="Total Discounts"  value={phCurrency.format(totalDisc)} />
-        <ReceiptRow label="Gross Amount"     value={phCurrency.format(gross)} />
+        <ReceiptRow label="Net Sales" value={phCurrency.format(netSales)} />
+        <ReceiptRow label="Total Discounts" value={phCurrency.format(totalDisc)} />
+        <ReceiptRow label="Gross Amount" value={phCurrency.format(gross)} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">Discount Summary</p>
-        <ReceiptRow label="S.C Disc."    value={phCurrency.format(scDiscount)} />
-        <ReceiptRow label="PWD Disc."    value={phCurrency.format(pwdDiscount)} />
-        <ReceiptRow label="Other Disc."  value={phCurrency.format(otherDisc)} />
+        <ReceiptRow label="S.C Disc." value={phCurrency.format(scDiscount)} />
+        <ReceiptRow label="PWD Disc." value={phCurrency.format(pwdDiscount)} />
+        <ReceiptRow label="Other Disc." value={phCurrency.format(otherDisc)} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">Sales Adjustment</p>
         <ReceiptRow label="Canceled" value={phCurrency.format(voids)} />
@@ -774,37 +774,37 @@ const XReadingTab: React.FC = () => {
           <ReceiptRow key={i} label={method.toUpperCase()} value={phCurrency.format(paymentMap.get(method) || 0)} />
         ))}
         <ReceiptDivider />
-        <ReceiptRow label="Total Credit"   value={phCurrency.format(totalCredit)} />
-        <ReceiptRow label="Total Debit"    value={phCurrency.format(totalDebit)} />
-        <ReceiptRow label="Total Card"     value={phCurrency.format(totalCard)} />
+        <ReceiptRow label="Total Credit" value={phCurrency.format(totalCredit)} />
+        <ReceiptRow label="Total Debit" value={phCurrency.format(totalDebit)} />
+        <ReceiptRow label="Total Card" value={phCurrency.format(totalCard)} />
         <ReceiptDivider />
-        <ReceiptRow label="Total Cash"     value={phCurrency.format(cashTotal)} />
+        <ReceiptRow label="Total Cash" value={phCurrency.format(cashTotal)} />
         <ReceiptRow label="Total Non-Cash" value={phCurrency.format(nonCash)} />
         <ReceiptRow label="Total Payments" value={phCurrency.format(gross)} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">Transaction Summary</p>
-        <ReceiptRow label="Cash In"          value={phCurrency.format(reportData?.cash_in || 0)} />
-        <ReceiptRow label="Cash In Drawer"   value={phCurrency.format(reportData?.cash_in_drawer || 0)} />
-        <ReceiptRow label="Cash Drop"        value={phCurrency.format(reportData?.cash_drop || 0)} />
+        <ReceiptRow label="Cash In" value={phCurrency.format(reportData?.cash_in || 0)} />
+        <ReceiptRow label="Cash In Drawer" value={phCurrency.format(reportData?.cash_in_drawer || 0)} />
+        <ReceiptRow label="Cash Drop" value={phCurrency.format(reportData?.cash_drop || 0)} />
         <ReceiptDivider />
-        <ReceiptRow label="Total Qty Sold"   value={reportData?.total_qty_sold ?? 0} />
+        <ReceiptRow label="Total Qty Sold" value={reportData?.total_qty_sold ?? 0} />
         <ReceiptRow label="Transaction Count" value={txCount} />
       </div>
     );
   };
 
-  const HIDE_FOOTER = ["summary","qty_items","search","detailed"];
+  const HIDE_FOOTER = ["summary", "qty_items", "search", "detailed"];
 
   const renderReceiptContent = () => {
     switch (reportData?.report_type) {
       case "hourly_sales": return renderHourlySales();
-      case "void_logs":    return renderVoidLogs();
-      case "qty_items":    return renderQtyItems();
-      case "cash_count":   return renderCashCount();
+      case "void_logs": return renderVoidLogs();
+      case "qty_items": return renderQtyItems();
+      case "cash_count": return renderCashCount();
       case "detailed":
-      case "search":       return renderDetailedSales();
-      case "summary":      return renderSummary();
-      default:             return renderXReading();
+      case "search": return renderDetailedSales();
+      case "summary": return renderSummary();
+      default: return renderXReading();
     }
   };
 
@@ -823,17 +823,12 @@ const XReadingTab: React.FC = () => {
 
       {/* ── Header ── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">X Reading</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">Mid-shift running totals — does not close the shift</p>
-        </div>
         <div className="flex items-center gap-2">
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all px-3 py-2 text-xs border ${
-                isMenuOpen ? "bg-[#3b2063] text-white border-[#3b2063]" : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50"
-              }`}
+              className={`inline-flex items-center gap-1.5 font-bold rounded-lg transition-all px-3 py-2 text-xs border ${isMenuOpen ? "bg-[#3b2063] text-white border-[#3b2063]" : "bg-white border-zinc-200 text-zinc-700 hover:bg-zinc-50"
+                }`}
             >
               <Menu size={13} /> Menu
             </button>
@@ -844,9 +839,8 @@ const XReadingTab: React.FC = () => {
                     <button
                       key={card.type}
                       onClick={() => { setReportType(card.type); setIsMenuOpen(false); }}
-                      className={`border-l-4 ${card.color} p-3 h-16 flex flex-col justify-center text-left hover:bg-violet-50 transition-all rounded-[0.625rem] w-full ${
-                        reportType === card.type ? "bg-violet-50" : "bg-white"
-                      }`}
+                      className={`border-l-4 ${card.color} p-3 h-16 flex flex-col justify-center text-left hover:bg-violet-50 transition-all rounded-[0.625rem] w-full ${reportType === card.type ? "bg-violet-50" : "bg-white"
+                        }`}
                     >
                       <p className="text-zinc-400 font-bold uppercase tracking-widest text-[8px] mb-0.5">{card.label}</p>
                       <p className="text-xs font-black text-slate-800 uppercase leading-tight">{card.title}</p>
@@ -856,9 +850,6 @@ const XReadingTab: React.FC = () => {
               </div>
             )}
           </div>
-          <Btn variant="secondary" onClick={() => fetchReading()} disabled={loading || !branchId}>
-            <RefreshCw size={12} className={loading ? "animate-spin" : ""} /> Refresh
-          </Btn>
           <Btn onClick={handlePrint} disabled={!reportData}>
             <Printer size={13} /> Print
           </Btn>
@@ -956,10 +947,10 @@ const XReadingTab: React.FC = () => {
             </span>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <StatCard icon={<DollarSign  size={16} />} label="Gross Sales"  value={fmt(data.gross_sales)}  color="violet"  />
-            <StatCard icon={<TrendingUp  size={16} />} label="Net Sales"    value={fmt(data.net_sales)}    color="emerald" />
-            <StatCard icon={<ShoppingBag size={16} />} label="Total Orders" value={data.total_orders}      color="amber"   />
-            <StatCard icon={<Users       size={16} />} label="Discount"     value={fmt(data.discount)}     color="red"     />
+            <StatCard icon={<DollarSign size={16} />} label="Gross Sales" value={fmt(data.gross_sales)} color="violet" />
+            <StatCard icon={<TrendingUp size={16} />} label="Net Sales" value={fmt(data.net_sales)} color="emerald" />
+            <StatCard icon={<ShoppingBag size={16} />} label="Total Orders" value={data.total_orders} color="amber" />
+            <StatCard icon={<Users size={16} />} label="Discount" value={fmt(data.discount)} color="red" />
           </div>
           <div className="bg-white border border-zinc-200 rounded-[0.625rem] overflow-hidden">
             <div className="px-5 py-4 border-b border-zinc-100">
@@ -970,9 +961,9 @@ const XReadingTab: React.FC = () => {
               <div className="px-5 py-4 flex flex-col gap-3">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Payment Methods</p>
                 {[
-                  { label: "Cash",  value: data.cash,  icon: <Banknote   size={14} />, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-200" },
-                  { label: "GCash", value: data.gcash, icon: <Smartphone size={14} />, color: "text-blue-600",    bg: "bg-blue-50",    border: "border-blue-200"    },
-                  { label: "Card",  value: data.card,  icon: <CreditCard size={14} />, color: "text-violet-600",  bg: "bg-violet-50",  border: "border-violet-200"  },
+                  { label: "Cash", value: data.cash, icon: <Banknote size={14} />, color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-200" },
+                  { label: "GCash", value: data.gcash, icon: <Smartphone size={14} />, color: "text-blue-600", bg: "bg-blue-50", border: "border-blue-200" },
+                  { label: "Card", value: data.card, icon: <CreditCard size={14} />, color: "text-violet-600", bg: "bg-violet-50", border: "border-violet-200" },
                 ].map(pm => (
                   <div key={pm.label} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -988,9 +979,9 @@ const XReadingTab: React.FC = () => {
               <div className="px-5 py-4 flex flex-col gap-3">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1">Deductions</p>
                 {[
-                  { label: "Gross Sales", value: data.gross_sales, isPos: true  },
-                  { label: "Discounts",   value: data.discount,    isPos: false },
-                  { label: "Returns",     value: data.returns,     isPos: false },
+                  { label: "Gross Sales", value: data.gross_sales, isPos: true },
+                  { label: "Discounts", value: data.discount, isPos: false },
+                  { label: "Returns", value: data.returns, isPos: false },
                 ].map(row => (
                   <div key={row.label} className="flex items-center justify-between">
                     <span className="text-xs font-semibold text-zinc-600">{row.label}</span>
@@ -1016,7 +1007,7 @@ const XReadingTab: React.FC = () => {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-zinc-100">
-                      {["Cashier","Orders","Gross Sales","Discounts","Net Sales"].map(h => (
+                      {["Cashier", "Orders", "Gross Sales", "Discounts", "Net Sales"].map(h => (
                         <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
                       ))}
                     </tr>

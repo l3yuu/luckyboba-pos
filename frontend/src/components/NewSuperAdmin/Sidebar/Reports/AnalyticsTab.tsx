@@ -1,7 +1,7 @@
 // components/NewSuperAdmin/Tabs/Reports/AnalyticsTab.tsx
 import { useState, useEffect, useCallback } from "react";
 import {
-  RefreshCw, AlertCircle, TrendingUp, ShoppingBag,
+  AlertCircle, TrendingUp, ShoppingBag,
   Clock, Store, ChevronDown, ArrowUpRight, ArrowDownRight,
 } from "lucide-react";
 import {
@@ -10,28 +10,28 @@ import {
   Legend, Cell,
 } from "recharts";
 
-type ColorKey   = "violet" | "emerald" | "red" | "amber";
+type ColorKey = "violet" | "emerald" | "red" | "amber";
 type VariantKey = "primary" | "secondary" | "danger" | "ghost";
-type SizeKey    = "sm" | "md" | "lg";
+type SizeKey = "sm" | "md" | "lg";
 
 // ── API ───────────────────────────────────────────────────────────────────────
 const getToken = () =>
   localStorage.getItem("auth_token") || localStorage.getItem("lucky_boba_token") || "";
 const authHeaders = () => ({
   "Content-Type": "application/json",
-  "Accept":       "application/json",
+  "Accept": "application/json",
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-interface RevenuePoint  { date: string; revenue: number; orders: number; }
-interface TopProduct    { product_name: string; total_quantity: number; total_revenue: number; }
-interface PeakHour      { hour: number; label: string; total: number; count: number; }
-interface BranchMetric  {
+interface RevenuePoint { date: string; revenue: number; orders: number; }
+interface TopProduct { product_name: string; total_quantity: number; total_revenue: number; }
+interface PeakHour { hour: number; label: string; total: number; count: number; }
+interface BranchMetric {
   branch_id: number; branch_name: string;
   total_revenue: number; total_orders: number; avg_order_value: number;
 }
-interface BranchOption  { id: number; name: string; }
+interface BranchOption { id: number; name: string; }
 
 // ── Shared UI ─────────────────────────────────────────────────────────────────
 interface StatCardProps {
@@ -45,10 +45,10 @@ interface BtnProps {
 
 const StatCard: React.FC<StatCardProps> = ({ icon, label, value, sub, trend, color = "violet" }) => {
   const colors: Record<ColorKey, { bg: string; border: string; icon: string }> = {
-    violet:  { bg: "bg-violet-50",  border: "border-violet-200",  icon: "text-violet-600"  },
+    violet: { bg: "bg-violet-50", border: "border-violet-200", icon: "text-violet-600" },
     emerald: { bg: "bg-emerald-50", border: "border-emerald-200", icon: "text-emerald-600" },
-    red:     { bg: "bg-red-50",     border: "border-red-200",     icon: "text-red-500"     },
-    amber:   { bg: "bg-amber-50",   border: "border-amber-200",   icon: "text-amber-600"   },
+    red: { bg: "bg-red-50", border: "border-red-200", icon: "text-red-500" },
+    amber: { bg: "bg-amber-50", border: "border-amber-200", icon: "text-amber-600" },
   };
   const c = colors[color];
   return (
@@ -77,12 +77,12 @@ const Btn: React.FC<BtnProps> = ({
   children, variant = "primary", size = "sm",
   onClick, className = "", disabled = false,
 }) => {
-  const sizes:    Record<SizeKey,    string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
+  const sizes: Record<SizeKey, string> = { sm: "px-3 py-2 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-sm" };
   const variants: Record<VariantKey, string> = {
-    primary:   "bg-[#3b2063] hover:bg-[#2a1647] text-white",
+    primary: "bg-[#3b2063] hover:bg-[#2a1647] text-white",
     secondary: "bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50",
-    danger:    "bg-red-600 hover:bg-red-700 text-white",
-    ghost:     "bg-transparent text-zinc-500 hover:bg-zinc-100",
+    danger: "bg-red-600 hover:bg-red-700 text-white",
+    ghost: "bg-transparent text-zinc-500 hover:bg-zinc-100",
   };
   return (
     <button onClick={onClick} disabled={disabled}
@@ -97,7 +97,7 @@ const SkeletonBar: React.FC<{ h?: string }> = ({ h = "h-4" }) => (
 );
 
 const BRANCH_COLORS = ["#3b2063", "#6d3fa8", "#9b6bd4", "#c4a8e8", "#ddd0f8"];
-const HOUR_COLORS   = (hour: number) => {
+const HOUR_COLORS = (hour: number) => {
   if (hour >= 11 && hour <= 14) return "#3b2063"; // lunch peak
   if (hour >= 17 && hour <= 20) return "#6d3fa8"; // dinner peak
   return "#ede8ff";
@@ -105,17 +105,17 @@ const HOUR_COLORS   = (hour: number) => {
 
 // ── Main Component ─────────────────────────────────────────────────────────────
 const AnalyticsTab: React.FC = () => {
-  const [period,      setPeriod]      = useState<"daily" | "weekly" | "monthly">("weekly");
-  const [branchId,    setBranchId]    = useState<string>("");
-  const [loading,     setLoading]     = useState(true);
-  const [error,       setError]       = useState("");
-  const [branches,    setBranches]    = useState<BranchOption[]>([]);
-  const [revenue,     setRevenue]     = useState<RevenuePoint[]>([]);
+  const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">("weekly");
+  const [branchId, setBranchId] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [branches, setBranches] = useState<BranchOption[]>([]);
+  const [revenue, setRevenue] = useState<RevenuePoint[]>([]);
   const [topProducts, setTopProducts] = useState<TopProduct[]>([]);
-  const [peakHours,   setPeakHours]   = useState<PeakHour[]>([]);
-  const [branchPerf,  setBranchPerf]  = useState<BranchMetric[]>([]);
+  const [peakHours, setPeakHours] = useState<PeakHour[]>([]);
+  const [branchPerf, setBranchPerf] = useState<BranchMetric[]>([]);
 
-  const fmt  = (v: number) => `₱${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
+  const fmt = (v: number) => `₱${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
   const fmtK = (v: number) => `₱${((v ?? 0) / 1000).toFixed(0)}k`;
 
   // Fetch branches once
@@ -123,7 +123,7 @@ const AnalyticsTab: React.FC = () => {
     fetch("/api/branches", { headers: authHeaders() })
       .then(r => r.json())
       .then(d => { if (d.success) setBranches(d.data); })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const fetchAll = useCallback(async () => {
@@ -136,7 +136,7 @@ const AnalyticsTab: React.FC = () => {
       // Use existing endpoints — analytics endpoints fall back to admin-sales-summary
       const [summaryRes, compRes] = await Promise.all([
         fetch(`/api/reports/admin-sales-summary?${params}`, { headers: authHeaders() }),
-        fetch(`/api/reports/branch-comparison?${params}`,   { headers: authHeaders() }),
+        fetch(`/api/reports/branch-comparison?${params}`, { headers: authHeaders() }),
       ]);
 
       const [summary, comp] = await Promise.all([summaryRes.json(), compRes.json()]);
@@ -161,7 +161,7 @@ const AnalyticsTab: React.FC = () => {
       const branchTarget = branchId || (comp.comparison?.[0]?.branch_id);
       if (branchTarget) {
         try {
-          const hrRes  = await fetch(`/api/branches/${branchTarget}/analytics`, { headers: authHeaders() });
+          const hrRes = await fetch(`/api/branches/${branchTarget}/analytics`, { headers: authHeaders() });
           const hrData = await hrRes.json();
           if (hrData.success && hrData.data?.today_hourly) {
             setPeakHours(hrData.data.today_hourly as PeakHour[]);
@@ -179,18 +179,12 @@ const AnalyticsTab: React.FC = () => {
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
   const totalRevenue = revenue.reduce((s, r) => s + r.revenue, 0);
-  const totalOrders  = revenue.reduce((s, r) => s + r.orders, 0);
-  const peakHour     = peakHours.reduce((max, h) => h.total > (max?.total ?? 0) ? h : max, peakHours[0]);
+  const totalOrders = revenue.reduce((s, r) => s + r.orders, 0);
+  const peakHour = peakHours.reduce((max, h) => h.total > (max?.total ?? 0) ? h : max, peakHours[0]);
 
   return (
     <div className="p-6 md:p-8 fade-in flex flex-col gap-5">
 
-      {/* ── Header ── */}
-      <div className="flex flex-wrap items-center justify-end gap-3 mb-1">
-        <Btn variant="secondary" onClick={fetchAll} disabled={loading}>
-          <RefreshCw size={12} className={loading ? "animate-spin" : ""} /> Refresh
-        </Btn>
-      </div>
 
       {/* ── Filters ── */}
       <div className="bg-white border border-zinc-200 rounded-[0.625rem] px-5 py-4 flex flex-wrap gap-3 items-end">
@@ -267,7 +261,7 @@ const AnalyticsTab: React.FC = () => {
                 contentStyle={{ borderRadius: 10, border: "1px solid #e5e7eb", fontSize: 12 }} />
               <Legend wrapperStyle={{ fontSize: 11, fontWeight: 600 }} />
               <Line yAxisId="rev" type="monotone" dataKey="revenue" name="Revenue" stroke="#3b2063" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
-              <Line yAxisId="ord" type="monotone" dataKey="orders"  name="Orders"  stroke="#c4a8e8" strokeWidth={2}   dot={false} activeDot={{ r: 4 }} strokeDasharray="4 4" />
+              <Line yAxisId="ord" type="monotone" dataKey="orders" name="Orders" stroke="#c4a8e8" strokeWidth={2} dot={false} activeDot={{ r: 4 }} strokeDasharray="4 4" />
             </LineChart>
           </ResponsiveContainer>
         )}
@@ -371,9 +365,9 @@ const AnalyticsTab: React.FC = () => {
           <>
             <ResponsiveContainer width="100%" height={200}>
               <BarChart data={branchPerf.map(b => ({
-                name:    b.branch_name.replace("Lucky Boba – ", "").replace("Lucky Boba - ", ""),
+                name: b.branch_name.replace("Lucky Boba – ", "").replace("Lucky Boba - ", ""),
                 revenue: Number(b.total_revenue),
-                orders:  Number(b.total_orders),
+                orders: Number(b.total_orders),
               }))} barSize={24}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0eef8" vertical={false} />
                 <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 600, fill: "#a1a1aa" }} axisLine={false} tickLine={false} />
@@ -395,16 +389,15 @@ const AnalyticsTab: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-4">
               {branchPerf.map((b, i) => {
                 const totalRev = branchPerf.reduce((s, x) => s + Number(x.total_revenue), 0);
-                const share    = totalRev > 0 ? Math.round((Number(b.total_revenue) / totalRev) * 100) : 0;
+                const share = totalRev > 0 ? Math.round((Number(b.total_revenue) / totalRev) * 100) : 0;
                 const shortName = b.branch_name.replace("Lucky Boba – ", "").replace("Lucky Boba - ", "");
-                const isTop    = i === 0;
-                const isLow    = i === branchPerf.length - 1 && branchPerf.length > 1;
+                const isTop = i === 0;
+                const isLow = i === branchPerf.length - 1 && branchPerf.length > 1;
                 return (
-                  <div key={b.branch_id} className={`rounded-[0.625rem] border px-4 py-3.5 ${
-                    isTop ? "bg-emerald-50 border-emerald-200" :
+                  <div key={b.branch_id} className={`rounded-[0.625rem] border px-4 py-3.5 ${isTop ? "bg-emerald-50 border-emerald-200" :
                     isLow ? "bg-amber-50 border-amber-200" :
-                    "bg-zinc-50 border-zinc-200"
-                  }`}>
+                      "bg-zinc-50 border-zinc-200"
+                    }`}>
                     <div className="flex items-center justify-between mb-2">
                       <p className="text-xs font-bold text-[#1a0f2e] truncate">{shortName}</p>
                       {isTop && <span className="text-[9px] font-black uppercase tracking-wider text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-full">Top</span>}

@@ -198,6 +198,7 @@ interface ZReadingReport {
   is_vat?: boolean;
   vat_exempt_sales?: number;
   other_discount?: number;
+  rounding_adjustment?: number;
 }
 
 const Row = ({ label, value, indent = false }: { label: string; value: string | number; indent?: boolean }) => (
@@ -809,6 +810,11 @@ const ZReading = () => {
               ))}
               <Divider />
               <div className="flex text-[11px] leading-snug">
+                <span className="flex-1 text-right uppercase pr-1 font-bold">ROUNDING ADJ:</span>
+                <span className="w-[35%] text-right font-bold">{phCurrency.format(reportData?.rounding_adjustment || 0)}</span>
+              </div>
+              <Divider />
+              <div className="flex text-[11px] leading-snug">
                 <span className="flex-1 text-right uppercase pr-1">SC AND PWD AMOUNT:</span>
                 <span className="w-[35%] text-right">{phCurrency.format(scDiscount + pwdDiscount)}</span>
               </div>
@@ -842,8 +848,9 @@ const ZReading = () => {
       ?? (scDiscount + pwdDiscount + diplomat + otherDiscount);
 
     // ✅ netSales now has a valid fallback
-    const netSales  = reportData?.net_sales ?? (gross - totalDisc);
-    const netTotal  = reportData?.net_sales ?? reportData?.net_total ?? (gross - totalDisc);
+    const netSales      = reportData?.net_total ?? reportData?.net_sales ?? (gross - totalDisc); // Exclusive
+    const netInclusive  = reportData?.net_sales ?? (gross - totalDisc); // Inclusive
+    const netTotal      = reportData?.net_total ?? reportData?.net_sales ?? (gross - totalDisc);
 
     const txCount            = reportData?.transaction_count || 0;
     const vatableSales       = reportData?.vatable_sales || 0;
@@ -926,7 +933,7 @@ const ZReading = () => {
         <Row label="Zero-Rated Sales" value={phCurrency.format(0)} />
         <Divider />
         <Row label="Service Charge" value={phCurrency.format(0)} />
-        <Row label="NET SALES" value={phCurrency.format(netSales)} />
+        <Row label="NET SALES (EXCL. VAT)" value={phCurrency.format(netSales)} />
         <div className="flex justify-between text-[8px] text-zinc-500 uppercase -mt-1 mb-1">
           <span>(VATable + VAT-Exempt - Voids - Discounts)</span>
           <span></span>
@@ -966,7 +973,10 @@ const ZReading = () => {
         <Divider />
         <Row label="TOTAL CASH"     value={phCurrency.format(actualCash)} />
         <Row label="TOTAL NON-CASH" value={phCurrency.format(actualNonCash)} />
-        <Row label="TOTAL PAYMENTS" value={phCurrency.format(totalPaymentsReceived)} />
+        {Math.abs(reportData?.rounding_adjustment || 0) > 0.01 && (
+          <Row label="Rounding Adjustment" value={phCurrency.format(reportData?.rounding_adjustment || 0)} />
+        )}
+        <Row label="TOTAL PAYMENTS" value={phCurrency.format(netInclusive + (reportData?.rounding_adjustment || 0))} />
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
         <Row label="Transaction Count" value={txCount} />

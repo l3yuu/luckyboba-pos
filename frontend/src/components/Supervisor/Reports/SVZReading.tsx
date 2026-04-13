@@ -61,6 +61,7 @@ interface ZReadingReport {
   expected_amount?: number;
   is_vat?: boolean;
   total_discounts?: number;
+  rounding_adjustment?: number;
 }
 
 interface SVZReadingProps {
@@ -236,6 +237,8 @@ const ccData   = ccRes.data as Record<string, unknown>;
           sales_for_the_day:    salesDay,
           // Cash count
           cash_denominations: cashDenominations,
+          net_total:          Number(zData.net_total ?? 0),
+          rounding_adjustment: Number(zData.rounding_adjustment ?? 0),
           total_cash_count:   ccNested?.grand_total ?? Number(ccData.actual_amount ?? 0),
           expected_amount:    Number(ccData.expected_amount ?? 0),
           over_short:         Number(ccData.short_over ?? 0),
@@ -598,6 +601,9 @@ const ccData   = ccRes.data as Record<string, unknown>;
     const startDate = isRange ? fromDate : selectedDate;
     const endDate   = isRange ? toDate   : selectedDate;
 
+    const netTotalExcl = reportData?.net_total ?? netSales;
+    const netInclusive = netSales;
+
     return (
       <div className="my-2">
         <Divider />
@@ -622,7 +628,7 @@ const ccData   = ccRes.data as Record<string, unknown>;
         <Row label="VAT-Exempt Sales"           value={phCurrency.format(vatExempt)} />
         <Row label="Zero-Rated Sales"           value={phCurrency.format(0)} />
         <Divider />
-        <Row label="NET SALES" value={phCurrency.format(netSales)} />
+        <Row label="NET SALES (EXCL. VAT)" value={phCurrency.format(netTotalExcl)} />
         <div className="flex justify-between text-[8px] text-zinc-500 uppercase -mt-1 mb-1 font-medium">
           <span>(VATable + VAT-Exempt - Voids - Discounts)</span>
           <span></span>
@@ -654,7 +660,10 @@ const ccData   = ccRes.data as Record<string, unknown>;
         <Divider />
         <Row label="TOTAL CASH"     value={phCurrency.format(actualCash)} />
         <Row label="TOTAL NON-CASH" value={phCurrency.format(actualNonCash)} />
-        <Row label="TOTAL PAYMENTS" value={phCurrency.format(totalPaymentsReceived)} />
+        {Math.abs(reportData?.rounding_adjustment || 0) > 0.01 && (
+          <Row label="Rounding Adjustment" value={phCurrency.format(reportData?.rounding_adjustment || 0)} />
+        )}
+        <Row label="TOTAL PAYMENTS" value={phCurrency.format(netInclusive + (reportData?.rounding_adjustment || 0))} />
         <Divider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
         <Row label="Transaction Count" value={txCount} />

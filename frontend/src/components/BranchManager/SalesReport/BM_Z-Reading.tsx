@@ -59,6 +59,7 @@ interface ZReading {
   beg_si?: string;
   end_si?: string;
   prepared_by?: string;
+  rounding_adjustment?: number;
 
   payment_breakdown?: { method: string; amount: number }[];
   cash_denominations?: { label: string; qty: number; total: number }[];
@@ -127,6 +128,8 @@ interface XReadingReport {
   cash_total?: number;
   non_cash_total?: number;
   report_type?: string;
+  net_total?: number;
+  rounding_adjustment?: number;
   logs?: { id: string; reason: string; amount: number; time: string }[];
   hourly_data?: { hour: number; total: number; count: number }[];
   transactions?: {
@@ -1067,7 +1070,8 @@ const handlePrint = async () => {
 
   const renderXReading = () => {
     const gross        = reportData?.gross_sales       || 0;
-    const netSales     = reportData?.net_sales         || 0;
+    const netSales     = reportData?.net_total         || reportData?.net_sales || 0; // Use exclusive Net Sales for breakdown
+    const netInclusive = reportData?.net_sales         || 0; // Use inclusive Net Sales for payment matching
     const cashTotal    = reportData?.cash_total        || 0;
     const nonCash      = reportData?.non_cash_total    || 0;
     const txCount      = reportData?.transaction_count || 0;
@@ -1106,7 +1110,7 @@ const handlePrint = async () => {
         <ReceiptRow label="VAT Exempt Sales" value={phCurrency.format(vatExempt)} />
         <ReceiptRow label="Zero-Rated Sales" value={phCurrency.format(0)} />
         <ReceiptDivider />
-        <ReceiptRow label="Net Sales"       value={phCurrency.format(netSales)} />
+        <ReceiptRow label="NET SALES (EXCL. VAT)" value={phCurrency.format(netSales)} />
         <ReceiptRow label="Total Discounts" value={phCurrency.format(totalDisc)} />
         <ReceiptRow label="Gross Amount"    value={phCurrency.format(gross)} />
         <ReceiptDivider />
@@ -1129,7 +1133,10 @@ const handlePrint = async () => {
         <ReceiptDivider />
         <ReceiptRow label="Total Cash"      value={phCurrency.format(cashTotal)} />
         <ReceiptRow label="Total Non-Cash"  value={phCurrency.format(nonCash)} />
-        <ReceiptRow label="Total Payments"  value={phCurrency.format(gross)} />
+        {reportData?.rounding_adjustment !== 0 && (
+          <ReceiptRow label="Rounding Adjustment" value={phCurrency.format(reportData?.rounding_adjustment || 0)} />
+        )}
+        <ReceiptRow label="Total Payments"  value={phCurrency.format(netInclusive + (reportData?.rounding_adjustment || 0))} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">Transaction Summary</p>
         <ReceiptRow label="Cash In"          value={phCurrency.format(reportData?.cash_in || 0)} />
@@ -1152,7 +1159,11 @@ const handlePrint = async () => {
     const diplomat       = data.diplomat_discount || 0;
     const otherDiscount  = data.other_discount || 0;
     const totalDisc      = data.total_discounts ?? (scDiscount + pwdDiscount + diplomat + otherDiscount);
-    const netSales       = data.net_sales ?? (gross - totalDisc);
+    
+    // Exclusive Net Sales for breakdown display
+    const netSales       = data.net_total ?? data.net_sales ?? (gross - totalDisc);
+    // Inclusive Net Sales for payment reconciliation
+    const netInclusive   = data.net_sales ?? (gross - totalDisc);
 
     const txCount            = data.transaction_count || 0;
     const vatableSales       = data.vatable_sales || 0;
@@ -1187,7 +1198,7 @@ const handlePrint = async () => {
     const totalDebit   = debitMethods.reduce((a, m) => a + (paymentMap.get(m) || 0), 0);
     const totalCard    = totalCredit + totalDebit;
     const actualCash = paymentMap.get('cash') || 0;
-    const actualNonCash = gross - actualCash;
+    const actualNonCash = netInclusive - actualCash;
     
     // Handle specific to ZReading data 
     const cashDenominations = data.cash_denominations ?? [];
@@ -1227,7 +1238,7 @@ const handlePrint = async () => {
         <ReceiptRow label="VAT Exempt Sales" value={phCurrency.format(data.vat_exempt_sales || 0)} />
         <ReceiptRow label="Zero-Rated Sales" value={phCurrency.format(0)} />
         <ReceiptRow label="Service Charge" value={phCurrency.format(0)} />
-        <ReceiptRow label="NET SALES" value={phCurrency.format(netSales)} />
+        <ReceiptRow label="NET SALES (EXCL. VAT)" value={phCurrency.format(netSales)} />
         <ReceiptRow label="Total Discounts" value={phCurrency.format(totalDisc)} />
         <ReceiptRow label="GROSS Amount" value={phCurrency.format(gross)} />
         <ReceiptDivider />
@@ -1260,7 +1271,10 @@ const handlePrint = async () => {
         <ReceiptRow label="TOTAL CARD" value={phCurrency.format(totalCard)} />
         <ReceiptRow label="TOTAL CASH"     value={phCurrency.format(actualCash)} />
         <ReceiptRow label="TOTAL NON-CASH" value={phCurrency.format(actualNonCash)} />
-        <ReceiptRow label="TOTAL PAYMENTS" value={phCurrency.format(gross)} />
+        {Math.abs(data.rounding_adjustment || 0) > 0.01 && (
+          <ReceiptRow label="Rounding Adjustment" value={phCurrency.format(data.rounding_adjustment || 0)} />
+        )}
+        <ReceiptRow label="TOTAL PAYMENTS" value={phCurrency.format(netInclusive + (data.rounding_adjustment || 0))} />
         <ReceiptDivider />
         <p className="text-[11px] uppercase text-center font-bold mb-0.5">TRANSACTION SUMMARY</p>
         <ReceiptRow label="Transaction Count" value={txCount} />
