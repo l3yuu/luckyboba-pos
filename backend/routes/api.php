@@ -214,6 +214,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
 
     // ── CASHIER + BRANCH MANAGER + SUPERADMIN ────────────────────────────────
     Route::middleware(['role:superadmin,branch_manager,supervisor,cashier,team_leader'])->group(function () {
+        Route::apiResource('suppliers', SupplierController::class)->only(['index', 'store', 'update', 'destroy']);
 
 
         Route::get   ('/online-orders',            [OnlineOrderController::class, 'index']);
@@ -411,7 +412,7 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::apiResource('discounts', DiscountController::class)->except(['show', 'update', 'index']);
         Route::patch('/discounts/{discount}/toggle', [DiscountController::class, 'toggleStatus']);
         Route::apiResource('vouchers',  VoucherController::class)->only(['index', 'store']);
-        Route::apiResource('suppliers', SupplierController::class)->only(['index', 'store', 'update', 'destroy']);
+
 
         Route::prefix('reports')->group(function () {
             Route::get('/mall-accreditation', [SalesDashboardController::class, 'mallReport']);

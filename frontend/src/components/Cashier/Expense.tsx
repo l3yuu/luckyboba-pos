@@ -22,7 +22,7 @@ interface ExpenseItem {
 interface RawExpenseData {
   id: number;
   ref_num: string;
-  date: string;
+  expense_date: string;
   title: string | null;
   notes: string | null;
   category: string;
@@ -75,15 +75,23 @@ const Expense = () => {
       const response = await api.get('/expenses', {
         params: { from: fromDate, to: toDate, ref: refNumSearch, category: categoryFilter !== 'ALL' ? categoryFilter : undefined }
       });
-      const data = response.data.expenses?.data ?? response.data.expenses;
+      const data = response.data.data ?? [];
       const mapped: ExpenseItem[] = data.map((e: RawExpenseData) => ({
-        id: e.id, refNum: e.ref_num, date: e.date,
+        id: e.id, refNum: e.ref_num, date: e.expense_date,
         title: e.title || '', notes: e.notes || '', category: e.category,
         amount: typeof e.amount === 'string' ? parseFloat(e.amount) : e.amount
       }));
-      setCache(cacheKey, { expenses: mapped, summary: response.data.summary });
+      
+      const rawSummary = response.data.summary ?? {};
+      const mappedSummary = {
+        totalExpense: Number(rawSummary.total_expense || 0),
+        totalSales: Number(rawSummary.total_sales || 0),
+        netTotal: Number(rawSummary.total_sales || 0) - Number(rawSummary.total_expense || 0)
+      };
+
+      setCache(cacheKey, { expenses: mapped, summary: mappedSummary });
       setExpenses(mapped);
-      setSummary(response.data.summary);
+      setSummary(mappedSummary);
     } catch (error) {
       console.error(error);
       showToast("Failed to load expenses", "error");
