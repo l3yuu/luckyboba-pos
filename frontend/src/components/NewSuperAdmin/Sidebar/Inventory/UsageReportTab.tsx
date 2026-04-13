@@ -569,7 +569,7 @@ const UsageReportTab: React.FC = () => {
             ].map(m => (
               <button
                 key={m.id}
-                onClick={() => setViewMode(m.id as any)}
+                onClick={() => setViewMode(m.id as 'today' | 'monthly' | 'specific')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all ${
                   viewMode === m.id
                     ? 'bg-[#3b2063] text-white shadow-md'
