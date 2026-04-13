@@ -89,7 +89,7 @@ const BM_StaffPerformanceTab: React.FC<BM_StaffPerformanceTabProps> = ({ branchI
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/staff-performance?period=${period}&branch_id=${branchId}`, { headers: authHeaders() });
+      const res = await fetch(`/api/reports/staff-performance?period=${period}&branch_id=${branchId}`, { headers: authHeaders() });
       const data = await res.json();
       if (data.success) {
         setData(data.data);

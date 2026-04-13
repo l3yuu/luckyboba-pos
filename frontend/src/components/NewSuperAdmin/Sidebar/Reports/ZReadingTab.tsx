@@ -1309,7 +1309,7 @@ const handlePrint = () => window.print();
       )}
 
       {/* ── Header ── */}
-      <div className="flex flex-wrap items-center justify-end gap-3 mb-1 print:hidden">
+      <div className="flex flex-wrap items-center justify-start gap-3 mb-1 print:hidden">
         <div className="flex items-center gap-2 flex-wrap">
           <div className="relative" ref={menuRef}>
             <button
