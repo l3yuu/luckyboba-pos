@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
   Search, Plus, Eye, X, AlertCircle, RefreshCw,
   ArrowRightLeft, CheckCircle, XCircle, Truck, Clock,
-  ChevronDown, Minus, Building2, Calendar,
+  ChevronDown, Minus, Building2, Calendar, ArrowRight,
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import api from '../../../services/api';
@@ -14,42 +14,42 @@ import api from '../../../services/api';
 type TransferStatus = 'Pending' | 'Approved' | 'In Transit' | 'Received' | 'Cancelled';
 
 interface TransferItem {
-  id?:             number;
+  id?: number;
   raw_material_id: number;
-  raw_material?:   { name: string; unit: string };
-  material_name?:  string;
-  unit?:           string;
-  quantity:        number | '';
+  raw_material?: { name: string; unit: string };
+  material_name?: string;
+  unit?: string;
+  quantity: number | '';
 }
 
 interface StockTransfer {
-  id:               number;
-  transfer_number:  string;
-  from_branch_id:   number;
-  to_branch_id:     number;
-  from_branch?:     { name: string };
-  to_branch?:       { name: string };
+  id: number;
+  transfer_number: string;
+  from_branch_id: number;
+  to_branch_id: number;
+  from_branch?: { name: string };
+  to_branch?: { name: string };
   from_branch_name?: string;
-  to_branch_name?:  string;
-  transfer_date?:   string;
-  status:           TransferStatus;
-  notes?:           string;
-  items?:           TransferItem[];
+  to_branch_name?: string;
+  transfer_date?: string;
+  status: TransferStatus;
+  notes?: string;
+  items?: TransferItem[];
   stock_transfer_items?: TransferItem[];
-  created_at?:      string;
+  created_at?: string;
 }
 
-interface Branch     { id: number; name: string; }
+interface Branch { id: number; name: string; }
 interface RawMaterial { id: number; name: string; unit: string; current_stock?: number; }
 
 // ─── Status config ────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<TransferStatus, { bg: string; text: string; border: string; icon: React.ReactNode }> = {
-  Pending:    { bg: '#f4f4f5', text: '#71717a', border: '#e4e4e7', icon: <Clock         size={10} /> },
-  Approved:   { bg: '#eff6ff', text: '#2563eb', border: '#bfdbfe', icon: <CheckCircle   size={10} /> },
-  'In Transit': { bg: '#fff7ed', text: '#ea580c', border: '#fed7aa', icon: <Truck       size={10} /> },
-  Received:   { bg: '#f0fdf4', text: '#16a34a', border: '#bbf7d0', icon: <CheckCircle   size={10} /> },
-  Cancelled:  { bg: '#fef2f2', text: '#dc2626', border: '#fecaca', icon: <XCircle       size={10} /> },
+  Pending: { bg: '#f4f4f5', text: '#71717a', border: '#e4e4e7', icon: <Clock size={10} /> },
+  Approved: { bg: '#eff6ff', text: '#2563eb', border: '#bfdbfe', icon: <CheckCircle size={10} /> },
+  'In Transit': { bg: '#fff7ed', text: '#ea580c', border: '#fed7aa', icon: <Truck size={10} /> },
+  Received: { bg: '#f0fdf4', text: '#16a34a', border: '#bbf7d0', icon: <CheckCircle size={10} /> },
+  Cancelled: { bg: '#fef2f2', text: '#dc2626', border: '#fecaca', icon: <XCircle size={10} /> },
 };
 
 const TRANSFER_STATUSES: TransferStatus[] = ['Pending', 'Approved', 'In Transit', 'Received', 'Cancelled'];
@@ -60,7 +60,7 @@ const resolveItems = (t: StockTransfer): TransferItem[] =>
   (t.items ?? t.stock_transfer_items ?? []).map(i => ({
     ...i,
     material_name: i.raw_material?.name ?? i.material_name ?? '',
-    unit:          i.raw_material?.unit ?? i.unit ?? '',
+    unit: i.raw_material?.unit ?? i.unit ?? '',
   }));
 
 // ─── Shared UI ────────────────────────────────────────────────────────────────
@@ -91,19 +91,20 @@ const StatusBadge: React.FC<{ status: TransferStatus }> = ({ status }) => {
 // ─── Create Transfer Modal ────────────────────────────────────────────────────
 
 const CreateTransferModal: React.FC<{
-  onClose:   () => void;
+  onClose: () => void;
   onCreated: (t: StockTransfer) => void;
-  branches:  Branch[];
-}> = ({ onClose, onCreated, branches }) => {
-  const [fromBranchId,   setFromBranchId]   = useState<number | ''>('');
-  const [toBranchId,     setToBranchId]     = useState<number | ''>('');
-  const [transferDate,   setTransferDate]   = useState('');
-  const [notes,          setNotes]          = useState('');
-  const [transferItems,  setTransferItems]  = useState<TransferItem[]>([]);
-  const [rawMaterials,   setRawMaterials]   = useState<RawMaterial[]>([]);
-  const [errors,         setErrors]         = useState<Record<string, string>>({});
-  const [saving,         setSaving]         = useState(false);
-  const [apiErr,         setApiErr]         = useState('');
+  branches: Branch[];
+  branchId?: number | null;
+}> = ({ onClose, onCreated, branches, branchId }) => {
+  const [fromBranchId, setFromBranchId] = useState<number | ''>(branchId || '');
+  const [toBranchId, setToBranchId] = useState<number | ''>('');
+  const [transferDate, setTransferDate] = useState('');
+  const [notes, setNotes] = useState('');
+  const [transferItems, setTransferItems] = useState<TransferItem[]>([]);
+  const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>([]);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const [apiErr, setApiErr] = useState('');
 
   useEffect(() => {
     api.get('/raw-materials')
@@ -127,13 +128,13 @@ const CreateTransferModal: React.FC<{
 
   const validate = () => {
     const e: Record<string, string> = {};
-    if (!fromBranchId)               e.from    = 'Source branch is required.';
-    if (!toBranchId)                 e.to      = 'Destination branch is required.';
+    if (!fromBranchId) e.from = 'Source branch is required.';
+    if (!toBranchId) e.to = 'Destination branch is required.';
     if (fromBranchId === toBranchId && fromBranchId) e.to = 'Source and destination must differ.';
-    if (!transferDate)               e.date    = 'Transfer date is required.';
-    if (transferItems.length === 0)  e.items   = 'Add at least one item.';
+    if (!transferDate) e.date = 'Transfer date is required.';
+    if (transferItems.length === 0) e.items = 'Add at least one item.';
     transferItems.forEach((item, i) => {
-      if (!item.raw_material_id)                           e[`mat_${i}`] = 'Select material.';
+      if (!item.raw_material_id) e[`mat_${i}`] = 'Select material.';
       if (item.quantity === '' || Number(item.quantity) <= 0) e[`qty_${i}`] = 'Enter qty.';
     });
     return e;
@@ -146,8 +147,8 @@ const CreateTransferModal: React.FC<{
     try {
       const res = await api.post('/stock-transfers', {
         from_branch_id: fromBranchId,
-        to_branch_id:   toBranchId,
-        transfer_date:  transferDate,
+        to_branch_id: toBranchId,
+        transfer_date: transferDate,
         notes,
         items: transferItems.map(i => ({ raw_material_id: i.raw_material_id, quantity: Number(i.quantity) })),
       });
@@ -159,7 +160,7 @@ const CreateTransferModal: React.FC<{
   };
 
   const fromBranch = branches.find(b => b.id === Number(fromBranchId));
-  const toBranch   = branches.find(b => b.id === Number(toBranchId));
+  const toBranch = branches.find(b => b.id === Number(toBranchId));
 
   return createPortal(
     <div className="fixed inset-0 z-9999 flex items-center justify-center p-6"
@@ -186,10 +187,20 @@ const CreateTransferModal: React.FC<{
           <div className="flex items-center gap-2">
             <div className="flex-1">
               <Field label="From Branch" required error={errors.from}>
-                <select value={fromBranchId} onChange={e => { setFromBranchId(Number(e.target.value)); setErrors(p => { const n = {...p}; delete n.from; return n; }); }} className={inputCls(errors.from)}>
-                  <option value="">Select source...</option>
-                  {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                </select>
+                {branchId ? (
+                  <div className="w-full text-sm text-[#3b2063] bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg px-3 py-2.5 flex items-center gap-2 shadow-sm">
+                    <span className="truncate">{fromBranch?.name || 'Your Branch'}</span>
+                  </div>
+                ) : (
+                  <select
+                    value={fromBranchId}
+                    onChange={e => { setFromBranchId(Number(e.target.value)); setErrors(p => { const n = { ...p }; delete n.from; return n; }); }}
+                    className={inputCls(errors.from)}
+                  >
+                    <option value="">Select source...</option>
+                    {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                  </select>
+                )}
               </Field>
             </div>
             <div className="pt-5 shrink-0">
@@ -199,7 +210,7 @@ const CreateTransferModal: React.FC<{
             </div>
             <div className="flex-1">
               <Field label="To Branch" required error={errors.to}>
-                <select value={toBranchId} onChange={e => { setToBranchId(Number(e.target.value)); setErrors(p => { const n = {...p}; delete n.to; return n; }); }} className={inputCls(errors.to)}>
+                <select value={toBranchId} onChange={e => { setToBranchId(Number(e.target.value)); setErrors(p => { const n = { ...p }; delete n.to; return n; }); }} className={inputCls(errors.to)}>
                   <option value="">Select destination...</option>
                   {branches.filter(b => b.id !== Number(fromBranchId)).map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
@@ -224,7 +235,7 @@ const CreateTransferModal: React.FC<{
 
           <div className="grid grid-cols-2 gap-3">
             <Field label="Transfer Date" required error={errors.date}>
-              <input type="date" value={transferDate} onChange={e => { setTransferDate(e.target.value); setErrors(p => { const n = {...p}; delete n.date; return n; }); }} className={inputCls(errors.date)} />
+              <input type="date" value={transferDate} onChange={e => { setTransferDate(e.target.value); setErrors(p => { const n = { ...p }; delete n.date; return n; }); }} className={inputCls(errors.date)} />
             </Field>
             <Field label="Notes">
               <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Reason or instructions..." className={inputCls()} />
@@ -289,9 +300,10 @@ const CreateTransferModal: React.FC<{
 
 const ViewTransferModal: React.FC<{
   transfer: StockTransfer;
-  onClose:  () => void;
+  onClose: () => void;
   onStatusChange: (updated: StockTransfer) => void;
-}> = ({ transfer, onClose, onStatusChange }) => {
+  branchId?: number | null;
+}> = ({ transfer, onClose, onStatusChange, branchId }) => {
   const [loading, setLoading] = useState(false);
   const items = resolveItems(transfer);
 
@@ -370,10 +382,33 @@ const ViewTransferModal: React.FC<{
         {/* Actions */}
         <div className="flex items-center gap-2 px-6 py-4 border-t border-zinc-100 shrink-0">
           <button onClick={onClose} className="flex-1 py-2.5 bg-white border border-zinc-200 text-zinc-600 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-zinc-50 transition-all">Close</button>
-          {transfer.status === 'Pending'    && <button onClick={() => doAction('approve')} disabled={loading} className="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">{loading ? '...' : 'Approve'}</button>}
-          {transfer.status === 'Approved'   && <button onClick={() => doAction('receive')} disabled={loading} className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">{loading ? '...' : 'Confirm Received'}</button>}
-          {(transfer.status === 'Pending' || transfer.status === 'Approved') && (
-            <button onClick={() => doAction('cancel')} disabled={loading} className="px-4 py-2.5 bg-red-50 border border-red-200 text-red-600 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-red-100 transition-all disabled:opacity-50">{loading ? '...' : 'Cancel'}</button>
+
+          {/* Approve Button - only for source branch manager or superadmin */}
+          {transfer.status === 'Pending' && (!branchId || branchId === transfer.from_branch_id) && (
+            <button onClick={() => doAction('approve')} disabled={loading} className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">
+              {loading ? <RefreshCw size={14} className="animate-spin" /> : 'Approve'}
+            </button>
+          )}
+
+          {/* Dispatch Button - only for source branch manager or superadmin */}
+          {transfer.status === 'Approved' && (!branchId || branchId === transfer.from_branch_id) && (
+            <button onClick={() => doAction('in-transit')} disabled={loading} className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">
+              {loading ? <RefreshCw size={14} className="animate-spin" /> : 'Dispatch'}
+            </button>
+          )}
+
+          {/* Receive Button - only for destination branch manager or superadmin */}
+          {(transfer.status === 'Approved' || transfer.status === 'In Transit') && (!branchId || branchId === transfer.to_branch_id) && (
+            <button onClick={() => doAction('receive')} disabled={loading} className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-xs uppercase tracking-widest transition-all disabled:opacity-50">
+              {loading ? <RefreshCw size={14} className="animate-spin" /> : 'Confirm Received'}
+            </button>
+          )}
+
+          {/* Cancel Button - only for source branch manager or superadmin */}
+          {(transfer.status === 'Pending' || transfer.status === 'Approved' || transfer.status === 'In Transit') && (!branchId || branchId === transfer.from_branch_id) && (
+            <button onClick={() => doAction('cancel')} disabled={loading} className="px-4 flex items-center justify-center gap-2 py-2.5 bg-red-50 border border-red-200 text-red-600 rounded-lg font-bold text-xs uppercase tracking-widest hover:bg-red-100 transition-all disabled:opacity-50">
+              {loading ? <RefreshCw size={14} className="animate-spin" /> : 'Cancel'}
+            </button>
           )}
         </div>
       </div>
@@ -383,16 +418,38 @@ const ViewTransferModal: React.FC<{
 };
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-
-const BM_InventoryStockTransfer: React.FC = () => {
-  const [transfers,    setTransfers]    = useState<StockTransfer[]>([]);
-  const [branches,     setBranches]     = useState<Branch[]>([]);
-  const [loading,      setLoading]      = useState(true);
-  const [search,       setSearch]       = useState('');
+const BM_InventoryStockTransfer: React.FC<{ branchId?: number | null }> = ({ branchId }) => {
+  const [transfers, setTransfers] = useState<StockTransfer[]>([]);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [addOpen,      setAddOpen]      = useState(false);
-  const [viewTarget,   setViewTarget]   = useState<StockTransfer | null>(null);
-  const [expanded,     setExpanded]     = useState<number | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [viewTarget, setViewTarget] = useState<StockTransfer | null>(null);
+  const [expanded, setExpanded] = useState<number | null>(null);
+  const [processingIds, setProcessingIds] = useState<Set<number>>(new Set());
+
+  const handleStatusUpdate = async (id: number, status: string) => {
+    setProcessingIds(prev => new Set(prev).add(id));
+    try {
+      const endpoint = status === 'In Transit' ? 'in-transit' : status.toLowerCase();
+      const res = await api.post(`/stock-transfers/${id}/${endpoint}`);
+      if (res.data) {
+        const updated = res.data?.data ?? res.data;
+        setTransfers(prev => prev.map(t => t.id === id ? updated : t));
+        if (viewTarget?.id === id) setViewTarget(updated);
+      }
+    } catch (err: any) {
+      console.error('Update failed', err);
+      alert(err.response?.data?.message ?? 'Failed to update status');
+    } finally {
+      setProcessingIds(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -409,7 +466,7 @@ const BM_InventoryStockTransfer: React.FC = () => {
   const filtered = transfers.filter(t => {
     const matchSearch = t.transfer_number.toLowerCase().includes(search.toLowerCase()) ||
       (t.from_branch?.name ?? t.from_branch_name ?? '').toLowerCase().includes(search.toLowerCase()) ||
-      (t.to_branch?.name   ?? t.to_branch_name   ?? '').toLowerCase().includes(search.toLowerCase());
+      (t.to_branch?.name ?? t.to_branch_name ?? '').toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter ? t.status === statusFilter : true;
     return matchSearch && matchStatus;
   });
@@ -470,7 +527,7 @@ const BM_InventoryStockTransfer: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-zinc-100">
-                {['Transfer #', 'From', 'To', 'Date', 'Items', 'Status', 'Actions'].map(h => (
+                {['Direction', 'Transfer #', 'Pathway', 'Date', 'Items', 'Status', 'Actions'].map(h => (
                   <th key={h} className="px-5 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-zinc-400">{h}</th>
                 ))}
               </tr>
@@ -486,29 +543,37 @@ const BM_InventoryStockTransfer: React.FC = () => {
                 </td></tr>
               )}
               {!loading && filtered.map(t => {
-                const items  = resolveItems(t);
-                const isExp  = expanded === t.id;
+                const items = resolveItems(t);
+                const isExp = expanded === t.id;
+                const isIncoming = t.to_branch_id === branchId;
+                const isOutgoing = t.from_branch_id === branchId;
                 return (
                   <React.Fragment key={t.id}>
-                    <tr className="border-b border-zinc-50 hover:bg-[#faf9ff] transition-colors">
+                    <tr className={`border-b border-zinc-50 hover:bg-[#faf9ff] transition-colors ${isIncoming && (t.status === 'Approved' || t.status === 'In Transit') ? 'bg-emerald-50/30' : ''}`}>
+                      <td className="px-5 py-3.5">
+                        {isIncoming ? (
+                          <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-emerald-50 border border-emerald-100 rounded text-[9px] font-bold text-emerald-600 uppercase tracking-tight">
+                            {t.status === 'Approved' || t.status === 'In Transit' ? <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" /> : null}
+                            Incoming
+                          </div>
+                        ) : (
+                          <div className="inline-flex items-center gap-1.5 px-2 py-1 bg-zinc-50 border border-zinc-100 rounded text-[9px] font-bold text-zinc-500 uppercase tracking-tight">
+                            Outgoing
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span className="font-black text-[#1a0f2e] text-xs">{t.transfer_number}</span>
+                      </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 bg-[#f5f0ff] border border-[#e9d5ff] rounded-lg flex items-center justify-center shrink-0">
-                            <ArrowRightLeft size={12} className="text-[#3b2063]" />
-                          </div>
-                          <span className="font-black text-[#1a0f2e] text-xs">{t.transfer_number}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-1.5">
-                          <Building2 size={11} className="text-zinc-400 shrink-0" />
-                          <span className="text-xs text-zinc-600">{t.from_branch?.name ?? t.from_branch_name ?? '—'}</span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-1.5">
-                          <Building2 size={11} className="text-zinc-400 shrink-0" />
-                          <span className="text-xs text-zinc-600">{t.to_branch?.name ?? t.to_branch_name ?? '—'}</span>
+                          <span className={`text-[11px] font-bold ${isOutgoing ? 'text-[#3b2063]' : 'text-zinc-500'}`}>
+                            {t.from_branch?.name ?? t.from_branch_name ?? '—'}
+                          </span>
+                          <ArrowRight size={10} className="text-zinc-300" />
+                          <span className={`text-[11px] font-bold ${isIncoming ? 'text-[#3b2063] bg-[#f5f0ff] px-2 py-0.5 rounded border border-[#e9d5ff]' : 'text-zinc-500'}`}>
+                            {t.to_branch?.name ?? t.to_branch_name ?? '—'}
+                          </span>
                         </div>
                       </td>
                       <td className="px-5 py-3.5">
@@ -520,11 +585,43 @@ const BM_InventoryStockTransfer: React.FC = () => {
                         ) : <span className="text-zinc-300 text-xs">—</span>}
                       </td>
                       <td className="px-5 py-3.5">
-                        <span className="text-xs font-bold text-[#3b2063] bg-[#f5f0ff] px-2 py-0.5 rounded border border-[#e9d5ff]">{items.length} items</span>
+                        <span className="text-[10px] font-bold text-[#3b2063] bg-[#f5f0ff] px-2 py-0.5 rounded border border-[#e9d5ff] uppercase tracking-tighter">{items.length} items</span>
                       </td>
                       <td className="px-5 py-3.5"><StatusBadge status={t.status} /></td>
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-1">
+                      <td className="px-5 py-3.5 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {/* Quick Actions */}
+                          {!loading && !processingIds.has(t.id) && (
+                            <div className="flex items-center gap-1">
+                              {/* Source Actions */}
+                              {isOutgoing && t.status === 'Pending' && (
+                                <button onClick={() => handleStatusUpdate(t.id, 'approve')} className="p-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-[0.4rem] transition-colors" title="Approve">
+                                  <CheckCircle size={13} />
+                                </button>
+                              )}
+                              {isOutgoing && t.status === 'Approved' && (
+                                <button onClick={() => handleStatusUpdate(t.id, 'in-transit')} className="p-1.5 bg-orange-50 text-orange-600 hover:bg-orange-100 rounded-[0.4rem] transition-colors" title="Dispatch">
+                                  <Truck size={13} />
+                                </button>
+                              )}
+                              
+                              {/* Destination Actions */}
+                              {isIncoming && (t.status === 'Approved' || t.status === 'In Transit') && (
+                                <button onClick={() => handleStatusUpdate(t.id, 'receive')} className="p-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-[0.4rem] transition-colors" title="Confirm Received">
+                                  <CheckCircle size={13} />
+                                </button>
+                              )}
+                            </div>
+                          )}
+
+                          {processingIds.has(t.id) && (
+                            <div className="p-1.5 text-zinc-300">
+                              <RefreshCw size={13} className="animate-spin" />
+                            </div>
+                          )}
+
+                          <div className="w-[1px] h-4 bg-zinc-100 mx-0.5" />
+
                           <button onClick={() => setExpanded(isExp ? null : t.id)} className="p-1.5 hover:bg-[#f5f0ff] rounded-[0.4rem] text-zinc-400 hover:text-[#3b2063] transition-colors">
                             <ChevronDown size={13} className={`transition-transform ${isExp ? 'rotate-180' : ''}`} />
                           </button>
@@ -560,8 +657,8 @@ const BM_InventoryStockTransfer: React.FC = () => {
         </div>
       </div>
 
-      {addOpen    && <CreateTransferModal onClose={() => setAddOpen(false)} onCreated={t => setTransfers(p => [t, ...p])} branches={branches} />}
-      {viewTarget && <ViewTransferModal transfer={viewTarget} onClose={() => setViewTarget(null)} onStatusChange={updated => { setTransfers(p => p.map(x => x.id === updated.id ? updated : x)); setViewTarget(null); }} />}
+      {addOpen && <CreateTransferModal onClose={() => setAddOpen(false)} onCreated={t => setTransfers(p => [t, ...p])} branches={branches} branchId={branchId} />}
+      {viewTarget && <ViewTransferModal transfer={viewTarget} onClose={() => setViewTarget(null)} onStatusChange={updated => { setTransfers(p => p.map(x => x.id === updated.id ? updated : x)); setViewTarget(null); }} branchId={branchId} />}
     </div>
   );
 };

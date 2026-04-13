@@ -151,14 +151,9 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
     Route::get('/sales/{id}', [SalesController::class, 'show']);
 
     Route::get('/user', function (Request $request) {
-        $user   = $request->user();
-        $branch = $user->branch_id
-            ? \App\Models\Branch::select('id', 'vat_type')->find($user->branch_id)
-            : null;
-
-        return array_merge($user->toArray(), [
-            'branch_vat_type' => $branch?->vat_type ?? 'vat',
-        ]);
+        $user = $request->user();
+        $user->load('branch'); // Load full branch relation
+        return $user;
     });
 
     // ── USER PROFILE UPDATES (Mobile App) ────────────────────────────────────
@@ -373,11 +368,12 @@ Route::middleware(['auth:sanctum', 'active'])->group(function () {
         Route::get ('/branches', [BranchController::class, 'index']);
 
         Route::prefix('stock-transfers')->group(function () {
-            Route::get ('/',                         [StockTransferController::class, 'index']);
-            Route::post('/',                         [StockTransferController::class, 'store']);
-            Route::post('/{stockTransfer}/approve',  [StockTransferController::class, 'approve']);
-            Route::post('/{stockTransfer}/receive',  [StockTransferController::class, 'receive']);
-            Route::post('/{stockTransfer}/cancel',   [StockTransferController::class, 'cancel']);
+            Route::get ('/',                            [StockTransferController::class, 'index']);
+            Route::post('/',                            [StockTransferController::class, 'store']);
+            Route::post('/{stockTransfer}/approve',     [StockTransferController::class, 'approve']);
+            Route::post('/{stockTransfer}/in-transit',  [StockTransferController::class, 'inTransit']);
+            Route::post('/{stockTransfer}/receive',     [StockTransferController::class, 'receive']);
+            Route::post('/{stockTransfer}/cancel',      [StockTransferController::class, 'cancel']);
         });
 
         Route::get('/users', [UserController::class, 'index']);

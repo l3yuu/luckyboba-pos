@@ -72,6 +72,11 @@ class StockTransferController extends Controller
     // POST /api/stock-transfers/{stockTransfer}/approve
     public function approve(StockTransfer $stockTransfer)
     {
+        $user = auth()->user();
+        if ($user->role !== 'superadmin' && $user->branch_id !== $stockTransfer->from_branch_id) {
+            abort(403, 'Unauthorized. Only the source branch manager can approve this transfer.');
+        }
+
         abort_if(
             $stockTransfer->status !== 'Pending',
             422,
@@ -87,13 +92,41 @@ class StockTransferController extends Controller
         ]);
     }
 
-    // POST /api/stock-transfers/{stockTransfer}/receive
-    public function receive(StockTransfer $stockTransfer)
+    // POST /api/stock-transfers/{stockTransfer}/in-transit
+    public function inTransit(StockTransfer $stockTransfer)
     {
+        $user = auth()->user();
+        if ($user->role !== 'superadmin' && $user->branch_id !== $stockTransfer->from_branch_id) {
+            abort(403, 'Unauthorized. Only the source branch manager can dispatch this transfer.');
+        }
+
         abort_if(
             $stockTransfer->status !== 'Approved',
             422,
-            'Only Approved transfers can be received.'
+            'Only Approved transfers can be dispatched.'
+        );
+
+        $stockTransfer->update(['status' => 'In Transit']);
+
+        return response()->json([
+            'data' => $this->format(
+                $stockTransfer->fresh(['fromBranch', 'toBranch', 'items.rawMaterial'])
+            )
+        ]);
+    }
+
+    // POST /api/stock-transfers/{stockTransfer}/receive
+    public function receive(StockTransfer $stockTransfer)
+    {
+        $user = auth()->user();
+        if ($user->role !== 'superadmin' && $user->branch_id !== $stockTransfer->to_branch_id) {
+            abort(403, 'Unauthorized. Only the destination branch manager can receive this transfer.');
+        }
+
+        abort_if(
+            !in_array($stockTransfer->status, ['Approved', 'In Transit']),
+            422,
+            'Only Approved or In Transit transfers can be received.'
         );
 
         DB::transaction(function () use ($stockTransfer) {
@@ -109,6 +142,25 @@ class StockTransferController extends Controller
                     'quantity'        => $item->quantity,
                     'reason'          => 'Stock transfer out — ' . $stockTransfer->transfer_number,
                 ]);
+
+                // IMPORTANT: In this system, we might need to increment at destination too if 
+                // raw materials are branch-scoped. 
+                // However, based on the previous code, it only decremented from source.
+                // If each branch has its own RawMaterial records, 
+                // we should search for the destination branch's matching material.
+                $destMat = RawMaterial::where('branch_id', $stockTransfer->to_branch_id)
+                    ->where('name', $item->rawMaterial->name)
+                    ->first();
+                
+                if ($destMat) {
+                    $destMat->increment('current_stock', $item->quantity);
+                    StockMovement::create([
+                        'raw_material_id' => $destMat->id,
+                        'type'            => 'add',
+                        'quantity'        => $item->quantity,
+                        'reason'          => 'Stock transfer in — ' . $stockTransfer->transfer_number,
+                    ]);
+                }
             }
 
             $stockTransfer->update(['status' => 'Received']);
@@ -124,6 +176,11 @@ class StockTransferController extends Controller
     // POST /api/stock-transfers/{stockTransfer}/cancel
     public function cancel(StockTransfer $stockTransfer)
     {
+        $user = auth()->user();
+        if ($user->role !== 'superadmin' && $user->branch_id !== $stockTransfer->from_branch_id) {
+            abort(403, 'Unauthorized. Only the source branch manager can cancel this transfer.');
+        }
+
         abort_if(
             !in_array($stockTransfer->status, ['Pending', 'Approved']),
             422,
