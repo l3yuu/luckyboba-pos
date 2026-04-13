@@ -184,12 +184,7 @@ const CardManagementTab = () => {
 
   return (
     <div className="p-4 md:p-8 w-full max-w-7xl mx-auto flex flex-col h-full fade-in font-['DM_Sans']">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 pb-4 border-b border-zinc-200">
-        <div>
-          <h2 className="text-2xl font-bold text-[#1a0f2e] tracking-tight">Promotional Cards Management</h2>
-          <p className="text-zinc-500 text-sm mt-1">Create, edit, and orchestrate the membership cards displayed in the mobile app.</p>
-        </div>
+      <div className="flex items-center justify-end mb-8 flex-wrap gap-3">
         <button
           onClick={() => handleOpenModal()}
           className="mt-4 md:mt-0 flex items-center justify-center gap-2 bg-[#3b2063] hover:bg-[#2d184b] text-white px-5 py-2.5 rounded-xl font-semibold shadow-md shadow-purple-900/20 transition-all hover:-translate-y-0.5"

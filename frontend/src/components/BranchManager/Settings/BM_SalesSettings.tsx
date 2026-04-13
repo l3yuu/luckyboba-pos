@@ -166,16 +166,15 @@ const BM_SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
                 </div>
 
                 <div className="flex-1 overflow-y-auto pr-1 space-y-4">
-                  {/* BCODE */}
-                  <div className="space-y-1.5">
-                    <p className="bm-label" style={{ color: '#a1a1aa' }}>BCODE</p>
-                    <input type="text" value={formData.bcode}
-                      onChange={e => setFormData({ ...formData, bcode: e.target.value })}
-                      className={inputCls} style={inputStyle} />
+                  {/* BCODE — read only for BM */}
+                  <div className="space-y-1.5 opacity-70">
+                    <p className="bm-label" style={{ color: '#a1a1aa' }}>BCODE (Read-Only)</p>
+                    <input type="text" value={formData.bcode} disabled
+                      className={disabledInputCls} style={inputStyle} />
                   </div>
 
                   {/* POS Type — disabled */}
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 opacity-70">
                     <p className="bm-label" style={{ color: '#a1a1aa' }}>POS Type</p>
                     <input type="text" value="RESTO" disabled
                       className={disabledInputCls}
@@ -221,10 +220,7 @@ const BM_SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
                   {/* Toggles */}
                   <div className="bg-white border border-gray-100 rounded-xl p-4 space-y-3">
                     {([
-                      { key: 'transDateDay',   label: 'Trans. by Date/Day (24H Cutoff)' },
-                      { key: 'transPerLine',   label: 'Transaction Per Line' },
-                      { key: 'vatable',        label: 'Vatable (Non-VAT Reg)' },
-                      { key: 'onlineCustomer', label: 'Online Customer' },
+                      { key: 'onlineCustomer', label: 'Online Customer Acceptance' },
                       { key: 'tableLayout',    label: 'Table & Room Layout' },
                     ] as const).map(({ key, label }) => (
                       <label key={key} className="flex items-center gap-3 cursor-pointer group">
@@ -243,6 +239,18 @@ const BM_SalesSettings = ({ isOpen, onClose }: SalesSettingsProps) => {
                         </span>
                       </label>
                     ))}
+                    {/* Read-only policies */}
+                    <div className="pt-2 border-t border-gray-50 mt-2 space-y-2 opacity-50">
+                       <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Fixed System Policies</p>
+                       <div className="flex items-center gap-2">
+                          <Check size={10} className="text-[#3b2063]" />
+                          <span className="text-[11px] font-bold text-[#1a0f2e]">Trans. by Date/Day</span>
+                       </div>
+                       <div className="flex items-center gap-2">
+                          <Check size={10} className="text-[#3b2063]" />
+                          <span className="text-[11px] font-bold text-[#1a0f2e]">Vatable (Non-VAT Reg)</span>
+                       </div>
+                    </div>
                   </div>
                 </div>
 

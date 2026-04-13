@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   LayoutDashboard, Users, BarChart2, ShoppingBag,
   Package, Settings as SettingsIcon, LogOut,
-  ChevronDown, Activity, Monitor, Trash2, X, Smartphone, Tag,
+  ChevronDown, Activity, Monitor, Trash2, X, Smartphone, Tag, Award,
 } from 'lucide-react';
 
 // ── Styles (mirrored from SuperAdminSidebar) ──────────────────────────────────
@@ -248,6 +248,7 @@ const getToken = () =>
 const salesItems = [
   { tab: 'sales-dashboard', label: 'Sales Dashboard' },
   { tab: 'items-report', label: 'Items Report' },
+  { tab: 'expenses', label: 'Branch Expenses' },
   { tab: 'x-reading', label: 'X-Reading' },
   { tab: 'z-reading', label: 'Z-Reading' },
 ];
@@ -486,6 +487,8 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
           <p className="px-2 pt-4 pb-1 text-[0.58rem] font-bold uppercase tracking-widest text-zinc-400">Home</p>
           {[
             { tab: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={14} /> },
+            { tab: 'live-pulse', label: 'Live Pulse', icon: <Activity size={14} /> },
+            { tab: 'staff-performance', label: 'Staff Performance', icon: <Award size={14} /> },
             { tab: 'users', label: 'User Management', icon: <Users size={14} /> },
             { tab: 'device-management', label: 'Device Management', icon: <Monitor size={14} /> },
           ].map(t => (
@@ -617,6 +620,8 @@ const BranchManagerSidebar: React.FC<BranchManagerSidebarProps> = ({
               <div className="bm-sec">Home</div>
               {[
                 { tab: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
+                { tab: 'live-pulse', label: 'Live Pulse', icon: <Activity size={18} /> },
+                { tab: 'staff-performance', label: 'Staff Performance', icon: <Award size={18} /> },
                 { tab: 'users', label: 'User Management', icon: <Users size={18} /> },
                 { tab: 'device-management', label: 'Device Management', icon: <Monitor size={18} /> },
               ].map(t => (

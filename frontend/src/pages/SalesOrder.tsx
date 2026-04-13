@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useOfflineQueue } from '../hooks/useOfflineQueue'
 import OfflineQueueBanner from '../components/Cashier/SalesOrderComponents/OfflineQueueBanner'
@@ -119,13 +119,13 @@ const SalesOrder = () => {
   const [checkingCashIn, setCheckingCashIn] = useState(true)
 
   // Menu / category
-  const [categories, setCategories] = useState<Category[]>(() => {
+  const [categories] = useState<Category[]>(() => {
     const cached = localStorage.getItem('pos_menu_cache')
     return cached ? JSON.parse(cached) : []
   })
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null)
   const [categorySize, setCategorySize] = useState<string | null>(null)
-  const [isMenuLoading, setIsMenuLoading] = useState(false)
+  const [loading] = useState(!localStorage.getItem('pos_menu_cache'))
   const [searchQuery, setSearchQuery] = useState('')
 
   // Item selection modal
@@ -267,21 +267,15 @@ const SalesOrder = () => {
 
   // ── Derived values ──────────────────────────────────────────────────────────
 
-  const activeModalCategory = selectedItem 
-    ? categories.find(cat => cat.menu_items.some(mi => mi.id === selectedItem.id)) 
-    : selectedCategory;
-  
-  const targetCategory = activeModalCategory ?? selectedCategory;
+  const isDrink = selectedCategory?.type === 'drink' || selectedCategory?.category_type === 'bundle'
+  const isWings = selectedCategory?.category_type === 'wings'
+  const isOz = selectedCategory?.name === 'HOT DRINKS' || selectedCategory?.name === 'HOT COFFEE'
+  const isCombo = selectedCategory?.category_type === 'combo'
+  const isWaffleCategory = selectedCategory?.category_type === 'waffle'
+  const categoryHasOnlyOneSize = (selectedCategory?.sub_categories?.length ?? 0) <= 1
 
-  const isDrink = targetCategory?.type === 'drink' || targetCategory?.category_type === 'bundle'
-  const isWings = targetCategory?.category_type === 'wings'
-  const isOz = targetCategory?.name === 'HOT DRINKS' || targetCategory?.name === 'HOT COFFEE'
-  const isCombo = targetCategory?.category_type === 'combo'
-  const isWaffleCategory = targetCategory?.category_type === 'waffle'
-  const categoryHasOnlyOneSize = (targetCategory?.sub_categories?.length ?? 0) <= 1
-
-  const isFoodCategory = targetCategory?.category_type === 'food' ||
-    targetCategory?.category_type === 'wings';
+  const isFoodCategory = selectedCategory?.category_type === 'food' ||
+    selectedCategory?.category_type === 'wings';
 
   const filteredAddOns = addOnsData.filter(a => {
     if (isWaffleCategory) return a.category === 'waffle';
@@ -291,142 +285,90 @@ const SalesOrder = () => {
 
   const totalCount = cart.reduce((acc, item) => acc + item.qty, 0)
 
-  const {
-    grossSubtotal,
-    itemDiscountTotal,
-    eligibleForPromo,
-    scDiscount,
-    pwdDiscount,
-    paxSenior,
-    paxPwd,
-    promoDiscount,
-    orderLevelDiscount,
-    vatExemptSales,
-    vatableSales,
-    vatAmount,
-    amtDue,
-    totalDiscountDisplay,
-    subtotal,
-    change,
-    isVat,
-    scPct,
-    pwdPct
-  } = useMemo(() => {
-    const isVat = vatType === 'vat'
-    
-    const grossSubtotal = cart.reduce(
-      (acc, item) => acc + (item.originalPrice ?? item.finalPrice) + getItemSurcharge(item),
-      0
-    )
+  const grossSubtotal = cart.reduce(
+    (acc, item) => acc + (item.originalPrice ?? item.finalPrice) + getItemSurcharge(item),
+    0
+  )
 
-    const itemDiscountTotal = cart.reduce((acc, item) => {
-      if (!item.discountType || item.discountType === 'none') return acc
-      if (!item.discountValue || Number(item.discountValue) === 0) return acc
-      const discountVal = Number(item.discountValue)
-      const discountAmt =
-        item.discountType === 'percent'
-          ? Number(item.price) * item.qty * (discountVal / 100)
-          : Math.min(discountVal, Number(item.price) * item.qty)
-      return acc + discountAmt
-    }, 0)
+  const itemDiscountTotal = cart.reduce((acc, item) => {
+    if (!item.discountType || item.discountType === 'none') return acc
+    if (!item.discountValue || Number(item.discountValue) === 0) return acc
+    const discountVal = Number(item.discountValue)
+    const discountAmt =
+      item.discountType === 'percent'
+        ? Number(item.price) * item.qty * (discountVal / 100)
+        : Math.min(discountVal, Number(item.price) * item.qty)
+    return acc + discountAmt
+  }, 0)
 
-    const eligibleForPromo = cart
-      .filter(item => !item.discountId)
-      .reduce((acc, item) => acc + Number(item.price) * item.qty + getItemSurcharge(item), 0)
+  const eligibleForPromo = cart
+    .filter(item => !item.discountId)
+    .reduce((acc, item) => acc + Number(item.price) * item.qty + getItemSurcharge(item), 0)
 
-    const scDiscount = discounts.find(d => d.name.toUpperCase().includes('SENIOR'))
-    const pwdDiscount = discounts.find(
-      d => d.name.toUpperCase().includes('PWD') || d.name.toUpperCase().includes('DIPLOMAT')
-    )
-    const scPct = scDiscount ? Number(scDiscount.amount) : 20
-    const pwdPct = pwdDiscount ? Number(pwdDiscount.amount) : 20
+  const isVat = vatType === 'vat'
 
-    let totalPaxDiscount = 0
-    let totalVatExemptSales = 0
+  // ── PAX discount from explicit per-unit assignments ───────────────────────
+  const scDiscount = discounts.find(d => d.name.toUpperCase().includes('SENIOR'))
+  const pwdDiscount = discounts.find(
+    d => d.name.toUpperCase().includes('PWD') || d.name.toUpperCase().includes('DIPLOMAT')
+  )
+  const scPct = scDiscount ? Number(scDiscount.amount) : 20
+  const pwdPct = pwdDiscount ? Number(pwdDiscount.amount) : 20
 
-    cart.forEach((item, cartIndex) => {
-      const assignments = itemPaxAssignments[String(cartIndex)] ?? []
-      assignments.forEach(assignment => {
-        if (assignment === 'none') return
-        const unitPrice = Number(item.price)
-        // Round each unit's VAT-exempt price and discount to ensure sum-of-parts matches total
-        const unitVatExcl = isVat ? round(unitPrice / 1.12) : unitPrice
-        const pct = assignment === 'sc' ? scPct : pwdPct
-        const discAmt = round(unitVatExcl * (pct / 100))
-        
-        totalPaxDiscount += discAmt
-        totalVatExemptSales += unitVatExcl
-      })
+  let totalPaxDiscount = 0
+  let totalVatExemptSales = 0
+
+  cart.forEach((item, cartIndex) => {
+    const assignments = itemPaxAssignments[String(cartIndex)] ?? []
+    assignments.forEach(assignment => {
+      if (assignment === 'none') return
+      const unitPrice = Number(item.price)
+      const unitVatExcl = isVat ? unitPrice / 1.12 : unitPrice
+      const pct = assignment === 'sc' ? scPct : pwdPct
+      const discAmt = unitVatExcl * (pct / 100)
+      totalPaxDiscount += discAmt
+      totalVatExemptSales += unitVatExcl
     })
+  })
 
-    const totalPaxDiscountRounded = round(totalPaxDiscount)
-    const totalVatExemptSalesRounded = round(totalVatExemptSales)
-    const hasPaxDiscount = totalPaxDiscountRounded > 0
+  totalPaxDiscount = round(totalPaxDiscount)
+  totalVatExemptSales = round(totalVatExemptSales)
 
-    const paxSenior = Object.values(itemPaxAssignments)
-      .flat()
-      .filter(a => a === 'sc').length
-    const paxPwd = Object.values(itemPaxAssignments)
-      .flat()
-      .filter(a => a === 'pwd').length
+  const hasPaxDiscount = totalPaxDiscount > 0
 
-    const promoDiscount = selectedDiscount
-      ? selectedDiscount.type.includes('Percent')
-        ? eligibleForPromo * (Number(selectedDiscount.amount) / 100)
-        : Number(selectedDiscount.amount)
-      : 0
+  // ── Derived pax counts for backend ───────────────────────────────────────
+  const paxSenior = Object.values(itemPaxAssignments)
+    .flat()
+    .filter(a => a === 'sc').length
+  const paxPwd = Object.values(itemPaxAssignments)
+    .flat()
+    .filter(a => a === 'pwd').length
 
-    const orderLevelDiscount = totalPaxDiscountRounded + promoDiscount
+  // ── Promo discount ────────────────────────────────────────────────────────
+  const promoDiscount = selectedDiscount
+    ? selectedDiscount.type.includes('Percent')
+      ? eligibleForPromo * (Number(selectedDiscount.amount) / 100)
+      : Number(selectedDiscount.amount)
+    : 0
 
-    const vatExemptSales = isVat && hasPaxDiscount ? Math.max(0, round(totalVatExemptSalesRounded - totalPaxDiscountRounded)) : 0
+  const orderLevelDiscount = totalPaxDiscount + promoDiscount
 
-    const vatableBase = isVat
-      ? Math.max(0, round(grossSubtotal - totalVatExemptSalesRounded * 1.12 - itemDiscountTotal - promoDiscount))
-      : 0
-    const vatableSales = isVat ? round(vatableBase / 1.12) : 0
-    const vatAmount    = isVat ? round(vatableBase - vatableSales) : 0
+  // ── VAT split ─────────────────────────────────────────────────────────────
+  const vatExemptSales = isVat && hasPaxDiscount ? Math.max(0, round(totalVatExemptSales - totalPaxDiscount)) : 0
 
-    const amtDue = isVat
-      ? Math.max(0, round(vatableBase + vatExemptSales))
-      : Math.max(0, round(grossSubtotal - itemDiscountTotal - orderLevelDiscount))
+  const vatableBase = isVat
+    ? Math.max(0, round(grossSubtotal - totalVatExemptSales * 1.12 - itemDiscountTotal - promoDiscount))
+    : 0
+  const vatableSales = isVat ? round(vatableBase / 1.12) : 0
+  const vatAmount    = isVat ? round(vatableBase - vatableSales) : 0
 
-    const totalDiscountDisplay = itemDiscountTotal + totalPaxDiscountRounded + promoDiscount
-    const change = typeof cashTendered === 'number' ? Math.max(0, cashTendered - amtDue) : 0
-    const subtotal = grossSubtotal - itemDiscountTotal
+  const amtDue = isVat
+    ? Math.max(0, round(vatableBase + vatExemptSales))
+    : Math.max(0, round(grossSubtotal - itemDiscountTotal - orderLevelDiscount))
 
-    return {
-      grossSubtotal,
-      itemDiscountTotal,
-      eligibleForPromo,
-      scDiscount,
-      pwdDiscount,
-      totalPaxDiscount: totalPaxDiscountRounded,
-      totalVatExemptSales: totalVatExemptSalesRounded,
-      hasPaxDiscount,
-      paxSenior,
-      paxPwd,
-      promoDiscount,
-      orderLevelDiscount,
-      vatExemptSales,
-      vatableBase,
-      vatableSales,
-      vatAmount,
-      amtDue,
-      totalDiscountDisplay,
-      subtotal,
-      change,
-      isVat,
-      scPct,
-      pwdPct
-    }
-  }, [
-    cart, 
-    itemPaxAssignments, 
-    discounts, 
-    selectedDiscount, 
-    vatType, 
-    cashTendered
-  ])
+  const totalDiscountDisplay = itemDiscountTotal + totalPaxDiscount + promoDiscount
+  const change = typeof cashTendered === 'number' ? Math.max(0, cashTendered - amtDue) : 0
+  const subtotal = grossSubtotal - itemDiscountTotal
 
   // ── Sync selectedDiscounts for backend/receipt ────────────────────────────
   useEffect(() => {
@@ -472,17 +414,23 @@ const SalesOrder = () => {
   const syncNextSequence = async () => {
     try {
       const { data } = await api.get('/receipts/next-sequence')
-      const serverSeq   = parseInt(data.next_sequence, 10)
-      const serverQueue = parseInt(data.next_queue, 10) || 1
-
+      const serverSeq = parseInt(data.next_sequence, 10)
       if (!isNaN(serverSeq)) {
         localStorage.setItem(seqKey, String(serverSeq))
         setOrNumber(generateORNumber(serverSeq))
 
-        // ✅ SYNC QUEUE FROM SERVER
-        localStorage.setItem(queueKey,  String(serverQueue))
-        localStorage.setItem(queueDate, new Date().toDateString())
-        setQueueNumber(generateQueueNumber(serverQueue))
+        const today     = new Date().toDateString()
+        const savedDate = localStorage.getItem(queueDate)
+        const isNewDay  = savedDate !== today
+
+        if (isNewDay) {
+          localStorage.setItem(queueKey,  '1')
+          localStorage.setItem(queueDate, today)
+          setQueueNumber(generateQueueNumber(1))
+        } else {
+          const lastQueue = parseInt(localStorage.getItem(queueKey) || '1', 10)
+          setQueueNumber(generateQueueNumber(lastQueue))
+        }
       }
     } catch {
       // ── Offline fallback ───────────────────────────────────────────────────
@@ -505,53 +453,7 @@ const SalesOrder = () => {
     }
   }
 
-  const fetchMenu = async () => {
-    setIsMenuLoading(true)
-    try {
-      const { data } = await api.get('/menu')
-      if (Array.isArray(data)) {
-        setCategories(data)
-        localStorage.setItem('pos_menu_cache', JSON.stringify(data))
-      }
-    } catch {
-      showToast('Failed to sync menu structure', 'error')
-    } finally {
-      setIsMenuLoading(false)
-    }
-  }
-
   // ── Effects ─────────────────────────────────────────────────────────────────
-
-  useEffect(() => {
-    // 1. Local Broadcast polling for same-browser windows
-    const channel = new BroadcastChannel('pos-updates');
-    channel.onmessage = (e) => {
-      if (e.data === 'menu-updated') fetchMenu();
-    };
-
-    // 2. Remote polling interval for cross-device syncing
-    let lastVersion = 0;
-    const pollVersion = async () => {
-      try {
-        const res = await api.get('/menu/version');
-        const currentVersion = res.data?.version;
-        if (currentVersion) {
-          if (lastVersion === 0) {
-            lastVersion = currentVersion;
-          } else if (currentVersion > lastVersion) {
-            lastVersion = currentVersion;
-            fetchMenu();
-          }
-        }
-      } catch { /* silent */ }
-    };
-    const interval = setInterval(pollVersion, 10000); // Check every 10 seconds
-
-    return () => {
-      channel.close();
-      clearInterval(interval);
-    };
-  }, []);
 
   useEffect(() => {
     const boot = async () => {
@@ -566,7 +468,6 @@ const SalesOrder = () => {
     }
     boot()
     syncNextSequence()
-    fetchMenu()
 
     if (branchId) {
       api.get(`/branches/${branchId}`).then(({ data }) => {
@@ -908,9 +809,8 @@ const SalesOrder = () => {
   // ── Add to order ───────────────────────────────────────────────────────────
 
   const addToOrder = () => {
-    const activeCat = categories.find(cat => cat.menu_items.some(mi => mi.id === selectedItem?.id)) ?? selectedCategory;
-    if (!selectedItem || !activeCat) return;
-    const isWaffle = activeCat?.name?.toLowerCase().includes('waffle');
+    if (!selectedItem || !selectedCategory) return;
+    const isWaffle = selectedCategory?.name?.toLowerCase().includes('waffle');
     let extraCost = 0;
     if (isDrink || isWaffle || isFoodCategory) {
       selectedAddOns.forEach(name => {
@@ -1447,11 +1347,11 @@ const SalesOrder = () => {
 
   // ── Loading screen ─────────────────────────────────────────────────────────
 
-  if (checkingCashIn || isMenuLoading)
+  if (checkingCashIn || loading)
     return (
-      <div className="h-screen flex items-center justify-center font-black text-[#3b2063] bg-[#f4f2fb]">
+      <div className="h-screen flex items-center justify-center font-black text-[#7c14d4] bg-[#f4f2fb]">
         <div className="text-center">
-          <DrinkIcon className="w-16 h-16 mx-auto mb-4 text-[#3b2063]/30 animate-pulse" />
+          <DrinkIcon className="w-16 h-16 mx-auto mb-4 text-[#7c14d4]/30 animate-pulse" />
           <div className="text-sm tracking-widest uppercase opacity-50">Loading...</div>
         </div>
       </div>
@@ -1492,62 +1392,21 @@ const SalesOrder = () => {
     <>
       <style>{`
         @media print {
-          @page { 
-            ${printTarget === 'stickers' ? 'size: 38.5mm 50.8mm;' : 'size: 80mm auto;'} 
-            margin: 0 !important; 
-          }
-          html, body { 
-            margin: 0 !important; 
-            padding: 0 !important; 
-            width: ${printTarget === 'stickers' ? '38.5mm' : '80mm'} !important;
-            height: auto !important;
-            overflow: visible !important;
-            background: white !important;
-          }
-          body * { visibility: hidden !important; }
+          @page { ${printTarget === 'stickers' ? 'size: 38.5mm 50.8mm;' : 'size: 80mm auto;'} margin: 0 !important; }
+          html, body { margin: 0 !important; padding: 0 !important; }
+          body * { visibility: hidden; }
           nav, header, aside, button, .print\\:hidden { display: none !important; }
           img { display: block !important; }
           .printable-receipt-container, .printable-receipt-container * { visibility: visible !important; }
           .printable-receipt-container {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            display: block !important;
-            width: ${printTarget === 'stickers' ? '38.5mm' : '100%'} !important;
+            position: static !important;
+            width: 100% !important;
             max-width: ${printTarget === 'stickers' ? '38.5mm' : '76mm'} !important;
-            margin: 0 !important;
-            padding: 0 !important;
+            margin: 0 !important; padding: 0 !important;
             height: auto !important;
-            overflow: visible !important;
           }
-          .receipt-area { 
-            position: relative !important;
-            width: 66mm !important; 
-            margin: 0 auto !important; 
-            padding: 2mm 0 !important; 
-            box-sizing: border-box !important; 
-            color: #000 !important; 
-            font-family: Arial, Helvetica, sans-serif !important; 
-            font-size: 12px !important; 
-            line-height: 1.4 !important; 
-          }
-          .sticker-area { 
-            width: 38.5mm !important; 
-            height: 50.8mm !important; 
-            padding: 2mm !important; 
-            margin: 0 auto !important; 
-            box-sizing: border-box !important; 
-            color: #000 !important; 
-            display: flex !important; 
-            flex-direction: column !important; 
-            justify-content: space-between !important; 
-            align-items: center !important; 
-            text-align: center !important; 
-            font-family: Arial, Helvetica, sans-serif !important; 
-            overflow: hidden !important; 
-            page-break-after: always !important; 
-            break-after: page !important; 
-          }
+          .receipt-area { width: 66mm !important; margin: 0 auto !important; padding: 2mm 0 !important; box-sizing: border-box !important; color: #000 !important; font-family: Arial, Helvetica, sans-serif !important; font-size: 12px !important; line-height: 1.4 !important; }
+          .sticker-area { width: 38.5mm !important; height: 50.8mm !important; padding: 2mm !important; margin: 0 auto !important; box-sizing: border-box !important; color: #000 !important; display: flex !important; flex-direction: column !important; justify-content: space-between !important; align-items: center !important; text-align: center !important; font-family: Arial, Helvetica, sans-serif !important; overflow: hidden !important; page-break-after: always !important; break-after: page !important; }
           .queue-stub { page-break-before: always !important; break-before: page !important; }
         }
       `}</style>
@@ -1783,8 +1642,6 @@ const SalesOrder = () => {
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onHomeClick={() => handleNavClick('Home')}
-          onRefresh={fetchMenu}
-          isRefreshing={isMenuLoading}
         />
 
         <OfflineQueueBanner
@@ -1817,8 +1674,8 @@ const SalesOrder = () => {
                 <span
                   className={`text-xs font-semibold shrink-0 px-2 py-1.5 rounded-lg transition-colors ${
                     !categorySize
-                      ? 'text-[#3b2063] bg-[#3b2063]/10'
-                      : 'text-zinc-400 hover:text-[#3b2063] hover:bg-zinc-100 cursor-pointer'
+                      ? 'text-[#7c14d4] bg-[#7c14d4]/10'
+                      : 'text-zinc-400 hover:text-[#7c14d4] hover:bg-zinc-100 cursor-pointer'
                   }`}
                   onClick={() => { if (categorySize && !categoryHasOnlyOneSize) setCategorySize(null); }}
                 >
@@ -1830,7 +1687,7 @@ const SalesOrder = () => {
             {selectedCategory && categorySize && !categoryHasOnlyOneSize && (
               <>
                 <ChevronRight size={11} className="text-zinc-300 shrink-0" />
-                <span className="text-xs font-bold text-[#3b2063] bg-[#3b2063]/10 px-2 py-1.5 rounded-lg shrink-0">
+                <span className="text-xs font-bold text-[#7c14d4] bg-[#7c14d4]/10 px-2 py-1.5 rounded-lg shrink-0">
                   {categorySize}
                 </span>
               </>
@@ -1858,8 +1715,8 @@ const SalesOrder = () => {
                   onClick={() => setActiveCategoryGroup(isActive ? null : group.key)}
                   className={`shrink-0 flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-semibold transition-all border ${
                     isActive
-                      ? 'bg-[#3b2063] text-white border-[#3b2063] shadow-sm'
-                      : 'bg-zinc-50 text-zinc-500 border-zinc-200 hover:border-[#3b2063]/40 hover:text-[#3b2063] hover:bg-violet-50'
+                      ? 'bg-[#7c14d4] text-white border-[#7c14d4] shadow-sm'
+                      : 'bg-zinc-50 text-zinc-500 border-zinc-200 hover:border-[#7c14d4]/40 hover:text-[#7c14d4] hover:bg-violet-50'
                   }`}
                 >
                   <span>{group.label}</span>
@@ -1933,11 +1790,6 @@ const SalesOrder = () => {
           promoDiscount={promoDiscount}
           itemPaxAssignments={itemPaxAssignments}
           posFooter={posFooter}
-          receiptFooter={posFooter.receipt_footer}
-          businessName={posFooter.business_name}
-          businessEmail={posFooter.contact_email}
-          businessPhone={posFooter.contact_phone}
-          businessAddress={posFooter.address}
         />
       )}
       {printTarget === 'kitchen'  && <KitchenPrint  {...printProps} />}

@@ -193,33 +193,27 @@ const CrossBranchTab: React.FC = () => {
   return (
     <div className="p-6 md:p-8 fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Cross-Branch Reports</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">Consolidated performance across all locations</p>
+      <div className="flex flex-wrap items-center justify-end gap-3 mb-5">
+        <div className="flex rounded-lg overflow-hidden border border-zinc-200">
+          {(["daily", "weekly", "monthly"] as const).map(p => (
+            <button key={p} onClick={() => setPeriod(p)} disabled={loading}
+              className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 ${period === p ? "bg-[#3b2063] text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}>
+              {p}
+            </button>
+          ))}
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex rounded-lg overflow-hidden border border-zinc-200">
-            {(["daily", "weekly", "monthly"] as const).map(p => (
-              <button key={p} onClick={() => setPeriod(p)} disabled={loading}
-                className={`px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors disabled:opacity-50 ${period === p ? "bg-[#3b2063] text-white" : "bg-white text-zinc-500 hover:bg-zinc-50"}`}>
-                {p}
-              </button>
-            ))}
-          </div>
-          <Btn variant="secondary" onClick={fetchAll} disabled={loading}>
-            <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
+        <Btn variant="secondary" onClick={fetchAll} disabled={loading}>
+          <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
+        </Btn>
+        <div className="flex items-center gap-1.5">
+          <select value={exportBranchId} onChange={e => setExportBranchId(e.target.value)}
+            className="appearance-none text-[10px] font-bold uppercase tracking-wider text-zinc-600 bg-white border border-zinc-200 rounded-lg pl-2.5 pr-6 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
+            <option value="">All Branches</option>
+            {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
+          </select>
+          <Btn variant="secondary" onClick={handleExport} disabled={loading}>
+            <Download size={13} /> Export CSV
           </Btn>
-          <div className="flex items-center gap-1.5">
-            <select value={exportBranchId} onChange={e => setExportBranchId(e.target.value)}
-              className="appearance-none text-[10px] font-bold uppercase tracking-wider text-zinc-600 bg-white border border-zinc-200 rounded-lg pl-2.5 pr-6 py-2 outline-none focus:ring-2 focus:ring-violet-400 cursor-pointer">
-              <option value="">All Branches</option>
-              {branches.map(b => <option key={b.id} value={String(b.id)}>{b.name}</option>)}
-            </select>
-            <Btn variant="secondary" onClick={handleExport} disabled={loading}>
-              <Download size={13} /> Export CSV
-            </Btn>
-          </div>
         </div>
       </div>
 

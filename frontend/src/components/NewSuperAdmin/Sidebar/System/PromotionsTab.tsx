@@ -666,11 +666,7 @@ const PromotionsTab: React.FC = () => {
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Promotions & Discounts</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">Manage system-wide discounts across all branches</p>
-        </div>
+      <div className="flex items-center justify-end mb-5 flex-wrap gap-3">
         <div className="flex items-center gap-2">
           <Btn variant="secondary" onClick={fetchAll} disabled={loading}>
             <RefreshCw size={12} className={loading ? "animate-spin" : ""} />

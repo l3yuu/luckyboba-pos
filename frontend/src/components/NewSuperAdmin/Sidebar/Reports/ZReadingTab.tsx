@@ -233,6 +233,9 @@ const ZReadingTab: React.FC = () => {
   const phCurrency = new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" });
   const vatType = (localStorage.getItem("lucky_boba_user_branch_vat") ?? "vat") as "vat" | "non_vat";
   const isVat = vatType === "vat";
+  const [zStatus, setZStatus] = useState<{ exists: boolean; is_closed: boolean; has_sales: boolean } | null>(null);
+  const [gaps, setGaps] = useState<string[]>([]);
+  const [checkingStatus, setCheckingStatus] = useState(false);
 
   const fmt = (v: number) => `₱${Number(v ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
@@ -240,6 +243,39 @@ const ZReadingTab: React.FC = () => {
     setToast(msg);
     setTimeout(() => setToast(""), 3500);
   };
+
+  const fetchStatus = useCallback(async () => {
+    if (!branchId) return;
+    setCheckingStatus(true);
+    try {
+      const res = await fetch(`/api/reports/z-reading/status?date=${dateFrom}&branch_id=${branchId}`, { headers: authHeaders() });
+      const json = await res.json();
+      if (json.success) setZStatus(json.data);
+    } catch (err) {
+      console.error("Status check failed", err);
+    } finally {
+      setCheckingStatus(false);
+    }
+  }, [branchId, dateFrom]);
+
+  const fetchGaps = useCallback(async () => {
+    if (!branchId) return;
+    try {
+      const res = await fetch(`/api/reports/z-reading/gaps?branch_id=${branchId}`, { headers: authHeaders() });
+      const json = await res.json();
+      if (json.success) setGaps(json.data);
+    } catch (err) {
+      console.error("Gap check failed", err);
+    }
+  }, [branchId]);
+
+  useEffect(() => {
+    fetchGaps();
+  }, [fetchGaps, branchId]);
+
+  useEffect(() => {
+    fetchStatus();
+  }, [fetchStatus, branchId, dateFrom]);
 
 
 
@@ -1234,12 +1270,35 @@ const handlePrint = () => window.print();
         />
       )}
 
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between flex-wrap gap-3 print:hidden">
-        <div>
-          <h2 className="text-base font-bold text-[#1a0f2e]">Z Reading</h2>
-          <p className="text-xs text-zinc-400 mt-0.5">End-of-day closing report — finalizes and locks shift totals</p>
+      {/* ── GAP WARNING BANNER ── */}
+      {gaps.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 p-4 flex items-center justify-between shadow-sm rounded-[1.25rem] print:hidden">
+          <div className="flex items-center gap-3">
+            <div className="bg-amber-100 p-2 rounded-full text-amber-600">
+              <AlertCircle size={20} />
+            </div>
+            <div>
+              <h4 className="text-amber-900 font-bold text-sm uppercase tracking-tight">Missing Z-Readings detected</h4>
+              <p className="text-amber-700 text-[10px] font-bold leading-tight mt-0.5 uppercase tracking-wide">There are {gaps.length} days with sales that haven't been finalized for this branch.</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+             {gaps.slice(0, 3).map(gapDate => (
+               <button 
+                key={gapDate} 
+                onClick={() => { setDateFrom(gapDate); setDateTo(gapDate); }}
+                className="bg-white border border-amber-300 text-amber-700 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-amber-100 transition-colors"
+               >
+                 {gapDate}
+               </button>
+             ))}
+             {gaps.length > 3 && <span className="text-amber-500 font-bold self-center text-xs">+{gaps.length - 3} more</span>}
+          </div>
         </div>
+      )}
+
+      {/* ── Header ── */}
+      <div className="flex flex-wrap items-center justify-end gap-3 mb-1 print:hidden">
         <div className="flex items-center gap-2 flex-wrap">
           <div className="relative" ref={menuRef}>
             <button
@@ -1320,8 +1379,27 @@ const handlePrint = () => window.print();
         </div>
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Date From</p>
-          <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-            className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
+          <div className="relative flex items-center">
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
+              className="text-sm font-medium text-zinc-700 bg-zinc-50 border border-zinc-200 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-violet-400" />
+            <div className="ml-2">
+              {checkingStatus ? (
+                <div className="w-4 h-4 border-2 border-[#3b2063] border-t-transparent rounded-full animate-spin" />
+              ) : zStatus?.is_closed ? (
+                <span className="flex items-center gap-1 bg-emerald-100 text-emerald-700 px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest border border-emerald-200">
+                  <CheckCircle size={10} /> Closed
+                </span>
+              ) : zStatus?.has_sales ? (
+                <span className="flex items-center gap-1 bg-amber-100 text-amber-700 px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest border border-amber-200">
+                  Pending
+                </span>
+              ) : (
+                <span className="flex items-center gap-1 bg-zinc-100 text-zinc-400 px-2 py-1 rounded-md text-[8px] font-black uppercase tracking-widest border border-zinc-200">
+                  Empty
+                </span>
+              )}
+            </div>
+          </div>
         </div>
         <div>
           <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-1.5">Date To</p>

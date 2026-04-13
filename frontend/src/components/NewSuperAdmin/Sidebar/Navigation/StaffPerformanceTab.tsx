@@ -125,16 +125,10 @@ const StaffPerformanceTab = () => {
 
   if (loading && data.length === 0) return (
     <div className="p-6 md:p-8 space-y-6 fade-in">
-      <div className="flex justify-between items-center">
-        <div className="flex gap-4">
-          <Skeleton className="w-12 h-12 rounded-2xl" />
-          <div className="space-y-2"><Skeleton className="w-48 h-6" /><Skeleton className="w-64 h-3" /></div>
-        </div>
-        <div className="flex gap-2">
-          <Skeleton className="w-24 h-9 rounded-lg" />
-          <Skeleton className="w-24 h-9 rounded-lg" />
-          <Skeleton className="w-24 h-9 rounded-lg" />
-        </div>
+      <div className="flex justify-end items-center gap-2">
+        <Skeleton className="w-24 h-9 rounded-lg" />
+        <Skeleton className="w-24 h-9 rounded-lg" />
+        <Skeleton className="w-24 h-9 rounded-lg" />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         {[...Array(5)].map((_, i) => <StatCardSkeleton key={i} />)}
@@ -150,35 +144,21 @@ const StaffPerformanceTab = () => {
   return (
     <div className="p-6 md:p-8 space-y-6 fade-in">
       {/* ── Header ── */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-[#3b2063] rounded-2xl flex items-center justify-center text-white shadow-lg shadow-purple-200">
-              <Award size={24} />
-            </div>
-            <div>
-              <h2 className="text-xl font-black text-[#1a0f2e] tracking-tight -mb-1">Staff Performance</h2>
-              <div className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <p className="text-[0.7rem] text-zinc-400 font-bold uppercase tracking-widest">Efficiency & Integrity Metrics</p>
-              </div>
-            </div>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex-1 min-w-[200px]">
+          <div className="relative group">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063] transition-colors" size={14} />
+            <input
+              type="text"
+              placeholder="Search staff..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 pr-4 py-2 bg-white border border-zinc-200 rounded-lg text-[0.7rem] font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all w-full max-w-sm shadow-sm"
+            />
           </div>
         </div>
 
-        <div className="flex items-center gap-2 text-right">
-          <div className="mr-4 hidden lg:block">
-            <div className="relative group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 group-focus-within:text-[#3b2063] transition-colors" size={14} />
-              <input
-                type="text"
-                placeholder="Search staff..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 pr-4 py-2 bg-white border border-zinc-200 rounded-full text-[0.7rem] font-medium focus:outline-none focus:ring-2 focus:ring-[#ede8ff] focus:border-[#3b2063] transition-all w-48 xl:w-64 shadow-sm"
-              />
-            </div>
-          </div>
+        <div className="flex items-center gap-2">
           {(["daily", "weekly", "monthly"] as const).map(p => (
             <button key={p} onClick={() => setPeriod(p)} disabled={loading}
               className={`px-4 py-2 text-xs font-bold rounded-lg transition-all capitalize disabled:opacity-50 ${period === p ? "bg-[#3b2063] text-white" : "bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-50"}`}>

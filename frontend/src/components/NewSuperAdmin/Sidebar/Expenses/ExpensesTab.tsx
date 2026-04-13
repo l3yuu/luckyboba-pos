@@ -470,11 +470,7 @@ const ExpensesTab: React.FC = () => {
     <div className="p-6 md:p-8 flex flex-col gap-6 bg-zinc-50 min-h-full">
       
       {/* ── Header ── */}
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h2 className="text-lg font-black text-[#1a0f2e]">Expenses Management</h2>
-          <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest mt-0.5">Track and analyze operational spending across all branches</p>
-        </div>
+      <div className="flex items-center justify-end mb-5 flex-wrap gap-4">
         <div className="flex items-center gap-2">
           <Btn variant="secondary" onClick={fetchAll} disabled={loading}>
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
