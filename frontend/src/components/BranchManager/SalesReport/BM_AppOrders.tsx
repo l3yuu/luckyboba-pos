@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  ShoppingBag, RefreshCw, ChevronDown, ChevronUp,
+  ShoppingBag, ChevronDown, ChevronUp,
   Clock, Package, Receipt, Search,
   Activity,
 } from 'lucide-react';
@@ -357,7 +357,7 @@ const BM_AppOrders = () => {
             />
           </div>
 
-          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)}
+          <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as StatusFilter)}
             className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all shrink-0 w-full md:w-auto">
             {STATUS_TABS.map(tab => (
               <option key={tab.key} value={tab.key}>

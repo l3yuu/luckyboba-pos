@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  Search, X, RefreshCw, Download, ChevronDown, ChevronUp,
+  Search, X, Download,
   BarChart3, TrendingUp, TrendingDown, Minus, Clock,
 } from 'lucide-react';
 import api from '../../../services/api';
@@ -180,36 +180,17 @@ const BM_InventoryReports: React.FC = () => {
   const [rows,          setRows]          = useState<UsageRow[]>([]);
   const [loading,       setLoading]       = useState(true);
   const [search,        setSearch]        = useState('');
-  const [catFilter,     setCatFilter]     = useState('');
-  const [varFilter,     setVarFilter]     = useState('');
-  const [branch,        setBranch]        = useState('');
-  const [branches,      setBranches]      = useState<Branch[]>([]);
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth());
-  const [selectedYear,  setSelectedYear]  = useState(now.getFullYear());
-  const [showGuide,     setShowGuide]     = useState(false);
-  const [drawerRow,     setDrawerRow]     = useState<UsageRow | null>(null);
-  const [exporting,     setExporting]     = useState(false);
-
-  const period = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`;
+  const PERIOD = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`;
 
   const fetchReport = useCallback(async () => {
     setLoading(true);
     try {
-      const [reportRes, branchRes] = await Promise.allSettled([
-        api.get('/inventory/usage-report', { params: { period, branch_id: branch || undefined } }),
-        api.get('/branches'),
-      ]);
-      if (reportRes.status === 'fulfilled') {
-        const d = reportRes.value.data;
-        setRows(Array.isArray(d) ? d : d?.data ?? []);
-      }
-      if (branchRes.status === 'fulfilled') {
-        const b = branchRes.value.data;
-        setBranches(Array.isArray(b) ? b : b?.data ?? []);
-      }
+      const res = await api.get('/inventory/usage-report', { params: { period: PERIOD } });
+      const d = res.data;
+      setRows(Array.isArray(d) ? d : d?.data ?? []);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
-  }, [period, branch]);
+  }, [PERIOD]);
 
   useEffect(() => { fetchReport(); }, [fetchReport]);
 
@@ -217,7 +198,7 @@ const BM_InventoryReports: React.FC = () => {
     setExporting(true);
     try {
       const res = await api.get('/inventory/usage-report/export', {
-        params: { period, branch_id: branch || undefined },
+        params: { period: PERIOD },
         responseType: 'blob',
       });
       const url  = URL.createObjectURL(res.data);
@@ -232,15 +213,8 @@ const BM_InventoryReports: React.FC = () => {
 
   const filtered = rows.filter(r => {
     const matchSearch = r.name.toLowerCase().includes(search.toLowerCase());
-    const matchCat    = catFilter ? r.category === catFilter : true;
-    const matchVar    = varFilter === 'negative' ? r.variance < 0
-                      : varFilter === 'positive' ? r.variance > 0
-                      : varFilter === 'zero'     ? r.variance === 0
-                      : true;
-    return matchSearch && matchCat && matchVar;
+    return matchSearch;
   });
-
-  const cats = [...new Set(rows.map(r => r.category))].filter(Boolean);
 
   // Summary stats
   const totalUsage  = rows.reduce((s, r) => s + r.usage, 0);
@@ -346,7 +320,7 @@ const BM_InventoryReports: React.FC = () => {
                 <tr><td colSpan={9} className="py-16 text-center">
                   <BarChart3 size={32} className="mx-auto text-zinc-200 mb-3" />
                   <p className="text-xs font-bold text-zinc-300 uppercase tracking-widest">
-                    {search || catFilter || varFilter ? 'No items match your filters' : 'No usage data for this period'}
+                    {search ? 'No items match your search' : 'No usage data for this period'}
                   </p>
                 </td></tr>
               ) : filtered.map(r => {
@@ -400,7 +374,7 @@ const BM_InventoryReports: React.FC = () => {
       {drawerRow && (
         <MovementDrawer
           row={drawerRow}
-          period={period}
+          period={PERIOD}
           onClose={() => setDrawerRow(null)}
         />
       )}

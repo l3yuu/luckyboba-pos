@@ -1,7 +1,7 @@
 // components/NewSuperAdmin/Tabs/DeviceManagementTab.tsx
 import { useState, useEffect } from "react";
 import {
-  Monitor, Plus, Trash2, AlertCircle, RefreshCw,
+  Monitor, Plus, Trash2, AlertCircle,
   X, CheckCircle, ToggleLeft, ToggleRight,
   MonitorCheck, MonitorOff, Search, Laptop,
   Link,

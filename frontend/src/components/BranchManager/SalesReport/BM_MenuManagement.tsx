@@ -276,7 +276,7 @@ const BM_MenuManagement = () => {
               {categories.filter(c => c !== 'all').map(cat => <option key={cat} value={cat}>{cat}</option>)}
             </select>
 
-            <select value={avFilter} onChange={e => setAvFilter(e.target.value as any)}
+            <select value={avFilter} onChange={e => setAvFilter(e.target.value as 'all' | 'available' | 'unavailable')}
               className="bg-white border border-zinc-200 rounded-xl px-4 py-3 text-xs font-bold text-zinc-600 outline-none shadow-sm cursor-pointer hover:bg-zinc-50 transition-all shrink-0 w-full md:w-auto">
               <option value="all">All Status</option>
               <option value="available">Available</option>

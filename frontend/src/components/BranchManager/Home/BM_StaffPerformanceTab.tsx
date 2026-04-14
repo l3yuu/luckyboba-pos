@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import {
   Users, TrendingUp, AlertTriangle, Search,
-  ChevronRight, Clock, ShieldAlert, Award, X, RefreshCw
+  ChevronRight, Clock, ShieldAlert, Award, X
 } from "lucide-react";
 
 interface StaffMetric {

@@ -1,7 +1,7 @@
 // components/BranchManager/MenuItems/BM_MenuList.tsx
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
-  Search, RefreshCw,
+  Search,
   AlertCircle, X, Package, ChevronDown,
   ToggleLeft, ToggleRight, Coffee,
 } from "lucide-react";
@@ -329,7 +329,7 @@ const BM_MenuList: React.FC = () => {
   const [error,           setError]           = useState("");
   const [search,          setSearch]          = useState("");
   const [filterCat,       setFilterCat]       = useState("");
-  const [filterAvail,     setFilterAvail]     = useState("");
+  const [filterAvail]     = useState("");
   const [filterType,      setFilterType]      = useState("");
   const [itemOptions,     setItemOptions]     = useState<Record<number, ItemOptions>>({});
   const [drinkPoolTarget, setDrinkPoolTarget] = useState<Category | null>(null);
